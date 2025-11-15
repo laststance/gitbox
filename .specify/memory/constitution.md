@@ -108,6 +108,7 @@ Follow-up TODOs: None
 - Commit messages should be in Japanese
 - PR descriptions and issue discussions must be in Japanese
 - Technical specifications (spec.md, plan.md, tasks.md) must be in Japanese
+- Use Emoji effectively in a chat 😊
 
 **Exceptions**:
 - Code itself (variable names, function names, class names) should follow English naming conventions
