@@ -6,15 +6,16 @@
   "lint-staged": {
     "*": "prettier --ignore-unknown --write",
     "*.{js,ts,jsx,tsx,cjs,mjs}": [
-      "eslint -c eslint.config.mjs --fix --max-warnings=0 --concurrently=auto"
+      "eslint -c eslint.config.mjs --fix --max-warnings=0"
     ]
   },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint . --max-warnings=0 --concurrently=auto",
-    "lint:fix": "eslint . --fix --max-warnings=0 --concurrently=auto",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix --max-warnings=0",
     "test": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

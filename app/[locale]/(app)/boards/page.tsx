@@ -17,7 +17,7 @@ export default async function BoardsPage({
 }: {
   params: { locale: string }
 }) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // 認証チェック（middleware でも行われるが二重チェック）
   const {

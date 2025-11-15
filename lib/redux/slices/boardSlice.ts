@@ -19,10 +19,14 @@ interface DragOperation {
   timestamp: number
 }
 
+// Immer の型推論問題を回避するため、再帰的な Json 型を unknown に変換
+type SimplifiedBoard = Omit<Board, 'settings'> & { settings: unknown }
+type SimplifiedRepoCard = Omit<RepoCard, 'meta'> & { meta: unknown }
+
 interface BoardState {
-  activeBoard: Board | null
+  activeBoard: SimplifiedBoard | null
   statusLists: StatusList[]
-  repoCards: RepoCard[]
+  repoCards: SimplifiedRepoCard[]
   loading: boolean
   error: string | null
   // Undo/Redo
@@ -44,13 +48,13 @@ export const boardSlice = createSlice({
   name: 'board',
   initialState,
   reducers: {
-    setActiveBoard: (state, action: PayloadAction<Board | null>) => {
+    setActiveBoard: (state, action: PayloadAction<SimplifiedBoard | null>) => {
       state.activeBoard = action.payload
     },
     setStatusLists: (state, action: PayloadAction<StatusList[]>) => {
       state.statusLists = action.payload
     },
-    setRepoCards: (state, action: PayloadAction<RepoCard[]>) => {
+    setRepoCards: (state, action: PayloadAction<SimplifiedRepoCard[]>) => {
       state.repoCards = action.payload
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
@@ -72,7 +76,7 @@ export const boardSlice = createSlice({
     // カードの楽観的更新
     updateRepoCardOptimistic: (
       state,
-      action: PayloadAction<{ cardId: string; updates: Partial<RepoCard> }>
+      action: PayloadAction<{ cardId: string; updates: Partial<SimplifiedRepoCard> }>
     ) => {
       const { cardId, updates } = action.payload
       const cardIndex = state.repoCards.findIndex(card => card.id === cardId)

@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const next = searchParams.get('next') ?? '/ja/boards' // デフォルトは日本語の Boards 画面
 
   if (code) {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     try {
       // 認証コードを使用してセッションを確立

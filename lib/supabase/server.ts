@@ -17,14 +17,14 @@ import type { Database } from './types'
  * import { createClient } from '@/lib/supabase/server'
  *
  * export default async function Page() {
- *   const supabase = createClient()
+ *   const supabase = await createClient()
  *   const { data } = await supabase.from('Board').select('*')
  *   return <div>{data}</div>
  * }
  * ```
  */
-export function createClient() {
-  const cookieStore = cookies()
+export async function createClient() {
+  const cookieStore = await cookies()
 
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -63,14 +63,14 @@ export function createClient() {
  * import { NextResponse } from 'next/server'
  *
  * export async function GET(request: Request) {
- *   const supabase = createRouteHandlerClient(request)
+ *   const supabase = await createRouteHandlerClient(request)
  *   const { data } = await supabase.from('Board').select('*')
  *   return NextResponse.json(data)
  * }
  * ```
  */
-export function createRouteHandlerClient(request: Request) {
-  const cookieStore = cookies()
+export async function createRouteHandlerClient(request: Request) {
+  const cookieStore = await cookies()
 
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -101,7 +101,7 @@ export function createRouteHandlerClient(request: Request) {
  * import { createServerActionClient } from '@/lib/supabase/server'
  *
  * export async function createBoard(name: string) {
- *   const supabase = createServerActionClient()
+ *   const supabase = await createServerActionClient()
  *   const { data, error } = await supabase
  *     .from('Board')
  *     .insert({ name })
@@ -113,8 +113,8 @@ export function createRouteHandlerClient(request: Request) {
  * }
  * ```
  */
-export function createServerActionClient() {
-  const cookieStore = cookies()
+export async function createServerActionClient() {
+  const cookieStore = await cookies()
 
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -139,7 +139,7 @@ export function createServerActionClient() {
  * 現在のユーザーを取得（サーバーサイド）
  */
 export async function getUser() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
     error,
@@ -157,7 +157,7 @@ export async function getUser() {
  * 現在のセッションを取得（サーバーサイド）
  */
 export async function getSession() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { session },
     error,

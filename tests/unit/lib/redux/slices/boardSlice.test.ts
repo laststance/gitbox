@@ -33,6 +33,7 @@ const mockBoard: Board = {
   user_id: 'user-123',
   name: 'Test Board',
   theme: 'sunrise',
+  settings: null,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 }
@@ -42,16 +43,21 @@ const mockStatusList: StatusList = {
   board_id: 'board-123',
   name: 'In Progress',
   color: '#3b82f6',
+  wip_limit: null,
   order: 1,
   created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-01T00:00:00Z',
 }
 
 const mockRepoCard: RepoCard = {
   id: 'card-123',
   board_id: 'board-123',
   status_id: 'status-123',
-  repo_full_name: 'owner/repo',
+  repo_owner: 'owner',
+  repo_name: 'repo',
+  note: null,
   order: 0,
+  meta: null,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 }
@@ -148,7 +154,32 @@ describe('Board Slice (lib/redux/slices/boardSlice.ts)', () => {
     })
 
     it('should limit undo history to 10 items', () => {
-      let state = initialState
+      // 型安全な初期状態の定義
+      interface TestBoardState {
+        activeBoard: null
+        statusLists: never[]
+        repoCards: never[]
+        loading: boolean
+        error: null
+        lastDragOperation: {
+          cardId: string
+          fromStatusId: string
+          toStatusId: string
+          fromOrder: number
+          toOrder: number
+          timestamp: number
+        } | null
+        undoHistory: Array<{
+          cardId: string
+          fromStatusId: string
+          toStatusId: string
+          fromOrder: number
+          toOrder: number
+          timestamp: number
+        }>
+      }
+
+      let state: TestBoardState = initialState as TestBoardState
 
       // Add 15 drag operations
       for (let i = 0; i < 15; i++) {
@@ -161,7 +192,7 @@ describe('Board Slice (lib/redux/slices/boardSlice.ts)', () => {
           timestamp: Date.now() + i,
         }
 
-        state = boardReducer(state, recordDragOperation(dragOp))
+        state = boardReducer(state, recordDragOperation(dragOp)) as TestBoardState
       }
 
       expect(state.undoHistory).toHaveLength(10)

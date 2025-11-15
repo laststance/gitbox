@@ -154,8 +154,8 @@ describe('i18n Configuration (lib/i18n/config.ts)', () => {
       ]
 
       expectedThemes.forEach(theme => {
-        expect(enMessages.default.theme[theme]).toBeDefined()
-        expect(jaMessages.default.theme[theme]).toBeDefined()
+        expect(enMessages.default.theme[theme as keyof typeof enMessages.default.theme]).toBeDefined()
+        expect(jaMessages.default.theme[theme as keyof typeof jaMessages.default.theme]).toBeDefined()
       })
     })
   })

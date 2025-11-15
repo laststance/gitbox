@@ -4,6 +4,7 @@ import { defineConfig } from 'eslint/config'
 import tsPreFixer from 'eslint-config-ts-prefixer'
 import jsxA11y from 'eslint-plugin-jsx-a11y'
 import storybook from 'eslint-plugin-storybook'
+import laststanceReactNextPlugin from '@laststance/react-next-eslint-plugin'
 
 export default defineConfig([
   ...tsPreFixer,
@@ -31,29 +32,36 @@ export default defineConfig([
   },
   {
     plugins: {
-      '@next/next': nextNext,
+      '@laststance/react-next': laststanceReactNextPlugin,
     },
     rules: {
-      '@next/next/google-font-display': 'warn',
-      '@next/next/google-font-preconnect': 'warn',
+      '@laststance/react-next/no-jsx-without-return': 'error',
+      '@laststance/react-next/all-memo': 'error',
+      '@laststance/react-next/no-use-reducer': 'error',
+      '@laststance/react-next/no-set-state-prop-drilling': 'error',
+      '@laststance/react-next/no-deopt-use-callback': 'error',
+      '@laststance/react-next/prefer-stable-context-value': 'error',
+      '@laststance/react-next/no-unstable-classname-prop': 'error',
+      '@next/next/google-font-display': 'error',
+      '@next/next/google-font-preconnect': 'error',
       '@next/next/inline-script-id': 'error',
       '@next/next/no-assign-module-variable': 'error',
       '@next/next/no-async-client-component': 'error',
-      '@next/next/no-before-interactive-script-outside-document': 'warn',
-      '@next/next/no-css-tags': 'warn',
+      '@next/next/no-before-interactive-script-outside-document': 'error',
+      '@next/next/no-css-tags': 'error',
       '@next/next/no-document-import-in-page': 'error',
       '@next/next/no-duplicate-head': 'error',
-      '@next/next/no-head-element': 'warn',
+      '@next/next/no-head-element': 'error',
       '@next/next/no-head-import-in-document': 'error',
-      '@next/next/no-html-link-for-pages': 'warn',
-      '@next/next/no-img-element': 'warn',
-      '@next/next/no-page-custom-font': 'warn',
+      '@next/next/no-html-link-for-pages': 'error',
+      '@next/next/no-img-element': 'error',
+      '@next/next/no-page-custom-font': 'error',
       '@next/next/no-script-component-in-head': 'error',
-      '@next/next/no-styled-jsx-in-document': 'warn',
+      '@next/next/no-styled-jsx-in-document': 'error',
       '@next/next/no-sync-scripts': 'warn',
-      '@next/next/no-title-in-document-head': 'warn',
-      '@next/next/no-typos': 'warn',
-      '@next/next/no-unwanted-polyfillio': 'warn',
+      '@next/next/no-title-in-document-head': 'error',
+      '@next/next/no-typos': 'error',
+      '@next/next/no-unwanted-polyfillio': 'error',
     },
   },
   ...storybook.configs['flat/recommended'],

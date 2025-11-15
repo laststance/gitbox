@@ -38,7 +38,7 @@ describe('Supabase Server Client (lib/supabase/server.ts)', () => {
   describe('createClient (Server Component)', () => {
     it('should create server client with cookie handlers', async () => {
       const { createClient } = await import('@/lib/supabase/server')
-      const client = createClient()
+      const client = await createClient()
 
       expect(createServerClient).toHaveBeenCalledWith(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -58,35 +58,35 @@ describe('Supabase Server Client (lib/supabase/server.ts)', () => {
 
     it('should handle cookie get operation', async () => {
       const { createClient } = await import('@/lib/supabase/server')
-      createClient()
+      await createClient()
 
       const cookieConfig = vi.mocked(createServerClient).mock.calls[0][2]
-      const cookieValue = cookieConfig?.cookies?.get('test-cookie')
+      const cookieValue = cookieConfig?.cookies?.get?.('test-cookie')
 
       expect(cookieValue).toBeDefined()
     })
 
     it('should handle cookie set operation gracefully', async () => {
       const { createClient } = await import('@/lib/supabase/server')
-      createClient()
+      await createClient()
 
       const cookieConfig = vi.mocked(createServerClient).mock.calls[0][2]
 
       // Should not throw even if set fails in Server Component
       expect(() => {
-        cookieConfig?.cookies?.set('test', 'value', {})
+        cookieConfig?.cookies?.set?.('test', 'value', {})
       }).not.toThrow()
     })
 
     it('should handle cookie remove operation gracefully', async () => {
       const { createClient } = await import('@/lib/supabase/server')
-      createClient()
+      await createClient()
 
       const cookieConfig = vi.mocked(createServerClient).mock.calls[0][2]
 
       // Should not throw even if remove fails in Server Component
       expect(() => {
-        cookieConfig?.cookies?.remove('test', {})
+        cookieConfig?.cookies?.remove?.('test', {})
       }).not.toThrow()
     })
   })
@@ -96,7 +96,7 @@ describe('Supabase Server Client (lib/supabase/server.ts)', () => {
       const mockRequest = new Request('http://localhost:3000')
 
       const { createRouteHandlerClient } = await import('@/lib/supabase/server')
-      const client = createRouteHandlerClient(mockRequest)
+      const client = await createRouteHandlerClient(mockRequest)
 
       expect(createServerClient).toHaveBeenCalled()
       expect(client).toBeDefined()
@@ -108,7 +108,7 @@ describe('Supabase Server Client (lib/supabase/server.ts)', () => {
       const { createServerActionClient } = await import(
         '@/lib/supabase/server'
       )
-      const client = createServerActionClient()
+      const client = await createServerActionClient()
 
       expect(createServerClient).toHaveBeenCalled()
       expect(client).toBeDefined()

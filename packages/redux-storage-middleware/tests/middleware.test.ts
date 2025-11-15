@@ -331,7 +331,7 @@ describe('Integration Test: Store with Middleware', () => {
     })
 
     // Store 作成（preloadedState で復元）
-    const loaded = loadStateFromStorage(storageKey)
+    const loaded = loadStateFromStorage(storageKey) as { test: TestState } | null
     const store = configureStore({
       reducer: {
         test: testSlice.reducer,
