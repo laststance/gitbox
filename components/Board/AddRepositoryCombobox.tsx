@@ -6,9 +6,11 @@ import {
   useGetAuthenticatedUserRepositoriesQuery,
   type GitHubRepository,
 } from '@/lib/github/api'
+import { addRepositoriesToBoard } from '@/lib/actions/repo-cards'
 
 interface AddRepositoryComboboxProps {
   boardId: string
+  statusId: string // 初期ステータス（列） ID
   onRepositoriesAdded: () => void
   onQuickNoteFocus: () => void
 }
@@ -29,6 +31,7 @@ interface AddRepositoryComboboxProps {
  */
 export function AddRepositoryCombobox({
   boardId,
+  statusId,
   onRepositoriesAdded,
   onQuickNoteFocus,
 }: AddRepositoryComboboxProps) {
@@ -129,7 +132,6 @@ export function AddRepositoryCombobox({
     setSelectedRepos(prev => prev.filter(r => r.id !== repoId))
   }, [])
 
-  // TODO: Implement with Server Actions (T042)
   // Add selected repositories to board
   const handleAddRepositories = async () => {
     if (selectedRepos.length === 0) return
@@ -138,11 +140,18 @@ export function AddRepositoryCombobox({
       setIsLoading(true)
       setError(null)
 
-      // Mock API call - will be replaced with Server Action
-      await new Promise(resolve => setTimeout(resolve, 300))
+      // Server Action: Add repositories to board with duplicate detection
+      const result = await addRepositoriesToBoard(boardId, statusId, selectedRepos)
 
-      // TODO: Implement duplicate detection (T043)
-      // Check for duplicates and show error if any
+      if (!result.success) {
+        setError(result.errors?.join(', ') || 'Failed to add repositories')
+        return
+      }
+
+      // Show warning if some repositories were duplicates
+      if (result.errors && result.errors.length > 0) {
+        console.warn('Duplicate repositories detected:', result.errors)
+      }
 
       // Success: clear selection and close combobox
       setSelectedRepos([])
