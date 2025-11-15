@@ -121,9 +121,9 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 ### Tests for User Story 2 (REQUIRED)
 
-- [ ] T038 [P] [US2] E2E test for repository search and add in tests/e2e/board.spec.ts
-- [ ] T039 [P] [US2] Unit test for search performance (100+ repos) in tests/unit/components/AddRepositoryCombobox.test.tsx
-- [ ] T142 [P] [US2] Capture browser screenshots of repository search and add flow with Playwright in tests/e2e/screenshots/us2-repo-search.spec.ts
+- [X] T038 [P] [US2] E2E test for repository search and add in tests/e2e/board-repo-add.spec.ts
+- [X] T039 [P] [US2] Unit test for search performance (100+ repos) in tests/unit/components/AddRepositoryCombobox.test.tsx
+- [X] T142 [P] [US2] Capture browser screenshots of repository search and add flow with Playwright in tests/e2e/screenshots/us2-repo-search.spec.ts
 
 ### Implementation for User Story 2
 
