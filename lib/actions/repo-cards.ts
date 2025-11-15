@@ -13,9 +13,6 @@
 import { createClient } from '@/lib/supabase/server'
 import type { GitHubRepository } from '@/lib/github/api'
 
-// Supabase Database types
-type Database = any // TODO: Import from @/lib/supabase/types
-
 /**
  * RepoCard 追加パラメータ
  */

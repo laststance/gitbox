@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, memo } from 'react'
 import { useTranslations } from 'next-intl'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import {
   useGetAuthenticatedUserRepositoriesQuery,
   type GitHubRepository,
@@ -29,7 +30,7 @@ interface AddRepositoryComboboxProps {
  * - 重複検出
  * - Auto-focus to Quick note
  */
-export function AddRepositoryCombobox({
+export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   boardId,
   statusId,
   onRepositoriesAdded,
@@ -45,12 +46,14 @@ export function AddRepositoryCombobox({
 
   // Filters
   const [ownerFilter, setOwnerFilter] = useState('')
-  const [topicsFilter, setTopicsFilter] = useState<string[]>([])
+  // TODO: Implement topics filter UI
+  // const [topicsFilter, setTopicsFilter] = useState<string[]>([])
   const [visibilityFilter, setVisibilityFilter] = useState<'all' | 'public' | 'private'>('all')
 
   // Refs
   const searchInputRef = useRef<HTMLInputElement>(null)
   const comboboxRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
   // RTK Query: 認証ユーザーのリポジトリ一覧を取得
   const {
@@ -98,15 +101,15 @@ export function AddRepositoryCombobox({
       filtered = filtered.filter(repo => repo.visibility === visibilityFilter)
     }
 
-    // Topics フィルター
-    if (topicsFilter.length > 0) {
-      filtered = filtered.filter(repo =>
-        topicsFilter.some(topic => repo.topics?.includes(topic))
-      )
-    }
+    // TODO: Topics フィルター
+    // if (topicsFilter.length > 0) {
+    //   filtered = filtered.filter(repo =>
+    //     topicsFilter.some(topic => repo.topics?.includes(topic))
+    //   )
+    // }
 
     return filtered
-  }, [userRepos, debouncedQuery, ownerFilter, visibilityFilter, topicsFilter])
+  }, [userRepos, debouncedQuery, ownerFilter, visibilityFilter])
 
   const isLoading = isLoadingRepos
   const error = reposError
@@ -115,8 +118,18 @@ export function AddRepositoryCombobox({
       : 'Error loading repositories'
     : null
 
+  // Virtual scrolling (enabled for 20+ repositories)
+  const shouldVirtualize = filteredRepositories.length > 20
+  const rowVirtualizer = useVirtualizer({
+    count: filteredRepositories.length,
+    getScrollElement: () => listRef.current,
+    estimateSize: () => 100, // 推定高さ: タイトル + description + メタ情報
+    enabled: shouldVirtualize,
+    overscan: 5, // スクロール範囲外に5件余分にレンダリング
+  })
+
   // Toggle repository selection
-  const toggleRepoSelection = useCallback((repo: GitHubRepository) => {
+  const toggleRepoSelection = (repo: GitHubRepository) => {
     setSelectedRepos(prev => {
       const isSelected = prev.some(r => r.id === repo.id)
       if (isSelected) {
@@ -125,12 +138,12 @@ export function AddRepositoryCombobox({
         return [...prev, repo]
       }
     })
-  }, [])
+  }
 
   // Remove selected repository
-  const removeSelectedRepo = useCallback((repoId: number) => {
+  const removeSelectedRepo = (repoId: number) => {
     setSelectedRepos(prev => prev.filter(r => r.id !== repoId))
-  }, [])
+  }
 
   // Add selected repositories to board
   const handleAddRepositories = async () => {
@@ -274,42 +287,102 @@ export function AddRepositoryCombobox({
           {/* Repository list with virtual scrolling support */}
           {!isLoading && filteredRepositories.length > 0 && (
             <div
+              ref={listRef}
               id="repository-listbox"
               role="listbox"
               aria-label="Repository options"
               aria-multiselectable="true"
               className="repository-list"
-              data-virtual-scroll={filteredRepositories.length > 20}
+              data-virtual-scroll={shouldVirtualize}
+              style={
+                shouldVirtualize
+                  ? {
+                      height: '400px',
+                      overflowY: 'auto',
+                      contain: 'strict',
+                    }
+                  : undefined
+              }
             >
-              {filteredRepositories.map(repo => {
-                const isSelected = selectedRepos.some(r => r.id === repo.id)
-                return (
-                  <div
-                    key={repo.id}
-                    role="option"
-                    aria-selected={isSelected}
-                    onClick={() => toggleRepoSelection(repo)}
-                    className={`repository-option ${isSelected ? 'selected' : ''}`}
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        toggleRepoSelection(repo)
-                      }
-                    }}
-                  >
-                    <div className="repo-info">
-                      <strong>{repo.full_name}</strong>
-                      {repo.description && <p>{repo.description}</p>}
-                      <div className="repo-meta">
-                        <span>⭐ {repo.stargazers_count}</span>
-                        {repo.language && <span>{repo.language}</span>}
+              {shouldVirtualize ? (
+                <div
+                  style={{
+                    height: `${rowVirtualizer.getTotalSize()}px`,
+                    width: '100%',
+                    position: 'relative',
+                  }}
+                >
+                  {rowVirtualizer.getVirtualItems().map(virtualItem => {
+                    const repo = filteredRepositories[virtualItem.index]
+                    const isSelected = selectedRepos.some(r => r.id === repo.id)
+                    return (
+                      <div
+                        key={repo.id}
+                        data-index={virtualItem.index}
+                        ref={rowVirtualizer.measureElement}
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => toggleRepoSelection(repo)}
+                        className={`repository-option ${isSelected ? 'selected' : ''}`}
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            toggleRepoSelection(repo)
+                          }
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          transform: `translateY(${virtualItem.start}px)`,
+                        }}
+                      >
+                        <div className="repo-info">
+                          <strong>{repo.full_name}</strong>
+                          {repo.description && <p>{repo.description}</p>}
+                          <div className="repo-meta">
+                            <span>⭐ {repo.stargazers_count}</span>
+                            {repo.language && <span>{repo.language}</span>}
+                          </div>
+                        </div>
+                        {isSelected && <span className="checkmark">✓</span>}
                       </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                filteredRepositories.map(repo => {
+                  const isSelected = selectedRepos.some(r => r.id === repo.id)
+                  return (
+                    <div
+                      key={repo.id}
+                      role="option"
+                      aria-selected={isSelected}
+                      onClick={() => toggleRepoSelection(repo)}
+                      className={`repository-option ${isSelected ? 'selected' : ''}`}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          toggleRepoSelection(repo)
+                        }
+                      }}
+                    >
+                      <div className="repo-info">
+                        <strong>{repo.full_name}</strong>
+                        {repo.description && <p>{repo.description}</p>}
+                        <div className="repo-meta">
+                          <span>⭐ {repo.stargazers_count}</span>
+                          {repo.language && <span>{repo.language}</span>}
+                        </div>
+                      </div>
+                      {isSelected && <span className="checkmark">✓</span>}
                     </div>
-                    {isSelected && <span className="checkmark">✓</span>}
-                  </div>
-                )
-              })}
+                  )
+                })
+              )}
             </div>
           )}
 
@@ -342,4 +415,4 @@ export function AddRepositoryCombobox({
       )}
     </div>
   )
-}
+})

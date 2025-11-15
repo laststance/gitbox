@@ -10,11 +10,12 @@
  * User Story 2: Repository 検索と追加
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { Provider } from 'react-redux'
 import { configureStore } from '@reduxjs/toolkit'
+import { memo } from 'react'
 import boardSlice from '@/lib/redux/slices/boardSlice'
 import type { GitHubRepository } from '@/lib/github/api'
 
@@ -75,7 +76,7 @@ const createMockStore = () =>
   })
 
 // Mock component (T040で実装される予定)
-const MockAddRepositoryCombobox = ({
+const MockAddRepositoryCombobox = memo(function MockAddRepositoryCombobox({
   repositories,
   onSearch,
   onSelect,
@@ -85,7 +86,7 @@ const MockAddRepositoryCombobox = ({
   onSearch?: (query: string) => void
   onSelect?: (repo: GitHubRepository) => void
   existingRepoIds?: string[]
-}) => {
+}) {
   return (
     <div data-testid="combobox-mock">
       <input
@@ -98,6 +99,7 @@ const MockAddRepositoryCombobox = ({
           <div
             key={repo.id}
             role="option"
+            aria-selected="false"
             onClick={() => onSelect?.(repo)}
             data-duplicate={existingRepoIds.includes(String(repo.id))}
           >
@@ -107,7 +109,7 @@ const MockAddRepositoryCombobox = ({
       </div>
     </div>
   )
-}
+})
 
 describe('AddRepositoryCombobox Performance Tests (T039)', () => {
   describe('Performance: 100+リポジトリで1秒以内レンダリング', () => {
