@@ -50,7 +50,6 @@
 
 **Security**:
 - [ ] Credential management pattern selected (reference/encrypted/external)
-- [ ] 2FA requirements documented for sensitive operations
 - [ ] Audit logging requirements defined
 
 **Test-Driven Development**:

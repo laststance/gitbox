@@ -77,7 +77,6 @@ Follow-up TODOs: None
 
 **Requirements**:
 - Credentials must use one of three approved patterns: reference links, AES-256-GCM encryption, or external management
-- Encrypted credentials require 2FA for decryption
 - All credential access must be logged to audit trail
 - Sensitive data must use masked display by default
 - Security configurations must be reviewed before production deployment
