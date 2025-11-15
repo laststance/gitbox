@@ -81,7 +81,7 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 - [x] T028.7 [P] Unit test for middleware auth and locale routing in tests/unit/middleware.test.ts ✓
 - [x] T028.8 [P] Unit test for theme system and CSS variable application in tests/unit/lib/theme.test.ts ✓
 - [x] T028.9 [P] E2E test for WCAG AA contrast validation across all 12 themes in tests/e2e/accessibility.spec.ts ✓
-- [ ] T028.10 Integration test for database schema and RLS policies in tests/integration/database.test.ts
+- [X] T028.10 Integration test for database schema and RLS policies in tests/integration/database.test.ts
 
 **Checkpoint**: Foundation validated - user story implementation can now begin
 
@@ -95,9 +95,9 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 ### Tests for User Story 1 (REQUIRED)
 
-- [ ] T029 [P] [US1] E2E test for GitHub OAuth login flow in tests/e2e/auth.spec.ts
-- [ ] T030 [P] [US1] Unit test for auth state management in tests/unit/lib/redux/authSlice.test.ts
-- [ ] T141 [P] [US1] Capture browser screenshots of login flow with Playwright in tests/e2e/screenshots/us1-login.spec.ts
+- [X] T029 [P] [US1] E2E test for GitHub OAuth login flow in tests/e2e/auth.spec.ts
+- [X] T030 [P] [US1] Unit test for auth state management in tests/unit/lib/redux/authSlice.test.ts
+- [X] T141 [P] [US1] Capture browser screenshots of login flow with Playwright in tests/e2e/screenshots/us1-login.spec.ts
 
 ### Implementation for User Story 1
 
