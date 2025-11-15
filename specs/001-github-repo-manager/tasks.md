@@ -76,10 +76,10 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 - [x] T028.2 [P] Unit test for Supabase server client initialization in tests/unit/lib/supabase/server.test.ts ✓
 - [x] T028.3 [P] Unit test for Redux store configuration in tests/unit/lib/redux/store.test.ts ✓
 - [x] T028.4 [P] Unit test for Redux slices (auth, board, settings) in tests/unit/lib/redux/slices/*.test.ts ✓
-- [ ] T028.5 [P] Unit test for redux-storage-middleware in packages/redux-storage-middleware/tests/middleware.test.ts
+- [x] T028.5 [P] Unit test for redux-storage-middleware in packages/redux-storage-middleware/tests/middleware.test.ts ✓
 - [x] T028.6 [P] Unit test for i18n configuration and message loading in tests/unit/lib/i18n/config.test.ts ✓
 - [x] T028.7 [P] Unit test for middleware auth and locale routing in tests/unit/middleware.test.ts ✓
-- [ ] T028.8 [P] Unit test for theme system and CSS variable application in tests/unit/lib/theme.test.ts
+- [x] T028.8 [P] Unit test for theme system and CSS variable application in tests/unit/lib/theme.test.ts ✓
 - [x] T028.9 [P] E2E test for WCAG AA contrast validation across all 12 themes in tests/e2e/accessibility.spec.ts ✓
 - [ ] T028.10 Integration test for database schema and RLS policies in tests/integration/database.test.ts
 
