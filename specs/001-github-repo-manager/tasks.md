@@ -127,14 +127,14 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 ### Implementation for User Story 2
 
-- [ ] T040 [P] [US2] Create AddRepositoryCombobox component (Magic MCP) in components/Board/AddRepositoryCombobox.tsx
-- [ ] T041 [P] [US2] Implement GitHub repository search with RTK Query hooks
-- [ ] T042 [US2] Create RepoCard entity operations in lib/actions/repo-cards.ts
-- [ ] T043 [US2] Implement duplicate repository detection logic
-- [ ] T044 [P] [US2] Add search filters (owner/repo, topics, visibility)
-- [ ] T045 [P] [US2] Implement virtual scrolling for 100+ repository lists
-- [ ] T046 [US2] Add auto-focus to "Quick note" field after repository addition
-- [ ] T047 [P] [US2] Create loading states and error handling for search
+- [X] T040 [P] [US2] Create AddRepositoryCombobox component (Magic MCP) in components/Board/AddRepositoryCombobox.tsx
+- [X] T041 [P] [US2] Implement GitHub repository search with RTK Query hooks
+- [X] T042 [US2] Create RepoCard entity operations in lib/actions/repo-cards.ts
+- [X] T043 [US2] Implement duplicate repository detection logic
+- [X] T044 [P] [US2] Add search filters (owner/repo, topics, visibility)
+- [ ] T045 [P] [US2] Implement virtual scrolling for 100+ repository lists (data attribute ready, needs @tanstack/react-virtual integration)
+- [X] T046 [US2] Add auto-focus to "Quick note" field after repository addition
+- [X] T047 [P] [US2] Create loading states and error handling for search
 
 **Checkpoint**: User Story 2 complete - repositories can be searched and added
 
