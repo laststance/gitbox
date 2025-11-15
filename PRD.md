@@ -2,8 +2,13 @@
 
 ## 1) プロダクト概要と情報設計（IA）
 
+- 対応言語
+  - 英語、日本語
+- PWA対応
+- トップページはログイン、サインインボタンを配置したLandingPage
+
 ### ナビゲーションフロー
-**Auth** → **Home (Boards)** → **Board (Kanban)** → **Card Detail (right panel)**
+**Auth*(Github OAuth)** → **Home (Boards)** → **Board (Kanban)** → **Card Detail (right panel)**
 
 ### 主要画面
 - **Maintenance Mode**（完了・保守中のプロジェクト保管庫。Sidebarリンクで遷移、Explorer UI）
