@@ -132,7 +132,7 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 - [X] T042 [US2] Create RepoCard entity operations in lib/actions/repo-cards.ts
 - [X] T043 [US2] Implement duplicate repository detection logic
 - [X] T044 [P] [US2] Add search filters (owner/repo, topics, visibility)
-- [ ] T045 [P] [US2] Implement virtual scrolling for 100+ repository lists (data attribute ready, needs @tanstack/react-virtual integration)
+- [X] T045 [P] [US2] Implement virtual scrolling for 100+ repository lists (@tanstack/react-virtual integrated, 20+ repos trigger virtualization)
 - [X] T046 [US2] Add auto-focus to "Quick note" field after repository addition
 - [X] T047 [P] [US2] Create loading states and error handling for search
 
