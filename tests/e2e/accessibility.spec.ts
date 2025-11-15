@@ -11,7 +11,7 @@
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
-const themes = [
+const _themes = [
   'sunrise',
   'sandstone',
   'mint',

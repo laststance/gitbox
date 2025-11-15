@@ -5,7 +5,7 @@
  * ブラウザ環境での認証とデータベース操作に使用
  */
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type Session } from '@supabase/supabase-js'
 import type { Database } from './types'
 
 // 環境変数の検証
@@ -89,7 +89,7 @@ export async function signOut() {
  * 認証状態の変更を監視
  */
 export function onAuthStateChange(
-  callback: (event: string, session: any) => void
+  callback: (event: string, session: Session | null) => void
 ) {
   return supabase.auth.onAuthStateChange(callback)
 }

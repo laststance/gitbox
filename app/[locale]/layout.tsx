@@ -30,7 +30,7 @@ export default async function RootLayout({
   params: { locale: string }
 }) {
   // 有効なロケールかチェック
-  if (!locales.includes(locale as any)) {
+  if (!locales.includes(locale as (typeof locales)[number])) {
     notFound()
   }
 

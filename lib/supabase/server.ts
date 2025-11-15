@@ -37,7 +37,7 @@ export async function createClient() {
         set(name: string, value: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value, ...options })
-          } catch (error) {
+          } catch {
             // Server Component では set は動作しないため、無視
             // middleware.ts や Route Handler で処理される
           }
@@ -45,7 +45,7 @@ export async function createClient() {
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options })
-          } catch (error) {
+          } catch {
             // Server Component では remove は動作しないため、無視
           }
         },
@@ -69,7 +69,7 @@ export async function createClient() {
  * }
  * ```
  */
-export async function createRouteHandlerClient(request: Request) {
+export async function createRouteHandlerClient(_request: Request) {
   const cookieStore = await cookies()
 
   return createServerClient<Database>(

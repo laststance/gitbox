@@ -11,7 +11,7 @@ import type { StorageMiddlewareConfig } from './types'
 /**
  * LocalStorage に state を保存
  */
-function saveToStorage(key: string, state: any): void {
+function saveToStorage(key: string, state: unknown): void {
   try {
     const serialized = JSON.stringify(state)
     localStorage.setItem(key, serialized)
@@ -23,13 +23,13 @@ function saveToStorage(key: string, state: any): void {
 /**
  * LocalStorage から state を読み込み
  */
-function loadFromStorage(key: string): any | null {
+function loadFromStorage(key: string): unknown {
   try {
     const serialized = localStorage.getItem(key)
     if (serialized === null) {
       return null
     }
-    return JSON.parse(serialized)
+    return JSON.parse(serialized) as unknown
   } catch (error) {
     console.error('Failed to load state from localStorage:', error)
     return null
@@ -70,7 +70,7 @@ export function createStorageMiddleware(
       const state = store.getState()
 
       // 指定されたスライスのみを保存
-      const stateToSave: Record<string, any> = {}
+      const stateToSave: Record<string, unknown> = {}
       slices.forEach(sliceName => {
         if (state[sliceName]) {
           stateToSave[sliceName] = state[sliceName]
@@ -99,7 +99,7 @@ export function createStorageMiddleware(
  * })
  * ```
  */
-export function loadStateFromStorage(storageKey: string): any | null {
+export function loadStateFromStorage(storageKey: string): unknown {
   return loadFromStorage(storageKey)
 }
 

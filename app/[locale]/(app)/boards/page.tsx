@@ -9,7 +9,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 
 export default async function BoardsPage({
@@ -39,7 +39,7 @@ export default async function BoardsPage({
     console.error('Failed to fetch boards:', error)
   }
 
-  const t = useTranslations('Boards')
+  const t = await getTranslations('Boards')
 
   return (
     <div className="container mx-auto px-4 py-8">
