@@ -31,7 +31,37 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+**Browser Verification**:
+- [ ] Playwright MCP tool configured and ready for browser testing
+- [ ] Screenshot strategy defined for visual verification
+
+**E2E Testing**:
+- [ ] Critical user flows identified for E2E test coverage
+- [ ] Playwright test framework setup planned
+
+**Documentation**:
+- [ ] Docstring standards defined for components
+- [ ] User setup guide planned for Vercel/Supabase configuration
+
+**Accessibility**:
+- [ ] Contrast validation tooling planned (12 themes)
+- [ ] WCAG AA compliance targets documented
+- [ ] Keyboard navigation requirements defined
+
+**Security**:
+- [ ] Credential management pattern selected (reference/encrypted/external)
+- [ ] 2FA requirements documented for sensitive operations
+- [ ] Audit logging requirements defined
+
+**Test-Driven Development**:
+- [ ] Test-first workflow confirmed
+- [ ] Acceptance criteria from spec.md ready for test implementation
+
+**Japanese-First Communication**:
+- [ ] All documentation files (spec.md, plan.md, tasks.md) planned in Japanese
+- [ ] Code comments for business logic will be in Japanese
+- [ ] Commit messages and PR descriptions will be in Japanese
+- [ ] Chat communication with AI agents will be in Japanese
 
 ## Project Structure
 

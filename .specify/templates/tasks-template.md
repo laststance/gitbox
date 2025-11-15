@@ -157,6 +157,20 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] TXXX Security hardening
 - [ ] TXXX Run quickstart.md validation
 
+## Phase N+1: Constitution Compliance Verification
+
+**Purpose**: Ensure all constitution requirements are met before deployment
+
+- [ ] TXXX [P] Browser verification with Playwright (screenshots captured)
+- [ ] TXXX [P] E2E tests for all critical flows passing
+- [ ] TXXX [P] All components have clear docstrings
+- [ ] TXXX [P] WCAG AA contrast validation (all 12 themes)
+- [ ] TXXX [P] Security requirements verified (2FA, audit logs, encryption)
+- [ ] TXXX [P] User configuration guide complete (Vercel/Supabase setup)
+- [ ] TXXX Performance benchmarks met (100+ repos, <100ms drag, etc.)
+- [ ] TXXX Internationalization verified (English/Japanese)
+- [ ] TXXX [P] Japanese-first verification (all docs, comments, commits in Japanese)
+
 ---
 
 ## Dependencies & Execution Order

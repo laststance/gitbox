@@ -33,6 +33,11 @@
 1. **Given** [initial state], **When** [action], **Then** [expected outcome]
 2. **Given** [initial state], **When** [action], **Then** [expected outcome]
 
+**Browser Verification Requirements**:
+- [ ] Visual verification needed (screenshots required)
+- [ ] Interaction testing needed (Playwright automation)
+- [ ] Accessibility compliance required (WCAG AA)
+
 ---
 
 ### User Story 2 - [Brief Title] (Priority: P2)
@@ -47,6 +52,11 @@
 
 1. **Given** [initial state], **When** [action], **Then** [expected outcome]
 
+**Browser Verification Requirements**:
+- [ ] Visual verification needed (screenshots required)
+- [ ] Interaction testing needed (Playwright automation)
+- [ ] Accessibility compliance required (WCAG AA)
+
 ---
 
 ### User Story 3 - [Brief Title] (Priority: P3)
@@ -60,6 +70,11 @@
 **Acceptance Scenarios**:
 
 1. **Given** [initial state], **When** [action], **Then** [expected outcome]
+
+**Browser Verification Requirements**:
+- [ ] Visual verification needed (screenshots required)
+- [ ] Interaction testing needed (Playwright automation)
+- [ ] Accessibility compliance required (WCAG AA)
 
 ---
 
