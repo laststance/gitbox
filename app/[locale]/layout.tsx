@@ -10,7 +10,7 @@
 import { NextIntlClientProvider } from 'next-intl'
 import { getMessages } from 'next-intl/server'
 import { notFound } from 'next/navigation'
-import { locales } from '@/lib/i18n/config'
+import { routing } from '@/i18n/routing'
 import '@/styles/globals.css'
 
 // テーマファイルのインポート
@@ -19,22 +19,25 @@ import '@/styles/themes/dark/midnight.css'
 // 他のテーマファイルもここでインポート
 
 export function generateStaticParams() {
-  return locales.map(locale => ({ locale }))
+  return routing.locales.map(locale => ({ locale }))
 }
 
 export default async function RootLayout({
   children,
-  params: { locale },
+  params,
 }: {
   children: React.ReactNode
-  params: { locale: string }
+  params: Promise<{ locale: string }>
 }) {
+  // Next.js 15+ async params
+  const { locale } = await params
+
   // 有効なロケールかチェック
-  if (!locales.includes(locale as (typeof locales)[number])) {
+  if (!routing.locales.includes(locale as any)) {
     notFound()
   }
 
-  // メッセージを取得
+  // Get messages for the locale
   const messages = await getMessages()
 
   return (
@@ -46,7 +49,7 @@ export default async function RootLayout({
         <title>Vibe Rush - GitHub Repository Manager</title>
       </head>
       <body>
-        <NextIntlClientProvider locale={locale} messages={messages}>
+        <NextIntlClientProvider messages={messages}>
           {children}
         </NextIntlClientProvider>
       </body>

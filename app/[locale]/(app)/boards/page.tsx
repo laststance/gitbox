@@ -15,8 +15,11 @@ import Link from 'next/link'
 export default async function BoardsPage({
   params,
 }: {
-  params: { locale: string }
+  params: Promise<{ locale: string }>
 }) {
+  // Next.js 15+ async params
+  const { locale } = await params
+
   const supabase = await createClient()
 
   // 認証チェック（middleware でも行われるが二重チェック）
@@ -25,7 +28,7 @@ export default async function BoardsPage({
   } = await supabase.auth.getSession()
 
   if (!session) {
-    redirect(`/${params.locale}/login`)
+    redirect(`/${locale}/login`)
   }
 
   // ユーザーの全ボードを取得
@@ -55,7 +58,7 @@ export default async function BoardsPage({
 
         {/* Create New Board Button */}
         <Link
-          href={`/${params.locale}/boards/new`}
+          href={`/${locale}/boards/new`}
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
         >
           <svg
@@ -81,7 +84,7 @@ export default async function BoardsPage({
           {boards.map((board) => (
             <Link
               key={board.id}
-              href={`/${params.locale}/board/${board.id}`}
+              href={`/${locale}/board/${board.id}`}
               className="group block rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md hover:border-blue-300 transition-all dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600"
             >
               <h3 className="text-xl font-semibold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400 transition-colors">
@@ -103,7 +106,7 @@ export default async function BoardsPage({
                     />
                   </svg>
                   {new Date(board.created_at).toLocaleDateString(
-                    params.locale
+                    locale
                   )}
                 </div>
                 <div className="flex items-center gap-1">
@@ -146,7 +149,7 @@ export default async function BoardsPage({
             {t('createFirstBoard')}
           </p>
           <Link
-            href={`/${params.locale}/boards/new`}
+            href={`/${locale}/boards/new`}
             className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors"
           >
             <svg

@@ -1,15 +1,15 @@
-/** @type {import('next').NextConfig} */
-const withNextIntl = require('next-intl/plugin')();
+const createNextIntlPlugin = require('next-intl/plugin');
 
+// Specify custom path since we don't use src/ directory
+const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
+
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
 
-  // next-intl configuration
-  i18n: {
-    locales: ['en', 'ja'],
-    defaultLocale: 'ja',
-  },
+  // Turbopack configuration (required for next-intl compatibility)
+  turbopack: {},
 
   // PWA configuration (will be enhanced with next-pwa in US8)
   // PWA support will be added in Phase 10 (User Story 8)

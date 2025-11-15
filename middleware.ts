@@ -10,17 +10,13 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import createMiddleware from 'next-intl/middleware'
-import { locales, defaultLocale } from './lib/i18n/config'
+import { routing } from './i18n/routing'
 
 // 認証不要なパス
 const publicPaths = ['/', '/auth/callback']
 
 // next-intl のミドルウェア
-const intlMiddleware = createMiddleware({
-  locales,
-  defaultLocale,
-  localePrefix: 'always',
-})
+const intlMiddleware = createMiddleware(routing)
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({

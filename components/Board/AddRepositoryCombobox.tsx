@@ -43,6 +43,8 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [selectedRepos, setSelectedRepos] = useState<GitHubRepository[]>([])
+  const [isAdding, setIsAdding] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
 
   // Filters
   const [ownerFilter, setOwnerFilter] = useState('')
@@ -111,12 +113,12 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     return filtered
   }, [userRepos, debouncedQuery, ownerFilter, visibilityFilter])
 
-  const isLoading = isLoadingRepos
-  const error = reposError
+  const isLoading = isLoadingRepos || isAdding
+  const error = addError || (reposError
     ? 'message' in reposError
       ? reposError.message
       : 'Error loading repositories'
-    : null
+    : null)
 
   // Virtual scrolling (enabled for 20+ repositories)
   const shouldVirtualize = filteredRepositories.length > 20
@@ -150,14 +152,14 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     if (selectedRepos.length === 0) return
 
     try {
-      setIsLoading(true)
-      setError(null)
+      setIsAdding(true)
+      setAddError(null)
 
       // Server Action: Add repositories to board with duplicate detection
       const result = await addRepositoriesToBoard(boardId, statusId, selectedRepos)
 
       if (!result.success) {
-        setError(result.errors?.join(', ') || 'Failed to add repositories')
+        setAddError(result.errors?.join(', ') || 'Failed to add repositories')
         return
       }
 
@@ -178,9 +180,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
         onQuickNoteFocus()
       }, 100)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error adding repositories')
+      setAddError(err instanceof Error ? err.message : 'Error adding repositories')
     } finally {
-      setIsLoading(false)
+      setIsAdding(false)
     }
   }
 
