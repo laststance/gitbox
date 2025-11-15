@@ -82,6 +82,7 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 - [ ] T029 [P] [US1] E2E test for GitHub OAuth login flow in tests/e2e/auth.spec.ts
 - [ ] T030 [P] [US1] Unit test for auth state management in tests/unit/lib/redux/authSlice.test.ts
+- [ ] T141 [P] [US1] Capture browser screenshots of login flow with Playwright in tests/e2e/screenshots/us1-login.spec.ts
 
 ### Implementation for User Story 1
 
@@ -107,6 +108,7 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 - [ ] T038 [P] [US2] E2E test for repository search and add in tests/e2e/board.spec.ts
 - [ ] T039 [P] [US2] Unit test for search performance (100+ repos) in tests/unit/components/AddRepositoryCombobox.test.tsx
+- [ ] T142 [P] [US2] Capture browser screenshots of repository search and add flow with Playwright in tests/e2e/screenshots/us2-repo-search.spec.ts
 
 ### Implementation for User Story 2
 
@@ -133,6 +135,7 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 - [ ] T048 [P] [US3] E2E test for drag & drop operations in tests/e2e/board.spec.ts
 - [ ] T049 [P] [US3] Unit test for undo functionality in tests/unit/components/KanbanBoard.test.tsx
+- [ ] T143 [P] [US3] Capture browser screenshots of Kanban board drag & drop operations with Playwright in tests/e2e/screenshots/us3-kanban-board.spec.ts
 
 ### Implementation for User Story 3
 
@@ -162,6 +165,7 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 - [ ] T061 [P] [US4] E2E test for Project Info modal in tests/e2e/project-info.spec.ts
 - [ ] T062 [P] [US4] Unit test for link validation in tests/unit/components/ProjectInfoModal.test.tsx
+- [ ] T144 [P] [US4] Capture browser screenshots of Project Info modal with Playwright in tests/e2e/screenshots/us4-project-info.spec.ts
 
 ### Implementation for User Story 4
 
@@ -188,6 +192,7 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 - [ ] T071 [P] [US5] E2E test for credentials management in tests/e2e/project-info.spec.ts
 - [ ] T072 [P] [US5] Security test for encryption/decryption in tests/unit/lib/encryption.test.ts
+- [ ] T145 [P] [US5] Capture browser screenshots of credentials management flow with Playwright in tests/e2e/screenshots/us5-credentials.spec.ts
 
 ### Implementation for User Story 5
 
@@ -215,6 +220,7 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 - [ ] T083 [P] [US6] E2E test for Maintenance Mode in tests/e2e/maintenance.spec.ts
 - [ ] T084 [P] [US6] Unit test for Grid/List view toggle in tests/unit/components/Maintenance.test.tsx
+- [ ] T146 [P] [US6] Capture browser screenshots of Maintenance Mode (Grid/List views) with Playwright in tests/e2e/screenshots/us6-maintenance.spec.ts
 
 ### Implementation for User Story 6
 
@@ -243,6 +249,7 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 - [ ] T095 [P] [US7] E2E test for theme switching in tests/e2e/theme.spec.ts
 - [ ] T096 [P] [US7] Accessibility test for WCAG AA compliance in tests/e2e/accessibility.spec.ts
+- [ ] T147 [P] [US7] Capture browser screenshots of all 12 theme variations with Playwright in tests/e2e/screenshots/us7-themes.spec.ts
 
 ### Implementation for User Story 7
 
@@ -271,6 +278,7 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 - [ ] T107 [P] [US8] E2E test for PWA installation in tests/e2e/pwa.spec.ts
 - [ ] T108 [P] [US8] Unit test for offline functionality in tests/unit/lib/offline.test.ts
+- [ ] T148 [P] [US8] Capture browser screenshots of PWA installation flow and standalone mode with Playwright in tests/e2e/screenshots/us8-pwa.spec.ts
 
 ### Implementation for User Story 8
 
@@ -416,18 +424,18 @@ With 3 developers after Foundation:
 
 ## Task Summary
 
-- **Total Tasks**: 140
+- **Total Tasks**: 148
 - **Setup Phase**: 10 tasks
 - **Foundational Phase**: 18 tasks (BLOCKS all stories)
-- **User Story Tasks**: 90 tasks
-  - US1 (Login): 9 tasks
-  - US2 (Search): 10 tasks
-  - US3 (Kanban): 13 tasks
-  - US4 (Project Info): 10 tasks
-  - US5 (Credentials): 12 tasks
-  - US6 (Maintenance): 12 tasks
-  - US7 (Themes): 12 tasks
-  - US8 (PWA): 12 tasks
+- **User Story Tasks**: 98 tasks
+  - US1 (Login): 10 tasks (includes browser screenshot)
+  - US2 (Search): 11 tasks (includes browser screenshot)
+  - US3 (Kanban): 14 tasks (includes browser screenshot)
+  - US4 (Project Info): 11 tasks (includes browser screenshot)
+  - US5 (Credentials): 13 tasks (includes browser screenshot)
+  - US6 (Maintenance): 13 tasks (includes browser screenshot)
+  - US7 (Themes): 13 tasks (includes browser screenshot)
+  - US8 (PWA): 13 tasks (includes browser screenshot)
 - **Polish Phase**: 12 tasks
 - **Compliance Phase**: 10 tasks
 
@@ -437,7 +445,7 @@ With 3 developers after Foundation:
 - Estimated 40-50% time reduction with parallel execution
 
 **MVP Scope (P1 stories only)**:
-- 28 Foundation tasks + 42 P1 story tasks = 70 tasks for MVP
+- 28 Foundation tasks + 46 P1 story tasks = 74 tasks for MVP (includes browser screenshots)
 - Estimated completion: 2-3 days with single developer, 1-2 days with team
 
 ---
