@@ -1,0 +1,101 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "settings": "Settings"
+  },
+  "Auth": {
+    "tagline": "Manage your GitHub repositories with Kanban boards",
+    "signInWithGitHub": "Sign in with GitHub",
+    "loginDisclaimer": "By signing in with your GitHub account, you agree to our Terms of Service and Privacy Policy.",
+    "signOut": "Sign out"
+  },
+  "Boards": {
+    "title": "Boards",
+    "subtitle": "Manage your GitHub repositories with boards",
+    "createBoard": "Create New Board",
+    "noBoards": "No boards yet",
+    "createFirstBoard": "Create your first board to start managing repositories!"
+  },
+  "Board": {
+    "title": "Board",
+    "createBoard": "Create Board",
+    "boardName": "Board Name",
+    "noBoards": "No boards yet. Create your first board!",
+    "addRepository": "Add Repository",
+    "searchRepositories": "Search repositories...",
+    "quickNote": "Quick note",
+    "projectInfo": "Project Info",
+    "moveToMaintenance": "Move to Maintenance"
+  },
+  "status": {
+    "suspend": "Suspend",
+    "specDesigning": "Spec Designing",
+    "active": "Active",
+    "completed": "Completed"
+  },
+  "maintenance": {
+    "title": "Maintenance Mode",
+    "gridView": "Grid View",
+    "listView": "List View",
+    "restoreToBoard": "Restore to Board",
+    "hide": "Hide",
+    "unhide": "Unhide"
+  },
+  "projectInfo": {
+    "title": "Project Info",
+    "quickNote": "Quick Note",
+    "links": "Links",
+    "credentials": "Credentials",
+    "production": "Production",
+    "tracking": "Tracking",
+    "dashboard": "Dashboard"
+  },
+  "credentials": {
+    "addCredential": "Add Credential",
+    "credentialName": "Credential Name",
+    "reference": "Reference",
+    "encrypted": "Encrypted",
+    "external": "External",
+    "reveal": "Reveal",
+    "copy": "Copy"
+  },
+  "theme": {
+    "selectTheme": "Select Theme",
+    "sunrise": "Sunrise",
+    "sandstone": "Sandstone",
+    "mint": "Mint",
+    "sky": "Sky",
+    "lavender": "Lavender",
+    "rose": "Rose",
+    "midnight": "Midnight",
+    "graphite": "Graphite",
+    "forest": "Forest",
+    "ocean": "Ocean",
+    "plum": "Plum",
+    "rust": "Rust"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "typography": "Typography",
+    "baseSize": "Base Size",
+    "scale": "Scale",
+    "compactMode": "Compact Mode",
+    "showArchived": "Show Archived"
+  },
+  "keyboard": {
+    "shortcuts": "Keyboard Shortcuts",
+    "undo": "Undo last drag operation",
+    "commandPalette": "Open command palette",
+    "help": "Show shortcuts"
+  }
+}

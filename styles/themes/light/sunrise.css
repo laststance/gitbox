@@ -1,0 +1,21 @@
+/**
+ * Sunrise Theme (Light)
+ *
+ * 暖かみのあるオレンジ系のライトテーマ
+ * WCAG AA 準拠: Text 4.5:1, UI 3:1
+ */
+
+[data-theme='sunrise'] {
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #fff7ed;
+  --color-bg-tertiary: #ffedd5;
+  --color-text-primary: #1c1917;
+  --color-text-secondary: #57534e;
+  --color-text-tertiary: #78716c;
+  --color-border: #fde68a;
+  --color-accent: #f59e0b;
+  --color-accent-hover: #d97706;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #dc2626;
+}

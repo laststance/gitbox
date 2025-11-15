@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Coverage
+coverage/
+
+# Generated files
+lib/supabase/types.ts
+lib/github/api.ts
+
+# Public assets
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/workbox-*.js.map
+
+# Storybook
+storybook-static/
+
+# Test reports
+test-results/
+playwright-report/
+
+# Misc
+.DS_Store
+Thumbs.db

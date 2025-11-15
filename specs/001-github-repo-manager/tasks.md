@@ -49,26 +49,41 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T011 Create Supabase database schema migrations in supabase/migrations/20251115_initial_schema.sql
-- [ ] T012 Setup Row Level Security (RLS) policies for all tables
-- [ ] T013 Create database functions and triggers (updated_at, default_board)
-- [ ] T014 Generate Supabase TypeScript types in lib/supabase/types.ts
-- [ ] T015 [P] Setup Supabase client configuration in lib/supabase/client.ts
-- [ ] T016 [P] Setup Supabase server client (@supabase/ssr) in lib/supabase/server.ts
-- [ ] T017 [P] Configure Redux Toolkit store in lib/redux/store.ts
-- [ ] T018 [P] Create base Redux slices (authSlice, boardSlice, settingsSlice) in lib/redux/slices/
-- [ ] T019 [P] Implement custom redux-storage-middleware in packages/redux-storage-middleware/src/
-- [ ] T020 [P] Setup next-intl i18n configuration in lib/i18n/config.ts
-- [ ] T021 [P] Create message files (en.json, ja.json) in lib/i18n/messages/
-- [ ] T022 [P] Configure RTK Query for GitHub API in lib/github/api.ts
-- [ ] T023 [P] Setup global CSS and theme variables in styles/globals.css
-- [ ] T024 [P] Create 12 theme files in styles/themes/ (6 light, 6 dark)
-- [ ] T025 Setup app router layout structure in app/[locale]/layout.tsx
-- [ ] T026 Create middleware.ts for authentication and locale routing
-- [ ] T027 [P] Configure Playwright for E2E testing in playwright.config.ts
-- [ ] T028 [P] Configure Vitest for unit testing in vitest.config.ts
+- [X] T011 Create Supabase database schema migrations in supabase/migrations/20251115_initial_schema.sql
+- [X] T012 Setup Row Level Security (RLS) policies for all tables
+- [X] T013 Create database functions and triggers (updated_at, default_board)
+- [X] T014 Generate Supabase TypeScript types in lib/supabase/types.ts
+- [X] T015 [P] Setup Supabase client configuration in lib/supabase/client.ts
+- [X] T016 [P] Setup Supabase server client (@supabase/ssr) in lib/supabase/server.ts
+- [X] T017 [P] Configure Redux Toolkit store in lib/redux/store.ts
+- [X] T018 [P] Create base Redux slices (authSlice, boardSlice, settingsSlice) in lib/redux/slices/
+- [X] T019 [P] Implement custom redux-storage-middleware in packages/redux-storage-middleware/src/
+- [X] T020 [P] Setup next-intl i18n configuration in lib/i18n/config.ts
+- [X] T021 [P] Create message files (en.json, ja.json) in lib/i18n/messages/
+- [X] T022 [P] Configure RTK Query for GitHub API in lib/github/api.ts
+- [X] T023 [P] Setup global CSS and theme variables in styles/globals.css
+- [X] T024 [P] Create 12 theme files in styles/themes/ (6 light, 6 dark)
+- [X] T025 Setup app router layout structure in app/[locale]/layout.tsx
+- [X] T026 Create middleware.ts for authentication and locale routing
+- [X] T027 [P] Configure Playwright for E2E testing in playwright.config.ts
+- [X] T028 [P] Configure Vitest for unit testing in vitest.config.ts
 
-**Checkpoint**: Foundation ready - user story implementation can now begin
+### Tests for Phase 2 Foundation (REQUIRED)
+
+**Purpose**: Validate all foundational infrastructure before building features
+
+- [x] T028.1 [P] Unit test for Supabase client initialization in tests/unit/lib/supabase/client.test.ts ✓
+- [x] T028.2 [P] Unit test for Supabase server client initialization in tests/unit/lib/supabase/server.test.ts ✓
+- [x] T028.3 [P] Unit test for Redux store configuration in tests/unit/lib/redux/store.test.ts ✓
+- [x] T028.4 [P] Unit test for Redux slices (auth, board, settings) in tests/unit/lib/redux/slices/*.test.ts ✓
+- [ ] T028.5 [P] Unit test for redux-storage-middleware in packages/redux-storage-middleware/tests/middleware.test.ts
+- [x] T028.6 [P] Unit test for i18n configuration and message loading in tests/unit/lib/i18n/config.test.ts ✓
+- [x] T028.7 [P] Unit test for middleware auth and locale routing in tests/unit/middleware.test.ts ✓
+- [ ] T028.8 [P] Unit test for theme system and CSS variable application in tests/unit/lib/theme.test.ts
+- [x] T028.9 [P] E2E test for WCAG AA contrast validation across all 12 themes in tests/e2e/accessibility.spec.ts ✓
+- [ ] T028.10 Integration test for database schema and RLS policies in tests/integration/database.test.ts
+
+**Checkpoint**: Foundation validated - user story implementation can now begin
 
 ---
 
@@ -78,7 +93,7 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 **Independent Test**: GitHub OAuth フローを実行し、認証後に Boards 画面に遷移することで完全にテスト可能
 
-### Tests for User Story 1 (OPTIONAL) ⚠️
+### Tests for User Story 1 (REQUIRED)
 
 - [ ] T029 [P] [US1] E2E test for GitHub OAuth login flow in tests/e2e/auth.spec.ts
 - [ ] T030 [P] [US1] Unit test for auth state management in tests/unit/lib/redux/authSlice.test.ts
@@ -86,13 +101,13 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 ### Implementation for User Story 1
 
-- [ ] T031 [P] [US1] Create landing page with "Sign in with GitHub" button in app/[locale]/(auth)/login/page.tsx
-- [ ] T032 [P] [US1] Implement OAuth callback handler in app/[locale]/auth/callback/route.ts
-- [ ] T033 [P] [US1] Create auth actions in lib/actions/auth.ts (Server Actions)
-- [ ] T034 [US1] Implement auth middleware for protected routes in middleware.ts
-- [ ] T035 [US1] Create boards list page (post-login home) in app/[locale]/(app)/boards/page.tsx
-- [ ] T036 [P] [US1] Add error handling for auth failures with user-friendly messages
-- [ ] T037 [P] [US1] Implement session management with Supabase Auth helpers
+- [X] T031 [P] [US1] Create landing page with "Sign in with GitHub" button in app/[locale]/(auth)/login/page.tsx
+- [X] T032 [P] [US1] Implement OAuth callback handler in app/[locale]/auth/callback/route.ts
+- [X] T033 [P] [US1] Create auth actions in lib/actions/auth.ts (Server Actions)
+- [X] T034 [US1] Implement auth middleware for protected routes in middleware.ts
+- [X] T035 [US1] Create boards list page (post-login home) in app/[locale]/(app)/boards/page.tsx
+- [X] T036 [P] [US1] Add error handling for auth failures with user-friendly messages
+- [X] T037 [P] [US1] Implement session management with Supabase Auth helpers
 
 **Checkpoint**: User Story 1 complete - users can login with GitHub
 
@@ -104,7 +119,7 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 **Independent Test**: Comboboxで検索し、複数Repositoryを選択して追加、"Quick note"にフォーカス移動
 
-### Tests for User Story 2 (OPTIONAL) ⚠️
+### Tests for User Story 2 (REQUIRED)
 
 - [ ] T038 [P] [US2] E2E test for repository search and add in tests/e2e/board.spec.ts
 - [ ] T039 [P] [US2] Unit test for search performance (100+ repos) in tests/unit/components/AddRepositoryCombobox.test.tsx
@@ -131,7 +146,7 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 **Independent Test**: カードをドラッグ&ドロップして列間移動（Status変更）と列内順序変更（優先度変更）
 
-### Tests for User Story 3 (OPTIONAL) ⚠️
+### Tests for User Story 3 (REQUIRED)
 
 - [ ] T048 [P] [US3] E2E test for drag & drop operations in tests/e2e/board.spec.ts
 - [ ] T049 [P] [US3] Unit test for undo functionality in tests/unit/components/KanbanBoard.test.tsx
@@ -161,7 +176,7 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 **Independent Test**: Project Infoモーダルで Quick note と Links を編集・保存
 
-### Tests for User Story 4 (OPTIONAL) ⚠️
+### Tests for User Story 4 (REQUIRED)
 
 - [ ] T061 [P] [US4] E2E test for Project Info modal in tests/e2e/project-info.spec.ts
 - [ ] T062 [P] [US4] Unit test for link validation in tests/unit/components/ProjectInfoModal.test.tsx
@@ -188,7 +203,7 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 **Independent Test**: Credentialsセクションで3つの管理パターンを使用して機密情報を管理
 
-### Tests for User Story 5 (OPTIONAL) ⚠️
+### Tests for User Story 5 (REQUIRED)
 
 - [ ] T071 [P] [US5] E2E test for credentials management in tests/e2e/project-info.spec.ts
 - [ ] T072 [P] [US5] Security test for encryption/decryption in tests/unit/lib/encryption.test.ts
@@ -216,7 +231,7 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 **Independent Test**: Maintenance Modeで完了プロジェクトをGrid/List表示で参照・復元
 
-### Tests for User Story 6 (OPTIONAL) ⚠️
+### Tests for User Story 6 (REQUIRED)
 
 - [ ] T083 [P] [US6] E2E test for Maintenance Mode in tests/e2e/maintenance.spec.ts
 - [ ] T084 [P] [US6] Unit test for Grid/List view toggle in tests/unit/components/Maintenance.test.tsx
@@ -245,7 +260,7 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 **Independent Test**: Settings画面で12テーマを選択、プレビュー、適用
 
-### Tests for User Story 7 (OPTIONAL) ⚠️
+### Tests for User Story 7 (REQUIRED)
 
 - [ ] T095 [P] [US7] E2E test for theme switching in tests/e2e/theme.spec.ts
 - [ ] T096 [P] [US7] Accessibility test for WCAG AA compliance in tests/e2e/accessibility.spec.ts
@@ -274,7 +289,7 @@ Based on plan.md structure (Next.js App Router monorepo with pnpm workspaces):
 
 **Independent Test**: ブラウザからインストール、スタンドアロンで起動、オフライン動作
 
-### Tests for User Story 8 (OPTIONAL) ⚠️
+### Tests for User Story 8 (REQUIRED)
 
 - [ ] T107 [P] [US8] E2E test for PWA installation in tests/e2e/pwa.spec.ts
 - [ ] T108 [P] [US8] Unit test for offline functionality in tests/unit/lib/offline.test.ts
@@ -453,9 +468,12 @@ With 3 developers after Foundation:
 ## Notes
 
 - All tasks follow strict format: `- [ ] T### [P?] [US#?] Description with file path`
-- Tests marked with ⚠️ are optional unless TDD is explicitly requested
+- **ALL TESTS ARE REQUIRED** - Test-Driven Development (TDD) is mandatory for quality assurance
+- Tests must be written BEFORE or WITH implementation, never skipped
+- Foundation tests (Phase 2) must pass before any user story implementation begins
 - Magic MCP should be used for all UI component generation
 - Japanese comments for business logic, English for technical APIs
 - Each user story is independently testable and deployable
 - Commit after each task or logical group
 - Validate at each checkpoint
+- Test coverage minimum: 80% for critical paths, 60% overall

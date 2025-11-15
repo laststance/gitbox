@@ -1,0 +1,68 @@
+{
+  "name": "vibe-rush",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GitHub Repository を Kanban ボード形式で管理する PWA アプリケーション",
+  "lint-staged": {
+    "*": "prettier --ignore-unknown --write",
+    "*.{js,ts,jsx,tsx,cjs,mjs}": [
+      "eslint -c eslint.config.mjs --fix --max-warnings=0 --concurrently=auto"
+    ]
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint . --max-warnings=0 --concurrently=auto",
+    "lint:fix": "eslint . --fix --max-warnings=0 --concurrently=auto",
+    "test": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "prepare": "husky install"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.1.0",
+    "@dnd-kit/sortable": "^8.0.0",
+    "@dnd-kit/utilities": "^3.2.0",
+    "@hookform/resolvers": "^3.3.0",
+    "@reduxjs/toolkit": "^2.2.0",
+    "@supabase/ssr": "^0.1.0",
+    "@supabase/supabase-js": "^2.40.0",
+    "date-fns": "^3.3.0",
+    "next": "^16.0.0",
+    "next-intl": "^3.9.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.50.0",
+    "react-redux": "^9.1.0",
+    "ts-pattern": "^5.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.8.0",
+    "@laststance/react-next-eslint-plugin": "^0.1.1",
+    "@playwright/test": "^1.41.0",
+    "@storybook/nextjs": "^8.0.0",
+    "@storybook/react": "^8.0.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^20.11.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "@vitest/coverage-v8": "^1.6.1",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^16.0.0",
+    "eslint-config-ts-prefixer": "^4.1.0",
+    "husky": "^9.0.0",
+    "jsdom": "^27.2.0",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.2.0",
+    "storybook": "^8.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.2.0"
+  }
+}
