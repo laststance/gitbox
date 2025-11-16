@@ -47,7 +47,7 @@ pnpm dlx prettier-husky-lint-staged-installer
 - Next.js 16, React 19, TypeScript 5.x
 - Redux Toolkit, RTK Query
 - Supabase Client, @supabase/ssr
-- react-hook-form, zod, next-intl, ts-pattern, date-fns
+- react-hook-form, zod, ts-pattern, date-fns
 - Vitest, Playwright, Storybook v10
 - ESLint v9, eslint-config-ts-prefixer, @laststance/react-next-eslint-plugin
 - Sentry

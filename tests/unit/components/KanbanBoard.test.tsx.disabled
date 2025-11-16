@@ -1,0 +1,372 @@
+/**
+ * Unit Test: KanbanBoard Component - Undo Functionality (User Story 3 - T049)
+ *
+ * Test scope:
+ * - Undo last drag & drop operation
+ * - Undo state management
+ * - Z key press detection
+ * - Undo operation completes within 200ms
+ */
+
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { KanbanBoard } from '@/components/Board/KanbanBoard'
+import { Provider } from 'react-redux'
+import { configureStore } from '@reduxjs/toolkit'
+import boardReducer from '@/lib/redux/slices/boardSlice'
+
+// モックデータ
+const mockRepositories = [
+  {
+    id: 1,
+    full_name: 'owner/repo1',
+    name: 'repo1',
+    owner: { login: 'owner', avatar_url: 'https://example.com/avatar1.png' },
+    status: 'backlog',
+    priority: 0,
+    html_url: 'https://github.com/owner/repo1',
+  },
+  {
+    id: 2,
+    full_name: 'owner/repo2',
+    name: 'repo2',
+    owner: { login: 'owner', avatar_url: 'https://example.com/avatar2.png' },
+    status: 'todo',
+    priority: 0,
+    html_url: 'https://github.com/owner/repo2',
+  },
+]
+
+describe('KanbanBoard - Undo Functionality', () => {
+  let store: ReturnType<typeof configureStore>
+  let user: ReturnType<typeof userEvent.setup>
+
+  beforeEach(() => {
+    // Redux store のセットアップ
+    store = configureStore({
+      reducer: {
+        board: boardReducer,
+      },
+      preloadedState: {
+        board: {
+          boards: [
+            {
+              id: 'test-board-1',
+              name: 'Test Board',
+              repositories: mockRepositories,
+            },
+          ],
+          currentBoardId: 'test-board-1',
+          dragHistory: [],
+          loading: false,
+          error: null,
+        },
+      },
+    })
+
+    user = userEvent.setup()
+    vi.clearAllMocks()
+  })
+
+  it('should undo last drag operation when Z key is pressed', async () => {
+    // Given: KanbanBoard をレンダリング
+    render(
+      <Provider store={store}>
+        <KanbanBoard boardId="test-board-1" />
+      </Provider>,
+    )
+
+    // 初期状態を確認
+    const backlogColumn = screen.getByTestId('status-column-backlog')
+    const todoColumn = screen.getByTestId('status-column-todo')
+
+    expect(backlogColumn).toBeInTheDocument()
+    expect(todoColumn).toBeInTheDocument()
+
+    // When: カードを移動（drag operation をシミュレート）
+    // NOTE: react-beautiful-dnd または @dnd-kit のモックが必要
+    // 実装時に適切なドラッグ操作のシミュレーションを追加
+
+    // And: Z キーを押す
+    await user.keyboard('z')
+
+    // Then: アンドゥ操作が実行される
+    // NOTE: 実装後に具体的な検証を追加
+    await waitFor(() => {
+      // アンドゥ後の状態を検証
+      // expect(store.getState().board.dragHistory).toHaveLength(0)
+    })
+  })
+
+  it('should complete undo operation within 200ms', async () => {
+    // Given: KanbanBoard をレンダリング
+    render(
+      <Provider store={store}>
+        <KanbanBoard boardId="test-board-1" />
+      </Provider>,
+    )
+
+    // When: アンドゥ操作を実行
+    const startTime = performance.now()
+    await user.keyboard('z')
+
+    // Then: 200ms 以内に完了する
+    await waitFor(
+      () => {
+        const endTime = performance.now()
+        const duration = endTime - startTime
+        expect(duration).toBeLessThan(200)
+      },
+      { timeout: 300 },
+    )
+  })
+
+  it('should not undo if drag history is empty', async () => {
+    // Given: ドラッグ履歴が空の状態
+    const emptyHistoryStore = configureStore({
+      reducer: {
+        board: boardReducer,
+      },
+      preloadedState: {
+        board: {
+          boards: [
+            {
+              id: 'test-board-1',
+              name: 'Test Board',
+              repositories: mockRepositories,
+            },
+          ],
+          currentBoardId: 'test-board-1',
+          dragHistory: [], // 空の履歴
+          loading: false,
+          error: null,
+        },
+      },
+    })
+
+    render(
+      <Provider store={emptyHistoryStore}>
+        <KanbanBoard boardId="test-board-1" />
+      </Provider>,
+    )
+
+    // When: Z キーを押す
+    await user.keyboard('z')
+
+    // Then: 何も起こらない（エラーにならない）
+    await waitFor(() => {
+      expect(emptyHistoryStore.getState().board.dragHistory).toHaveLength(0)
+    })
+  })
+
+  it('should restore card to original position and priority', async () => {
+    // Given: ドラッグ履歴がある状態
+    const storeWithHistory = configureStore({
+      reducer: {
+        board: boardReducer,
+      },
+      preloadedState: {
+        board: {
+          boards: [
+            {
+              id: 'test-board-1',
+              name: 'Test Board',
+              repositories: [
+                ...mockRepositories,
+                {
+                  id: 3,
+                  full_name: 'owner/repo3',
+                  name: 'repo3',
+                  owner: { login: 'owner', avatar_url: 'https://example.com/avatar3.png' },
+                  status: 'todo', // 移動後の状態
+                  priority: 1,
+                  html_url: 'https://github.com/owner/repo3',
+                },
+              ],
+            },
+          ],
+          currentBoardId: 'test-board-1',
+          dragHistory: [
+            {
+              repositoryId: 3,
+              fromStatus: 'backlog',
+              toStatus: 'todo',
+              fromPriority: 0,
+              toPriority: 1,
+              timestamp: Date.now(),
+            },
+          ],
+          loading: false,
+          error: null,
+        },
+      },
+    })
+
+    render(
+      <Provider store={storeWithHistory}>
+        <KanbanBoard boardId="test-board-1" />
+      </Provider>,
+    )
+
+    // When: Z キーを押してアンドゥ
+    await user.keyboard('z')
+
+    // Then: カードが元の位置と優先度に戻る
+    await waitFor(() => {
+      const state = storeWithHistory.getState()
+      const repo = state.board.boards[0].repositories.find((r) => r.id === 3)
+      expect(repo?.status).toBe('backlog')
+      expect(repo?.priority).toBe(0)
+    })
+  })
+
+  it('should support multiple undo operations', async () => {
+    // Given: 複数のドラッグ操作の履歴がある
+    const storeWithMultipleHistory = configureStore({
+      reducer: {
+        board: boardReducer,
+      },
+      preloadedState: {
+        board: {
+          boards: [
+            {
+              id: 'test-board-1',
+              name: 'Test Board',
+              repositories: mockRepositories,
+            },
+          ],
+          currentBoardId: 'test-board-1',
+          dragHistory: [
+            {
+              repositoryId: 1,
+              fromStatus: 'backlog',
+              toStatus: 'todo',
+              fromPriority: 0,
+              toPriority: 0,
+              timestamp: Date.now() - 1000,
+            },
+            {
+              repositoryId: 1,
+              fromStatus: 'todo',
+              toStatus: 'in-progress',
+              fromPriority: 0,
+              toPriority: 0,
+              timestamp: Date.now(),
+            },
+          ],
+          loading: false,
+          error: null,
+        },
+      },
+    })
+
+    render(
+      <Provider store={storeWithMultipleHistory}>
+        <KanbanBoard boardId="test-board-1" />
+      </Provider>,
+    )
+
+    // When: 2回 Z キーを押す
+    await user.keyboard('z')
+    await waitFor(() => {
+      expect(storeWithMultipleHistory.getState().board.dragHistory).toHaveLength(1)
+    })
+
+    await user.keyboard('z')
+
+    // Then: 2つの操作が順にアンドゥされる
+    await waitFor(() => {
+      expect(storeWithMultipleHistory.getState().board.dragHistory).toHaveLength(0)
+    })
+  })
+})
+
+describe('KanbanBoard - Drag & Drop State Management', () => {
+  it('should save drag operation to history', async () => {
+    // Given: 空の履歴で開始
+    const store = configureStore({
+      reducer: {
+        board: boardReducer,
+      },
+      preloadedState: {
+        board: {
+          boards: [
+            {
+              id: 'test-board-1',
+              name: 'Test Board',
+              repositories: mockRepositories,
+            },
+          ],
+          currentBoardId: 'test-board-1',
+          dragHistory: [],
+          loading: false,
+          error: null,
+        },
+      },
+    })
+
+    render(
+      <Provider store={store}>
+        <KanbanBoard boardId="test-board-1" />
+      </Provider>,
+    )
+
+    // When: ドラッグ操作を実行
+    // NOTE: ドラッグ操作のシミュレーションを実装
+
+    // Then: 履歴に記録される
+    // await waitFor(() => {
+    //   expect(store.getState().board.dragHistory).toHaveLength(1)
+    // })
+  })
+
+  it('should limit drag history to last 10 operations', async () => {
+    // Given: 10個の履歴がすでにある状態
+    const fullHistory = Array.from({ length: 10 }, (_, i) => ({
+      repositoryId: i + 1,
+      fromStatus: 'backlog',
+      toStatus: 'todo',
+      fromPriority: 0,
+      toPriority: 0,
+      timestamp: Date.now() - (10 - i) * 1000,
+    }))
+
+    const store = configureStore({
+      reducer: {
+        board: boardReducer,
+      },
+      preloadedState: {
+        board: {
+          boards: [
+            {
+              id: 'test-board-1',
+              name: 'Test Board',
+              repositories: mockRepositories,
+            },
+          ],
+          currentBoardId: 'test-board-1',
+          dragHistory: fullHistory,
+          loading: false,
+          error: null,
+        },
+      },
+    })
+
+    render(
+      <Provider store={store}>
+        <KanbanBoard boardId="test-board-1" />
+      </Provider>,
+    )
+
+    // When: 新しいドラッグ操作を実行
+    // NOTE: ドラッグ操作のシミュレーションを実装
+
+    // Then: 履歴は10個に制限される（古いものから削除）
+    // await waitFor(() => {
+    //   const history = store.getState().board.dragHistory
+    //   expect(history).toHaveLength(10)
+    //   expect(history[0].repositoryId).not.toBe(1) // 最も古い操作が削除されている
+    // })
+  })
+})

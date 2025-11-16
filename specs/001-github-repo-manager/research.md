@@ -193,40 +193,7 @@ export const Default: Story = {
 
 ---
 
-## 5. next-intl (Internationalization)
-
-### 決定事項
-- **next-intl** で英語（デフォルト）・日本語対応
-- App Router の `[locale]` dynamic routing 使用
-- メッセージファイル: `lib/i18n/messages/{en,ja}.json`
-
-### 根拠
-- next-intl は App Router 公式推奨の i18n ライブラリ
-- Server Components 対応（`next-i18next` は非対応）
-- TypeScript 型安全（メッセージキーの補完・検証）
-- 日付/時刻フォーマットは `date-fns` と統合可能
-
-### 設定例
-```typescript
-// lib/i18n/config.ts
-import { getRequestConfig } from 'next-intl/server';
-
-export default getRequestConfig(async ({ locale }) => ({
-  messages: (await import(`./messages/${locale}.json`)).default,
-}));
-```
-
-### 代替案との比較
-- **next-i18next**: Pages Router 専用、App Router 非対応
-- **react-intl**: Server Components 非対応、型安全性弱い
-
-### 参考資料
-- [next-intl Documentation](https://next-intl-docs.vercel.app/)
-- [Next.js App Router Internationalization](https://nextjs.org/docs/app/building-your-application/routing/internationalization)
-
----
-
-## 6. Playwright E2E Testing + Supabase OAuth Bypass
+## 5. Playwright E2E Testing + Supabase OAuth Bypass
 
 ### 決定事項
 - **Playwright** で E2E テスト（GitHub OAuth ログイン含む）
@@ -286,7 +253,7 @@ export const test = base.extend({
 
 ---
 
-## 7. ESLint v9 + Custom Rules
+## 6. ESLint v9 + Custom Rules
 
 ### 決定事項
 - **ESLint v9** (Flat Config)
@@ -327,7 +294,7 @@ export default [
 
 ---
 
-## 8. Vitest (Unit Testing)
+## 7. Vitest (Unit Testing)
 
 ### 決定事項
 - **Vitest** で単体テスト（Jest 互換 API）
@@ -367,7 +334,7 @@ export default defineConfig({
 
 ---
 
-## 9. PWA (Progressive Web App)
+## 8. PWA (Progressive Web App)
 
 ### 決定事項
 - **next-pwa** プラグインで PWA 化
