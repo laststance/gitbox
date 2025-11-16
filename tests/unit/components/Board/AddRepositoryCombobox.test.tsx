@@ -23,34 +23,23 @@ import type { GitHubRepository } from '@/lib/github/api'
 const generateMockRepositories = (count: number): GitHubRepository[] => {
   return Array.from({ length: count }, (_, i) => ({
     id: i + 1,
+    node_id: `MDEwOlJlcG9zaXRvcnk${i}`,
     name: `repo-${i}`,
     full_name: `owner-${i % 10}/repo-${i}`,
     owner: {
       login: `owner-${i % 10}`,
       avatar_url: `https://avatars.githubusercontent.com/u/${i}`,
-      id: i,
-      node_id: `node-${i}`,
-      gravatar_id: '',
-      url: `https://api.github.com/users/owner-${i % 10}`,
-      html_url: `https://github.com/owner-${i % 10}`,
-      type: 'User',
-      site_admin: false,
     },
     description: `Description for repository ${i}`,
     html_url: `https://github.com/owner-${i % 10}/repo-${i}`,
+    homepage: i % 5 === 0 ? `https://repo-${i}.dev` : null,
     stargazers_count: Math.floor(Math.random() * 10000),
+    watchers_count: Math.floor(Math.random() * 5000),
     language: i % 3 === 0 ? 'TypeScript' : i % 3 === 1 ? 'JavaScript' : 'Python',
     topics: ['react', 'nextjs', 'typescript'].slice(0, (i % 3) + 1),
     visibility: (i % 2 === 0 ? 'public' : 'private') as 'public' | 'private',
     updated_at: new Date(Date.now() - i * 86400000).toISOString(),
     created_at: new Date(Date.now() - i * 86400000 * 365).toISOString(),
-    private: i % 2 !== 0,
-    fork: false,
-    forks_count: Math.floor(Math.random() * 1000),
-    watchers_count: Math.floor(Math.random() * 5000),
-    open_issues_count: Math.floor(Math.random() * 100),
-    default_branch: 'main',
-    score: Math.random(),
   }))
 }
 
@@ -62,15 +51,13 @@ const createMockStore = () =>
     },
     preloadedState: {
       board: {
-        boards: [],
-        currentBoard: null,
-        repositories: [],
-        selectedReposForAdd: [],
-        searchLoading: false,
-        addLoading: false,
-        duplicateError: null,
+        activeBoard: null,
+        statusLists: [],
+        repoCards: [],
         loading: false,
         error: null,
+        lastDragOperation: null,
+        undoHistory: [],
       },
     },
   })
@@ -229,7 +216,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       const searchInput = screen.getByPlaceholderText(/Search repositories/i)
 
       // 高速タイピングシミュレーション
-      await user.type(searchInput, 'react', { delay: 50 }) // 各文字50ms間隔
+      await user.type(searchInput, 'react') // タイピングシミュレーション
 
       // Debounce期間待機前は呼ばれない
       expect(mockSearch).toHaveBeenCalledTimes(5) // Mockでは各文字で呼ばれる
@@ -247,34 +234,23 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       const existingRepoIds = ['12345', '67890']
       const newRepo: GitHubRepository = {
         id: 12345,
+        node_id: 'MDEwOlJlcG9zaXRvcnkxMjM0NQ==',
         name: 'react',
         full_name: 'facebook/react',
         owner: {
           login: 'facebook',
           avatar_url: '',
-          id: 1,
-          node_id: 'node-1',
-          gravatar_id: '',
-          url: 'https://api.github.com/users/facebook',
-          html_url: 'https://github.com/facebook',
-          type: 'Organization',
-          site_admin: false,
         },
         description: 'React library',
         html_url: 'https://github.com/facebook/react',
+        homepage: 'https://reactjs.org',
         stargazers_count: 100000,
+        watchers_count: 50000,
         language: 'JavaScript',
         topics: ['react'],
         visibility: 'public',
         updated_at: new Date().toISOString(),
         created_at: new Date().toISOString(),
-        private: false,
-        fork: false,
-        forks_count: 10000,
-        watchers_count: 50000,
-        open_issues_count: 500,
-        default_branch: 'main',
-        score: 1.0,
       }
 
       // Duplicate detection logic (T043で実装)

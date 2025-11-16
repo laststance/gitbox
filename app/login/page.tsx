@@ -1,18 +1,15 @@
 /**
- * ログインページ
+ * Login Page
  *
- * GitHub OAuth でサインイン
+ * Sign in with GitHub OAuth
  * - Landing page with "Sign in with GitHub" button
- * - シンプルでクリーンなデザイン
- * - アクセシビリティ対応（keyboard navigation）
+ * - Simple and clean design
+ * - Accessibility support (keyboard navigation)
  */
 
-import { useTranslations } from 'next-intl'
 import { signInWithGitHub } from '@/lib/actions/auth'
 
 export default function LoginPage() {
-  const t = useTranslations('Auth')
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-8 shadow-lg dark:bg-gray-800">
@@ -22,7 +19,7 @@ export default function LoginPage() {
             Vibe Rush
           </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            {t('tagline')}
+            Manage GitHub repositories in Kanban format
           </p>
         </div>
 
@@ -46,13 +43,13 @@ export default function LoginPage() {
                   clipRule="evenodd"
                 />
               </svg>
-              <span className="font-semibold">{t('signInWithGitHub')}</span>
+              <span className="font-semibold">Sign in with GitHub</span>
             </button>
           </form>
 
           {/* Additional Info */}
           <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
-            {t('loginDisclaimer')}
+            By signing in, you agree to our terms and privacy policy
           </p>
         </div>
       </div>

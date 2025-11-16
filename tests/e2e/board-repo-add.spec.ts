@@ -103,13 +103,10 @@ test.describe('User Story 2: Repository Search and Add', () => {
         value: testUser.accessToken,
         domain: 'localhost',
         path: '/',
-        httpOnly: false,
-        secure: false,
-        sameSite: 'Lax',
       },
     ])
 
-    await page.goto(`http://localhost:3000/ja/board/${testBoard.id}`)
+    await page.goto(`http://localhost:3008/ja/board/${testBoard.id}`)
 
     // "Add Repositories" ボタンをクリック
     const addButton = page.getByRole('button', {
@@ -166,9 +163,6 @@ test.describe('User Story 2: Repository Search and Add', () => {
         value: testUser.accessToken,
         domain: 'localhost',
         path: '/',
-        httpOnly: false,
-        secure: false,
-        sameSite: 'Lax',
       },
     ])
 
@@ -184,7 +178,7 @@ test.describe('User Story 2: Repository Search and Add', () => {
 
     if (insertError) console.error('Insert error:', insertError)
 
-    await page.goto(`http://localhost:3000/ja/board/${testBoard.id}`)
+    await page.goto(`http://localhost:3008/ja/board/${testBoard.id}`)
 
     // Repository追加試行
     await page.getByRole('button', { name: /Add Repositories/i }).click()
@@ -205,13 +199,10 @@ test.describe('User Story 2: Repository Search and Add', () => {
         value: testUser.accessToken,
         domain: 'localhost',
         path: '/',
-        httpOnly: false,
-        secure: false,
-        sameSite: 'Lax',
       },
     ])
 
-    await page.goto(`http://localhost:3000/ja/board/${testBoard.id}`)
+    await page.goto(`http://localhost:3008/ja/board/${testBoard.id}`)
     await page.getByRole('button', { name: /Add Repositories/i }).click()
 
     // Owner filter
@@ -249,13 +240,10 @@ test.describe('User Story 2: Repository Search and Add', () => {
         value: testUser.accessToken,
         domain: 'localhost',
         path: '/',
-        httpOnly: false,
-        secure: false,
-        sameSite: 'Lax',
       },
-    })
+    ])
 
-    await page.goto(`http://localhost:3000/ja/board/${testBoard.id}`)
+    await page.goto(`http://localhost:3008/ja/board/${testBoard.id}`)
     await page.getByRole('button', { name: /Add Repositories/i }).click()
 
     // 広範囲検索 (100+結果を期待)
@@ -286,13 +274,10 @@ test.describe('User Story 2: Repository Search and Add', () => {
         value: testUser.accessToken,
         domain: 'localhost',
         path: '/',
-        httpOnly: false,
-        secure: false,
-        sameSite: 'Lax',
       },
-    })
+    ])
 
-    await page.goto(`http://localhost:3000/ja/board/${testBoard.id}`)
+    await page.goto(`http://localhost:3008/ja/board/${testBoard.id}`)
     await page.getByRole('button', { name: /Add Repositories/i }).click()
 
     // 検索中はLoading indicatorが表示される
@@ -322,13 +307,10 @@ test.describe('User Story 2: Repository Search and Add', () => {
         value: testUser.accessToken,
         domain: 'localhost',
         path: '/',
-        httpOnly: false,
-        secure: false,
-        sameSite: 'Lax',
       },
-    })
+    ])
 
-    await page.goto(`http://localhost:3000/ja/board/${testBoard.id}`)
+    await page.goto(`http://localhost:3008/ja/board/${testBoard.id}`)
     await page.getByRole('button', { name: /Add Repositories/i }).click()
 
     const searchInput = page.getByPlaceholder(/Search repositories/i)

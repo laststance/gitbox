@@ -1,31 +1,25 @@
 /**
- * Next.js Middleware
+ * Next.js Proxy
  *
- * 認証チェックとロケールルーティング
- * - Supabase セッション検証
- * - next-intl ロケール処理
- * - 認証が必要なルートの保護
+ * Authentication check
+ * - Supabase session validation
+ * - Protected route authentication
  */
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import createMiddleware from 'next-intl/middleware'
-import { routing } from './i18n/routing'
 
-// 認証不要なパス
-const publicPaths = ['/', '/auth/callback']
+// Public paths that don't require authentication
+const publicPaths = ['/', '/login', '/auth/callback']
 
-// next-intl のミドルウェア
-const intlMiddleware = createMiddleware(routing)
-
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   })
 
-  // Supabase クライアントを作成（Cookie 操作付き）
+  // Create Supabase client with cookie operations
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -72,37 +66,32 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // セッションを取得
+  // Get session
   const {
     data: { session },
   } = await supabase.auth.getSession()
 
-  // パスのチェック
+  // Check path
   const { pathname } = request.nextUrl
 
-  // ロケールを除去したパス
-  const pathnameWithoutLocale = pathname.replace(/^\/[a-z]{2}/, '') || '/'
-
-  // 認証不要なパスの場合は next-intl ミドルウェアのみ適用
-  if (publicPaths.includes(pathnameWithoutLocale)) {
-    return intlMiddleware(request)
+  // Allow public paths without authentication
+  if (publicPaths.includes(pathname)) {
+    return response
   }
 
-  // 認証が必要なパスで未認証の場合はログインページにリダイレクト
+  // Redirect to login if not authenticated
   if (!session) {
-    const locale = request.nextUrl.pathname.split('/')[1]
-    const loginUrl = new URL(`/${locale}/login`, request.url)
+    const loginUrl = new URL('/login', request.url)
     return NextResponse.redirect(loginUrl)
   }
 
-  // next-intl ミドルウェアを適用
-  return intlMiddleware(request)
+  return response
 }
 
 export const config = {
   matcher: [
     /*
-     * 以下を除く全てのパスにマッチ:
+     * Match all request paths except:
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)

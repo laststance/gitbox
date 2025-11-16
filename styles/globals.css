@@ -4,10 +4,7 @@
  * CSS Variables とグローバルスタイルを定義
  * テーマは CSS Variables で管理し、JavaScript から切り替え可能
  */
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss'
 
 /* CSS Variables for Theming */
 :root {

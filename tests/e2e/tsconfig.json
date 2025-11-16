@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["@playwright/test"],
+    "module": "commonjs",
+    "moduleResolution": "node"
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}

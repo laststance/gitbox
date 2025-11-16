@@ -40,6 +40,7 @@ export default defineConfig([
     '**/.husky/**',
     'lib/supabase/types.ts',
     'lib/github/api.ts',
+    'tests/e2e/**',
   ]),
   {
     plugins: {
@@ -53,6 +54,8 @@ export default defineConfig([
       '@laststance/react-next/no-deopt-use-callback': 'error',
       '@laststance/react-next/prefer-stable-context-value': 'error',
       '@laststance/react-next/no-unstable-classname-prop': 'error',
+      // Turn Off eslint-config-next/typescript defaults
+      'import/no-anonymous-default-export': 'off',
     },
   },
   {

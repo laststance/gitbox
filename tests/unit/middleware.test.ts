@@ -11,15 +11,15 @@ import { describe, it, expect } from 'vitest'
 
 describe('Middleware (middleware.ts)', () => {
   describe('Module Exports', () => {
-    it('should export middleware function', async () => {
-      const middlewareModule = await import('@/middleware')
+    it('should export proxy function', async () => {
+      const middlewareModule = await import('@/app/proxy')
 
-      expect(middlewareModule.middleware).toBeDefined()
-      expect(typeof middlewareModule.middleware).toBe('function')
+      expect(middlewareModule.proxy).toBeDefined()
+      expect(typeof middlewareModule.proxy).toBe('function')
     })
 
     it('should export config object', async () => {
-      const middlewareModule = await import('@/middleware')
+      const middlewareModule = await import('@/app/proxy')
 
       expect(middlewareModule.config).toBeDefined()
       expect(middlewareModule.config.matcher).toBeDefined()
@@ -28,14 +28,14 @@ describe('Middleware (middleware.ts)', () => {
 
   describe('Matcher Configuration', () => {
     it('should have matcher array', async () => {
-      const { config } = await import('@/middleware')
+      const { config } = await import('@/app/proxy')
 
       expect(Array.isArray(config.matcher)).toBe(true)
       expect(config.matcher.length).toBeGreaterThan(0)
     })
 
     it('should exclude static files from matching', async () => {
-      const { config } = await import('@/middleware')
+      const { config } = await import('@/app/proxy')
       const matcher = config.matcher[0]
 
       expect(typeof matcher).toBe('string')
@@ -71,11 +71,11 @@ describe('Middleware (middleware.ts)', () => {
     })
   })
 
-  describe('Middleware Function Type', () => {
+  describe('Proxy Function Type', () => {
     it('should be an async function', async () => {
-      const { middleware } = await import('@/middleware')
+      const { proxy } = await import('@/app/proxy')
 
-      expect(middleware.constructor.name).toBe('AsyncFunction')
+      expect(proxy.constructor.name).toBe('AsyncFunction')
     })
   })
 })

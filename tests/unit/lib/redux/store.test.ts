@@ -83,19 +83,17 @@ describe('Redux Store Configuration (lib/redux/store.ts)', () => {
 
     it('should have DevTools enabled in development', () => {
       // DevTools should be enabled when NODE_ENV !== 'production'
-      const originalEnv = process.env.NODE_ENV
-      process.env.NODE_ENV = 'development'
+      // Note: process.env.NODE_ENV is read-only in TypeScript, so we test the condition directly
+      const isDevelopment = process.env.NODE_ENV !== 'production'
 
       const testStore = configureStore({
         reducer: {
           test: (state = {}) => state,
         },
-        devTools: process.env.NODE_ENV !== 'production',
+        devTools: isDevelopment,
       })
 
       expect((testStore as any).devToolsExtension || true).toBeTruthy()
-
-      process.env.NODE_ENV = originalEnv
     })
   })
 

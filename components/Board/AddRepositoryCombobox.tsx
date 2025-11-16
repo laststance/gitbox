@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo, memo } from 'react'
-import { useTranslations } from 'next-intl'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import {
   useGetAuthenticatedUserRepositoriesQuery,
@@ -36,8 +35,6 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   onRepositoriesAdded,
   onQuickNoteFocus,
 }: AddRepositoryComboboxProps) {
-  const t = useTranslations('board')
-
   // State
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -206,7 +203,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        {t('addRepositories', { default: 'Add Repositories' })}
+        Add Repositories
       </button>
 
       {/* Combobox panel */}
@@ -224,7 +221,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('searchRepositories', { default: 'Search repositories' })}
+            placeholder="Search repositories"
             className="search-input"
             aria-label="Search repositories"
             autoFocus
@@ -236,7 +233,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
               type="text"
               value={ownerFilter}
               onChange={(e) => setOwnerFilter(e.target.value)}
-              placeholder={t('filterByOwner', { default: 'Filter by owner' })}
+              placeholder="Filter by owner"
               className="filter-input"
             />
 
@@ -275,14 +272,14 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
           {/* Loading indicator */}
           {isLoading && (
             <div role="status" className="loading">
-              {t('loading', { default: 'Loading...' })}
+              Loading...
             </div>
           )}
 
           {/* Error message */}
           {error && (
             <div role="alert" className="error">
-              {t('error', { default: 'Error' })}: {error}
+              Error: {error}
             </div>
           )}
 
@@ -391,7 +388,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
           {/* No results */}
           {!isLoading && debouncedQuery && filteredRepositories.length === 0 && (
             <div className="no-results">
-              {t('noResults', { default: 'No repositories found' })}
+              No repositories found
             </div>
           )}
 
@@ -403,14 +400,14 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
               disabled={selectedRepos.length === 0 || isLoading}
               className="add-button"
             >
-              {t('add', { default: 'Add' })} ({selectedRepos.length})
+              Add ({selectedRepos.length})
             </button>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
               className="cancel-button"
             >
-              {t('cancel', { default: 'Cancel' })}
+              Cancel
             </button>
           </div>
         </div>

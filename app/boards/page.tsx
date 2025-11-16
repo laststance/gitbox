@@ -1,37 +1,29 @@
 /**
- * Boards List Page (ホーム画面)
+ * Boards List Page (Home Screen)
  *
- * ログイン後の最初の画面
- * - ユーザーの全ボードを表示
- * - 新しいボードを作成
- * - ボードを削除
+ * First screen after login
+ * - Display all user boards
+ * - Create new board
+ * - Delete board
  */
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 
-export default async function BoardsPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>
-}) {
-  // Next.js 15+ async params
-  const { locale } = await params
-
+export default async function BoardsPage() {
   const supabase = await createClient()
 
-  // 認証チェック（middleware でも行われるが二重チェック）
+  // Authentication check (also done in middleware, but double-check)
   const {
     data: { session },
   } = await supabase.auth.getSession()
 
   if (!session) {
-    redirect(`/${locale}/login`)
+    redirect('/login')
   }
 
-  // ユーザーの全ボードを取得
+  // Fetch all user boards
   const { data: boards, error } = await supabase
     .from('Board')
     .select('*')
@@ -42,23 +34,21 @@ export default async function BoardsPage({
     console.error('Failed to fetch boards:', error)
   }
 
-  const t = await getTranslations('Boards')
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            {t('title')}
+            My Boards
           </h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
-            {t('subtitle')}
+            Manage your GitHub repositories in Kanban format
           </p>
         </div>
 
         {/* Create New Board Button */}
         <Link
-          href={`/${locale}/boards/new`}
+          href="/boards/new"
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
         >
           <svg
@@ -74,7 +64,7 @@ export default async function BoardsPage({
               d="M12 4v16m8-8H4"
             />
           </svg>
-          {t('createBoard')}
+          Create Board
         </Link>
       </div>
 
@@ -84,7 +74,7 @@ export default async function BoardsPage({
           {boards.map((board) => (
             <Link
               key={board.id}
-              href={`/${locale}/board/${board.id}`}
+              href={`/board/${board.id}`}
               className="group block rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md hover:border-blue-300 transition-all dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600"
             >
               <h3 className="text-xl font-semibold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400 transition-colors">
@@ -105,9 +95,7 @@ export default async function BoardsPage({
                       d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                     />
                   </svg>
-                  {new Date(board.created_at).toLocaleDateString(
-                    locale
-                  )}
+                  {new Date(board.created_at).toLocaleDateString('en-US')}
                 </div>
                 <div className="flex items-center gap-1">
                   <div
@@ -143,13 +131,13 @@ export default async function BoardsPage({
             />
           </svg>
           <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
-            {t('noBoards')}
+            No boards yet
           </h3>
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            {t('createFirstBoard')}
+            Get started by creating your first board
           </p>
           <Link
-            href={`/${locale}/boards/new`}
+            href="/boards/new"
             className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors"
           >
             <svg
@@ -165,7 +153,7 @@ export default async function BoardsPage({
                 d="M12 4v16m8-8H4"
               />
             </svg>
-            {t('createBoard')}
+            Create Board
           </Link>
         </div>
       )}
