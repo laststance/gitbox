@@ -1,178 +1,173 @@
 <!--
-Sync Impact Report:
-Version Change: 1.0.0 → 1.1.0
-Principles Modified:
-  - Added VII. Japanese-First Documentation & Communication
+同期影響レポート:
+バージョン変更: 1.1.0 → 1.2.0
+変更された原則:
+  - 削除: 国際化セクション (英語/日本語サポート要件)
 
-Rationale for MINOR version bump:
-  - New principle added (Japanese-first communication)
-  - Backward compatible - doesn't remove or redefine existing principles
-  - Materially expands guidance for documentation and communication standards
+MINOR バージョンアップの根拠:
+  - 国際化要件を削除 (仕様変更により英語のみ実装に変更)
+  - 後方互換性あり - 既存の原則を削除・再定義していない
+  - プロジェクトスコープの明確化
 
-Templates Status:
-  ✅ plan-template.md - Aligned with constitution checks
-  ✅ spec-template.md - Aligned with user story and acceptance criteria requirements
-  ✅ tasks-template.md - Aligned with test-first and deployment requirements
+テンプレート状態:
+  ✅ plan-template.md - Constitution チェックと整合
+  ✅ spec-template.md - ユーザーストーリーと受け入れ基準要件と整合
+  ✅ tasks-template.md - テストファーストとデプロイ要件と整合
 
-Follow-up TODOs: None
+フォローアップ TODO: なし
 -->
 
 # Vibe Rush Constitution
 
-## Core Principles
+## 基本原則
 
-### I. Browser Verification Mandatory
+### I. ブラウザ検証必須
 
-**Rule**: Every feature implementation MUST be verified in an actual browser using Playwright MCP tool before task completion.
+**ルール**: すべての機能実装は、タスク完了前に Playwright MCP ツールを使用して実際のブラウザで検証しなければならない。
 
-**Requirements**:
-- Visual verification via screenshots is mandatory
-- Functional verification via interaction testing is mandatory
-- NO task may be marked complete without browser verification
-- Screenshots must demonstrate the feature working as specified
+**要件**:
+- スクリーンショットによる視覚的検証が必須
+- インタラクションテストによる機能検証が必須
+- ブラウザ検証なしでタスクを完了とマークしてはならない
+- スクリーンショットは仕様通りに機能していることを示す必要がある
 
-**Rationale**: Visual bugs, layout issues, and interaction problems are only detectable in real browsers. Code review alone is insufficient for UI/UX quality assurance.
+**根拠**: 視覚的なバグ、レイアウトの問題、インタラクションの問題は実際のブラウザでのみ検出可能。コードレビューだけでは UI/UX 品質保証として不十分。
 
-### II. E2E Testing for Critical Flows
+### II. クリティカルフローの E2E テスト
 
-**Rule**: All happy path user journeys MUST have E2E test coverage.
+**ルール**: すべてのハッピーパスのユーザージャーニーは E2E テストカバレッジを持たなければならない。
 
-**Requirements**:
-- Authentication flows must have E2E tests
-- Core Kanban operations (create board, add card, drag & drop) must have E2E tests
-- Project Info modal operations must have E2E tests
-- Tests must use Playwright for browser automation
-- Tests must validate both functionality and visual presentation
+**要件**:
+- 認証フローは E2E テストを持つ必要がある
+- コア Kanban 操作 (ボード作成、カード追加、ドラッグ&ドロップ) は E2E テストを持つ必要がある
+- Project Info モーダル操作は E2E テストを持つ必要がある
+- テストはブラウザ自動化に Playwright を使用する必要がある
+- テストは機能と視覚的表現の両方を検証する必要がある
 
-**Rationale**: E2E tests ensure user-facing features work end-to-end, catching integration issues that unit tests miss.
+**根拠**: E2E テストはユーザー向け機能がエンドツーエンドで動作することを保証し、ユニットテストでは見逃す統合の問題をキャッチする。
 
-### III. Clear Documentation & User Guidance
+### III. 明確なドキュメントとユーザーガイダンス
 
-**Rule**: All code must have clear docstrings explaining what the application/component does.
+**ルール**: すべてのコードは、アプリケーション/コンポーネントが何をするかを説明する明確な docstring を持たなければならない。
 
-**Requirements**:
-- Every component must have a docstring describing its purpose
-- Every API endpoint must document its behavior
-- Complex business logic must include explanatory comments
-- User-facing configuration (Vercel, Supabase) must be documented with clear setup instructions
+**要件**:
+- すべてのコンポーネントは目的を説明する docstring を持つ必要がある
+- すべての API エンドポイントは動作を文書化する必要がある
+- 複雑なビジネスロジックには説明的なコメントを含める必要がある
+- ユーザー向け設定 (Vercel、Supabase) は明確なセットアップ手順で文書化する必要がある
 
-**Rationale**: Clear documentation enables team collaboration, easier onboarding, and reduces cognitive load during maintenance.
+**根拠**: 明確なドキュメントはチームコラボレーションを可能にし、オンボーディングを容易にし、メンテナンス時の認知負荷を軽減する。
 
-### IV. Accessibility & WCAG Compliance
+### IV. アクセシビリティと WCAG 準拠
 
-**Rule**: All UI components MUST meet WCAG AA standards for accessibility.
+**ルール**: すべての UI コンポーネントはアクセシビリティの WCAG AA 基準を満たさなければならない。
 
-**Requirements**:
-- Text content must meet 4.5:1 contrast ratio
-- UI components/icons must meet 3:1 contrast ratio
-- All 12 themes must pass automated contrast validation
-- Build must fail if contrast requirements are not met
-- Keyboard navigation must be fully supported
+**要件**:
+- テキストコンテンツは 4.5:1 のコントラスト比を満たす必要がある
+- UI コンポーネント/アイコンは 3:1 のコントラスト比を満たす必要がある
+- 12 のテーマすべてが自動コントラスト検証に合格する必要がある
+- コントラスト要件が満たされていない場合、ビルドは失敗する必要がある
+- キーボードナビゲーションが完全にサポートされている必要がある
 
-**Rationale**: Accessibility is a fundamental requirement, not an optional feature. WCAG compliance ensures the application is usable by everyone.
+**根拠**: アクセシビリティは基本的な要件であり、オプション機能ではない。WCAG 準拠はアプリケーションがすべての人に使用可能であることを保証する。
 
-### V. Security-First Development
+### V. セキュリティファースト開発
 
-**Rule**: Security requirements MUST be implemented and verified before deployment.
+**ルール**: セキュリティ要件はデプロイ前に実装および検証されなければならない。
 
-**Requirements**:
-- Credentials must use one of three approved patterns: reference links, AES-256-GCM encryption, or external management
-- All credential access must be logged to audit trail
-- Sensitive data must use masked display by default
-- Security configurations must be reviewed before production deployment
+**要件**:
+- 認証情報は承認された 3 つのパターンのいずれかを使用する必要がある: 参照リンク、AES-256-GCM 暗号化、または外部管理
+- すべての認証情報アクセスは監査証跡にログ記録される必要がある
+- 機密データはデフォルトでマスク表示を使用する必要がある
+- セキュリティ構成は本番デプロイ前にレビューされる必要がある
 
-**Rationale**: Security vulnerabilities can cause catastrophic damage. Security must be built-in from the start, not added as an afterthought.
+**根拠**: セキュリティ脆弱性は壊滅的な損害を引き起こす可能性がある。セキュリティは最初から組み込まれる必要があり、後付けではない。
 
-### VI. Test-Driven Development
+### VI. テスト駆動開発
 
-**Rule**: Tests MUST be written before implementation and MUST fail before implementation begins.
+**ルール**: テストは実装前に記述されなければならず、実装開始前に失敗しなければならない。
 
-**Requirements**:
-- Write acceptance tests based on spec.md user stories
-- Verify tests fail (Red phase)
-- Implement feature to make tests pass (Green phase)
-- Refactor if needed while keeping tests green
-- NO feature implementation without corresponding tests
+**要件**:
+- spec.md のユーザーストーリーに基づいて受け入れテストを記述する
+- テストが失敗することを確認する (Red フェーズ)
+- テストを合格させるために機能を実装する (Green フェーズ)
+- 必要に応じてテストをグリーンに保ちながらリファクタリングする
+- 対応するテストなしで機能実装を行わない
 
-**Rationale**: TDD ensures requirements are testable, catches bugs early, and creates a safety net for refactoring.
+**根拠**: TDD は要件がテスト可能であることを保証し、早期にバグをキャッチし、リファクタリングのためのセーフティネットを作成する。
 
-### VII. Japanese-First Documentation & Communication
+### VII. 日本語ファーストのドキュメントとコミュニケーション
 
-**Rule**: All documentation files and chat communications MUST be conducted in Japanese.
+**ルール**: すべてのドキュメントファイルとチャットコミュニケーションは日本語で行われなければならない。
 
-**Requirements**:
-- All .md documentation files must be written in Japanese
-- Chat conversations with AI agents must be in Japanese
-- Code comments explaining business logic must be in Japanese
-- Commit messages should be in Japanese
-- PR descriptions and issue discussions must be in Japanese
-- Technical specifications (spec.md, plan.md, tasks.md) must be in Japanese
-- Use Emoji effectively in a chat 😊
+**要件**:
+- すべての .md ドキュメントファイルは日本語で記述される必要がある
+- AI エージェントとのチャット会話は日本語で行う必要がある
+- ビジネスロジックを説明するコードコメントは日本語で記述する必要がある
+- コミットメッセージは日本語で記述すべきである
+- PR の説明と issue のディスカッションは日本語で行う必要がある
+- 技術仕様 (spec.md、plan.md、tasks.md) は日本語で記述する必要がある
+- チャットで絵文字を効果的に使用する 😊
 
-**Exceptions**:
-- Code itself (variable names, function names, class names) should follow English naming conventions
-- Technical API documentation that references English-only external libraries may use English
-- Error messages from external libraries/frameworks remain in their original language
+**例外**:
+- コード自体 (変数名、関数名、クラス名) は英語の命名規則に従うべきである
+- 英語のみの外部ライブラリを参照する技術 API ドキュメントは英語を使用してもよい
+- 外部ライブラリ/フレームワークからのエラーメッセージは元の言語のままとする
 
-**Rationale**: Maintaining consistent communication in the team's primary language reduces cognitive load, prevents miscommunication, and ensures all team members can fully participate in technical discussions without language barriers.
+**根拠**: チームの主要言語で一貫したコミュニケーションを維持することで、認知負荷を軽減し、誤解を防ぎ、言語の壁なしにすべてのチームメンバーが技術的な議論に完全に参加できるようにする。
 
-## User Experience Standards
+## ユーザーエクスペリエンス基準
 
-**PWA Compliance**:
-- Application must be installable as Progressive Web App
-- Offline functionality for core features (where applicable)
-- Responsive design for mobile, tablet, and desktop
+**PWA 準拠**:
+- アプリケーションは Progressive Web App としてインストール可能でなければならない
+- コア機能のオフライン機能 (該当する場合)
+- モバイル、タブレット、デスクトップ向けのレスポンシブデザイン
 
-**Performance Requirements**:
-- 100+ repositories must load without noticeable delay
-- Drag & drop operations must feel instant (<100ms response)
-- Grid/List view switching must be immediate
-- Undo operation must complete in <200ms
+**パフォーマンス要件**:
+- 100+ repositories が目立った遅延なく読み込まれる必要がある
+- ドラッグ&ドロップ操作は即座に感じられる必要がある (<100ms 応答)
+- Grid/List ビューの切り替えは即座でなければならない
+- Undo 操作は 200ms 以内に完了する必要がある
 
-**Internationalization**:
-- Full support for English and Japanese
-- All user-facing text must be externalized for translation
-- Date/time formatting must respect user locale
+## デプロイと構成
 
-## Deployment & Configuration
+**ユーザータスク委任**:
+- Agent は外部サービス構成のためにユーザーアクションを明示的に要求しなければならない
+- Vercel デプロイ設定はユーザーのセットアップが必要
+- Supabase プロジェクト構成はユーザーのセットアップが必要
+- OAuth 認証情報はユーザーのプロビジョニングが必要
+- ユーザーの確認なしに外部構成が完了していると仮定してはならない
 
-**User Task Delegation**:
-- Agent MUST explicitly request user action for external service configuration
-- Vercel deployment settings require user setup
-- Supabase project configuration requires user setup
-- OAuth credentials require user provisioning
-- Never assume external configuration is complete without user confirmation
+**環境管理**:
+- ローカル開発環境を文書化する必要がある
+- 本番環境のセットアップはステップバイステップガイドを持つ必要がある
+- 環境変数は例と共に明確に文書化される必要がある
+- シークレットはバージョン管理にコミットしてはならない
 
-**Environment Management**:
-- Local development environment must be documented
-- Production environment setup must have step-by-step guide
-- Environment variables must be clearly documented with examples
-- Secrets must never be committed to version control
+## ガバナンス
 
-## Governance
+**修正プロセス**:
+- Constitution の変更は根拠の文書化が必要
+- バージョンはセマンティックバージョニングに従って増分する必要がある
+- 一貫性を維持するためにすべての依存テンプレートを更新する必要がある
+- 変更は実装前に承認される必要がある
 
-**Amendment Process**:
-- Constitution changes require documentation of rationale
-- Version must increment following semantic versioning
-- All dependent templates must be updated to maintain consistency
-- Changes must be approved before implementation
+**コンプライアンス検証**:
+- すべての PR は Constitution 原則とのコンプライアンスを検証する必要がある
+- ビルドパイプラインは自動チェック (コントラスト、テスト、リント) を強制する必要がある
+- 手動レビューはブラウザテストが実行されたことを検証する必要がある
+- セキュリティ要件は本番前に検証される必要がある
 
-**Compliance Verification**:
-- All PRs must verify compliance with constitution principles
-- Build pipeline must enforce automated checks (contrast, tests, linting)
-- Manual review must verify browser testing was performed
-- Security requirements must be validated before production
+**シンプルさの原則**:
+- YAGNI (You Aren't Gonna Need It) に従う
+- 複雑さは明確なビジネス価値で正当化される必要がある
+- 巧妙な抽象化よりもシンプルで保守可能なソリューションを優先する
+- 未使用のコードと依存関係を定期的に削除する
 
-**Simplicity Principle**:
-- Follow YAGNI (You Aren't Gonna Need It)
-- Complexity must be justified with clear business value
-- Prefer simple, maintainable solutions over clever abstractions
-- Remove unused code and dependencies regularly
+**開発ワークフロー**:
+- すべての作業にフィーチャーブランチを使用
+- マージ前に PR レビューが必要
+- マージ前にすべてのテストが合格する必要がある
+- PR にはブラウザ検証スクリーンショットを含める必要がある
 
-**Development Workflow**:
-- Feature branches for all work
-- PR review required before merge
-- All tests must pass before merge
-- Browser verification screenshots must be included in PR
-
-**Version**: 1.1.0 | **Ratified**: 2025-11-15 | **Last Amended**: 2025-11-15
+**バージョン**: 1.2.0 | **承認日**: 2025-11-15 | **最終修正日**: 2025-11-17

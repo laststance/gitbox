@@ -1,91 +1,89 @@
-# Implementation Plan: [FEATURE]
+# 実装計画: [機能名]
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+**ブランチ**: `[###-feature-name]` | **日付**: [DATE] | **仕様**: [link]
+**入力**: `/specs/[###-feature-name]/spec.md` からの機能仕様
 
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**注記**: このテンプレートは `/speckit.plan` コマンドによって記入されます。実行ワークフローについては `.specify/templates/commands/plan.md` を参照してください。
 
-## Summary
+## 概要
 
-[Extract from feature spec: primary requirement + technical approach from research]
+[機能仕様から抽出: 主要な要件 + 調査からの技術的アプローチ]
 
-## Technical Context
+## 技術的コンテキスト
 
 <!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
+  実施必須: このセクションの内容をプロジェクトの技術的詳細に置き換えてください。
+  ここでの構造は、反復プロセスをガイドするための助言的な役割で提示されています。
 -->
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**言語/バージョン**: [例: Python 3.11、Swift 5.9、Rust 1.75 または 要明確化]
+**主要な依存関係**: [例: FastAPI、UIKit、LLVM または 要明確化]
+**ストレージ**: [該当する場合、例: PostgreSQL、CoreData、ファイル または N/A]
+**テスト**: [例: pytest、XCTest、cargo test または 要明確化]
+**ターゲットプラットフォーム**: [例: Linuxサーバー、iOS 15+、WASM または 要明確化]
+**プロジェクトタイプ**: [single/web/mobile - ソース構造を決定]
+**パフォーマンス目標**: [ドメイン固有、例: 1000 req/s、10k lines/sec、60 fps または 要明確化]
+**制約**: [ドメイン固有、例: <200ms p95、<100MB メモリ、オフライン対応 または 要明確化]
+**規模/スコープ**: [ドメイン固有、例: 10kユーザー、1M LOC、50画面 または 要明確化]
 
-## Constitution Check
+## Constitution チェック
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+*ゲート: Phase 0 調査の前に合格する必要があります。Phase 1 設計後に再確認してください。*
 
-**Browser Verification**:
-- [ ] Playwright MCP tool configured and ready for browser testing
-- [ ] Screenshot strategy defined for visual verification
+**ブラウザ検証**:
+- [ ] Playwright MCP ツールが設定され、ブラウザテストの準備完了
+- [ ] 視覚的検証のためのスクリーンショット戦略が定義済み
 
-**E2E Testing**:
-- [ ] Critical user flows identified for E2E test coverage
-- [ ] Playwright test framework setup planned
+**E2E テスト**:
+- [ ] E2E テストカバレッジのためのクリティカルなユーザーフローが特定済み
+- [ ] Playwright テストフレームワークのセットアップが計画済み
 
-**Documentation**:
-- [ ] Docstring standards defined for components
-- [ ] User setup guide planned for Vercel/Supabase configuration
+**ドキュメント**:
+- [ ] コンポーネントの docstring 標準が定義済み
+- [ ] Vercel/Supabase 設定のためのユーザーセットアップガイドが計画済み
 
-**Accessibility**:
-- [ ] Contrast validation tooling planned (12 themes)
-- [ ] WCAG AA compliance targets documented
-- [ ] Keyboard navigation requirements defined
+**アクセシビリティ**:
+- [ ] コントラスト検証ツールが計画済み（12テーマ）
+- [ ] WCAG AA 準拠目標が文書化済み
+- [ ] キーボードナビゲーション要件が定義済み
 
-**Security**:
-- [ ] Credential management pattern selected (reference/encrypted/external)
-- [ ] Audit logging requirements defined
+**セキュリティ**:
+- [ ] 認証情報管理パターンが選択済み（参照/暗号化/外部）
+- [ ] 監査ログ要件が定義済み
 
-**Test-Driven Development**:
-- [ ] Test-first workflow confirmed
-- [ ] Acceptance criteria from spec.md ready for test implementation
+**テスト駆動開発**:
+- [ ] テストファースト ワークフローが確認済み
+- [ ] spec.md からの受け入れ基準がテスト実装の準備完了
 
-**Japanese-First Communication**:
-- [ ] All documentation files (spec.md, plan.md, tasks.md) planned in Japanese
-- [ ] Code comments for business logic will be in Japanese
-- [ ] Commit messages and PR descriptions will be in Japanese
-- [ ] Chat communication with AI agents will be in Japanese
+**日本語ファースト コミュニケーション**:
+- [ ] すべてのドキュメントファイル（spec.md、plan.md、tasks.md）を日本語で計画済み
+- [ ] ビジネスロジックのコードコメントは日本語で記述予定
+- [ ] コミットメッセージとPR説明は日本語で記述予定
+- [ ] AI エージェントとのチャットコミュニケーションは日本語で実施予定
 
-## Project Structure
+## プロジェクト構造
 
-### Documentation (this feature)
+### ドキュメント（この機能）
 
 ```text
 specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+├── plan.md              # このファイル（/speckit.plan コマンド出力）
+├── research.md          # Phase 0 出力（/speckit.plan コマンド）
+├── data-model.md        # Phase 1 出力（/speckit.plan コマンド）
+├── quickstart.md        # Phase 1 出力（/speckit.plan コマンド）
+├── contracts/           # Phase 1 出力（/speckit.plan コマンド）
+└── tasks.md             # Phase 2 出力（/speckit.tasks コマンド - /speckit.plan では作成されない）
 ```
 
-### Source Code (repository root)
+### ソースコード（リポジトリルート）
 <!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
+  実施必須: 以下のプレースホルダーツリーをこの機能の具体的なレイアウトに置き換えてください。
+  未使用のオプションを削除し、選択した構造を実際のパス（例: apps/admin、packages/something）で展開してください。
+  提供される計画にはオプションラベルを含めないでください。
 -->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
+# [未使用の場合削除] オプション 1: 単一プロジェクト（デフォルト）
 src/
 ├── models/
 ├── services/
@@ -97,7 +95,7 @@ tests/
 ├── integration/
 └── unit/
 
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
+# [未使用の場合削除] オプション 2: Web アプリケーション（"frontend" + "backend" 検出時）
 backend/
 ├── src/
 │   ├── models/
@@ -112,22 +110,21 @@ frontend/
 │   └── services/
 └── tests/
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
+# [未使用の場合削除] オプション 3: Mobile + API（"iOS/Android" 検出時）
 api/
-└── [same as backend above]
+└── [上記のバックエンドと同じ]
 
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+ios/ または android/
+└── [プラットフォーム固有の構造: 機能モジュール、UIフロー、プラットフォームテスト]
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**構造決定**: [選択した構造を文書化し、上記でキャプチャした実際のディレクトリを参照]
 
-## Complexity Tracking
+## 複雑性追跡
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> **Constitution チェックに正当化が必要な違反がある場合のみ記入**
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| 違反 | 必要な理由 | 却下されたよりシンプルな代替案とその理由 |
+|------|-----------|----------------------------------------|
+| [例: 4つ目のプロジェクト] | [現在のニーズ] | [なぜ3つのプロジェクトでは不十分か] |
+| [例: Repository パターン] | [特定の問題] | [なぜ直接DBアクセスでは不十分か] |
