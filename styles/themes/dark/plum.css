@@ -1,21 +1,45 @@
 /**
  * Plum Theme (Dark)
  *
- * プラム系の濃い紫のダークテーマ
+ * プラムのような濃い紫のダークテーマ
  * WCAG AA 準拠: Text 4.5:1, UI 3:1
  */
 
 [data-theme='plum'] {
-  --color-bg-primary: #4c1d95;
-  --color-bg-secondary: #5b21b6;
-  --color-bg-tertiary: #6d28d9;
-  --color-text-primary: #faf5ff;
-  --color-text-secondary: #f3e8ff;
-  --color-text-tertiary: #e9d5ff;
-  --color-border: #7c3aed;
-  --color-accent: #8b5cf6;
-  --color-accent-hover: #7c3aed;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
+  /* shadcn/ui variables */
+  --background: #3b0764;
+  --foreground: #faf5ff;
+  --card: #581c87;
+  --card-foreground: #faf5ff;
+  --popover: #581c87;
+  --popover-foreground: #faf5ff;
+  --primary: #a855f7;
+  --primary-foreground: #3b0764;
+  --secondary: #581c87;
+  --secondary-foreground: #faf5ff;
+  --muted: #7e22ce;
+  --muted-foreground: #d8b4fe;
+  --accent: #7e22ce;
+  --accent-foreground: #faf5ff;
+  --destructive: #ef4444;
+  --border: #7e22ce;
+  --input: #7e22ce;
+  --ring: #a855f7;
+
+  /* Sidebar variables */
+  --sidebar: #581c87;
+  --sidebar-foreground: #faf5ff;
+  --sidebar-primary: #a855f7;
+  --sidebar-primary-foreground: #3b0764;
+  --sidebar-accent: #7e22ce;
+  --sidebar-accent-foreground: #faf5ff;
+  --sidebar-border: #7e22ce;
+  --sidebar-ring: #a855f7;
+
+  /* Chart colors */
+  --chart-1: #a855f7;
+  --chart-2: #9333ea;
+  --chart-3: #7e22ce;
+  --chart-4: #6b21a8;
+  --chart-5: #581c87;
 }

@@ -6,16 +6,40 @@
  */
 
 [data-theme='sunrise'] {
-  --color-bg-primary: #ffffff;
-  --color-bg-secondary: #fff7ed;
-  --color-bg-tertiary: #ffedd5;
-  --color-text-primary: #1c1917;
-  --color-text-secondary: #57534e;
-  --color-text-tertiary: #78716c;
-  --color-border: #fde68a;
-  --color-accent: #f59e0b;
-  --color-accent-hover: #d97706;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #dc2626;
+  /* shadcn/ui variables */
+  --background: #ffffff;
+  --foreground: #1c1917;
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+  --popover: #ffffff;
+  --popover-foreground: #1c1917;
+  --primary: #f59e0b;
+  --primary-foreground: #ffffff;
+  --secondary: #fff7ed;
+  --secondary-foreground: #1c1917;
+  --muted: #ffedd5;
+  --muted-foreground: #78716c;
+  --accent: #ffedd5;
+  --accent-foreground: #1c1917;
+  --destructive: #dc2626;
+  --border: #fde68a;
+  --input: #fef3c7;
+  --ring: #f59e0b;
+
+  /* Sidebar variables */
+  --sidebar: #fff7ed;
+  --sidebar-foreground: #1c1917;
+  --sidebar-primary: #f59e0b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ffedd5;
+  --sidebar-accent-foreground: #1c1917;
+  --sidebar-border: #fde68a;
+  --sidebar-ring: #f59e0b;
+
+  /* Chart colors */
+  --chart-1: #f59e0b;
+  --chart-2: #d97706;
+  --chart-3: #b45309;
+  --chart-4: #92400e;
+  --chart-5: #78350f;
 }

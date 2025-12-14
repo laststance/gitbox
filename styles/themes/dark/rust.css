@@ -1,21 +1,45 @@
 /**
  * Rust Theme (Dark)
  *
- * 錆色系の濃いオレンジのダークテーマ
+ * 錆びた鉄のような深いオレンジ/ブラウンのダークテーマ
  * WCAG AA 準拠: Text 4.5:1, UI 3:1
  */
 
 [data-theme='rust'] {
-  --color-bg-primary: #7c2d12;
-  --color-bg-secondary: #9a3412;
-  --color-bg-tertiary: #c2410c;
-  --color-text-primary: #fff7ed;
-  --color-text-secondary: #ffedd5;
-  --color-text-tertiary: #fed7aa;
-  --color-border: #ea580c;
-  --color-accent: #f97316;
-  --color-accent-hover: #ea580c;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
+  /* shadcn/ui variables */
+  --background: #431407;
+  --foreground: #fff7ed;
+  --card: #7c2d12;
+  --card-foreground: #fff7ed;
+  --popover: #7c2d12;
+  --popover-foreground: #fff7ed;
+  --primary: #f97316;
+  --primary-foreground: #431407;
+  --secondary: #7c2d12;
+  --secondary-foreground: #fff7ed;
+  --muted: #9a3412;
+  --muted-foreground: #fdba74;
+  --accent: #9a3412;
+  --accent-foreground: #fff7ed;
+  --destructive: #ef4444;
+  --border: #9a3412;
+  --input: #9a3412;
+  --ring: #f97316;
+
+  /* Sidebar variables */
+  --sidebar: #7c2d12;
+  --sidebar-foreground: #fff7ed;
+  --sidebar-primary: #f97316;
+  --sidebar-primary-foreground: #431407;
+  --sidebar-accent: #9a3412;
+  --sidebar-accent-foreground: #fff7ed;
+  --sidebar-border: #9a3412;
+  --sidebar-ring: #f97316;
+
+  /* Chart colors */
+  --chart-1: #f97316;
+  --chart-2: #ea580c;
+  --chart-3: #c2410c;
+  --chart-4: #9a3412;
+  --chart-5: #7c2d12;
 }

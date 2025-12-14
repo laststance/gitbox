@@ -1,21 +1,45 @@
 /**
  * Sandstone Theme (Light)
  *
- * 砂色系の暖かいベージュのライトテーマ
+ * 砂漠の岩のような落ち着いた暖色系のライトテーマ
  * WCAG AA 準拠: Text 4.5:1, UI 3:1
  */
 
 [data-theme='sandstone'] {
-  --color-bg-primary: #ffffff;
-  --color-bg-secondary: #fafaf9;
-  --color-bg-tertiary: #f5f5f4;
-  --color-text-primary: #1c1917;
-  --color-text-secondary: #44403c;
-  --color-text-tertiary: #57534e;
-  --color-border: #d6d3d1;
-  --color-accent: #78716c;
-  --color-accent-hover: #57534e;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #dc2626;
+  /* shadcn/ui variables */
+  --background: #fdfcfb;
+  --foreground: #292524;
+  --card: #fdfcfb;
+  --card-foreground: #292524;
+  --popover: #fdfcfb;
+  --popover-foreground: #292524;
+  --primary: #92400e;
+  --primary-foreground: #ffffff;
+  --secondary: #fef3c7;
+  --secondary-foreground: #292524;
+  --muted: #f5f0e8;
+  --muted-foreground: #78716c;
+  --accent: #f5f0e8;
+  --accent-foreground: #292524;
+  --destructive: #dc2626;
+  --border: #d6d3d1;
+  --input: #e7e5e4;
+  --ring: #92400e;
+
+  /* Sidebar variables */
+  --sidebar: #f5f0e8;
+  --sidebar-foreground: #292524;
+  --sidebar-primary: #92400e;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #fef3c7;
+  --sidebar-accent-foreground: #292524;
+  --sidebar-border: #d6d3d1;
+  --sidebar-ring: #92400e;
+
+  /* Chart colors */
+  --chart-1: #92400e;
+  --chart-2: #a16207;
+  --chart-3: #b45309;
+  --chart-4: #ca8a04;
+  --chart-5: #d97706;
 }

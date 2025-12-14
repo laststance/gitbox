@@ -32,7 +32,7 @@ export async function signInWithGitHub() {
 
   if (error) {
     console.error('GitHub OAuth sign in error:', error)
-    redirect(`/ja/login?error=oauth_failed&message=${encodeURIComponent(error.message)}`)
+    redirect(`/login?error=oauth_failed&message=${encodeURIComponent(error.message)}`)
   }
 
   if (data.url) {
@@ -56,7 +56,7 @@ export async function signOut() {
     throw new Error(error.message)
   }
 
-  redirect('/ja/login')
+  redirect('/login')
 }
 
 /**

@@ -8,6 +8,9 @@
  * User Story 4:
  * - Project Info modalの統合
  * - Optimistic UI updates
+ *
+ * PRD 3.2:
+ * - StatusList CRUD操作
  */
 
 'use client';
@@ -15,8 +18,18 @@
 import { useState, useCallback } from 'react';
 import { KanbanBoard } from '@/components/Board/KanbanBoard';
 import { ProjectInfoModal, ProjectInfo } from '@/components/Modals/ProjectInfoModal';
+import { StatusListDialog } from '@/components/Modals/StatusListDialog';
 import { getProjectInfo, upsertProjectInfo, ProjectInfoData } from '@/lib/actions/project-info';
-import { useAppDispatch } from '@/lib/redux/store';
+import {
+  createStatusList,
+  updateStatusList,
+  deleteStatusList,
+} from '@/lib/actions/board';
+import { useAppDispatch, useAppSelector } from '@/lib/redux/store';
+import { setStatusLists, selectStatusLists } from '@/lib/redux/slices/boardSlice';
+import type { StatusListDomain } from '@/lib/models/domain';
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface BoardPageClientProps {
   boardId: string;
@@ -25,10 +38,18 @@ interface BoardPageClientProps {
 
 export function BoardPageClient({ boardId, boardName }: BoardPageClientProps) {
   const dispatch = useAppDispatch();
+  const statusLists = useAppSelector(selectStatusLists);
+
+  // Project Info Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [projectInfo, setProjectInfo] = useState<ProjectInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // StatusList Dialog state
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<StatusListDomain | null>(null);
+  const [statusDialogMode, setStatusDialogMode] = useState<'create' | 'edit'>('create');
 
   /**
    * Project Info モーダルを開く
@@ -128,6 +149,97 @@ export function BoardPageClient({ boardId, boardName }: BoardPageClientProps) {
     console.log('Move to Maintenance:', cardId);
   }, []);
 
+  // ========================================
+  // StatusList CRUD handlers
+  // ========================================
+
+  /**
+   * StatusList追加ダイアログを開く
+   */
+  const handleOpenAddStatus = useCallback(() => {
+    setSelectedStatus(null);
+    setStatusDialogMode('create');
+    setIsStatusDialogOpen(true);
+  }, []);
+
+  /**
+   * StatusList編集ダイアログを開く
+   */
+  const handleEditStatus = useCallback((status: StatusListDomain) => {
+    setSelectedStatus(status);
+    setStatusDialogMode('edit');
+    setIsStatusDialogOpen(true);
+  }, []);
+
+  /**
+   * StatusListを保存（作成/更新）
+   */
+  const handleSaveStatus = useCallback(
+    async (data: { name: string; color: string; wipLimit: number | null }) => {
+      if (statusDialogMode === 'create') {
+        // 新規作成
+        const newStatus = await createStatusList(
+          boardId,
+          data.name,
+          data.color,
+          data.wipLimit ?? undefined
+        );
+        // Redux更新
+        dispatch(setStatusLists([...statusLists, newStatus]));
+      } else if (selectedStatus) {
+        // 更新
+        await updateStatusList(selectedStatus.id, {
+          name: data.name,
+          color: data.color,
+          wipLimit: data.wipLimit,
+        });
+        // Redux更新
+        const updatedLists = statusLists.map((s) =>
+          s.id === selectedStatus.id
+            ? { ...s, title: data.name, color: data.color, wipLimit: data.wipLimit ?? 0 }
+            : s
+        );
+        dispatch(setStatusLists(updatedLists));
+      }
+    },
+    [boardId, dispatch, statusLists, statusDialogMode, selectedStatus]
+  );
+
+  /**
+   * StatusListを削除
+   */
+  const handleDeleteStatus = useCallback(
+    async (statusId: string) => {
+      const targetStatus = statusLists.find((s) => s.id === statusId);
+      if (!targetStatus) return;
+
+      // 確認ダイアログ
+      const confirmed = window.confirm(
+        `Are you sure you want to delete "${targetStatus.title}"? This action cannot be undone.`
+      );
+      if (!confirmed) return;
+
+      try {
+        await deleteStatusList(statusId, boardId);
+        // Redux更新
+        const filteredLists = statusLists.filter((s) => s.id !== statusId);
+        dispatch(setStatusLists(filteredLists));
+      } catch (error) {
+        console.error('Failed to delete status list:', error);
+        alert('Failed to delete column. Please try again.');
+      }
+    },
+    [boardId, dispatch, statusLists]
+  );
+
+  /**
+   * カード追加（将来実装）
+   */
+  const handleAddCard = useCallback((statusId: string) => {
+    // TODO: AddRepositoryComboboxを開く
+    console.log('Add card to status:', statusId);
+  }, []);
+
   return (
     <>
       <main className="flex h-screen flex-col">
@@ -138,14 +250,23 @@ export function BoardPageClient({ boardId, boardName }: BoardPageClientProps) {
               {boardName}
             </h1>
 
-            {/* ボード設定ボタン (将来的に実装) */}
-            <div className="flex items-center gap-4">
-              <button
-                type="button"
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            {/* ボード操作ボタン */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenAddStatus}
+                className="gap-1"
+              >
+                <Plus className="h-4 w-4" />
+                Add Column
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
               >
                 Board Settings
-              </button>
+              </Button>
             </div>
           </div>
         </header>
@@ -156,6 +277,9 @@ export function BoardPageClient({ boardId, boardName }: BoardPageClientProps) {
             boardId={boardId}
             onEditProjectInfo={handleEditProjectInfo}
             onMoveToMaintenance={handleMoveToMaintenance}
+            onEditStatus={handleEditStatus}
+            onDeleteStatus={handleDeleteStatus}
+            onAddCard={handleAddCard}
           />
         </div>
       </main>
@@ -169,6 +293,15 @@ export function BoardPageClient({ boardId, boardName }: BoardPageClientProps) {
           projectInfo={projectInfo}
         />
       )}
+
+      {/* StatusList Dialog */}
+      <StatusListDialog
+        isOpen={isStatusDialogOpen}
+        onClose={() => setIsStatusDialogOpen(false)}
+        onSave={handleSaveStatus}
+        statusList={selectedStatus}
+        mode={statusDialogMode}
+      />
     </>
   );
 }

@@ -34,6 +34,11 @@ import { AlertCircle } from "lucide-react";
 import { StatusColumn } from "./StatusColumn";
 import type { RepoCard as RepoCardType } from "./RepoCard";
 import type { StatusListDomain, RepoCardDomain, RepoCardForRedux } from "@/lib/models/domain";
+import {
+  getBoardData,
+  updateRepoCardPosition,
+  batchUpdateRepoCardOrders,
+} from "@/lib/actions/board";
 
 // Types: Using Domain types for type-safe state management
 
@@ -41,6 +46,9 @@ interface KanbanBoardProps {
   boardId?: string;
   onEditProjectInfo?: (cardId: string) => void;
   onMoveToMaintenance?: (cardId: string) => void;
+  onEditStatus?: (status: StatusListDomain) => void;
+  onDeleteStatus?: (statusId: string) => void;
+  onAddCard?: (statusId: string) => void;
 }
 
 // Loading Skeleton Component
@@ -92,7 +100,7 @@ ErrorState.displayName = "ErrorState";
 
 // Main Kanban Board Component
 export const KanbanBoard = memo<KanbanBoardProps>(
-  ({ boardId = "default-board", onEditProjectInfo, onMoveToMaintenance }) => {
+  ({ boardId = "default-board", onEditProjectInfo, onMoveToMaintenance, onEditStatus, onDeleteStatus, onAddCard }) => {
     // Redux state (LocalStorage に自動同期)
     const dispatch = useAppDispatch();
     const statuses = useAppSelector(selectStatusLists);
@@ -121,99 +129,26 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       useSensor(KeyboardSensor)
     );
 
-    // TODO: Replace with Supabase integration
+    // Supabaseからボードデータを取得
     useEffect(() => {
       const fetchData = async () => {
+        if (!boardId || boardId === "default-board") {
+          dispatch(setError("有効なボードIDが必要です"));
+          return;
+        }
+
         try {
           dispatch(setLoading(true));
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-
-          const now = new Date().toISOString();
-
-          const mockStatuses: StatusListDomain[] = [
-            {
-              id: "00000000-0000-0000-0000-000000000201",
-              title: "Backlog",
-              wipLimit: 10,
-              color: "#8B7355",
-              order: 0,
-              boardId: boardId || "default",
-              createdAt: now,
-              updatedAt: now,
-            },
-            {
-              id: "00000000-0000-0000-0000-000000000202",
-              title: "Todo",
-              wipLimit: 5,
-              color: "#6B8E23",
-              order: 1,
-              boardId: boardId || "default",
-              createdAt: now,
-              updatedAt: now,
-            },
-            {
-              id: "00000000-0000-0000-0000-000000000203",
-              title: "In Progress",
-              wipLimit: 3,
-              color: "#CD853F",
-              order: 2,
-              boardId: boardId || "default",
-              createdAt: now,
-              updatedAt: now,
-            },
-            {
-              id: "00000000-0000-0000-0000-000000000204",
-              title: "Review",
-              wipLimit: 4,
-              color: "#4682B4",
-              order: 3,
-              boardId: boardId || "default",
-              createdAt: now,
-              updatedAt: now,
-            },
-            {
-              id: "00000000-0000-0000-0000-000000000205",
-              title: "Done",
-              wipLimit: 20,
-              color: "#556B2F",
-              order: 4,
-              boardId: boardId || "default",
-              createdAt: now,
-              updatedAt: now,
-            },
-          ];
-
-          const mockCards: RepoCardDomain[] = [
-            {
-              id: "00000000-0000-0000-0000-000000000301",
-              title: "gitbox",
-              description: "GitHub Repository Manager",
-              priority: "high",
-              assignee: {
-                name: "Ryota Murakami",
-                avatar: "/placeholder.svg",
-              },
-              tags: ["Next.js", "TypeScript"],
-              dueDate: "2024-01-15",
-              attachments: 3,
-              comments: 7,
-              statusId: "00000000-0000-0000-0000-000000000203",
-              boardId: boardId || "default",
-              repoOwner: "ryotamurakami",
-              repoName: "gitbox",
-              note: "GitHub Repository Manager",
-              order: 0,
-              meta: {},
-              createdAt: now,
-              updatedAt: now,
-            },
-          ];
-
-          dispatch(setStatusLists(mockStatuses));
-          dispatch(setRepoCards(mockCards));
           dispatch(setError(null));
+
+          // Supabaseからデータ取得 (getBoardDataは既にデフォルトStatusList作成を含む)
+          const { statusLists, repoCards } = await getBoardData(boardId);
+
+          dispatch(setStatusLists(statusLists));
+          dispatch(setRepoCards(repoCards));
         } catch (err) {
-          dispatch(setError("Failed to load board data. Please try again later."));
+          console.error("Board data fetch error:", err);
+          dispatch(setError("ボードデータの取得に失敗しました。再度お試しください。"));
         } finally {
           dispatch(setLoading(false));
         }
@@ -256,7 +191,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       setActiveId(event.active.id);
     };
 
-    const handleDragEnd = (event: DragEndEvent) => {
+    const handleDragEnd = async (event: DragEndEvent) => {
       const { active, over } = event;
       setActiveId(null);
 
@@ -276,6 +211,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       });
 
       if (activeCard.statusId === targetStatusId) {
+        // 同じ列内での並び替え
         const columnCards = cards.filter((c) => c.statusId === targetStatusId);
         const oldIndex = columnCards.findIndex((c) => c.id === active.id);
         const newIndex = columnCards.findIndex((c) => c.id === over.id);
@@ -283,14 +219,48 @@ export const KanbanBoard = memo<KanbanBoardProps>(
         if (oldIndex !== newIndex) {
           const reordered = arrayMove(columnCards, oldIndex, newIndex);
           const otherCards = cards.filter((c) => c.statusId !== targetStatusId);
+          
+          // 楽観的UI更新
           dispatch(setRepoCards([...otherCards, ...reordered]));
+
+          // Supabaseに同期（バックグラウンド）
+          const updates = reordered.map((card, index) => ({
+            id: card.id,
+            statusId: targetStatusId,
+            order: index,
+          }));
+          
+          try {
+            await batchUpdateRepoCardOrders(updates);
+          } catch (error) {
+            console.error("Failed to sync card order:", error);
+            // エラー時は元に戻す（履歴から復元）
+          }
         }
       } else {
-        dispatch(setRepoCards(
-          cards.map((c) =>
-            c.id === activeCard.id ? { ...c, statusId: targetStatusId } : c
-          )
-        ));
+        // 異なる列への移動
+        const updatedCards = cards.map((c) =>
+          c.id === activeCard.id ? { ...c, statusId: targetStatusId } : c
+        );
+        
+        // 楽観的UI更新
+        dispatch(setRepoCards(updatedCards));
+
+        // Supabaseに同期（バックグラウンド）
+        try {
+          const targetColumnCards = updatedCards.filter(
+            (c) => c.statusId === targetStatusId
+          );
+          const newOrder = targetColumnCards.findIndex(
+            (c) => c.id === activeCard.id
+          );
+          
+          await updateRepoCardPosition(activeCard.id, targetStatusId, newOrder);
+        } catch (error) {
+          console.error("Failed to sync card position:", error);
+          // エラー時は元に戻す
+          dispatch(setRepoCards(cards));
+        }
       }
     };
 
@@ -343,6 +313,9 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                   cards={cards.filter((c) => c.statusId === status.id)}
                   onEdit={onEditProjectInfo}
                   onMaintenance={onMoveToMaintenance}
+                  onEditStatus={onEditStatus}
+                  onDeleteStatus={onDeleteStatus}
+                  onAddCard={onAddCard}
                 />
               ))}
           </div>

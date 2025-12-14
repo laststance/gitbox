@@ -24,6 +24,13 @@ export function applyTheme(theme: Theme): void {
 
   const html = document.documentElement
   html.setAttribute('data-theme', theme)
+
+  // ダークテーマの場合は dark クラスを追加
+  if (isDarkTheme(theme)) {
+    html.classList.add('dark')
+  } else {
+    html.classList.remove('dark')
+  }
 }
 
 /**

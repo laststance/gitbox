@@ -1,21 +1,45 @@
 /**
  * Forest Theme (Dark)
  *
- * 森林系の濃いグリーンのダークテーマ
+ * 深い森のような濃いグリーンのダークテーマ
  * WCAG AA 準拠: Text 4.5:1, UI 3:1
  */
 
 [data-theme='forest'] {
-  --color-bg-primary: #14532d;
-  --color-bg-secondary: #166534;
-  --color-bg-tertiary: #15803d;
-  --color-text-primary: #f0fdf4;
-  --color-text-secondary: #dcfce7;
-  --color-text-tertiary: #bbf7d0;
-  --color-border: #16a34a;
-  --color-accent: #22c55e;
-  --color-accent-hover: #16a34a;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
+  /* shadcn/ui variables */
+  --background: #052e16;
+  --foreground: #f0fdf4;
+  --card: #14532d;
+  --card-foreground: #f0fdf4;
+  --popover: #14532d;
+  --popover-foreground: #f0fdf4;
+  --primary: #22c55e;
+  --primary-foreground: #052e16;
+  --secondary: #14532d;
+  --secondary-foreground: #f0fdf4;
+  --muted: #166534;
+  --muted-foreground: #86efac;
+  --accent: #166534;
+  --accent-foreground: #f0fdf4;
+  --destructive: #ef4444;
+  --border: #166534;
+  --input: #166534;
+  --ring: #22c55e;
+
+  /* Sidebar variables */
+  --sidebar: #14532d;
+  --sidebar-foreground: #f0fdf4;
+  --sidebar-primary: #22c55e;
+  --sidebar-primary-foreground: #052e16;
+  --sidebar-accent: #166534;
+  --sidebar-accent-foreground: #f0fdf4;
+  --sidebar-border: #166534;
+  --sidebar-ring: #22c55e;
+
+  /* Chart colors */
+  --chart-1: #22c55e;
+  --chart-2: #16a34a;
+  --chart-3: #15803d;
+  --chart-4: #166534;
+  --chart-5: #14532d;
 }

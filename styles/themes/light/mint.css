@@ -1,21 +1,45 @@
 /**
  * Mint Theme (Light)
  *
- * ミント系の爽やかなグリーンのライトテーマ
+ * 爽やかなミントグリーンのライトテーマ
  * WCAG AA 準拠: Text 4.5:1, UI 3:1
  */
 
 [data-theme='mint'] {
-  --color-bg-primary: #ffffff;
-  --color-bg-secondary: #f0fdf4;
-  --color-bg-tertiary: #dcfce7;
-  --color-text-primary: #14532d;
-  --color-text-secondary: #15803d;
-  --color-text-tertiary: #16a34a;
-  --color-border: #86efac;
-  --color-accent: #10b981;
-  --color-accent-hover: #059669;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #dc2626;
+  /* shadcn/ui variables */
+  --background: #ffffff;
+  --foreground: #064e3b;
+  --card: #ffffff;
+  --card-foreground: #064e3b;
+  --popover: #ffffff;
+  --popover-foreground: #064e3b;
+  --primary: #10b981;
+  --primary-foreground: #ffffff;
+  --secondary: #ecfdf5;
+  --secondary-foreground: #064e3b;
+  --muted: #d1fae5;
+  --muted-foreground: #047857;
+  --accent: #d1fae5;
+  --accent-foreground: #064e3b;
+  --destructive: #dc2626;
+  --border: #a7f3d0;
+  --input: #d1fae5;
+  --ring: #10b981;
+
+  /* Sidebar variables */
+  --sidebar: #ecfdf5;
+  --sidebar-foreground: #064e3b;
+  --sidebar-primary: #10b981;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #d1fae5;
+  --sidebar-accent-foreground: #064e3b;
+  --sidebar-border: #a7f3d0;
+  --sidebar-ring: #10b981;
+
+  /* Chart colors */
+  --chart-1: #10b981;
+  --chart-2: #059669;
+  --chart-3: #047857;
+  --chart-4: #065f46;
+  --chart-5: #064e3b;
 }

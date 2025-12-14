@@ -9,6 +9,7 @@
 @plugin "tailwindcss-animate";
 @import 'tailwindcss';
 @import "tw-animate-css";
+@import "./themes.css";
 /*---break---
  */
 @custom-variant dark (&:is(.dark *));

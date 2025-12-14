@@ -29,6 +29,10 @@ interface RepoCardData {
   attachments?: number;
   comments?: number;
   statusId: string;
+  /** GitHub repository owner */
+  repoOwner?: string;
+  /** GitHub repository name */
+  repoName?: string;
 }
 
 interface RepoCardProps {
@@ -101,10 +105,13 @@ export const RepoCard = memo<RepoCardProps>(
                 <div className="flex items-center gap-1">
                   <OverflowMenu
                     cardId={card.id}
+                    repoOwner={card.repoOwner}
+                    repoName={card.repoName}
                     onEdit={onEdit}
                     onMoveToMaintenance={onMaintenance}
                     open={menuOpen}
                     onOpenChange={setMenuOpen}
+                    context="board"
                   />
                   <div {...attributes} {...listeners}>
                     <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab active:cursor-grabbing" />

@@ -1,21 +1,45 @@
 /**
  * Lavender Theme (Light)
  *
- * ラベンダー系の優しい紫のライトテーマ
+ * ラベンダーのような上品な紫のライトテーマ
  * WCAG AA 準拠: Text 4.5:1, UI 3:1
  */
 
 [data-theme='lavender'] {
-  --color-bg-primary: #ffffff;
-  --color-bg-secondary: #faf5ff;
-  --color-bg-tertiary: #f3e8ff;
-  --color-text-primary: #4c1d95;
-  --color-text-secondary: #6d28d9;
-  --color-text-tertiary: #7c3aed;
-  --color-border: #c4b5fd;
-  --color-accent: #8b5cf6;
-  --color-accent-hover: #7c3aed;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #dc2626;
+  /* shadcn/ui variables */
+  --background: #ffffff;
+  --foreground: #4c1d95;
+  --card: #ffffff;
+  --card-foreground: #4c1d95;
+  --popover: #ffffff;
+  --popover-foreground: #4c1d95;
+  --primary: #8b5cf6;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f3ff;
+  --secondary-foreground: #4c1d95;
+  --muted: #ede9fe;
+  --muted-foreground: #6d28d9;
+  --accent: #ede9fe;
+  --accent-foreground: #4c1d95;
+  --destructive: #dc2626;
+  --border: #c4b5fd;
+  --input: #ede9fe;
+  --ring: #8b5cf6;
+
+  /* Sidebar variables */
+  --sidebar: #f5f3ff;
+  --sidebar-foreground: #4c1d95;
+  --sidebar-primary: #8b5cf6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ede9fe;
+  --sidebar-accent-foreground: #4c1d95;
+  --sidebar-border: #c4b5fd;
+  --sidebar-ring: #8b5cf6;
+
+  /* Chart colors */
+  --chart-1: #8b5cf6;
+  --chart-2: #7c3aed;
+  --chart-3: #6d28d9;
+  --chart-4: #5b21b6;
+  --chart-5: #4c1d95;
 }
