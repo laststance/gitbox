@@ -1,0 +1,21 @@
+/**
+ * Lavender Theme (Light)
+ *
+ * ラベンダー系の優しい紫のライトテーマ
+ * WCAG AA 準拠: Text 4.5:1, UI 3:1
+ */
+
+[data-theme='lavender'] {
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #faf5ff;
+  --color-bg-tertiary: #f3e8ff;
+  --color-text-primary: #4c1d95;
+  --color-text-secondary: #6d28d9;
+  --color-text-tertiary: #7c3aed;
+  --color-border: #c4b5fd;
+  --color-accent: #8b5cf6;
+  --color-accent-hover: #7c3aed;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #dc2626;
+}

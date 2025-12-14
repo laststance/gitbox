@@ -1,0 +1,21 @@
+/**
+ * Ocean Theme (Dark)
+ *
+ * 海洋系の深いブルーのダークテーマ
+ * WCAG AA 準拠: Text 4.5:1, UI 3:1
+ */
+
+[data-theme='ocean'] {
+  --color-bg-primary: #0c4a6e;
+  --color-bg-secondary: #075985;
+  --color-bg-tertiary: #0369a1;
+  --color-text-primary: #f0f9ff;
+  --color-text-secondary: #e0f2fe;
+  --color-text-tertiary: #bae6fd;
+  --color-border: #0284c7;
+  --color-accent: #0ea5e9;
+  --color-accent-hover: #0284c7;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+}

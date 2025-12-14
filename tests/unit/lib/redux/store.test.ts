@@ -11,7 +11,7 @@
 import { describe, it, expect, vi } from 'vitest'
 
 // Mock the storage middleware package and the middleware file
-vi.mock('@vibe-rush/redux-storage-middleware', () => ({
+vi.mock('@gitbox/redux-storage-middleware', () => ({
   createStorageMiddleware: vi.fn(() => () => (next: any) => (action: any) => next(action)),
 }))
 

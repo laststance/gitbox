@@ -1,0 +1,21 @@
+/**
+ * Plum Theme (Dark)
+ *
+ * プラム系の濃い紫のダークテーマ
+ * WCAG AA 準拠: Text 4.5:1, UI 3:1
+ */
+
+[data-theme='plum'] {
+  --color-bg-primary: #4c1d95;
+  --color-bg-secondary: #5b21b6;
+  --color-bg-tertiary: #6d28d9;
+  --color-text-primary: #faf5ff;
+  --color-text-secondary: #f3e8ff;
+  --color-text-tertiary: #e9d5ff;
+  --color-border: #7c3aed;
+  --color-accent: #8b5cf6;
+  --color-accent-hover: #7c3aed;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+}

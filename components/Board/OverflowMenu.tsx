@@ -13,12 +13,14 @@ interface OverflowMenuProps {
   cardId: string;
   onEdit?: (id: string) => void;
   onMoveToMaintenance?: (id: string) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export const OverflowMenu = memo<OverflowMenuProps>(
-  ({ cardId, onEdit, onMoveToMaintenance }) => {
+  ({ cardId, onEdit, onMoveToMaintenance, open, onOpenChange }) => {
     return (
-      <DropdownMenu>
+      <DropdownMenu open={open} onOpenChange={onOpenChange}>
         <DropdownMenuTrigger
           className="p-1 rounded-md hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           data-testid={`overflow-menu-trigger-${cardId}`}
@@ -26,7 +28,11 @@ export const OverflowMenu = memo<OverflowMenuProps>(
           <MoreVertical className="w-4 h-4" />
           <span className="sr-only">Open menu</span>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuContent
+          align="end"
+          className="w-48"
+          data-testid="overflow-menu"
+        >
           {onEdit && (
             <DropdownMenuItem
               onClick={() => onEdit(cardId)}

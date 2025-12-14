@@ -32,7 +32,7 @@ export default defineConfig({
       ],
     },
     alias: {
-      '@vibe-rush/redux-storage-middleware': '/Users/ryotamurakami/laststance/vibe-rush/tests/__mocks__/@vibe-rush/redux-storage-middleware.ts',
+      '@gitbox/redux-storage-middleware': '/Users/ryotamurakami/laststance/gitbox/tests/__mocks__/@gitbox/redux-storage-middleware.ts',
     },
   },
   resolve: {

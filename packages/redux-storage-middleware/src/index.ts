@@ -1,5 +1,5 @@
 /**
- * @vibe-rush/redux-storage-middleware
+ * @gitbox/redux-storage-middleware
  *
  * Redux state を LocalStorage に同期するカスタムミドルウェア
  */

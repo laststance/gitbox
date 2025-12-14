@@ -1,0 +1,21 @@
+/**
+ * Sky Theme (Light)
+ *
+ * 空色系の明るいブルーのライトテーマ
+ * WCAG AA 準拠: Text 4.5:1, UI 3:1
+ */
+
+[data-theme='sky'] {
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f0f9ff;
+  --color-bg-tertiary: #e0f2fe;
+  --color-text-primary: #0c4a6e;
+  --color-text-secondary: #075985;
+  --color-text-tertiary: #0369a1;
+  --color-border: #7dd3fc;
+  --color-accent: #0ea5e9;
+  --color-accent-hover: #0284c7;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #dc2626;
+}

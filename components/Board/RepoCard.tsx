@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import {
   MessageCircle,
   Paperclip,
 } from "lucide-react";
+import { OverflowMenu } from "./OverflowMenu";
 
 // Types
 interface RepoCardData {
@@ -47,22 +48,46 @@ export const RepoCard = memo<RepoCardProps>(
       isDragging,
     } = useSortable({ id: card.id });
 
+    const [menuOpen, setMenuOpen] = useState(false);
+
     const style = {
       transform: CSS.Transform.toString(transform),
       transition,
       opacity: isDragging ? 0.5 : 1,
     };
 
+    /**
+     * キーボードナビゲーションハンドラー
+     * Constitution要件: Principle IV - キーボードナビゲーション完全サポート
+     *
+     * @param e - KeyboardEvent
+     */
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+      // Enter: デフォルトアクション (Project Infoモーダルを開く)
+      if (e.key === "Enter" && onEdit) {
+        e.preventDefault();
+        onEdit(card.id);
+      }
+
+      // . (ピリオド): Overflow menuを開閉
+      if (e.key === "." || e.key === "Period") {
+        e.preventDefault();
+        setMenuOpen((prev) => !prev);
+      }
+
+      // Escape: Overflow menuを閉じる
+      if (e.key === "Escape" && menuOpen) {
+        e.preventDefault();
+        setMenuOpen(false);
+      }
+    };
+
     return (
-      <div ref={setNodeRef} style={style} data-testid={`repo-card-${card.id}`}>
+      <div ref={setNodeRef} style={style} data-testid="repo-card">
         <Card
-          className="cursor-move transition-all duration-200 border bg-card hover:shadow-md dark:hover:shadow-lg"
+          className="cursor-move transition-all duration-200 border bg-card hover:shadow-md dark:hover:shadow-lg focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
           tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && onEdit) {
-              onEdit(card.id);
-            }
-          }}
+          onKeyDown={handleKeyDown}
         >
           <CardContent className="p-4">
             <div className="space-y-3">
@@ -73,8 +98,17 @@ export const RepoCard = memo<RepoCardProps>(
                 >
                   {card.title}
                 </h4>
-                <div {...attributes} {...listeners}>
-                  <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab active:cursor-grabbing" />
+                <div className="flex items-center gap-1">
+                  <OverflowMenu
+                    cardId={card.id}
+                    onEdit={onEdit}
+                    onMoveToMaintenance={onMaintenance}
+                    open={menuOpen}
+                    onOpenChange={setMenuOpen}
+                  />
+                  <div {...attributes} {...listeners}>
+                    <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab active:cursor-grabbing" />
+                  </div>
                 </div>
               </div>
 

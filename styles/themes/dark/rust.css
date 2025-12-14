@@ -1,0 +1,21 @@
+/**
+ * Rust Theme (Dark)
+ *
+ * 錆色系の濃いオレンジのダークテーマ
+ * WCAG AA 準拠: Text 4.5:1, UI 3:1
+ */
+
+[data-theme='rust'] {
+  --color-bg-primary: #7c2d12;
+  --color-bg-secondary: #9a3412;
+  --color-bg-tertiary: #c2410c;
+  --color-text-primary: #fff7ed;
+  --color-text-secondary: #ffedd5;
+  --color-text-tertiary: #fed7aa;
+  --color-border: #ea580c;
+  --color-accent: #f97316;
+  --color-accent-hover: #ea580c;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+}

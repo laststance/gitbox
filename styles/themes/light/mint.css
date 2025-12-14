@@ -1,0 +1,21 @@
+/**
+ * Mint Theme (Light)
+ *
+ * ミント系の爽やかなグリーンのライトテーマ
+ * WCAG AA 準拠: Text 4.5:1, UI 3:1
+ */
+
+[data-theme='mint'] {
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f0fdf4;
+  --color-bg-tertiary: #dcfce7;
+  --color-text-primary: #14532d;
+  --color-text-secondary: #15803d;
+  --color-text-tertiary: #16a34a;
+  --color-border: #86efac;
+  --color-accent: #10b981;
+  --color-accent-hover: #059669;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #dc2626;
+}

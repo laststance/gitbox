@@ -1,0 +1,21 @@
+/**
+ * Rose Theme (Light)
+ *
+ * ローズ系の柔らかいピンクのライトテーマ
+ * WCAG AA 準拠: Text 4.5:1, UI 3:1
+ */
+
+[data-theme='rose'] {
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #fff1f2;
+  --color-bg-tertiary: #ffe4e6;
+  --color-text-primary: #881337;
+  --color-text-secondary: #9f1239;
+  --color-text-tertiary: #be123c;
+  --color-border: #fda4af;
+  --color-accent: #f43f5e;
+  --color-accent-hover: #e11d48;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #dc2626;
+}

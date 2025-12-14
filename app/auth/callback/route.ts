@@ -13,7 +13,7 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/ja/boards' // デフォルトは日本語の Boards 画面
+  const next = searchParams.get('next') ?? '/boards' // ログイン後は Boards 画面へリダイレクト
 
   if (code) {
     const supabase = await createClient()
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
       if (error) {
         console.error('OAuth callback error:', error)
         return NextResponse.redirect(
-          `${origin}/ja/login?error=auth_failed&message=${encodeURIComponent(error.message)}`
+          `${origin}/login?error=auth_failed&message=${encodeURIComponent(error.message)}`
         )
       }
 
@@ -46,13 +46,13 @@ export async function GET(request: Request) {
     } catch (error) {
       console.error('Unexpected error in OAuth callback:', error)
       return NextResponse.redirect(
-        `${origin}/ja/login?error=unexpected_error`
+        `${origin}/login?error=unexpected_error`
       )
     }
   }
 
   // code パラメータがない場合はログインページにリダイレクト
   return NextResponse.redirect(
-    `${origin}/ja/login?error=missing_code`
+    `${origin}/login?error=missing_code`
   )
 }

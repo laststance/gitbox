@@ -3,7 +3,7 @@ version: '3.8'
 services:
   postgres:
     image: supabase/postgres:15.1.0.147
-    container_name: vibe-rush-db
+    container_name: gitbox-db
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
@@ -20,7 +20,7 @@ services:
 
   supabase-studio:
     image: supabase/studio:20240101-9e3c5d6
-    container_name: vibe-rush-studio
+    container_name: gitbox-studio
     environment:
       SUPABASE_URL: http://localhost:54321
       STUDIO_PG_META_URL: http://postgres:5432
@@ -32,7 +32,7 @@ services:
 
   kong:
     image: kong:3.4.2-alpine
-    container_name: vibe-rush-kong
+    container_name: gitbox-kong
     environment:
       KONG_DATABASE: 'off'
       KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml

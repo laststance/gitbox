@@ -1,13 +1,3 @@
-/**
- * Supabase Database Types
- *
- * Note: このファイルは通常 `supabase gen types typescript` で自動生成されますが、
- * 開発初期段階のため、data-model.md を基に手動で作成しています。
- *
- * 本番環境では以下のコマンドで再生成してください：
- * npx supabase gen types typescript --project-id <project-id> > lib/supabase/types.ts
- */
-
 export type Json =
   | string
   | number
@@ -16,247 +6,329 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface Database {
+export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
-      Board: {
+      auditlog: {
         Row: {
+          action: string
+          created_at: string | null
           id: string
-          user_id: string
-          name: string
-          theme: string
-          settings: Json
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          name: string
-          theme?: string
-          settings?: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          name?: string
-          theme?: string
-          settings?: Json
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      StatusList: {
-        Row: {
-          id: string
-          board_id: string
-          name: string
-          color: string
-          wip_limit: number | null
-          order: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          board_id: string
-          name: string
-          color?: string
-          wip_limit?: number | null
-          order?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          board_id?: string
-          name?: string
-          color?: string
-          wip_limit?: number | null
-          order?: number
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      RepoCard: {
-        Row: {
-          id: string
-          board_id: string
-          status_id: string
-          repo_owner: string
-          repo_name: string
-          note: string | null
-          order: number
-          meta: Json
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          board_id: string
-          status_id: string
-          repo_owner: string
-          repo_name: string
-          note?: string | null
-          order?: number
-          meta?: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          board_id?: string
-          status_id?: string
-          repo_owner?: string
-          repo_name?: string
-          note?: string | null
-          order?: number
-          meta?: Json
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      ProjectInfo: {
-        Row: {
-          id: string
-          repo_card_id: string
-          links: Json
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          repo_card_id: string
-          links?: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          repo_card_id?: string
-          links?: Json
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      Credential: {
-        Row: {
-          id: string
-          project_info_id: string
-          type: 'reference' | 'encrypted' | 'external'
-          name: string
-          reference: string | null
-          encrypted_value: string | null
-          encryption_key_id: string | null
-          masked_display: string | null
-          location: string | null
-          note: string | null
-          created_at: string
-          last_accessed: string | null
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          project_info_id: string
-          type: 'reference' | 'encrypted' | 'external'
-          name: string
-          reference?: string | null
-          encrypted_value?: string | null
-          encryption_key_id?: string | null
-          masked_display?: string | null
-          location?: string | null
-          note?: string | null
-          created_at?: string
-          last_accessed?: string | null
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          project_info_id?: string
-          type?: 'reference' | 'encrypted' | 'external'
-          name?: string
-          reference?: string | null
-          encrypted_value?: string | null
-          encryption_key_id?: string | null
-          masked_display?: string | null
-          location?: string | null
-          note?: string | null
-          created_at?: string
-          last_accessed?: string | null
-          updated_at?: string
-        }
-      }
-      Maintenance: {
-        Row: {
-          id: string
-          user_id: string
-          repo_card_id: string | null
-          repo_owner: string
-          repo_name: string
-          note: string | null
-          hidden: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          repo_card_id?: string | null
-          repo_owner: string
-          repo_name: string
-          note?: string | null
-          hidden?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          repo_card_id?: string | null
-          repo_owner?: string
-          repo_name?: string
-          note?: string | null
-          hidden?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      AuditLog: {
-        Row: {
-          id: string
-          user_id: string
-          action: 'reveal' | 'copy' | 'update' | 'delete'
+          ip_address: unknown
           resource_id: string
           resource_type: string
-          ip_address: string | null
-          user_agent: string | null
           success: boolean
-          created_at: string
+          user_agent: string | null
+          user_id: string
         }
         Insert: {
+          action: string
+          created_at?: string | null
           id?: string
-          user_id: string
-          action: 'reveal' | 'copy' | 'update' | 'delete'
+          ip_address?: unknown
           resource_id: string
           resource_type?: string
-          ip_address?: string | null
-          user_agent?: string | null
           success: boolean
-          created_at?: string
+          user_agent?: string | null
+          user_id: string
         }
         Update: {
+          action?: string
+          created_at?: string | null
           id?: string
-          user_id?: string
-          action?: 'reveal' | 'copy' | 'update' | 'delete'
+          ip_address?: unknown
           resource_id?: string
           resource_type?: string
-          ip_address?: string | null
-          user_agent?: string | null
           success?: boolean
-          created_at?: string
+          user_agent?: string | null
+          user_id?: string
         }
+        Relationships: []
+      }
+      board: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          settings: Json | null
+          theme: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          settings?: Json | null
+          theme?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          settings?: Json | null
+          theme?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      credential: {
+        Row: {
+          created_at: string | null
+          encrypted_value: string | null
+          encryption_key_id: string | null
+          id: string
+          last_accessed: string | null
+          location: string | null
+          masked_display: string | null
+          name: string
+          note: string | null
+          project_info_id: string
+          reference: string | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          encrypted_value?: string | null
+          encryption_key_id?: string | null
+          id?: string
+          last_accessed?: string | null
+          location?: string | null
+          masked_display?: string | null
+          name: string
+          note?: string | null
+          project_info_id: string
+          reference?: string | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          encrypted_value?: string | null
+          encryption_key_id?: string | null
+          id?: string
+          last_accessed?: string | null
+          location?: string | null
+          masked_display?: string | null
+          name?: string
+          note?: string | null
+          project_info_id?: string
+          reference?: string | null
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credential_project_info_id_fkey"
+            columns: ["project_info_id"]
+            isOneToOne: false
+            referencedRelation: "projectinfo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance: {
+        Row: {
+          created_at: string | null
+          hidden: boolean | null
+          id: string
+          note: string | null
+          repo_card_id: string | null
+          repo_name: string
+          repo_owner: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          hidden?: boolean | null
+          id?: string
+          note?: string | null
+          repo_card_id?: string | null
+          repo_name: string
+          repo_owner: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          hidden?: boolean | null
+          id?: string
+          note?: string | null
+          repo_card_id?: string | null
+          repo_name?: string
+          repo_owner?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_repo_card_id_fkey"
+            columns: ["repo_card_id"]
+            isOneToOne: true
+            referencedRelation: "repocard"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projectinfo: {
+        Row: {
+          created_at: string | null
+          id: string
+          links: Json | null
+          quick_note: string | null
+          repo_card_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          links?: Json | null
+          quick_note?: string | null
+          repo_card_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          links?: Json | null
+          quick_note?: string | null
+          repo_card_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projectinfo_repo_card_id_fkey"
+            columns: ["repo_card_id"]
+            isOneToOne: true
+            referencedRelation: "repocard"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      repocard: {
+        Row: {
+          board_id: string
+          created_at: string | null
+          id: string
+          meta: Json | null
+          note: string | null
+          order: number
+          repo_name: string
+          repo_owner: string
+          status_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          board_id: string
+          created_at?: string | null
+          id?: string
+          meta?: Json | null
+          note?: string | null
+          order?: number
+          repo_name: string
+          repo_owner: string
+          status_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          board_id?: string
+          created_at?: string | null
+          id?: string
+          meta?: Json | null
+          note?: string | null
+          order?: number
+          repo_name?: string
+          repo_owner?: string
+          status_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repocard_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "board"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repocard_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "statuslist"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      statuslist: {
+        Row: {
+          board_id: string
+          color: string | null
+          created_at: string | null
+          id: string
+          name: string
+          order: number
+          updated_at: string | null
+          wip_limit: number | null
+        }
+        Insert: {
+          board_id: string
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          order?: number
+          updated_at?: string | null
+          wip_limit?: number | null
+        }
+        Update: {
+          board_id?: string
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          order?: number
+          updated_at?: string | null
+          wip_limit?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "statuslist_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "board"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -268,88 +340,135 @@ export interface Database {
     Enums: {
       [_ in never]: never
     }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }
 
-// Helper types
-export type Tables<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Row']
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-export type TablesInsert<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Insert']
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
-export type TablesUpdate<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Update']
-
-// Specific table types for convenience
-export type Board = Tables<'Board'>
-export type StatusList = Tables<'StatusList'>
-export type RepoCard = Tables<'RepoCard'>
-export type ProjectInfo = Tables<'ProjectInfo'>
-export type Credential = Tables<'Credential'>
-export type Maintenance = Tables<'Maintenance'>
-export type AuditLog = Tables<'AuditLog'>
-
-// Insert types
-export type BoardInsert = TablesInsert<'Board'>
-export type StatusListInsert = TablesInsert<'StatusList'>
-export type RepoCardInsert = TablesInsert<'RepoCard'>
-export type ProjectInfoInsert = TablesInsert<'ProjectInfo'>
-export type CredentialInsert = TablesInsert<'Credential'>
-export type MaintenanceInsert = TablesInsert<'Maintenance'>
-export type AuditLogInsert = TablesInsert<'AuditLog'>
-
-// Update types
-export type BoardUpdate = TablesUpdate<'Board'>
-export type StatusListUpdate = TablesUpdate<'StatusList'>
-export type RepoCardUpdate = TablesUpdate<'RepoCard'>
-export type ProjectInfoUpdate = TablesUpdate<'ProjectInfo'>
-export type CredentialUpdate = TablesUpdate<'Credential'>
-export type MaintenanceUpdate = TablesUpdate<'Maintenance'>
-export type AuditLogUpdate = TablesUpdate<'AuditLog'>
-
-// Theme types
-export type Theme =
-  | 'sunrise'
-  | 'sandstone'
-  | 'mint'
-  | 'sky'
-  | 'lavender'
-  | 'rose'
-  | 'midnight'
-  | 'graphite'
-  | 'forest'
-  | 'ocean'
-  | 'plum'
-  | 'rust'
-
-// Credential types
-export type CredentialType = 'reference' | 'encrypted' | 'external'
-
-// Audit action types
-export type AuditAction = 'reveal' | 'copy' | 'update' | 'delete'
-
-// Board settings type
-export interface BoardSettings {
-  wipLimits?: {
-    [statusId: string]: number
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
   }
-  compactMode?: boolean
-  showArchived?: boolean
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
-// RepoCard meta type
-export interface RepoCardMeta {
-  stars?: number
-  updatedAt?: string
-  visibility?: 'public' | 'private'
-  language?: string
-  topics?: string[]
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
-// ProjectInfo links type
-export interface ProjectInfoLinks {
-  production?: string[]
-  tracking?: string[]
-  supabase?: string[]
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {},
+  },
+} as const
+

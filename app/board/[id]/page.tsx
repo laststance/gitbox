@@ -7,8 +7,8 @@
  */
 
 import { notFound } from 'next/navigation'
-import { KanbanBoard } from '@/components/Board/KanbanBoard'
 import { createClient } from '@/lib/supabase/server'
+import { BoardPageClient } from './BoardPageClient'
 
 export interface BoardPageProps {
   params: Promise<{
@@ -26,13 +26,13 @@ export async function generateMetadata(props: BoardPageProps) {
   const supabase = await createClient()
 
   const { data: board } = await supabase
-    .from('Board')
+    .from('board')
     .select('name')
     .eq('id', params.id)
-    .single()
+    .single<{ name: string }>()
 
   return {
-    title: board?.name ? `${board.name} | Vibe Rush` : 'Board | Vibe Rush',
+    title: board?.name ? `${board.name} | GitBox` : 'Board | GitBox',
   }
 }
 
@@ -48,53 +48,23 @@ export default async function BoardPage(props: BoardPageProps) {
   const params = await props.params
   const supabase = await createClient()
 
+  console.log('[DEBUG] BoardPage params:', params)
+  console.log('[DEBUG] Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+
   // ボード情報を取得
   const { data: board, error: boardError } = await supabase
-    .from('Board')
+    .from('board')
     .select('*')
     .eq('id', params.id)
-    .single()
+    .single<{ id: string; name: string; theme: string | null; settings: any }>()
+
+  console.log('[DEBUG] Board query result:', { board, boardError })
 
   // ボードが存在しない、またはアクセス権限がない場合は404
   if (boardError || !board) {
+    console.error('[DEBUG] Board not found or error:', boardError)
     notFound()
   }
 
-  return (
-    <main className="flex h-screen flex-col">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-700 dark:bg-gray-800">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {board.name}
-          </h1>
-
-          {/* ボード設定ボタン (将来的に実装) */}
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-            >
-              Board Settings
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Kanban Board */}
-      <div className="flex-1 overflow-hidden bg-gray-100 dark:bg-gray-900">
-        <KanbanBoard
-          boardId={board.id}
-          onEditProjectInfo={(cardId) => {
-            // TODO: Project Infoモーダルを開く (User Story 4で実装)
-            console.log('Edit Project Info:', cardId)
-          }}
-          onMoveToMaintenance={(cardId) => {
-            // TODO: Maintenance Modeへ移動 (User Story 6で実装)
-            console.log('Move to Maintenance:', cardId)
-          }}
-        />
-      </div>
-    </main>
-  )
+  return <BoardPageClient boardId={board.id} boardName={board.name} />
 }

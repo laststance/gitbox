@@ -1,0 +1,21 @@
+/**
+ * Forest Theme (Dark)
+ *
+ * 森林系の濃いグリーンのダークテーマ
+ * WCAG AA 準拠: Text 4.5:1, UI 3:1
+ */
+
+[data-theme='forest'] {
+  --color-bg-primary: #14532d;
+  --color-bg-secondary: #166534;
+  --color-bg-tertiary: #15803d;
+  --color-text-primary: #f0fdf4;
+  --color-text-secondary: #dcfce7;
+  --color-text-tertiary: #bbf7d0;
+  --color-border: #16a34a;
+  --color-accent: #22c55e;
+  --color-accent-hover: #16a34a;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+}

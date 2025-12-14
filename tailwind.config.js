@@ -3,9 +3,15 @@
  * @type {import('tailwindcss').Config}
  * */
 module.exports = {
+  content: [
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './lib/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
   theme: {
-    colors: {
-      "red-100": "oklch(0.97 0.02 20)",
+    extend: {
+      colors: {
+        "red-100": "oklch(0.97 0.02 20)",
       "red-200": "oklch(0.92 0.05 20)",
       "red-300": "oklch(0.86 0.08 20)",
       "red-400": "oklch(0.8 0.12 20)",
@@ -55,6 +61,7 @@ module.exports = {
       "fuchsia-800": "oklch(0.42 0.1 320)",
       "fuchsia-900": "oklch(0.31 0.07 320)",
       "fuchsia-1000": "oklch(0.11 0.03 320)",
+      }
     }
   },
 };

@@ -1,4 +1,4 @@
--- Vibe Rush - Initial Database Schema Migration
+-- GitBox - Initial Database Schema Migration
 -- Created: 2025-11-15
 -- Purpose: Create all tables, indexes, RLS policies, functions, and triggers
 
@@ -339,14 +339,15 @@ CREATE TRIGGER update_maintenance_updated_at
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- 2. デフォルトボード作成トリガー
+-- SECURITY DEFINER + SET search_path = public で auth スキーマからも public.board にアクセス可能に
 CREATE OR REPLACE FUNCTION create_default_board()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO Board (user_id, name, theme)
+  INSERT INTO public.board (user_id, name, theme)
   VALUES (NEW.id, 'My First Board', 'sunrise');
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER on_user_created
   AFTER INSERT ON auth.users

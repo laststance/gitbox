@@ -8,7 +8,12 @@
  */
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import type { Board, RepoCard, StatusList } from '@/lib/supabase/types'
+import type { Board } from '@/lib/supabase/types'
+import type {
+  StatusListDomain,
+  RepoCardDomain,
+  RepoCardForRedux,
+} from '@/lib/models/domain'
 
 interface DragOperation {
   cardId: string
@@ -21,12 +26,11 @@ interface DragOperation {
 
 // Immer の型推論問題を回避するため、再帰的な Json 型を unknown に変換
 type SimplifiedBoard = Omit<Board, 'settings'> & { settings: unknown }
-type SimplifiedRepoCard = Omit<RepoCard, 'meta'> & { meta: unknown }
 
 interface BoardState {
   activeBoard: SimplifiedBoard | null
-  statusLists: StatusList[]
-  repoCards: SimplifiedRepoCard[]
+  statusLists: StatusListDomain[]
+  repoCards: RepoCardForRedux[]
   loading: boolean
   error: string | null
   // Undo/Redo
@@ -51,10 +55,10 @@ export const boardSlice = createSlice({
     setActiveBoard: (state, action: PayloadAction<SimplifiedBoard | null>) => {
       state.activeBoard = action.payload
     },
-    setStatusLists: (state, action: PayloadAction<StatusList[]>) => {
+    setStatusLists: (state, action: PayloadAction<StatusListDomain[]>) => {
       state.statusLists = action.payload
     },
-    setRepoCards: (state, action: PayloadAction<SimplifiedRepoCard[]>) => {
+    setRepoCards: (state, action: PayloadAction<RepoCardForRedux[]>) => {
       state.repoCards = action.payload
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
@@ -76,7 +80,7 @@ export const boardSlice = createSlice({
     // カードの楽観的更新
     updateRepoCardOptimistic: (
       state,
-      action: PayloadAction<{ cardId: string; updates: Partial<SimplifiedRepoCard> }>
+      action: PayloadAction<{ cardId: string; updates: Partial<RepoCardForRedux> }>
     ) => {
       const { cardId, updates } = action.payload
       const cardIndex = state.repoCards.findIndex(card => card.id === cardId)

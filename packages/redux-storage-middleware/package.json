@@ -1,5 +1,5 @@
 {
-  "name": "@vibe-rush/redux-storage-middleware",
+  "name": "@gitbox/redux-storage-middleware",
   "version": "0.1.0",
   "description": "Custom Redux middleware for LocalStorage synchronization",
   "main": "dist/index.js",

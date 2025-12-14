@@ -1,4 +1,4 @@
-# Vibe Rush — PRD v0.3 (Unified Edition with Enhanced Security)
+# GitBox — PRD v0.3 (Unified Edition with Enhanced Security)
 
 ## 1) プロダクト概要と情報設計（IA）
 
@@ -202,7 +202,7 @@ Restore to Board     // Maintenanceのみ表示
 ### 5.1 Sidebar（全画面共通）
 ```
 ┌───────────────────────────────┐
-│ Vibe Rush                      │
+│ GitBox                         │
 │ ───────────────────────────── │
 │ Boards                         │
 │  • All Boards                  │

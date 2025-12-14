@@ -38,7 +38,7 @@
       "@/app/*": [
         "./app/*"
       ],
-      "@vibe-rush/redux-storage-middleware": [
+      "@gitbox/redux-storage-middleware": [
         "./packages/redux-storage-middleware/src"
       ]
     }

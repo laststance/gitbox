@@ -253,7 +253,7 @@ test.describe('User Story 2: Repository Search Screenshots', () => {
       board_id: testBoard.id,
       status_id: '00000000-0000-0000-0000-000000000000', // Dummy status ID
       repo_owner: 'laststance',
-      repo_name: 'vibe-rush',
+      repo_name: 'gitbox',
       note: 'Already added for screenshot test',
       order: 0,
     })
@@ -264,8 +264,8 @@ test.describe('User Story 2: Repository Search Screenshots', () => {
 
     // Repository追加試行
     await page.getByRole('button', { name: /Add Repositories/i }).click()
-    await page.getByPlaceholder(/Search repositories/i).fill('vibe-rush')
-    await page.getByRole('option', { name: /laststance\/vibe-rush/i }).click()
+    await page.getByPlaceholder(/Search repositories/i).fill('gitbox')
+    await page.getByRole('option', { name: /laststance\/gitbox/i }).click()
     await page.getByRole('button', { name: /Add \(1\)/i }).click()
 
     // 重複エラーメッセージ表示を待機

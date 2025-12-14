@@ -8,35 +8,12 @@ import {
 } from "@dnd-kit/sortable";
 import { Badge } from "@/components/ui/badge";
 import { RepoCard } from "./RepoCard";
+import type { StatusListDomain, RepoCardDomain, RepoCardForRedux } from "@/lib/models/domain";
 
-// Types
-interface StatusList {
-  id: string;
-  title: string;
-  wipLimit: number;
-  color?: string;
-  order: number;
-}
-
-interface RepoCardData {
-  id: string;
-  title: string;
-  description?: string;
-  priority?: "low" | "medium" | "high";
-  assignee?: {
-    name: string;
-    avatar: string;
-  };
-  tags?: string[];
-  dueDate?: string;
-  attachments?: number;
-  comments?: number;
-  statusId: string;
-}
-
+// Types: Using Domain types for type-safe state management
 interface StatusColumnProps {
-  status: StatusList;
-  cards: RepoCardData[];
+  status: StatusListDomain;
+  cards: RepoCardForRedux[];
   onEdit?: (id: string) => void;
   onMaintenance?: (id: string) => void;
 }

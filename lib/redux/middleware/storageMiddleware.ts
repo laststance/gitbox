@@ -4,7 +4,7 @@
  * カスタム redux-storage-middleware パッケージのインスタンス化
  */
 
-import { createStorageMiddleware } from '@vibe-rush/redux-storage-middleware'
+import { createStorageMiddleware } from '@gitbox/redux-storage-middleware'
 
 /**
  * LocalStorage 同期ミドルウェア

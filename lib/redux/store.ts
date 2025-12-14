@@ -18,9 +18,9 @@ import { createStorageMiddleware } from './middleware/storageMiddleware'
 
 // Storage middleware の設定
 const storageMiddleware = createStorageMiddleware({
-  // settings スライスのみ LocalStorage に同期
-  slices: ['settings'],
-  storageKey: 'vibe-rush-state',
+  // settings と board スライスを LocalStorage に同期
+  slices: ['settings', 'board'],
+  storageKey: 'gitbox-state',
 })
 
 export const store = configureStore({

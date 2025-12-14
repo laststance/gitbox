@@ -4,6 +4,7 @@
  * Application-wide root layout
  * - Redux Provider
  * - Theme application
+ * - Global keyboard shortcuts (ShortcutsHelp)
  */
 
 import '@/styles/globals.css'
@@ -13,21 +14,27 @@ import '@/styles/themes/light/sunrise.css'
 import '@/styles/themes/dark/midnight.css'
 // Import other theme files here
 
+import { ShortcutsHelp } from '@/components/ShortcutsHelp'
+import { Providers } from '@/lib/redux/providers'
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="ja" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="description" content="Manage GitHub Repositories in Kanban Board Format" />
-        <title>Vibe Rush - GitHub Repository Manager</title>
+        <meta name="description" content="GitHub Repositoryを Kanban Board 形式で管理" />
+        <title>GitBox - GitHub Repository Manager</title>
       </head>
       <body>
-        {children}
+        <Providers>
+          {children}
+          <ShortcutsHelp />
+        </Providers>
       </body>
     </html>
   )

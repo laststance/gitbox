@@ -10,6 +10,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import type { Tables } from '@/lib/supabase/types'
 
 export default async function BoardsPage() {
   const supabase = await createClient()
@@ -24,11 +25,11 @@ export default async function BoardsPage() {
   }
 
   // Fetch all user boards
-  const { data: boards, error } = await supabase
-    .from('Board')
+  const { data: boards, error } = (await supabase
+    .from('board')
     .select('*')
     .eq('user_id', session.user.id)
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false })) as { data: Tables<'board'>[] | null; error: any }
 
   if (error) {
     console.error('Failed to fetch boards:', error)
@@ -95,7 +96,7 @@ export default async function BoardsPage() {
                       d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                     />
                   </svg>
-                  {new Date(board.created_at).toLocaleDateString('en-US')}
+                  {board.created_at ? new Date(board.created_at).toLocaleDateString('en-US') : 'N/A'}
                 </div>
                 <div className="flex items-center gap-1">
                   <div
