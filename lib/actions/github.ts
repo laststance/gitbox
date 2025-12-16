@@ -75,7 +75,7 @@ export async function getAuthenticatedUserRepositories(params?: {
       next: {
         revalidate: 60, // 1分間キャッシュ
       },
-    })
+    } as RequestInit)
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -143,7 +143,7 @@ export async function searchRepositories(params: {
       next: {
         revalidate: 60,
       },
-    })
+    } as RequestInit)
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -198,7 +198,7 @@ export async function getRepository(
       next: {
         revalidate: 60,
       },
-    })
+    } as RequestInit)
 
     if (!response.ok) {
       if (response.status === 401) {
