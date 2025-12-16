@@ -1,0 +1,45 @@
+/**
+ * Graphite Theme (Dark)
+ *
+ * 上品なグラファイトグレーのダークテーマ
+ * WCAG AA 準拠: Text 4.5:1, UI 3:1
+ */
+
+[data-theme='graphite'] {
+  /* shadcn/ui variables */
+  --background: #111827;
+  --foreground: #f9fafb;
+  --card: #1f2937;
+  --card-foreground: #f9fafb;
+  --popover: #1f2937;
+  --popover-foreground: #f9fafb;
+  --primary: #6b7280;
+  --primary-foreground: #ffffff;
+  --secondary: #1f2937;
+  --secondary-foreground: #f9fafb;
+  --muted: #374151;
+  --muted-foreground: #9ca3af;
+  --accent: #374151;
+  --accent-foreground: #f9fafb;
+  --destructive: #ef4444;
+  --border: #374151;
+  --input: #374151;
+  --ring: #6b7280;
+
+  /* Sidebar variables */
+  --sidebar: #1f2937;
+  --sidebar-foreground: #f9fafb;
+  --sidebar-primary: #6b7280;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #374151;
+  --sidebar-accent-foreground: #f9fafb;
+  --sidebar-border: #374151;
+  --sidebar-ring: #6b7280;
+
+  /* Chart colors */
+  --chart-1: #6b7280;
+  --chart-2: #4b5563;
+  --chart-3: #374151;
+  --chart-4: #1f2937;
+  --chart-5: #111827;
+}

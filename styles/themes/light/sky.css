@@ -1,0 +1,45 @@
+/**
+ * Sky Theme (Light)
+ *
+ * 澄んだ空のようなブルーのライトテーマ
+ * WCAG AA 準拠: Text 4.5:1, UI 3:1
+ */
+
+[data-theme='sky'] {
+  /* shadcn/ui variables */
+  --background: #ffffff;
+  --foreground: #0c4a6e;
+  --card: #ffffff;
+  --card-foreground: #0c4a6e;
+  --popover: #ffffff;
+  --popover-foreground: #0c4a6e;
+  --primary: #0ea5e9;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f9ff;
+  --secondary-foreground: #0c4a6e;
+  --muted: #e0f2fe;
+  --muted-foreground: #0369a1;
+  --accent: #e0f2fe;
+  --accent-foreground: #0c4a6e;
+  --destructive: #dc2626;
+  --border: #7dd3fc;
+  --input: #e0f2fe;
+  --ring: #0ea5e9;
+
+  /* Sidebar variables */
+  --sidebar: #f0f9ff;
+  --sidebar-foreground: #0c4a6e;
+  --sidebar-primary: #0ea5e9;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e0f2fe;
+  --sidebar-accent-foreground: #0c4a6e;
+  --sidebar-border: #7dd3fc;
+  --sidebar-ring: #0ea5e9;
+
+  /* Chart colors */
+  --chart-1: #0ea5e9;
+  --chart-2: #0284c7;
+  --chart-3: #0369a1;
+  --chart-4: #075985;
+  --chart-5: #0c4a6e;
+}

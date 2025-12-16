@@ -1,0 +1,45 @@
+/**
+ * Rose Theme (Light)
+ *
+ * ローズピンクの優雅なライトテーマ
+ * WCAG AA 準拠: Text 4.5:1, UI 3:1
+ */
+
+[data-theme='rose'] {
+  /* shadcn/ui variables */
+  --background: #ffffff;
+  --foreground: #881337;
+  --card: #ffffff;
+  --card-foreground: #881337;
+  --popover: #ffffff;
+  --popover-foreground: #881337;
+  --primary: #f43f5e;
+  --primary-foreground: #ffffff;
+  --secondary: #fff1f2;
+  --secondary-foreground: #881337;
+  --muted: #ffe4e6;
+  --muted-foreground: #be123c;
+  --accent: #ffe4e6;
+  --accent-foreground: #881337;
+  --destructive: #dc2626;
+  --border: #fda4af;
+  --input: #ffe4e6;
+  --ring: #f43f5e;
+
+  /* Sidebar variables */
+  --sidebar: #fff1f2;
+  --sidebar-foreground: #881337;
+  --sidebar-primary: #f43f5e;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ffe4e6;
+  --sidebar-accent-foreground: #881337;
+  --sidebar-border: #fda4af;
+  --sidebar-ring: #f43f5e;
+
+  /* Chart colors */
+  --chart-1: #f43f5e;
+  --chart-2: #e11d48;
+  --chart-3: #be123c;
+  --chart-4: #9f1239;
+  --chart-5: #881337;
+}

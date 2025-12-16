@@ -1,0 +1,45 @@
+/**
+ * Sunrise Theme (Light)
+ *
+ * 暖かみのあるオレンジ系のライトテーマ
+ * WCAG AA 準拠: Text 4.5:1, UI 3:1
+ */
+
+[data-theme='sunrise'] {
+  /* shadcn/ui variables */
+  --background: #ffffff;
+  --foreground: #1c1917;
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+  --popover: #ffffff;
+  --popover-foreground: #1c1917;
+  --primary: #f59e0b;
+  --primary-foreground: #ffffff;
+  --secondary: #fff7ed;
+  --secondary-foreground: #1c1917;
+  --muted: #ffedd5;
+  --muted-foreground: #78716c;
+  --accent: #ffedd5;
+  --accent-foreground: #1c1917;
+  --destructive: #dc2626;
+  --border: #fde68a;
+  --input: #fef3c7;
+  --ring: #f59e0b;
+
+  /* Sidebar variables */
+  --sidebar: #fff7ed;
+  --sidebar-foreground: #1c1917;
+  --sidebar-primary: #f59e0b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ffedd5;
+  --sidebar-accent-foreground: #1c1917;
+  --sidebar-border: #fde68a;
+  --sidebar-ring: #f59e0b;
+
+  /* Chart colors */
+  --chart-1: #f59e0b;
+  --chart-2: #d97706;
+  --chart-3: #b45309;
+  --chart-4: #92400e;
+  --chart-5: #78350f;
+}

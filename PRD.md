@@ -1,4 +1,4 @@
-# Vibe Rush — PRD v0.3 (Unified Edition with Enhanced Security)
+# GitBox — PRD v0.3 (Unified Edition with Enhanced Security)
 
 ## 1) プロダクト概要と情報設計（IA）
 
@@ -8,15 +8,18 @@
 - トップページはログイン、サインインボタンを配置したLandingPage
 
 ### ナビゲーションフロー
-**Auth*(Github OAuth)** → **Home (Boards)** → **Board (Kanban)** → **Card Detail (right panel)**
+
+**Auth\*(Github OAuth)** → **Home (Boards)** → **Board (Kanban)** → **Card Detail (right panel)**
 
 ### 主要画面
+
 - **Maintenance Mode**（完了・保守中のプロジェクト保管庫。Sidebarリンクで遷移、Explorer UI）
 - **Command Palette (⌘K)**
 - **Settings**（Theme/Type/Display/WIP）
 - **Shortcuts (?)**
 
 ### Kanban基本方針
+
 Board=列、列=Status、D&Dで**列間=状態更新** / **同列上下=優先度変更**。フィルタ/グループ/プロパティ表示はNotion型の考え方を踏襲。
 
 ---
@@ -26,16 +29,19 @@ Board=列、列=Status、D&Dで**列間=状態更新** / **同列上下=優先�
 ### 2.1 カラー & タイポグラフィ ガイド
 
 #### カラーシステム
+
 - **OKLCHベース**で段階（L）を揃えたスケールを使用
 - ダーク/ライトの**ミラーマッピング**で恒常的なコントラストを保つ
 - Harmonizer/Harmonyの知見を参照（[Harmonizer](https://harmonizer.evilmartians.com/)）
 
 #### コントラスト要件
+
 - **本文**：**4.5:1以上**（WCAG AA準拠）
 - **UIコンポーネント/アイコン**：**3:1以上**
 - 参照：[W3C WCAG 2.1](https://www.w3.org/TR/WCAG21/)
 
 #### タイポグラフィ
+
 - **Base font**：**16px**
 - ステップ：1px刻み（最小12px〜推奨28pxまで）
 - 運用：アップロード済みOKLCHパレットをソース・オブ・トゥルースとする（Tailwind tokens）
@@ -43,6 +49,7 @@ Board=列、列=Status、D&Dで**列間=状態更新** / **同列上下=優先�
 ### 2.2 Design Tokens（12 Themes）
 
 #### Token Set（共通キー）
+
 ```
 color.background         // 画面最下層
 color.surface            // カード/パネル
@@ -66,16 +73,19 @@ color.success / warning / danger
 ```
 
 #### Light Theme（推奨OKLCHレンジ）
+
 - background L≈0.98、surface L≈0.96、surfaceAlt L≈0.92
 - textPrimary L対比で**4.5:1以上**、textSecondaryは**3:1以上**
 - primary/secondary/tertiary は彩度を活かしつつ、**primaryFg**は常にAA達成（自動で黒/白をスイッチ）
 
 #### Dark Theme（推奨OKLCHレンジ）
+
 - background L≈0.12、surface L≈0.16、surfaceAlt L≈0.20
 - textPrimaryは**対比4.5:1以上**になるよう明度差を確保
 - primary は**輝度を持ち上げ**てボタン/選択状態で視認性を確保（primaryFgはダーク側で黒/白を自動選択）
 
 #### Theme Names
+
 - **Light:** Sunrise / Sandstone / Mint / Sky / Lavender / Rose
 - **Dark:** Midnight / Graphite / Forest / Ocean / Plum / Rust
 
@@ -86,29 +96,34 @@ color.success / warning / danger
 ### 3.1 GitHub OAuth & Repository追加
 
 #### 機能仕様
+
 - Combobox検索（owner/repo, topics, visibility）
 - 複数一括追加/重複検知
 - 追加直後に"Quick note"へフォーカス
 
 #### 受け入れ基準
+
 - 100+ repos でも候補表示が遅延しない
 - D&D/Undoがストレスなく機能
 
 ### 3.2 Board（Kanban）
 
 #### 機能仕様
+
 - **列=Status**（例：Suspend / Spec designing / Active / Completed）
 - 列CRUD操作、WIP limit設定
 - **カード**：repo名、一言メモ、任意メタ（Stars/Updated/Visibility/Language/Topics等）
 - **⋯（Overflow menu）**：**Project Info**モーダル起動
 
 #### 受け入れ基準
+
 - Board=Statusフィールド基準
 - D&D操作の定石に準拠（[GitHub Docs](https://docs.github.com/en/issues/planning-and-tracking-with-projects/)）
 
 ### 3.3 Maintenance Mode
 
 #### 機能仕様
+
 - Sidebarから遷移
 - **Explorer UI**（Grid/List切替、並び替え/検索）
 - **クリック＝GitHub repo へ遷移**
@@ -116,6 +131,7 @@ color.success / warning / danger
 - **復帰（Restore to Board）**や**Hide**操作を提供
 
 #### UI根拠
+
 リスト/テーブル/サイドバーUIのHIG（[Apple Developer](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables)）
 
 ### 3.4 Project Info（モーダル）
@@ -123,6 +139,7 @@ color.success / warning / danger
 すべてのRepoカードから起動可能
 
 #### Sections
+
 1. **Quick note**（1〜3行）
 
 2. **Links**
@@ -133,17 +150,19 @@ color.success / warning / danger
 3. **Credentials（3つの管理パターン）**
 
    ##### パターンA: 参照リンク型
+
    ダッシュボードでいつでも確認可能なサービス（Supabase等）
    - ダッシュボードへのリンクのみ保存
    - 実際の値はサービス側で管理
 
    ##### パターンB: 暗号化保存型
+
    一度きりのシークレット（OAuth Secret等）
    - AES-256-GCM で暗号化してDB保存
-   - 復号には2FA認証必須
    - マスク表示がデフォルト（例: `github_*****xyz789`）
 
    ##### パターンC: 外部管理型
+
    1Password/Bitwarden等で管理
    - 外部ツールでの保管場所のみ記録
    - チームVaultへの参照を提供
@@ -153,16 +172,19 @@ color.success / warning / danger
 #### セキュリティ要件（強化版）
 
 ##### 暗号化仕様
+
 - アルゴリズム: **AES-256-GCM**
 - 鍵管理: **AWS KMS / GCP KMS / Azure Key Vault**
 - 鍵ローテーション: **90日ごと**
 
 ##### アクセス制御
+
 - 暗号化された値の復号時は**2FA認証必須**
 - **RBAC**（役割ベースアクセス制御）
 - すべての機密情報アクセスを**監査ログ**に記録
 
 ##### 表示制御
+
 - デフォルトは**マスク表示**（`****`）
 - "Reveal"ボタンで一時表示（**30秒後に自動マスク**）
 - コピー機能使用時は監査ログに記録
@@ -176,6 +198,7 @@ color.success / warning / danger
 各Repoカード右上の三点リーダーは小さな一時的アクション群を開く"Overflow menu"（[Material Design](https://m3.material.io/components/menus/guidelines)）
 
 #### メニュー項目（共通）
+
 ```
 Open on GitHub
 Open Production URL
@@ -201,9 +224,10 @@ Restore to Board     // Maintenanceのみ表示
 **重要** UIは全て以下のワイヤーフレームから[Magic MCP](https://github.com/21st-dev/magic-mcp)で生成する
 
 ### 5.1 Sidebar（全画面共通）
+
 ```
 ┌───────────────────────────────┐
-│ Vibe Rush                      │
+│ GitBox                         │
 │ ───────────────────────────── │
 │ Boards                         │
 │  • All Boards                  │
@@ -218,6 +242,7 @@ Restore to Board     // Maintenanceのみ表示
 ```
 
 ### 5.2 Board（Kanban with overflow menus）
+
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │ AI Experiments                                 ○ avatar   [?]       │
@@ -234,6 +259,7 @@ Restore to Board     // Maintenanceのみ表示
 ```
 
 ### 5.3 Project Info（Modal - 強化版）
+
 ```
 ┌───────────────────────────────────────────────────┐
 │ Project Info – laststance/app-studio              │
@@ -270,6 +296,7 @@ Restore to Board     // Maintenanceのみ表示
 ### 5.4 Maintenance Mode（Explorer UI）
 
 #### Grid View
+
 ```
 ┌───────────────────────────────────────────────────────────────┐
 │ Maintenance Mode                              ○ avatar  [?]  │
@@ -286,6 +313,7 @@ Restore to Board     // Maintenanceのみ表示
 ```
 
 #### List View（同画面で切替）
+
 ```
 Name              Note                 Updated        Stars   Actions
 lib-utils         "Shipped…"           2025-10-11     410     [⋯]
@@ -294,6 +322,7 @@ core-cli          "Security"           2025-07-01      87     [⋯]
 ```
 
 ### 5.5 Settings
+
 ```
 ┌───────────────────────────────────────────────┐
 │ Settings                                      │
@@ -318,8 +347,8 @@ Board {
   id, name, lists[StatusList], theme, settings{wipLimits, compact}
 }
 
-StatusList { 
-  id, name, color, wipLimit, order 
+StatusList {
+  id, name, color, wipLimit, order
 }
 
 RepoCard {
@@ -335,31 +364,31 @@ ProjectInfo {
       id: string,
       type: "reference" | "encrypted" | "external",
       name: string,
-      
+
       // type: "reference"の場合
       reference?: string, // URLやダッシュボードへのリンク
-      
+
       // type: "encrypted"の場合
       encrypted_value?: string, // AES-256-GCM暗号化された値
       encryption_key_id?: string, // KMS key reference
       created_at?: timestamp,
       last_accessed?: timestamp,
       masked_display?: string, // 例: "sk_live_****1234"
-      
+
       // type: "external"の場合
       location?: string, // 外部管理ツールでの場所
-      
+
       note?: string // 任意のメモ
     }
   ]
 }
 
-Maintenance { 
-  repoId, hidden?: boolean 
+Maintenance {
+  repoId, hidden?: boolean
 }
 
 AuditLog {
-  id, userId, action, resourceId, resourceType, 
+  id, userId, action, resourceId, resourceType,
   timestamp, ipAddress, userAgent, success: boolean
 }
 ```
@@ -384,7 +413,6 @@ AuditLog {
 ### 7.3 セキュリティテスト
 
 - 暗号化/復号プロセスの自動テスト
-- 2FA認証フローのE2Eテスト
 - 監査ログの完全性確認
 - 鍵ローテーションの動作確認
 
@@ -393,18 +421,22 @@ AuditLog {
 ## 8) 受け入れ基準（統合版）
 
 ### 全体共通
+
 - **Overflow menu**が**Board/Maintenance**双方のカードで**同一構造**・同一ショートカット（例：`.`で開く）を持つ
 - すべてのRepoカードの右上⋯から同一モーダルを開ける（Board/Maintenance共通）
 
 ### Maintenance Mode
+
 - **Grid/List**をワンクリックで切替
 - **Enter=Open on GitHub**の既定アクション
 - Explorer型UIは**リスト/テーブル**操作のHIGに沿って選択/並び替え/削除/復元を提供
 
 ### アクセシビリティ
+
 - 12テーマ全てで、本文テキストの**4.5:1**、UI要素の**3:1**以上を満たす（自動テスト含む）
 
 ### セキュリティ（強化版）
+
 - 3つの機密情報管理パターンが正しく機能する
 - 一度きりのシークレットを**AES-256-GCM**で安全に暗号化して保存できる
 - 暗号化された値の復号には**2FA認証**が必要
@@ -417,16 +449,18 @@ AuditLog {
 ## 9) 実装フェーズ
 
 ### Phase 1: 基本機能（MVP）
+
 - Board/Kanbanの基本機能
 - GitHub OAuth & Repository追加
 - 参照リンク型のCredentials管理
 
 ### Phase 2: セキュリティ強化
+
 - 暗号化保存型のCredentials実装
-- 2FA認証フロー
 - 監査ログシステム
 
 ### Phase 3: 完全版
+
 - 外部管理型（1Password/Bitwarden連携）
 - Maintenance Mode完全実装
 - 12テーマ対応
