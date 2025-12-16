@@ -60,7 +60,7 @@ export async function addRepositoriesToBoard(
 
     // Board が存在し、ユーザーが所有しているか確認
     const { data: board, error: boardError } = await supabase
-      .from('Board')
+      .from('board')
       .select('id, user_id')
       .eq('id', boardId)
       .eq('user_id', user.id)
@@ -72,7 +72,7 @@ export async function addRepositoriesToBoard(
 
     // 既存のカードを取得して重複チェック
     const { data: existingCards, error: existingError } = await supabase
-      .from('RepoCard')
+      .from('repocard')  // 小文字に変更
       .select('repo_owner, repo_name')
       .eq('board_id', boardId)
 
@@ -100,7 +100,7 @@ export async function addRepositoriesToBoard(
 
     // 現在の最大 order 値を取得
     const { data: maxOrderData } = await supabase
-      .from('RepoCard')
+      .from('repocard')  // 小文字に変更
       .select('order')
       .eq('status_id', statusId)
       .order('order', { ascending: false })
@@ -127,7 +127,7 @@ export async function addRepositoriesToBoard(
       },
     }))
 
-    const { error: insertError } = await supabase.from('RepoCard').insert(cardsToInsert)
+    const { error: insertError } = await supabase.from('repocard').insert(cardsToInsert)
 
     if (insertError) {
       console.error('RepoCard insert error:', insertError)
@@ -168,7 +168,7 @@ export async function checkDuplicateRepository(
     const supabase = await createClient()
 
     const { data, error } = await supabase
-      .from('RepoCard')
+      .from('repocard')
       .select('id')
       .eq('board_id', boardId)
       .eq('repo_owner', repoOwner)
@@ -223,7 +223,7 @@ export async function updateRepoCardNote(
 
     // カードを更新（RLS ポリシーで自動的に所有チェック）
     const { error: updateError } = await supabase
-      .from('RepoCard')
+      .from('repocard')
       .update({ note, updated_at: new Date().toISOString() })
       .eq('id', cardId)
 
@@ -269,7 +269,7 @@ export async function deleteRepoCard(cardId: string): Promise<{ success: boolean
     }
 
     // カードを削除（RLS ポリシーで自動的に所有チェック）
-    const { error: deleteError } = await supabase.from('RepoCard').delete().eq('id', cardId)
+    const { error: deleteError } = await supabase.from('repocard').delete().eq('id', cardId)
 
     if (deleteError) {
       console.error('Delete card error:', deleteError)
@@ -320,7 +320,7 @@ export async function updateRepoCardOrder(
 
     // カードを更新（RLS ポリシーで自動的に所有チェック）
     const { error: updateError } = await supabase
-      .from('RepoCard')
+      .from('repocard')
       .update({
         status_id: statusId,
         order: newOrder,

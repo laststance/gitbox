@@ -107,7 +107,7 @@ color.success / warning / danger
 - D&D操作の定石に準拠（[GitHub Docs](https://docs.github.com/en/issues/planning-and-tracking-with-projects/)）
 
 ### 3.3 Maintenance Mode
-
+  
 #### 機能仕様
 - Sidebarから遷移
 - **Explorer UI**（Grid/List切替、並び替え/検索）

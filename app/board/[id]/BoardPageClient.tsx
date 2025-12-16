@@ -28,8 +28,9 @@ import {
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store';
 import { setStatusLists, selectStatusLists } from '@/lib/redux/slices/boardSlice';
 import type { StatusListDomain } from '@/lib/models/domain';
-import { Plus } from 'lucide-react';
+import { Plus, FolderGit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox';
 
 interface BoardPageClientProps {
   boardId: string;
@@ -252,6 +253,19 @@ export function BoardPageClient({ boardId, boardName }: BoardPageClientProps) {
 
             {/* ボード操作ボタン */}
             <div className="flex items-center gap-2">
+              {/* Add Repositories - PRD 3.1 */}
+              <AddRepositoryCombobox
+                boardId={boardId}
+                statusId={statusLists[0]?.id || ''} // 最初の列に追加（なければ空文字）
+                onRepositoriesAdded={() => {
+                  // TODO: ボードを再読み込み
+                  window.location.reload();
+                }}
+                onQuickNoteFocus={() => {
+                  // TODO: Quick noteフィールドにフォーカス
+                  console.log('Focus quick note');
+                }}
+              />
               <Button
                 variant="outline"
                 size="sm"

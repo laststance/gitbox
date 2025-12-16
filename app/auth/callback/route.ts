@@ -3,12 +3,17 @@
  *
  * GitHub OAuth の認証コールバックを処理
  * - 認証コードを取得してセッションを確立
+ * - provider_token をセキュアCookieに保存（GitHub API アクセス用）
  * - エラーハンドリング
  * - Boards 画面へリダイレクト
  */
 
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
+
+// Cookie名
+const GITHUB_TOKEN_COOKIE = 'github_provider_token'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -20,13 +25,29 @@ export async function GET(request: Request) {
 
     try {
       // 認証コードを使用してセッションを確立
-      const { error } = await supabase.auth.exchangeCodeForSession(code)
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
       if (error) {
         console.error('OAuth callback error:', error)
         return NextResponse.redirect(
           `${origin}/login?error=auth_failed&message=${encodeURIComponent(error.message)}`
         )
+      }
+
+      // provider_token を取得してCookieに保存（GitHub API アクセス用）
+      const providerToken = data.session?.provider_token
+      if (providerToken) {
+        const cookieStore = await cookies()
+        cookieStore.set(GITHUB_TOKEN_COOKIE, providerToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7, // 7日間（GitHubトークンの有効期限に合わせて調整）
+          path: '/',
+        })
+        console.log('GitHub provider_token saved to cookie')
+      } else {
+        console.warn('No provider_token in session - GitHub API access may be limited')
       }
 
       // セッション確立成功 - Boards 画面にリダイレクト
