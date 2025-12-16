@@ -52,6 +52,10 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    env:
+      # Dummy values for build (not used at runtime)
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key-for-build
     steps:
       - uses: actions/checkout@v4
 
