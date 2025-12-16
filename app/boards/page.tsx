@@ -29,7 +29,7 @@ export default async function BoardsPage() {
     .from('board')
     .select('*')
     .eq('user_id', session.user.id)
-    .order('created_at', { ascending: false })) as { data: Tables<'board'>[] | null; error: any }
+    .order('created_at', { ascending: false })) as { data: Tables<'board'>[] | null; error: Error | null }
 
   if (error) {
     console.error('Failed to fetch boards:', error)

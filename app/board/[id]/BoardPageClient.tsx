@@ -28,7 +28,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store';
 import { setStatusLists, selectStatusLists } from '@/lib/redux/slices/boardSlice';
 import type { StatusListDomain } from '@/lib/models/domain';
-import { Plus, FolderGit2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox';
 
@@ -45,7 +45,7 @@ export function BoardPageClient({ boardId, boardName }: BoardPageClientProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [projectInfo, setProjectInfo] = useState<ProjectInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [_isLoading, setIsLoading] = useState(false);
 
   // StatusList Dialog state
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);

@@ -8,6 +8,7 @@
 import type {
   StatusList as DbStatusList,
   RepoCard as DbRepoCard,
+  Json,
 } from '@/lib/supabase/types'
 import type { StatusListDomain, RepoCardDomain, RepoCardMeta } from './domain'
 
@@ -26,11 +27,11 @@ export function dbStatusListToDomain(db: DbStatusList): StatusListDomain {
     id: db.id,
     title: db.name, // name → title
     wipLimit: db.wip_limit ?? 0, // wip_limit → wipLimit (null -> 0)
-    color: db.color,
+    color: db.color ?? '#6366f1',
     order: db.order,
     boardId: db.board_id,
-    createdAt: db.created_at,
-    updatedAt: db.updated_at,
+    createdAt: db.created_at ?? new Date().toISOString(),
+    updatedAt: db.updated_at ?? new Date().toISOString(),
   }
 }
 
@@ -76,8 +77,8 @@ export function dbRepoCardToDomain(db: DbRepoCard): RepoCardDomain {
     note: db.note,
     order: db.order,
     meta,
-    createdAt: db.created_at,
-    updatedAt: db.updated_at,
+    createdAt: db.created_at ?? new Date().toISOString(),
+    updatedAt: db.updated_at ?? new Date().toISOString(),
   }
 }
 
@@ -99,7 +100,7 @@ export function domainRepoCardToDbInsert(
     repo_name: domain.repoName,
     note: domain.note,
     order: domain.order,
-    meta: domain.meta as any, // Json型に変換
+    meta: domain.meta as unknown as Json, // Json型に変換
   }
 }
 

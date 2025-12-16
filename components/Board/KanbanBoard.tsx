@@ -32,8 +32,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from "lucide-react";
 import { StatusColumn } from "./StatusColumn";
-import type { RepoCard as RepoCardType } from "./RepoCard";
-import type { StatusListDomain, RepoCardDomain, RepoCardForRedux } from "@/lib/models/domain";
+import type { StatusListDomain, RepoCardForRedux } from "@/lib/models/domain";
 import {
   getBoardData,
   updateRepoCardPosition,

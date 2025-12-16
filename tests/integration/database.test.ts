@@ -70,7 +70,7 @@ describe('Database Schema & RLS Integration Tests', () => {
   describe('1. Table Existence', () => {
     it('Board テーブルが存在する', async () => {
       const { data, error } = await supabaseAdmin
-        .from('Board')
+        .from('board')
         .select('id')
         .limit(1)
 

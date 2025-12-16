@@ -472,3 +472,28 @@ export const Constants = {
   },
 } as const
 
+// Convenience type aliases for common table types
+export type Board = Tables<'board'>
+export type StatusList = Tables<'statuslist'>
+export type RepoCard = Tables<'repocard'>
+export type ProjectInfo = Tables<'projectinfo'>
+export type Credential = Tables<'credential'>
+export type Maintenance = Tables<'maintenance'>
+export type AuditLog = Tables<'auditlog'>
+
+// Theme type (stored as string in board.theme)
+export type Theme =
+  | 'sunrise'
+  | 'sandstone'
+  | 'mint'
+  | 'sky'
+  | 'lavender'
+  | 'rose'
+  | 'midnight'
+  | 'graphite'
+  | 'forest'
+  | 'ocean'
+  | 'plum'
+  | 'rust'
+  | 'system'
+

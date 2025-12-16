@@ -7,7 +7,12 @@
 
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+
+// Helper to detect if we're in a browser environment
+const getSnapshot = () => true;
+const getServerSnapshot = () => false;
+const subscribe = () => () => {};
 
 export type ThemeType =
   // Light themes
@@ -54,21 +59,21 @@ export function isDarkTheme(theme: ThemeType): boolean {
 const THEME_STORAGE_KEY = 'gitbox-theme';
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<ThemeType>('system');
-  const [mounted, setMounted] = useState(false);
-
-  // Initialize from localStorage
-  useEffect(() => {
-    setMounted(true);
+  const isClient = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  
+  // Initialize theme from localStorage (client-side only)
+  const [theme, setThemeState] = useState<ThemeType>(() => {
+    if (typeof window === 'undefined') return 'system';
     const stored = localStorage.getItem(THEME_STORAGE_KEY) as ThemeType | null;
     if (stored && ALL_THEMES.includes(stored)) {
-      setThemeState(stored);
+      return stored;
     }
-  }, []);
+    return 'system';
+  });
 
   // Apply theme to document
   useEffect(() => {
-    if (!mounted) return;
+    if (!isClient) return;
 
     const root = document.documentElement;
 
@@ -99,7 +104,7 @@ export function useTheme() {
         root.classList.remove('dark');
       }
     }
-  }, [theme, mounted]);
+  }, [theme, isClient]);
 
   const setTheme = useCallback((newTheme: ThemeType) => {
     setThemeState(newTheme);
@@ -110,7 +115,7 @@ export function useTheme() {
     theme,
     setTheme,
     isDark: isDarkTheme(theme),
-    mounted,
+    mounted: isClient,
   };
 }
 

@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 import { useTheme, ThemeType, LIGHT_THEMES, DARK_THEMES } from '@/lib/hooks/use-theme';
-import { useI18n, Language } from '@/lib/i18n';
+import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

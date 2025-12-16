@@ -11,7 +11,6 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import type { Board } from '@/lib/supabase/types'
 import type {
   StatusListDomain,
-  RepoCardDomain,
   RepoCardForRedux,
 } from '@/lib/models/domain'
 

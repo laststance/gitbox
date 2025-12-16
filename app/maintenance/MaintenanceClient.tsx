@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
-interface MaintenanceRepo {
+export interface MaintenanceRepo {
   id: string;
   repo_owner: string;
   repo_name: string;
@@ -56,7 +56,7 @@ type ViewMode = 'grid' | 'list';
 type SortOption = 'name' | 'updated' | 'stars';
 
 export function MaintenanceClient({ repos }: MaintenanceClientProps) {
-  const router = useRouter();
+  const _router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('updated');

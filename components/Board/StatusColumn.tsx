@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo, useState } from "react";
+import React, { memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   SortableContext,
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Pencil, Trash2, Plus } from "lucide-react";
 import { RepoCard } from "./RepoCard";
-import type { StatusListDomain, RepoCardDomain, RepoCardForRedux } from "@/lib/models/domain";
+import type { StatusListDomain, RepoCardForRedux } from "@/lib/models/domain";
 
 // Types: Using Domain types for type-safe state management
 interface StatusColumnProps {

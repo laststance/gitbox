@@ -258,7 +258,7 @@ export async function checkGitHubTokenValidity(): Promise<{
     } else {
       return { valid: false, error: 'Token is invalid or expired' }
     }
-  } catch (error) {
+  } catch (_error) {
     return { valid: false, error: 'Failed to verify token' }
   }
 }

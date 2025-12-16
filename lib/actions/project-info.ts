@@ -19,7 +19,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import { Database, TablesInsert, Tables, TablesUpdate } from '@/lib/supabase/types';
+import { TablesInsert, Tables, TablesUpdate } from '@/lib/supabase/types';
 import { revalidatePath } from 'next/cache';
 
 type ProjectInfoRow = Tables<'projectinfo'>;
@@ -155,7 +155,8 @@ export async function getProjectInfo(
   }
 
   // linksをJsonから配列に変換
-  const linksData = (projectInfo.links as any) || { production: [], tracking: [], supabase: [] };
+  type LinksJson = { production?: string[]; tracking?: string[]; supabase?: string[] };
+  const linksData = (projectInfo.links as LinksJson | null) || { production: [], tracking: [], supabase: [] };
   const linksArray: ProjectInfoData['links'] = [
     ...(linksData.production || []).map((url: string) => ({ url, type: 'production' as const })),
     ...(linksData.tracking || []).map((url: string) => ({ url, type: 'tracking' as const })),

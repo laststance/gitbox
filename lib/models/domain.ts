@@ -6,7 +6,8 @@
  * アプリケーション全体で統一された型を提供
  */
 
-import type { StatusList as DbStatusList, RepoCard as DbRepoCard } from '@/lib/supabase/types'
+// Re-export database types for mapper usage
+export type { StatusList as DbStatusList, RepoCard as DbRepoCard } from '@/lib/supabase/types'
 
 // ========================================
 // Status List Domain Model
@@ -88,6 +89,7 @@ export interface RepoCardMeta {
   visibility?: 'public' | 'private'
   language?: string
   topics?: string[]
+  description?: string
 }
 
 // ========================================

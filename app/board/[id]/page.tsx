@@ -56,7 +56,7 @@ export default async function BoardPage(props: BoardPageProps) {
     .from('board')
     .select('*')
     .eq('id', params.id)
-    .single<{ id: string; name: string; theme: string | null; settings: any }>()
+    .single<{ id: string; name: string; theme: string | null; settings: Record<string, unknown> | null }>()
 
   console.log('[DEBUG] Board query result:', { board, boardError })
 

@@ -11,6 +11,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { headers } from 'next/headers';
+import type { AuditLog } from '@/lib/supabase/types';
 
 export type AuditAction =
   | 'credential_view'
@@ -50,7 +51,7 @@ export async function logAuditEvent({
   action,
   resourceId,
   resourceType,
-  metadata,
+  metadata: _metadata,
   success = true,
 }: AuditLogParams): Promise<void> {
   try {
@@ -77,11 +78,10 @@ export async function logAuditEvent({
     const { error } = await supabase.from('auditlog').insert({
       user_id: user.id,
       action,
-      resource_id: resourceId || null,
-      resource_type: resourceType || null,
+      resource_id: resourceId || 'unknown',
+      resource_type: resourceType || 'unknown',
       ip_address: ipAddress,
       user_agent: userAgent,
-      metadata: metadata || null,
       success,
     });
 
@@ -177,7 +177,7 @@ export async function logBoardCreate(boardId: string): Promise<void> {
  * 最近の監査ログを取得
  */
 export async function getRecentAuditLogs(limit = 50): Promise<{
-  logs: any[];
+  logs: AuditLog[];
   error: string | null;
 }> {
   try {
