@@ -6,6 +6,7 @@
  * - KanbanBoardコンポーネントをレンダリング
  */
 
+import { type Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { BoardPageClient } from './BoardPageClient'
@@ -21,7 +22,7 @@ export interface BoardPageProps {
  *
  * ボード名をページタイトルに設定
  */
-export async function generateMetadata(props: BoardPageProps) {
+export async function generateMetadata(props: BoardPageProps): Promise<Metadata> {
   const params = await props.params
   const supabase = await createClient()
 
