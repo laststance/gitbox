@@ -47,7 +47,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   const [ownerFilter, setOwnerFilter] = useState('')
   // TODO: Implement topics filter UI
   // const [topicsFilter, setTopicsFilter] = useState<string[]>([])
-  const [visibilityFilter, setVisibilityFilter] = useState<'all' | 'public' | 'private'>('all')
+  const [visibilityFilter, setVisibilityFilter] = useState<
+    'all' | 'public' | 'private'
+  >('all')
 
   // Refs
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -79,7 +81,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
         setUserRepos(result.data)
       }
     } catch (error) {
-      setReposError(error instanceof Error ? error.message : 'Failed to fetch repositories')
+      setReposError(
+        error instanceof Error ? error.message : 'Failed to fetch repositories',
+      )
       setUserRepos([])
     } finally {
       setIsLoadingRepos(false)
@@ -111,22 +115,24 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     // 検索クエリでフィルタリング
     if (debouncedQuery) {
       filtered = filtered.filter(
-        repo =>
+        (repo) =>
           repo.full_name.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-          repo.description?.toLowerCase().includes(debouncedQuery.toLowerCase())
+          repo.description
+            ?.toLowerCase()
+            .includes(debouncedQuery.toLowerCase()),
       )
     }
 
     // Owner フィルター
     if (ownerFilter) {
-      filtered = filtered.filter(repo =>
-        repo.owner.login.toLowerCase().includes(ownerFilter.toLowerCase())
+      filtered = filtered.filter((repo) =>
+        repo.owner.login.toLowerCase().includes(ownerFilter.toLowerCase()),
       )
     }
 
     // Visibility フィルター
     if (visibilityFilter !== 'all') {
-      filtered = filtered.filter(repo => repo.visibility === visibilityFilter)
+      filtered = filtered.filter((repo) => repo.visibility === visibilityFilter)
     }
 
     // TODO: Topics フィルター
@@ -154,10 +160,10 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
   // Toggle repository selection
   const toggleRepoSelection = (repo: GitHubRepository) => {
-    setSelectedRepos(prev => {
-      const isSelected = prev.some(r => r.id === repo.id)
+    setSelectedRepos((prev) => {
+      const isSelected = prev.some((r) => r.id === repo.id)
       if (isSelected) {
-        return prev.filter(r => r.id !== repo.id)
+        return prev.filter((r) => r.id !== repo.id)
       } else {
         return [...prev, repo]
       }
@@ -166,7 +172,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
   // Remove selected repository
   const removeSelectedRepo = (repoId: number) => {
-    setSelectedRepos(prev => prev.filter(r => r.id !== repoId))
+    setSelectedRepos((prev) => prev.filter((r) => r.id !== repoId))
   }
 
   // Add selected repositories to board
@@ -178,7 +184,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       setAddError(null)
 
       // Server Action: Add repositories to board with duplicate detection
-      const result = await addRepositoriesToBoard(boardId, statusId, selectedRepos)
+      const result = await addRepositoriesToBoard(
+        boardId,
+        statusId,
+        selectedRepos,
+      )
 
       if (!result.success) {
         setAddError(result.errors?.join(', ') || 'Failed to add repositories')
@@ -202,7 +212,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
         onQuickNoteFocus()
       }, 100)
     } catch (err) {
-      setAddError(err instanceof Error ? err.message : 'Error adding repositories')
+      setAddError(
+        err instanceof Error ? err.message : 'Error adding repositories',
+      )
     } finally {
       setIsAdding(false)
     }
@@ -228,8 +240,18 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        <svg
+          className="h-4 w-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+          />
         </svg>
         Add Repositories
       </button>
@@ -268,7 +290,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             {/* Visibility filter */}
             <select
               value={visibilityFilter}
-              onChange={(e) => setVisibilityFilter(e.target.value as 'all' | 'public' | 'private')}
+              onChange={(e) =>
+                setVisibilityFilter(
+                  e.target.value as 'all' | 'public' | 'private',
+                )
+              }
               className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
               aria-label="Visibility filter"
             >
@@ -281,8 +307,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
           {/* Selected repositories badges */}
           {selectedRepos.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
-              {selectedRepos.map(repo => (
-                <span key={repo.id} className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+              {selectedRepos.map((repo) => (
+                <span
+                  key={repo.id}
+                  className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                >
                   {repo.full_name}
                   <button
                     type="button"
@@ -299,10 +328,25 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
           {/* Loading indicator */}
           {isLoading && (
-            <div role="status" className="flex items-center justify-center py-8 text-gray-500">
+            <div
+              role="status"
+              className="flex items-center justify-center py-8 text-gray-500"
+            >
               <svg className="mr-2 h-5 w-5 animate-spin" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
               </svg>
               Loading repositories...
             </div>
@@ -310,7 +354,10 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
           {/* Error message */}
           {error && (
-            <div role="alert" className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
+            <div
+              role="alert"
+              className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400"
+            >
               Error: {error}
             </div>
           )}
@@ -343,9 +390,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                     position: 'relative',
                   }}
                 >
-                  {rowVirtualizer.getVirtualItems().map(virtualItem => {
+                  {rowVirtualizer.getVirtualItems().map((virtualItem) => {
                     const repo = filteredRepositories[virtualItem.index]
-                    const isSelected = selectedRepos.some(r => r.id === repo.id)
+                    const isSelected = selectedRepos.some(
+                      (r) => r.id === repo.id,
+                    )
                     return (
                       <div
                         key={repo.id}
@@ -371,21 +420,35 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                         }}
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium text-gray-900 dark:text-gray-100">{repo.full_name}</p>
-                          {repo.description && <p className="mt-0.5 truncate text-sm text-gray-500 dark:text-gray-400">{repo.description}</p>}
+                          <p className="truncate font-medium text-gray-900 dark:text-gray-100">
+                            {repo.full_name}
+                          </p>
+                          {repo.description && (
+                            <p className="mt-0.5 truncate text-sm text-gray-500 dark:text-gray-400">
+                              {repo.description}
+                            </p>
+                          )}
                           <div className="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                             <span>⭐ {repo.stargazers_count}</span>
-                            {repo.language && <span className="rounded bg-gray-100 px-1.5 py-0.5 dark:bg-gray-700">{repo.language}</span>}
+                            {repo.language && (
+                              <span className="rounded bg-gray-100 px-1.5 py-0.5 dark:bg-gray-700">
+                                {repo.language}
+                              </span>
+                            )}
                           </div>
                         </div>
-                        {isSelected && <span className="ml-2 text-blue-600 dark:text-blue-400">✓</span>}
+                        {isSelected && (
+                          <span className="ml-2 text-blue-600 dark:text-blue-400">
+                            ✓
+                          </span>
+                        )}
                       </div>
                     )
                   })}
                 </div>
               ) : (
-                filteredRepositories.map(repo => {
-                  const isSelected = selectedRepos.some(r => r.id === repo.id)
+                filteredRepositories.map((repo) => {
+                  const isSelected = selectedRepos.some((r) => r.id === repo.id)
                   return (
                     <div
                       key={repo.id}
@@ -402,14 +465,28 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                       }}
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-gray-900 dark:text-gray-100">{repo.full_name}</p>
-                        {repo.description && <p className="mt-0.5 truncate text-sm text-gray-500 dark:text-gray-400">{repo.description}</p>}
+                        <p className="truncate font-medium text-gray-900 dark:text-gray-100">
+                          {repo.full_name}
+                        </p>
+                        {repo.description && (
+                          <p className="mt-0.5 truncate text-sm text-gray-500 dark:text-gray-400">
+                            {repo.description}
+                          </p>
+                        )}
                         <div className="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                           <span>⭐ {repo.stargazers_count}</span>
-                          {repo.language && <span className="rounded bg-gray-100 px-1.5 py-0.5 dark:bg-gray-700">{repo.language}</span>}
+                          {repo.language && (
+                            <span className="rounded bg-gray-100 px-1.5 py-0.5 dark:bg-gray-700">
+                              {repo.language}
+                            </span>
+                          )}
                         </div>
                       </div>
-                      {isSelected && <span className="ml-2 text-blue-600 dark:text-blue-400">✓</span>}
+                      {isSelected && (
+                        <span className="ml-2 text-blue-600 dark:text-blue-400">
+                          ✓
+                        </span>
+                      )}
                     </div>
                   )
                 })
@@ -418,11 +495,13 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
           )}
 
           {/* No results */}
-          {!isLoading && debouncedQuery && filteredRepositories.length === 0 && (
-            <div className="py-8 text-center text-sm text-gray-500">
-              No repositories found matching "{debouncedQuery}"
-            </div>
-          )}
+          {!isLoading &&
+            debouncedQuery &&
+            filteredRepositories.length === 0 && (
+              <div className="py-8 text-center text-sm text-gray-500">
+                No repositories found matching "{debouncedQuery}"
+              </div>
+            )}
 
           {/* Add button */}
           <div className="mt-4 flex justify-end gap-2">

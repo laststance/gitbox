@@ -8,19 +8,19 @@
  * - Restore to Board 操作
  */
 
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
-import { MaintenanceClient, type MaintenanceRepo } from './MaintenanceClient';
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { MaintenanceClient, type MaintenanceRepo } from './MaintenanceClient'
 
 export default async function MaintenancePage() {
-  const supabase = await createClient();
+  const supabase = await createClient()
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect('/login');
+    redirect('/login')
   }
 
   // Fetch maintenance repos from the maintenance table
@@ -29,10 +29,10 @@ export default async function MaintenancePage() {
     .select('*')
     .eq('user_id', user.id)
     .eq('hidden', false)
-    .order('updated_at', { ascending: false });
+    .order('updated_at', { ascending: false })
 
   if (error) {
-    console.error('Failed to fetch maintenance repos:', error);
+    console.error('Failed to fetch maintenance repos:', error)
   }
 
   // Map maintenance data to MaintenanceRepo format
@@ -45,10 +45,7 @@ export default async function MaintenancePage() {
     created_at: item.created_at,
     updated_at: item.updated_at,
     board: null,
-  }));
+  }))
 
-  return <MaintenanceClient repos={repos} />;
+  return <MaintenanceClient repos={repos} />
 }
-
-
-

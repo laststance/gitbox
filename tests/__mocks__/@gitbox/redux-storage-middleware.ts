@@ -12,9 +12,11 @@ export interface StorageMiddlewareConfig {
   storageKey: string
 }
 
-export const createStorageMiddleware = (_config: StorageMiddlewareConfig): Middleware => {
+export const createStorageMiddleware = (
+  _config: StorageMiddlewareConfig,
+): Middleware => {
   // Mock middleware that passes actions through without modification
-  return () => next => action => {
+  return () => (next) => (action) => {
     return next(action)
   }
 }

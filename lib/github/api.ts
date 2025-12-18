@@ -63,13 +63,13 @@ export const githubApi = createApi({
     },
   }),
   tagTypes: ['Repository'],
-  endpoints: builder => ({
+  endpoints: (builder) => ({
     // リポジトリ検索
     searchRepositories: builder.query<
       SearchRepositoriesResponse,
       SearchRepositoriesParams
     >({
-      query: params => ({
+      query: (params) => ({
         url: '/search/repositories',
         params,
       }),
@@ -78,16 +78,19 @@ export const githubApi = createApi({
 
     // ユーザーのリポジトリ一覧取得
     getUserRepositories: builder.query<GitHubRepository[], string>({
-      query: username => `/users/${username}/repos`,
+      query: (username) => `/users/${username}/repos`,
       providesTags: ['Repository'],
     }),
 
     // 認証ユーザーのリポジトリ一覧取得
     getAuthenticatedUserRepositories: builder.query<
       GitHubRepository[],
-      { sort?: 'created' | 'updated' | 'pushed' | 'full_name'; per_page?: number }
+      {
+        sort?: 'created' | 'updated' | 'pushed' | 'full_name'
+        per_page?: number
+      }
     >({
-      query: params => ({
+      query: (params) => ({
         url: '/user/repos',
         params: {
           sort: params.sort || 'updated',

@@ -43,7 +43,7 @@ export interface AddRepoCardParams {
 export async function addRepositoriesToBoard(
   boardId: string,
   statusId: string,
-  repositories: GitHubRepository[]
+  repositories: GitHubRepository[],
 ): Promise<{ success: boolean; addedCount: number; errors?: string[] }> {
   try {
     const supabase = await createClient()
@@ -72,7 +72,7 @@ export async function addRepositoriesToBoard(
 
     // 既存のカードを取得して重複チェック
     const { data: existingCards, error: existingError } = await supabase
-      .from('repocard')  // 小文字に変更
+      .from('repocard') // 小文字に変更
       .select('repo_owner, repo_name')
       .eq('board_id', boardId)
 
@@ -81,11 +81,12 @@ export async function addRepositoriesToBoard(
     }
 
     const existingRepoKeys = new Set(
-      existingCards?.map(card => `${card.repo_owner}/${card.repo_name}`) || []
+      existingCards?.map((card) => `${card.repo_owner}/${card.repo_name}`) ||
+        [],
     )
 
     // 重複していないリポジトリのみフィルター
-    const newRepos = repositories.filter(repo => {
+    const newRepos = repositories.filter((repo) => {
       const key = `${repo.owner.login}/${repo.name}`
       return !existingRepoKeys.has(key)
     })
@@ -100,7 +101,7 @@ export async function addRepositoriesToBoard(
 
     // 現在の最大 order 値を取得
     const { data: maxOrderData } = await supabase
-      .from('repocard')  // 小文字に変更
+      .from('repocard') // 小文字に変更
       .select('order')
       .eq('status_id', statusId)
       .order('order', { ascending: false })
@@ -110,7 +111,7 @@ export async function addRepositoriesToBoard(
     let nextOrder = (maxOrderData?.order ?? -1) + 1
 
     // 新しいカードを追加
-    const cardsToInsert = newRepos.map(repo => ({
+    const cardsToInsert = newRepos.map((repo) => ({
       board_id: boardId,
       status_id: statusId,
       repo_owner: repo.owner.login,
@@ -127,7 +128,9 @@ export async function addRepositoriesToBoard(
       },
     }))
 
-    const { error: insertError } = await supabase.from('repocard').insert(cardsToInsert)
+    const { error: insertError } = await supabase
+      .from('repocard')
+      .insert(cardsToInsert)
 
     if (insertError) {
       console.error('RepoCard insert error:', insertError)
@@ -139,14 +142,19 @@ export async function addRepositoriesToBoard(
     return {
       success: true,
       addedCount: newRepos.length,
-      errors: duplicateCount > 0 ? [`${duplicateCount}件のリポジトリが重複していました`] : undefined,
+      errors:
+        duplicateCount > 0
+          ? [`${duplicateCount}件のリポジトリが重複していました`]
+          : undefined,
     }
   } catch (error) {
     console.error('Add repositories error:', error)
     return {
       success: false,
       addedCount: 0,
-      errors: [error instanceof Error ? error.message : '不明なエラーが発生しました'],
+      errors: [
+        error instanceof Error ? error.message : '不明なエラーが発生しました',
+      ],
     }
   }
 }
@@ -162,7 +170,7 @@ export async function addRepositoriesToBoard(
 export async function checkDuplicateRepository(
   boardId: string,
   repoOwner: string,
-  repoName: string
+  repoName: string,
 ): Promise<boolean> {
   try {
     const supabase = await createClient()
@@ -196,7 +204,7 @@ export async function checkDuplicateRepository(
  */
 export async function updateRepoCardNote(
   cardId: string,
-  note: string
+  note: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     if (note.length > 300) {
@@ -240,7 +248,8 @@ export async function updateRepoCardNote(
     console.error('Update note error:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : '不明なエラーが発生しました',
+      error:
+        error instanceof Error ? error.message : '不明なエラーが発生しました',
     }
   }
 }
@@ -251,7 +260,9 @@ export async function updateRepoCardNote(
  * @param cardId - カード ID
  * @returns 削除成功フラグ
  */
-export async function deleteRepoCard(cardId: string): Promise<{ success: boolean; error?: string }> {
+export async function deleteRepoCard(
+  cardId: string,
+): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createClient()
 
@@ -269,7 +280,10 @@ export async function deleteRepoCard(cardId: string): Promise<{ success: boolean
     }
 
     // カードを削除（RLS ポリシーで自動的に所有チェック）
-    const { error: deleteError } = await supabase.from('repocard').delete().eq('id', cardId)
+    const { error: deleteError } = await supabase
+      .from('repocard')
+      .delete()
+      .eq('id', cardId)
 
     if (deleteError) {
       console.error('Delete card error:', deleteError)
@@ -284,7 +298,8 @@ export async function deleteRepoCard(cardId: string): Promise<{ success: boolean
     console.error('Delete card error:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : '不明なエラーが発生しました',
+      error:
+        error instanceof Error ? error.message : '不明なエラーが発生しました',
     }
   }
 }
@@ -300,7 +315,7 @@ export async function deleteRepoCard(cardId: string): Promise<{ success: boolean
 export async function updateRepoCardOrder(
   cardId: string,
   statusId: string,
-  newOrder: number
+  newOrder: number,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createClient()
@@ -341,7 +356,8 @@ export async function updateRepoCardOrder(
     console.error('Update order error:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : '不明なエラーが発生しました',
+      error:
+        error instanceof Error ? error.message : '不明なエラーが発生しました',
     }
   }
 }

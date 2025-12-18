@@ -27,7 +27,7 @@ const supabaseAdmin = createClient<Database>(
       autoRefreshToken: false,
       persistSession: false,
     },
-  }
+  },
 )
 
 // テスト用ユーザーとボード
@@ -95,7 +95,10 @@ test.describe('User Story 2: Repository Search and Add', () => {
     }
   })
 
-  test('S1: Repository検索と複数選択・追加フロー', async ({ page, context }) => {
+  test('S1: Repository検索と複数選択・追加フロー', async ({
+    page,
+    context,
+  }) => {
     // セッションを設定して認証状態にする
     await context.addCookies([
       {
@@ -125,7 +128,9 @@ test.describe('User Story 2: Repository Search and Add', () => {
 
     // 候補が1秒以内に表示される (Performance requirement)
     const startTime = Date.now()
-    await expect(page.getByRole('option').first()).toBeVisible({ timeout: 1000 })
+    await expect(page.getByRole('option').first()).toBeVisible({
+      timeout: 1000,
+    })
     const endTime = Date.now()
     const responseTime = endTime - startTime
 
@@ -147,8 +152,12 @@ test.describe('User Story 2: Repository Search and Add', () => {
     await confirmAddButton.click()
 
     // Boardにリポジトリカードが追加される
-    await expect(page.locator('.repo-card').filter({ hasText: 'facebook/react' })).toBeVisible()
-    await expect(page.locator('.repo-card').filter({ hasText: 'reactjs/react.dev' })).toBeVisible()
+    await expect(
+      page.locator('.repo-card').filter({ hasText: 'facebook/react' }),
+    ).toBeVisible()
+    await expect(
+      page.locator('.repo-card').filter({ hasText: 'reactjs/react.dev' }),
+    ).toBeVisible()
 
     // "Quick note" フィールドにフォーカスが移動
     const quickNoteField = page.getByPlaceholder(/Quick note/i)
@@ -191,7 +200,10 @@ test.describe('User Story 2: Repository Search and Add', () => {
     await expect(errorMessage).toContainText(/already added|既に追加/i)
   })
 
-  test('S3: フィルター検索 (owner, topics, visibility)', async ({ page, context }) => {
+  test('S3: フィルター検索 (owner, topics, visibility)', async ({
+    page,
+    context,
+  }) => {
     // 認証設定
     await context.addCookies([
       {

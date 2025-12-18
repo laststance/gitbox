@@ -89,7 +89,7 @@ export async function signOut() {
  * 認証状態の変更を監視
  */
 export function onAuthStateChange(
-  callback: (event: string, session: Session | null) => void
+  callback: (event: string, session: Session | null) => void,
 ) {
   return supabase.auth.onAuthStateChange(callback)
 }

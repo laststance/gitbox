@@ -1,8 +1,8 @@
-"use client";
+'use client'
 
-import React, { useState, useEffect, memo, useCallback } from "react";
-import { motion } from "framer-motion";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/store";
+import React, { useState, useEffect, memo, useCallback } from 'react'
+import { motion } from 'framer-motion'
+import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import {
   setStatusLists,
   setRepoCards,
@@ -12,7 +12,7 @@ import {
   selectRepoCards,
   selectBoardLoading,
   selectBoardError,
-} from "@/lib/redux/slices/boardSlice";
+} from '@/lib/redux/slices/boardSlice'
 import {
   DndContext,
   DragEndEvent,
@@ -25,29 +25,29 @@ import {
   closestCorners,
   useSensor,
   useSensors,
-} from "@dnd-kit/core";
-import { arrayMove } from "@dnd-kit/sortable";
-import { restrictToParentElement } from "@dnd-kit/modifiers";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle } from "lucide-react";
-import { StatusColumn } from "./StatusColumn";
-import type { StatusListDomain, RepoCardForRedux } from "@/lib/models/domain";
+} from '@dnd-kit/core'
+import { arrayMove } from '@dnd-kit/sortable'
+import { restrictToParentElement } from '@dnd-kit/modifiers'
+import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { AlertCircle } from 'lucide-react'
+import { StatusColumn } from './StatusColumn'
+import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import {
   getBoardData,
   updateRepoCardPosition,
   batchUpdateRepoCardOrders,
-} from "@/lib/actions/board";
+} from '@/lib/actions/board'
 
 // Types: Using Domain types for type-safe state management
 
 interface KanbanBoardProps {
-  boardId?: string;
-  onEditProjectInfo?: (cardId: string) => void;
-  onMoveToMaintenance?: (cardId: string) => void;
-  onEditStatus?: (status: StatusListDomain) => void;
-  onDeleteStatus?: (statusId: string) => void;
-  onAddCard?: (statusId: string) => void;
+  boardId?: string
+  onEditProjectInfo?: (cardId: string) => void
+  onMoveToMaintenance?: (cardId: string) => void
+  onEditStatus?: (status: StatusListDomain) => void
+  onDeleteStatus?: (statusId: string) => void
+  onAddCard?: (statusId: string) => void
 }
 
 // Loading Skeleton Component
@@ -78,9 +78,9 @@ const KanbanSkeleton = memo(() => {
         </div>
       ))}
     </div>
-  );
-});
-KanbanSkeleton.displayName = "KanbanSkeleton";
+  )
+})
+KanbanSkeleton.displayName = 'KanbanSkeleton'
 
 // Error State Component
 const ErrorState = memo(({ message }: { message: string }) => {
@@ -92,26 +92,32 @@ const ErrorState = memo(({ message }: { message: string }) => {
       </h3>
       <p className="text-muted-foreground text-center max-w-md">{message}</p>
     </div>
-  );
-});
-ErrorState.displayName = "ErrorState";
-
+  )
+})
+ErrorState.displayName = 'ErrorState'
 
 // Main Kanban Board Component
 export const KanbanBoard = memo<KanbanBoardProps>(
-  ({ boardId = "default-board", onEditProjectInfo, onMoveToMaintenance, onEditStatus, onDeleteStatus, onAddCard }) => {
+  ({
+    boardId = 'default-board',
+    onEditProjectInfo,
+    onMoveToMaintenance,
+    onEditStatus,
+    onDeleteStatus,
+    onAddCard,
+  }) => {
     // Redux state (LocalStorage に自動同期)
-    const dispatch = useAppDispatch();
-    const statuses = useAppSelector(selectStatusLists);
-    const cards = useAppSelector(selectRepoCards);
-    const loading = useAppSelector(selectBoardLoading);
-    const error = useAppSelector(selectBoardError);
+    const dispatch = useAppDispatch()
+    const statuses = useAppSelector(selectStatusLists)
+    const cards = useAppSelector(selectRepoCards)
+    const loading = useAppSelector(selectBoardLoading)
+    const error = useAppSelector(selectBoardError)
 
     // ローカル state (Redux に移行しない一時的な状態)
-    const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
+    const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null)
     // Undo機能用の履歴スタック (最大10件)
-    const [history, setHistory] = useState<RepoCardForRedux[][]>([]);
-    const [undoMessage, setUndoMessage] = useState<string | null>(null);
+    const [history, setHistory] = useState<RepoCardForRedux[][]>([])
+    const [undoMessage, setUndoMessage] = useState<string | null>(null)
 
     const sensors = useSensors(
       useSensor(MouseSensor, {
@@ -125,150 +131,152 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           tolerance: 6,
         },
       }),
-      useSensor(KeyboardSensor)
-    );
+      useSensor(KeyboardSensor),
+    )
 
     // Supabaseからボードデータを取得
     useEffect(() => {
       const fetchData = async () => {
-        if (!boardId || boardId === "default-board") {
-          dispatch(setError("有効なボードIDが必要です"));
-          return;
+        if (!boardId || boardId === 'default-board') {
+          dispatch(setError('有効なボードIDが必要です'))
+          return
         }
 
         try {
-          dispatch(setLoading(true));
-          dispatch(setError(null));
+          dispatch(setLoading(true))
+          dispatch(setError(null))
 
           // Supabaseからデータ取得 (getBoardDataは既にデフォルトStatusList作成を含む)
-          const { statusLists, repoCards } = await getBoardData(boardId);
+          const { statusLists, repoCards } = await getBoardData(boardId)
 
-          dispatch(setStatusLists(statusLists));
-          dispatch(setRepoCards(repoCards));
+          dispatch(setStatusLists(statusLists))
+          dispatch(setRepoCards(repoCards))
         } catch (err) {
-          console.error("Board data fetch error:", err);
-          dispatch(setError("ボードデータの取得に失敗しました。再度お試しください。"));
+          console.error('Board data fetch error:', err)
+          dispatch(
+            setError('ボードデータの取得に失敗しました。再度お試しください。'),
+          )
         } finally {
-          dispatch(setLoading(false));
+          dispatch(setLoading(false))
         }
-      };
+      }
 
-      fetchData();
-    }, [boardId, dispatch]);
+      fetchData()
+    }, [boardId, dispatch])
 
     /**
      * Undo機能: 直前のドラッグ&ドロップ操作を元に戻す
      * Constitution要件: <200ms応答時間
      */
     const handleUndo = useCallback(() => {
-      if (history.length === 0) return;
+      if (history.length === 0) return
 
-      const previousState = history[history.length - 1];
-      dispatch(setRepoCards(previousState));
-      setHistory((prev) => prev.slice(0, -1));
+      const previousState = history[history.length - 1]
+      dispatch(setRepoCards(previousState))
+      setHistory((prev) => prev.slice(0, -1))
 
       // Undo実行のフィードバック表示 (2秒後に自動消去)
-      setUndoMessage("操作を元に戻しました");
-      setTimeout(() => setUndoMessage(null), 2000);
-    }, [history, dispatch]);
+      setUndoMessage('操作を元に戻しました')
+      setTimeout(() => setUndoMessage(null), 2000)
+    }, [history, dispatch])
 
     // キーボードショートカット: Z key でUndo実行
     useEffect(() => {
       const handleKeyDown = (event: KeyboardEvent) => {
         // Z key (大文字・小文字両対応、Cmd/Ctrl不要)
         if (event.key === 'z' || event.key === 'Z') {
-          event.preventDefault();
-          handleUndo();
+          event.preventDefault()
+          handleUndo()
         }
-      };
+      }
 
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handleUndo]); // handleUndo に依存
+      window.addEventListener('keydown', handleKeyDown)
+      return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [handleUndo]) // handleUndo に依存
 
     const handleDragStart = (event: DragStartEvent) => {
-      setActiveId(event.active.id);
-    };
+      setActiveId(event.active.id)
+    }
 
     const handleDragEnd = async (event: DragEndEvent) => {
-      const { active, over } = event;
-      setActiveId(null);
+      const { active, over } = event
+      setActiveId(null)
 
-      if (!over) return;
+      if (!over) return
 
-      const activeCard = cards.find((c) => c.id === active.id);
-      if (!activeCard) return;
+      const activeCard = cards.find((c) => c.id === active.id)
+      if (!activeCard) return
 
-      const overStatusId = over.id as string;
-      const overCard = cards.find((c) => c.id === over.id);
-      const targetStatusId = overCard ? overCard.statusId : overStatusId;
+      const overStatusId = over.id as string
+      const overCard = cards.find((c) => c.id === over.id)
+      const targetStatusId = overCard ? overCard.statusId : overStatusId
 
       // 履歴に現在の状態を保存 (最大10件)
       setHistory((prev) => {
-        const newHistory = [...prev, cards];
-        return newHistory.slice(-10); // 最新10件のみ保持
-      });
+        const newHistory = [...prev, cards]
+        return newHistory.slice(-10) // 最新10件のみ保持
+      })
 
       if (activeCard.statusId === targetStatusId) {
         // 同じ列内での並び替え
-        const columnCards = cards.filter((c) => c.statusId === targetStatusId);
-        const oldIndex = columnCards.findIndex((c) => c.id === active.id);
-        const newIndex = columnCards.findIndex((c) => c.id === over.id);
+        const columnCards = cards.filter((c) => c.statusId === targetStatusId)
+        const oldIndex = columnCards.findIndex((c) => c.id === active.id)
+        const newIndex = columnCards.findIndex((c) => c.id === over.id)
 
         if (oldIndex !== newIndex) {
-          const reordered = arrayMove(columnCards, oldIndex, newIndex);
-          const otherCards = cards.filter((c) => c.statusId !== targetStatusId);
-          
+          const reordered = arrayMove(columnCards, oldIndex, newIndex)
+          const otherCards = cards.filter((c) => c.statusId !== targetStatusId)
+
           // 楽観的UI更新
-          dispatch(setRepoCards([...otherCards, ...reordered]));
+          dispatch(setRepoCards([...otherCards, ...reordered]))
 
           // Supabaseに同期（バックグラウンド）
           const updates = reordered.map((card, index) => ({
             id: card.id,
             statusId: targetStatusId,
             order: index,
-          }));
-          
+          }))
+
           try {
-            await batchUpdateRepoCardOrders(updates);
+            await batchUpdateRepoCardOrders(updates)
           } catch (error) {
-            console.error("Failed to sync card order:", error);
+            console.error('Failed to sync card order:', error)
             // エラー時は元に戻す（履歴から復元）
           }
         }
       } else {
         // 異なる列への移動
         const updatedCards = cards.map((c) =>
-          c.id === activeCard.id ? { ...c, statusId: targetStatusId } : c
-        );
-        
+          c.id === activeCard.id ? { ...c, statusId: targetStatusId } : c,
+        )
+
         // 楽観的UI更新
-        dispatch(setRepoCards(updatedCards));
+        dispatch(setRepoCards(updatedCards))
 
         // Supabaseに同期（バックグラウンド）
         try {
           const targetColumnCards = updatedCards.filter(
-            (c) => c.statusId === targetStatusId
-          );
+            (c) => c.statusId === targetStatusId,
+          )
           const newOrder = targetColumnCards.findIndex(
-            (c) => c.id === activeCard.id
-          );
-          
-          await updateRepoCardPosition(activeCard.id, targetStatusId, newOrder);
+            (c) => c.id === activeCard.id,
+          )
+
+          await updateRepoCardPosition(activeCard.id, targetStatusId, newOrder)
         } catch (error) {
-          console.error("Failed to sync card position:", error);
+          console.error('Failed to sync card position:', error)
           // エラー時は元に戻す
-          dispatch(setRepoCards(cards));
+          dispatch(setRepoCards(cards))
         }
       }
-    };
+    }
 
     if (loading) {
       return (
         <div className="w-full p-6">
           <KanbanSkeleton />
         </div>
-      );
+      )
     }
 
     if (error) {
@@ -276,10 +284,10 @@ export const KanbanBoard = memo<KanbanBoardProps>(
         <div className="w-full p-6">
           <ErrorState message={error} />
         </div>
-      );
+      )
     }
 
-    const activeCard = cards.find((c) => c.id === activeId);
+    const activeCard = cards.find((c) => c.id === activeId)
 
     return (
       <div className="w-full h-full p-6 relative">
@@ -332,9 +340,9 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           </DragOverlay>
         </DndContext>
       </div>
-    );
-  }
-);
-KanbanBoard.displayName = "KanbanBoard";
+    )
+  },
+)
+KanbanBoard.displayName = 'KanbanBoard'
 
-export default KanbanBoard;
+export default KanbanBoard

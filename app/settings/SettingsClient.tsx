@@ -4,17 +4,28 @@
  * テーマ、タイポグラフィ、表示設定を管理
  */
 
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { useTheme, ThemeType, LIGHT_THEMES, DARK_THEMES } from '@/lib/hooks/use-theme';
-import { useI18n } from '@/lib/i18n';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
-import { Check, Sun, Moon, Monitor, Globe } from 'lucide-react';
-import Link from 'next/link';
+import { useState } from 'react'
+import {
+  useTheme,
+  ThemeType,
+  LIGHT_THEMES,
+  DARK_THEMES,
+} from '@/lib/hooks/use-theme'
+import { useI18n } from '@/lib/i18n'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+import { Check, Sun, Moon, Monitor, Globe } from 'lucide-react'
+import Link from 'next/link'
 
 // Simple Toggle Switch Component
 function Toggle({
@@ -23,19 +34,21 @@ function Toggle({
   onCheckedChange,
   defaultChecked,
 }: {
-  id?: string;
-  checked?: boolean;
-  onCheckedChange?: (checked: boolean) => void;
-  defaultChecked?: boolean;
+  id?: string
+  checked?: boolean
+  onCheckedChange?: (checked: boolean) => void
+  defaultChecked?: boolean
 }) {
-  const [internalChecked, setInternalChecked] = useState(defaultChecked ?? false);
-  const isChecked = checked !== undefined ? checked : internalChecked;
+  const [internalChecked, setInternalChecked] = useState(
+    defaultChecked ?? false,
+  )
+  const isChecked = checked !== undefined ? checked : internalChecked
 
   const handleClick = () => {
-    const newValue = !isChecked;
-    setInternalChecked(newValue);
-    onCheckedChange?.(newValue);
-  };
+    const newValue = !isChecked
+    setInternalChecked(newValue)
+    onCheckedChange?.(newValue)
+  }
 
   return (
     <button
@@ -46,22 +59,33 @@ function Toggle({
       onClick={handleClick}
       className={cn(
         'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-        isChecked ? 'bg-primary' : 'bg-input'
+        isChecked ? 'bg-primary' : 'bg-input',
       )}
     >
       <span
         className={cn(
           'inline-block h-4 w-4 rounded-full bg-background shadow-lg transition-transform',
-          isChecked ? 'translate-x-6' : 'translate-x-1'
+          isChecked ? 'translate-x-6' : 'translate-x-1',
         )}
       />
     </button>
-  );
+  )
 }
 
-const THEME_INFO: Record<ThemeType, { name: string; color: string; description: string }> = {
-  sunrise: { name: 'Sunrise', color: '#f59e0b', description: 'Warm amber tones' },
-  sandstone: { name: 'Sandstone', color: '#a8a29e', description: 'Earthy neutral' },
+const THEME_INFO: Record<
+  ThemeType,
+  { name: string; color: string; description: string }
+> = {
+  sunrise: {
+    name: 'Sunrise',
+    color: '#f59e0b',
+    description: 'Warm amber tones',
+  },
+  sandstone: {
+    name: 'Sandstone',
+    color: '#a8a29e',
+    description: 'Earthy neutral',
+  },
   mint: { name: 'Mint', color: '#10b981', description: 'Fresh green' },
   sky: { name: 'Sky', color: '#0ea5e9', description: 'Calm blue' },
   lavender: { name: 'Lavender', color: '#a78bfa', description: 'Soft purple' },
@@ -72,19 +96,23 @@ const THEME_INFO: Record<ThemeType, { name: string; color: string; description: 
   ocean: { name: 'Ocean', color: '#0c4a6e', description: 'Deep teal' },
   plum: { name: 'Plum', color: '#7e22ce', description: 'Rich purple' },
   rust: { name: 'Rust', color: '#9a3412', description: 'Dark orange' },
-  system: { name: 'System', color: '#6b7280', description: 'Follow system preference' },
-};
+  system: {
+    name: 'System',
+    color: '#6b7280',
+    description: 'Follow system preference',
+  },
+}
 
 function ThemeButton({
   theme,
   isSelected,
   onClick,
 }: {
-  theme: ThemeType;
-  isSelected: boolean;
-  onClick: () => void;
+  theme: ThemeType
+  isSelected: boolean
+  onClick: () => void
 }) {
-  const info = THEME_INFO[theme];
+  const info = THEME_INFO[theme]
 
   return (
     <button
@@ -94,7 +122,7 @@ function ThemeButton({
         'relative flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all',
         isSelected
           ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
-          : 'border-border hover:border-primary/50 hover:bg-muted/50'
+          : 'border-border hover:border-primary/50 hover:bg-muted/50',
       )}
     >
       {theme === 'system' ? (
@@ -115,12 +143,12 @@ function ThemeButton({
         </div>
       )}
     </button>
-  );
+  )
 }
 
 export function SettingsClient() {
-  const { theme, setTheme, mounted } = useTheme();
-  const { language, setLanguage, t } = useI18n();
+  const { theme, setTheme, mounted } = useTheme()
+  const { language, setLanguage, t } = useI18n()
 
   if (!mounted) {
     return (
@@ -130,7 +158,7 @@ export function SettingsClient() {
           <div className="h-64 rounded-lg bg-muted" />
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -152,8 +180,8 @@ export function SettingsClient() {
               Theme
             </CardTitle>
             <CardDescription>
-              Choose a theme that matches your style. Light themes work best in bright
-              environments, dark themes reduce eye strain in low light.
+              Choose a theme that matches your style. Light themes work best in
+              bright environments, dark themes reduce eye strain in low light.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -284,9 +312,7 @@ export function SettingsClient() {
               <Globe className="h-5 w-5" />
               Language / 言語
             </CardTitle>
-            <CardDescription>
-              Choose your preferred language
-            </CardDescription>
+            <CardDescription>Choose your preferred language</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex gap-3">
@@ -297,7 +323,7 @@ export function SettingsClient() {
                   'flex items-center gap-2 rounded-lg border-2 px-4 py-3 transition-all',
                   language === 'en'
                     ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
-                    : 'border-border hover:border-primary/50'
+                    : 'border-border hover:border-primary/50',
                 )}
               >
                 <span className="text-2xl">🇺🇸</span>
@@ -316,13 +342,15 @@ export function SettingsClient() {
                   'flex items-center gap-2 rounded-lg border-2 px-4 py-3 transition-all',
                   language === 'ja'
                     ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
-                    : 'border-border hover:border-primary/50'
+                    : 'border-border hover:border-primary/50',
                 )}
               >
                 <span className="text-2xl">🇯🇵</span>
                 <div className="text-left">
                   <span className="block font-medium">日本語</span>
-                  <span className="text-xs text-muted-foreground">Japanese</span>
+                  <span className="text-xs text-muted-foreground">
+                    Japanese
+                  </span>
                 </div>
                 {language === 'ja' && (
                   <Check className="ml-2 h-4 w-4 text-primary" />
@@ -341,6 +369,5 @@ export function SettingsClient() {
         </div>
       </div>
     </div>
-  );
+  )
 }
-

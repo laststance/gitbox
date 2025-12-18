@@ -30,7 +30,7 @@ export const store = configureStore({
     settings: settingsReducer,
     [githubApi.reducerPath]: githubApi.reducer,
   },
-  middleware: getDefaultMiddleware =>
+  middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
         // RTK Query の action を無視

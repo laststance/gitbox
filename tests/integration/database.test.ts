@@ -24,7 +24,7 @@ const supabaseAdmin = createClient<Database>(
       autoRefreshToken: false,
       persistSession: false,
     },
-  }
+  },
 )
 
 // テスト用ユーザー

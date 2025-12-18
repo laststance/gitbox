@@ -19,17 +19,47 @@ import { cn } from '@/lib/utils'
 // Theme definitions from PRD
 const THEMES = {
   light: [
-    { id: 'sunrise', name: 'Sunrise', color: '#f59e0b', description: 'Warm amber tones' },
-    { id: 'sandstone', name: 'Sandstone', color: '#a8a29e', description: 'Earthy neutral' },
+    {
+      id: 'sunrise',
+      name: 'Sunrise',
+      color: '#f59e0b',
+      description: 'Warm amber tones',
+    },
+    {
+      id: 'sandstone',
+      name: 'Sandstone',
+      color: '#a8a29e',
+      description: 'Earthy neutral',
+    },
     { id: 'mint', name: 'Mint', color: '#10b981', description: 'Fresh green' },
     { id: 'sky', name: 'Sky', color: '#0ea5e9', description: 'Calm blue' },
-    { id: 'lavender', name: 'Lavender', color: '#a78bfa', description: 'Soft purple' },
+    {
+      id: 'lavender',
+      name: 'Lavender',
+      color: '#a78bfa',
+      description: 'Soft purple',
+    },
     { id: 'rose', name: 'Rose', color: '#f43f5e', description: 'Vibrant pink' },
   ],
   dark: [
-    { id: 'midnight', name: 'Midnight', color: '#1e40af', description: 'Deep blue' },
-    { id: 'graphite', name: 'Graphite', color: '#374151', description: 'Dark gray' },
-    { id: 'forest', name: 'Forest', color: '#166534', description: 'Dark green' },
+    {
+      id: 'midnight',
+      name: 'Midnight',
+      color: '#1e40af',
+      description: 'Deep blue',
+    },
+    {
+      id: 'graphite',
+      name: 'Graphite',
+      color: '#374151',
+      description: 'Dark gray',
+    },
+    {
+      id: 'forest',
+      name: 'Forest',
+      color: '#166534',
+      description: 'Dark green',
+    },
     { id: 'ocean', name: 'Ocean', color: '#0c4a6e', description: 'Deep teal' },
     { id: 'plum', name: 'Plum', color: '#7e22ce', description: 'Rich purple' },
     { id: 'rust', name: 'Rust', color: '#9a3412', description: 'Dark orange' },
@@ -105,7 +135,7 @@ export function CreateBoardForm() {
                   'flex flex-col items-center gap-2 rounded-lg border-2 p-3 transition-all',
                   theme === t.id
                     ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
-                    : 'border-border hover:border-primary/50'
+                    : 'border-border hover:border-primary/50',
                 )}
               >
                 <div
@@ -132,7 +162,7 @@ export function CreateBoardForm() {
                   'flex flex-col items-center gap-2 rounded-lg border-2 p-3 transition-all',
                   theme === t.id
                     ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
-                    : 'border-border hover:border-primary/50'
+                    : 'border-border hover:border-primary/50',
                 )}
               >
                 <div

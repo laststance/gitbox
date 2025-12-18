@@ -8,7 +8,14 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -31,7 +38,11 @@ const PRESET_COLORS = [
 interface StatusListDialogProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: { name: string; color: string; wipLimit: number | null }) => Promise<void>
+  onSave: (data: {
+    name: string
+    color: string
+    wipLimit: number | null
+  }) => Promise<void>
   statusList?: StatusListDomain | null
   mode: 'create' | 'edit'
 }
@@ -153,7 +164,10 @@ export const StatusListDialog: React.FC<StatusListDialogProps> = ({
               ))}
             </div>
             <div className="flex items-center gap-2 mt-2">
-              <Label htmlFor="custom-color" className="text-xs text-muted-foreground">
+              <Label
+                htmlFor="custom-color"
+                className="text-xs text-muted-foreground"
+              >
                 Custom:
               </Label>
               <Input
@@ -163,7 +177,9 @@ export const StatusListDialog: React.FC<StatusListDialogProps> = ({
                 onChange={(e) => setColor(e.target.value)}
                 className="w-12 h-8 p-0 border-0 cursor-pointer"
               />
-              <span className="text-xs text-muted-foreground font-mono">{color}</span>
+              <span className="text-xs text-muted-foreground font-mono">
+                {color}
+              </span>
             </div>
           </div>
 
@@ -186,16 +202,23 @@ export const StatusListDialog: React.FC<StatusListDialogProps> = ({
           </div>
 
           {/* Error */}
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isSaving}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={isSaving}>
-              {isSaving ? 'Saving...' : mode === 'create' ? 'Add Column' : 'Save Changes'}
+              {isSaving
+                ? 'Saving...'
+                : mode === 'create'
+                  ? 'Add Column'
+                  : 'Save Changes'}
             </Button>
           </DialogFooter>
         </form>
@@ -205,6 +228,3 @@ export const StatusListDialog: React.FC<StatusListDialogProps> = ({
 }
 
 export default StatusListDialog
-
-
-

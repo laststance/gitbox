@@ -10,7 +10,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { Tables, TablesInsert } from '@/lib/supabase/types'
-import type { StatusListDomain, RepoCardDomain, RepoCardMeta } from '@/lib/models/domain'
+import type {
+  StatusListDomain,
+  RepoCardDomain,
+  RepoCardMeta,
+} from '@/lib/models/domain'
 import { logBoardCreate } from './audit-log'
 
 type StatusListRow = Tables<'statuslist'>
@@ -23,7 +27,9 @@ type RepoCardRow = Tables<'repocard'>
 /**
  * Get all status lists for a board
  */
-export async function getStatusLists(boardId: string): Promise<StatusListDomain[]> {
+export async function getStatusLists(
+  boardId: string,
+): Promise<StatusListDomain[]> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -54,15 +60,47 @@ export async function getStatusLists(boardId: string): Promise<StatusListDomain[
  * Create default status lists for a new board
  * Called when a board has no status lists
  */
-export async function createDefaultStatusLists(boardId: string): Promise<StatusListDomain[]> {
+export async function createDefaultStatusLists(
+  boardId: string,
+): Promise<StatusListDomain[]> {
   const supabase = await createClient()
 
   const defaultLists: TablesInsert<'statuslist'>[] = [
-    { board_id: boardId, name: 'Backlog', color: '#8B7355', order: 0, wip_limit: null },
-    { board_id: boardId, name: 'Todo', color: '#6B8E23', order: 1, wip_limit: 5 },
-    { board_id: boardId, name: 'In Progress', color: '#CD853F', order: 2, wip_limit: 3 },
-    { board_id: boardId, name: 'Review', color: '#4682B4', order: 3, wip_limit: 4 },
-    { board_id: boardId, name: 'Done', color: '#556B2F', order: 4, wip_limit: null },
+    {
+      board_id: boardId,
+      name: 'Backlog',
+      color: '#8B7355',
+      order: 0,
+      wip_limit: null,
+    },
+    {
+      board_id: boardId,
+      name: 'Todo',
+      color: '#6B8E23',
+      order: 1,
+      wip_limit: 5,
+    },
+    {
+      board_id: boardId,
+      name: 'In Progress',
+      color: '#CD853F',
+      order: 2,
+      wip_limit: 3,
+    },
+    {
+      board_id: boardId,
+      name: 'Review',
+      color: '#4682B4',
+      order: 3,
+      wip_limit: 4,
+    },
+    {
+      board_id: boardId,
+      name: 'Done',
+      color: '#556B2F',
+      order: 4,
+      wip_limit: null,
+    },
   ]
 
   const { data, error } = await supabase
@@ -96,7 +134,7 @@ export async function createStatusList(
   boardId: string,
   name: string,
   color: string = '#6B7280',
-  wipLimit?: number
+  wipLimit?: number,
 ): Promise<StatusListDomain> {
   const supabase = await createClient()
 
@@ -147,7 +185,7 @@ export async function createStatusList(
  */
 export async function updateStatusList(
   statusId: string,
-  updates: { name?: string; color?: string; wipLimit?: number | null }
+  updates: { name?: string; color?: string; wipLimit?: number | null },
 ): Promise<void> {
   const supabase = await createClient()
 
@@ -170,7 +208,10 @@ export async function updateStatusList(
 /**
  * Delete a status list
  */
-export async function deleteStatusList(statusId: string, boardId: string): Promise<void> {
+export async function deleteStatusList(
+  statusId: string,
+  boardId: string,
+): Promise<void> {
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -240,7 +281,7 @@ export async function getRepoCards(boardId: string): Promise<RepoCardDomain[]> {
 export async function updateRepoCardPosition(
   cardId: string,
   statusId: string,
-  order: number
+  order: number,
 ): Promise<void> {
   const supabase = await createClient()
 
@@ -264,7 +305,7 @@ export async function updateRepoCardPosition(
  * Used when reordering multiple cards within a column
  */
 export async function batchUpdateRepoCardOrders(
-  updates: Array<{ id: string; statusId: string; order: number }>
+  updates: Array<{ id: string; statusId: string; order: number }>,
 ): Promise<void> {
   const supabase = await createClient()
 
@@ -277,7 +318,7 @@ export async function batchUpdateRepoCardOrders(
         order: order,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', id)
+      .eq('id', id),
   )
 
   const results = await Promise.all(updatePromises)
@@ -323,7 +364,7 @@ export async function getBoardData(boardId: string): Promise<{
  */
 export async function createBoard(
   name: string,
-  theme: string = 'sunrise'
+  theme: string = 'sunrise',
 ): Promise<{ id: string; name: string }> {
   const supabase = await createClient()
 
@@ -384,11 +425,14 @@ export async function deleteBoard(boardId: string): Promise<void> {
  */
 export async function updateBoard(
   boardId: string,
-  updates: { name?: string; theme?: string }
+  updates: { name?: string; theme?: string },
 ): Promise<void> {
   const supabase = await createClient()
 
-  const { error } = await supabase.from('board').update(updates).eq('id', boardId)
+  const { error } = await supabase
+    .from('board')
+    .update(updates)
+    .eq('id', boardId)
 
   if (error) {
     console.error('Failed to update board:', error)
@@ -398,4 +442,3 @@ export async function updateBoard(
   revalidatePath(`/board/${boardId}`)
   revalidatePath('/boards')
 }
-

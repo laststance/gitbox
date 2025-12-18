@@ -22,7 +22,9 @@ export interface BoardPageProps {
  *
  * ボード名をページタイトルに設定
  */
-export async function generateMetadata(props: BoardPageProps): Promise<Metadata> {
+export async function generateMetadata(
+  props: BoardPageProps,
+): Promise<Metadata> {
   const params = await props.params
   const supabase = await createClient()
 
@@ -57,7 +59,12 @@ export default async function BoardPage(props: BoardPageProps) {
     .from('board')
     .select('*')
     .eq('id', params.id)
-    .single<{ id: string; name: string; theme: string | null; settings: Record<string, unknown> | null }>()
+    .single<{
+      id: string
+      name: string
+      theme: string | null
+      settings: Record<string, unknown> | null
+    }>()
 
   console.log('[DEBUG] Board query result:', { board, boardError })
 

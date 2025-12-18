@@ -30,7 +30,7 @@ export async function GET(request: Request) {
       if (error) {
         console.error('OAuth callback error:', error)
         return NextResponse.redirect(
-          `${origin}/login?error=auth_failed&message=${encodeURIComponent(error.message)}`
+          `${origin}/login?error=auth_failed&message=${encodeURIComponent(error.message)}`,
         )
       }
 
@@ -47,7 +47,9 @@ export async function GET(request: Request) {
         })
         console.log('GitHub provider_token saved to cookie')
       } else {
-        console.warn('No provider_token in session - GitHub API access may be limited')
+        console.warn(
+          'No provider_token in session - GitHub API access may be limited',
+        )
       }
 
       // セッション確立成功 - Boards 画面にリダイレクト
@@ -66,14 +68,10 @@ export async function GET(request: Request) {
       }
     } catch (error) {
       console.error('Unexpected error in OAuth callback:', error)
-      return NextResponse.redirect(
-        `${origin}/login?error=unexpected_error`
-      )
+      return NextResponse.redirect(`${origin}/login?error=unexpected_error`)
     }
   }
 
   // code パラメータがない場合はログインページにリダイレクト
-  return NextResponse.redirect(
-    `${origin}/login?error=missing_code`
-  )
+  return NextResponse.redirect(`${origin}/login?error=missing_code`)
 }

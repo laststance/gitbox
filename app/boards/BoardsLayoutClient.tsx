@@ -4,15 +4,15 @@
  * Client wrapper for Sidebar and content
  */
 
-'use client';
+'use client'
 
-import React from 'react';
-import { Sidebar } from '@/components/Sidebar';
+import React from 'react'
+import { Sidebar } from '@/components/Sidebar'
 
 interface BoardsLayoutClientProps {
-  children: React.ReactNode;
-  userName?: string;
-  userAvatar?: string;
+  children: React.ReactNode
+  userName?: string
+  userAvatar?: string
 }
 
 export const BoardsLayoutClient: React.FC<BoardsLayoutClientProps> = ({
@@ -28,8 +28,7 @@ export const BoardsLayoutClient: React.FC<BoardsLayoutClientProps> = ({
       {/* Main Content */}
       <main className="flex-1 overflow-auto bg-background">{children}</main>
     </div>
-  );
-};
+  )
+}
 
-export default BoardsLayoutClient;
-
+export default BoardsLayoutClient

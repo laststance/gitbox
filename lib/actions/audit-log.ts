@@ -7,11 +7,11 @@
  * - Credentials 追加/編集/削除
  */
 
-'use server';
+'use server'
 
-import { createClient } from '@/lib/supabase/server';
-import { headers } from 'next/headers';
-import type { AuditLog } from '@/lib/supabase/types';
+import { createClient } from '@/lib/supabase/server'
+import { headers } from 'next/headers'
+import type { AuditLog } from '@/lib/supabase/types'
 
 export type AuditAction =
   | 'credential_view'
@@ -26,7 +26,7 @@ export type AuditAction =
   | 'board_update'
   | 'board_delete'
   | 'login'
-  | 'logout';
+  | 'logout'
 
 export type ResourceType =
   | 'credential'
@@ -34,14 +34,14 @@ export type ResourceType =
   | 'board'
   | 'repo_card'
   | 'status_list'
-  | 'user';
+  | 'user'
 
 interface AuditLogParams {
-  action: AuditAction;
-  resourceId?: string;
-  resourceType?: ResourceType;
-  metadata?: Record<string, unknown>;
-  success?: boolean;
+  action: AuditAction
+  resourceId?: string
+  resourceType?: ResourceType
+  metadata?: Record<string, unknown>
+  success?: boolean
 }
 
 /**
@@ -55,24 +55,26 @@ export async function logAuditEvent({
   success = true,
 }: AuditLogParams): Promise<void> {
   try {
-    const supabase = await createClient();
+    const supabase = await createClient()
 
     // Get current user
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getUser()
 
     if (!user) {
-      console.warn('[AuditLog] Attempted to log event without authenticated user');
-      return;
+      console.warn(
+        '[AuditLog] Attempted to log event without authenticated user',
+      )
+      return
     }
 
     // Get request headers
-    const headersList = await headers();
-    const userAgent = headersList.get('user-agent') || 'unknown';
-    const forwardedFor = headersList.get('x-forwarded-for');
-    const realIp = headersList.get('x-real-ip');
-    const ipAddress = forwardedFor?.split(',')[0]?.trim() || realIp || 'unknown';
+    const headersList = await headers()
+    const userAgent = headersList.get('user-agent') || 'unknown'
+    const forwardedFor = headersList.get('x-forwarded-for')
+    const realIp = headersList.get('x-real-ip')
+    const ipAddress = forwardedFor?.split(',')[0]?.trim() || realIp || 'unknown'
 
     // Insert audit log
     const { error } = await supabase.from('auditlog').insert({
@@ -83,14 +85,14 @@ export async function logAuditEvent({
       ip_address: ipAddress,
       user_agent: userAgent,
       success,
-    });
+    })
 
     if (error) {
-      console.error('[AuditLog] Failed to insert audit log:', error);
+      console.error('[AuditLog] Failed to insert audit log:', error)
     }
   } catch (err) {
     // Don't throw - audit logging should never break the main flow
-    console.error('[AuditLog] Error logging audit event:', err);
+    console.error('[AuditLog] Error logging audit event:', err)
   }
 }
 
@@ -102,7 +104,7 @@ export async function logCredentialView(credentialId: string): Promise<void> {
     action: 'credential_view',
     resourceId: credentialId,
     resourceType: 'credential',
-  });
+  })
 }
 
 /**
@@ -114,7 +116,7 @@ export async function logCredentialCopy(credentialId: string): Promise<void> {
     resourceId: credentialId,
     resourceType: 'credential',
     metadata: { copied_at: new Date().toISOString() },
-  });
+  })
 }
 
 /**
@@ -126,7 +128,7 @@ export async function logCredentialReveal(credentialId: string): Promise<void> {
     resourceId: credentialId,
     resourceType: 'credential',
     metadata: { revealed_at: new Date().toISOString() },
-  });
+  })
 }
 
 /**
@@ -137,7 +139,7 @@ export async function logCredentialCreate(credentialId: string): Promise<void> {
     action: 'credential_create',
     resourceId: credentialId,
     resourceType: 'credential',
-  });
+  })
 }
 
 /**
@@ -148,7 +150,7 @@ export async function logCredentialUpdate(credentialId: string): Promise<void> {
     action: 'credential_update',
     resourceId: credentialId,
     resourceType: 'credential',
-  });
+  })
 }
 
 /**
@@ -159,7 +161,7 @@ export async function logCredentialDelete(credentialId: string): Promise<void> {
     action: 'credential_delete',
     resourceId: credentialId,
     resourceType: 'credential',
-  });
+  })
 }
 
 /**
@@ -170,25 +172,25 @@ export async function logBoardCreate(boardId: string): Promise<void> {
     action: 'board_create',
     resourceId: boardId,
     resourceType: 'board',
-  });
+  })
 }
 
 /**
  * 最近の監査ログを取得
  */
 export async function getRecentAuditLogs(limit = 50): Promise<{
-  logs: AuditLog[];
-  error: string | null;
+  logs: AuditLog[]
+  error: string | null
 }> {
   try {
-    const supabase = await createClient();
+    const supabase = await createClient()
 
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getUser()
 
     if (!user) {
-      return { logs: [], error: 'Not authenticated' };
+      return { logs: [], error: 'Not authenticated' }
     }
 
     const { data, error } = await supabase
@@ -196,19 +198,16 @@ export async function getRecentAuditLogs(limit = 50): Promise<{
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(limit);
+      .limit(limit)
 
     if (error) {
-      console.error('[AuditLog] Failed to fetch audit logs:', error);
-      return { logs: [], error: error.message };
+      console.error('[AuditLog] Failed to fetch audit logs:', error)
+      return { logs: [], error: error.message }
     }
 
-    return { logs: data || [], error: null };
+    return { logs: data || [], error: null }
   } catch (err) {
-    console.error('[AuditLog] Error fetching audit logs:', err);
-    return { logs: [], error: 'Failed to fetch audit logs' };
+    console.error('[AuditLog] Error fetching audit logs:', err)
+    return { logs: [], error: 'Failed to fetch audit logs' }
   }
 }
-
-
-

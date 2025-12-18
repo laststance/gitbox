@@ -140,7 +140,7 @@
     - `myapp-prod`（本番用）
   - 理由：
     - プロジェクト単位で **DB / Auth 設定 / Storage 等が完全に分離** されるため、データ汚染を防げる。  
-    （Supabase environments blog, 2025-08-17[Supabase, `https://github.com/supabase/supabase/blob/master/apps/www/_blog/2025-08-17-the-vibe-coders-guide-to-supabase-environments.mdx`])
+      （Supabase environments blog, 2025-08-17[Supabase, `https://github.com/supabase/supabase/blob/master/apps/www/_blog/2025-08-17-the-vibe-coders-guide-to-supabase-environments.mdx`])
 
 - **ステップ 2-2：各プロジェクトの API 情報を控える**
   - Supabase ダッシュボード → 対象プロジェクト → **Settings → API**
@@ -184,7 +184,7 @@ Supabase 公式は **「各 Supabase プロジェクトごとに GitHub OAuth Ap
     - さきほど作成した GitHub OAuth App の
       - `Client ID`
       - `Client Secret`
-      を入力し保存。
+        を入力し保存。
 
 - **ステップ 4-2：redirect URL の許可設定（Supabase 側）**
   - `Authentication → URL Configuration` もしくは Auth 設定セクションで、以下を追加（例）：
@@ -228,8 +228,8 @@ Supabase の Redirect URLs ガイドにある `getURL()` ヘルパー例（Next.
 ```javascript
 const getURL = () => {
   let url =
-    process?.env?.NEXT_PUBLIC_SITE_URL ??      // Production 用
-    process?.env?.NEXT_PUBLIC_VERCEL_URL ??    // Vercel 自動設定
+    process?.env?.NEXT_PUBLIC_SITE_URL ?? // Production 用
+    process?.env?.NEXT_PUBLIC_VERCEL_URL ?? // Vercel 自動設定
     'http://localhost:3008/'
 
   // http/https の付与
@@ -284,7 +284,7 @@ import { createBrowserClient } from '@supabase/ssr'
 export function createClient() {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
   )
 }
 ```
@@ -307,14 +307,14 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, options),
             )
           } catch {
             // Server Component から呼ばれた場合などの例外ケース
           }
         },
       },
-    }
+    },
   )
 }
 ```
@@ -359,7 +359,6 @@ npx supabase start
 （Slack clone example README, 2023–2024[Supabase, `https://github.com/supabase/supabase/blob/master/examples/slack-clone/nextjs-slack-clone-dotenvx/README.md`])
 
 - **ステップ 8-3：ローカル用 `.env` と `config.toml`**
-
   - `supabase/.env` に GitHub OAuth 用の値を設定：
 
 ```dotenv
@@ -367,7 +366,7 @@ SUPABASE_AUTH_GITHUB_CLIENT_ID="your-local-github-client-id"
 SUPABASE_AUTH_GITHUB_SECRET="your-local-github-client-secret"
 ```
 
-  - `supabase/config.toml` の一部（ドキュメント例）：
+- `supabase/config.toml` の一部（ドキュメント例）：
 
 ```toml
 [auth.external.github]
@@ -402,9 +401,10 @@ redirect_uri = "http://localhost:54321/auth/v1/callback"
   - 本番 URL から GitHub ログイン。
   - Users / data が **prod プロジェクト側** にのみ記録される。
 
-Q&A にもある通り、**「ローカルでは動くが preview / prod では redirect がおかしい」** 場合は、  
-1) Supabase Auth の URL 設定、2) GitHub OAuth App の callback、3) `redirectTo` の URL、4) Vercel の `NEXT_PUBLIC_SITE_URL` の 4 点が一致しているかを優先的に確認するとよいです。  
-（Stack Overflow “Supabase Auth with Next 14 (app router) redirectTo…”, 2024-03-25[Stack Overflow, `https://stackoverflow.com/questions/78220204/supabase-auth-with-next-14-app-router-redirectto`])
+Q&A にもある通り、**「ローカルでは動くが preview / prod では redirect がおかしい」** 場合は、
+
+1. Supabase Auth の URL 設定、2) GitHub OAuth App の callback、3) `redirectTo` の URL、4) Vercel の `NEXT_PUBLIC_SITE_URL` の 4 点が一致しているかを優先的に確認するとよいです。  
+   （Stack Overflow “Supabase Auth with Next 14 (app router) redirectTo…”, 2024-03-25[Stack Overflow, `https://stackoverflow.com/questions/78220204/supabase-auth-with-next-14-app-router-redirectto`])
 
 ---
 
@@ -443,14 +443,14 @@ Q&A にもある通り、**「ローカルでは動くが preview / prod では 
 ## Query Log（ツール & クエリの簡易ログ）🔍
 
 - **Exa Web Search**
-  - `"Supabase GitHub OAuth Next.js Vercel environment variables local development 2024"`  
+  - `"Supabase GitHub OAuth Next.js Vercel environment variables local development 2024"`
   - `"\"Supabase\" \"GitHub\" OAuth Next.js Vercel preview redirect Stack Overflow OR Reddit OR Zenn.dev 2024"`
 
 - **Exa Code Context**
   - `"\"Login with GitHub\" Supabase docs social login next.js example"`
 
 - **Context7**
-  - `/supabase/supabase`（トピック: auth social login GitHub Next.js Vercel envs）  
+  - `/supabase/supabase`（トピック: auth social login GitHub Next.js Vercel envs）
   - `/websites/nextjs`（トピック: environment variables, Vercel deployment）
 
 - **Perplexity Ask**

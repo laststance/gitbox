@@ -157,9 +157,7 @@ export const OverflowMenu = memo<OverflowMenuProps>(
             type="button"
             onClick={() => {
               if (
-                confirm(
-                  'Are you sure you want to delete this repository card?'
-                )
+                confirm('Are you sure you want to delete this repository card?')
               ) {
                 onDelete()
                 onClose()
@@ -186,7 +184,7 @@ export const OverflowMenu = memo<OverflowMenuProps>(
         </div>
       </div>
     )
-  }
+  },
 )
 
 OverflowMenu.displayName = 'OverflowMenu'

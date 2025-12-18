@@ -50,7 +50,7 @@ const nextConfig: NextConfig = {
     optimizePackageImports: [
       '@dnd-kit/core',
       '@dnd-kit/sortable',
-      'framer-motion',  // Added to fix HMR issues
+      'framer-motion', // Added to fix HMR issues
       'lucide-react',
     ],
   },

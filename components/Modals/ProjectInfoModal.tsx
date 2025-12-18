@@ -19,9 +19,9 @@
  * Based on Magic MCP component, adapted for project requirements
  */
 
-'use client';
+'use client'
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -29,49 +29,49 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Plus, X, Eye, EyeOff } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { generateMaskedDisplay } from '@/lib/encryption';
-import { Credential, ProjectLink } from '@/lib/actions/project-info';
+} from '@/components/ui/select'
+import { Plus, X, Eye, EyeOff } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { generateMaskedDisplay } from '@/lib/encryption'
+import { Credential, ProjectLink } from '@/lib/actions/project-info'
 
 export interface ProjectInfo {
-  id: string;
-  quickNote: string;
-  links: ProjectLink[];
-  credentials?: Credential[];
+  id: string
+  quickNote: string
+  links: ProjectLink[]
+  credentials?: Credential[]
 }
 
 interface ProjectInfoModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen: boolean
+  onClose: () => void
   onSave: (data: {
-    quickNote: string;
-    links: ProjectLink[];
-    credentials: Credential[];
-  }) => void;
-  projectInfo: ProjectInfo;
+    quickNote: string
+    links: ProjectLink[]
+    credentials: Credential[]
+  }) => void
+  projectInfo: ProjectInfo
 }
 
-const QUICK_NOTE_MAX_LENGTH = 300;
-const QUICK_NOTE_WARNING_THRESHOLD = 290;
+const QUICK_NOTE_MAX_LENGTH = 300
+const QUICK_NOTE_WARNING_THRESHOLD = 290
 
-const URL_REGEX = /^https?:\/\/.+/;
+const URL_REGEX = /^https?:\/\/.+/
 
 const validateUrl = (url: string): boolean => {
-  return URL_REGEX.test(url);
-};
+  return URL_REGEX.test(url)
+}
 
 export const ProjectInfoModal: React.FC<ProjectInfoModalProps> = ({
   isOpen,
@@ -79,221 +79,227 @@ export const ProjectInfoModal: React.FC<ProjectInfoModalProps> = ({
   onSave,
   projectInfo,
 }) => {
-  const [quickNote, setQuickNote] = useState(projectInfo.quickNote);
-  const [links, setLinks] = useState<ProjectLink[]>(projectInfo.links);
+  const [quickNote, setQuickNote] = useState(projectInfo.quickNote)
+  const [links, setLinks] = useState<ProjectLink[]>(projectInfo.links)
   const [credentials, setCredentials] = useState<Credential[]>(
-    projectInfo.credentials || []
-  );
-  const [urlErrors, setUrlErrors] = useState<Map<number, string>>(new Map());
-  const [revealedCredentials, setRevealedCredentials] = useState<Set<number>>(new Set());
-  const [revealTimers, setRevealTimers] = useState<Map<number, NodeJS.Timeout>>(new Map());
+    projectInfo.credentials || [],
+  )
+  const [urlErrors, setUrlErrors] = useState<Map<number, string>>(new Map())
+  const [revealedCredentials, setRevealedCredentials] = useState<Set<number>>(
+    new Set(),
+  )
+  const [revealTimers, setRevealTimers] = useState<Map<number, NodeJS.Timeout>>(
+    new Map(),
+  )
 
   // Reset form when modal opens with new projectInfo
   useEffect(() => {
     if (isOpen) {
-      setQuickNote(projectInfo.quickNote);
-      setLinks(projectInfo.links);
-      setCredentials(projectInfo.credentials || []);
-      setUrlErrors(new Map());
-      setRevealedCredentials(new Set()); // Reset revealed state on open
-      
+      setQuickNote(projectInfo.quickNote)
+      setLinks(projectInfo.links)
+      setCredentials(projectInfo.credentials || [])
+      setUrlErrors(new Map())
+      setRevealedCredentials(new Set()) // Reset revealed state on open
+
       // Clear all timers on open
-      revealTimers.forEach(timer => clearTimeout(timer));
-      setRevealTimers(new Map());
+      revealTimers.forEach((timer) => clearTimeout(timer))
+      setRevealTimers(new Map())
     }
-  }, [isOpen, projectInfo]);
-  
+  }, [isOpen, projectInfo])
+
   // Cleanup timers on unmount
   useEffect(() => {
     return () => {
-      revealTimers.forEach(timer => clearTimeout(timer));
-    };
-  }, [revealTimers]);
+      revealTimers.forEach((timer) => clearTimeout(timer))
+    }
+  }, [revealTimers])
 
   const handleQuickNoteChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
+    const value = e.target.value
     if (value.length <= QUICK_NOTE_MAX_LENGTH) {
-      setQuickNote(value);
+      setQuickNote(value)
     }
-  };
+  }
 
   const handleAddUrl = () => {
-    setLinks([...links, { url: '', type: 'production' }]);
-  };
+    setLinks([...links, { url: '', type: 'production' }])
+  }
 
   const handleRemoveUrl = (index: number) => {
-    setLinks(links.filter((_, i) => i !== index));
-    const newErrors = new Map(urlErrors);
-    newErrors.delete(index);
-    setUrlErrors(newErrors);
-  };
+    setLinks(links.filter((_, i) => i !== index))
+    const newErrors = new Map(urlErrors)
+    newErrors.delete(index)
+    setUrlErrors(newErrors)
+  }
 
   const handleUrlChange = (index: number, url: string) => {
-    const newLinks = [...links];
-    newLinks[index] = { ...newLinks[index], url };
-    setLinks(newLinks);
+    const newLinks = [...links]
+    newLinks[index] = { ...newLinks[index], url }
+    setLinks(newLinks)
 
     // Validate URL
-    const newErrors = new Map(urlErrors);
+    const newErrors = new Map(urlErrors)
     if (url && !validateUrl(url)) {
-      newErrors.set(index, 'Please enter a valid URL');
+      newErrors.set(index, 'Please enter a valid URL')
     } else {
-      newErrors.delete(index);
+      newErrors.delete(index)
     }
-    setUrlErrors(newErrors);
-  };
+    setUrlErrors(newErrors)
+  }
 
   const handleUrlTypeChange = (index: number, type: ProjectLink['type']) => {
-    const newLinks = [...links];
-    newLinks[index] = { ...newLinks[index], type };
-    setLinks(newLinks);
-  };
+    const newLinks = [...links]
+    newLinks[index] = { ...newLinks[index], type }
+    setLinks(newLinks)
+  }
 
   // Credentials handlers
   const handleAddCredential = () => {
     setCredentials([
       ...credentials,
       { type: 'reference', name: '', reference: '' },
-    ]);
-  };
+    ])
+  }
 
   const handleRemoveCredential = (index: number) => {
-    setCredentials(credentials.filter((_, i) => i !== index));
-  };
+    setCredentials(credentials.filter((_, i) => i !== index))
+  }
 
   const handleCredentialChange = (
     index: number,
     field: keyof Credential,
-    value: string
+    value: string,
   ) => {
-    const newCredentials = [...credentials];
-    newCredentials[index] = { ...newCredentials[index], [field]: value };
-    
+    const newCredentials = [...credentials]
+    newCredentials[index] = { ...newCredentials[index], [field]: value }
+
     // Auto-generate masked display when encrypted_value changes
     if (field === 'encrypted_value' && value) {
-      newCredentials[index].masked_display = generateMaskedDisplay(value);
+      newCredentials[index].masked_display = generateMaskedDisplay(value)
     }
-    
-    setCredentials(newCredentials);
-  };
+
+    setCredentials(newCredentials)
+  }
 
   const toggleRevealCredential = (index: number) => {
-    setRevealedCredentials(prev => {
-      const newSet = new Set(prev);
+    setRevealedCredentials((prev) => {
+      const newSet = new Set(prev)
       if (newSet.has(index)) {
         // Hiding: clear the timer
-        newSet.delete(index);
-        const timer = revealTimers.get(index);
+        newSet.delete(index)
+        const timer = revealTimers.get(index)
         if (timer) {
-          clearTimeout(timer);
-          setRevealTimers(prevTimers => {
-            const newTimers = new Map(prevTimers);
-            newTimers.delete(index);
-            return newTimers;
-          });
+          clearTimeout(timer)
+          setRevealTimers((prevTimers) => {
+            const newTimers = new Map(prevTimers)
+            newTimers.delete(index)
+            return newTimers
+          })
         }
       } else {
         // Revealing: add to set and start 30-second timer
-        newSet.add(index);
-        
+        newSet.add(index)
+
         // Clear existing timer if any
-        const existingTimer = revealTimers.get(index);
+        const existingTimer = revealTimers.get(index)
         if (existingTimer) {
-          clearTimeout(existingTimer);
+          clearTimeout(existingTimer)
         }
-        
+
         // Start new 30-second auto-hide timer
         const timer = setTimeout(() => {
-          setRevealedCredentials(current => {
-            const updated = new Set(current);
-            updated.delete(index);
-            return updated;
-          });
-          setRevealTimers(prevTimers => {
-            const newTimers = new Map(prevTimers);
-            newTimers.delete(index);
-            return newTimers;
-          });
-        }, 30000); // 30 seconds
-        
-        setRevealTimers(prevTimers => {
-          const newTimers = new Map(prevTimers);
-          newTimers.set(index, timer);
-          return newTimers;
-        });
+          setRevealedCredentials((current) => {
+            const updated = new Set(current)
+            updated.delete(index)
+            return updated
+          })
+          setRevealTimers((prevTimers) => {
+            const newTimers = new Map(prevTimers)
+            newTimers.delete(index)
+            return newTimers
+          })
+        }, 30000) // 30 seconds
+
+        setRevealTimers((prevTimers) => {
+          const newTimers = new Map(prevTimers)
+          newTimers.set(index, timer)
+          return newTimers
+        })
       }
-      return newSet;
-    });
-  };
+      return newSet
+    })
+  }
 
   const handleCredentialTypeChange = (
     index: number,
-    type: Credential['type']
+    type: Credential['type'],
   ) => {
-    const newCredentials = [...credentials];
+    const newCredentials = [...credentials]
     // Reset type-specific fields when changing type
     const baseCredential = {
       type,
       name: newCredentials[index].name,
       note: newCredentials[index].note,
-    };
+    }
 
     if (type === 'reference') {
-      newCredentials[index] = { ...baseCredential, reference: '' };
+      newCredentials[index] = { ...baseCredential, reference: '' }
     } else if (type === 'encrypted') {
       newCredentials[index] = {
         ...baseCredential,
         encrypted_value: '',
         masked_display: '',
-      };
+      }
     } else if (type === 'external') {
-      newCredentials[index] = { ...baseCredential, location: '' };
+      newCredentials[index] = { ...baseCredential, location: '' }
     }
 
-    setCredentials(newCredentials);
-  };
+    setCredentials(newCredentials)
+  }
 
   const handleSave = () => {
     onSave({
       quickNote,
       links: links.filter((link) => link.url),
       credentials: credentials.filter((cred) => cred.name),
-    });
-    onClose();
-  };
+    })
+    onClose()
+  }
 
   const handleCancel = () => {
     // Reset to original values
-    setQuickNote(projectInfo.quickNote);
-    setLinks(projectInfo.links);
-    setCredentials(projectInfo.credentials || []);
-    setUrlErrors(new Map());
-    setRevealedCredentials(new Set());
-    
+    setQuickNote(projectInfo.quickNote)
+    setLinks(projectInfo.links)
+    setCredentials(projectInfo.credentials || [])
+    setUrlErrors(new Map())
+    setRevealedCredentials(new Set())
+
     // Clear all timers
-    revealTimers.forEach(timer => clearTimeout(timer));
-    setRevealTimers(new Map());
-    
-    onClose();
-  };
+    revealTimers.forEach((timer) => clearTimeout(timer))
+    setRevealTimers(new Map())
+
+    onClose()
+  }
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
-        handleCancel();
+        handleCancel()
       }
     },
-    [isOpen]
-  );
+    [isOpen],
+  )
 
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [handleKeyDown])
 
-  const isFormValid = urlErrors.size === 0 && links.every((link) => !link.url || validateUrl(link.url));
-  const charCount = quickNote.length;
-  const isNearLimit = charCount >= QUICK_NOTE_WARNING_THRESHOLD;
+  const isFormValid =
+    urlErrors.size === 0 &&
+    links.every((link) => !link.url || validateUrl(link.url))
+  const charCount = quickNote.length
+  const isNearLimit = charCount >= QUICK_NOTE_WARNING_THRESHOLD
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -330,7 +336,7 @@ export const ProjectInfoModal: React.FC<ProjectInfoModalProps> = ({
               data-testid="char-count"
               className={cn(
                 'text-sm text-right',
-                isNearLimit ? 'text-warning' : 'text-muted-foreground'
+                isNearLimit ? 'text-warning' : 'text-muted-foreground',
               )}
             >
               {charCount} / {QUICK_NOTE_MAX_LENGTH}
@@ -361,7 +367,10 @@ export const ProjectInfoModal: React.FC<ProjectInfoModalProps> = ({
                       <Select
                         value={link.type}
                         onValueChange={(value) =>
-                          handleUrlTypeChange(index, value as ProjectLink['type'])
+                          handleUrlTypeChange(
+                            index,
+                            value as ProjectLink['type'],
+                          )
                         }
                       >
                         <SelectTrigger
@@ -383,7 +392,9 @@ export const ProjectInfoModal: React.FC<ProjectInfoModalProps> = ({
                         value={link.url}
                         onChange={(e) => handleUrlChange(index, e.target.value)}
                         data-testid={`url-input-${index}`}
-                        className={cn(urlErrors.has(index) && 'border-destructive')}
+                        className={cn(
+                          urlErrors.has(index) && 'border-destructive',
+                        )}
                         aria-invalid={urlErrors.has(index)}
                         aria-describedby={
                           urlErrors.has(index) ? 'url-error' : undefined
@@ -455,7 +466,7 @@ export const ProjectInfoModal: React.FC<ProjectInfoModalProps> = ({
                         onValueChange={(value) =>
                           handleCredentialTypeChange(
                             index,
-                            value as Credential['type']
+                            value as Credential['type'],
                           )
                         }
                       >
@@ -504,7 +515,7 @@ export const ProjectInfoModal: React.FC<ProjectInfoModalProps> = ({
                           handleCredentialChange(
                             index,
                             'reference',
-                            e.target.value
+                            e.target.value,
                           )
                         }
                         data-testid={`credential-reference-${index}`}
@@ -515,18 +526,22 @@ export const ProjectInfoModal: React.FC<ProjectInfoModalProps> = ({
                     {credential.type === 'encrypted' && (
                       <div className="relative">
                         <Input
-                          type={revealedCredentials.has(index) ? 'text' : 'password'}
+                          type={
+                            revealedCredentials.has(index) ? 'text' : 'password'
+                          }
                           placeholder="Secret value (will be encrypted)"
                           value={
                             revealedCredentials.has(index)
                               ? credential.encrypted_value || ''
-                              : credential.masked_display || credential.encrypted_value || ''
+                              : credential.masked_display ||
+                                credential.encrypted_value ||
+                                ''
                           }
                           onChange={(e) =>
                             handleCredentialChange(
                               index,
                               'encrypted_value',
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           data-testid={`credential-encrypted-${index}`}
@@ -539,7 +554,11 @@ export const ProjectInfoModal: React.FC<ProjectInfoModalProps> = ({
                             size="icon"
                             onClick={() => toggleRevealCredential(index)}
                             data-testid={`toggle-reveal-${index}`}
-                            aria-label={revealedCredentials.has(index) ? 'Hide value' : 'Reveal value'}
+                            aria-label={
+                              revealedCredentials.has(index)
+                                ? 'Hide value'
+                                : 'Reveal value'
+                            }
                             className="absolute right-0 top-0 h-full"
                           >
                             {revealedCredentials.has(index) ? (
@@ -562,7 +581,7 @@ export const ProjectInfoModal: React.FC<ProjectInfoModalProps> = ({
                           handleCredentialChange(
                             index,
                             'location',
-                            e.target.value
+                            e.target.value,
                           )
                         }
                         data-testid={`credential-location-${index}`}
@@ -607,5 +626,5 @@ export const ProjectInfoModal: React.FC<ProjectInfoModalProps> = ({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}

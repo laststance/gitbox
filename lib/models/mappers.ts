@@ -41,7 +41,7 @@ export function dbStatusListToDomain(db: DbStatusList): StatusListDomain {
  * ドメイン層の型をデータベース挿入用の型に変換
  */
 export function domainStatusListToDbInsert(
-  domain: Omit<StatusListDomain, 'id' | 'createdAt' | 'updatedAt'>
+  domain: Omit<StatusListDomain, 'id' | 'createdAt' | 'updatedAt'>,
 ): Omit<DbStatusList, 'id' | 'created_at' | 'updated_at'> {
   return {
     board_id: domain.boardId,
@@ -91,7 +91,7 @@ export function domainRepoCardToDbInsert(
   domain: Omit<
     RepoCardDomain,
     'id' | 'createdAt' | 'updatedAt' | 'title' | 'description'
-  >
+  >,
 ): Omit<DbRepoCard, 'id' | 'created_at' | 'updated_at'> {
   return {
     board_id: domain.boardId,
@@ -111,7 +111,9 @@ export function domainRepoCardToDbInsert(
 /**
  * StatusList配列の一括変換: Database → Domain
  */
-export function dbStatusListsToDomain(dbList: DbStatusList[]): StatusListDomain[] {
+export function dbStatusListsToDomain(
+  dbList: DbStatusList[],
+): StatusListDomain[] {
   return dbList.map(dbStatusListToDomain)
 }
 

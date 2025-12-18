@@ -23,8 +23,8 @@ export async function generateEncryptionKey(): Promise<CryptoKey> {
       length: 256,
     },
     true, // extractable
-    ['encrypt', 'decrypt']
-  );
+    ['encrypt', 'decrypt'],
+  )
 }
 
 /**
@@ -36,14 +36,14 @@ export async function generateEncryptionKey(): Promise<CryptoKey> {
  */
 export async function encryptValue(
   value: string,
-  key: CryptoKey
+  key: CryptoKey,
 ): Promise<string> {
   // Generate random IV (12 bytes for AES-GCM)
-  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const iv = crypto.getRandomValues(new Uint8Array(12))
 
   // Encode the plain text value
-  const encoder = new TextEncoder();
-  const data = encoder.encode(value);
+  const encoder = new TextEncoder()
+  const data = encoder.encode(value)
 
   // Encrypt the data
   const encrypted = await crypto.subtle.encrypt(
@@ -52,16 +52,16 @@ export async function encryptValue(
       iv: iv,
     },
     key,
-    data
-  );
+    data,
+  )
 
   // Combine IV + encrypted data
-  const combined = new Uint8Array(iv.length + encrypted.byteLength);
-  combined.set(iv, 0);
-  combined.set(new Uint8Array(encrypted), iv.length);
+  const combined = new Uint8Array(iv.length + encrypted.byteLength)
+  combined.set(iv, 0)
+  combined.set(new Uint8Array(encrypted), iv.length)
 
   // Convert to base64
-  return btoa(String.fromCharCode(...combined));
+  return btoa(String.fromCharCode(...combined))
 }
 
 /**
@@ -74,19 +74,19 @@ export async function encryptValue(
  */
 export async function decryptValue(
   encryptedValue: string,
-  key: CryptoKey
+  key: CryptoKey,
 ): Promise<string> {
   try {
     // Decode base64
     const combined = Uint8Array.from(atob(encryptedValue), (c) =>
-      c.charCodeAt(0)
-    );
+      c.charCodeAt(0),
+    )
 
     // Extract IV (first 12 bytes)
-    const iv = combined.slice(0, 12);
+    const iv = combined.slice(0, 12)
 
     // Extract encrypted data (remaining bytes)
-    const encrypted = combined.slice(12);
+    const encrypted = combined.slice(12)
 
     // Decrypt the data
     const decrypted = await crypto.subtle.decrypt(
@@ -95,16 +95,16 @@ export async function decryptValue(
         iv: iv,
       },
       key,
-      encrypted
-    );
+      encrypted,
+    )
 
     // Decode the plain text
-    const decoder = new TextDecoder();
-    return decoder.decode(decrypted);
+    const decoder = new TextDecoder()
+    return decoder.decode(decrypted)
   } catch (error) {
     throw new Error(
-      `Decryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+      `Decryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    )
   }
 }
 
@@ -126,31 +126,31 @@ export async function decryptValue(
  */
 export function generateMaskedDisplay(value: string): string {
   if (!value) {
-    return '';
+    return ''
   }
 
   // For very short values (< 8 chars), show only asterisks
   if (value.length < 8) {
-    return '*****';
+    return '*****'
   }
 
   // Detect prefix pattern (e.g., "sk_live_", "ghp_", "pk_test_")
   // Matches: ghp_, sk_live_, pk_test_, rk_prod_, etc.
-  const prefixMatch = value.match(/^([a-z]{2,3}_(?:[a-z]+_)?)/i);
-  const prefix = prefixMatch ? prefixMatch[1] : '';
+  const prefixMatch = value.match(/^([a-z]{2,3}_(?:[a-z]+_)?)/i)
+  const prefix = prefixMatch ? prefixMatch[1] : ''
 
   // Determine suffix length based on prefix type
   // Special case: Stripe live keys (sk_live_) show 5 characters
   // All other keys show 4 characters
-  let suffixLength = 4;
+  let suffixLength = 4
   if (prefix === 'sk_live_') {
-    suffixLength = 5;
+    suffixLength = 5
   }
 
   // Extract suffix (last N characters)
-  const suffix = value.slice(-suffixLength);
+  const suffix = value.slice(-suffixLength)
 
-  return `${prefix}*****${suffix}`;
+  return `${prefix}*****${suffix}`
 }
 
 /**
@@ -160,9 +160,9 @@ export function generateMaskedDisplay(value: string): string {
  * @returns Promise<string> - Base64-encoded key
  */
 export async function exportKey(key: CryptoKey): Promise<string> {
-  const exported = await crypto.subtle.exportKey('raw', key);
-  const exportedArray = new Uint8Array(exported);
-  return btoa(String.fromCharCode(...exportedArray));
+  const exported = await crypto.subtle.exportKey('raw', key)
+  const exportedArray = new Uint8Array(exported)
+  return btoa(String.fromCharCode(...exportedArray))
 }
 
 /**
@@ -172,7 +172,7 @@ export async function exportKey(key: CryptoKey): Promise<string> {
  * @returns Promise<CryptoKey> - Imported encryption key
  */
 export async function importKey(keyString: string): Promise<CryptoKey> {
-  const keyArray = Uint8Array.from(atob(keyString), (c) => c.charCodeAt(0));
+  const keyArray = Uint8Array.from(atob(keyString), (c) => c.charCodeAt(0))
 
   return await crypto.subtle.importKey(
     'raw',
@@ -182,6 +182,6 @@ export async function importKey(keyString: string): Promise<CryptoKey> {
       length: 256,
     },
     true,
-    ['encrypt', 'decrypt']
-  );
+    ['encrypt', 'decrypt'],
+  )
 }

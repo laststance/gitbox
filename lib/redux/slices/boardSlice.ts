@@ -9,10 +9,7 @@
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import type { Board } from '@/lib/supabase/types'
-import type {
-  StatusListDomain,
-  RepoCardForRedux,
-} from '@/lib/models/domain'
+import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 
 interface DragOperation {
   cardId: string
@@ -73,16 +70,19 @@ export const boardSlice = createSlice({
       state.undoHistory = [action.payload, ...state.undoHistory].slice(0, 10)
     },
     // Undo 操作
-    clearLastDragOperation: state => {
+    clearLastDragOperation: (state) => {
       state.lastDragOperation = null
     },
     // カードの楽観的更新
     updateRepoCardOptimistic: (
       state,
-      action: PayloadAction<{ cardId: string; updates: Partial<RepoCardForRedux> }>
+      action: PayloadAction<{
+        cardId: string
+        updates: Partial<RepoCardForRedux>
+      }>,
     ) => {
       const { cardId, updates } = action.payload
-      const cardIndex = state.repoCards.findIndex(card => card.id === cardId)
+      const cardIndex = state.repoCards.findIndex((card) => card.id === cardId)
       if (cardIndex !== -1) {
         state.repoCards[cardIndex] = {
           ...state.repoCards[cardIndex],
@@ -91,7 +91,7 @@ export const boardSlice = createSlice({
       }
     },
     // ボード状態のリセット
-    clearBoard: state => {
+    clearBoard: (state) => {
       state.activeBoard = null
       state.statusLists = []
       state.repoCards = []

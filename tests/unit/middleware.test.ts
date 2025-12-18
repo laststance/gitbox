@@ -54,7 +54,7 @@ describe('Middleware (middleware.ts)', () => {
 
       const expectedPublicPaths = ['/', '/auth/callback']
 
-      expectedPublicPaths.forEach(path => {
+      expectedPublicPaths.forEach((path) => {
         expect(path).toBeDefined()
         expect(typeof path).toBe('string')
       })

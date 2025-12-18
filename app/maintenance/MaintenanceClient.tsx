@@ -4,11 +4,11 @@
  * Explorer UI with Grid/List view toggle
  */
 
-'use client';
+'use client'
 
-import { useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Grid3X3,
   List,
@@ -20,84 +20,90 @@ import {
   ArrowUpDown,
   Calendar,
   Star,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
+} from '@/components/ui/dropdown-menu'
+import { cn } from '@/lib/utils'
 
 export interface MaintenanceRepo {
-  id: string;
-  repo_owner: string;
-  repo_name: string;
-  note: string | null;
+  id: string
+  repo_owner: string
+  repo_name: string
+  note: string | null
   meta: {
-    stars?: number;
-    language?: string;
-    lastUpdated?: string;
-  } | null;
-  created_at: string | null;
-  updated_at: string | null;
+    stars?: number
+    language?: string
+    lastUpdated?: string
+  } | null
+  created_at: string | null
+  updated_at: string | null
   board?: {
-    name: string;
-  } | null;
+    name: string
+  } | null
 }
 
 interface MaintenanceClientProps {
-  repos: MaintenanceRepo[];
+  repos: MaintenanceRepo[]
 }
 
-type ViewMode = 'grid' | 'list';
-type SortOption = 'name' | 'updated' | 'stars';
+type ViewMode = 'grid' | 'list'
+type SortOption = 'name' | 'updated' | 'stars'
 
 export function MaintenanceClient({ repos }: MaintenanceClientProps) {
-  const _router = useRouter();
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('updated');
-  const [sortAsc, setSortAsc] = useState(false);
+  const _router = useRouter()
+  const [viewMode, setViewMode] = useState<ViewMode>('grid')
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<SortOption>('updated')
+  const [sortAsc, setSortAsc] = useState(false)
 
   // Filter repos based on search
-  const filteredRepos = repos.filter((repo) =>
-    `${repo.repo_owner}/${repo.repo_name}`
-      .toLowerCase()
-      .includes(search.toLowerCase()) ||
-    repo.note?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredRepos = repos.filter(
+    (repo) =>
+      `${repo.repo_owner}/${repo.repo_name}`
+        .toLowerCase()
+        .includes(search.toLowerCase()) ||
+      repo.note?.toLowerCase().includes(search.toLowerCase()),
+  )
 
   // Sort repos
   const sortedRepos = [...filteredRepos].sort((a, b) => {
-    let comparison = 0;
+    let comparison = 0
     switch (sortBy) {
       case 'name':
         comparison = `${a.repo_owner}/${a.repo_name}`.localeCompare(
-          `${b.repo_owner}/${b.repo_name}`
-        );
-        break;
+          `${b.repo_owner}/${b.repo_name}`,
+        )
+        break
       case 'updated':
-        comparison = new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime();
-        break;
+        comparison =
+          new Date(b.updated_at || 0).getTime() -
+          new Date(a.updated_at || 0).getTime()
+        break
       case 'stars':
-        comparison = (b.meta?.stars || 0) - (a.meta?.stars || 0);
-        break;
+        comparison = (b.meta?.stars || 0) - (a.meta?.stars || 0)
+        break
     }
-    return sortAsc ? -comparison : comparison;
-  });
+    return sortAsc ? -comparison : comparison
+  })
 
   const handleOpenGitHub = useCallback((repo: MaintenanceRepo) => {
-    window.open(`https://github.com/${repo.repo_owner}/${repo.repo_name}`, '_blank');
-  }, []);
+    window.open(
+      `https://github.com/${repo.repo_owner}/${repo.repo_name}`,
+      '_blank',
+    )
+  }, [])
 
   const handleRestore = useCallback(async (repoId: string) => {
     // TODO: Implement restore to board action
-    console.log('Restore to board:', repoId);
-    alert('Restore to Board functionality will be implemented');
-  }, []);
+    console.log('Restore to board:', repoId)
+    alert('Restore to Board functionality will be implemented')
+  }, [])
 
   return (
     <div className="flex h-screen flex-col bg-background">
@@ -105,7 +111,9 @@ export function MaintenanceClient({ repos }: MaintenanceClientProps) {
       <header className="border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Maintenance Mode</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              Maintenance Mode
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Archived and maintenance projects • {repos.length} items
             </p>
@@ -156,7 +164,7 @@ export function MaintenanceClient({ repos }: MaintenanceClientProps) {
                   'rounded-md p-2 transition-colors',
                   viewMode === 'grid'
                     ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-muted'
+                    : 'hover:bg-muted',
                 )}
               >
                 <Grid3X3 className="h-4 w-4" />
@@ -167,7 +175,7 @@ export function MaintenanceClient({ repos }: MaintenanceClientProps) {
                   'rounded-md p-2 transition-colors',
                   viewMode === 'list'
                     ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-muted'
+                    : 'hover:bg-muted',
                 )}
               >
                 <List className="h-4 w-4" />
@@ -216,11 +224,15 @@ export function MaintenanceClient({ repos }: MaintenanceClientProps) {
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleOpenGitHub(repo)}>
+                        <DropdownMenuItem
+                          onClick={() => handleOpenGitHub(repo)}
+                        >
                           <ExternalLink className="mr-2 h-4 w-4" />
                           Open on GitHub
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleRestore(repo.id)}>
+                        <DropdownMenuItem
+                          onClick={() => handleRestore(repo.id)}
+                        >
                           <RotateCcw className="mr-2 h-4 w-4" />
                           Restore to Board
                         </DropdownMenuItem>
@@ -314,8 +326,8 @@ export function MaintenanceClient({ repos }: MaintenanceClientProps) {
                         variant="ghost"
                         size="sm"
                         onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenGitHub(repo);
+                          e.stopPropagation()
+                          handleOpenGitHub(repo)
                         }}
                       >
                         <ExternalLink className="h-4 w-4" />
@@ -324,8 +336,8 @@ export function MaintenanceClient({ repos }: MaintenanceClientProps) {
                         variant="ghost"
                         size="sm"
                         onClick={(e) => {
-                          e.stopPropagation();
-                          handleRestore(repo.id);
+                          e.stopPropagation()
+                          handleRestore(repo.id)
                         }}
                       >
                         <RotateCcw className="h-4 w-4" />
@@ -339,8 +351,5 @@ export function MaintenanceClient({ repos }: MaintenanceClientProps) {
         )}
       </main>
     </div>
-  );
+  )
 }
-
-
-

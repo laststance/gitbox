@@ -33,7 +33,9 @@ test.describe('User Story 3: Kanban Board Management', () => {
     await card.dragTo(todoColumn)
 
     // Then: カードが "Todo" 列に移動する
-    await expect(todoColumn.locator('[data-testid^="repo-card-"]').first()).toBeVisible()
+    await expect(
+      todoColumn.locator('[data-testid^="repo-card-"]').first(),
+    ).toBeVisible()
 
     // And: 移動が100ms以内で完了する（optimistic UI update）
     // NOTE: Playwright自動タイムアウトで検証される
@@ -68,14 +70,18 @@ test.describe('User Story 3: Kanban Board Management', () => {
     const todoColumn = page.locator('[data-testid="status-column-todo"]')
     const card = backlogColumn.locator('[data-testid^="repo-card-"]').first()
 
-    const originalColumnCards = await backlogColumn.locator('[data-testid^="repo-card-"]').count()
+    const originalColumnCards = await backlogColumn
+      .locator('[data-testid^="repo-card-"]')
+      .count()
 
     // When: カードを移動
     await card.dragTo(todoColumn)
     await page.waitForTimeout(200) // 移動完了を待つ
 
     // Then: カードが移動している
-    const afterMoveBacklogCards = await backlogColumn.locator('[data-testid^="repo-card-"]').count()
+    const afterMoveBacklogCards = await backlogColumn
+      .locator('[data-testid^="repo-card-"]')
+      .count()
     expect(afterMoveBacklogCards).toBe(originalColumnCards - 1)
 
     // When: Z キーを押してアンドゥ
@@ -83,13 +89,17 @@ test.describe('User Story 3: Kanban Board Management', () => {
     await page.waitForTimeout(300) // アンドゥ完了を待つ（200ms以内の要件）
 
     // Then: カードが元の列に戻る
-    const afterUndoBacklogCards = await backlogColumn.locator('[data-testid^="repo-card-"]').count()
+    const afterUndoBacklogCards = await backlogColumn
+      .locator('[data-testid^="repo-card-"]')
+      .count()
     expect(afterUndoBacklogCards).toBe(originalColumnCards)
   })
 
   test('T056: WIP limit validation displays warning', async ({ page }) => {
     // Given: "In Progress" 列にWIP制限がある（例: 3枚）
-    const inProgressColumn = page.locator('[data-testid="status-column-in-progress"]')
+    const inProgressColumn = page.locator(
+      '[data-testid="status-column-in-progress"]',
+    )
     const backlogColumn = page.locator('[data-testid="status-column-backlog"]')
 
     // When: WIP制限を超えるカードを移動しようとする
@@ -168,7 +178,9 @@ test.describe('User Story 3: Kanban Board Management', () => {
     await expect(movedCardInTodo).toBeVisible()
   })
 
-  test('T057: Optimistic UI updates complete within 100ms', async ({ page }) => {
+  test('T057: Optimistic UI updates complete within 100ms', async ({
+    page,
+  }) => {
     // Given: ボードページにアクセス
     const backlogColumn = page.locator('[data-testid="status-column-backlog"]')
     const todoColumn = page.locator('[data-testid="status-column-todo"]')
@@ -179,7 +191,9 @@ test.describe('User Story 3: Kanban Board Management', () => {
     await card.dragTo(todoColumn)
 
     // UIが更新されるのを待つ
-    await expect(todoColumn.locator('[data-testid^="repo-card-"]').first()).toBeVisible()
+    await expect(
+      todoColumn.locator('[data-testid^="repo-card-"]').first(),
+    ).toBeVisible()
     const endTime = Date.now()
 
     // Then: 100ms以内に完了する
@@ -193,11 +207,21 @@ test.describe('User Story 3: Visual Validation', () => {
     await page.goto('http://localhost:3008')
 
     // すべてのステータス列が表示される
-    await expect(page.locator('[data-testid="status-column-backlog"]')).toBeVisible()
-    await expect(page.locator('[data-testid="status-column-todo"]')).toBeVisible()
-    await expect(page.locator('[data-testid="status-column-in-progress"]')).toBeVisible()
-    await expect(page.locator('[data-testid="status-column-review"]')).toBeVisible()
-    await expect(page.locator('[data-testid="status-column-done"]')).toBeVisible()
+    await expect(
+      page.locator('[data-testid="status-column-backlog"]'),
+    ).toBeVisible()
+    await expect(
+      page.locator('[data-testid="status-column-todo"]'),
+    ).toBeVisible()
+    await expect(
+      page.locator('[data-testid="status-column-in-progress"]'),
+    ).toBeVisible()
+    await expect(
+      page.locator('[data-testid="status-column-review"]'),
+    ).toBeVisible()
+    await expect(
+      page.locator('[data-testid="status-column-done"]'),
+    ).toBeVisible()
   })
 
   test('Repository cards display essential information', async ({ page }) => {

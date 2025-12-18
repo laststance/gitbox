@@ -47,7 +47,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   const [ownerFilter, setOwnerFilter] = useState('')
   // TODO: Implement topics filter UI
   // const [topicsFilter, setTopicsFilter] = useState<string[]>([])
-  const [visibilityFilter, setVisibilityFilter] = useState<'all' | 'public' | 'private'>('all')
+  const [visibilityFilter, setVisibilityFilter] = useState<
+    'all' | 'public' | 'private'
+  >('all')
 
   // Refs
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -61,7 +63,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     error: reposError,
   } = useGetAuthenticatedUserRepositoriesQuery(
     { sort: 'updated', per_page: 100 },
-    { skip: !isOpen } // Combobox が開いているときのみフェッチ
+    { skip: !isOpen }, // Combobox が開いているときのみフェッチ
   )
 
   // Debounce search query (300ms)
@@ -82,22 +84,24 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     // 検索クエリでフィルタリング
     if (debouncedQuery) {
       filtered = filtered.filter(
-        repo =>
+        (repo) =>
           repo.full_name.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-          repo.description?.toLowerCase().includes(debouncedQuery.toLowerCase())
+          repo.description
+            ?.toLowerCase()
+            .includes(debouncedQuery.toLowerCase()),
       )
     }
 
     // Owner フィルター
     if (ownerFilter) {
-      filtered = filtered.filter(repo =>
-        repo.owner.login.toLowerCase().includes(ownerFilter.toLowerCase())
+      filtered = filtered.filter((repo) =>
+        repo.owner.login.toLowerCase().includes(ownerFilter.toLowerCase()),
       )
     }
 
     // Visibility フィルター
     if (visibilityFilter !== 'all') {
-      filtered = filtered.filter(repo => repo.visibility === visibilityFilter)
+      filtered = filtered.filter((repo) => repo.visibility === visibilityFilter)
     }
 
     // TODO: Topics フィルター
@@ -111,11 +115,13 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   }, [userRepos, debouncedQuery, ownerFilter, visibilityFilter])
 
   const isLoading = isLoadingRepos || isAdding
-  const error = addError || (reposError
-    ? 'message' in reposError
-      ? reposError.message
-      : 'Error loading repositories'
-    : null)
+  const error =
+    addError ||
+    (reposError
+      ? 'message' in reposError
+        ? reposError.message
+        : 'Error loading repositories'
+      : null)
 
   // Virtual scrolling (enabled for 20+ repositories)
   const shouldVirtualize = filteredRepositories.length > 20
@@ -129,10 +135,10 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
   // Toggle repository selection
   const toggleRepoSelection = (repo: GitHubRepository) => {
-    setSelectedRepos(prev => {
-      const isSelected = prev.some(r => r.id === repo.id)
+    setSelectedRepos((prev) => {
+      const isSelected = prev.some((r) => r.id === repo.id)
       if (isSelected) {
-        return prev.filter(r => r.id !== repo.id)
+        return prev.filter((r) => r.id !== repo.id)
       } else {
         return [...prev, repo]
       }
@@ -141,7 +147,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
   // Remove selected repository
   const removeSelectedRepo = (repoId: number) => {
-    setSelectedRepos(prev => prev.filter(r => r.id !== repoId))
+    setSelectedRepos((prev) => prev.filter((r) => r.id !== repoId))
   }
 
   // Add selected repositories to board
@@ -153,7 +159,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       setAddError(null)
 
       // Server Action: Add repositories to board with duplicate detection
-      const result = await addRepositoriesToBoard(boardId, statusId, selectedRepos)
+      const result = await addRepositoriesToBoard(
+        boardId,
+        statusId,
+        selectedRepos,
+      )
 
       if (!result.success) {
         setAddError(result.errors?.join(', ') || 'Failed to add repositories')
@@ -177,7 +187,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
         onQuickNoteFocus()
       }, 100)
     } catch (err) {
-      setAddError(err instanceof Error ? err.message : 'Error adding repositories')
+      setAddError(
+        err instanceof Error ? err.message : 'Error adding repositories',
+      )
     } finally {
       setIsAdding(false)
     }
@@ -240,7 +252,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             {/* Visibility filter */}
             <select
               value={visibilityFilter}
-              onChange={(e) => setVisibilityFilter(e.target.value as 'all' | 'public' | 'private')}
+              onChange={(e) =>
+                setVisibilityFilter(
+                  e.target.value as 'all' | 'public' | 'private',
+                )
+              }
               className="visibility-filter"
               aria-label="Visibility filter"
             >
@@ -253,7 +269,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
           {/* Selected repositories badges */}
           {selectedRepos.length > 0 && (
             <div className="selected-repos">
-              {selectedRepos.map(repo => (
+              {selectedRepos.map((repo) => (
                 <span key={repo.id} className="repo-badge">
                   {repo.full_name}
                   <button
@@ -311,9 +327,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                     position: 'relative',
                   }}
                 >
-                  {rowVirtualizer.getVirtualItems().map(virtualItem => {
+                  {rowVirtualizer.getVirtualItems().map((virtualItem) => {
                     const repo = filteredRepositories[virtualItem.index]
-                    const isSelected = selectedRepos.some(r => r.id === repo.id)
+                    const isSelected = selectedRepos.some(
+                      (r) => r.id === repo.id,
+                    )
                     return (
                       <div
                         key={repo.id}
@@ -352,8 +370,8 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                   })}
                 </div>
               ) : (
-                filteredRepositories.map(repo => {
-                  const isSelected = selectedRepos.some(r => r.id === repo.id)
+                filteredRepositories.map((repo) => {
+                  const isSelected = selectedRepos.some((r) => r.id === repo.id)
                   return (
                     <div
                       key={repo.id}
@@ -386,11 +404,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
           )}
 
           {/* No results */}
-          {!isLoading && debouncedQuery && filteredRepositories.length === 0 && (
-            <div className="no-results">
-              No repositories found
-            </div>
-          )}
+          {!isLoading &&
+            debouncedQuery &&
+            filteredRepositories.length === 0 && (
+              <div className="no-results">No repositories found</div>
+            )}
 
           {/* Add button */}
           <div className="actions">

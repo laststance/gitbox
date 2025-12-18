@@ -50,7 +50,7 @@ export async function createClient() {
           }
         },
       },
-    }
+    },
   )
 }
 
@@ -87,7 +87,7 @@ export async function createRouteHandlerClient(_request: Request) {
           cookieStore.set({ name, value: '', ...options })
         },
       },
-    }
+    },
   )
 }
 
@@ -131,7 +131,7 @@ export async function createServerActionClient() {
           cookieStore.set({ name, value: '', ...options })
         },
       },
-    }
+    },
   )
 }
 

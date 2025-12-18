@@ -1,38 +1,43 @@
-"use client";
+'use client'
 
-import React, { memo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import React, { memo } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Pencil, Trash2, Plus } from "lucide-react";
-import { RepoCard } from "./RepoCard";
-import type { StatusListDomain, RepoCardForRedux } from "@/lib/models/domain";
+} from '@/components/ui/dropdown-menu'
+import { MoreHorizontal, Pencil, Trash2, Plus } from 'lucide-react'
+import { RepoCard } from './RepoCard'
+import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 
 // Types: Using Domain types for type-safe state management
 interface StatusColumnProps {
-  status: StatusListDomain;
-  cards: RepoCardForRedux[];
-  onEdit?: (id: string) => void;
-  onMaintenance?: (id: string) => void;
-  onEditStatus?: (status: StatusListDomain) => void;
-  onDeleteStatus?: (statusId: string) => void;
-  onAddCard?: (statusId: string) => void;
+  status: StatusListDomain
+  cards: RepoCardForRedux[]
+  onEdit?: (id: string) => void
+  onMaintenance?: (id: string) => void
+  onEditStatus?: (status: StatusListDomain) => void
+  onDeleteStatus?: (statusId: string) => void
+  onAddCard?: (statusId: string) => void
 }
 
 export const StatusColumn = memo<StatusColumnProps>(
-  ({ status, cards, onEdit, onMaintenance, onEditStatus, onDeleteStatus, onAddCard }) => {
-    const cardIds = cards.map((c) => c.id);
-    const isOverLimit = status.wipLimit > 0 && cards.length > status.wipLimit;
+  ({
+    status,
+    cards,
+    onEdit,
+    onMaintenance,
+    onEditStatus,
+    onDeleteStatus,
+    onAddCard,
+  }) => {
+    const cardIds = cards.map((c) => c.id)
+    const isOverLimit = status.wipLimit > 0 && cards.length > status.wipLimit
 
     return (
       <div
@@ -52,7 +57,7 @@ export const StatusColumn = memo<StatusColumnProps>(
           <div className="flex items-center gap-1">
             {status.wipLimit > 0 && (
               <Badge
-                variant={isOverLimit ? "destructive" : "secondary"}
+                variant={isOverLimit ? 'destructive' : 'secondary'}
                 className="text-xs"
                 data-testid="wip-limit-badge"
               >
@@ -131,10 +136,10 @@ export const StatusColumn = memo<StatusColumnProps>(
           </div>
         )}
       </div>
-    );
-  }
-);
+    )
+  },
+)
 
-StatusColumn.displayName = "StatusColumn";
+StatusColumn.displayName = 'StatusColumn'
 
-export default StatusColumn;
+export default StatusColumn

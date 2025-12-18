@@ -1,44 +1,39 @@
-"use client";
+'use client'
 
-import React, { memo, useState } from "react";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Calendar,
-  GripVertical,
-  MessageCircle,
-  Paperclip,
-} from "lucide-react";
-import { OverflowMenu } from "./OverflowMenu";
+import React, { memo, useState } from 'react'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Calendar, GripVertical, MessageCircle, Paperclip } from 'lucide-react'
+import { OverflowMenu } from './OverflowMenu'
 
 // Types
 interface RepoCardData {
-  id: string;
-  title: string;
-  description?: string;
-  priority?: "low" | "medium" | "high";
+  id: string
+  title: string
+  description?: string
+  priority?: 'low' | 'medium' | 'high'
   assignee?: {
-    name: string;
-    avatar: string;
-  };
-  tags?: string[];
-  dueDate?: string;
-  attachments?: number;
-  comments?: number;
-  statusId: string;
+    name: string
+    avatar: string
+  }
+  tags?: string[]
+  dueDate?: string
+  attachments?: number
+  comments?: number
+  statusId: string
   /** GitHub repository owner */
-  repoOwner?: string;
+  repoOwner?: string
   /** GitHub repository name */
-  repoName?: string;
+  repoName?: string
 }
 
 interface RepoCardProps {
-  card: RepoCardData;
-  onEdit?: (id: string) => void;
-  onMaintenance?: (id: string) => void;
+  card: RepoCardData
+  onEdit?: (id: string) => void
+  onMaintenance?: (id: string) => void
 }
 
 export const RepoCard = memo<RepoCardProps>(
@@ -50,15 +45,15 @@ export const RepoCard = memo<RepoCardProps>(
       transform,
       transition,
       isDragging,
-    } = useSortable({ id: card.id });
+    } = useSortable({ id: card.id })
 
-    const [menuOpen, setMenuOpen] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false)
 
     const style = {
       transform: CSS.Transform.toString(transform),
       transition,
       opacity: isDragging ? 0.5 : 1,
-    };
+    }
 
     /**
      * キーボードナビゲーションハンドラー
@@ -68,23 +63,23 @@ export const RepoCard = memo<RepoCardProps>(
      */
     const handleKeyDown = (e: React.KeyboardEvent) => {
       // Enter: デフォルトアクション (Project Infoモーダルを開く)
-      if (e.key === "Enter" && onEdit) {
-        e.preventDefault();
-        onEdit(card.id);
+      if (e.key === 'Enter' && onEdit) {
+        e.preventDefault()
+        onEdit(card.id)
       }
 
       // . (ピリオド): Overflow menuを開閉
-      if (e.key === "." || e.key === "Period") {
-        e.preventDefault();
-        setMenuOpen((prev) => !prev);
+      if (e.key === '.' || e.key === 'Period') {
+        e.preventDefault()
+        setMenuOpen((prev) => !prev)
       }
 
       // Escape: Overflow menuを閉じる
-      if (e.key === "Escape" && menuOpen) {
-        e.preventDefault();
-        setMenuOpen(false);
+      if (e.key === 'Escape' && menuOpen) {
+        e.preventDefault()
+        setMenuOpen(false)
       }
-    };
+    }
 
     return (
       <div ref={setNodeRef} style={style} data-testid="repo-card">
@@ -141,9 +136,9 @@ export const RepoCard = memo<RepoCardProps>(
                     <div className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
                       <span className="text-xs font-medium">
-                        {new Date(card.dueDate).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
+                        {new Date(card.dueDate).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
                         })}
                       </span>
                     </div>
@@ -169,11 +164,14 @@ export const RepoCard = memo<RepoCardProps>(
                 {card.assignee && (
                   <Avatar className="w-7 h-7 ring-2 ring-background">
                     <AvatarImage src={card.assignee.avatar} />
-                    <AvatarFallback className="text-xs" data-testid="repo-owner">
+                    <AvatarFallback
+                      className="text-xs"
+                      data-testid="repo-owner"
+                    >
                       {card.assignee.name
-                        .split(" ")
+                        .split(' ')
                         .map((n) => n[0])
-                        .join("")}
+                        .join('')}
                     </AvatarFallback>
                   </Avatar>
                 )}
@@ -182,10 +180,10 @@ export const RepoCard = memo<RepoCardProps>(
           </CardContent>
         </Card>
       </div>
-    );
-  }
-);
+    )
+  },
+)
 
-RepoCard.displayName = "RepoCard";
+RepoCard.displayName = 'RepoCard'
 
-export default RepoCard;
+export default RepoCard

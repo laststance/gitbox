@@ -16,39 +16,39 @@
  *   - Pattern C: External (1Password/Bitwarden参照)
  */
 
-'use server';
+'use server'
 
-import { createClient } from '@/lib/supabase/server';
-import { TablesInsert, Tables, TablesUpdate } from '@/lib/supabase/types';
-import { revalidatePath } from 'next/cache';
+import { createClient } from '@/lib/supabase/server'
+import { TablesInsert, Tables, TablesUpdate } from '@/lib/supabase/types'
+import { revalidatePath } from 'next/cache'
 
-type ProjectInfoRow = Tables<'projectinfo'>;
-type ProjectInfoInsert = TablesInsert<'projectinfo'>;
-type ProjectInfoUpdate = TablesUpdate<'projectinfo'>;
-type CredentialRow = Tables<'credential'>;
-type CredentialInsert = TablesInsert<'credential'>;
+type ProjectInfoRow = Tables<'projectinfo'>
+type ProjectInfoInsert = TablesInsert<'projectinfo'>
+type ProjectInfoUpdate = TablesUpdate<'projectinfo'>
+type CredentialRow = Tables<'credential'>
+type CredentialInsert = TablesInsert<'credential'>
 
 export interface ProjectLink {
-  url: string;
-  type: 'production' | 'tracking' | 'supabase';
+  url: string
+  type: 'production' | 'tracking' | 'supabase'
 }
 
 export interface Credential {
-  id?: string;
-  type: 'reference' | 'encrypted' | 'external';
-  name: string;
-  reference?: string;
-  encrypted_value?: string;
-  encryption_key_id?: string;
-  masked_display?: string;
-  location?: string;
-  note?: string;
+  id?: string
+  type: 'reference' | 'encrypted' | 'external'
+  name: string
+  reference?: string
+  encrypted_value?: string
+  encryption_key_id?: string
+  masked_display?: string
+  location?: string
+  note?: string
 }
 
 export interface ProjectInfoData {
-  quickNote: string;
-  links: ProjectLink[];
-  credentials?: Credential[];
+  quickNote: string
+  links: ProjectLink[]
+  credentials?: Credential[]
 }
 
 /**
@@ -56,27 +56,27 @@ export interface ProjectInfoData {
  */
 function validateQuickNote(note: string): boolean {
   if (note.length > 300) {
-    throw new Error('Quick note must be 300 characters or less');
+    throw new Error('Quick note must be 300 characters or less')
   }
-  return true;
+  return true
 }
 
 /**
  * URLのバリデーション
  */
 function validateUrl(url: string): boolean {
-  if (!url) return true; // 空のURLは許可（フィルタリングされる）
+  if (!url) return true // 空のURLは許可（フィルタリングされる）
 
-  const urlRegex = /^https?:\/\/.+/;
+  const urlRegex = /^https?:\/\/.+/
   if (!urlRegex.test(url)) {
-    throw new Error('URL must start with http:// or https://');
+    throw new Error('URL must start with http:// or https://')
   }
 
   try {
-    new URL(url);
-    return true;
+    new URL(url)
+    return true
   } catch {
-    throw new Error('Invalid URL format');
+    throw new Error('Invalid URL format')
   }
 }
 
@@ -89,7 +89,7 @@ function escapeHtml(unsafe: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replace(/'/g, '&#039;')
 }
 
 /**
@@ -98,25 +98,27 @@ function escapeHtml(unsafe: string): string {
 function validateCredential(credential: Credential): boolean {
   // 名前は必須
   if (!credential.name || credential.name.trim().length === 0) {
-    throw new Error('Credential name is required');
+    throw new Error('Credential name is required')
   }
 
   // 名前の長さ制限 (100文字)
   if (credential.name.length > 100) {
-    throw new Error('Credential name must be 100 characters or less');
+    throw new Error('Credential name must be 100 characters or less')
   }
 
   // Pattern A: Reference - referenceフィールド必須
   if (credential.type === 'reference') {
     if (credential.reference) {
-      validateUrl(credential.reference);
+      validateUrl(credential.reference)
     }
   }
 
   // Pattern B: Encrypted - encrypted_valueまたはmasked_displayが必要
   if (credential.type === 'encrypted') {
     if (!credential.encrypted_value && !credential.masked_display) {
-      throw new Error('Encrypted credential must have encrypted_value or masked_display');
+      throw new Error(
+        'Encrypted credential must have encrypted_value or masked_display',
+      )
     }
   }
 
@@ -125,73 +127,92 @@ function validateCredential(credential: Credential): boolean {
 
   // Noteは任意、長さ制限 (500文字)
   if (credential.note && credential.note.length > 500) {
-    throw new Error('Credential note must be 500 characters or less');
+    throw new Error('Credential note must be 500 characters or less')
   }
 
-  return true;
+  return true
 }
 
 /**
  * Project Info取得
  */
 export async function getProjectInfo(
-  repoCardId: string
+  repoCardId: string,
 ): Promise<ProjectInfoData | null> {
-  const supabase = await createClient();
+  const supabase = await createClient()
 
   const { data: projectInfo, error: infoError } = await supabase
     .from('projectinfo')
     .select('*')
     .eq('repo_card_id', repoCardId)
-    .single<ProjectInfoRow>();
+    .single<ProjectInfoRow>()
 
   if (infoError) {
     if (infoError.code === 'PGRST116') {
       // データが存在しない場合は空の状態を返す
-      return { quickNote: '', links: [], credentials: [] };
+      return { quickNote: '', links: [], credentials: [] }
     }
-    console.error('Failed to fetch project info:', infoError);
-    throw new Error('Failed to fetch project information');
+    console.error('Failed to fetch project info:', infoError)
+    throw new Error('Failed to fetch project information')
   }
 
   // linksをJsonから配列に変換
-  type LinksJson = { production?: string[]; tracking?: string[]; supabase?: string[] };
-  const linksData = (projectInfo.links as LinksJson | null) || { production: [], tracking: [], supabase: [] };
+  type LinksJson = {
+    production?: string[]
+    tracking?: string[]
+    supabase?: string[]
+  }
+  const linksData = (projectInfo.links as LinksJson | null) || {
+    production: [],
+    tracking: [],
+    supabase: [],
+  }
   const linksArray: ProjectInfoData['links'] = [
-    ...(linksData.production || []).map((url: string) => ({ url, type: 'production' as const })),
-    ...(linksData.tracking || []).map((url: string) => ({ url, type: 'tracking' as const })),
-    ...(linksData.supabase || []).map((url: string) => ({ url, type: 'supabase' as const })),
-  ];
+    ...(linksData.production || []).map((url: string) => ({
+      url,
+      type: 'production' as const,
+    })),
+    ...(linksData.tracking || []).map((url: string) => ({
+      url,
+      type: 'tracking' as const,
+    })),
+    ...(linksData.supabase || []).map((url: string) => ({
+      url,
+      type: 'supabase' as const,
+    })),
+  ]
 
   // Credentialsを取得
   const { data: credentials, error: credError } = await supabase
     .from('credential')
     .select('*')
-    .eq('project_info_id', projectInfo.id);
+    .eq('project_info_id', projectInfo.id)
 
   if (credError) {
-    console.error('Failed to fetch credentials:', credError);
+    console.error('Failed to fetch credentials:', credError)
     // Credentialsの取得失敗は致命的ではないため、空配列を返す
   }
 
   // Credentialsをインターフェースに変換
-  const credentialsArray: Credential[] = (credentials || []).map((cred: CredentialRow) => ({
-    id: cred.id,
-    type: cred.type as 'reference' | 'encrypted' | 'external',
-    name: cred.name,
-    reference: cred.reference || undefined,
-    encrypted_value: cred.encrypted_value || undefined,
-    encryption_key_id: cred.encryption_key_id || undefined,
-    masked_display: cred.masked_display || undefined,
-    location: cred.location || undefined,
-    note: cred.note || undefined,
-  }));
+  const credentialsArray: Credential[] = (credentials || []).map(
+    (cred: CredentialRow) => ({
+      id: cred.id,
+      type: cred.type as 'reference' | 'encrypted' | 'external',
+      name: cred.name,
+      reference: cred.reference || undefined,
+      encrypted_value: cred.encrypted_value || undefined,
+      encryption_key_id: cred.encryption_key_id || undefined,
+      masked_display: cred.masked_display || undefined,
+      location: cred.location || undefined,
+      note: cred.note || undefined,
+    }),
+  )
 
   return {
     quickNote: projectInfo.quick_note || '',
     links: linksArray,
     credentials: credentialsArray,
-  };
+  }
 }
 
 /**
@@ -199,34 +220,36 @@ export async function getProjectInfo(
  */
 export async function upsertProjectInfo(
   repoCardId: string,
-  data: ProjectInfoData
+  data: ProjectInfoData,
 ): Promise<void> {
-  const supabase = await createClient();
+  const supabase = await createClient()
 
   // バリデーション
-  validateQuickNote(data.quickNote);
+  validateQuickNote(data.quickNote)
   data.links.forEach((link) => {
     if (link.url) {
-      validateUrl(link.url);
+      validateUrl(link.url)
     }
-  });
+  })
 
   // Credentialsのバリデーション
   if (data.credentials) {
     data.credentials.forEach((credential) => {
-      validateCredential(credential);
-    });
+      validateCredential(credential)
+    })
   }
 
   // XSSエスケープ
-  const escapedNote = escapeHtml(data.quickNote);
+  const escapedNote = escapeHtml(data.quickNote)
 
   // linksを型に合わせて変換
   const linksJson = {
-    production: data.links.filter(l => l.type === 'production').map(l => l.url),
-    tracking: data.links.filter(l => l.type === 'tracking').map(l => l.url),
-    supabase: data.links.filter(l => l.type === 'supabase').map(l => l.url),
-  };
+    production: data.links
+      .filter((l) => l.type === 'production')
+      .map((l) => l.url),
+    tracking: data.links.filter((l) => l.type === 'tracking').map((l) => l.url),
+    supabase: data.links.filter((l) => l.type === 'supabase').map((l) => l.url),
+  }
 
   try {
     // project_info の upsert
@@ -234,27 +257,27 @@ export async function upsertProjectInfo(
       .from('projectinfo')
       .select('id')
       .eq('repo_card_id', repoCardId)
-      .single<{ id: string }>();
+      .single<{ id: string }>()
 
-    let projectInfoId: string;
+    let projectInfoId: string
 
     if (existingInfo) {
       // 更新
-      projectInfoId = existingInfo.id;
+      projectInfoId = existingInfo.id
       const updateData: ProjectInfoUpdate = {
         quick_note: escapedNote,
         links: linksJson,
         updated_at: new Date().toISOString(),
-      };
+      }
 
       const { error: updateError } = await supabase
         .from('projectinfo')
         .update(updateData)
-        .eq('id', existingInfo.id);
+        .eq('id', existingInfo.id)
 
       if (updateError) {
-        console.error('Failed to update project info:', updateError);
-        throw new Error('Failed to update project information');
+        console.error('Failed to update project info:', updateError)
+        throw new Error('Failed to update project information')
       }
     } else {
       // 新規作成
@@ -262,20 +285,20 @@ export async function upsertProjectInfo(
         repo_card_id: repoCardId,
         quick_note: escapedNote,
         links: linksJson,
-      };
+      }
 
       const { data: newProjectInfo, error: createError } = await supabase
         .from('projectinfo')
         .insert(insertData)
         .select('id')
-        .single<{ id: string }>();
+        .single<{ id: string }>()
 
       if (createError || !newProjectInfo) {
-        console.error('Failed to create project info:', createError);
-        throw new Error('Failed to create project information');
+        console.error('Failed to create project info:', createError)
+        throw new Error('Failed to create project information')
       }
 
-      projectInfoId = newProjectInfo.id;
+      projectInfoId = newProjectInfo.id
     }
 
     // Credentials の処理
@@ -284,26 +307,28 @@ export async function upsertProjectInfo(
       const { data: existingCredentials } = await supabase
         .from('credential')
         .select('id')
-        .eq('project_info_id', projectInfoId);
+        .eq('project_info_id', projectInfoId)
 
-      const existingCredentialIds = new Set((existingCredentials || []).map(c => c.id));
+      const existingCredentialIds = new Set(
+        (existingCredentials || []).map((c) => c.id),
+      )
       const submittedCredentialIds = new Set(
-        data.credentials.filter(c => c.id).map(c => c.id!)
-      );
+        data.credentials.filter((c) => c.id).map((c) => c.id!),
+      )
 
       // 削除: 送信されなかったCredentialsを削除
       const credentialsToDelete = Array.from(existingCredentialIds).filter(
-        id => !submittedCredentialIds.has(id)
-      );
+        (id) => !submittedCredentialIds.has(id),
+      )
 
       if (credentialsToDelete.length > 0) {
         const { error: deleteError } = await supabase
           .from('credential')
           .delete()
-          .in('id', credentialsToDelete);
+          .in('id', credentialsToDelete)
 
         if (deleteError) {
-          console.error('Failed to delete credentials:', deleteError);
+          console.error('Failed to delete credentials:', deleteError)
         }
       }
 
@@ -313,47 +338,51 @@ export async function upsertProjectInfo(
           project_info_id: projectInfoId,
           type: credential.type,
           name: escapeHtml(credential.name),
-          reference: credential.reference ? escapeHtml(credential.reference) : null,
+          reference: credential.reference
+            ? escapeHtml(credential.reference)
+            : null,
           encrypted_value: credential.encrypted_value || null,
           encryption_key_id: credential.encryption_key_id || null,
           masked_display: credential.masked_display || null,
-          location: credential.location ? escapeHtml(credential.location) : null,
+          location: credential.location
+            ? escapeHtml(credential.location)
+            : null,
           note: credential.note ? escapeHtml(credential.note) : null,
-        };
+        }
 
         if (credential.id && existingCredentialIds.has(credential.id)) {
           // 更新
           const { error: updateCredError } = await supabase
             .from('credential')
             .update(credentialData)
-            .eq('id', credential.id);
+            .eq('id', credential.id)
 
           if (updateCredError) {
-            console.error('Failed to update credential:', updateCredError);
-            throw new Error(`Failed to update credential: ${credential.name}`);
+            console.error('Failed to update credential:', updateCredError)
+            throw new Error(`Failed to update credential: ${credential.name}`)
           }
         } else {
           // 新規作成
           const { error: insertCredError } = await supabase
             .from('credential')
-            .insert(credentialData as CredentialInsert);
+            .insert(credentialData as CredentialInsert)
 
           if (insertCredError) {
-            console.error('Failed to insert credential:', insertCredError);
-            throw new Error(`Failed to create credential: ${credential.name}`);
+            console.error('Failed to insert credential:', insertCredError)
+            throw new Error(`Failed to create credential: ${credential.name}`)
           }
         }
       }
     }
 
     // キャッシュ無効化
-    revalidatePath('/board');
-    revalidatePath(`/board/${repoCardId}`);
+    revalidatePath('/board')
+    revalidatePath(`/board/${repoCardId}`)
   } catch (error) {
     if (error instanceof Error) {
-      throw error;
+      throw error
     }
-    throw new Error('An error occurred while saving project information');
+    throw new Error('An error occurred while saving project information')
   }
 }
 
@@ -361,29 +390,29 @@ export async function upsertProjectInfo(
  * Project Info削除
  */
 export async function deleteProjectInfo(repoCardId: string): Promise<void> {
-  const supabase = await createClient();
+  const supabase = await createClient()
 
   const { data: projectInfo } = await supabase
     .from('projectinfo')
     .select('id')
     .eq('repo_card_id', repoCardId)
-    .single<{ id: string }>();
+    .single<{ id: string }>()
 
   if (!projectInfo) {
-    return; // データが存在しない場合は何もしない
+    return // データが存在しない場合は何もしない
   }
 
   const { error } = await supabase
     .from('projectinfo')
     .delete()
-    .eq('id', projectInfo.id);
+    .eq('id', projectInfo.id)
 
   if (error) {
-    console.error('Failed to delete project info:', error);
-    throw new Error('Failed to delete project information');
+    console.error('Failed to delete project info:', error)
+    throw new Error('Failed to delete project information')
   }
 
   // キャッシュ無効化
-  revalidatePath('/board');
-  revalidatePath(`/board/${repoCardId}`);
+  revalidatePath('/board')
+  revalidatePath(`/board/${repoCardId}`)
 }

@@ -13,16 +13,16 @@
  * - Restore to Board (Maintenance only)
  */
 
-"use client";
+'use client'
 
-import React, { memo } from "react";
+import React, { memo } from 'react'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu'
 import {
   MoreVertical,
   Github,
@@ -32,22 +32,22 @@ import {
   Edit,
   Archive,
   RotateCcw,
-} from "lucide-react";
+} from 'lucide-react'
 
 interface OverflowMenuProps {
-  cardId: string;
-  repoOwner?: string;
-  repoName?: string;
-  productionUrl?: string;
-  trackingUrl?: string;
-  supabaseUrl?: string;
-  onEdit?: (id: string) => void;
-  onMoveToMaintenance?: (id: string) => void;
-  onRestoreToBoard?: (id: string) => void;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
+  cardId: string
+  repoOwner?: string
+  repoName?: string
+  productionUrl?: string
+  trackingUrl?: string
+  supabaseUrl?: string
+  onEdit?: (id: string) => void
+  onMoveToMaintenance?: (id: string) => void
+  onRestoreToBoard?: (id: string) => void
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
   /** Board or Maintenance context */
-  context?: 'board' | 'maintenance';
+  context?: 'board' | 'maintenance'
 }
 
 export const OverflowMenu = memo<OverflowMenuProps>(
@@ -65,13 +65,14 @@ export const OverflowMenu = memo<OverflowMenuProps>(
     onOpenChange,
     context = 'board',
   }) => {
-    const githubUrl = repoOwner && repoName
-      ? `https://github.com/${repoOwner}/${repoName}`
-      : null;
+    const githubUrl =
+      repoOwner && repoName
+        ? `https://github.com/${repoOwner}/${repoName}`
+        : null
 
     const handleOpenUrl = (url: string) => {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    };
+      window.open(url, '_blank', 'noopener,noreferrer')
+    }
 
     return (
       <DropdownMenu open={open} onOpenChange={onOpenChange}>
@@ -171,10 +172,10 @@ export const OverflowMenu = memo<OverflowMenuProps>(
           )}
         </DropdownMenuContent>
       </DropdownMenu>
-    );
-  }
-);
+    )
+  },
+)
 
-OverflowMenu.displayName = "OverflowMenu";
+OverflowMenu.displayName = 'OverflowMenu'
 
-export default OverflowMenu;
+export default OverflowMenu

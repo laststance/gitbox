@@ -31,7 +31,8 @@ export const translations = {
     },
     landing: {
       title: 'Manage GitHub Repos Like Never Before',
-      subtitle: 'A beautiful Kanban board for organizing your GitHub repositories',
+      subtitle:
+        'A beautiful Kanban board for organizing your GitHub repositories',
       getStarted: 'Get Started',
       signIn: 'Sign in with GitHub',
     },
@@ -62,7 +63,8 @@ export const translations = {
       description: 'Archived and maintenance projects',
       items: 'items',
       noProjects: 'No maintenance projects',
-      noProjectsDescription: 'Move projects here from your boards when they are archived',
+      noProjectsDescription:
+        'Move projects here from your boards when they are archived',
       searchRepos: 'Search repositories...',
     },
     settings: {
@@ -80,7 +82,8 @@ export const translations = {
       showMetadata: 'Show Card Metadata',
       showMetadataDescription: 'Display stars, language, and last updated',
       wipWarnings: 'WIP Limit Warnings',
-      wipWarningsDescription: 'Show visual warnings when WIP limits are exceeded',
+      wipWarningsDescription:
+        'Show visual warnings when WIP limits are exceeded',
       typography: 'Typography',
       typographyDescription: 'Adjust text size for better readability',
       fontSize: 'Base Font Size',
@@ -199,7 +202,8 @@ export const translations = {
       description: 'アーカイブ済み・保守中のプロジェクト',
       items: '件',
       noProjects: 'メンテナンスプロジェクトがありません',
-      noProjectsDescription: 'ボードからプロジェクトをここに移動してアーカイブできます',
+      noProjectsDescription:
+        'ボードからプロジェクトをここに移動してアーカイブできます',
       searchRepos: 'リポジトリを検索...',
     },
     settings: {
@@ -260,7 +264,8 @@ export const translations = {
       name: '名前',
       color: '色',
       wipLimit: 'WIP制限 (オプション)',
-      wipLimitDescription: '作業中アイテムの制限。制限なしの場合は空にしてください。',
+      wipLimitDescription:
+        '作業中アイテムの制限。制限なしの場合は空にしてください。',
       saveChanges: '変更を保存',
     },
     themes: {
@@ -279,10 +284,7 @@ export const translations = {
       followSystem: 'システム設定に従う',
     },
   },
-} as const;
+} as const
 
-export type Language = keyof typeof translations;
-export type TranslationKeys = typeof translations.en;
-
-
-
+export type Language = keyof typeof translations
+export type TranslationKeys = typeof translations.en

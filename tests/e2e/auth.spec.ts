@@ -10,9 +10,13 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('User Story 1: GitHub Login Flow', () => {
-  test('Landing page displays "Sign in with GitHub" button', async ({ page }) => {
+  test('Landing page displays "Sign in with GitHub" button', async ({
+    page,
+  }) => {
     await page.goto('http://localhost:3008/login')
-    const signInButton = page.getByRole('button', { name: /Sign in with GitHub/i })
+    const signInButton = page.getByRole('button', {
+      name: /Sign in with GitHub/i,
+    })
     await expect(signInButton).toBeVisible()
   })
 })

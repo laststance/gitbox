@@ -177,7 +177,9 @@ describe('createStorageMiddleware', () => {
   })
 
   it('LocalStorage エラー時にコンソールエラーを出力', async () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {})
     const storageKey = 'test-error'
 
     // setItem が失敗するようにモック
@@ -205,7 +207,7 @@ describe('createStorageMiddleware', () => {
     // エラーログが出力されたことを確認
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       'Failed to save state to localStorage:',
-      expect.any(Error)
+      expect.any(Error),
     )
 
     consoleErrorSpy.mockRestore()
@@ -234,7 +236,9 @@ describe('loadStateFromStorage', () => {
   })
 
   it('JSON パースエラー時に null を返し、エラーログを出力', () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {})
     const storageKey = 'test-invalid-json'
 
     localStorage.setItem(storageKey, 'invalid json')
@@ -243,14 +247,16 @@ describe('loadStateFromStorage', () => {
     expect(loaded).toBeNull()
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       'Failed to load state from localStorage:',
-      expect.any(Error)
+      expect.any(Error),
     )
 
     consoleErrorSpy.mockRestore()
   })
 
   it('getItem エラー時に null を返し、エラーログを出力', () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {})
     const storageKey = 'test-getitem-error'
 
     vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
@@ -261,7 +267,7 @@ describe('loadStateFromStorage', () => {
     expect(loaded).toBeNull()
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       'Failed to load state from localStorage:',
-      expect.any(Error)
+      expect.any(Error),
     )
 
     consoleErrorSpy.mockRestore()
@@ -286,7 +292,9 @@ describe('clearStorageState', () => {
   })
 
   it('removeItem エラー時にエラーログを出力', () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {})
     const storageKey = 'test-remove-error'
 
     vi.spyOn(localStorage, 'removeItem').mockImplementation(() => {
@@ -297,7 +305,7 @@ describe('clearStorageState', () => {
 
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       'Failed to clear state from localStorage:',
-      expect.any(Error)
+      expect.any(Error),
     )
 
     consoleErrorSpy.mockRestore()
@@ -331,7 +339,9 @@ describe('Integration Test: Store with Middleware', () => {
     })
 
     // Store 作成（preloadedState で復元）
-    const loaded = loadStateFromStorage(storageKey) as { test: TestState } | null
+    const loaded = loadStateFromStorage(storageKey) as {
+      test: TestState
+    } | null
     const store = configureStore({
       reducer: {
         test: testSlice.reducer,

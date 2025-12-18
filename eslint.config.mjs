@@ -78,7 +78,13 @@ export default defineConfig([
     },
   },
   {
-    files: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx', 'tests/**/*'],
+    files: [
+      '**/*.test.ts',
+      '**/*.test.tsx',
+      '**/*.spec.ts',
+      '**/*.spec.tsx',
+      'tests/**/*',
+    ],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
     },

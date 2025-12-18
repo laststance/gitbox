@@ -12,12 +12,12 @@
  * - Profile & Sign out
  */
 
-'use client';
+'use client'
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
+import React, { useState } from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
   Star,
@@ -29,15 +29,15 @@ import {
   ChevronDown,
   ChevronRight,
   Github,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { signOut } from '@/lib/actions/auth';
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { signOut } from '@/lib/actions/auth'
 
 interface NavItemProps {
-  href: string;
-  icon: React.ReactNode;
-  label: string;
-  isActive: boolean;
+  href: string
+  icon: React.ReactNode
+  label: string
+  isActive: boolean
 }
 
 /**
@@ -51,30 +51,30 @@ const NavItem: React.FC<NavItemProps> = ({ href, icon, label, isActive }) => {
         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
         isActive
           ? 'bg-primary/10 text-primary'
-          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
       )}
     >
       {icon}
       <span>{label}</span>
     </Link>
-  );
-};
+  )
+}
 
 interface SidebarProps {
-  userName?: string;
-  userAvatar?: string;
+  userName?: string
+  userAvatar?: string
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   userName = 'User',
   userAvatar,
 }) => {
-  const pathname = usePathname();
-  const [boardsExpanded, setBoardsExpanded] = useState(true);
+  const pathname = usePathname()
+  const [boardsExpanded, setBoardsExpanded] = useState(true)
 
   const handleSignOut = async () => {
-    await signOut();
-  };
+    await signOut()
+  }
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r border-border bg-sidebar text-sidebar-foreground">
@@ -127,7 +127,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           href="/maintenance"
           icon={<Archive className="h-4 w-4" />}
           label="Maintenance Mode"
-          isActive={pathname === '/maintenance' || pathname.startsWith('/maintenance/')}
+          isActive={
+            pathname === '/maintenance' || pathname.startsWith('/maintenance/')
+          }
         />
 
         {/* Divider */}
@@ -180,8 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </Button>
       </div>
     </aside>
-  );
-};
+  )
+}
 
-export default Sidebar;
-
+export default Sidebar

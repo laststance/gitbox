@@ -13,16 +13,16 @@
  * - アクセシブルなテーブル形式
  */
 
-"use client";
+'use client'
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/components/ui/dialog'
 import {
   Keyboard,
   Command,
@@ -30,23 +30,23 @@ import {
   RotateCcw,
   HelpCircle,
   MoreHorizontal,
-} from 'lucide-react';
+} from 'lucide-react'
 
 interface ShortcutItem {
-  key: string;
-  description: string;
-  icon: React.ReactNode;
-  category: string;
+  key: string
+  description: string
+  icon: React.ReactNode
+  category: string
 }
 
 interface ShortcutsHelpProps {
-  defaultOpen?: boolean;
+  defaultOpen?: boolean
 }
 
 export const ShortcutsHelp: React.FC<ShortcutsHelpProps> = ({
   defaultOpen = false,
 }) => {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [isOpen, setIsOpen] = useState(defaultOpen)
 
   /**
    * ショートカット定義
@@ -89,18 +89,21 @@ export const ShortcutsHelp: React.FC<ShortcutsHelpProps> = ({
       icon: <Command className="w-4 h-4" />,
       category: 'ナビゲーション',
     },
-  ];
+  ]
 
   /**
    * カテゴリ別にグループ化
    */
-  const groupedShortcuts = shortcuts.reduce((acc, shortcut) => {
-    if (!acc[shortcut.category]) {
-      acc[shortcut.category] = [];
-    }
-    acc[shortcut.category].push(shortcut);
-    return acc;
-  }, {} as Record<string, ShortcutItem[]>);
+  const groupedShortcuts = shortcuts.reduce(
+    (acc, shortcut) => {
+      if (!acc[shortcut.category]) {
+        acc[shortcut.category] = []
+      }
+      acc[shortcut.category].push(shortcut)
+      return acc
+    },
+    {} as Record<string, ShortcutItem[]>,
+  )
 
   /**
    * キーボードイベントハンドラー
@@ -115,22 +118,22 @@ export const ShortcutsHelp: React.FC<ShortcutsHelpProps> = ({
         !event.ctrlKey &&
         !event.altKey
       ) {
-        const target = event.target as HTMLElement;
+        const target = event.target as HTMLElement
         if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
-          event.preventDefault();
-          setIsOpen((prev) => !prev);
+          event.preventDefault()
+          setIsOpen((prev) => !prev)
         }
       }
 
       // ESCキーで閉じる
       if (event.key === 'Escape' && isOpen) {
-        setIsOpen(false);
+        setIsOpen(false)
       }
-    };
+    }
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen])
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -206,7 +209,7 @@ export const ShortcutsHelp: React.FC<ShortcutsHelpProps> = ({
         </div>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}
 
-export default ShortcutsHelp;
+export default ShortcutsHelp

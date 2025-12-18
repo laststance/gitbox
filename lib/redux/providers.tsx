@@ -21,17 +21,19 @@ import { supabase } from '@/lib/supabase/client'
  */
 function AuthSync({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-
     // 初期セッション取得
     const initSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession()
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession()
         if (error) {
           console.error('Failed to get session:', error)
           store.dispatch(setLoading(false))
           return
         }
-        
+
         if (session) {
           store.dispatch(setSession(session))
           store.dispatch(setUser(session.user))
@@ -47,17 +49,17 @@ function AuthSync({ children }: { children: React.ReactNode }) {
     initSession()
 
     // セッション変更を監視
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session) {
-          store.dispatch(setSession(session))
-          store.dispatch(setUser(session.user))
-        } else {
-          store.dispatch(setSession(null))
-          store.dispatch(setUser(null))
-        }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        store.dispatch(setSession(session))
+        store.dispatch(setUser(session.user))
+      } else {
+        store.dispatch(setSession(null))
+        store.dispatch(setUser(null))
       }
-    )
+    })
 
     return () => {
       subscription.unsubscribe()
@@ -71,9 +73,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <Provider store={store}>
       <I18nProvider>
-        <AuthSync>
-          {children}
-        </AuthSync>
+        <AuthSync>{children}</AuthSync>
       </I18nProvider>
     </Provider>
   )

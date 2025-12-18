@@ -78,7 +78,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
         } catch (err) {
           console.error('Error fetching board data:', err)
           setError(
-            err instanceof Error ? err.message : 'Failed to load board data'
+            err instanceof Error ? err.message : 'Failed to load board data',
           )
         } finally {
           setIsLoading(false)
@@ -107,7 +107,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
         alert(
           `Failed to delete card: ${
             err instanceof Error ? err.message : 'Unknown error'
-          }`
+          }`,
         )
       }
     }
@@ -118,9 +118,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
         <div className="flex h-96 items-center justify-center">
           <div className="text-center">
             <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600" />
-            <p className="text-gray-600 dark:text-gray-400">
-              Loading board...
-            </p>
+            <p className="text-gray-600 dark:text-gray-400">Loading board...</p>
           </div>
         </div>
       )
@@ -190,7 +188,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           {statusLists.map((status) => {
             // この列に属するカードをフィルター
             const columnCards = repoCards.filter(
-              (card) => card.status_id === status.id
+              (card) => card.status_id === status.id,
             )
 
             return (
@@ -207,7 +205,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
         </div>
       </div>
     )
-  }
+  },
 )
 
 KanbanBoard.displayName = 'KanbanBoard'

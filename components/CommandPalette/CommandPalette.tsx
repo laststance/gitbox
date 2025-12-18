@@ -7,11 +7,11 @@
  * - ショートカットアクセス
  */
 
-'use client';
+'use client'
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
   Home,
@@ -22,26 +22,26 @@ import {
   LogOut,
   Palette,
   Keyboard,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { signOut } from '@/lib/actions/auth';
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { signOut } from '@/lib/actions/auth'
 
 interface Command {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-  shortcut?: string;
-  action: () => void;
-  category: 'navigation' | 'actions' | 'settings';
+  id: string
+  label: string
+  icon: React.ReactNode
+  shortcut?: string
+  action: () => void
+  category: 'navigation' | 'actions' | 'settings'
 }
 
 export function CommandPalette() {
-  const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
+  const router = useRouter()
+  const [isOpen, setIsOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const [selectedIndex, setSelectedIndex] = useState(0)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
   const commands: Command[] = [
     // Navigation
@@ -92,9 +92,11 @@ export function CommandPalette() {
       icon: <Keyboard className="h-4 w-4" />,
       shortcut: '?',
       action: () => {
-        setIsOpen(false);
+        setIsOpen(false)
         // Show shortcuts modal (to be implemented)
-        alert('Keyboard Shortcuts:\n\n⌘K - Command Palette\n? - Shortcuts Help\nG B - Go to Boards\nG M - Go to Maintenance\nG S - Go to Settings\nN - New Board\nZ - Undo\n. - Card Menu');
+        alert(
+          'Keyboard Shortcuts:\n\n⌘K - Command Palette\n? - Shortcuts Help\nG B - Go to Boards\nG M - Go to Maintenance\nG S - Go to Settings\nN - New Board\nZ - Undo\n. - Card Menu',
+        )
       },
       category: 'settings',
     },
@@ -102,7 +104,8 @@ export function CommandPalette() {
       id: 'help',
       label: 'Help & Documentation',
       icon: <HelpCircle className="h-4 w-4" />,
-      action: () => window.open('https://github.com/laststance/gitbox', '_blank'),
+      action: () =>
+        window.open('https://github.com/laststance/gitbox', '_blank'),
       category: 'settings',
     },
     {
@@ -110,99 +113,106 @@ export function CommandPalette() {
       label: 'Sign Out',
       icon: <LogOut className="h-4 w-4" />,
       action: async () => {
-        await signOut();
-        router.push('/login');
+        await signOut()
+        router.push('/login')
       },
       category: 'settings',
     },
-  ];
+  ]
 
   // Filter commands based on search
   const filteredCommands = commands.filter((cmd) =>
-    cmd.label.toLowerCase().includes(search.toLowerCase())
-  );
+    cmd.label.toLowerCase().includes(search.toLowerCase()),
+  )
 
   // Group commands by category
-  const groupedCommands = filteredCommands.reduce((acc, cmd) => {
-    if (!acc[cmd.category]) {
-      acc[cmd.category] = [];
-    }
-    acc[cmd.category].push(cmd);
-    return acc;
-  }, {} as Record<string, Command[]>);
+  const groupedCommands = filteredCommands.reduce(
+    (acc, cmd) => {
+      if (!acc[cmd.category]) {
+        acc[cmd.category] = []
+      }
+      acc[cmd.category].push(cmd)
+      return acc
+    },
+    {} as Record<string, Command[]>,
+  )
 
   const categoryLabels: Record<string, string> = {
     navigation: 'Navigation',
     actions: 'Actions',
     settings: 'Settings',
-  };
+  }
 
   // Flatten for keyboard navigation
-  const flatCommands = Object.values(groupedCommands).flat();
+  const flatCommands = Object.values(groupedCommands).flat()
 
   // Open/close with ⌘K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setIsOpen((prev) => !prev);
-        setSearch('');
-        setSelectedIndex(0);
+        e.preventDefault()
+        setIsOpen((prev) => !prev)
+        setSearch('')
+        setSelectedIndex(0)
       }
 
       if (e.key === 'Escape') {
-        setIsOpen(false);
+        setIsOpen(false)
       }
-    };
+    }
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Focus input when opened
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      inputRef.current.focus();
+      inputRef.current.focus()
     }
-  }, [isOpen]);
+  }, [isOpen])
 
   // Keyboard navigation
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev + 1) % flatCommands.length);
+        e.preventDefault()
+        setSelectedIndex((prev) => (prev + 1) % flatCommands.length)
       } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev - 1 + flatCommands.length) % flatCommands.length);
+        e.preventDefault()
+        setSelectedIndex(
+          (prev) => (prev - 1 + flatCommands.length) % flatCommands.length,
+        )
       } else if (e.key === 'Enter' && flatCommands[selectedIndex]) {
-        e.preventDefault();
-        flatCommands[selectedIndex].action();
-        setIsOpen(false);
+        e.preventDefault()
+        flatCommands[selectedIndex].action()
+        setIsOpen(false)
       }
     },
-    [flatCommands, selectedIndex]
-  );
+    [flatCommands, selectedIndex],
+  )
 
   // Reset selected index when search changes
   useEffect(() => {
-    setSelectedIndex(0);
-  }, [search]);
+    setSelectedIndex(0)
+  }, [search])
 
   // Scroll selected item into view
   useEffect(() => {
     if (listRef.current) {
-      const selectedElement = listRef.current.querySelector(`[data-index="${selectedIndex}"]`);
+      const selectedElement = listRef.current.querySelector(
+        `[data-index="${selectedIndex}"]`,
+      )
       if (selectedElement) {
-        selectedElement.scrollIntoView({ block: 'nearest' });
+        selectedElement.scrollIntoView({ block: 'nearest' })
       }
     }
-  }, [selectedIndex]);
+  }, [selectedIndex])
 
   const handleClose = () => {
-    setIsOpen(false);
-    setSearch('');
-  };
+    setIsOpen(false)
+    setSearch('')
+  }
 
   return (
     <AnimatePresence>
@@ -255,27 +265,29 @@ export function CommandPalette() {
                       {categoryLabels[category]}
                     </div>
                     {cmds.map((cmd) => {
-                      const globalIndex = flatCommands.findIndex((c) => c.id === cmd.id);
+                      const globalIndex = flatCommands.findIndex(
+                        (c) => c.id === cmd.id,
+                      )
                       return (
                         <button
                           key={cmd.id}
                           data-index={globalIndex}
                           onClick={() => {
-                            cmd.action();
-                            setIsOpen(false);
+                            cmd.action()
+                            setIsOpen(false)
                           }}
                           className={cn(
                             'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors',
                             globalIndex === selectedIndex
                               ? 'bg-primary text-primary-foreground'
-                              : 'hover:bg-muted'
+                              : 'hover:bg-muted',
                           )}
                         >
                           <span
                             className={cn(
                               globalIndex === selectedIndex
                                 ? 'text-primary-foreground'
-                                : 'text-muted-foreground'
+                                : 'text-muted-foreground',
                             )}
                           >
                             {cmd.icon}
@@ -287,14 +299,14 @@ export function CommandPalette() {
                                 'rounded px-1.5 py-0.5 text-xs',
                                 globalIndex === selectedIndex
                                   ? 'bg-primary-foreground/20 text-primary-foreground'
-                                  : 'bg-muted text-muted-foreground'
+                                  : 'bg-muted text-muted-foreground',
                               )}
                             >
                               {cmd.shortcut}
                             </kbd>
                           )}
                         </button>
-                      );
+                      )
                     })}
                   </div>
                 ))
@@ -322,8 +334,5 @@ export function CommandPalette() {
         </>
       )}
     </AnimatePresence>
-  );
+  )
 }
-
-
-

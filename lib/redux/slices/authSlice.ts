@@ -45,7 +45,7 @@ export const authSlice = createSlice({
       state.error = action.payload
       state.loading = false
     },
-    clearAuth: state => {
+    clearAuth: (state) => {
       state.user = null
       state.session = null
       state.loading = false

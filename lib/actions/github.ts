@@ -50,7 +50,7 @@ export async function getAuthenticatedUserRepositories(params?: {
   page?: number
 }): Promise<{ data: GitHubRepository[] | null; error: string | null }> {
   const token = await getGitHubToken()
-  
+
   if (!token) {
     return {
       data: null,
@@ -61,7 +61,8 @@ export async function getAuthenticatedUserRepositories(params?: {
   try {
     const searchParams = new URLSearchParams()
     if (params?.sort) searchParams.set('sort', params.sort)
-    if (params?.per_page) searchParams.set('per_page', params.per_page.toString())
+    if (params?.per_page)
+      searchParams.set('per_page', params.per_page.toString())
     if (params?.page) searchParams.set('page', params.page.toString())
 
     const url = `${GITHUB_API_BASE_URL}/user/repos?${searchParams.toString()}`
@@ -97,7 +98,8 @@ export async function getAuthenticatedUserRepositories(params?: {
     console.error('Failed to fetch repositories:', error)
     return {
       data: null,
-      error: error instanceof Error ? error.message : 'Failed to fetch repositories',
+      error:
+        error instanceof Error ? error.message : 'Failed to fetch repositories',
     }
   }
 }
@@ -129,7 +131,8 @@ export async function searchRepositories(params: {
     searchParams.set('q', params.q)
     if (params.sort) searchParams.set('sort', params.sort)
     if (params.order) searchParams.set('order', params.order)
-    if (params.per_page) searchParams.set('per_page', params.per_page.toString())
+    if (params.per_page)
+      searchParams.set('per_page', params.per_page.toString())
     if (params.page) searchParams.set('page', params.page.toString())
 
     const url = `${GITHUB_API_BASE_URL}/search/repositories?${searchParams.toString()}`
@@ -165,7 +168,10 @@ export async function searchRepositories(params: {
     console.error('Failed to search repositories:', error)
     return {
       data: null,
-      error: error instanceof Error ? error.message : 'Failed to search repositories',
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Failed to search repositories',
     }
   }
 }
@@ -175,7 +181,7 @@ export async function searchRepositories(params: {
  */
 export async function getRepository(
   owner: string,
-  repo: string
+  repo: string,
 ): Promise<{ data: GitHubRepository | null; error: string | null }> {
   const token = await getGitHubToken()
 
@@ -226,7 +232,8 @@ export async function getRepository(
     console.error('Failed to fetch repository:', error)
     return {
       data: null,
-      error: error instanceof Error ? error.message : 'Failed to fetch repository',
+      error:
+        error instanceof Error ? error.message : 'Failed to fetch repository',
     }
   }
 }
@@ -262,4 +269,3 @@ export async function checkGitHubTokenValidity(): Promise<{
     return { valid: false, error: 'Failed to verify token' }
   }
 }
-

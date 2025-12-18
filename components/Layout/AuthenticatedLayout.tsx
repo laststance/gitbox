@@ -6,15 +6,15 @@
  * - メインコンテンツエリア
  */
 
-'use client';
+'use client'
 
-import React from 'react';
-import { Sidebar } from '@/components/Sidebar';
+import React from 'react'
+import { Sidebar } from '@/components/Sidebar'
 
 interface AuthenticatedLayoutProps {
-  children: React.ReactNode;
-  userName?: string;
-  userAvatar?: string;
+  children: React.ReactNode
+  userName?: string
+  userAvatar?: string
 }
 
 export const AuthenticatedLayout: React.FC<AuthenticatedLayoutProps> = ({
@@ -30,8 +30,7 @@ export const AuthenticatedLayout: React.FC<AuthenticatedLayoutProps> = ({
       {/* Main Content */}
       <main className="flex-1 overflow-auto">{children}</main>
     </div>
-  );
-};
+  )
+}
 
-export default AuthenticatedLayout;
-
+export default AuthenticatedLayout

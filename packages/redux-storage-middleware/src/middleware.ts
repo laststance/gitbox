@@ -52,13 +52,13 @@ function loadFromStorage(key: string): unknown {
  * ```
  */
 export function createStorageMiddleware(
-  config: StorageMiddlewareConfig
+  config: StorageMiddlewareConfig,
 ): Middleware {
   const { slices, storageKey, debounceMs = 300 } = config
 
   let timeoutId: NodeJS.Timeout | null = null
 
-  return store => next => action => {
+  return (store) => (next) => (action) => {
     const result = next(action)
 
     // デバウンス処理
@@ -71,7 +71,7 @@ export function createStorageMiddleware(
 
       // 指定されたスライスのみを保存
       const stateToSave: Record<string, unknown> = {}
-      slices.forEach(sliceName => {
+      slices.forEach((sliceName) => {
         if (state[sliceName]) {
           stateToSave[sliceName] = state[sliceName]
         }

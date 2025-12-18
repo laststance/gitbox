@@ -65,7 +65,7 @@ export async function proxy(request: NextRequest) {
           })
         },
       },
-    }
+    },
   )
 
   // Get session

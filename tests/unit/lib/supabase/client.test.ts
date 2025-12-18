@@ -13,7 +13,9 @@ describe('Supabase Client (lib/supabase/client.ts)', () => {
   describe('Environment Variables', () => {
     it('should have NEXT_PUBLIC_SUPABASE_URL defined', () => {
       expect(process.env.NEXT_PUBLIC_SUPABASE_URL).toBeDefined()
-      expect(process.env.NEXT_PUBLIC_SUPABASE_URL).toBe('https://test.supabase.co')
+      expect(process.env.NEXT_PUBLIC_SUPABASE_URL).toBe(
+        'https://test.supabase.co',
+      )
     })
 
     it('should have NEXT_PUBLIC_SUPABASE_ANON_KEY defined', () => {

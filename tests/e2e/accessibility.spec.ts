@@ -100,8 +100,8 @@ test.describe('WCAG AA Accessibility Compliance', () => {
         .analyze()
 
       // Check for ARIA-related violations
-      const ariaViolations = accessibilityScanResults.violations.filter(v =>
-        v.id.includes('aria')
+      const ariaViolations = accessibilityScanResults.violations.filter((v) =>
+        v.id.includes('aria'),
       )
 
       expect(ariaViolations).toEqual([])
@@ -119,9 +119,16 @@ test.describe('WCAG AA Accessibility Compliance', () => {
   })
 
   test.describe('Color Contrast - Light Themes', () => {
-    const lightThemes = ['sunrise', 'sandstone', 'mint', 'sky', 'lavender', 'rose']
+    const lightThemes = [
+      'sunrise',
+      'sandstone',
+      'mint',
+      'sky',
+      'lavender',
+      'rose',
+    ]
 
-    lightThemes.forEach(theme => {
+    lightThemes.forEach((theme) => {
       test(`should pass color contrast for ${theme} theme`, async ({
         page,
         context,
@@ -156,9 +163,16 @@ test.describe('WCAG AA Accessibility Compliance', () => {
   })
 
   test.describe('Color Contrast - Dark Themes', () => {
-    const darkThemes = ['midnight', 'graphite', 'forest', 'ocean', 'plum', 'rust']
+    const darkThemes = [
+      'midnight',
+      'graphite',
+      'forest',
+      'ocean',
+      'plum',
+      'rust',
+    ]
 
-    darkThemes.forEach(theme => {
+    darkThemes.forEach((theme) => {
       test(`should pass color contrast for ${theme} theme`, async ({
         page,
         context,
@@ -224,7 +238,7 @@ test.describe('WCAG AA Accessibility Compliance', () => {
       await button.focus()
 
       // Check computed styles for focus ring
-      const focusRing = await button.evaluate(el => {
+      const focusRing = await button.evaluate((el) => {
         const styles = window.getComputedStyle(el)
         return {
           outline: styles.outline,
@@ -234,13 +248,13 @@ test.describe('WCAG AA Accessibility Compliance', () => {
 
       // Should have either outline or box-shadow for focus indicator
       expect(
-        focusRing.outline !== 'none' || focusRing.boxShadow !== 'none'
+        focusRing.outline !== 'none' || focusRing.boxShadow !== 'none',
       ).toBe(true)
     })
 
     test('should maintain focus order', async ({ page }) => {
       const interactiveElements = await page.locator(
-        'button, a, input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button, a, input, select, textarea, [tabindex]:not([tabindex="-1"])',
       )
 
       const count = await interactiveElements.count()

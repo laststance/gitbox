@@ -7,7 +7,10 @@
  */
 
 // Re-export database types for mapper usage
-export type { StatusList as DbStatusList, RepoCard as DbRepoCard } from '@/lib/supabase/types'
+export type {
+  StatusList as DbStatusList,
+  RepoCard as DbRepoCard,
+} from '@/lib/supabase/types'
 
 // ========================================
 // Status List Domain Model

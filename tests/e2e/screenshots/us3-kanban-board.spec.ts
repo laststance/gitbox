@@ -17,9 +17,14 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
     await page.waitForLoadState('networkidle')
   })
 
-  test('SS-US3-01: Full Kanban board view with all columns', async ({ page }) => {
+  test('SS-US3-01: Full Kanban board view with all columns', async ({
+    page,
+  }) => {
     // すべてのステータス列が表示されたボード全体
-    await expect(page.locator('[data-testid^="status-column-"]')).toHaveCount(5, { timeout: 5000 })
+    await expect(page.locator('[data-testid^="status-column-"]')).toHaveCount(
+      5,
+      { timeout: 5000 },
+    )
 
     await page.screenshot({
       path: 'tests/e2e/screenshots/us3-01-kanban-board-full-view.png',
@@ -97,7 +102,9 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
 
   test('SS-US3-07: WIP limit warning displayed', async ({ page }) => {
     // WIP制限警告が表示された状態
-    const inProgressColumn = page.locator('[data-testid="status-column-in-progress"]')
+    const inProgressColumn = page.locator(
+      '[data-testid="status-column-in-progress"]',
+    )
     const backlogColumn = page.locator('[data-testid="status-column-backlog"]')
 
     // WIP制限まで カードを移動
@@ -141,7 +148,9 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
     }
   })
 
-  test('SS-US3-10: Board with 100+ repositories (virtual scroll)', async ({ page }) => {
+  test('SS-US3-10: Board with 100+ repositories (virtual scroll)', async ({
+    page,
+  }) => {
     // 仮想スクロールが有効な大量リポジトリのビュー
     // NOTE: テストデータに100+のリポジトリがある場合のみ
     const allCards = page.locator('[data-testid^="repo-card-"]')
@@ -156,7 +165,10 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
     }
   })
 
-  test('SS-US3-11: Mobile responsive view (iPhone)', async ({ page, viewport }) => {
+  test('SS-US3-11: Mobile responsive view (iPhone)', async ({
+    page,
+    viewport,
+  }) => {
     // モバイルビュー（縦向き）
     await page.setViewportSize({ width: 375, height: 812 }) // iPhone X/11/12/13
 
@@ -209,7 +221,9 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
     })
   })
 
-  test('SS-US3-16: Accessibility features - High contrast', async ({ page }) => {
+  test('SS-US3-16: Accessibility features - High contrast', async ({
+    page,
+  }) => {
     // ハイコントラストモード
     await page.emulateMedia({ colorScheme: 'dark', forcedColors: 'active' })
     await page.reload()

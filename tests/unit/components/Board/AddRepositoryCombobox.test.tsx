@@ -35,7 +35,8 @@ const generateMockRepositories = (count: number): GitHubRepository[] => {
     homepage: i % 5 === 0 ? `https://repo-${i}.dev` : null,
     stargazers_count: Math.floor(Math.random() * 10000),
     watchers_count: Math.floor(Math.random() * 5000),
-    language: i % 3 === 0 ? 'TypeScript' : i % 3 === 1 ? 'JavaScript' : 'Python',
+    language:
+      i % 3 === 0 ? 'TypeScript' : i % 3 === 1 ? 'JavaScript' : 'Python',
     topics: ['react', 'nextjs', 'typescript'].slice(0, (i % 3) + 1),
     visibility: (i % 2 === 0 ? 'public' : 'private') as 'public' | 'private',
     updated_at: new Date(Date.now() - i * 86400000).toISOString(),
@@ -110,7 +111,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       render(
         <Provider store={mockStore}>
           <MockAddRepositoryCombobox repositories={mockRepos} />
-        </Provider>
+        </Provider>,
       )
 
       // 全てのリポジトリが表示されるまで待機
@@ -119,7 +120,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
           const options = screen.getAllByRole('option')
           expect(options.length).toBe(150)
         },
-        { timeout: 2000 }
+        { timeout: 2000 },
       )
 
       const endTime = performance.now()
@@ -141,14 +142,14 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       render(
         <Provider store={mockStore}>
           <MockAddRepositoryCombobox repositories={mockRepos} />
-        </Provider>
+        </Provider>,
       )
 
       await waitFor(
         () => {
           expect(screen.getAllByRole('option').length).toBe(200)
         },
-        { timeout: 1500 }
+        { timeout: 1500 },
       )
 
       const endTime = performance.now()
@@ -169,7 +170,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       const { container } = render(
         <Provider store={mockStore}>
           <MockAddRepositoryCombobox repositories={mockRepos} />
-        </Provider>
+        </Provider>,
       )
 
       // Virtual scrolling コンテナが存在する
@@ -190,7 +191,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       render(
         <Provider store={mockStore}>
           <MockAddRepositoryCombobox repositories={mockRepos} />
-        </Provider>
+        </Provider>,
       )
 
       const renderedOptions = screen.getAllByRole('option')
@@ -211,7 +212,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       render(
         <Provider store={mockStore}>
           <MockAddRepositoryCombobox repositories={[]} onSearch={mockSearch} />
-        </Provider>
+        </Provider>,
       )
 
       const searchInput = screen.getByPlaceholderText(/Search repositories/i)
@@ -275,8 +276,11 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
 
       render(
         <Provider store={mockStore}>
-          <MockAddRepositoryCombobox repositories={mockRepos} existingRepoIds={existingRepoIds} />
-        </Provider>
+          <MockAddRepositoryCombobox
+            repositories={mockRepos}
+            existingRepoIds={existingRepoIds}
+          />
+        </Provider>,
       )
 
       const options = screen.getAllByRole('option')
@@ -298,7 +302,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       render(
         <Provider store={mockStore}>
           <MockAddRepositoryCombobox repositories={[]} />
-        </Provider>
+        </Provider>,
       )
 
       const options = screen.queryAllByRole('option')
@@ -312,7 +316,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       render(
         <Provider store={mockStore}>
           <MockAddRepositoryCombobox repositories={mockRepos} />
-        </Provider>
+        </Provider>,
       )
 
       const options = screen.getAllByRole('option')
@@ -327,8 +331,11 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
 
       render(
         <Provider store={mockStore}>
-          <MockAddRepositoryCombobox repositories={mockRepos} onSelect={mockSelect} />
-        </Provider>
+          <MockAddRepositoryCombobox
+            repositories={mockRepos}
+            onSelect={mockSelect}
+          />
+        </Provider>,
       )
 
       const firstOption = screen.getAllByRole('option')[0]
@@ -347,7 +354,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       const { unmount } = render(
         <Provider store={mockStore}>
           <MockAddRepositoryCombobox repositories={mockRepos} />
-        </Provider>
+        </Provider>,
       )
 
       // コンポーネントをアンマウント
@@ -356,7 +363,9 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       // メモリリーク検証 (performance.memory はChrome専用)
       if (typeof performance !== 'undefined' && 'memory' in performance) {
         const memoryInfo = (performance as any).memory
-        console.log(`Memory used: ${(memoryInfo.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`)
+        console.log(
+          `Memory used: ${(memoryInfo.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`,
+        )
 
         // 100MB以下を目標
         expect(memoryInfo.usedJSHeapSize).toBeLessThan(100 * 1024 * 1024)
@@ -373,7 +382,10 @@ describe('Duplicate Detection Utility Functions (T043)', () => {
 
       const existingRepoIds = ['12345', '67890', '11111']
 
-      const checkDuplicateRepository = (repo: GitHubRepository, existing: string[]) => {
+      const checkDuplicateRepository = (
+        repo: GitHubRepository,
+        existing: string[],
+      ) => {
         return existing.includes(String(repo.id))
       }
 
@@ -387,7 +399,10 @@ describe('Duplicate Detection Utility Functions (T043)', () => {
 
       const existingRepoIds = ['12345', '67890', '11111']
 
-      const checkDuplicateRepository = (repo: GitHubRepository, existing: string[]) => {
+      const checkDuplicateRepository = (
+        repo: GitHubRepository,
+        existing: string[],
+      ) => {
         return existing.includes(String(repo.id))
       }
 
@@ -405,7 +420,10 @@ describe('Duplicate Detection Utility Functions (T043)', () => {
 
       const existingRepoIds = ['12345', '67890']
 
-      const filterDuplicates = (repos: GitHubRepository[], existing: string[]) => {
+      const filterDuplicates = (
+        repos: GitHubRepository[],
+        existing: string[],
+      ) => {
         return repos.filter((repo) => !existing.includes(String(repo.id)))
       }
 
@@ -423,7 +441,10 @@ describe('Duplicate Detection Utility Functions (T043)', () => {
       duplicates[0].full_name = 'facebook/react'
       duplicates[1].full_name = 'vercel/next.js'
 
-      const getDuplicateErrorMessage = (repos: GitHubRepository[], locale: 'en' | 'ja' = 'ja') => {
+      const getDuplicateErrorMessage = (
+        repos: GitHubRepository[],
+        locale: 'en' | 'ja' = 'ja',
+      ) => {
         if (repos.length === 0) return ''
         const names = repos.map((r) => r.full_name).join(', ')
         return locale === 'ja'
@@ -432,14 +453,19 @@ describe('Duplicate Detection Utility Functions (T043)', () => {
       }
 
       const message = getDuplicateErrorMessage(duplicates, 'ja')
-      expect(message).toBe('以下のリポジトリは既に追加されています: facebook/react, vercel/next.js')
+      expect(message).toBe(
+        '以下のリポジトリは既に追加されています: facebook/react, vercel/next.js',
+      )
     })
 
     it('should generate English error message', () => {
       const duplicates = generateMockRepositories(1)
       duplicates[0].full_name = 'facebook/react'
 
-      const getDuplicateErrorMessage = (repos: GitHubRepository[], locale: 'en' | 'ja' = 'ja') => {
+      const getDuplicateErrorMessage = (
+        repos: GitHubRepository[],
+        locale: 'en' | 'ja' = 'ja',
+      ) => {
         if (repos.length === 0) return ''
         const names = repos.map((r) => r.full_name).join(', ')
         return locale === 'ja'
@@ -448,11 +474,16 @@ describe('Duplicate Detection Utility Functions (T043)', () => {
       }
 
       const message = getDuplicateErrorMessage(duplicates, 'en')
-      expect(message).toBe('The following repositories are already added: facebook/react')
+      expect(message).toBe(
+        'The following repositories are already added: facebook/react',
+      )
     })
 
     it('should return empty string for no duplicates', () => {
-      const getDuplicateErrorMessage = (repos: GitHubRepository[], locale: 'en' | 'ja' = 'ja') => {
+      const getDuplicateErrorMessage = (
+        repos: GitHubRepository[],
+        locale: 'en' | 'ja' = 'ja',
+      ) => {
         if (repos.length === 0) return ''
         const names = repos.map((r) => r.full_name).join(', ')
         return locale === 'ja'

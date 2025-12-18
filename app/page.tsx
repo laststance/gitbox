@@ -1,42 +1,57 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowRight, Menu, X, Lightbulb, Zap, Shield, Rocket } from 'lucide-react';
-import { cva, type VariantProps } from 'class-variance-authority';
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import {
+  ArrowRight,
+  Menu,
+  X,
+  Lightbulb,
+  Zap,
+  Shield,
+  Rocket,
+} from 'lucide-react'
+import { cva, type VariantProps } from 'class-variance-authority'
 
 // Utility function
 const cn = (...classes: (string | undefined | null | false)[]) => {
-  return classes.filter(Boolean).join(' ');
-};
+  return classes.filter(Boolean).join(' ')
+}
 
 // Button Component
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  'inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        gradient: "bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl hover:scale-105",
+        default:
+          'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm',
+        secondary:
+          'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+        outline:
+          'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+        ghost: 'hover:bg-accent hover:text-accent-foreground',
+        gradient:
+          'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl hover:scale-105',
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 px-3 text-xs",
-        lg: "h-12 px-8 text-base",
+        default: 'h-10 px-4 py-2',
+        sm: 'h-9 px-3 text-xs',
+        lg: 'h-12 px-8 text-base',
       },
     },
     defaultVariants: {
-      variant: "default",
-      size: "default",
+      variant: 'default',
+      size: 'default',
     },
-  }
-);
+  },
+)
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
-  asChild?: boolean;
+interface ButtonProps
+  extends
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -47,53 +62,61 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         {...props}
       />
-    );
-  }
-);
-Button.displayName = "Button";
+    )
+  },
+)
+Button.displayName = 'Button'
 
 // Badge Component
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-        secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        outline: "text-foreground border-border",
+        default:
+          'border-transparent bg-primary text-primary-foreground hover:bg-primary/80',
+        secondary:
+          'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80',
+        outline: 'text-foreground border-border',
       },
     },
     defaultVariants: {
-      variant: "default",
+      variant: 'default',
     },
-  }
-);
+  },
+)
 
-interface BadgeProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
+interface BadgeProps
+  extends
+    React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, ...props }: BadgeProps) {
   return (
     <div className={cn(badgeVariants({ variant }), className)} {...props} />
-  );
+  )
 }
 
 // Glow Component
-const glowVariants = cva("absolute w-full", {
+const glowVariants = cva('absolute w-full', {
   variants: {
     variant: {
-      top: "top-0",
-      above: "-top-[128px]",
-      bottom: "bottom-0",
-      below: "-bottom-[128px]",
-      center: "top-[50%]",
+      top: 'top-0',
+      above: '-top-[128px]',
+      bottom: 'bottom-0',
+      below: '-bottom-[128px]',
+      center: 'top-[50%]',
     },
   },
   defaultVariants: {
-    variant: "top",
+    variant: 'top',
   },
-});
+})
 
-interface GlowProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof glowVariants> {}
+interface GlowProps
+  extends
+    React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof glowVariants> {}
 
 const Glow = React.forwardRef<HTMLDivElement, GlowProps>(
   ({ className, variant, ...props }, ref) => (
@@ -104,33 +127,33 @@ const Glow = React.forwardRef<HTMLDivElement, GlowProps>(
     >
       <div
         className={cn(
-          "absolute left-1/2 h-[256px] w-[60%] -translate-x-1/2 scale-[2.5] rounded-[50%] bg-[radial-gradient(ellipse_at_center,_hsl(var(--primary)/.5)_10%,_hsl(var(--primary)/0)_60%)] sm:h-[512px]",
-          variant === "center" && "-translate-y-1/2"
+          'absolute left-1/2 h-[256px] w-[60%] -translate-x-1/2 scale-[2.5] rounded-[50%] bg-[radial-gradient(ellipse_at_center,_hsl(var(--primary)/.5)_10%,_hsl(var(--primary)/0)_60%)] sm:h-[512px]',
+          variant === 'center' && '-translate-y-1/2',
         )}
       />
       <div
         className={cn(
-          "absolute left-1/2 h-[128px] w-[40%] -translate-x-1/2 scale-[2] rounded-[50%] bg-[radial-gradient(ellipse_at_center,_hsl(var(--primary)/.3)_10%,_hsl(var(--primary)/0)_60%)] sm:h-[256px]",
-          variant === "center" && "-translate-y-1/2"
+          'absolute left-1/2 h-[128px] w-[40%] -translate-x-1/2 scale-[2] rounded-[50%] bg-[radial-gradient(ellipse_at_center,_hsl(var(--primary)/.3)_10%,_hsl(var(--primary)/0)_60%)] sm:h-[256px]',
+          variant === 'center' && '-translate-y-1/2',
         )}
       />
     </div>
-  )
-);
-Glow.displayName = "Glow";
+  ),
+)
+Glow.displayName = 'Glow'
 
 // Navigation Component
 const Navigation = () => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const router = useRouter();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const router = useRouter()
 
   const handleSignIn = () => {
-    router.push('/login');
-  };
+    router.push('/login')
+  }
 
   const handleGetStarted = () => {
-    router.push('/login');
-  };
+    router.push('/login')
+  }
 
   return (
     <header className="fixed top-0 w-full z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
@@ -139,13 +162,22 @@ const Navigation = () => {
           <div className="text-xl font-semibold text-foreground">GitBox</div>
 
           <div className="hidden md:flex items-center justify-center gap-8 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-            <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <a
+              href="#features"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
               Features
             </a>
-            <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <a
+              href="#pricing"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
               Pricing
             </a>
-            <a href="#about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <a
+              href="#about"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
               About
             </a>
           </div>
@@ -172,49 +204,62 @@ const Navigation = () => {
       {mobileMenuOpen && (
         <div className="md:hidden bg-background/95 backdrop-blur-md border-t border-border/50">
           <div className="px-6 py-4 flex flex-col gap-4">
-            <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2">
+            <a
+              href="#features"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+            >
               Features
             </a>
-            <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2">
+            <a
+              href="#pricing"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+            >
               Pricing
             </a>
-            <a href="#about" className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2">
+            <a
+              href="#about"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+            >
               About
             </a>
             <div className="flex flex-col gap-2 pt-4 border-t border-border/50">
-              <Button variant="ghost" size="sm" onClick={handleSignIn}>Sign in</Button>
-              <Button variant="default" size="sm" onClick={handleGetStarted}>Get Started</Button>
+              <Button variant="ghost" size="sm" onClick={handleSignIn}>
+                Sign in
+              </Button>
+              <Button variant="default" size="sm" onClick={handleGetStarted}>
+                Get Started
+              </Button>
             </div>
           </div>
         </div>
       )}
     </header>
-  );
-};
+  )
+}
 
 // Hero Section Component
 const HeroSection = () => {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const router = useRouter();
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const router = useRouter()
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      const heroElement = document.getElementById('hero-section');
+      const heroElement = document.getElementById('hero-section')
       if (heroElement) {
-        const rect = heroElement.getBoundingClientRect();
+        const rect = heroElement.getBoundingClientRect()
         setMousePosition({
           x: e.clientX - rect.left,
-          y: e.clientY - rect.top
-        });
+          y: e.clientY - rect.top,
+        })
       }
-    };
-
-    const heroElement = document.getElementById('hero-section');
-    if (heroElement) {
-      heroElement.addEventListener('mousemove', handleMouseMove);
-      return () => heroElement.removeEventListener('mousemove', handleMouseMove);
     }
-  }, []);
+
+    const heroElement = document.getElementById('hero-section')
+    if (heroElement) {
+      heroElement.addEventListener('mousemove', handleMouseMove)
+      return () => heroElement.removeEventListener('mousemove', handleMouseMove)
+    }
+  }, [])
 
   return (
     <section
@@ -251,7 +296,7 @@ const HeroSection = () => {
               linear-gradient(hsl(var(--foreground) / 0.1) 1px, transparent 1px),
               linear-gradient(90deg, hsl(var(--foreground) / 0.1) 1px, transparent 1px)
             `,
-            backgroundSize: '50px 50px'
+            backgroundSize: '50px 50px',
           }}
         />
       </div>
@@ -265,7 +310,8 @@ const HeroSection = () => {
           width: '300px',
           height: '300px',
           transform: 'translate(-50%, -50%)',
-          background: 'radial-gradient(circle, hsl(var(--primary) / 0.15), transparent 70%)',
+          background:
+            'radial-gradient(circle, hsl(var(--primary) / 0.15), transparent 70%)',
         }}
       />
 
@@ -273,10 +319,15 @@ const HeroSection = () => {
 
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center text-center max-w-5xl mx-auto space-y-8">
-
-        <Badge variant="outline" className="animate-fade-in opacity-0 gap-2 px-4 py-2">
+        <Badge
+          variant="outline"
+          className="animate-fade-in opacity-0 gap-2 px-4 py-2"
+        >
           <span className="text-muted-foreground">🎉 Introducing v2.0</span>
-          <a href="#new" className="flex items-center gap-1 text-foreground hover:text-primary transition-colors">
+          <a
+            href="#new"
+            className="flex items-center gap-1 text-foreground hover:text-primary transition-colors"
+          >
             What's new
             <ArrowRight className="h-3 w-3" />
           </a>
@@ -289,15 +340,26 @@ const HeroSection = () => {
         </h1>
 
         <p className="animate-fade-in opacity-0 delay-200 text-lg md:text-xl text-muted-foreground max-w-2xl">
-          Create stunning, responsive landing pages with gradient backgrounds, feature grids, and call-to-action buttons using TailwindCSS v4
+          Create stunning, responsive landing pages with gradient backgrounds,
+          feature grids, and call-to-action buttons using TailwindCSS v4
         </p>
 
         <div className="animate-fade-in opacity-0 delay-300 flex flex-wrap items-center justify-center gap-4 pt-4">
-          <Button variant="gradient" size="lg" className="gap-2" onClick={() => router.push('/login')}>
+          <Button
+            variant="gradient"
+            size="lg"
+            className="gap-2"
+            onClick={() => router.push('/login')}
+          >
             Get Started Free
             <ArrowRight className="h-5 w-5" />
           </Button>
-          <Button variant="outline" size="lg" className="gap-2" onClick={() => router.push('#features')}>
+          <Button
+            variant="outline"
+            size="lg"
+            className="gap-2"
+            onClick={() => router.push('#features')}
+          >
             <Lightbulb className="h-5 w-5" />
             View Demo
           </Button>
@@ -321,28 +383,31 @@ const HeroSection = () => {
         </div>
       </div>
     </section>
-  );
-};
+  )
+}
 
 // Features Section Component
 const FeaturesSection = () => {
   const features = [
     {
       icon: <Zap className="h-8 w-8" />,
-      title: "Lightning Fast",
-      description: "Optimized performance with modern build tools and best practices for blazing fast load times."
+      title: 'Lightning Fast',
+      description:
+        'Optimized performance with modern build tools and best practices for blazing fast load times.',
     },
     {
       icon: <Shield className="h-8 w-8" />,
-      title: "Secure by Default",
-      description: "Built with security in mind, following industry standards and best practices."
+      title: 'Secure by Default',
+      description:
+        'Built with security in mind, following industry standards and best practices.',
     },
     {
       icon: <Rocket className="h-8 w-8" />,
-      title: "Easy to Deploy",
-      description: "Deploy anywhere with our flexible architecture and comprehensive documentation."
-    }
-  ];
+      title: 'Easy to Deploy',
+      description:
+        'Deploy anywhere with our flexible architecture and comprehensive documentation.',
+    },
+  ]
 
   return (
     <section id="features" className="relative py-24 px-6 bg-muted/30">
@@ -368,21 +433,19 @@ const FeaturesSection = () => {
               <h3 className="text-xl font-semibold mb-2 text-foreground">
                 {feature.title}
               </h3>
-              <p className="text-muted-foreground">
-                {feature.description}
-              </p>
+              <p className="text-muted-foreground">{feature.description}</p>
             </div>
           ))}
         </div>
       </div>
     </section>
-  );
-};
+  )
+}
 
 // CTA Section Component
 const CTASection = () => {
-  const router = useRouter();
-  
+  const router = useRouter()
+
   return (
     <section className="relative py-24 px-6 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-primary/5" />
@@ -393,21 +456,31 @@ const CTASection = () => {
           Ready to Get Started?
         </h2>
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-          Join thousands of developers building amazing landing pages with our modern component library
+          Join thousands of developers building amazing landing pages with our
+          modern component library
         </p>
         <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-          <Button variant="gradient" size="lg" className="gap-2" onClick={() => router.push('/login')}>
+          <Button
+            variant="gradient"
+            size="lg"
+            className="gap-2"
+            onClick={() => router.push('/login')}
+          >
             Start Building Now
             <ArrowRight className="h-5 w-5" />
           </Button>
-          <Button variant="outline" size="lg" onClick={() => router.push('#features')}>
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => router.push('#features')}
+          >
             View Documentation
           </Button>
         </div>
       </div>
     </section>
-  );
-};
+  )
+}
 
 // Main Landing Page Component
 function ModernLandingPage() {
@@ -418,7 +491,7 @@ function ModernLandingPage() {
       <FeaturesSection />
       <CTASection />
     </div>
-  );
+  )
 }
 
-export default ModernLandingPage;
+export default ModernLandingPage

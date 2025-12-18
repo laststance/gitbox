@@ -8,7 +8,11 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import type { StatusListDomain, RepoCardDomain, RepoCardMeta } from '@/lib/models/domain'
+import type {
+  StatusListDomain,
+  RepoCardDomain,
+  RepoCardMeta,
+} from '@/lib/models/domain'
 
 /**
  * ボードのStatusListを取得
@@ -17,7 +21,7 @@ import type { StatusListDomain, RepoCardDomain, RepoCardMeta } from '@/lib/model
  * @returns StatusList配列（order順）
  */
 export async function getStatusLists(
-  boardId: string
+  boardId: string,
 ): Promise<{ success: boolean; data?: StatusListDomain[]; error?: string }> {
   try {
     const supabase = await createClient()
@@ -34,7 +38,7 @@ export async function getStatusLists(
     }
 
     // DBの型をドメイン型にマッピング
-    const mapped: StatusListDomain[] = (statusLists || []).map(sl => ({
+    const mapped: StatusListDomain[] = (statusLists || []).map((sl) => ({
       id: sl.id,
       title: sl.name,
       wipLimit: sl.wip_limit ?? 0,
@@ -62,7 +66,7 @@ export async function getStatusLists(
  * @returns RepoCard配列（order順）
  */
 export async function getRepoCards(
-  boardId: string
+  boardId: string,
 ): Promise<{ success: boolean; data?: RepoCardDomain[]; error?: string }> {
   try {
     const supabase = await createClient()
@@ -79,10 +83,11 @@ export async function getRepoCards(
     }
 
     // DBの型をドメイン型にマッピング
-    const mapped: RepoCardDomain[] = (repoCards || []).map(rc => ({
+    const mapped: RepoCardDomain[] = (repoCards || []).map((rc) => ({
       id: rc.id,
       title: rc.repo_name,
-      description: (rc.meta as RepoCardMeta)?.description ?? rc.note ?? undefined,
+      description:
+        (rc.meta as RepoCardMeta)?.description ?? rc.note ?? undefined,
       statusId: rc.status_id,
       boardId: rc.board_id,
       repoOwner: rc.repo_owner,
@@ -152,7 +157,7 @@ export async function getBoardData(boardId: string): Promise<{
  * @returns 作成されたStatusList配列
  */
 export async function createDefaultStatusLists(
-  boardId: string
+  boardId: string,
 ): Promise<{ success: boolean; data?: StatusListDomain[]; error?: string }> {
   try {
     const supabase = await createClient()
@@ -167,10 +172,10 @@ export async function createDefaultStatusLists(
     const { data, error } = await supabase
       .from('statuslist')
       .insert(
-        defaultStatuses.map(status => ({
+        defaultStatuses.map((status) => ({
           board_id: boardId,
           ...status,
-        }))
+        })),
       )
       .select()
 
@@ -180,7 +185,7 @@ export async function createDefaultStatusLists(
     }
 
     // DBの型をドメイン型にマッピング
-    const mapped: StatusListDomain[] = (data || []).map(sl => ({
+    const mapped: StatusListDomain[] = (data || []).map((sl) => ({
       id: sl.id,
       title: sl.name,
       wipLimit: sl.wip_limit ?? 0,
@@ -212,7 +217,7 @@ export async function createDefaultStatusLists(
 export async function updateCardPosition(
   cardId: string,
   statusId: string,
-  order: number
+  order: number,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createClient()
@@ -248,7 +253,7 @@ export async function updateCardPosition(
  * @returns 更新結果
  */
 export async function updateCardsOrder(
-  updates: { id: string; statusId: string; order: number }[]
+  updates: { id: string; statusId: string; order: number }[],
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createClient()
@@ -291,7 +296,7 @@ export async function updateCardsOrder(
 export async function createBoard(
   userId: string,
   name: string,
-  theme: string = 'sunrise'
+  theme: string = 'sunrise',
 ): Promise<{ success: boolean; boardId?: string; error?: string }> {
   try {
     const supabase = await createClient()
@@ -316,7 +321,10 @@ export async function createBoard(
     // デフォルトのStatusListを作成
     const defaultResult = await createDefaultStatusLists(board.id)
     if (!defaultResult.success) {
-      console.error('Failed to create default status lists:', defaultResult.error)
+      console.error(
+        'Failed to create default status lists:',
+        defaultResult.error,
+      )
       // ボードは作成されているので、エラーを表示しつつも成功とする
     }
 
@@ -337,15 +345,12 @@ export async function createBoard(
  * @returns 削除結果
  */
 export async function deleteBoard(
-  boardId: string
+  boardId: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createClient()
 
-    const { error } = await supabase
-      .from('board')
-      .delete()
-      .eq('id', boardId)
+    const { error } = await supabase.from('board').delete().eq('id', boardId)
 
     if (error) {
       console.error('Failed to delete board:', error)
@@ -361,4 +366,3 @@ export async function deleteBoard(
     }
   }
 }
-

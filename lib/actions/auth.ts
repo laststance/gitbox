@@ -20,7 +20,8 @@ import { headers } from 'next/headers'
  */
 export async function signInWithGitHub() {
   const supabase = await createClient()
-  const origin = (await headers()).get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL
+  const origin =
+    (await headers()).get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'github',
@@ -32,7 +33,9 @@ export async function signInWithGitHub() {
 
   if (error) {
     console.error('GitHub OAuth sign in error:', error)
-    redirect(`/login?error=oauth_failed&message=${encodeURIComponent(error.message)}`)
+    redirect(
+      `/login?error=oauth_failed&message=${encodeURIComponent(error.message)}`,
+    )
   }
 
   if (data.url) {
