@@ -26,7 +26,6 @@ import '@/styles/themes/dark/rust.css'
 
 import { ShortcutsHelp } from '@/components/ShortcutsHelp'
 import { CommandPalette } from '@/components/CommandPalette/CommandPalette'
-import { ServiceWorkerRegister } from '@/components/PWA/ServiceWorkerRegister'
 import { Providers } from '@/lib/redux/providers'
 
 export default function RootLayout({
@@ -41,21 +40,12 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="description" content="GitHub Repositoryを Kanban Board 形式で管理" />
         <title>GitBox - GitHub Repository Manager</title>
-        
-        {/* PWA Meta Tags */}
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#f59e0b" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="GitBox" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body>
         <Providers>
           {children}
           <ShortcutsHelp />
           <CommandPalette />
-          <ServiceWorkerRegister />
         </Providers>
       </body>
     </html>

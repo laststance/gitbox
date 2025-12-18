@@ -1,7 +1,6 @@
-const nextConfig = {
-  // PWA configuration (will be enhanced with next-pwa in US8)
-  // PWA support will be added in Phase 10 (User Story 8)
+import type { NextConfig } from 'next'
 
+const nextConfig: NextConfig = {
   // Security headers
   async headers() {
     return [
@@ -47,7 +46,13 @@ const nextConfig = {
 
   // Experimental features
   experimental: {
-    optimizePackageImports: ['@dnd-kit/core', '@dnd-kit/sortable'],
+    // Optimize package imports for tree-shaking and faster builds
+    optimizePackageImports: [
+      '@dnd-kit/core',
+      '@dnd-kit/sortable',
+      'framer-motion',  // Added to fix HMR issues
+      'lucide-react',
+    ],
   },
 }
 

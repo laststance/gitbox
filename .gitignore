@@ -53,12 +53,6 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# PWA
-public/sw.js
-public/sw.js.map
-public/workbox-*.js
-public/workbox-*.js.map
-
 # Supabase
 .supabase/
 supabase/.branches/

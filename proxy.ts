@@ -1,9 +1,11 @@
 /**
- * Next.js Proxy
+ * Next.js 16 Proxy
  *
  * Authentication check
  * - Supabase session validation
  * - Protected route authentication
+ *
+ * @see https://nextjs.org/docs/messages/middleware-to-proxy
  */
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
@@ -92,11 +94,12 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
+     * - _next (all Next.js internal routes including static, image, HMR)
+     * - api (API routes)
      * - favicon.ico (favicon file)
      * - public files (robots.txt, etc.)
+     * - static assets
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next|api|favicon.ico|icons|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 }

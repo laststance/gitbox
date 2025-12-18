@@ -12,6 +12,7 @@
   },
   "scripts": {
     "dev": "next dev -p 3008",
+    "dev:webpack": "next dev -p 3008 --webpack",
     "build": "next build",
     "start": "next start -p 3008",
     "typecheck": "tsc --noEmit",
