@@ -1,11 +1,3 @@
-/**
- * AuthenticatedLayout Component Stories
- *
- * A layout component wrapper for authenticated pages.
- * Combines Sidebar navigation with main content area.
- * Provides consistent layout structure across authenticated routes.
- */
-
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 
 import { AuthenticatedLayout } from './AuthenticatedLayout'

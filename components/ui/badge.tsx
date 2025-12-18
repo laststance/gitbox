@@ -1,3 +1,11 @@
+/**
+ * Badge Component
+ *
+ * A small badge component for labels, tags, or status indicators.
+ * - Variants: default, secondary, destructive, outline
+ * - Proper styling and hover states
+ */
+
 import { cva, type VariantProps } from 'class-variance-authority'
 import * as React from 'react'
 import { memo } from 'react'

@@ -1,3 +1,11 @@
+/**
+ * Card Component
+ *
+ * A flexible card component for displaying content in a contained format.
+ * - Subcomponents: CardHeader, CardTitle, CardDescription, CardContent, CardFooter
+ * - Structured layouts with proper spacing
+ */
+
 import * as React from 'react'
 
 import { cn } from '@/lib/utils'

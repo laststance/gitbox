@@ -1,3 +1,12 @@
+/**
+ * Avatar Component
+ *
+ * An avatar component built on Radix UI Avatar primitive.
+ * - Displays user profile images with fallback support
+ * - Subcomponents: AvatarImage, AvatarFallback
+ * - Supports custom sizing and styling
+ */
+
 'use client'
 
 import * as AvatarPrimitive from '@radix-ui/react-avatar'

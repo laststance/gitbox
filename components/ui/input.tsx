@@ -1,3 +1,11 @@
+/**
+ * Input Component
+ *
+ * A styled input component for text input fields.
+ * - Supports all standard HTML input attributes and types
+ * - Proper focus states, disabled states, and placeholder styling
+ */
+
 import * as React from 'react'
 
 import { cn } from '@/lib/utils'

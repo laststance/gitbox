@@ -28,6 +28,15 @@ interface StatusColumnProps {
   onAddCard?: (statusId: string) => void
 }
 
+/**
+ * Status Column Component
+ *
+ * A column representing a status list in the Kanban board.
+ * - Displays status title and color indicator
+ * - WIP limit badge with exceeded warning
+ * - Contains draggable repository cards
+ * - Column actions (add card, edit, delete)
+ */
 export const StatusColumn = memo<StatusColumnProps>(
   ({
     status,

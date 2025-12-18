@@ -1,3 +1,11 @@
+/**
+ * Select Component
+ *
+ * A styled select dropdown component built on Radix UI Select primitive.
+ * - Single selection with keyboard navigation and accessibility
+ * - Subcomponents: SelectTrigger, SelectContent, SelectItem, SelectLabel, etc.
+ */
+
 'use client'
 
 import * as SelectPrimitive from '@radix-ui/react-select'

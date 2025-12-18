@@ -1,3 +1,11 @@
+/**
+ * Label Component
+ *
+ * A styled label component built on Radix UI Label primitive.
+ * - Provides accessible labels for form inputs
+ * - Automatic disabled state styling when associated with disabled inputs
+ */
+
 'use client'
 
 import * as LabelPrimitive from '@radix-ui/react-label'

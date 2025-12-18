@@ -54,6 +54,16 @@ interface KanbanBoardProps {
   onAddCard?: (statusId: string) => void
 }
 
+/**
+ * Kanban Board Component
+ *
+ * The main Kanban board displaying status columns and repository cards.
+ * - Drag-and-drop card reordering via @dnd-kit
+ * - Board data loading from Supabase
+ * - Optimistic UI updates with Supabase sync
+ * - Undo functionality (Z key shortcut)
+ * - Redux state management with localStorage sync
+ */
 // Loading Skeleton Component
 const KanbanSkeleton = memo(() => {
   return (

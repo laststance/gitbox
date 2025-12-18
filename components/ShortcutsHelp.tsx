@@ -1,18 +1,3 @@
-/**
- * Keyboard Shortcuts Help Modal
- *
- * Constitution要件:
- * - Principle I: ブラウザ検証必須（Playwright MCPで検証）
- * - Principle IV: WCAG AA準拠（キーボードナビゲーション、フォーカス管理）
- * - Principle VII: 日本語ファースト（UI表示は日本語）
- *
- * 機能:
- * - ?キーでモーダル開閉
- * - ESCキーでモーダルを閉じる
- * - カテゴリ別にショートカットを整理
- * - アクセシブルなテーブル形式
- */
-
 'use client'
 
 import {
@@ -44,6 +29,16 @@ interface ShortcutsHelpProps {
   defaultOpen?: boolean
 }
 
+/**
+ * Shortcuts Help Component
+ *
+ * A modal dialog displaying keyboard shortcuts help.
+ * - Accessible via ? key
+ * - Categorized shortcuts (Navigation, Actions, Help)
+ * - ESC key to close
+ * - WCAG AA accessibility compliance
+ * - Accessible table format
+ */
 export const ShortcutsHelp = memo(function ShortcutsHelp({
   defaultOpen = false,
 }: ShortcutsHelpProps) {

@@ -38,6 +38,15 @@ interface RepoCardProps {
   onMaintenance?: (id: string) => void
 }
 
+/**
+ * Repository Card Component
+ *
+ * A draggable card representing a GitHub repository in the Kanban board.
+ * - Displays repository info (title, description, tags, assignee, metadata)
+ * - Drag-and-drop support via @dnd-kit/sortable
+ * - Keyboard navigation for accessibility
+ * - Overflow menu for card actions
+ */
 export const RepoCard = memo<RepoCardProps>(
   ({ card, onEdit, onMaintenance }) => {
     const {

@@ -1,18 +1,3 @@
-/**
- * OverflowMenu Component
- *
- * PRD 4.1: Board/Maintenance共通のオーバーフローメニュー
- *
- * メニュー項目:
- * - Open on GitHub
- * - Open Production URL
- * - Open Tracking dashboard
- * - Open Supabase dashboard
- * - Edit Project Info…
- * - Move to Maintenance (Board only)
- * - Restore to Board (Maintenance only)
- */
-
 'use client'
 
 import {
@@ -51,6 +36,19 @@ interface OverflowMenuProps {
   context?: 'board' | 'maintenance'
 }
 
+/**
+ * Overflow Menu Component
+ *
+ * A dropdown menu component for repository card actions.
+ * Provides context-specific actions for Board and Maintenance modes.
+ * - Open on GitHub
+ * - Open Production URL
+ * - Open Tracking dashboard
+ * - Open Supabase dashboard
+ * - Edit Project Info
+ * - Move to Maintenance (Board only)
+ * - Restore to Board (Maintenance only)
+ */
 export const OverflowMenu = memo<OverflowMenuProps>(
   ({
     cardId,

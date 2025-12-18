@@ -1,3 +1,13 @@
+/**
+ * Dialog Component
+ *
+ * A modal dialog component built on Radix UI Dialog primitive.
+ * - Accessible modals with overlay and proper focus management
+ * - Keyboard navigation support
+ * - Subcomponents: DialogTrigger, DialogContent, DialogHeader, DialogTitle,
+ *   DialogDescription, DialogFooter, DialogClose
+ */
+
 'use client'
 
 import * as DialogPrimitive from '@radix-ui/react-dialog'

@@ -1,3 +1,11 @@
+/**
+ * Textarea Component
+ *
+ * A styled textarea component for multi-line text input.
+ * - Supports all standard HTML textarea attributes
+ * - Proper focus states, disabled states, and placeholder styling
+ */
+
 import * as React from 'react'
 
 import { cn } from '@/lib/utils'

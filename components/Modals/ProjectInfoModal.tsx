@@ -1,24 +1,3 @@
-/**
- * ProjectInfoModal Component
- *
- * Constitution要件:
- * - Principle IV: WCAG AA準拠 (フォーカス管理、ARIA属性、キーボードナビゲーション)
- * - Principle VII: 日本語ファーストUI
- *
- * User Story 4:
- * - Quick note: 1-3行のメモ (300文字制限)
- * - Links: Production URL、Tracking services、Supabase Dashboard
- * - Save/Cancel: 楽観的UI更新
- *
- * User Story 5:
- * - Credentials: 3パターンの機密情報管理
- *   - Pattern A: Reference (ダッシュボードURLのみ)
- *   - Pattern B: Encrypted (AES-256-GCM暗号化)
- *   - Pattern C: External (1Password/Bitwarden)
- *
- * Based on Magic MCP component, adapted for project requirements
- */
-
 'use client'
 
 import { Plus, X, Eye, EyeOff } from 'lucide-react'
@@ -625,10 +604,16 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
 })
 
 /**
- * ProjectInfoModal Component
+ * Project Info Modal Component
  *
- * Wrapper component that controls dialog visibility and uses key pattern
- * to reset form state when projectInfo changes.
+ * A modal dialog for editing project information.
+ * - Quick note (1-3 lines, max 300 characters)
+ * - Links (Production URL, Tracking services, Supabase Dashboard)
+ * - Credentials management with three patterns:
+ *   - Reference: Dashboard URL only
+ *   - Encrypted: AES-256-GCM encryption
+ *   - External: 1Password/Bitwarden location
+ * - WCAG AA accessibility compliance
  */
 export const ProjectInfoModal = memo(function ProjectInfoModal({
   isOpen,

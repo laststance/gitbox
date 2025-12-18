@@ -1,12 +1,3 @@
-/**
- * Command Palette Component
- *
- * PRD: Command Palette (⌘K)
- * - グローバルコマンド検索
- * - キーボードナビゲーション
- * - ショートカットアクセス
- */
-
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
@@ -50,6 +41,15 @@ interface Command {
   category: 'navigation' | 'actions' | 'settings'
 }
 
+/**
+ * Command Palette Component
+ *
+ * A global command palette accessible via ⌘K (Cmd+K on Mac, Ctrl+K on Windows/Linux).
+ * - Global command search
+ * - Keyboard navigation with proper focus management
+ * - Quick access to navigation, actions, and settings
+ * - Categorized commands with shortcuts display
+ */
 export const CommandPalette = memo(function CommandPalette() {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)

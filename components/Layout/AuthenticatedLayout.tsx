@@ -1,11 +1,3 @@
-/**
- * Authenticated Layout Component
- *
- * 認証済みユーザー向けのレイアウト
- * - Sidebar ナビゲーション
- * - メインコンテンツエリア
- */
-
 'use client'
 
 import React, { memo } from 'react'
@@ -18,6 +10,13 @@ interface AuthenticatedLayoutProps {
   userAvatar?: string
 }
 
+/**
+ * Authenticated Layout Component
+ *
+ * Layout for authenticated users
+ * - Sidebar navigation
+ * - Main content area
+ */
 export const AuthenticatedLayout = memo(function AuthenticatedLayout({
   children,
   userName,

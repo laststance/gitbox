@@ -17,18 +17,16 @@ interface AddRepositoryComboboxProps {
 }
 
 /**
- * AddRepositoryCombobox
+ * Add Repository Combobox Component
  *
- * GitHub Repositoryを検索してKanbanボードに追加するComboboxコンポーネント
- *
- * 機能:
- * - Repository検索 (owner/repo名、topics、visibility)
- * - 複数選択 (Multi-select)
- * - 100+リポジトリ対応 (Virtual scrolling)
- * - パフォーマンス最適化 (<1秒レスポンス)
- * - WCAGアクセシビリティ対応 (AA準拠)
- * - 重複検出
- * - Auto-focus to Quick note
+ * A combobox for searching and adding GitHub repositories to a Kanban board.
+ * - Repository search (owner/repo name, topics, visibility)
+ * - Multi-select support
+ * - Virtual scrolling for 100+ repositories
+ * - Performance optimized (<1s response)
+ * - WCAG AA accessibility compliance
+ * - Duplicate detection
+ * - Auto-focus to Quick note after adding
  */
 export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   boardId,

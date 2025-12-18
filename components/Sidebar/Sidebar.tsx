@@ -1,17 +1,3 @@
-/**
- * Sidebar Component
- *
- * PRD 5.1: 全画面共通のナビゲーションサイドバー
- *
- * Sections:
- * - GitBox ロゴ
- * - Boards (All Boards, Favorites)
- * - Maintenance Mode
- * - Settings
- * - Shortcuts
- * - Profile & Sign out
- */
-
 'use client'
 
 import {
@@ -75,6 +61,17 @@ interface SidebarProps {
   userAvatar?: string
 }
 
+/**
+ * Sidebar Component
+ *
+ * A navigation sidebar for authenticated users.
+ * - GitBox logo
+ * - Boards section (All Boards, Favorites)
+ * - Maintenance Mode navigation
+ * - Settings and Shortcuts links
+ * - User profile with sign out option
+ * - Collapsible sections with active route highlighting
+ */
 export const Sidebar = memo(function Sidebar({
   userName = 'User',
   userAvatar,

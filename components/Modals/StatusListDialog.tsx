@@ -1,10 +1,3 @@
-/**
- * StatusList Dialog
- *
- * StatusListの追加・編集ダイアログ
- * PRD 3.2: 列CRUD操作、WIP limit設定
- */
-
 'use client'
 
 import React, { useState, useEffect, memo } from 'react'
@@ -49,13 +42,13 @@ interface StatusListDialogProps {
 }
 
 /**
- * StatusList追加/編集ダイアログ
+ * Status List Dialog Component
  *
- * @param isOpen - ダイアログの表示状態
- * @param onClose - ダイアログを閉じる
- * @param onSave - 保存ハンドラ
- * @param statusList - 編集時の既存データ
- * @param mode - 'create' | 'edit'
+ * A dialog for creating and editing status columns in the Kanban board.
+ * - Column name input with validation
+ * - Color selection (preset options and custom color picker)
+ * - WIP (Work In Progress) limit configuration
+ * - Supports both create and edit modes
  */
 export const StatusListDialog = memo(function StatusListDialog({
   isOpen,

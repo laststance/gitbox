@@ -1,3 +1,11 @@
+/**
+ * Dropdown Menu Component
+ *
+ * A dropdown menu component built on Radix UI DropdownMenu primitive.
+ * - Accessible menus with keyboard navigation and focus management
+ * - Supports menu items, checkboxes, radio groups, separators, and submenus
+ */
+
 'use client'
 
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu'
