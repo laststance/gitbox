@@ -6,8 +6,10 @@
  * - ユーザー情報を取得して Sidebar に渡す
  */
 
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+
+import { createClient } from '@/lib/supabase/server'
+
 import { BoardsLayoutClient } from './BoardsLayoutClient'
 
 export default async function BoardsLayout({

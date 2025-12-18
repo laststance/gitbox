@@ -6,16 +6,11 @@
 
 'use client'
 
-import { useState } from 'react'
-import {
-  useTheme,
-  ThemeType,
-  LIGHT_THEMES,
-  DARK_THEMES,
-} from '@/lib/hooks/use-theme'
-import { useI18n } from '@/lib/i18n'
+import { Check, Sun, Moon, Monitor, Globe } from 'lucide-react'
+import Link from 'next/link'
+import { useState, memo, useMemo } from 'react'
+
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import {
   Card,
   CardContent,
@@ -23,12 +18,20 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
-import { Check, Sun, Moon, Monitor, Globe } from 'lucide-react'
-import Link from 'next/link'
+import { Label } from '@/components/ui/label'
+import type { ThemeType } from '@/lib/hooks/use-theme'
+import { useTheme, LIGHT_THEMES, DARK_THEMES } from '@/lib/hooks/use-theme'
+import { useI18n } from '@/lib/i18n'
+/** Base styles for the toggle switch container */
+const TOGGLE_BASE =
+  'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+
+/** Base styles for the toggle switch knob */
+const TOGGLE_KNOB_BASE =
+  'inline-block h-4 w-4 rounded-full bg-background shadow-lg transition-transform'
 
 // Simple Toggle Switch Component
-function Toggle({
+const Toggle = memo(function Toggle({
   id,
   checked,
   onCheckedChange,
@@ -50,6 +53,17 @@ function Toggle({
     onCheckedChange?.(newValue)
   }
 
+  const containerClassName = useMemo(
+    () => `${TOGGLE_BASE} ${isChecked ? 'bg-primary' : 'bg-input'}`,
+    [isChecked],
+  )
+
+  const knobClassName = useMemo(
+    () =>
+      `${TOGGLE_KNOB_BASE} ${isChecked ? 'translate-x-6' : 'translate-x-1'}`,
+    [isChecked],
+  )
+
   return (
     <button
       id={id}
@@ -57,20 +71,27 @@ function Toggle({
       role="switch"
       aria-checked={isChecked}
       onClick={handleClick}
-      className={cn(
-        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-        isChecked ? 'bg-primary' : 'bg-input',
-      )}
+      className={containerClassName}
     >
-      <span
-        className={cn(
-          'inline-block h-4 w-4 rounded-full bg-background shadow-lg transition-transform',
-          isChecked ? 'translate-x-6' : 'translate-x-1',
-        )}
-      />
+      <span className={knobClassName} />
     </button>
   )
-}
+})
+
+/** Base styles for theme button */
+const THEME_BUTTON_BASE =
+  'relative flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all'
+const THEME_BUTTON_SELECTED =
+  'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
+const THEME_BUTTON_UNSELECTED =
+  'border-border hover:border-primary/50 hover:bg-muted/50'
+
+/** Base styles for language button */
+const LANGUAGE_BUTTON_BASE =
+  'flex items-center gap-2 rounded-lg border-2 px-4 py-3 transition-all'
+const LANGUAGE_BUTTON_SELECTED =
+  'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
+const LANGUAGE_BUTTON_UNSELECTED = 'border-border hover:border-primary/50'
 
 const THEME_INFO: Record<
   ThemeType,
@@ -103,7 +124,7 @@ const THEME_INFO: Record<
   },
 }
 
-function ThemeButton({
+const ThemeButton = memo(function ThemeButton({
   theme,
   isSelected,
   onClick,
@@ -114,17 +135,14 @@ function ThemeButton({
 }) {
   const info = THEME_INFO[theme]
 
+  const buttonClassName = useMemo(
+    () =>
+      `${THEME_BUTTON_BASE} ${isSelected ? THEME_BUTTON_SELECTED : THEME_BUTTON_UNSELECTED}`,
+    [isSelected],
+  )
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'relative flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all',
-        isSelected
-          ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
-          : 'border-border hover:border-primary/50 hover:bg-muted/50',
-      )}
-    >
+    <button type="button" onClick={onClick} className={buttonClassName}>
       {theme === 'system' ? (
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
           <Monitor className="h-5 w-5 text-muted-foreground" />
@@ -144,11 +162,23 @@ function ThemeButton({
       )}
     </button>
   )
-}
+})
 
-export function SettingsClient() {
+export const SettingsClient = memo(function SettingsClient() {
   const { theme, setTheme, mounted } = useTheme()
   const { language, setLanguage, t } = useI18n()
+
+  const englishButtonClassName = useMemo(
+    () =>
+      `${LANGUAGE_BUTTON_BASE} ${language === 'en' ? LANGUAGE_BUTTON_SELECTED : LANGUAGE_BUTTON_UNSELECTED}`,
+    [language],
+  )
+
+  const japaneseButtonClassName = useMemo(
+    () =>
+      `${LANGUAGE_BUTTON_BASE} ${language === 'ja' ? LANGUAGE_BUTTON_SELECTED : LANGUAGE_BUTTON_UNSELECTED}`,
+    [language],
+  )
 
   if (!mounted) {
     return (
@@ -319,12 +349,7 @@ export function SettingsClient() {
               <button
                 type="button"
                 onClick={() => setLanguage('en')}
-                className={cn(
-                  'flex items-center gap-2 rounded-lg border-2 px-4 py-3 transition-all',
-                  language === 'en'
-                    ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
-                    : 'border-border hover:border-primary/50',
-                )}
+                className={englishButtonClassName}
               >
                 <span className="text-2xl">🇺🇸</span>
                 <div className="text-left">
@@ -338,12 +363,7 @@ export function SettingsClient() {
               <button
                 type="button"
                 onClick={() => setLanguage('ja')}
-                className={cn(
-                  'flex items-center gap-2 rounded-lg border-2 px-4 py-3 transition-all',
-                  language === 'ja'
-                    ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
-                    : 'border-border hover:border-primary/50',
-                )}
+                className={japaneseButtonClassName}
               >
                 <span className="text-2xl">🇯🇵</span>
                 <div className="text-left">
@@ -370,4 +390,4 @@ export function SettingsClient() {
       </div>
     </div>
   )
-}
+})

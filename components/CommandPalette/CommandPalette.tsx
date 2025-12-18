@@ -9,8 +9,6 @@
 
 'use client'
 
-import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
@@ -23,8 +21,25 @@ import {
   Palette,
   Keyboard,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useRouter } from 'next/navigation'
+import React, { useEffect, useMemo, useRef, useState, memo } from 'react'
+
 import { signOut } from '@/lib/actions/auth'
+
+/** Base styles for command item button */
+const COMMAND_BUTTON_BASE =
+  'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors'
+const COMMAND_BUTTON_SELECTED = 'bg-primary text-primary-foreground'
+const COMMAND_BUTTON_UNSELECTED = 'hover:bg-muted'
+
+/** Base styles for command item icon */
+const COMMAND_ICON_SELECTED = 'text-primary-foreground'
+const COMMAND_ICON_UNSELECTED = 'text-muted-foreground'
+
+/** Base styles for command shortcut kbd */
+const COMMAND_KBD_BASE = 'rounded px-1.5 py-0.5 text-xs'
+const COMMAND_KBD_SELECTED = 'bg-primary-foreground/20 text-primary-foreground'
+const COMMAND_KBD_UNSELECTED = 'bg-muted text-muted-foreground'
 
 interface Command {
   id: string
@@ -35,7 +50,7 @@ interface Command {
   category: 'navigation' | 'actions' | 'settings'
 }
 
-export function CommandPalette() {
+export const CommandPalette = memo(function CommandPalette() {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -43,98 +58,109 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
-  const commands: Command[] = [
-    // Navigation
-    {
-      id: 'home',
-      label: 'Go to Boards',
-      icon: <Home className="h-4 w-4" />,
-      shortcut: 'G B',
-      action: () => router.push('/boards'),
-      category: 'navigation',
-    },
-    {
-      id: 'maintenance',
-      label: 'Go to Maintenance',
-      icon: <Archive className="h-4 w-4" />,
-      shortcut: 'G M',
-      action: () => router.push('/maintenance'),
-      category: 'navigation',
-    },
-    {
-      id: 'settings',
-      label: 'Go to Settings',
-      icon: <Settings className="h-4 w-4" />,
-      shortcut: 'G S',
-      action: () => router.push('/settings'),
-      category: 'navigation',
-    },
-    // Actions
-    {
-      id: 'new-board',
-      label: 'Create New Board',
-      icon: <PlusCircle className="h-4 w-4" />,
-      shortcut: 'N',
-      action: () => router.push('/boards/new'),
-      category: 'actions',
-    },
-    {
-      id: 'change-theme',
-      label: 'Change Theme',
-      icon: <Palette className="h-4 w-4" />,
-      action: () => router.push('/settings'),
-      category: 'actions',
-    },
-    // Settings
-    {
-      id: 'shortcuts',
-      label: 'Keyboard Shortcuts',
-      icon: <Keyboard className="h-4 w-4" />,
-      shortcut: '?',
-      action: () => {
-        setIsOpen(false)
-        // Show shortcuts modal (to be implemented)
-        alert(
-          'Keyboard Shortcuts:\n\n⌘K - Command Palette\n? - Shortcuts Help\nG B - Go to Boards\nG M - Go to Maintenance\nG S - Go to Settings\nN - New Board\nZ - Undo\n. - Card Menu',
-        )
+  const commands: Command[] = useMemo(
+    () => [
+      // Navigation
+      {
+        id: 'home',
+        label: 'Go to Boards',
+        icon: <Home className="h-4 w-4" />,
+        shortcut: 'G B',
+        action: () => router.push('/boards'),
+        category: 'navigation',
       },
-      category: 'settings',
-    },
-    {
-      id: 'help',
-      label: 'Help & Documentation',
-      icon: <HelpCircle className="h-4 w-4" />,
-      action: () =>
-        window.open('https://github.com/laststance/gitbox', '_blank'),
-      category: 'settings',
-    },
-    {
-      id: 'logout',
-      label: 'Sign Out',
-      icon: <LogOut className="h-4 w-4" />,
-      action: async () => {
-        await signOut()
-        router.push('/login')
+      {
+        id: 'maintenance',
+        label: 'Go to Maintenance',
+        icon: <Archive className="h-4 w-4" />,
+        shortcut: 'G M',
+        action: () => router.push('/maintenance'),
+        category: 'navigation',
       },
-      category: 'settings',
-    },
-  ]
+      {
+        id: 'settings',
+        label: 'Go to Settings',
+        icon: <Settings className="h-4 w-4" />,
+        shortcut: 'G S',
+        action: () => router.push('/settings'),
+        category: 'navigation',
+      },
+      // Actions
+      {
+        id: 'new-board',
+        label: 'Create New Board',
+        icon: <PlusCircle className="h-4 w-4" />,
+        shortcut: 'N',
+        action: () => router.push('/boards/new'),
+        category: 'actions',
+      },
+      {
+        id: 'change-theme',
+        label: 'Change Theme',
+        icon: <Palette className="h-4 w-4" />,
+        action: () => router.push('/settings'),
+        category: 'actions',
+      },
+      // Settings
+      {
+        id: 'shortcuts',
+        label: 'Keyboard Shortcuts',
+        icon: <Keyboard className="h-4 w-4" />,
+        shortcut: '?',
+        action: () => {
+          setIsOpen(false)
+          // Show shortcuts modal (to be implemented)
+          alert(
+            'Keyboard Shortcuts:\n\n⌘K - Command Palette\n? - Shortcuts Help\nG B - Go to Boards\nG M - Go to Maintenance\nG S - Go to Settings\nN - New Board\nZ - Undo\n. - Card Menu',
+          )
+        },
+        category: 'settings',
+      },
+      {
+        id: 'help',
+        label: 'Help & Documentation',
+        icon: <HelpCircle className="h-4 w-4" />,
+        action: () =>
+          window.open('https://github.com/laststance/gitbox', '_blank'),
+        category: 'settings',
+      },
+      {
+        id: 'logout',
+        label: 'Sign Out',
+        icon: <LogOut className="h-4 w-4" />,
+        action: async () => {
+          await signOut()
+          router.push('/login')
+        },
+        category: 'settings',
+      },
+    ],
+    [router],
+  )
 
   // Filter commands based on search
-  const filteredCommands = commands.filter((cmd) =>
-    cmd.label.toLowerCase().includes(search.toLowerCase()),
+  const filteredCommands = useMemo(
+    () =>
+      commands.filter((cmd) =>
+        cmd.label.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [commands, search],
   )
 
   // Group commands by category
-  const groupedCommands = filteredCommands.reduce(
-    (acc, cmd) => {
-      if (!acc[cmd.category]) {
-        acc[cmd.category] = []
-      }
-      acc[cmd.category].push(cmd)
-      return acc
-    },
-    {} as Record<string, Command[]>,
+  const groupedCommands = useMemo(
+    () =>
+      filteredCommands.reduce(
+        (acc, cmd) => {
+          if (!acc[cmd.category]) {
+            acc[cmd.category] = []
+          }
+          acc[cmd.category].push(cmd)
+          return acc
+        },
+        {} as Record<string, Command[]>,
+      ),
+    [filteredCommands],
   )
 
   const categoryLabels: Record<string, string> = {
@@ -144,7 +170,40 @@ export function CommandPalette() {
   }
 
   // Flatten for keyboard navigation
-  const flatCommands = Object.values(groupedCommands).flat()
+  const flatCommands = useMemo(
+    () => Object.values(groupedCommands).flat(),
+    [groupedCommands],
+  )
+
+  /**
+   * Memoized styles for each command item based on current selectedIndex.
+   * Returns a Map of command id -> { button, icon, kbd } classNames.
+   */
+  const commandStyles = useMemo(() => {
+    const styles = new Map<
+      string,
+      { button: string; icon: string; kbd: string }
+    >()
+    flatCommands.forEach((cmd, index) => {
+      const isSelected = index === selectedIndex
+      styles.set(cmd.id, {
+        button: `${COMMAND_BUTTON_BASE} ${isSelected ? COMMAND_BUTTON_SELECTED : COMMAND_BUTTON_UNSELECTED}`,
+        icon: isSelected ? COMMAND_ICON_SELECTED : COMMAND_ICON_UNSELECTED,
+        kbd: `${COMMAND_KBD_BASE} ${isSelected ? COMMAND_KBD_SELECTED : COMMAND_KBD_UNSELECTED}`,
+      })
+    })
+    return styles
+  }, [flatCommands, selectedIndex])
+
+  /**
+   * Handles search input changes and resets selection to first item.
+   * This pattern avoids useEffect setState by handling the reset inline.
+   * @param e - The change event from the search input.
+   */
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value)
+    setSelectedIndex(0)
+  }
 
   // Open/close with ⌘K
   useEffect(() => {
@@ -172,30 +231,28 @@ export function CommandPalette() {
     }
   }, [isOpen])
 
-  // Keyboard navigation
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault()
-        setSelectedIndex((prev) => (prev + 1) % flatCommands.length)
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault()
-        setSelectedIndex(
-          (prev) => (prev - 1 + flatCommands.length) % flatCommands.length,
-        )
-      } else if (e.key === 'Enter' && flatCommands[selectedIndex]) {
-        e.preventDefault()
-        flatCommands[selectedIndex].action()
-        setIsOpen(false)
-      }
-    },
-    [flatCommands, selectedIndex],
-  )
-
-  // Reset selected index when search changes
-  useEffect(() => {
-    setSelectedIndex(0)
-  }, [search])
+  /**
+   * Handles keyboard navigation within the command palette.
+   * @param e - The keyboard event from the input element.
+   * - ArrowDown: Move selection to the next command (wraps around).
+   * - ArrowUp: Move selection to the previous command (wraps around).
+   * - Enter: Execute the currently selected command and close the palette.
+   */
+  const handleInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setSelectedIndex((prev) => (prev + 1) % flatCommands.length)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setSelectedIndex(
+        (prev) => (prev - 1 + flatCommands.length) % flatCommands.length,
+      )
+    } else if (e.key === 'Enter' && flatCommands[selectedIndex]) {
+      e.preventDefault()
+      flatCommands[selectedIndex].action()
+      setIsOpen(false)
+    }
+  }
 
   // Scroll selected item into view
   useEffect(() => {
@@ -242,8 +299,8 @@ export function CommandPalette() {
                 ref={inputRef}
                 type="text"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={handleKeyDown}
+                onChange={handleSearchChange}
+                onKeyDown={handleInputKeyDown}
                 placeholder="Search commands..."
                 className="h-14 flex-1 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none"
               />
@@ -268,42 +325,22 @@ export function CommandPalette() {
                       const globalIndex = flatCommands.findIndex(
                         (c) => c.id === cmd.id,
                       )
+                      const styles = commandStyles.get(cmd.id)
                       return (
                         <button
+                          type="button"
                           key={cmd.id}
                           data-index={globalIndex}
                           onClick={() => {
                             cmd.action()
                             setIsOpen(false)
                           }}
-                          className={cn(
-                            'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors',
-                            globalIndex === selectedIndex
-                              ? 'bg-primary text-primary-foreground'
-                              : 'hover:bg-muted',
-                          )}
+                          className={styles?.button}
                         >
-                          <span
-                            className={cn(
-                              globalIndex === selectedIndex
-                                ? 'text-primary-foreground'
-                                : 'text-muted-foreground',
-                            )}
-                          >
-                            {cmd.icon}
-                          </span>
+                          <span className={styles?.icon}>{cmd.icon}</span>
                           <span className="flex-1">{cmd.label}</span>
                           {cmd.shortcut && (
-                            <kbd
-                              className={cn(
-                                'rounded px-1.5 py-0.5 text-xs',
-                                globalIndex === selectedIndex
-                                  ? 'bg-primary-foreground/20 text-primary-foreground'
-                                  : 'bg-muted text-muted-foreground',
-                              )}
-                            >
-                              {cmd.shortcut}
-                            </kbd>
+                            <kbd className={styles?.kbd}>{cmd.shortcut}</kbd>
                           )}
                         </button>
                       )
@@ -335,4 +372,4 @@ export function CommandPalette() {
       )}
     </AnimatePresence>
   )
-}
+})

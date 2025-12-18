@@ -1,12 +1,14 @@
 'use client'
 
-import React, { memo, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Calendar, GripVertical, MessageCircle, Paperclip } from 'lucide-react'
+import React, { memo, useState } from 'react'
+
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
+
 import { OverflowMenu } from './OverflowMenu'
 
 // Types
@@ -48,6 +50,16 @@ export const RepoCard = memo<RepoCardProps>(
     } = useSortable({ id: card.id })
 
     const [menuOpen, setMenuOpen] = useState(false)
+
+    /**
+     * Handle menu open state changes from OverflowMenu dropdown.
+     * Wraps setState to comply with no-set-state-prop-drilling rule.
+     *
+     * @param open - Whether the menu should be open
+     */
+    const handleMenuOpenChange = (open: boolean) => {
+      setMenuOpen(open)
+    }
 
     const style = {
       transform: CSS.Transform.toString(transform),
@@ -105,7 +117,7 @@ export const RepoCard = memo<RepoCardProps>(
                     onEdit={onEdit}
                     onMoveToMaintenance={onMaintenance}
                     open={menuOpen}
-                    onOpenChange={setMenuOpen}
+                    onOpenChange={handleMenuOpenChange}
                     context="board"
                   />
                   <div {...attributes} {...listeners}>

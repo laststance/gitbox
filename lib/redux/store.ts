@@ -10,11 +10,15 @@
 
 import { configureStore } from '@reduxjs/toolkit'
 import { setupListeners } from '@reduxjs/toolkit/query'
+import type { TypedUseSelectorHook } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
+
+import { githubApi } from '../github/api'
+
+import { createStorageMiddleware } from './middleware/storageMiddleware'
 import authReducer from './slices/authSlice'
 import boardReducer from './slices/boardSlice'
 import settingsReducer from './slices/settingsSlice'
-import { githubApi } from '../github/api'
-import { createStorageMiddleware } from './middleware/storageMiddleware'
 
 // Storage middleware の設定
 const storageMiddleware = createStorageMiddleware({
@@ -53,6 +57,5 @@ export type RootState = ReturnType<typeof store.getState>
 export type AppDispatch = typeof store.dispatch
 
 // Typed hooks (別ファイルで export 推奨だが、ここでは簡潔に)
-import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux'
 export const useAppDispatch = () => useDispatch<AppDispatch>()
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector

@@ -8,7 +8,8 @@
 
 'use client'
 
-import React from 'react'
+import React, { memo } from 'react'
+
 import { Sidebar } from '@/components/Sidebar'
 
 interface AuthenticatedLayoutProps {
@@ -17,11 +18,11 @@ interface AuthenticatedLayoutProps {
   userAvatar?: string
 }
 
-export const AuthenticatedLayout: React.FC<AuthenticatedLayoutProps> = ({
+export const AuthenticatedLayout = memo(function AuthenticatedLayout({
   children,
   userName,
   userAvatar,
-}) => {
+}: AuthenticatedLayoutProps) {
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -31,6 +32,6 @@ export const AuthenticatedLayout: React.FC<AuthenticatedLayoutProps> = ({
       <main className="flex-1 overflow-auto">{children}</main>
     </div>
   )
-}
+})
 
 export default AuthenticatedLayout

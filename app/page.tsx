@@ -1,7 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { cva, type VariantProps } from 'class-variance-authority'
 import {
   ArrowRight,
   Menu,
@@ -11,12 +10,28 @@ import {
   Shield,
   Rocket,
 } from 'lucide-react'
-import { cva, type VariantProps } from 'class-variance-authority'
+import { useRouter } from 'next/navigation'
+import React, { useState, useEffect, useMemo } from 'react'
 
-// Utility function
+/**
+ * Utility function to join class names, filtering out falsy values.
+ * @param classes - Class names to join.
+ * @returns The joined class name string.
+ */
 const cn = (...classes: (string | undefined | null | false)[]) => {
   return classes.filter(Boolean).join(' ')
 }
+
+/** Base glow element styles for the larger outer glow */
+const GLOW_OUTER_BASE =
+  'absolute left-1/2 h-[256px] w-[60%] -translate-x-1/2 scale-[2.5] rounded-[50%] bg-[radial-gradient(ellipse_at_center,_hsl(var(--primary)/.5)_10%,_hsl(var(--primary)/0)_60%)] sm:h-[512px]'
+
+/** Base glow element styles for the smaller inner glow */
+const GLOW_INNER_BASE =
+  'absolute left-1/2 h-[128px] w-[40%] -translate-x-1/2 scale-[2] rounded-[50%] bg-[radial-gradient(ellipse_at_center,_hsl(var(--primary)/.3)_10%,_hsl(var(--primary)/0)_60%)] sm:h-[256px]'
+
+/** Additional style for centering the glow vertically */
+const GLOW_CENTER_TRANSLATE = '-translate-y-1/2'
 
 // Button Component
 const buttonVariants = cva(
@@ -58,6 +73,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, ...props }, ref) => {
     return (
       <button
+        type="button"
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         {...props}
@@ -119,26 +135,34 @@ interface GlowProps
     VariantProps<typeof glowVariants> {}
 
 const Glow = React.forwardRef<HTMLDivElement, GlowProps>(
-  ({ className, variant, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(glowVariants({ variant }), className)}
-      {...props}
-    >
+  ({ className, variant, ...props }, ref) => {
+    const outerGlowClassName = useMemo(
+      () =>
+        variant === 'center'
+          ? `${GLOW_OUTER_BASE} ${GLOW_CENTER_TRANSLATE}`
+          : GLOW_OUTER_BASE,
+      [variant],
+    )
+
+    const innerGlowClassName = useMemo(
+      () =>
+        variant === 'center'
+          ? `${GLOW_INNER_BASE} ${GLOW_CENTER_TRANSLATE}`
+          : GLOW_INNER_BASE,
+      [variant],
+    )
+
+    return (
       <div
-        className={cn(
-          'absolute left-1/2 h-[256px] w-[60%] -translate-x-1/2 scale-[2.5] rounded-[50%] bg-[radial-gradient(ellipse_at_center,_hsl(var(--primary)/.5)_10%,_hsl(var(--primary)/0)_60%)] sm:h-[512px]',
-          variant === 'center' && '-translate-y-1/2',
-        )}
-      />
-      <div
-        className={cn(
-          'absolute left-1/2 h-[128px] w-[40%] -translate-x-1/2 scale-[2] rounded-[50%] bg-[radial-gradient(ellipse_at_center,_hsl(var(--primary)/.3)_10%,_hsl(var(--primary)/0)_60%)] sm:h-[256px]',
-          variant === 'center' && '-translate-y-1/2',
-        )}
-      />
-    </div>
-  ),
+        ref={ref}
+        className={cn(glowVariants({ variant }), className)}
+        {...props}
+      >
+        <div className={outerGlowClassName} />
+        <div className={innerGlowClassName} />
+      </div>
+    )
+  },
 )
 Glow.displayName = 'Glow'
 
@@ -192,6 +216,7 @@ const Navigation = () => {
           </div>
 
           <button
+            type="button"
             className="md:hidden text-foreground"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
@@ -328,7 +353,7 @@ const HeroSection = () => {
             href="#new"
             className="flex items-center gap-1 text-foreground hover:text-primary transition-colors"
           >
-            What's new
+            What&apos;s new
             <ArrowRight className="h-3 w-3" />
           </a>
         </Badge>

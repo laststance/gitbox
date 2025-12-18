@@ -7,14 +7,16 @@
 
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { Tables, TablesInsert } from '@/lib/supabase/types'
+
 import type {
   StatusListDomain,
   RepoCardDomain,
   RepoCardMeta,
 } from '@/lib/models/domain'
+import { createClient } from '@/lib/supabase/server'
+import type { Tables, TablesInsert } from '@/lib/supabase/types'
+
 import { logBoardCreate } from './audit-log'
 
 type StatusListRow = Tables<'statuslist'>

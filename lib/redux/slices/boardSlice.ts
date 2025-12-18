@@ -7,9 +7,11 @@
  * - Undo/Redo 履歴
  */
 
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import type { Board } from '@/lib/supabase/types'
+import type { PayloadAction } from '@reduxjs/toolkit'
+import { createSlice } from '@reduxjs/toolkit'
+
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
+import type { Board } from '@/lib/supabase/types'
 
 interface DragOperation {
   cardId: string

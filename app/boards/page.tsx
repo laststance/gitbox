@@ -7,9 +7,10 @@
  * - Delete board
  */
 
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+
+import { createClient } from '@/lib/supabase/server'
 import type { Tables } from '@/lib/supabase/types'
 
 export default async function BoardsPage() {

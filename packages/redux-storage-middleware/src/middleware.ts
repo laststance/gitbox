@@ -6,6 +6,7 @@
  */
 
 import type { Middleware } from '@reduxjs/toolkit'
+
 import type { StorageMiddlewareConfig } from './types'
 
 /**

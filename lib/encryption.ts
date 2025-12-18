@@ -17,7 +17,7 @@
  * @returns Promise<CryptoKey> - Generated encryption key
  */
 export async function generateEncryptionKey(): Promise<CryptoKey> {
-  return await crypto.subtle.generateKey(
+  return crypto.subtle.generateKey(
     {
       name: 'AES-GCM',
       length: 256,
@@ -174,7 +174,7 @@ export async function exportKey(key: CryptoKey): Promise<string> {
 export async function importKey(keyString: string): Promise<CryptoKey> {
   const keyArray = Uint8Array.from(atob(keyString), (c) => c.charCodeAt(0))
 
-  return await crypto.subtle.importKey(
+  return crypto.subtle.importKey(
     'raw',
     keyArray,
     {

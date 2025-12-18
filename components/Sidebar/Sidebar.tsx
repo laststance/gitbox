@@ -14,10 +14,6 @@
 
 'use client'
 
-import React, { useState } from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
   Star,
@@ -30,8 +26,20 @@ import {
   ChevronRight,
   Github,
 } from 'lucide-react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import React, { useState, memo, useMemo } from 'react'
+
 import { Button } from '@/components/ui/button'
 import { signOut } from '@/lib/actions/auth'
+
+/** Base styles for navigation item */
+const NAV_ITEM_BASE =
+  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors'
+const NAV_ITEM_ACTIVE = 'bg-primary/10 text-primary'
+const NAV_ITEM_INACTIVE =
+  'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
 
 interface NavItemProps {
   href: string
@@ -43,32 +51,34 @@ interface NavItemProps {
 /**
  * ナビゲーションアイテム
  */
-const NavItem: React.FC<NavItemProps> = ({ href, icon, label, isActive }) => {
+const NavItem = memo(function NavItem({
+  href,
+  icon,
+  label,
+  isActive,
+}: NavItemProps) {
+  const linkClassName = useMemo(
+    () => `${NAV_ITEM_BASE} ${isActive ? NAV_ITEM_ACTIVE : NAV_ITEM_INACTIVE}`,
+    [isActive],
+  )
+
   return (
-    <Link
-      href={href}
-      className={cn(
-        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-        isActive
-          ? 'bg-primary/10 text-primary'
-          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-      )}
-    >
+    <Link href={href} className={linkClassName}>
       {icon}
       <span>{label}</span>
     </Link>
   )
-}
+})
 
 interface SidebarProps {
   userName?: string
   userAvatar?: string
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
+export const Sidebar = memo(function Sidebar({
   userName = 'User',
   userAvatar,
-}) => {
+}: SidebarProps) {
   const pathname = usePathname()
   const [boardsExpanded, setBoardsExpanded] = useState(true)
 
@@ -156,9 +166,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="border-t border-sidebar-border px-3 py-4">
         <div className="flex items-center gap-3 rounded-lg px-3 py-2">
           {userAvatar ? (
-            <img
+            <Image
               src={userAvatar}
               alt={userName}
+              width={32}
+              height={32}
               className="h-8 w-8 rounded-full"
             />
           ) : (
@@ -183,6 +195,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
     </aside>
   )
-}
+})
 
 export default Sidebar

@@ -8,13 +8,13 @@
 
 'use client'
 
-import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { useState, useTransition, memo, useMemo } from 'react'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createBoard } from '@/lib/actions/board'
-import { cn } from '@/lib/utils'
 
 // Theme definitions from PRD
 const THEMES = {
@@ -66,12 +66,47 @@ const THEMES = {
   ],
 }
 
-export function CreateBoardForm() {
+/** Theme button base styles */
+const THEME_BUTTON_BASE =
+  'flex flex-col items-center gap-2 rounded-lg border-2 p-3 transition-all'
+const THEME_BUTTON_SELECTED =
+  'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
+const THEME_BUTTON_UNSELECTED = 'border-border hover:border-primary/50'
+
+/**
+ * Computes className for a theme button based on selection state.
+ * @param isSelected - Whether this theme is currently selected.
+ * @returns The combined className string.
+ */
+const getThemeButtonClassName = (isSelected: boolean): string =>
+  `${THEME_BUTTON_BASE} ${isSelected ? THEME_BUTTON_SELECTED : THEME_BUTTON_UNSELECTED}`
+
+export const CreateBoardForm = memo(function CreateBoardForm() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [name, setName] = useState('')
   const [theme, setTheme] = useState('sunrise')
   const [error, setError] = useState<string | null>(null)
+
+  /** Memoized classNames for light theme buttons based on current theme selection */
+  const lightThemeClassNames = useMemo(
+    () =>
+      THEMES.light.map((t) => ({
+        id: t.id,
+        className: getThemeButtonClassName(theme === t.id),
+      })),
+    [theme],
+  )
+
+  /** Memoized classNames for dark theme buttons based on current theme selection */
+  const darkThemeClassNames = useMemo(
+    () =>
+      THEMES.dark.map((t) => ({
+        id: t.id,
+        className: getThemeButtonClassName(theme === t.id),
+      })),
+    [theme],
+  )
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -131,12 +166,9 @@ export function CreateBoardForm() {
                 type="button"
                 onClick={() => setTheme(t.id)}
                 disabled={isPending}
-                className={cn(
-                  'flex flex-col items-center gap-2 rounded-lg border-2 p-3 transition-all',
-                  theme === t.id
-                    ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
-                    : 'border-border hover:border-primary/50',
-                )}
+                className={
+                  lightThemeClassNames.find((c) => c.id === t.id)?.className
+                }
               >
                 <div
                   className="h-8 w-8 rounded-full shadow-inner"
@@ -158,12 +190,9 @@ export function CreateBoardForm() {
                 type="button"
                 onClick={() => setTheme(t.id)}
                 disabled={isPending}
-                className={cn(
-                  'flex flex-col items-center gap-2 rounded-lg border-2 p-3 transition-all',
-                  theme === t.id
-                    ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
-                    : 'border-border hover:border-primary/50',
-                )}
+                className={
+                  darkThemeClassNames.find((c) => c.id === t.id)?.className
+                }
               >
                 <div
                   className="h-8 w-8 rounded-full shadow-inner"
@@ -200,4 +229,4 @@ export function CreateBoardForm() {
       </div>
     </form>
   )
-}
+})

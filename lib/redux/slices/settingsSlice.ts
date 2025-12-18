@@ -8,7 +8,9 @@
  * - WIP 制限
  */
 
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import type { PayloadAction } from '@reduxjs/toolkit'
+import { createSlice } from '@reduxjs/toolkit'
+
 import type { Theme } from '@/lib/supabase/types'
 
 export type Locale = 'en' | 'ja'

@@ -6,8 +6,6 @@
 
 'use client'
 
-import { useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Grid3X3,
@@ -21,15 +19,22 @@ import {
   Calendar,
   Star,
 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useState, useCallback, memo, useMemo } from 'react'
+
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { cn } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
+
+/** Base styles for view mode toggle button */
+const VIEW_TOGGLE_BASE = 'rounded-md p-2 transition-colors'
+const VIEW_TOGGLE_SELECTED = 'bg-primary text-primary-foreground'
+const VIEW_TOGGLE_UNSELECTED = 'hover:bg-muted'
 
 export interface MaintenanceRepo {
   id: string
@@ -55,7 +60,9 @@ interface MaintenanceClientProps {
 type ViewMode = 'grid' | 'list'
 type SortOption = 'name' | 'updated' | 'stars'
 
-export function MaintenanceClient({ repos }: MaintenanceClientProps) {
+export const MaintenanceClient = memo(function MaintenanceClient({
+  repos,
+}: MaintenanceClientProps) {
   const _router = useRouter()
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [search, setSearch] = useState('')
@@ -104,6 +111,18 @@ export function MaintenanceClient({ repos }: MaintenanceClientProps) {
     console.log('Restore to board:', repoId)
     alert('Restore to Board functionality will be implemented')
   }, [])
+
+  const gridToggleClassName = useMemo(
+    () =>
+      `${VIEW_TOGGLE_BASE} ${viewMode === 'grid' ? VIEW_TOGGLE_SELECTED : VIEW_TOGGLE_UNSELECTED}`,
+    [viewMode],
+  )
+
+  const listToggleClassName = useMemo(
+    () =>
+      `${VIEW_TOGGLE_BASE} ${viewMode === 'list' ? VIEW_TOGGLE_SELECTED : VIEW_TOGGLE_UNSELECTED}`,
+    [viewMode],
+  )
 
   return (
     <div className="flex h-screen flex-col bg-background">
@@ -159,24 +178,16 @@ export function MaintenanceClient({ repos }: MaintenanceClientProps) {
             {/* View Toggle */}
             <div className="flex rounded-lg border border-border p-1">
               <button
+                type="button"
                 onClick={() => setViewMode('grid')}
-                className={cn(
-                  'rounded-md p-2 transition-colors',
-                  viewMode === 'grid'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-muted',
-                )}
+                className={gridToggleClassName}
               >
                 <Grid3X3 className="h-4 w-4" />
               </button>
               <button
+                type="button"
                 onClick={() => setViewMode('list')}
-                className={cn(
-                  'rounded-md p-2 transition-colors',
-                  viewMode === 'list'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-muted',
-                )}
+                className={listToggleClassName}
               >
                 <List className="h-4 w-4" />
               </button>
@@ -219,7 +230,10 @@ export function MaintenanceClient({ repos }: MaintenanceClientProps) {
                         asChild
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <button className="absolute right-2 top-2 rounded-md p-1.5 opacity-0 group-hover:opacity-100 hover:bg-muted transition-opacity">
+                        <button
+                          type="button"
+                          className="absolute right-2 top-2 rounded-md p-1.5 opacity-0 group-hover:opacity-100 hover:bg-muted transition-opacity"
+                        >
                           <MoreVertical className="h-4 w-4" />
                         </button>
                       </DropdownMenuTrigger>
@@ -231,7 +245,7 @@ export function MaintenanceClient({ repos }: MaintenanceClientProps) {
                           Open on GitHub
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => handleRestore(repo.id)}
+                          onClick={async () => handleRestore(repo.id)}
                         >
                           <RotateCcw className="mr-2 h-4 w-4" />
                           Restore to Board
@@ -352,4 +366,4 @@ export function MaintenanceClient({ repos }: MaintenanceClientProps) {
       </main>
     </div>
   )
-}
+})

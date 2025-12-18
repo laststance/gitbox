@@ -8,8 +8,10 @@
  * - Restore to Board 操作
  */
 
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+
+import { createClient } from '@/lib/supabase/server'
+
 import { MaintenanceClient, type MaintenanceRepo } from './MaintenanceClient'
 
 export default async function MaintenancePage() {

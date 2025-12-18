@@ -8,8 +8,10 @@
  * - WIP設定
  */
 
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+
+import { createClient } from '@/lib/supabase/server'
+
 import { SettingsClient } from './SettingsClient'
 
 export default async function SettingsPage() {

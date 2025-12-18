@@ -8,7 +8,9 @@
 
 import { type Metadata } from 'next'
 import { notFound } from 'next/navigation'
+
 import { createClient } from '@/lib/supabase/server'
+
 import { BoardPageClient } from './BoardPageClient'
 
 export interface BoardPageProps {

@@ -6,6 +6,7 @@
  */
 
 import { createClient, type Session } from '@supabase/supabase-js'
+
 import type { Database } from './types'
 
 // 環境変数の検証

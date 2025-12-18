@@ -7,7 +7,8 @@
  * - ロード状態
  */
 
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import type { PayloadAction } from '@reduxjs/toolkit'
+import { createSlice } from '@reduxjs/toolkit'
 import type { User, Session } from '@supabase/supabase-js'
 
 interface AuthState {

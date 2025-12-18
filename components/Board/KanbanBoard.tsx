@@ -1,8 +1,34 @@
 'use client'
 
-import React, { useState, useEffect, memo, useCallback } from 'react'
+import type {
+  DragEndEvent,
+  DragStartEvent,
+  UniqueIdentifier,
+} from '@dnd-kit/core'
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  closestCorners,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import { restrictToParentElement } from '@dnd-kit/modifiers'
+import { arrayMove } from '@dnd-kit/sortable'
 import { motion } from 'framer-motion'
-import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
+import { AlertCircle } from 'lucide-react'
+import React, { useState, useEffect, memo, useCallback } from 'react'
+
+import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  getBoardData,
+  updateRepoCardPosition,
+  batchUpdateRepoCardOrders,
+} from '@/lib/actions/board'
+import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import {
   setStatusLists,
   setRepoCards,
@@ -13,31 +39,9 @@ import {
   selectBoardLoading,
   selectBoardError,
 } from '@/lib/redux/slices/boardSlice'
-import {
-  DndContext,
-  DragEndEvent,
-  DragOverlay,
-  DragStartEvent,
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
-  UniqueIdentifier,
-  closestCorners,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core'
-import { arrayMove } from '@dnd-kit/sortable'
-import { restrictToParentElement } from '@dnd-kit/modifiers'
-import { Card, CardContent } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
-import { AlertCircle } from 'lucide-react'
+import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
+
 import { StatusColumn } from './StatusColumn'
-import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
-import {
-  getBoardData,
-  updateRepoCardPosition,
-  batchUpdateRepoCardOrders,
-} from '@/lib/actions/board'
 
 // Types: Using Domain types for type-safe state management
 

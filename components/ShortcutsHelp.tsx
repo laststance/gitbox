@@ -15,14 +15,6 @@
 
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import {
   Keyboard,
   Command,
@@ -31,6 +23,15 @@ import {
   HelpCircle,
   MoreHorizontal,
 } from 'lucide-react'
+import React, { useEffect, useState, memo } from 'react'
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface ShortcutItem {
   key: string
@@ -43,10 +44,20 @@ interface ShortcutsHelpProps {
   defaultOpen?: boolean
 }
 
-export const ShortcutsHelp: React.FC<ShortcutsHelpProps> = ({
+export const ShortcutsHelp = memo(function ShortcutsHelp({
   defaultOpen = false,
-}) => {
+}: ShortcutsHelpProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
+
+  /**
+   * Handle dialog open state changes.
+   * Wraps setState to comply with no-set-state-prop-drilling rule.
+   *
+   * @param open - Whether the dialog should be open
+   */
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open)
+  }
 
   /**
    * ショートカット定義
@@ -136,7 +147,7 @@ export const ShortcutsHelp: React.FC<ShortcutsHelpProps> = ({
   }, [isOpen])
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent
         className="sm:max-w-2xl"
         data-testid="shortcuts-help-modal"
@@ -210,6 +221,6 @@ export const ShortcutsHelp: React.FC<ShortcutsHelpProps> = ({
       </DialogContent>
     </Dialog>
   )
-}
+})
 
 export default ShortcutsHelp

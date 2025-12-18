@@ -7,7 +7,9 @@
  * - Selectors のテスト
  */
 
+import type { User, Session } from '@supabase/supabase-js'
 import { describe, it, expect } from 'vitest'
+
 import authReducer, {
   setUser,
   setSession,
@@ -20,7 +22,6 @@ import authReducer, {
   selectAuthError,
   selectIsAuthenticated,
 } from '@/lib/redux/slices/authSlice'
-import type { User, Session } from '@supabase/supabase-js'
 
 const mockUser: User = {
   id: 'user-123',

@@ -18,9 +18,10 @@
 
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { TablesInsert, Tables, TablesUpdate } from '@/lib/supabase/types'
 import { revalidatePath } from 'next/cache'
+
+import { createClient } from '@/lib/supabase/server'
+import type { TablesInsert, Tables, TablesUpdate } from '@/lib/supabase/types'
 
 type ProjectInfoRow = Tables<'projectinfo'>
 type ProjectInfoInsert = TablesInsert<'projectinfo'>

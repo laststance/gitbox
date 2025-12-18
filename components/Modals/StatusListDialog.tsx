@@ -7,7 +7,9 @@
 
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, memo } from 'react'
+
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -16,7 +18,6 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { StatusListDomain } from '@/lib/models/domain'
@@ -56,13 +57,13 @@ interface StatusListDialogProps {
  * @param statusList - 編集時の既存データ
  * @param mode - 'create' | 'edit'
  */
-export const StatusListDialog: React.FC<StatusListDialogProps> = ({
+export const StatusListDialog = memo(function StatusListDialog({
   isOpen,
   onClose,
   onSave,
   statusList,
   mode,
-}) => {
+}: StatusListDialogProps) {
   const [name, setName] = useState('')
   const [color, setColor] = useState('#6B7280')
   const [wipLimit, setWipLimit] = useState<string>('')
@@ -225,6 +226,6 @@ export const StatusListDialog: React.FC<StatusListDialogProps> = ({
       </DialogContent>
     </Dialog>
   )
-}
+})
 
 export default StatusListDialog

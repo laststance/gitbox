@@ -10,14 +10,15 @@
  * User Story 2: Repository 検索と追加
  */
 
-import { describe, it, expect, vi } from 'vitest'
+import { configureStore } from '@reduxjs/toolkit'
 import { render, screen, waitFor } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
-import { Provider } from 'react-redux'
-import { configureStore } from '@reduxjs/toolkit'
 import { memo } from 'react'
-import boardSlice from '@/lib/redux/slices/boardSlice'
+import { Provider } from 'react-redux'
+import { describe, it, expect, vi } from 'vitest'
+
 import type { GitHubRepository } from '@/lib/github/api'
+import boardSlice from '@/lib/redux/slices/boardSlice'
 
 // 100+リポジトリのモックデータ生成
 const generateMockRepositories = (count: number): GitHubRepository[] => {

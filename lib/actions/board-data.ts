@@ -7,12 +7,12 @@
 
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import type {
   StatusListDomain,
   RepoCardDomain,
   RepoCardMeta,
 } from '@/lib/models/domain'
+import { createClient } from '@/lib/supabase/server'
 
 /**
  * ボードのStatusListを取得

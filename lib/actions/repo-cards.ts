@@ -10,8 +10,8 @@
 
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import type { GitHubRepository } from '@/lib/github/api'
+import { createClient } from '@/lib/supabase/server'
 
 /**
  * RepoCard 追加パラメータ

@@ -24,8 +24,8 @@ import '@/styles/themes/dark/ocean.css'
 import '@/styles/themes/dark/plum.css'
 import '@/styles/themes/dark/rust.css'
 
-import { ShortcutsHelp } from '@/components/ShortcutsHelp'
 import { CommandPalette } from '@/components/CommandPalette/CommandPalette'
+import { ShortcutsHelp } from '@/components/ShortcutsHelp'
 import { Providers } from '@/lib/redux/providers'
 
 export default function RootLayout({

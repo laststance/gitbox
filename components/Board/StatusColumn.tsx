@@ -1,8 +1,10 @@
 'use client'
 
-import React, { memo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { motion, AnimatePresence } from 'framer-motion'
+import { MoreHorizontal, Pencil, Trash2, Plus } from 'lucide-react'
+import React, { memo } from 'react'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,9 +13,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, Pencil, Trash2, Plus } from 'lucide-react'
-import { RepoCard } from './RepoCard'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
+
+import { RepoCard } from './RepoCard'
 
 // Types: Using Domain types for type-safe state management
 interface StatusColumnProps {

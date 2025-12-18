@@ -7,7 +7,7 @@
   "lint-staged": {
     "*": "prettier --ignore-unknown --write",
     "*.{js,ts,jsx,tsx,cjs,mjs}": [
-      "eslint -c eslint.config.mjs --fix"
+      "eslint -c eslint.config.mjs --fix --concurrency=auto --max-warnings 0 --no-warn-ignored"
     ]
   },
   "scripts": {
@@ -16,8 +16,8 @@
     "build": "next build",
     "start": "next start -p 3008",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint": "eslint . --concurrency=auto --max-warnings 0",
+    "lint:fix": "eslint . --fix --concurrency=auto --max-warnings 0",
     "test": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
@@ -57,6 +57,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.0",
+    "@eslint/compat": "^2.0.0",
     "@laststance/react-next-eslint-plugin": "^1.1.0",
     "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4.1.18",

@@ -7,8 +7,10 @@
  * - clearStorageState: LocalStorage クリア
  */
 
+import type { PayloadAction } from '@reduxjs/toolkit'
+import { configureStore, createSlice } from '@reduxjs/toolkit'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { configureStore, createSlice, PayloadAction } from '@reduxjs/toolkit'
+
 import {
   createStorageMiddleware,
   loadStateFromStorage,

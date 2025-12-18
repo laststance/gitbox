@@ -6,8 +6,10 @@
  * - テーマ選択 (12テーマ)
  */
 
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+
+import { createClient } from '@/lib/supabase/server'
+
 import { CreateBoardForm } from './CreateBoardForm'
 
 export default async function NewBoardPage() {

@@ -8,9 +8,10 @@
  * - Boards 画面へリダイレクト
  */
 
-import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
+
+import { createClient } from '@/lib/supabase/server'
 
 // Cookie名
 const GITHUB_TOKEN_COOKIE = 'github_provider_token'

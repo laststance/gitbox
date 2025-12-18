@@ -6,7 +6,8 @@
 
 'use client'
 
-import React from 'react'
+import React, { memo } from 'react'
+
 import { Sidebar } from '@/components/Sidebar'
 
 interface BoardLayoutClientProps {
@@ -15,11 +16,11 @@ interface BoardLayoutClientProps {
   userAvatar?: string
 }
 
-export const BoardLayoutClient: React.FC<BoardLayoutClientProps> = ({
+export const BoardLayoutClient = memo(function BoardLayoutClient({
   children,
   userName,
   userAvatar,
-}) => {
+}: BoardLayoutClientProps) {
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -29,6 +30,6 @@ export const BoardLayoutClient: React.FC<BoardLayoutClientProps> = ({
       <main className="flex-1 overflow-auto">{children}</main>
     </div>
   )
-}
+})
 
 export default BoardLayoutClient

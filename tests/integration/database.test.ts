@@ -11,8 +11,9 @@
  * 5. Unique Constraints の動作確認
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { createClient } from '@supabase/supabase-js'
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+
 import type { Database } from '@/lib/supabase/types'
 
 // テスト用 Supabase クライアント（サービスロール）

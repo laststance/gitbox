@@ -13,8 +13,11 @@ import React, {
   useCallback,
   useMemo,
   useSyncExternalStore,
+  memo,
 } from 'react'
-import { translations, Language } from './translations'
+
+import type { Language } from './translations'
+import { translations } from './translations'
 
 const LANGUAGE_STORAGE_KEY = 'gitbox-language'
 
@@ -31,7 +34,11 @@ const getSnapshot = () => true
 const getServerSnapshot = () => false
 const subscribe = () => () => {}
 
-export function I18nProvider({ children }: { children: React.ReactNode }) {
+export const I18nProvider = memo(function I18nProvider({
+  children,
+}: {
+  children: React.ReactNode
+}): React.ReactNode {
   const isClient = useSyncExternalStore(
     subscribe,
     getSnapshot,
@@ -67,13 +74,13 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   // Show children with default English until client-side hydration
   if (!isClient) {
-    return <>{children}</>
+    return children
   }
 
   return (
     <I18nContext.Provider value={contextValue}>{children}</I18nContext.Provider>
   )
-}
+})
 
 export function useI18n() {
   const context = useContext(I18nContext)

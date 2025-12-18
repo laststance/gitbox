@@ -15,39 +15,38 @@
 
 'use client'
 
-import { useState, useCallback } from 'react'
+import { Plus } from 'lucide-react'
+import { useState, useCallback, memo } from 'react'
+
+import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox'
 import { KanbanBoard } from '@/components/Board/KanbanBoard'
-import {
-  ProjectInfoModal,
-  ProjectInfo,
-} from '@/components/Modals/ProjectInfoModal'
+import type { ProjectInfo } from '@/components/Modals/ProjectInfoModal'
+import { ProjectInfoModal } from '@/components/Modals/ProjectInfoModal'
 import { StatusListDialog } from '@/components/Modals/StatusListDialog'
-import {
-  getProjectInfo,
-  upsertProjectInfo,
-  ProjectInfoData,
-} from '@/lib/actions/project-info'
+import { Button } from '@/components/ui/button'
 import {
   createStatusList,
   updateStatusList,
   deleteStatusList,
 } from '@/lib/actions/board'
-import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
+import type { ProjectInfoData } from '@/lib/actions/project-info'
+import { getProjectInfo, upsertProjectInfo } from '@/lib/actions/project-info'
+import type { StatusListDomain } from '@/lib/models/domain'
 import {
   setStatusLists,
   selectStatusLists,
 } from '@/lib/redux/slices/boardSlice'
-import type { StatusListDomain } from '@/lib/models/domain'
-import { Plus } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox'
+import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 
 interface BoardPageClientProps {
   boardId: string
   boardName: string
 }
 
-export function BoardPageClient({ boardId, boardName }: BoardPageClientProps) {
+export const BoardPageClient = memo(function BoardPageClient({
+  boardId,
+  boardName,
+}: BoardPageClientProps) {
   const dispatch = useAppDispatch()
   const statusLists = useAppSelector(selectStatusLists)
 
@@ -334,4 +333,4 @@ export function BoardPageClient({ boardId, boardName }: BoardPageClientProps) {
       />
     </>
   )
-}
+})

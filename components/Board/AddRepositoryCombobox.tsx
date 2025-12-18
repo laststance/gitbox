@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react'
+
 import {
   getAuthenticatedUserRepositories,
   type GitHubRepository,
@@ -499,7 +500,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             debouncedQuery &&
             filteredRepositories.length === 0 && (
               <div className="py-8 text-center text-sm text-gray-500">
-                No repositories found matching "{debouncedQuery}"
+                No repositories found matching &quot;{debouncedQuery}&quot;
               </div>
             )}
 

@@ -9,8 +9,9 @@
 
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { headers } from 'next/headers'
+
+import { createClient } from '@/lib/supabase/server'
 import type { AuditLog } from '@/lib/supabase/types'
 
 export type AuditAction =
