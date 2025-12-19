@@ -1,115 +1,124 @@
 /**
  * Storage Abstraction Layer
  *
- * localStorageへの安全なアクセスを提供するストレージレイヤー
- * SSR環境でのクラッシュを防止し、カスタムストレージバックエンドをサポート
+ * Storage layer providing safe access to localStorage
+ * Prevents crashes in SSR environments and supports custom storage backends
  */
 
 import type { StateStorage, SyncStorage, AsyncStorage } from './types'
 import { isStorageAvailable, isSessionStorageAvailable } from './utils/isServer'
 
+// =============================================================================
+// Constants
+// =============================================================================
+
 /**
- * SSR-safeなlocalStorageラッパーを作成
+ * Maximum number of doublings for test data during quota estimation
  *
- * zustandのcreateJSONStorageパターンを参考に実装
- * サーバーサイドやストレージ未対応環境ではnoopストレージを返す
+ * 22 doublings reaches approximately 4MB (1 * 2^22 = 4,194,304 bytes)
+ * This is close to the typical localStorage limit of 5MB
+ */
+const MAX_STORAGE_SIZE_DOUBLINGS = 22
+
+// =============================================================================
+// Generic Storage Factory (Internal Use)
+// =============================================================================
+
+/**
+ * Generic factory to create SSR-safe storage wrapper
  *
- * @returns SSR-safeなStorageオブジェクト
+ * @param getBackend - Function to get storage backend
+ * @param isAvailable - Function to check storage availability
+ * @param storageName - Storage name for error messages
+ * @returns SSR-safe Storage object
+ */
+function createSafeStorage(
+  getBackend: () => Storage,
+  isAvailable: () => boolean,
+  storageName: string,
+): SyncStorage {
+  if (!isAvailable()) {
+    return createNoopStorage()
+  }
+
+  return {
+    getItem: (name: string): string | null => {
+      try {
+        return getBackend().getItem(name)
+      } catch {
+        console.warn(
+          `[redux-storage-middleware] Failed to read from ${storageName}: ${name}`,
+        )
+        return null
+      }
+    },
+    setItem: (name: string, value: string): void => {
+      try {
+        getBackend().setItem(name, value)
+      } catch (error) {
+        console.warn(
+          `[redux-storage-middleware] Failed to write to ${storageName}: ${name}`,
+          error,
+        )
+      }
+    },
+    removeItem: (name: string): void => {
+      try {
+        getBackend().removeItem(name)
+      } catch {
+        console.warn(
+          `[redux-storage-middleware] Failed to remove from ${storageName}: ${name}`,
+        )
+      }
+    },
+  }
+}
+
+// =============================================================================
+// Public Storage Factories
+// =============================================================================
+
+/**
+ * Creates SSR-safe localStorage wrapper
+ *
+ * Implementation based on zustand's createJSONStorage pattern
+ * Returns noop storage in server-side or unsupported environments
+ *
+ * @returns SSR-safe Storage object
  *
  * @example
  * ```ts
  * const storage = createSafeLocalStorage()
- * storage.setItem('key', 'value') // SSR時は何もしない
+ * storage.setItem('key', 'value') // Does nothing during SSR
  * ```
  */
 export function createSafeLocalStorage(): SyncStorage {
-  if (!isStorageAvailable()) {
-    // SSR環境またはストレージ未対応 - noopストレージを返す
-    return createNoopStorage()
-  }
-
-  return {
-    getItem: (name: string): string | null => {
-      try {
-        return window.localStorage.getItem(name)
-      } catch {
-        console.warn(
-          `[redux-storage-middleware] Failed to read from localStorage: ${name}`,
-        )
-        return null
-      }
-    },
-    setItem: (name: string, value: string): void => {
-      try {
-        window.localStorage.setItem(name, value)
-      } catch (error) {
-        console.warn(
-          `[redux-storage-middleware] Failed to write to localStorage: ${name}`,
-          error,
-        )
-      }
-    },
-    removeItem: (name: string): void => {
-      try {
-        window.localStorage.removeItem(name)
-      } catch {
-        console.warn(
-          `[redux-storage-middleware] Failed to remove from localStorage: ${name}`,
-        )
-      }
-    },
-  }
+  return createSafeStorage(
+    () => window.localStorage,
+    isStorageAvailable,
+    'localStorage',
+  )
 }
 
 /**
- * SSR-safeなsessionStorageラッパーを作成
+ * Creates SSR-safe sessionStorage wrapper
  *
- * @returns SSR-safeなStorageオブジェクト
+ * @returns SSR-safe Storage object
  */
 export function createSafeSessionStorage(): SyncStorage {
-  if (!isSessionStorageAvailable()) {
-    return createNoopStorage()
-  }
-
-  return {
-    getItem: (name: string): string | null => {
-      try {
-        return window.sessionStorage.getItem(name)
-      } catch {
-        console.warn(
-          `[redux-storage-middleware] Failed to read from sessionStorage: ${name}`,
-        )
-        return null
-      }
-    },
-    setItem: (name: string, value: string): void => {
-      try {
-        window.sessionStorage.setItem(name, value)
-      } catch (error) {
-        console.warn(
-          `[redux-storage-middleware] Failed to write to sessionStorage: ${name}`,
-          error,
-        )
-      }
-    },
-    removeItem: (name: string): void => {
-      try {
-        window.sessionStorage.removeItem(name)
-      } catch {
-        console.warn(
-          `[redux-storage-middleware] Failed to remove from sessionStorage: ${name}`,
-        )
-      }
-    },
-  }
+  return createSafeStorage(
+    () => window.sessionStorage,
+    isSessionStorageAvailable,
+    'sessionStorage',
+  )
 }
 
 /**
- * 何もしないnoopストレージを作成
+ * Creates no-op storage
  *
- * SSR環境やストレージ未対応環境で使用
+ * Used in SSR environments or unsupported environments
  *
- * @returns noopストレージオブジェクト
+ * @returns Noop storage object
  */
 export function createNoopStorage(): SyncStorage {
   return {
@@ -120,11 +129,11 @@ export function createNoopStorage(): SyncStorage {
 }
 
 /**
- * インメモリストレージを作成
+ * Creates in-memory storage
  *
- * テストやSSRフォールバック用のインメモリストレージ
+ * In-memory storage for testing or SSR fallback
  *
- * @returns インメモリストレージオブジェクト
+ * @returns In-memory storage object
  */
 export function createMemoryStorage(): SyncStorage {
   const store = new Map<string, string>()
@@ -141,10 +150,10 @@ export function createMemoryStorage(): SyncStorage {
 }
 
 /**
- * 同期ストレージを非同期ストレージに変換
+ * Converts sync storage to async storage
  *
- * @param storage - 同期ストレージ
- * @returns 非同期ストレージ
+ * @param storage - Sync storage
+ * @returns Async storage
  */
 export function toAsyncStorage(storage: SyncStorage): AsyncStorage {
   return {
@@ -157,10 +166,10 @@ export function toAsyncStorage(storage: SyncStorage): AsyncStorage {
 }
 
 /**
- * StateStorageを検証
+ * Validates StateStorage
  *
- * @param storage - 検証対象のストレージ
- * @returns 有効なストレージの場合はtrue
+ * @param storage - Storage to validate
+ * @returns True if storage is valid
  */
 export function isValidStorage(storage: unknown): storage is StateStorage {
   if (storage === null || storage === undefined) {
@@ -180,25 +189,25 @@ export function isValidStorage(storage: unknown): storage is StateStorage {
 }
 
 /**
- * ストレージのサイズを取得（概算）
+ * Gets storage size (approximate)
  *
- * @param storage - ストレージ
- * @param key - キー
- * @returns バイト数
+ * @param storage - Storage
+ * @param key - Key
+ * @returns Number of bytes
  */
 export function getStorageSize(storage: SyncStorage, key: string): number {
   const value = storage.getItem(key)
   if (value === null) {
     return 0
   }
-  // UTF-16エンコーディングを考慮（JavaScriptの文字列は2バイト/文字）
+  // Considers UTF-16 encoding (JavaScript strings are 2 bytes per character)
   return key.length * 2 + value.length * 2
 }
 
 /**
- * localStorageの残り容量を取得（概算）
+ * Gets remaining localStorage quota (approximate)
  *
- * @returns 残りバイト数（取得できない場合は-1）
+ * @returns Remaining bytes (-1 if unavailable)
  */
 export function getRemainingStorageQuota(): number {
   if (!isStorageAvailable()) {
@@ -206,17 +215,17 @@ export function getRemainingStorageQuota(): number {
   }
 
   try {
-    // 5MBを超えるテストデータで残り容量を推定
+    // Estimate remaining capacity with test data over 5MB
     const testKey = '__quota_test__'
     let testData = 'a'
     let maxSize = 0
 
-    // 段階的に増やして限界を探る（最大5MB程度）
-    for (let i = 0; i < 22; i++) {
+    // Gradually increase to find limit (up to about 5MB)
+    for (let i = 0; i < MAX_STORAGE_SIZE_DOUBLINGS; i++) {
       try {
         window.localStorage.setItem(testKey, testData)
         maxSize = testData.length
-        testData = testData + testData // 2倍に増やす
+        testData = testData + testData // Double the size
       } catch {
         break
       }
@@ -224,7 +233,7 @@ export function getRemainingStorageQuota(): number {
 
     window.localStorage.removeItem(testKey)
 
-    // 概算として現在使用量を差し引く
+    // Subtract current usage as approximation
     let currentUsage = 0
     for (let i = 0; i < window.localStorage.length; i++) {
       const key = window.localStorage.key(i)
@@ -236,7 +245,7 @@ export function getRemainingStorageQuota(): number {
       }
     }
 
-    // UTF-16を考慮
+    // Consider UTF-16
     return (maxSize - currentUsage) * 2
   } catch {
     return -1

@@ -1,8 +1,8 @@
 /**
  * Theme Hook
  *
- * テーマ切り替え機能を提供するカスタムフック
- * LocalStorageに保存し、data-theme属性で適用
+ * Custom hook providing theme switching functionality
+ * Saves to LocalStorage and applies via data-theme attribute
  */
 
 'use client'

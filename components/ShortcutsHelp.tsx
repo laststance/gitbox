@@ -55,50 +55,50 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
   }
 
   /**
-   * ショートカット定義
-   * Constitution準拠: 日本語表示
+   * Keyboard shortcuts definition
+   * English text for UI display
    */
   const shortcuts: ShortcutItem[] = [
     {
       key: 'Tab',
-      description: 'カード間を移動',
+      description: 'Navigate between cards',
       icon: <Keyboard className="w-4 h-4" />,
-      category: 'ナビゲーション',
+      category: 'Navigation',
     },
     {
       key: '.',
-      description: 'オーバーフローメニューを開く',
+      description: 'Open overflow menu',
       icon: <MoreHorizontal className="w-4 h-4" />,
-      category: 'ナビゲーション',
+      category: 'Navigation',
     },
     {
       key: 'Enter',
-      description: 'カードを開く',
+      description: 'Open card',
       icon: <CornerDownLeft className="w-4 h-4" />,
-      category: 'アクション',
+      category: 'Actions',
     },
     {
       key: 'Z',
-      description: '最後の操作を元に戻す',
+      description: 'Undo last operation',
       icon: <RotateCcw className="w-4 h-4" />,
-      category: 'アクション',
+      category: 'Actions',
     },
     {
       key: '?',
-      description: 'このヘルプを表示/非表示',
+      description: 'Show/hide this help',
       icon: <HelpCircle className="w-4 h-4" />,
-      category: 'ヘルプ',
+      category: 'Help',
     },
     {
       key: '⌘K',
-      description: 'コマンドパレットを開く',
+      description: 'Open command palette',
       icon: <Command className="w-4 h-4" />,
-      category: 'ナビゲーション',
+      category: 'Navigation',
     },
   ]
 
   /**
-   * カテゴリ別にグループ化
+   * Group shortcuts by category
    */
   const groupedShortcuts = shortcuts.reduce(
     (acc, shortcut) => {
@@ -112,12 +112,12 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
   )
 
   /**
-   * キーボードイベントハンドラー
-   * Constitution要件: ? キーでヘルプ表示、ESCで閉じる
+   * Keyboard event handler
+   * Requirements: ? key to show help, ESC key to close
    */
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // ? キーでトグル（input/textareaでは無効）
+      // ? key to toggle (disabled in input/textarea)
       if (
         event.key === '?' &&
         !event.metaKey &&
@@ -131,7 +131,7 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
         }
       }
 
-      // ESCキーで閉じる
+      // ESC key to close
       if (event.key === 'Escape' && isOpen) {
         setIsOpen(false)
       }
@@ -151,10 +151,10 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold flex items-center gap-2">
             <Keyboard className="w-6 h-6" />
-            キーボードショートカット
+            Keyboard Shortcuts
           </DialogTitle>
           <DialogDescription id="keyboard-shortcuts-description">
-            GitHub Repository管理アプリのキーボードショートカット一覧
+            List of keyboard shortcuts for the GitHub Repository management app
           </DialogDescription>
         </DialogHeader>
 
@@ -168,9 +168,9 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
                 <table className="w-full">
                   <thead className="sr-only">
                     <tr>
-                      <th scope="col">アイコン</th>
-                      <th scope="col">ショートカットキー</th>
-                      <th scope="col">説明</th>
+                      <th scope="col">Icon</th>
+                      <th scope="col">Shortcut Key</th>
+                      <th scope="col">Description</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -206,11 +206,11 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
             <kbd className="px-2 py-1 text-xs font-semibold bg-muted border border-border rounded">
               ?
             </kbd>{' '}
-            または{' '}
+            or{' '}
             <kbd className="px-2 py-1 text-xs font-semibold bg-muted border border-border rounded">
               ESC
             </kbd>{' '}
-            を押してこのダイアログを閉じる
+            to close this dialog
           </p>
         </div>
       </DialogContent>

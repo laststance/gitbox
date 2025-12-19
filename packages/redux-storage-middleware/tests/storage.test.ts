@@ -12,6 +12,7 @@ import {
   toAsyncStorage,
   isValidStorage,
   getStorageSize,
+  getRemainingStorageQuota,
 } from '../src/storage'
 
 describe('createSafeLocalStorage', () => {
@@ -32,13 +33,13 @@ describe('createSafeLocalStorage', () => {
   })()
 
   beforeEach(() => {
-    // window と global の両方に localStorage をセット
+    // Set localStorage to both window and global
     Object.defineProperty(global, 'localStorage', {
       value: localStorageMock,
       writable: true,
       configurable: true,
     })
-    // window.localStorage も同じものを参照させる
+    // Make window.localStorage reference the same object
     if (typeof window === 'undefined') {
       Object.defineProperty(global, 'window', {
         value: global,
@@ -56,7 +57,7 @@ describe('createSafeLocalStorage', () => {
     vi.clearAllMocks()
   })
 
-  it('getItemでlocalStorageから値を取得する', () => {
+  it('retrieves value from localStorage with getItem', () => {
     localStorageMock.setItem('test', 'value')
     const storage = createSafeLocalStorage()
 
@@ -64,21 +65,21 @@ describe('createSafeLocalStorage', () => {
     expect(localStorageMock.getItem).toHaveBeenCalledWith('test')
   })
 
-  it('setItemでlocalStorageに値を保存する', () => {
+  it('saves value to localStorage with setItem', () => {
     const storage = createSafeLocalStorage()
     storage.setItem('test', 'value')
 
     expect(localStorageMock.setItem).toHaveBeenCalledWith('test', 'value')
   })
 
-  it('removeItemでlocalStorageから値を削除する', () => {
+  it('removes value from localStorage with removeItem', () => {
     const storage = createSafeLocalStorage()
     storage.removeItem('test')
 
     expect(localStorageMock.removeItem).toHaveBeenCalledWith('test')
   })
 
-  it('getItemでエラー発生時はnullを返し警告を出力する', () => {
+  it('returns null and outputs warning when getItem throws error', () => {
     const consoleWarnSpy = vi
       .spyOn(console, 'warn')
       .mockImplementation(() => {})
@@ -95,20 +96,20 @@ describe('createSafeLocalStorage', () => {
     consoleWarnSpy.mockRestore()
   })
 
-  it('setItemでエラー発生時は警告を出力する', () => {
+  it('outputs warning when setItem throws error', () => {
     const consoleWarnSpy = vi
       .spyOn(console, 'warn')
       .mockImplementation(() => {})
 
-    // まず正常なstorageでsafeLocalStorageを作成
+    // First create safeLocalStorage with normal storage
     const storage = createSafeLocalStorage()
 
-    // その後、エラーを投げるlocalStorageに差し替え
+    // Then replace with localStorage that throws errors
     let _callCount = 0
     const errorStorage = {
       ...localStorageMock,
       setItem: (key: string, _value: string) => {
-        // __storage_test__ (isStorageAvailableのテスト) は許可
+        // Allow __storage_test__ (isStorageAvailable test)
         if (key === '__storage_test__') {
           return
         }
@@ -134,7 +135,7 @@ describe('createSafeLocalStorage', () => {
 
     expect(consoleWarnSpy).toHaveBeenCalled()
 
-    // 元に戻す
+    // Restore
     Object.defineProperty(global, 'localStorage', {
       value: localStorageMock,
       writable: true,
@@ -150,19 +151,19 @@ describe('createSafeLocalStorage', () => {
     consoleWarnSpy.mockRestore()
   })
 
-  it('removeItemでエラー発生時は警告を出力する', () => {
+  it('outputs warning when removeItem throws error', () => {
     const consoleWarnSpy = vi
       .spyOn(console, 'warn')
       .mockImplementation(() => {})
 
-    // まず正常なstorageでsafeLocalStorageを作成
+    // First create safeLocalStorage with normal storage
     const storage = createSafeLocalStorage()
 
-    // その後、エラーを投げるlocalStorageに差し替え
+    // Then replace with localStorage that throws errors
     const errorStorage = {
       ...localStorageMock,
       removeItem: (key: string) => {
-        // __storage_test__ (isStorageAvailableのテスト) は許可
+        // Allow __storage_test__ (isStorageAvailable test)
         if (key === '__storage_test__') {
           return
         }
@@ -186,7 +187,7 @@ describe('createSafeLocalStorage', () => {
 
     expect(consoleWarnSpy).toHaveBeenCalled()
 
-    // 元に戻す
+    // Restore
     Object.defineProperty(global, 'localStorage', {
       value: localStorageMock,
       writable: true,
@@ -204,36 +205,36 @@ describe('createSafeLocalStorage', () => {
 })
 
 describe('createNoopStorage', () => {
-  it('getItemは常にnullを返す', () => {
+  it('getItem always returns null', () => {
     const storage = createNoopStorage()
     expect(storage.getItem('any-key')).toBeNull()
   })
 
-  it('setItemは何もしない', () => {
+  it('setItem does nothing', () => {
     const storage = createNoopStorage()
     expect(() => storage.setItem('key', 'value')).not.toThrow()
   })
 
-  it('removeItemは何もしない', () => {
+  it('removeItem does nothing', () => {
     const storage = createNoopStorage()
     expect(() => storage.removeItem('key')).not.toThrow()
   })
 })
 
 describe('createMemoryStorage', () => {
-  it('値を保存して取得できる', () => {
+  it('can save and retrieve values', () => {
     const storage = createMemoryStorage()
 
     storage.setItem('key', 'value')
     expect(storage.getItem('key')).toBe('value')
   })
 
-  it('存在しないキーはnullを返す', () => {
+  it('returns null for non-existent keys', () => {
     const storage = createMemoryStorage()
     expect(storage.getItem('non-existent')).toBeNull()
   })
 
-  it('値を削除できる', () => {
+  it('can remove values', () => {
     const storage = createMemoryStorage()
 
     storage.setItem('key', 'value')
@@ -242,7 +243,7 @@ describe('createMemoryStorage', () => {
     expect(storage.getItem('key')).toBeNull()
   })
 
-  it('複数のキーを独立して管理できる', () => {
+  it('can manage multiple keys independently', () => {
     const storage = createMemoryStorage()
 
     storage.setItem('key1', 'value1')
@@ -254,7 +255,7 @@ describe('createMemoryStorage', () => {
 })
 
 describe('toAsyncStorage', () => {
-  it('同期ストレージを非同期ストレージに変換する', async () => {
+  it('converts sync storage to async storage', async () => {
     const syncStorage = createMemoryStorage()
     const asyncStorage = toAsyncStorage(syncStorage)
 
@@ -264,7 +265,7 @@ describe('toAsyncStorage', () => {
     expect(result).toBe('value')
   })
 
-  it('removeItemも非同期で動作する', async () => {
+  it('removeItem also works asynchronously', async () => {
     const syncStorage = createMemoryStorage()
     const asyncStorage = toAsyncStorage(syncStorage)
 
@@ -277,25 +278,25 @@ describe('toAsyncStorage', () => {
 })
 
 describe('isValidStorage', () => {
-  it('有効なストレージオブジェクトでtrueを返す', () => {
+  it('returns true for valid storage objects', () => {
     const storage = createMemoryStorage()
     expect(isValidStorage(storage)).toBe(true)
   })
 
-  it('nullでfalseを返す', () => {
+  it('returns false for null', () => {
     expect(isValidStorage(null)).toBe(false)
   })
 
-  it('undefinedでfalseを返す', () => {
+  it('returns false for undefined', () => {
     expect(isValidStorage(undefined)).toBe(false)
   })
 
-  it('オブジェクト以外でfalseを返す', () => {
+  it('returns false for non-objects', () => {
     expect(isValidStorage('string')).toBe(false)
     expect(isValidStorage(123)).toBe(false)
   })
 
-  it('必要なメソッドがないオブジェクトでfalseを返す', () => {
+  it('returns false for objects without required methods', () => {
     expect(isValidStorage({ getItem: () => null })).toBe(false)
     expect(isValidStorage({ getItem: () => null, setItem: () => {} })).toBe(
       false,
@@ -304,16 +305,155 @@ describe('isValidStorage', () => {
 })
 
 describe('getStorageSize', () => {
-  it('保存された値のサイズを返す', () => {
+  it('returns the size of saved values', () => {
     const storage = createMemoryStorage()
     storage.setItem('key', 'value')
 
-    // key: 3文字, value: 5文字, UTF-16: (3 + 5) * 2 = 16バイト
+    // key: 3 chars, value: 5 chars, UTF-16: (3 + 5) * 2 = 16 bytes
     expect(getStorageSize(storage, 'key')).toBe(16)
   })
 
-  it('存在しないキーは0を返す', () => {
+  it('returns 0 for non-existent keys', () => {
     const storage = createMemoryStorage()
     expect(getStorageSize(storage, 'non-existent')).toBe(0)
+  })
+})
+
+describe('getRemainingStorageQuota', () => {
+  const createLocalStorageMock = () => {
+    let store: Record<string, string> = {}
+    return {
+      getItem: vi.fn((key: string) => store[key] || null),
+      setItem: vi.fn((key: string, value: string) => {
+        store[key] = value
+      }),
+      removeItem: vi.fn((key: string) => {
+        delete store[key]
+      }),
+      key: vi.fn((index: number) => Object.keys(store)[index] || null),
+      get length() {
+        return Object.keys(store).length
+      },
+      clear: () => {
+        store = {}
+      },
+    }
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('returns -1 when localStorage is not available', () => {
+    // Simulate SSR environment by setting localStorage to undefined
+    const originalWindow = global.window
+    const originalLocalStorage = global.localStorage
+
+    // @ts-expect-error -- Temporarily set window to undefined for testing
+    delete global.window
+    // @ts-expect-error -- Temporarily set localStorage to undefined for testing
+    delete global.localStorage
+
+    const result = getRemainingStorageQuota()
+
+    expect(result).toBe(-1)
+
+    // Restore
+    if (originalWindow !== undefined) {
+      global.window = originalWindow
+    }
+    if (originalLocalStorage !== undefined) {
+      global.localStorage = originalLocalStorage
+    }
+  })
+
+  it('returns estimated remaining bytes', () => {
+    const localStorageMock = createLocalStorageMock()
+
+    Object.defineProperty(global, 'window', {
+      value: { localStorage: localStorageMock },
+      writable: true,
+      configurable: true,
+    })
+    Object.defineProperty(global, 'localStorage', {
+      value: localStorageMock,
+      writable: true,
+      configurable: true,
+    })
+
+    const result = getRemainingStorageQuota()
+
+    // Verify it returns a positive value or 0 (large value since storage is empty)
+    expect(result).toBeGreaterThanOrEqual(0)
+    // Verify test key was removed
+    expect(localStorageMock.removeItem).toHaveBeenCalledWith('__quota_test__')
+  })
+
+  it('returns -1 when setItem always fails (isStorageAvailable also returns false)', () => {
+    const errorStorageMock = {
+      getItem: vi.fn(() => null),
+      setItem: vi.fn(() => {
+        throw new Error('QuotaExceededError')
+      }),
+      removeItem: vi.fn(),
+      key: vi.fn(() => null),
+      length: 0,
+    }
+
+    Object.defineProperty(global, 'window', {
+      value: { localStorage: errorStorageMock },
+      writable: true,
+      configurable: true,
+    })
+    Object.defineProperty(global, 'localStorage', {
+      value: errorStorageMock,
+      writable: true,
+      configurable: true,
+    })
+
+    const result = getRemainingStorageQuota()
+
+    // When setItem always fails, isStorageAvailable() also returns false, so -1
+    expect(result).toBe(-1)
+  })
+
+  it('returns -1 when exception occurs during current usage calculation', () => {
+    let callCount = 0
+    const errorStorageMock = {
+      getItem: vi.fn((key: string) => {
+        // Allow isStorageAvailable test key
+        if (key === '__storage_test__') {
+          return 'x'
+        }
+        throw new Error('Storage access denied')
+      }),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      key: vi.fn((_index: number) => {
+        callCount++
+        if (callCount > 1) {
+          throw new Error('Storage access denied')
+        }
+        return 'existing_key'
+      }),
+      // Set length > 1 to ensure iteration loop executes
+      length: 2,
+    }
+
+    Object.defineProperty(global, 'window', {
+      value: { localStorage: errorStorageMock },
+      writable: true,
+      configurable: true,
+    })
+    Object.defineProperty(global, 'localStorage', {
+      value: errorStorageMock,
+      writable: true,
+      configurable: true,
+    })
+
+    const result = getRemainingStorageQuota()
+
+    // Returns -1 when getItem or key throws error during iteration
+    expect(result).toBe(-1)
   })
 })

@@ -1,10 +1,10 @@
 /**
  * Authentication Actions
  *
- * サーバーアクションで認証処理を実行
- * - GitHub OAuth サインイン
- * - サインアウト
- * - セッション管理
+ * Execute authentication processes with server actions
+ * - GitHub OAuth sign in
+ * - Sign out
+ * - Session management
  */
 
 'use server'
@@ -15,9 +15,9 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
 /**
- * GitHub OAuth でサインイン
+ * Sign in with GitHub OAuth
  *
- * @returns リダイレクト先 URL（GitHub 認証画面）
+ * @returns Redirect URL to GitHub authentication screen
  */
 export async function signInWithGitHub() {
   const supabase = await createClient()
@@ -28,7 +28,7 @@ export async function signInWithGitHub() {
     provider: 'github',
     options: {
       redirectTo: `${origin}/auth/callback`,
-      scopes: 'read:user user:email repo', // GitHub Repository アクセスに必要なスコープ
+      scopes: 'read:user user:email repo', // Required scopes for GitHub Repository access
     },
   })
 
@@ -45,10 +45,10 @@ export async function signInWithGitHub() {
 }
 
 /**
- * サインアウト
+ * Sign out
  *
- * - Supabase セッションを削除
- * - ログインページにリダイレクト
+ * - Delete Supabase session
+ * - Redirect to login page
  */
 export async function signOut() {
   const supabase = await createClient()
@@ -64,9 +64,9 @@ export async function signOut() {
 }
 
 /**
- * 現在のユーザーセッションを取得
+ * Get current user session
  *
- * @returns セッション情報（未認証の場合は null）
+ * @returns Session information (null if not authenticated)
  */
 export async function getSession() {
   const supabase = await createClient()
@@ -85,9 +85,9 @@ export async function getSession() {
 }
 
 /**
- * 現在のユーザー情報を取得
+ * Get current user information
  *
- * @returns ユーザー情報（未認証の場合は null）
+ * @returns User information (null if not authenticated)
  */
 export async function getUser() {
   const supabase = await createClient()

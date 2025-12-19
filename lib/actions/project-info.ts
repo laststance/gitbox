@@ -1,19 +1,19 @@
 /**
  * Project Info CRUD Operations
  *
- * Constitution要件:
- * - Principle V: セキュリティファースト (input validation, XSS prevention)
+ * Constitution requirements:
+ * - Principle V: Security first (input validation, XSS prevention)
  *
  * User Story 4:
- * - Quick note: 1-3行のメモ (300文字制限)
- * - Links: Production URL、Tracking services、Supabase Dashboard
+ * - Quick note: 1-3 line memo (300 character limit)
+ * - Links: Production URL, Tracking services, Supabase Dashboard
  * - Supabase integration for persistent storage
  *
  * User Story 5:
- * - Credentials: 3パターンの認証情報管理
- *   - Pattern A: Reference (ダッシュボードURLのみ)
- *   - Pattern B: Encrypted (AES-256-GCM暗号化)
- *   - Pattern C: External (1Password/Bitwarden参照)
+ * - Credentials: 3 patterns of credential management
+ *   - Pattern A: Reference (dashboard URL only)
+ *   - Pattern B: Encrypted (AES-256-GCM encryption)
+ *   - Pattern C: External (1Password/Bitwarden reference)
  */
 
 'use server'
@@ -53,7 +53,7 @@ export interface ProjectInfoData {
 }
 
 /**
- * Quick noteのバリデーション
+ * Validate quick note
  */
 function validateQuickNote(note: string): boolean {
   if (note.length > 300) {
@@ -63,10 +63,10 @@ function validateQuickNote(note: string): boolean {
 }
 
 /**
- * URLのバリデーション
+ * Validate URL
  */
 function validateUrl(url: string): boolean {
-  if (!url) return true // 空のURLは許可（フィルタリングされる）
+  if (!url) return true // Allow empty URLs (will be filtered out)
 
   const urlRegex = /^https?:\/\/.+/
   if (!urlRegex.test(url)) {
@@ -82,7 +82,7 @@ function validateUrl(url: string): boolean {
 }
 
 /**
- * XSS対策: HTMLエスケープ
+ * XSS prevention: HTML escape
  */
 function escapeHtml(unsafe: string): string {
   return unsafe
@@ -94,27 +94,27 @@ function escapeHtml(unsafe: string): string {
 }
 
 /**
- * Credentialのバリデーション
+ * Validate credential
  */
 function validateCredential(credential: Credential): boolean {
-  // 名前は必須
+  // Name is required
   if (!credential.name || credential.name.trim().length === 0) {
     throw new Error('Credential name is required')
   }
 
-  // 名前の長さ制限 (100文字)
+  // Name length limit (100 characters)
   if (credential.name.length > 100) {
     throw new Error('Credential name must be 100 characters or less')
   }
 
-  // Pattern A: Reference - referenceフィールド必須
+  // Pattern A: Reference - reference field required
   if (credential.type === 'reference') {
     if (credential.reference) {
       validateUrl(credential.reference)
     }
   }
 
-  // Pattern B: Encrypted - encrypted_valueまたはmasked_displayが必要
+  // Pattern B: Encrypted - encrypted_value or masked_display required
   if (credential.type === 'encrypted') {
     if (!credential.encrypted_value && !credential.masked_display) {
       throw new Error(
@@ -123,10 +123,10 @@ function validateCredential(credential: Credential): boolean {
     }
   }
 
-  // Pattern C: External - locationフィールド推奨 (必須ではない)
-  // locationは任意の文字列
+  // Pattern C: External - location field recommended (not required)
+  // location can be any string
 
-  // Noteは任意、長さ制限 (500文字)
+  // Note is optional, length limit (500 characters)
   if (credential.note && credential.note.length > 500) {
     throw new Error('Credential note must be 500 characters or less')
   }
@@ -135,7 +135,7 @@ function validateCredential(credential: Credential): boolean {
 }
 
 /**
- * Project Info取得
+ * Get project info
  */
 export async function getProjectInfo(
   repoCardId: string,
@@ -150,14 +150,14 @@ export async function getProjectInfo(
 
   if (infoError) {
     if (infoError.code === 'PGRST116') {
-      // データが存在しない場合は空の状態を返す
+      // Return empty state if data doesn't exist
       return { quickNote: '', links: [], credentials: [] }
     }
     console.error('Failed to fetch project info:', infoError)
     throw new Error('Failed to fetch project information')
   }
 
-  // linksをJsonから配列に変換
+  // Convert links from Json to array
   type LinksJson = {
     production?: string[]
     tracking?: string[]
@@ -183,7 +183,7 @@ export async function getProjectInfo(
     })),
   ]
 
-  // Credentialsを取得
+  // Get credentials
   const { data: credentials, error: credError } = await supabase
     .from('credential')
     .select('*')
@@ -191,10 +191,10 @@ export async function getProjectInfo(
 
   if (credError) {
     console.error('Failed to fetch credentials:', credError)
-    // Credentialsの取得失敗は致命的ではないため、空配列を返す
+    // Credential fetch failure is not critical, return empty array
   }
 
-  // Credentialsをインターフェースに変換
+  // Convert credentials to interface
   const credentialsArray: Credential[] = (credentials || []).map(
     (cred: CredentialRow) => ({
       id: cred.id,
@@ -217,7 +217,7 @@ export async function getProjectInfo(
 }
 
 /**
- * Project Info作成・更新
+ * Create or update project info
  */
 export async function upsertProjectInfo(
   repoCardId: string,
@@ -225,7 +225,7 @@ export async function upsertProjectInfo(
 ): Promise<void> {
   const supabase = await createClient()
 
-  // バリデーション
+  // Validation
   validateQuickNote(data.quickNote)
   data.links.forEach((link) => {
     if (link.url) {
@@ -233,17 +233,17 @@ export async function upsertProjectInfo(
     }
   })
 
-  // Credentialsのバリデーション
+  // Credentials validation
   if (data.credentials) {
     data.credentials.forEach((credential) => {
       validateCredential(credential)
     })
   }
 
-  // XSSエスケープ
+  // XSS escape
   const escapedNote = escapeHtml(data.quickNote)
 
-  // linksを型に合わせて変換
+  // Convert links to match type
   const linksJson = {
     production: data.links
       .filter((l) => l.type === 'production')
@@ -253,7 +253,7 @@ export async function upsertProjectInfo(
   }
 
   try {
-    // project_info の upsert
+    // project_info upsert
     const { data: existingInfo } = await supabase
       .from('projectinfo')
       .select('id')
@@ -263,7 +263,7 @@ export async function upsertProjectInfo(
     let projectInfoId: string
 
     if (existingInfo) {
-      // 更新
+      // Update
       projectInfoId = existingInfo.id
       const updateData: ProjectInfoUpdate = {
         quick_note: escapedNote,
@@ -281,7 +281,7 @@ export async function upsertProjectInfo(
         throw new Error('Failed to update project information')
       }
     } else {
-      // 新規作成
+      // Create new
       const insertData: ProjectInfoInsert = {
         repo_card_id: repoCardId,
         quick_note: escapedNote,
@@ -302,9 +302,9 @@ export async function upsertProjectInfo(
       projectInfoId = newProjectInfo.id
     }
 
-    // Credentials の処理
+    // Process credentials
     if (data.credentials) {
-      // 既存のCredentialsを取得
+      // Get existing credentials
       const { data: existingCredentials } = await supabase
         .from('credential')
         .select('id')
@@ -317,7 +317,7 @@ export async function upsertProjectInfo(
         data.credentials.filter((c) => c.id).map((c) => c.id!),
       )
 
-      // 削除: 送信されなかったCredentialsを削除
+      // Delete: Remove credentials that were not submitted
       const credentialsToDelete = Array.from(existingCredentialIds).filter(
         (id) => !submittedCredentialIds.has(id),
       )
@@ -333,7 +333,7 @@ export async function upsertProjectInfo(
         }
       }
 
-      // 更新と新規作成
+      // Update and create
       for (const credential of data.credentials) {
         const credentialData = {
           project_info_id: projectInfoId,
@@ -352,7 +352,7 @@ export async function upsertProjectInfo(
         }
 
         if (credential.id && existingCredentialIds.has(credential.id)) {
-          // 更新
+          // Update
           const { error: updateCredError } = await supabase
             .from('credential')
             .update(credentialData)
@@ -363,7 +363,7 @@ export async function upsertProjectInfo(
             throw new Error(`Failed to update credential: ${credential.name}`)
           }
         } else {
-          // 新規作成
+          // Create new
           const { error: insertCredError } = await supabase
             .from('credential')
             .insert(credentialData as CredentialInsert)
@@ -376,7 +376,7 @@ export async function upsertProjectInfo(
       }
     }
 
-    // キャッシュ無効化
+    // Invalidate cache
     revalidatePath('/board')
     revalidatePath(`/board/${repoCardId}`)
   } catch (error) {
@@ -388,7 +388,7 @@ export async function upsertProjectInfo(
 }
 
 /**
- * Project Info削除
+ * Delete project info
  */
 export async function deleteProjectInfo(repoCardId: string): Promise<void> {
   const supabase = await createClient()
@@ -400,7 +400,7 @@ export async function deleteProjectInfo(repoCardId: string): Promise<void> {
     .single<{ id: string }>()
 
   if (!projectInfo) {
-    return // データが存在しない場合は何もしない
+    return // Do nothing if data doesn't exist
   }
 
   const { error } = await supabase
@@ -413,7 +413,7 @@ export async function deleteProjectInfo(repoCardId: string): Promise<void> {
     throw new Error('Failed to delete project information')
   }
 
-  // キャッシュ無効化
+  // Invalidate cache
   revalidatePath('/board')
   revalidatePath(`/board/${repoCardId}`)
 }

@@ -1,9 +1,9 @@
 /**
  * OverflowMenu Component
  *
- * RepoCard用のアクションメニュー
- * - キーボードショートカット: . (ドット) でメニューを開く
- * - Escape で閉じる
+ * Action menu for RepoCard
+ * - Keyboard shortcut: . (dot) to open menu
+ * - Escape to close
  */
 
 'use client'
@@ -11,27 +11,27 @@
 import { memo, useEffect, useRef } from 'react'
 
 export interface OverflowMenuProps {
-  /** メニューが開いているか */
+  /** Whether the menu is open */
   isOpen: boolean
-  /** メニューを閉じるハンドラー */
+  /** Menu close handler */
   onClose: () => void
-  /** Project Info 編集ハンドラー */
+  /** Project Info edit handler */
   onEditProjectInfo: () => void
-  /** Maintenance Modeへ移動ハンドラー */
+  /** Move to Maintenance Mode handler */
   onMoveToMaintenance: () => void
-  /** カード削除ハンドラー */
+  /** Card delete handler */
   onDelete: () => void
-  /** メニューの位置 (カードの右上に配置) */
+  /** Menu position (placed at top-right of card) */
   position?: { top: number; left: number }
 }
 
 /**
  * OverflowMenu
  *
- * RepoCardのアクションメニューを表示
- * - "Edit Project Info": Project Infoモーダルを開く
- * - "Move to Maintenance": Maintenance Modeに移動
- * - "Delete": カードを削除 (確認ダイアログ)
+ * Display action menu for RepoCard
+ * - "Edit Project Info": Open Project Info modal
+ * - "Move to Maintenance": Move to Maintenance Mode
+ * - "Delete": Delete card (with confirmation dialog)
  */
 export const OverflowMenu = memo<OverflowMenuProps>(
   ({
@@ -44,7 +44,7 @@ export const OverflowMenu = memo<OverflowMenuProps>(
   }) => {
     const menuRef = useRef<HTMLDivElement>(null)
 
-    // Escape キーでメニューを閉じる
+    // Close menu with Escape key
     useEffect(() => {
       const handleKeyDown = (event: KeyboardEvent) => {
         if (event.key === 'Escape' && isOpen) {
@@ -61,7 +61,7 @@ export const OverflowMenu = memo<OverflowMenuProps>(
       }
     }, [isOpen, onClose])
 
-    // メニュー外クリックで閉じる
+    // Close menu on outside click
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
         if (

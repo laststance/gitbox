@@ -1,8 +1,8 @@
 /**
  * @gitbox/redux-storage-middleware
  *
- * Redux state を LocalStorage に同期するカスタムミドルウェア
- * SSR-safe、バージョンマイグレーション、ハイドレーション制御対応
+ * Custom middleware to synchronize Redux state with LocalStorage
+ * SSR-safe with version migration and hydration control support
  *
  * @example
  * ```ts
@@ -20,7 +20,7 @@
  *     getDefaultMiddleware().concat(middleware),
  * })
  *
- * // ハイドレーション状態を確認
+ * // Check hydration status
  * if (api.hasHydrated()) {
  *   console.log('State restored from localStorage')
  * }

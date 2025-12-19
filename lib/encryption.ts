@@ -1,9 +1,9 @@
 /**
  * Encryption Module - AES-256-GCM Implementation
  *
- * Constitution要件:
- * - FR-011: 暗号化された認証情報はAES-256-GCMで保護
- * - FR-012: デフォルトでマスク表示（例: `github_*****xyz789`）
+ * Constitution Requirements:
+ * - FR-011: Encrypted credentials are protected with AES-256-GCM
+ * - FR-012: Masked display by default (e.g., `github_*****xyz789`)
  *
  * Implementation:
  * - Web Crypto API for AES-256-GCM encryption/decryption

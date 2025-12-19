@@ -1,20 +1,20 @@
 /**
  * SuperJSON Serializer Tests
  *
- * SuperJSONシリアライザーのテスト
+ * Tests for SuperJSON serializer
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type * as SuperJsonSerializerModule from '../../src/serializers/superjson'
 
-// モジュールスコープの状態をリセットするために、各テストでモジュールを再インポート
+// Re-import module in each test to reset module-scoped state
 let superjsonSerializer: typeof SuperJsonSerializerModule
 
-// SuperJSONモック
+// SuperJSON mock
 const mockSuperJSON = {
   stringify: vi.fn((value: unknown) => {
-    // 簡易的なSuperJSON互換の文字列化
+    // Simple SuperJSON-compatible stringification
     return JSON.stringify({
       json: value,
       meta: { types: {} },
@@ -37,14 +37,14 @@ describe('SuperJSON Serializer', () => {
   })
 
   describe('isSuperJsonLoaded', () => {
-    it('初期状態ではfalseを返す', async () => {
+    it('returns false in initial state', async () => {
       superjsonSerializer = await import('../../src/serializers/superjson')
       expect(superjsonSerializer.isSuperJsonLoaded()).toBe(false)
     })
   })
 
   describe('initSuperJsonSerializer', () => {
-    it('superjsonがインストールされている場合、正常に初期化される', async () => {
+    it('initializes successfully when superjson is installed', async () => {
       vi.doMock('superjson', () => ({ default: mockSuperJSON }))
       superjsonSerializer = await import('../../src/serializers/superjson')
 
@@ -53,7 +53,7 @@ describe('SuperJSON Serializer', () => {
       expect(superjsonSerializer.isSuperJsonLoaded()).toBe(true)
     })
 
-    it('superjsonがインストールされていない場合、エラーをスローする', async () => {
+    it('throws error when superjson is not installed', async () => {
       vi.doMock('superjson', () => {
         throw new Error('Module not found')
       })
@@ -64,14 +64,14 @@ describe('SuperJSON Serializer', () => {
       ).rejects.toThrow('superjson is not installed')
     })
 
-    it('2回目の呼び出しはキャッシュを使用する', async () => {
+    it('uses cache on second call', async () => {
       vi.doMock('superjson', () => ({ default: mockSuperJSON }))
       superjsonSerializer = await import('../../src/serializers/superjson')
 
       await superjsonSerializer.initSuperJsonSerializer()
       await superjsonSerializer.initSuperJsonSerializer()
 
-      // キャッシュ済みなのでエラーなし
+      // Already cached, so no error
       expect(superjsonSerializer.isSuperJsonLoaded()).toBe(true)
     })
   })
@@ -83,7 +83,7 @@ describe('SuperJSON Serializer', () => {
       await superjsonSerializer.initSuperJsonSerializer()
     })
 
-    it('オブジェクトをシリアライズ/デシリアライズできる', () => {
+    it('can serialize and deserialize objects', () => {
       const serializer = superjsonSerializer.createSuperJsonSerializer()
       const data = { name: 'test', count: 42 }
 
@@ -95,7 +95,7 @@ describe('SuperJSON Serializer', () => {
       expect(deserialized).toEqual(data)
     })
 
-    it('配列をシリアライズ/デシリアライズできる', () => {
+    it('can serialize and deserialize arrays', () => {
       const serializer = superjsonSerializer.createSuperJsonSerializer()
       const data = [1, 2, 3, { nested: true }]
 
@@ -105,7 +105,7 @@ describe('SuperJSON Serializer', () => {
       expect(deserialized).toEqual(data)
     })
 
-    it('nullを含むデータを処理できる', () => {
+    it('can handle data containing null', () => {
       const serializer = superjsonSerializer.createSuperJsonSerializer()
       const data = { value: null, nested: { also: null } }
 
@@ -115,7 +115,7 @@ describe('SuperJSON Serializer', () => {
       expect(deserialized).toEqual(data)
     })
 
-    it('初期化前に使用するとエラーをスローする', async () => {
+    it('throws error when used before initialization', async () => {
       vi.resetModules()
       vi.doUnmock('superjson')
       superjsonSerializer = await import('../../src/serializers/superjson')
@@ -123,11 +123,11 @@ describe('SuperJSON Serializer', () => {
       const serializer = superjsonSerializer.createSuperJsonSerializer()
 
       expect(() => serializer.serialize({ test: true })).toThrow(
-        'SuperJSON not loaded',
+        'superjson not loaded',
       )
     })
 
-    it('シリアライズエラー時にコンソールにエラーを出力する', async () => {
+    it('outputs error to console on serialization error', async () => {
       const failingMockSuperJSON = {
         stringify: vi.fn(() => {
           throw new Error('Stringify failed')
@@ -151,7 +151,7 @@ describe('SuperJSON Serializer', () => {
       )
     })
 
-    it('デシリアライズエラー時にコンソールにエラーを出力する', async () => {
+    it('outputs error to console on deserialization error', async () => {
       const failingMockSuperJSON = {
         stringify: mockSuperJSON.stringify,
         parse: vi.fn(() => {
@@ -176,14 +176,14 @@ describe('SuperJSON Serializer', () => {
     })
   })
 
-  describe('型付きシリアライザー', () => {
+  describe('typed serializer', () => {
     beforeEach(async () => {
       vi.doMock('superjson', () => ({ default: mockSuperJSON }))
       superjsonSerializer = await import('../../src/serializers/superjson')
       await superjsonSerializer.initSuperJsonSerializer()
     })
 
-    it('ジェネリック型パラメータが機能する', () => {
+    it('generic type parameters work correctly', () => {
       interface UserState {
         id: number
         name: string
@@ -197,7 +197,7 @@ describe('SuperJSON Serializer', () => {
       const serialized = serializer.serialize(data)
       const deserialized = serializer.deserialize(serialized)
 
-      // 型チェック: deserializedはUserState型として扱える
+      // Type check: deserialized can be treated as UserState type
       expect(deserialized.id).toBe(1)
       expect(deserialized.name).toBe('Alice')
       expect(deserialized.active).toBe(true)

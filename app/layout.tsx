@@ -40,7 +40,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta
           name="description"
-          content="GitHub Repositoryを Kanban Board 形式で管理"
+          content="Manage GitHub repositories in Kanban board format"
         />
         <title>GitBox - GitHub Repository Manager</title>
       </head>

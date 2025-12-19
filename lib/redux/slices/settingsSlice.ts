@@ -1,11 +1,11 @@
 /**
  * Settings Slice
  *
- * ユーザー設定の管理（LocalStorage と同期）
- * - テーマ
- * - 言語
- * - タイポグラフィ
- * - WIP 制限
+ * User settings management (synchronized with LocalStorage)
+ * - Theme
+ * - Language
+ * - Typography
+ * - WIP limits
  */
 
 import type { PayloadAction } from '@reduxjs/toolkit'

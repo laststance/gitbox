@@ -11,7 +11,7 @@ import { addRepositoriesToBoard } from '@/lib/actions/repo-cards'
 
 interface AddRepositoryComboboxProps {
   boardId: string
-  statusId: string // 初期ステータス（列） ID
+  statusId: string // Initial status (column) ID
   onRepositoriesAdded: () => void
   onQuickNoteFocus: () => void
 }
@@ -55,12 +55,12 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   const comboboxRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
-  // Server Action: 認証ユーザーのリポジトリ一覧を取得
+  // Server Action: Fetch authenticated user's repository list
   const [userRepos, setUserRepos] = useState<GitHubRepository[]>([])
   const [isLoadingRepos, setIsLoadingRepos] = useState(false)
   const [reposError, setReposError] = useState<string | null>(null)
 
-  // リポジトリ取得関数
+  // Repository fetch function
   const fetchRepositories = useCallback(async () => {
     if (!isOpen) return
 
@@ -89,7 +89,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     }
   }, [isOpen])
 
-  // Comboboxが開いたときにリポジトリを取得
+  // Fetch repositories when combobox opens
   useEffect(() => {
     if (isOpen) {
       fetchRepositories()
@@ -105,13 +105,13 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-  // フィルター済みリポジトリ (クライアント側でフィルタリング)
+  // Filtered repositories (client-side filtering)
   const filteredRepositories = useMemo(() => {
     if (!userRepos) return []
 
     let filtered = userRepos
 
-    // 検索クエリでフィルタリング
+    // Filter by search query
     if (debouncedQuery) {
       filtered = filtered.filter(
         (repo) =>
@@ -122,19 +122,19 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       )
     }
 
-    // Owner フィルター
+    // Owner filter
     if (ownerFilter) {
       filtered = filtered.filter((repo) =>
         repo.owner.login.toLowerCase().includes(ownerFilter.toLowerCase()),
       )
     }
 
-    // Visibility フィルター
+    // Visibility filter
     if (visibilityFilter !== 'all') {
       filtered = filtered.filter((repo) => repo.visibility === visibilityFilter)
     }
 
-    // TODO: Topics フィルター
+    // TODO: Topics filter
     // if (topicsFilter.length > 0) {
     //   filtered = filtered.filter(repo =>
     //     topicsFilter.some(topic => repo.topics?.includes(topic))
@@ -152,9 +152,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   const rowVirtualizer = useVirtualizer({
     count: filteredRepositories.length,
     getScrollElement: () => listRef.current,
-    estimateSize: () => 100, // 推定高さ: タイトル + description + メタ情報
+    estimateSize: () => 100, // Estimated height: title + description + metadata
     enabled: shouldVirtualize,
-    overscan: 5, // スクロール範囲外に5件余分にレンダリング
+    overscan: 5, // Render 5 extra items outside scroll area
   })
 
   // Toggle repository selection

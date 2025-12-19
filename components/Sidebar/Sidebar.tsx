@@ -35,7 +35,7 @@ interface NavItemProps {
 }
 
 /**
- * ナビゲーションアイテム
+ * Navigation item component
  */
 const NavItem = memo(function NavItem({
   href,

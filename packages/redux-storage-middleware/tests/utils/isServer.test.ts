@@ -1,7 +1,7 @@
 /**
  * isServer Utility Tests
  *
- * SSR検出ユーティリティのテスト
+ * Tests for SSR detection utility
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
@@ -17,18 +17,18 @@ describe('isServer', () => {
   const originalWindow = global.window
 
   afterEach(() => {
-    // windowを元に戻す
+    // Restore window
     if (originalWindow !== undefined) {
       global.window = originalWindow
     }
   })
 
-  it('ブラウザ環境ではfalseを返す', () => {
+  it('returns false in browser environment', () => {
     expect(isServer()).toBe(false)
   })
 
-  it('windowがundefinedの場合はtrueを返す', () => {
-    // @ts-expect-error - windowをundefinedに設定
+  it('returns true when window is undefined', () => {
+    // @ts-expect-error - Set window to undefined
     delete global.window
     expect(isServer()).toBe(true)
     global.window = originalWindow
@@ -36,7 +36,7 @@ describe('isServer', () => {
 })
 
 describe('isBrowser', () => {
-  it('ブラウザ環境ではtrueを返す', () => {
+  it('returns true in browser environment', () => {
     expect(isBrowser()).toBe(true)
   })
 })
@@ -66,11 +66,11 @@ describe('isStorageAvailable', () => {
     localStorageMock.clear()
   })
 
-  it('localStorageが利用可能な場合はtrueを返す', () => {
+  it('returns true when localStorage is available', () => {
     expect(isStorageAvailable()).toBe(true)
   })
 
-  it('localStorageがエラーを投げる場合はfalseを返す', () => {
+  it('returns false when localStorage throws error', () => {
     Object.defineProperty(global, 'localStorage', {
       value: {
         setItem: () => {
@@ -84,9 +84,9 @@ describe('isStorageAvailable', () => {
     expect(isStorageAvailable()).toBe(false)
   })
 
-  it('windowがundefinedの場合はfalseを返す', () => {
+  it('returns false when window is undefined', () => {
     const originalWindow = global.window
-    // @ts-expect-error - windowをundefinedに設定
+    // @ts-expect-error - Set window to undefined
     delete global.window
 
     expect(isStorageAvailable()).toBe(false)
@@ -120,11 +120,11 @@ describe('isSessionStorageAvailable', () => {
     sessionStorageMock.clear()
   })
 
-  it('sessionStorageが利用可能な場合はtrueを返す', () => {
+  it('returns true when sessionStorage is available', () => {
     expect(isSessionStorageAvailable()).toBe(true)
   })
 
-  it('sessionStorageがエラーを投げる場合はfalseを返す', () => {
+  it('returns false when sessionStorage throws error', () => {
     Object.defineProperty(global, 'sessionStorage', {
       value: {
         setItem: () => {

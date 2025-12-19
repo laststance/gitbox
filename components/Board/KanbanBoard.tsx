@@ -120,16 +120,16 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     onDeleteStatus,
     onAddCard,
   }) => {
-    // Redux state (LocalStorage に自動同期)
+    // Redux state (auto-synced to LocalStorage)
     const dispatch = useAppDispatch()
     const statuses = useAppSelector(selectStatusLists)
     const cards = useAppSelector(selectRepoCards)
     const loading = useAppSelector(selectBoardLoading)
     const error = useAppSelector(selectBoardError)
 
-    // ローカル state (Redux に移行しない一時的な状態)
+    // Local state (temporary state not migrated to Redux)
     const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null)
-    // Undo機能用の履歴スタック (最大10件)
+    // History stack for undo functionality (max 10 entries)
     const [history, setHistory] = useState<RepoCardForRedux[][]>([])
     const [undoMessage, setUndoMessage] = useState<string | null>(null)
 
@@ -148,11 +148,11 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       useSensor(KeyboardSensor),
     )
 
-    // Supabaseからボードデータを取得
+    // Fetch board data from Supabase
     useEffect(() => {
       const fetchData = async () => {
         if (!boardId || boardId === 'default-board') {
-          dispatch(setError('有効なボードIDが必要です'))
+          dispatch(setError('Valid board ID is required'))
           return
         }
 
@@ -160,16 +160,14 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           dispatch(setLoading(true))
           dispatch(setError(null))
 
-          // Supabaseからデータ取得 (getBoardDataは既にデフォルトStatusList作成を含む)
+          // Fetch data from Supabase (getBoardData already includes default StatusList creation)
           const { statusLists, repoCards } = await getBoardData(boardId)
 
           dispatch(setStatusLists(statusLists))
           dispatch(setRepoCards(repoCards))
         } catch (err) {
           console.error('Board data fetch error:', err)
-          dispatch(
-            setError('ボードデータの取得に失敗しました。再度お試しください。'),
-          )
+          dispatch(setError('Failed to fetch board data. Please try again.'))
         } finally {
           dispatch(setLoading(false))
         }
@@ -179,8 +177,8 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     }, [boardId, dispatch])
 
     /**
-     * Undo機能: 直前のドラッグ&ドロップ操作を元に戻す
-     * Constitution要件: <200ms応答時間
+     * Undo functionality: Reverts the last drag & drop operation
+     * Requirements: <200ms response time
      */
     const handleUndo = useCallback(() => {
       if (history.length === 0) return
@@ -189,15 +187,15 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       dispatch(setRepoCards(previousState))
       setHistory((prev) => prev.slice(0, -1))
 
-      // Undo実行のフィードバック表示 (2秒後に自動消去)
-      setUndoMessage('操作を元に戻しました')
+      // Display undo feedback (auto-dismiss after 2 seconds)
+      setUndoMessage('Operation undone')
       setTimeout(() => setUndoMessage(null), 2000)
     }, [history, dispatch])
 
-    // キーボードショートカット: Z key でUndo実行
+    // Keyboard shortcut: Z key to execute undo
     useEffect(() => {
       const handleKeyDown = (event: KeyboardEvent) => {
-        // Z key (大文字・小文字両対応、Cmd/Ctrl不要)
+        // Z key (both uppercase and lowercase, no Cmd/Ctrl required)
         if (event.key === 'z' || event.key === 'Z') {
           event.preventDefault()
           handleUndo()
@@ -206,7 +204,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
 
       window.addEventListener('keydown', handleKeyDown)
       return () => window.removeEventListener('keydown', handleKeyDown)
-    }, [handleUndo]) // handleUndo に依存
+    }, [handleUndo]) // Depends on handleUndo
 
     const handleDragStart = (event: DragStartEvent) => {
       setActiveId(event.active.id)
@@ -225,14 +223,14 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       const overCard = cards.find((c) => c.id === over.id)
       const targetStatusId = overCard ? overCard.statusId : overStatusId
 
-      // 履歴に現在の状態を保存 (最大10件)
+      // Save current state to history (max 10 entries)
       setHistory((prev) => {
         const newHistory = [...prev, cards]
-        return newHistory.slice(-10) // 最新10件のみ保持
+        return newHistory.slice(-10) // Keep only the latest 10 entries
       })
 
       if (activeCard.statusId === targetStatusId) {
-        // 同じ列内での並び替え
+        // Reordering within the same column
         const columnCards = cards.filter((c) => c.statusId === targetStatusId)
         const oldIndex = columnCards.findIndex((c) => c.id === active.id)
         const newIndex = columnCards.findIndex((c) => c.id === over.id)
@@ -241,10 +239,10 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           const reordered = arrayMove(columnCards, oldIndex, newIndex)
           const otherCards = cards.filter((c) => c.statusId !== targetStatusId)
 
-          // 楽観的UI更新
+          // Optimistic UI update
           dispatch(setRepoCards([...otherCards, ...reordered]))
 
-          // Supabaseに同期（バックグラウンド）
+          // Sync to Supabase (background)
           const updates = reordered.map((card, index) => ({
             id: card.id,
             statusId: targetStatusId,
@@ -255,19 +253,19 @@ export const KanbanBoard = memo<KanbanBoardProps>(
             await batchUpdateRepoCardOrders(updates)
           } catch (error) {
             console.error('Failed to sync card order:', error)
-            // エラー時は元に戻す（履歴から復元）
+            // Revert on error (restore from history)
           }
         }
       } else {
-        // 異なる列への移動
+        // Moving to a different column
         const updatedCards = cards.map((c) =>
           c.id === activeCard.id ? { ...c, statusId: targetStatusId } : c,
         )
 
-        // 楽観的UI更新
+        // Optimistic UI update
         dispatch(setRepoCards(updatedCards))
 
-        // Supabaseに同期（バックグラウンド）
+        // Sync to Supabase (background)
         try {
           const targetColumnCards = updatedCards.filter(
             (c) => c.statusId === targetStatusId,
@@ -279,7 +277,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           await updateRepoCardPosition(activeCard.id, targetStatusId, newOrder)
         } catch (error) {
           console.error('Failed to sync card position:', error)
-          // エラー時は元に戻す
+          // Revert on error
           dispatch(setRepoCards(cards))
         }
       }
@@ -305,7 +303,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
 
     return (
       <div className="w-full h-full p-6 relative">
-        {/* Undoメッセージ表示 */}
+        {/* Undo message display */}
         {undoMessage && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}

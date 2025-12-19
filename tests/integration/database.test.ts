@@ -1,14 +1,14 @@
 /**
  * Database Schema & RLS Policies Integration Test
  *
- * 目的: Supabase データベーススキーマと Row Level Security (RLS) ポリシーの動作を検証
+ * Purpose: Verify Supabase database schema and Row Level Security (RLS) policy behavior
  *
- * テスト範囲:
- * 1. テーブル存在確認 (Board, StatusList, RepoCard, ProjectInfo, Credential, Maintenance, AuditLog)
- * 2. RLS ポリシーの動作確認（ユーザー分離、認証なしアクセス拒否）
- * 3. Cascade Delete の動作確認
- * 4. Triggers の動作確認 (updated_at 自動更新、デフォルトボード作成)
- * 5. Unique Constraints の動作確認
+ * Test scope:
+ * 1. Table existence verification (Board, StatusList, RepoCard, ProjectInfo, Credential, Maintenance, AuditLog)
+ * 2. RLS policy behavior verification (user isolation, unauthorized access denial)
+ * 3. Cascade Delete behavior verification
+ * 4. Triggers behavior verification (updated_at auto-update, default board creation)
+ * 5. Unique Constraints behavior verification
  */
 
 import { createClient } from '@supabase/supabase-js'
@@ -16,7 +16,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 
 import type { Database } from '@/lib/supabase/types'
 
-// テスト用 Supabase クライアント（サービスロール）
+// Test Supabase client (service role)
 const supabaseAdmin = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321',
   process.env.SUPABASE_SERVICE_ROLE_KEY || '',
@@ -28,13 +28,13 @@ const supabaseAdmin = createClient<Database>(
   },
 )
 
-// テスト用ユーザー
+// Test users
 let testUser1: { id: string; email: string }
 let testUser2: { id: string; email: string }
 
 describe('Database Schema & RLS Integration Tests', () => {
   beforeAll(async () => {
-    // テスト用ユーザーを作成（Supabase Admin API）
+    // Create test users (Supabase Admin API)
     const user1Response = await supabaseAdmin.auth.admin.createUser({
       email: 'test-user-1@example.com',
       password: 'test-password-123',
@@ -59,7 +59,7 @@ describe('Database Schema & RLS Integration Tests', () => {
   })
 
   afterAll(async () => {
-    // テスト用ユーザーを削除
+    // Delete test users
     if (testUser1) {
       await supabaseAdmin.auth.admin.deleteUser(testUser1.id)
     }
@@ -69,7 +69,7 @@ describe('Database Schema & RLS Integration Tests', () => {
   })
 
   describe('1. Table Existence', () => {
-    it('Board テーブルが存在する', async () => {
+    it('Board table exists', async () => {
       const { data, error } = await supabaseAdmin
         .from('board')
         .select('id')

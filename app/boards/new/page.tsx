@@ -1,9 +1,9 @@
 /**
  * Create New Board Page
  *
- * PRD: Board作成画面
- * - ボード名入力
- * - テーマ選択 (12テーマ)
+ * PRD: Board creation screen
+ * - Board name input
+ * - Theme selection (12 themes)
  */
 
 import { redirect } from 'next/navigation'

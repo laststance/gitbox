@@ -1,7 +1,7 @@
 /**
  * Redux Storage Middleware Type Definitions
  *
- * jotai/zustandのパターンを参考にした包括的な型定義
+ * Comprehensive type definitions based on patterns from jotai/zustand
  */
 
 import type { Middleware } from '@reduxjs/toolkit'
@@ -11,7 +11,7 @@ import type { Middleware } from '@reduxjs/toolkit'
 // =============================================================================
 
 /**
- * 同期ストレージインターフェース
+ * Synchronous storage interface
  */
 export interface SyncStorage {
   getItem: (name: string) => string | null
@@ -20,7 +20,7 @@ export interface SyncStorage {
 }
 
 /**
- * 非同期ストレージインターフェース
+ * Asynchronous storage interface
  */
 export interface AsyncStorage {
   getItem: (name: string) => Promise<string | null>
@@ -29,7 +29,7 @@ export interface AsyncStorage {
 }
 
 /**
- * ストレージインターフェース（同期・非同期両対応）
+ * Storage interface (supports both sync and async)
  */
 export type StateStorage = SyncStorage | AsyncStorage
 
@@ -38,36 +38,36 @@ export type StateStorage = SyncStorage | AsyncStorage
 // =============================================================================
 
 /**
- * シリアライザーインターフェース
+ * Serializer interface
  */
 export interface Serializer<T = unknown> {
   /**
-   * 状態をJSON文字列に変換
+   * Converts state to JSON string
    */
   serialize: (state: T) => string
 
   /**
-   * JSON文字列を状態に復元
+   * Restores state from JSON string
    */
   deserialize: (str: string) => T
 }
 
 /**
- * JSON Serializerオプション
+ * JSON Serializer options
  */
 export interface JsonSerializerOptions {
   /**
-   * JSON.stringifyに渡すreplacer関数
+   * Replacer function passed to JSON.stringify
    */
   replacer?: (key: string, value: unknown) => unknown
 
   /**
-   * JSON.parseに渡すreviver関数
+   * Reviver function passed to JSON.parse
    */
   reviver?: (key: string, value: unknown) => unknown
 
   /**
-   * インデントスペース数（デバッグ用）
+   * Number of indent spaces (for debugging)
    */
   space?: number
 }
@@ -77,22 +77,22 @@ export interface JsonSerializerOptions {
 // =============================================================================
 
 /**
- * 永続化された状態のラッパー
+ * Wrapper for persisted state
  */
 export interface PersistedState<T = unknown> {
   /**
-   * スキーマバージョン
+   * Schema version
    */
   version: number
 
   /**
-   * 永続化された状態
+   * Persisted state
    */
   state: T
 }
 
 /**
- * マイグレーション関数
+ * Migration function
  */
 export type MigrateFn<T = unknown> = (
   persistedState: unknown,
@@ -104,46 +104,46 @@ export type MigrateFn<T = unknown> = (
 // =============================================================================
 
 /**
- * ハイドレーション状態
+ * Hydration state
  */
 export type HydrationState = 'idle' | 'hydrating' | 'hydrated' | 'error'
 
 /**
- * ハイドレーションAPI
+ * Hydration API
  */
 export interface HydrationApi<T = unknown> {
   /**
-   * 手動でハイドレーションを開始
+   * Manually starts hydration
    */
   rehydrate: () => Promise<void>
 
   /**
-   * ハイドレーションが完了したかどうか
+   * Returns whether hydration is complete
    */
   hasHydrated: () => boolean
 
   /**
-   * 現在のハイドレーション状態
+   * Returns current hydration state
    */
   getHydrationState: () => HydrationState
 
   /**
-   * ハイドレーションされた状態を取得
+   * Gets hydrated state
    */
   getHydratedState: () => T | null
 
   /**
-   * ストレージをクリア
+   * Clears storage
    */
   clearStorage: () => void
 
   /**
-   * ハイドレーション完了時のコールバックを登録
+   * Registers callback for hydration completion
    */
   onHydrate: (callback: (state: T) => void) => () => void
 
   /**
-   * ハイドレーション完了時のコールバックを登録
+   * Registers callback for hydration completion
    */
   onFinishHydration: (callback: (state: T) => void) => () => void
 }
@@ -153,31 +153,31 @@ export interface HydrationApi<T = unknown> {
 // =============================================================================
 
 /**
- * パフォーマンス設定
+ * Performance configuration
  */
 export interface PerformanceConfig {
   /**
-   * デバウンス時間（ミリ秒）
+   * Debounce time (milliseconds)
    *
    * @default 300
    */
   debounceMs?: number
 
   /**
-   * スロットル時間（ミリ秒）
-   * debounceの代わりに使用する場合
+   * Throttle time (milliseconds)
+   * Use instead of debounce
    */
   throttleMs?: number
 
   /**
-   * requestIdleCallbackを使用するか
+   * Whether to use requestIdleCallback
    *
    * @default false
    */
   useIdleCallback?: boolean
 
   /**
-   * アイドルコールバックのタイムアウト（ミリ秒）
+   * Idle callback timeout (milliseconds)
    *
    * @default 1000
    */
@@ -185,34 +185,34 @@ export interface PerformanceConfig {
 }
 
 /**
- * ストレージミドルウェアの完全な設定
+ * Complete storage middleware configuration
  */
 export interface StorageMiddlewareConfig<S = unknown> {
   /**
-   * ストレージキー名
+   * Storage key name
    *
    * @example 'my-app-state'
    */
   name: string
 
   /**
-   * 永続化するスライス名のリスト
-   * 指定しない場合は全体を永続化
+   * List of slice names to persist
+   * If not specified, persists entire state
    *
    * @example ['settings', 'preferences']
    */
   slices?: string[]
 
   /**
-   * 状態の一部のみを永続化するセレクター関数
-   * zustandのpartializeパターン
+   * Selector function to persist only part of state
+   * Based on zustand's partialize pattern
    *
    * @example (state) => ({ user: state.user.profile })
    */
   partialize?: (state: S) => Partial<S>
 
   /**
-   * 永続化から除外するパスのリスト
+   * List of paths to exclude from persistence
    *
    * @example ['auth.token', 'temp']
    */
@@ -223,8 +223,8 @@ export interface StorageMiddlewareConfig<S = unknown> {
   // ---------------------------------------------------------------------------
 
   /**
-   * 自動ハイドレーションをスキップするか
-   * trueの場合、手動でrehydrate()を呼び出す必要がある
+   * Whether to skip automatic hydration
+   * If true, rehydrate() must be called manually
    *
    * @default false
    */
@@ -235,16 +235,16 @@ export interface StorageMiddlewareConfig<S = unknown> {
   // ---------------------------------------------------------------------------
 
   /**
-   * スキーマバージョン
-   * 状態構造が変更された場合に増加させる
+   * Schema version
+   * Increment when state structure changes
    *
    * @default 0
    */
   version?: number
 
   /**
-   * マイグレーション関数
-   * 古いバージョンから新しいバージョンへの変換を行う
+   * Migration function
+   * Converts from old version to new version
    */
   migrate?: MigrateFn<S>
 
@@ -253,14 +253,14 @@ export interface StorageMiddlewareConfig<S = unknown> {
   // ---------------------------------------------------------------------------
 
   /**
-   * カスタムストレージ
-   * 指定しない場合はlocalStorageを使用
+   * Custom storage
+   * If not specified, uses localStorage
    */
   storage?: StateStorage
 
   /**
-   * カスタムシリアライザー
-   * 指定しない場合はJSON.stringify/parseを使用
+   * Custom serializer
+   * If not specified, uses JSON.stringify/parse
    */
   serializer?: Serializer<PersistedState<Partial<S>>>
 
@@ -269,15 +269,15 @@ export interface StorageMiddlewareConfig<S = unknown> {
   // ---------------------------------------------------------------------------
 
   /**
-   * パフォーマンス設定
+   * Performance configuration
    */
   performance?: PerformanceConfig
 
   /**
-   * デバウンス時間（ミリ秒）
-   * 後方互換性のため残存
+   * Debounce time (milliseconds)
+   * Kept for backward compatibility
    *
-   * @deprecated performance.debounceMs を使用してください
+   * @deprecated Use performance.debounceMs instead
    * @default 300
    */
   debounceMs?: number
@@ -287,22 +287,22 @@ export interface StorageMiddlewareConfig<S = unknown> {
   // ---------------------------------------------------------------------------
 
   /**
-   * ハイドレーション開始時のコールバック
+   * Callback when hydration starts
    */
   onHydrate?: () => void
 
   /**
-   * ハイドレーション完了時のコールバック
+   * Callback when hydration completes
    */
   onHydrationComplete?: (state: S) => void
 
   /**
-   * 保存完了時のコールバック
+   * Callback when save completes
    */
   onSaveComplete?: (state: S) => void
 
   /**
-   * エラー発生時のコールバック
+   * Callback when error occurs
    */
   onError?: (error: Error, operation: 'load' | 'save' | 'clear') => void
 
@@ -311,12 +311,12 @@ export interface StorageMiddlewareConfig<S = unknown> {
   // ---------------------------------------------------------------------------
 
   /**
-   * ハイドレーション時のマージ関数
-   * デフォルトは浅いマージ
+   * Merge function during hydration
+   * Defaults to shallow merge
    *
-   * @param persistedState - 永続化された状態
-   * @param currentState - 現在の状態
-   * @returns マージされた状態
+   * @param persistedState - Persisted state
+   * @param currentState - Current state
+   * @returns Merged state
    */
   merge?: (persistedState: Partial<S>, currentState: S) => S
 }
@@ -326,9 +326,9 @@ export interface StorageMiddlewareConfig<S = unknown> {
 // =============================================================================
 
 /**
- * 旧バージョンとの互換性のための設定型
+ * Configuration type for backward compatibility with old version
  *
- * @deprecated StorageMiddlewareConfig を使用してください
+ * @deprecated Use StorageMiddlewareConfig instead
  */
 export interface LegacyStorageMiddlewareConfig {
   slices: string[]
@@ -341,23 +341,23 @@ export interface LegacyStorageMiddlewareConfig {
 // =============================================================================
 
 /**
- * createStorageMiddlewareの戻り値
+ * Return value of createStorageMiddleware
  */
 export interface StorageMiddlewareResult<S = unknown> {
   /**
-   * Reduxミドルウェア
+   * Redux middleware
    */
   middleware: Middleware<object, S>
 
   /**
-   * ハイドレーションAPI
+   * Hydration API
    */
   api: HydrationApi<S>
 }
 
 /**
- * ストア拡張インターフェース
- * ミドルウェア適用後のストアに追加されるメソッド
+ * Store extension interface
+ * Methods added to the store after middleware is applied
  */
 export interface StorageStoreExtension<S = unknown> {
   persist: HydrationApi<S>
@@ -368,14 +368,14 @@ export interface StorageStoreExtension<S = unknown> {
 // =============================================================================
 
 /**
- * ハイドレーション開始アクション
+ * Hydration start action
  */
 export interface HydrateStartAction {
   type: '@@redux-storage-middleware/HYDRATE_START'
 }
 
 /**
- * ハイドレーション完了アクション
+ * Hydration complete action
  */
 export interface HydrateCompleteAction<T = unknown> {
   type: '@@redux-storage-middleware/HYDRATE_COMPLETE'
@@ -383,7 +383,7 @@ export interface HydrateCompleteAction<T = unknown> {
 }
 
 /**
- * ハイドレーションエラーアクション
+ * Hydration error action
  */
 export interface HydrateErrorAction {
   type: '@@redux-storage-middleware/HYDRATE_ERROR'
@@ -391,7 +391,7 @@ export interface HydrateErrorAction {
 }
 
 /**
- * ストレージミドルウェア関連のアクション
+ * Storage middleware related actions
  */
 export type StorageMiddlewareAction<T = unknown> =
   | HydrateStartAction
@@ -403,7 +403,7 @@ export type StorageMiddlewareAction<T = unknown> =
 // =============================================================================
 
 /**
- * ネストされたパスを取得するユーティリティ型
+ * Utility type to get nested paths
  */
 export type NestedKeyOf<T extends object> = {
   [K in keyof T & (string | number)]: T[K] extends object
@@ -412,7 +412,7 @@ export type NestedKeyOf<T extends object> = {
 }[keyof T & (string | number)]
 
 /**
- * パスから値の型を取得するユーティリティ型
+ * Utility type to get value type from path
  */
 export type PathValue<
   T,

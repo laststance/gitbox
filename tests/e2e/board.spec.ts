@@ -15,13 +15,13 @@ import { test, expect } from '@playwright/test'
 
 test.describe('User Story 3: Kanban Board Management', () => {
   test.beforeEach(async ({ page }) => {
-    // 前提条件: ログイン済み、テスト用ボードが存在
-    // TODO: 認証セットアップが必要な場合は追加
+    // Precondition: User is logged in, test board exists
+    // TODO: Add authentication setup if needed
     await page.goto('http://localhost:3008')
   })
 
   test('T048-1: Drag card between columns changes status', async ({ page }) => {
-    // Given: ボードページにアクセスし、カードが "Backlog" 列にある
+    // Given: Access board page with a card in "Backlog" column
     const backlogColumn = page.locator('[data-testid="status-column-backlog"]')
     const todoColumn = page.locator('[data-testid="status-column-todo"]')
     const card = page.locator('[data-testid^="repo-card-"]').first()
@@ -29,35 +29,35 @@ test.describe('User Story 3: Kanban Board Management', () => {
     await expect(backlogColumn).toBeVisible()
     await expect(card).toBeVisible()
 
-    // When: カードを "Backlog" から "Todo" にドラッグ&ドロップ
+    // When: Drag and drop card from "Backlog" to "Todo"
     await card.dragTo(todoColumn)
 
-    // Then: カードが "Todo" 列に移動する
+    // Then: Card moves to "Todo" column
     await expect(
       todoColumn.locator('[data-testid^="repo-card-"]').first(),
     ).toBeVisible()
 
-    // And: 移動が100ms以内で完了する（optimistic UI update）
-    // NOTE: Playwright自動タイムアウトで検証される
+    // And: Move completes within 100ms (optimistic UI update)
+    // NOTE: Verified by Playwright automatic timeout
   })
 
   test('T048-2: Drag card within column changes priority', async ({ page }) => {
-    // Given: "Todo" 列に複数のカードがある
+    // Given: Multiple cards exist in "Todo" column
     const todoColumn = page.locator('[data-testid="status-column-todo"]')
     const cards = todoColumn.locator('[data-testid^="repo-card-"]')
 
-    await expect(cards).toHaveCount(3, { timeout: 5000 }) // 最低3枚のカード
+    await expect(cards).toHaveCount(3, { timeout: 5000 }) // Minimum 3 cards
 
     const firstCard = cards.nth(0)
     const thirdCard = cards.nth(2)
 
-    // 最初のカードのテキストを取得
+    // Get text of the first card
     const firstCardText = await firstCard.textContent()
 
-    // When: 1番目のカードを3番目の位置にドラッグ
+    // When: Drag 1st card to 3rd position
     await firstCard.dragTo(thirdCard)
 
-    // Then: カードの順序が変更される
+    // Then: Card order changes
     const updatedCards = todoColumn.locator('[data-testid^="repo-card-"]')
     const newThirdCardText = await updatedCards.nth(2).textContent()
 
@@ -65,7 +65,7 @@ test.describe('User Story 3: Kanban Board Management', () => {
   })
 
   test('T049-1: Undo last drag operation with Z key', async ({ page }) => {
-    // Given: カードを移動する
+    // Given: Move a card
     const backlogColumn = page.locator('[data-testid="status-column-backlog"]')
     const todoColumn = page.locator('[data-testid="status-column-todo"]')
     const card = backlogColumn.locator('[data-testid^="repo-card-"]').first()
@@ -74,21 +74,21 @@ test.describe('User Story 3: Kanban Board Management', () => {
       .locator('[data-testid^="repo-card-"]')
       .count()
 
-    // When: カードを移動
+    // When: Move card
     await card.dragTo(todoColumn)
-    await page.waitForTimeout(200) // 移動完了を待つ
+    await page.waitForTimeout(200) // Wait for move completion
 
-    // Then: カードが移動している
+    // Then: Card has moved
     const afterMoveBacklogCards = await backlogColumn
       .locator('[data-testid^="repo-card-"]')
       .count()
     expect(afterMoveBacklogCards).toBe(originalColumnCards - 1)
 
-    // When: Z キーを押してアンドゥ
+    // When: Press Z key to undo
     await page.keyboard.press('z')
-    await page.waitForTimeout(300) // アンドゥ完了を待つ（200ms以内の要件）
+    await page.waitForTimeout(300) // Wait for undo completion (requirement: within 200ms)
 
-    // Then: カードが元の列に戻る
+    // Then: Card returns to original column
     const afterUndoBacklogCards = await backlogColumn
       .locator('[data-testid^="repo-card-"]')
       .count()
@@ -96,83 +96,83 @@ test.describe('User Story 3: Kanban Board Management', () => {
   })
 
   test('T056: WIP limit validation displays warning', async ({ page }) => {
-    // Given: "In Progress" 列にWIP制限がある（例: 3枚）
+    // Given: "In Progress" column has WIP limit (e.g., 3 cards)
     const inProgressColumn = page.locator(
       '[data-testid="status-column-in-progress"]',
     )
     const backlogColumn = page.locator('[data-testid="status-column-backlog"]')
 
-    // When: WIP制限を超えるカードを移動しようとする
-    // TODO: 実際のWIP制限値に応じて調整が必要
+    // When: Try to move cards exceeding WIP limit
+    // TODO: Adjust according to actual WIP limit value
     const cards = backlogColumn.locator('[data-testid^="repo-card-"]')
 
-    // 3枚のカードを "In Progress" に移動
+    // Move 3 cards to "In Progress"
     for (let i = 0; i < 3; i++) {
       await cards.nth(i).dragTo(inProgressColumn)
       await page.waitForTimeout(200)
     }
 
-    // 4枚目を移動しようとする
+    // Try to move 4th card
     await cards.nth(3).dragTo(inProgressColumn)
 
-    // Then: WIP制限警告が表示される
+    // Then: WIP limit warning is displayed
     const wipWarning = page.locator('[data-testid="wip-limit-warning"]')
     await expect(wipWarning).toBeVisible({ timeout: 2000 })
     await expect(wipWarning).toContainText(/WIP limit/i)
   })
 
   test('T059-1: Keyboard navigation with Tab key', async ({ page }) => {
-    // Given: ボードページにアクセス
+    // Given: Access board page
     const firstCard = page.locator('[data-testid^="repo-card-"]').first()
 
-    // When: Tab キーでフォーカスを移動
+    // When: Move focus with Tab key
     await page.keyboard.press('Tab')
 
-    // Then: 最初のカードがフォーカスされる
+    // Then: First card is focused
     await expect(firstCard).toBeFocused()
   })
 
   test('T059-2: Open overflow menu with . (dot) key', async ({ page }) => {
-    // Given: カードにフォーカスがある
+    // Given: Card has focus
     const firstCard = page.locator('[data-testid^="repo-card-"]').first()
     await firstCard.focus()
 
-    // When: . (ドット) キーを押す
+    // When: Press . (dot) key
     await page.keyboard.press('.')
 
-    // Then: オーバーフローメニューが開く
+    // Then: Overflow menu opens
     const overflowMenu = page.locator('[data-testid="overflow-menu"]')
     await expect(overflowMenu).toBeVisible({ timeout: 1000 })
   })
 
   test('T059-3: Press Enter to open card details', async ({ page }) => {
-    // Given: カードにフォーカスがある
+    // Given: Card has focus
     const firstCard = page.locator('[data-testid^="repo-card-"]').first()
     await firstCard.focus()
 
-    // When: Enter キーを押す
+    // When: Press Enter key
     await page.keyboard.press('Enter')
 
-    // Then: カードの詳細が開く（Project Info modal または GitHub リンク）
-    // TODO: 実装に応じて適切な検証に変更
+    // Then: Card details open (Project Info modal or GitHub link)
+    // TODO: Adjust verification based on implementation
     await expect(page).toHaveURL(/github\.com|\/board\/.*/, { timeout: 2000 })
   })
 
   test('T060: Board state persists after page reload', async ({ page }) => {
-    // Given: カードを移動する
+    // Given: Move a card
     const backlogColumn = page.locator('[data-testid="status-column-backlog"]')
     const todoColumn = page.locator('[data-testid="status-column-todo"]')
     const card = backlogColumn.locator('[data-testid^="repo-card-"]').first()
 
     const cardText = await card.textContent()
     await card.dragTo(todoColumn)
-    await page.waitForTimeout(500) // Redux & LocalStorage 同期を待つ
+    await page.waitForTimeout(500) // Wait for Redux & LocalStorage sync
 
-    // When: ページをリロード
+    // When: Reload page
     await page.reload()
     await page.waitForLoadState('networkidle')
 
-    // Then: カードの状態が保持される
+    // Then: Card state is preserved
     const todoCards = todoColumn.locator('[data-testid^="repo-card-"]')
     const movedCardInTodo = todoCards.filter({ hasText: cardText || '' })
     await expect(movedCardInTodo).toBeVisible()
@@ -181,22 +181,22 @@ test.describe('User Story 3: Kanban Board Management', () => {
   test('T057: Optimistic UI updates complete within 100ms', async ({
     page,
   }) => {
-    // Given: ボードページにアクセス
+    // Given: Access board page
     const backlogColumn = page.locator('[data-testid="status-column-backlog"]')
     const todoColumn = page.locator('[data-testid="status-column-todo"]')
     const card = backlogColumn.locator('[data-testid^="repo-card-"]').first()
 
-    // When: ドラッグ&ドロップを実行し、時間を計測
+    // When: Execute drag & drop and measure time
     const startTime = Date.now()
     await card.dragTo(todoColumn)
 
-    // UIが更新されるのを待つ
+    // Wait for UI update
     await expect(
       todoColumn.locator('[data-testid^="repo-card-"]').first(),
     ).toBeVisible()
     const endTime = Date.now()
 
-    // Then: 100ms以内に完了する
+    // Then: Completes within 100ms
     const duration = endTime - startTime
     expect(duration).toBeLessThan(100)
   })
@@ -206,7 +206,7 @@ test.describe('User Story 3: Visual Validation', () => {
   test('Displays all status columns correctly', async ({ page }) => {
     await page.goto('http://localhost:3008')
 
-    // すべてのステータス列が表示される
+    // All status columns are displayed
     await expect(
       page.locator('[data-testid="status-column-backlog"]'),
     ).toBeVisible()
@@ -229,10 +229,10 @@ test.describe('User Story 3: Visual Validation', () => {
 
     const card = page.locator('[data-testid^="repo-card-"]').first()
 
-    // カードに必要な情報が表示される
+    // Required information is displayed on card
     await expect(card).toBeVisible()
     await expect(card.locator('[data-testid="repo-name"]')).toBeVisible()
     await expect(card.locator('[data-testid="repo-owner"]')).toBeVisible()
-    // NOTE: stars, description などの表示項目は実装に応じて追加
+    // NOTE: Add additional display items like stars, description based on implementation
   })
 })

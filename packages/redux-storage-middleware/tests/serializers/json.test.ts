@@ -15,7 +15,7 @@ import {
 } from '../../src/serializers/json'
 
 describe('createJsonSerializer', () => {
-  it('オブジェクトをシリアライズ・デシリアライズできる', () => {
+  it('can serialize and deserialize objects', () => {
     const serializer = createJsonSerializer()
     const data = { foo: 'bar', num: 42 }
 
@@ -25,7 +25,7 @@ describe('createJsonSerializer', () => {
     expect(deserialized).toEqual(data)
   })
 
-  it('配列をシリアライズ・デシリアライズできる', () => {
+  it('can serialize and deserialize arrays', () => {
     const serializer = createJsonSerializer()
     const data = [1, 2, 3, 'a', 'b', 'c']
 
@@ -35,7 +35,7 @@ describe('createJsonSerializer', () => {
     expect(deserialized).toEqual(data)
   })
 
-  it('ネストしたオブジェクトを処理できる', () => {
+  it('can handle nested objects', () => {
     const serializer = createJsonSerializer()
     const data = {
       level1: {
@@ -51,7 +51,7 @@ describe('createJsonSerializer', () => {
     expect(deserialized).toEqual(data)
   })
 
-  it('replacerオプションを使用できる', () => {
+  it('can use replacer option', () => {
     const replacer = (_key: string, value: unknown) => {
       if (typeof value === 'number') {
         return value * 2
@@ -67,7 +67,7 @@ describe('createJsonSerializer', () => {
     expect(JSON.parse(serialized)).toEqual({ num: 42 })
   })
 
-  it('reviverオプションを使用できる', () => {
+  it('can use reviver option', () => {
     const reviver = (_key: string, value: unknown) => {
       if (typeof value === 'number') {
         return value / 2
@@ -83,13 +83,13 @@ describe('createJsonSerializer', () => {
     expect(deserialized).toEqual({ num: 21 })
   })
 
-  it('シリアライズエラー時に例外を投げる', () => {
+  it('throws exception on serialization error', () => {
     const consoleErrorSpy = vi
       .spyOn(console, 'error')
       .mockImplementation(() => {})
     const serializer = createJsonSerializer()
 
-    // 循環参照を含むオブジェクト
+    // Object with circular reference
     const circular: Record<string, unknown> = {}
     circular.self = circular
 
@@ -99,7 +99,7 @@ describe('createJsonSerializer', () => {
     consoleErrorSpy.mockRestore()
   })
 
-  it('デシリアライズエラー時に例外を投げる', () => {
+  it('throws exception on deserialization error', () => {
     const consoleErrorSpy = vi
       .spyOn(console, 'error')
       .mockImplementation(() => {})
@@ -113,7 +113,7 @@ describe('createJsonSerializer', () => {
 })
 
 describe('dateReplacer / dateReviver', () => {
-  it('Dateオブジェクトを文字列に変換して復元できる', () => {
+  it('can convert Date object to string and restore', () => {
     const date = new Date('2025-01-01T00:00:00.000Z')
     const replaced = dateReplacer('', date)
 
@@ -126,7 +126,7 @@ describe('dateReplacer / dateReviver', () => {
     expect(revived).toEqual(date)
   })
 
-  it('Date以外の値はそのまま返す', () => {
+  it('returns non-Date values as is', () => {
     expect(dateReplacer('', 'string')).toBe('string')
     expect(dateReplacer('', 42)).toBe(42)
     expect(dateReviver('', 'string')).toBe('string')
@@ -134,7 +134,7 @@ describe('dateReplacer / dateReviver', () => {
 })
 
 describe('collectionReplacer / collectionReviver', () => {
-  it('Mapを変換して復元できる', () => {
+  it('can convert Map and restore', () => {
     const map = new Map([
       ['key1', 'value1'],
       ['key2', 'value2'],
@@ -153,7 +153,7 @@ describe('collectionReplacer / collectionReviver', () => {
     expect(revived).toEqual(map)
   })
 
-  it('Setを変換して復元できる', () => {
+  it('can convert Set and restore', () => {
     const set = new Set([1, 2, 3])
     const replaced = collectionReplacer('', set)
 
@@ -166,7 +166,7 @@ describe('collectionReplacer / collectionReviver', () => {
     expect(revived).toEqual(set)
   })
 
-  it('Dateを変換して復元できる', () => {
+  it('can convert Date and restore', () => {
     const date = new Date('2025-01-01T00:00:00.000Z')
     const replaced = collectionReplacer('', date)
 
@@ -181,7 +181,7 @@ describe('collectionReplacer / collectionReviver', () => {
 })
 
 describe('createEnhancedJsonSerializer', () => {
-  it('Date/Map/Setを含むオブジェクトをシリアライズ・デシリアライズできる', () => {
+  it('can serialize and deserialize objects containing Date/Map/Set', () => {
     const serializer = createEnhancedJsonSerializer()
     const data = {
       date: new Date('2025-01-01T00:00:00.000Z'),
@@ -193,8 +193,8 @@ describe('createEnhancedJsonSerializer', () => {
     const serialized = serializer.serialize(data)
     const deserialized = serializer.deserialize(serialized) as typeof data
 
-    // Dateは復元される - jsdom環境ではinstanceofが失敗する可能性があるため
-    // Object.prototype.toStringとtoISOStringで検証
+    // Date is restored - verify with Object.prototype.toString and toISOString
+    // since instanceof may fail in jsdom environment
     expect(Object.prototype.toString.call(deserialized.date)).toBe(
       '[object Date]',
     )
@@ -208,9 +208,102 @@ describe('createEnhancedJsonSerializer', () => {
 })
 
 describe('defaultJsonSerializer', () => {
-  it('デフォルトシリアライザーが存在する', () => {
+  it('default serializer exists', () => {
     expect(defaultJsonSerializer).toBeDefined()
     expect(typeof defaultJsonSerializer.serialize).toBe('function')
     expect(typeof defaultJsonSerializer.deserialize).toBe('function')
+  })
+})
+
+describe('Prototype Pollution Protection', () => {
+  it('prevents prototype pollution via __proto__ key', () => {
+    const serializer = createJsonSerializer()
+    const maliciousPayload = '{"__proto__": {"polluted": true}}'
+
+    // Verify Object.prototype is not polluted before deserialization
+     
+    expect((Object.prototype as any).polluted).toBeUndefined()
+
+    const result = serializer.deserialize(maliciousPayload) as Record<
+      string,
+      unknown
+    >
+
+    // Verify Object.prototype is not polluted after deserialization
+     
+    expect((Object.prototype as any).polluted).toBeUndefined()
+
+    // Dangerous keys are not added as own properties
+    expect(Object.hasOwn(result, '__proto__')).toBe(false)
+  })
+
+  it('prevents pollution via constructor.prototype', () => {
+    const serializer = createJsonSerializer()
+    const maliciousPayload =
+      '{"constructor": {"prototype": {"polluted": true}}}'
+
+     
+    expect((Object.prototype as any).polluted).toBeUndefined()
+
+    const result = serializer.deserialize(maliciousPayload) as Record<
+      string,
+      unknown
+    >
+
+     
+    expect((Object.prototype as any).polluted).toBeUndefined()
+
+    // constructor key is not added as own property
+    expect(Object.hasOwn(result, 'constructor')).toBe(false)
+  })
+
+  it('filters prototype key', () => {
+    const serializer = createJsonSerializer()
+    const maliciousPayload = '{"prototype": {"isAdmin": true}}'
+
+    const result = serializer.deserialize(maliciousPayload) as Record<
+      string,
+      unknown
+    >
+
+    // prototype key is not added as own property
+    expect(Object.hasOwn(result, 'prototype')).toBe(false)
+  })
+
+  it('works with custom reviver', () => {
+    // Reviver that doubles numbers
+    const reviver = (_key: string, value: unknown) => {
+      if (typeof value === 'number') {
+        return value * 2
+      }
+      return value
+    }
+
+    const serializer = createJsonSerializer({ reviver })
+    const payload = '{"num": 21, "__proto__": {"polluted": true}}'
+
+    const result = serializer.deserialize(payload) as Record<string, unknown>
+
+    // reviver is applied
+    expect(result.num).toBe(42)
+    // Dangerous keys are not added as own properties
+    expect(Object.hasOwn(result, '__proto__')).toBe(false)
+     
+    expect((Object.prototype as any).polluted).toBeUndefined()
+  })
+
+  it('also filters nested dangerous keys', () => {
+    const serializer = createJsonSerializer()
+    const maliciousPayload =
+      '{"data": {"nested": {"__proto__": {"polluted": true}}}}'
+
+    const result = serializer.deserialize(maliciousPayload) as {
+      data: { nested: Record<string, unknown> }
+    }
+
+     
+    expect((Object.prototype as any).polluted).toBeUndefined()
+    // Nested __proto__ is also filtered
+    expect(Object.hasOwn(result.data.nested, '__proto__')).toBe(false)
   })
 })

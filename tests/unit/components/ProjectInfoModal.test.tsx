@@ -1,11 +1,11 @@
 /**
  * Unit Test: ProjectInfoModal Component
  *
- * Constitution要件:
- * - Principle VI: TDD - テストファースト
- * - Principle IV: WCAG AA準拠
+ * Constitution requirements:
+ * - Principle VI: TDD - Test-first approach
+ * - Principle IV: WCAG AA compliance
  *
- * テスト対象:
+ * Test targets:
  * - URL validation logic
  * - Quick note character limit (300)
  * - Form state management
@@ -168,8 +168,8 @@ describe('ProjectInfoModal', () => {
         'quick-note-textarea',
       ) as HTMLTextAreaElement
 
-      // React controlled componentではmaxLength属性が自動的に機能するため、
-      // 300文字ちょうどの入力をテスト
+      // In React controlled components, maxLength attribute works automatically,
+      // so test exactly 300 characters input
       const maxText = 'a'.repeat(300)
 
       fireEvent.change(textarea, {
@@ -345,12 +345,12 @@ describe('ProjectInfoModal', () => {
     it('should support keyboard navigation', () => {
       render(<ProjectInfoModal {...defaultProps} />)
 
-      // Quick noteにautoFocusが設定されている
+      // autoFocus is set on Quick note
       const textarea = screen.getByTestId('quick-note-textarea')
       expect(textarea).toHaveFocus()
 
-      // フォーカス可能な要素が存在することを確認
-      // (実際のTabキー動作はE2Eテストでカバー)
+      // Verify that focusable elements exist
+      // (Actual Tab key behavior is covered in E2E tests)
       const addButton = screen.getByTestId('add-url-button')
       expect(addButton).toBeInTheDocument()
 

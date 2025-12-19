@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { StatusListDomain } from '@/lib/models/domain'
 
-// プリセットカラー（WCAG AA準拠）
+// Preset colors (WCAG AA compliant)
 const PRESET_COLORS = [
   { name: 'Brown', value: '#8B7355' },
   { name: 'Olive', value: '#6B8E23' },
@@ -63,7 +63,7 @@ export const StatusListDialog = memo(function StatusListDialog({
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // 編集モード時は既存データをロード
+  // Load existing data in edit mode
   useEffect(() => {
     if (statusList && mode === 'edit') {
       setName(statusList.title)
@@ -78,7 +78,7 @@ export const StatusListDialog = memo(function StatusListDialog({
   }, [statusList, mode, isOpen])
 
   /**
-   * フォーム送信
+   * Form submission handler
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

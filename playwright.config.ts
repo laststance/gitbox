@@ -1,10 +1,10 @@
 /**
  * Playwright Configuration
  *
- * E2E テスト設定
- * - ブラウザ: Chrome, Firefox, Safari
- * - スクリーンショット: 全 User Story で取得
- * - アクセシビリティ: @axe-core/playwright で検証
+ * E2E test configuration
+ * - Browsers: Chrome, Firefox, Safari
+ * - Screenshots: Captured for all User Stories
+ * - Accessibility: Validated with @axe-core/playwright
  */
 
 import { defineConfig, devices } from '@playwright/test'

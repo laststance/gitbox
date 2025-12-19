@@ -1,10 +1,10 @@
 /**
  * Vitest Configuration
  *
- * Unit テスト設定
- * - React コンポーネントテスト
- * - Redux スライステスト
- * - ユーティリティ関数テスト
+ * Unit test configuration
+ * - React component tests
+ * - Redux slice tests
+ * - Utility function tests
  */
 
 import { fileURLToPath } from 'node:url'

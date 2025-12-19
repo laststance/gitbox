@@ -1,16 +1,24 @@
 /**
  * JSON Serializer
  *
- * 標準的なJSON.stringify/parseを使用するシリアライザー
+ * Serializer using standard JSON.stringify/parse
  */
 
 import type { Serializer, JsonSerializerOptions } from '../types'
 
 /**
- * JSONシリアライザーを作成
+ * Set of dangerous keys to prevent prototype pollution attacks
  *
- * @param options - シリアライズオプション
- * @returns シリアライザー
+ * Prevents Object.prototype pollution when processing
+ * malicious payloads with JSON.parse (e.g., {"__proto__": {"polluted": true}})
+ */
+const DANGEROUS_KEYS = new Set(['__proto__', 'prototype', 'constructor'])
+
+/**
+ * Creates JSON serializer
+ *
+ * @param options - Serialization options
+ * @returns Serializer
  *
  * @example
  * ```ts
@@ -27,15 +35,15 @@ export function createJsonSerializer<T = unknown>(
   return {
     serialize: (state: T): string => {
       try {
-        // replacerがある場合のみJSON.stringifyに渡す
+        // Pass replacer to JSON.stringify only if present
         if (replacer) {
-          // Date.prototype.toJSON()がreplacerより先に呼ばれる問題を解決するため、
-          // this[key]で元の値にアクセスする必要がある
+          // To solve the problem of Date.prototype.toJSON() being called before replacer,
+          // need to access original value via this[key]
           /* eslint-disable @typescript-eslint/no-explicit-any */
           return JSON.stringify(
             state,
             function (this: any, key: string, value: unknown) {
-              // this[key]で元のオブジェクトにアクセス（Dateの場合、valueは既にISO文字列）
+              // Access original object via this[key] (for Date, value is already ISO string)
               const originalValue = key ? (this as any)[key] : value
               /* eslint-enable @typescript-eslint/no-explicit-any */
               return replacer(key, originalValue)
@@ -51,11 +59,17 @@ export function createJsonSerializer<T = unknown>(
     },
     deserialize: (str: string): T => {
       try {
-        // reviverがある場合のみJSON.parseに渡す
-        if (reviver) {
-          return JSON.parse(str, (key, value) => reviver(key, value)) as T
+        // Create safe reviver (prevents prototype pollution)
+        const safeReviver = (key: string, value: unknown): unknown => {
+          // Filter dangerous keys
+          if (DANGEROUS_KEYS.has(key)) {
+            return undefined
+          }
+          // Apply user-provided reviver if present
+          return reviver ? reviver(key, value) : value
         }
-        return JSON.parse(str) as T
+
+        return JSON.parse(str, safeReviver) as T
       } catch (error) {
         console.error(
           '[redux-storage-middleware] JSON deserialize error:',
@@ -68,7 +82,7 @@ export function createJsonSerializer<T = unknown>(
 }
 
 /**
- * DateオブジェクトをISO文字列に変換するreplacer
+ * Replacer to convert Date objects to ISO strings
  */
 export function dateReplacer(_key: string, value: unknown): unknown {
   if (value instanceof Date) {
@@ -78,7 +92,7 @@ export function dateReplacer(_key: string, value: unknown): unknown {
 }
 
 /**
- * ISO文字列をDateオブジェクトに復元するreviver
+ * Reviver to restore ISO strings to Date objects
  */
 export function dateReviver(_key: string, value: unknown): unknown {
   if (
@@ -92,7 +106,7 @@ export function dateReviver(_key: string, value: unknown): unknown {
 }
 
 /**
- * Map/Set対応のreplacer
+ * Replacer supporting Map/Set
  */
 export function collectionReplacer(_key: string, value: unknown): unknown {
   if (value instanceof Map) {
@@ -114,7 +128,7 @@ export function collectionReplacer(_key: string, value: unknown): unknown {
 }
 
 /**
- * Map/Set対応のreviver
+ * Reviver supporting Map/Set
  */
 export function collectionReviver(_key: string, value: unknown): unknown {
   if (typeof value === 'object' && value !== null) {
@@ -133,7 +147,7 @@ export function collectionReviver(_key: string, value: unknown): unknown {
 }
 
 /**
- * Date/Map/Set対応のJSONシリアライザー
+ * JSON serializer supporting Date/Map/Set
  */
 export function createEnhancedJsonSerializer<T = unknown>(): Serializer<T> {
   return createJsonSerializer<T>({
@@ -143,6 +157,6 @@ export function createEnhancedJsonSerializer<T = unknown>(): Serializer<T> {
 }
 
 /**
- * デフォルトJSONシリアライザー
+ * Default JSON serializer
  */
 export const defaultJsonSerializer = createJsonSerializer()

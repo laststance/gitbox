@@ -10,7 +10,7 @@ import { addRepositoriesToBoard } from '@/lib/actions/repo-cards'
 
 interface AddRepositoryComboboxProps {
   boardId: string
-  statusId: string // 初期ステータス（列） ID
+  statusId: string // Initial status (column) ID
   onRepositoriesAdded: () => void
   onQuickNoteFocus: () => void
 }
@@ -18,15 +18,15 @@ interface AddRepositoryComboboxProps {
 /**
  * AddRepositoryCombobox
  *
- * GitHub Repositoryを検索してKanbanボードに追加するComboboxコンポーネント
+ * Combobox component for searching GitHub repositories and adding them to Kanban board
  *
- * 機能:
- * - Repository検索 (owner/repo名、topics、visibility)
- * - 複数選択 (Multi-select)
- * - 100+リポジトリ対応 (Virtual scrolling)
- * - パフォーマンス最適化 (<1秒レスポンス)
- * - WCAGアクセシビリティ対応 (AA準拠)
- * - 重複検出
+ * Features:
+ * - Repository search (owner/repo name, topics, visibility)
+ * - Multi-select support
+ * - Handles 100+ repositories (Virtual scrolling)
+ * - Performance optimized (<1s response)
+ * - WCAG accessibility (AA compliant)
+ * - Duplicate detection
  * - Auto-focus to Quick note
  */
 export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
@@ -56,14 +56,14 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   const comboboxRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
-  // RTK Query: 認証ユーザーのリポジトリ一覧を取得
+  // RTK Query: Fetch authenticated user's repository list
   const {
     data: userRepos,
     isLoading: isLoadingRepos,
     error: reposError,
   } = useGetAuthenticatedUserRepositoriesQuery(
     { sort: 'updated', per_page: 100 },
-    { skip: !isOpen }, // Combobox が開いているときのみフェッチ
+    { skip: !isOpen }, // Only fetch when Combobox is open
   )
 
   // Debounce search query (300ms)
@@ -75,13 +75,13 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-  // フィルター済みリポジトリ (クライアント側でフィルタリング)
+  // Filtered repositories (client-side filtering)
   const filteredRepositories = useMemo(() => {
     if (!userRepos) return []
 
     let filtered = userRepos
 
-    // 検索クエリでフィルタリング
+    // Filter by search query
     if (debouncedQuery) {
       filtered = filtered.filter(
         (repo) =>
@@ -92,19 +92,19 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       )
     }
 
-    // Owner フィルター
+    // Owner filter
     if (ownerFilter) {
       filtered = filtered.filter((repo) =>
         repo.owner.login.toLowerCase().includes(ownerFilter.toLowerCase()),
       )
     }
 
-    // Visibility フィルター
+    // Visibility filter
     if (visibilityFilter !== 'all') {
       filtered = filtered.filter((repo) => repo.visibility === visibilityFilter)
     }
 
-    // TODO: Topics フィルター
+    // TODO: Topics filter
     // if (topicsFilter.length > 0) {
     //   filtered = filtered.filter(repo =>
     //     topicsFilter.some(topic => repo.topics?.includes(topic))
@@ -128,9 +128,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   const rowVirtualizer = useVirtualizer({
     count: filteredRepositories.length,
     getScrollElement: () => listRef.current,
-    estimateSize: () => 100, // 推定高さ: タイトル + description + メタ情報
+    estimateSize: () => 100, // Estimated height: title + description + metadata
     enabled: shouldVirtualize,
-    overscan: 5, // スクロール範囲外に5件余分にレンダリング
+    overscan: 5, // Render 5 extra items outside scroll area
   })
 
   // Toggle repository selection

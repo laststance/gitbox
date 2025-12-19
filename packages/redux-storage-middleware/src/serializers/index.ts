@@ -1,7 +1,7 @@
 /**
  * Serializers
  *
- * redux-storage-middleware で使用可能なシリアライザー
+ * Available serializers for redux-storage-middleware
  */
 
 export {

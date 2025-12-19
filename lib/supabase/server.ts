@@ -1,8 +1,8 @@
 /**
  * Supabase Server Client
  *
- * Server Components, Server Actions, Route Handlers で使用する Supabase クライアント
- * @supabase/ssr を使用してクッキーベースの認証を実現
+ * Supabase client for use in Server Components, Server Actions, and Route Handlers
+ * Implements cookie-based authentication using @supabase/ssr
  */
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
@@ -11,7 +11,7 @@ import { cookies } from 'next/headers'
 import type { Database } from './types'
 
 /**
- * Server Component で使用する Supabase クライアントを作成
+ * Create Supabase client for use in Server Components
  *
  * @example
  * ```tsx
@@ -39,15 +39,15 @@ export async function createClient() {
           try {
             cookieStore.set({ name, value, ...options })
           } catch {
-            // Server Component では set は動作しないため、無視
-            // middleware.ts や Route Handler で処理される
+            // set doesn't work in Server Components - ignored
+            // Will be handled by middleware.ts or Route Handler
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options })
           } catch {
-            // Server Component では remove は動作しないため、無視
+            // remove doesn't work in Server Components - ignored
           }
         },
       },
@@ -56,7 +56,7 @@ export async function createClient() {
 }
 
 /**
- * Route Handler で使用する Supabase クライアントを作成
+ * Create Supabase client for use in Route Handlers
  *
  * @example
  * ```tsx
@@ -93,7 +93,7 @@ export async function createRouteHandlerClient(_request: Request) {
 }
 
 /**
- * Server Action で使用する Supabase クライアントを作成
+ * Create Supabase client for use in Server Actions
  *
  * @example
  * ```tsx
@@ -137,7 +137,7 @@ export async function createServerActionClient() {
 }
 
 /**
- * 現在のユーザーを取得（サーバーサイド）
+ * Get current user (server-side)
  */
 export async function getUser() {
   const supabase = await createClient()
@@ -155,7 +155,7 @@ export async function getUser() {
 }
 
 /**
- * 現在のセッションを取得（サーバーサイド）
+ * Get current session (server-side)
  */
 export async function getSession() {
   const supabase = await createClient()

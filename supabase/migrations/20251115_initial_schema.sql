@@ -12,7 +12,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Tables
 -- ============================================================================
 
--- 1. Board (Kanban ボード)
+-- 1. Board (Kanban Board)
 CREATE TABLE Board (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -23,7 +23,7 @@ CREATE TABLE Board (
   updated_at timestamptz DEFAULT now()
 );
 
--- 2. StatusList (ステータス列)
+-- 2. StatusList (Status Column)
 CREATE TABLE StatusList (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   board_id uuid NOT NULL REFERENCES Board(id) ON DELETE CASCADE,
@@ -35,7 +35,7 @@ CREATE TABLE StatusList (
   updated_at timestamptz DEFAULT now()
 );
 
--- 3. RepoCard (Repository カード)
+-- 3. RepoCard (Repository Card)
 CREATE TABLE RepoCard (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   board_id uuid NOT NULL REFERENCES Board(id) ON DELETE CASCADE,
@@ -50,7 +50,7 @@ CREATE TABLE RepoCard (
   CONSTRAINT unique_repo_per_board UNIQUE (board_id, repo_owner, repo_name)
 );
 
--- 4. ProjectInfo (Project 詳細情報)
+-- 4. ProjectInfo (Project Details)
 CREATE TABLE ProjectInfo (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   repo_card_id uuid NOT NULL UNIQUE REFERENCES RepoCard(id) ON DELETE CASCADE,
@@ -59,7 +59,7 @@ CREATE TABLE ProjectInfo (
   updated_at timestamptz DEFAULT now()
 );
 
--- 5. Credential (機密情報)
+-- 5. Credential (Sensitive Information)
 CREATE TABLE Credential (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   project_info_id uuid NOT NULL REFERENCES ProjectInfo(id) ON DELETE CASCADE,
@@ -76,7 +76,7 @@ CREATE TABLE Credential (
   updated_at timestamptz DEFAULT now()
 );
 
--- 6. Maintenance (保守モード)
+-- 6. Maintenance (Maintenance Mode)
 CREATE TABLE Maintenance (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -90,7 +90,7 @@ CREATE TABLE Maintenance (
   CONSTRAINT unique_repo_per_user UNIQUE (user_id, repo_owner, repo_name)
 );
 
--- 7. AuditLog (監査ログ)
+-- 7. AuditLog (Audit Log)
 CREATE TABLE AuditLog (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -304,7 +304,7 @@ CREATE POLICY "Audit logs cannot be deleted"
 -- Functions & Triggers
 -- ============================================================================
 
--- 1. updated_at 自動更新トリガー関数
+-- 1. updated_at Auto-Update Trigger Function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -313,7 +313,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 各テーブルにトリガー設定
+-- Set trigger for each table
 CREATE TRIGGER update_board_updated_at
   BEFORE UPDATE ON Board
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -338,8 +338,8 @@ CREATE TRIGGER update_maintenance_updated_at
   BEFORE UPDATE ON Maintenance
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- 2. デフォルトボード作成トリガー
--- SECURITY DEFINER + SET search_path = public で auth スキーマからも public.board にアクセス可能に
+-- 2. Default Board Creation Trigger
+-- SECURITY DEFINER + SET search_path = public allows access to public.board from auth schema
 CREATE OR REPLACE FUNCTION create_default_board()
 RETURNS TRIGGER AS $$
 BEGIN

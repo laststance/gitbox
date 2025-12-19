@@ -1,8 +1,8 @@
 /**
  * GitHub API Server Actions
  *
- * GitHub REST API をサーバーサイドで呼び出すアクション
- * Cookieに保存されたprovider_tokenを使用して認証
+ * Actions to call GitHub REST API on server side
+ * Authenticate using provider_token stored in Cookie
  */
 
 'use server'
@@ -34,7 +34,7 @@ export interface GitHubRepository {
 }
 
 /**
- * Cookieからprovider_tokenを取得
+ * Get provider_token from Cookie
  */
 async function getGitHubToken(): Promise<string | null> {
   const cookieStore = await cookies()
@@ -42,7 +42,7 @@ async function getGitHubToken(): Promise<string | null> {
 }
 
 /**
- * 認証ユーザーのリポジトリ一覧を取得
+ * Get authenticated user's repository list
  */
 export async function getAuthenticatedUserRepositories(params?: {
   sort?: 'created' | 'updated' | 'pushed' | 'full_name'
@@ -74,7 +74,7 @@ export async function getAuthenticatedUserRepositories(params?: {
         'User-Agent': 'GitBox-App',
       },
       next: {
-        revalidate: 60, // 1分間キャッシュ
+        revalidate: 60, // Cache for 1 minute
       },
     } as RequestInit)
 
@@ -105,7 +105,7 @@ export async function getAuthenticatedUserRepositories(params?: {
 }
 
 /**
- * リポジトリを検索
+ * Search repositories
  */
 export async function searchRepositories(params: {
   q: string
@@ -177,7 +177,7 @@ export async function searchRepositories(params: {
 }
 
 /**
- * 特定のリポジトリを取得
+ * Get specific repository
  */
 export async function getRepository(
   owner: string,
@@ -239,7 +239,7 @@ export async function getRepository(
 }
 
 /**
- * GitHub tokenが有効かチェック
+ * Check if GitHub token is valid
  */
 export async function checkGitHubTokenValidity(): Promise<{
   valid: boolean

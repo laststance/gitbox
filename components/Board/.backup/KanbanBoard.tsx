@@ -1,10 +1,10 @@
 /**
  * KanbanBoard Component
  *
- * Kanbanボード全体を表示
- * - StatusListを横スクロール可能なレイアウトで表示
- * - 各列にRepoCardを表示
- * - ドラッグ&ドロップでカード移動 (後でdnd-kitと統合)
+ * Display entire Kanban board
+ * - Shows StatusLists in horizontally scrollable layout
+ * - Displays RepoCards in each column
+ * - Card movement via drag & drop (to be integrated with dnd-kit)
  */
 
 'use client'
@@ -18,21 +18,21 @@ type StatusListRow = Database['public']['Tables']['StatusList']['Row']
 type RepoCardRow = Database['public']['Tables']['RepoCard']['Row']
 
 export interface KanbanBoardProps {
-  /** ボードID */
+  /** Board ID */
   boardId: string
-  /** Project Info編集モーダルを開くハンドラー */
+  /** Project Info edit modal open handler */
   onEditProjectInfo?: (cardId: string) => void
-  /** Maintenance Modeへ移動ハンドラー */
+  /** Move to Maintenance Mode handler */
   onMoveToMaintenance?: (cardId: string) => void
 }
 
 /**
  * KanbanBoard
  *
- * Kanbanボード全体を管理
- * - StatusListとRepoCardをSupabaseからフェッチ
- * - 横スクロール可能なレイアウトで複数の列を表示
- * - カード移動、削除などの操作を処理
+ * Manage entire Kanban board
+ * - Fetch StatusList and RepoCard from Supabase
+ * - Display multiple columns in horizontally scrollable layout
+ * - Handle operations like card movement and deletion
  */
 export const KanbanBoard = memo<KanbanBoardProps>(
   ({ boardId, onEditProjectInfo, onMoveToMaintenance }) => {
@@ -43,14 +43,14 @@ export const KanbanBoard = memo<KanbanBoardProps>(
 
     const supabase = createBrowserClient()
 
-    // データフェッチ
+    // Fetch data
     useEffect(() => {
       const fetchBoardData = async () => {
         try {
           setIsLoading(true)
           setError(null)
 
-          // StatusListをフェッチ (order順)
+          // Fetch StatusList (ordered by order)
           const { data: statusData, error: statusError } = await supabase
             .from('StatusList')
             .select('*')
@@ -61,7 +61,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
             throw statusError
           }
 
-          // RepoCardをフェッチ (status_id, order順)
+          // Fetch RepoCard (ordered by status_id, order)
           const { data: cardsData, error: cardsError } = await supabase
             .from('RepoCard')
             .select('*')
@@ -88,7 +88,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       fetchBoardData()
     }, [boardId, supabase])
 
-    // カード削除ハンドラー
+    // Card delete handler
     const handleDeleteCard = async (cardId: string) => {
       try {
         const { error: deleteError } = await supabase
@@ -100,7 +100,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           throw deleteError
         }
 
-        // ローカル状態を更新
+        // Update local state
         setRepoCards((prev) => prev.filter((card) => card.id !== cardId))
       } catch (err) {
         console.error('Error deleting card:', err)
@@ -112,7 +112,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       }
     }
 
-    // ローディング状態
+    // Loading state
     if (isLoading) {
       return (
         <div className="flex h-96 items-center justify-center">
@@ -124,7 +124,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       )
     }
 
-    // エラー状態
+    // Error state
     if (error) {
       return (
         <div className="flex h-96 items-center justify-center">
@@ -153,7 +153,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       )
     }
 
-    // 空のボード状態
+    // Empty board state
     if (statusLists.length === 0) {
       return (
         <div className="flex h-96 items-center justify-center">
@@ -186,7 +186,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       <div className="h-full overflow-x-auto">
         <div className="flex gap-6 p-6">
           {statusLists.map((status) => {
-            // この列に属するカードをフィルター
+            // Filter cards belonging to this column
             const columnCards = repoCards.filter(
               (card) => card.status_id === status.id,
             )

@@ -1,11 +1,11 @@
 /**
  * Settings Page
  *
- * PRD: Settings画面
- * - Theme選択 (12テーマ)
- * - Typography設定
- * - Display設定
- * - WIP設定
+ * PRD: Settings screen
+ * - Theme selection (12 themes)
+ * - Typography settings
+ * - Display settings
+ * - WIP settings
  */
 
 import { redirect } from 'next/navigation'

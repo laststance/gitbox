@@ -1,15 +1,15 @@
 /**
  * Storage Middleware Configuration
  *
- * カスタム redux-storage-middleware パッケージのインスタンス化
+ * Instantiation of custom redux-storage-middleware package
  */
 
 import { createStorageMiddleware } from '@gitbox/redux-storage-middleware'
 
 /**
- * LocalStorage 同期ミドルウェア
+ * LocalStorage synchronization middleware
  *
- * settings スライスのみを LocalStorage に保存
- * テーマ、言語、タイポグラフィ設定などを永続化
+ * Saves only settings slice to LocalStorage
+ * Persists theme, language, typography settings, etc.
  */
 export { createStorageMiddleware }

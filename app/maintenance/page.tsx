@@ -1,11 +1,11 @@
 /**
  * Maintenance Mode Page
  *
- * PRD 3.3: 完了・保守中のプロジェクト保管庫
- * - Explorer UI (Grid/List切替)
- * - 並び替え/検索
- * - クリック = GitHub repo へ遷移
- * - Restore to Board 操作
+ * PRD 3.3: Repository for completed and maintenance projects
+ * - Explorer UI (Grid/List toggle)
+ * - Sorting/Search
+ * - Click to navigate to GitHub repo
+ * - Restore to Board operation
  */
 
 import { redirect } from 'next/navigation'

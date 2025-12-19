@@ -1,8 +1,8 @@
 /**
  * Vitest Configuration for redux-storage-middleware
  *
- * パッケージ固有のテスト設定
- * 目標: 100%カバレッジ
+ * Package-specific test configuration
+ * Goal: 100% coverage
  */
 
 import { defineConfig } from 'vitest/config'

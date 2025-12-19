@@ -1,15 +1,15 @@
 /**
  * Supabase Client (Browser)
  *
- * クライアントサイドで使用する Supabase クライアント
- * ブラウザ環境での認証とデータベース操作に使用
+ * Supabase client for client-side use
+ * Used for authentication and database operations in browser environment
  */
 
 import { createClient, type Session } from '@supabase/supabase-js'
 
 import type { Database } from './types'
 
-// 環境変数の検証
+// Environment variable validation
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -21,18 +21,18 @@ if (!supabaseAnonKey) {
   throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY')
 }
 
-// Supabase クライアントのシングルトンインスタンス
+// Supabase client singleton instance
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    flowType: 'pkce', // GitHub OAuth に推奨
+    flowType: 'pkce', // Recommended for GitHub OAuth
   },
 })
 
 /**
- * 現在のユーザーセッションを取得
+ * Get current user session
  */
 export async function getSession() {
   const { data, error } = await supabase.auth.getSession()
@@ -44,7 +44,7 @@ export async function getSession() {
 }
 
 /**
- * 現在のユーザー情報を取得
+ * Get current user information
  */
 export async function getUser() {
   const { data, error } = await supabase.auth.getUser()
@@ -56,7 +56,7 @@ export async function getUser() {
 }
 
 /**
- * GitHub OAuth でサインイン
+ * Sign in with GitHub OAuth
  */
 export async function signInWithGitHub(redirectTo?: string) {
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -76,7 +76,7 @@ export async function signInWithGitHub(redirectTo?: string) {
 }
 
 /**
- * サインアウト
+ * Sign out
  */
 export async function signOut() {
   const { error } = await supabase.auth.signOut()
@@ -87,7 +87,7 @@ export async function signOut() {
 }
 
 /**
- * 認証状態の変更を監視
+ * Monitor authentication state changes
  */
 export function onAuthStateChange(
   callback: (event: string, session: Session | null) => void,

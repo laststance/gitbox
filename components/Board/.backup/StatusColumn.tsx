@@ -1,10 +1,10 @@
 /**
  * StatusColumn Component
  *
- * Kanbanボードのステータス列を表示
- * - 列名、色、WIP制限を表示
- * - RepoCardのリストを表示
- * - WIP制限超過時に警告表示
+ * Display status column in the Kanban board
+ * - Shows column name, color, and WIP limit
+ * - Displays list of RepoCards
+ * - Shows warning when WIP limit is exceeded
  */
 
 'use client'
@@ -18,26 +18,26 @@ type StatusListRow = Database['public']['Tables']['StatusList']['Row']
 type RepoCardRow = Database['public']['Tables']['RepoCard']['Row']
 
 export interface StatusColumnProps {
-  /** StatusListデータ */
+  /** StatusList data */
   status: StatusListRow
-  /** この列に属するRepoCardのリスト (order順にソート済み) */
+  /** List of RepoCards belonging to this column (sorted by order) */
   cards: RepoCardRow[]
-  /** カード移動ハンドラー (dnd-kit用) */
+  /** Card move handler (for dnd-kit) */
   onCardMove?: (cardId: string, newStatusId: string, newOrder: number) => void
-  /** Project Info編集ハンドラー */
+  /** Project Info edit handler */
   onEditProjectInfo?: (cardId: string) => void
-  /** Maintenance Modeへ移動ハンドラー */
+  /** Move to Maintenance Mode handler */
   onMoveToMaintenance?: (cardId: string) => void
-  /** カード削除ハンドラー */
+  /** Card delete handler */
   onDeleteCard?: (cardId: string) => void
 }
 
 /**
  * StatusColumn
  *
- * Kanbanボードのステータス列
- * - WIP制限がある場合、現在のカード数と制限を表示
- * - WIP制限超過時は警告色で表示
+ * Status column for Kanban board
+ * - Shows current card count and limit when WIP limit is set
+ * - Displays in warning color when WIP limit is exceeded
  */
 export const StatusColumn = memo<StatusColumnProps>(
   ({

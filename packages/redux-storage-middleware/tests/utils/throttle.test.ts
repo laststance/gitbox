@@ -15,7 +15,7 @@ describe('throttle', () => {
     vi.useRealTimers()
   })
 
-  it('最初の呼び出しで即時実行する', () => {
+  it('executes immediately on the first call', () => {
     const fn = vi.fn()
     const { throttledFn } = throttle(fn, 100)
 
@@ -25,7 +25,7 @@ describe('throttle', () => {
     expect(fn).toHaveBeenCalledWith('arg1')
   })
 
-  it('スロットル期間内の呼び出しは期間後に実行される', async () => {
+  it('executes calls within throttle period after the period ends', async () => {
     const fn = vi.fn()
     const { throttledFn } = throttle(fn, 100)
 
@@ -42,7 +42,7 @@ describe('throttle', () => {
     expect(fn).toHaveBeenLastCalledWith('arg3')
   })
 
-  it('スロットル期間後に再度即時実行できる', async () => {
+  it('can execute immediately again after the throttle period', async () => {
     const fn = vi.fn()
     const { throttledFn } = throttle(fn, 100)
 
@@ -56,7 +56,7 @@ describe('throttle', () => {
     expect(fn).toHaveBeenLastCalledWith('arg2')
   })
 
-  it('cancelで保留中の実行をキャンセルできる', async () => {
+  it('can cancel pending execution with cancel', async () => {
     const fn = vi.fn()
     const { throttledFn, cancel } = throttle(fn, 100)
 
@@ -80,7 +80,7 @@ describe('scheduleIdleCallback', () => {
     vi.useRealTimers()
   })
 
-  it('requestIdleCallbackが利用できない場合はsetTimeoutにフォールバック', async () => {
+  it('falls back to setTimeout when requestIdleCallback is not available', async () => {
     const fn = vi.fn()
     const { scheduledFn } = scheduleIdleCallback(fn)
 
@@ -94,7 +94,7 @@ describe('scheduleIdleCallback', () => {
     expect(fn).toHaveBeenCalledWith('arg1')
   })
 
-  it('連続した呼び出しで最後の引数が使われる', async () => {
+  it('uses the last argument when called consecutively', async () => {
     const fn = vi.fn()
     const { scheduledFn } = scheduleIdleCallback(fn)
 
@@ -108,7 +108,7 @@ describe('scheduleIdleCallback', () => {
     expect(fn).toHaveBeenCalledWith('arg3')
   })
 
-  it('cancelで保留中の実行をキャンセルできる', async () => {
+  it('can cancel pending execution with cancel', async () => {
     const fn = vi.fn()
     const { scheduledFn, cancel } = scheduleIdleCallback(fn)
 

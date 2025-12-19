@@ -2,9 +2,9 @@
  * Auth Slice Tests
  *
  * T028.4 (Part 1/3): Unit test for authSlice
- * - Actions のテスト
- * - Reducers のテスト
- * - Selectors のテスト
+ * - Actions tests
+ * - Reducers tests
+ * - Selectors tests
  */
 
 import type { User, Session } from '@supabase/supabase-js'

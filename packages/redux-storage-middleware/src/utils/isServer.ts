@@ -1,22 +1,22 @@
 /**
  * SSR Detection Utility
  *
- * サーバーサイドレンダリング環境を検出するためのユーティリティ関数
- * jotai/zustandのパターンを参考に実装
+ * Utility functions for detecting server-side rendering environment
+ * Implementation based on patterns from jotai/zustand
  */
 
 /**
- * 現在の実行環境がサーバーサイドかどうかを判定
+ * Determines if the current execution environment is server-side
  *
- * @returns サーバーサイドの場合はtrue、ブラウザの場合はfalse
+ * @returns true if server-side, false if browser
  *
  * @example
  * ```ts
  * if (isServer()) {
- *   // SSR時の処理
+ *   // SSR processing
  *   return null
  * }
- * // ブラウザでの処理
+ * // Browser processing
  * localStorage.getItem('key')
  * ```
  */
@@ -25,23 +25,23 @@ export function isServer(): boolean {
 }
 
 /**
- * 現在の実行環境がブラウザかどうかを判定
+ * Determines if the current execution environment is a browser
  *
- * @returns ブラウザの場合はtrue、サーバーサイドの場合はfalse
+ * @returns true if browser, false if server-side
  */
 export function isBrowser(): boolean {
   return typeof window !== 'undefined'
 }
 
 /**
- * localStorageが利用可能かどうかを安全にテスト
+ * Safely tests if localStorage is available
  *
- * zustandのcreateJSONStorageパターンを参考に、以下をチェック:
- * 1. window が存在するか
- * 2. localStorage が存在するか
- * 3. localStorage に実際にアクセスできるか（プライベートモードなど）
+ * Based on zustand's createJSONStorage pattern, checks:
+ * 1. Whether window exists
+ * 2. Whether localStorage exists
+ * 3. Whether localStorage is actually accessible (e.g., private mode)
  *
- * @returns localStorageが利用可能な場合はtrue
+ * @returns true if localStorage is available
  *
  * @example
  * ```ts
@@ -62,15 +62,15 @@ export function isStorageAvailable(): boolean {
     window.localStorage.removeItem(testKey)
     return true
   } catch {
-    // プライベートモードやクォータ超過など
+    // Private mode or quota exceeded
     return false
   }
 }
 
 /**
- * sessionStorageが利用可能かどうかを安全にテスト
+ * Safely tests if sessionStorage is available
  *
- * @returns sessionStorageが利用可能な場合はtrue
+ * @returns true if sessionStorage is available
  */
 export function isSessionStorageAvailable(): boolean {
   if (isServer()) {

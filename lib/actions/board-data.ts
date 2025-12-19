@@ -1,8 +1,8 @@
 /**
  * Board Data Actions
  *
- * ボードのStatusListとRepoCardをSupabaseから取得・更新するサーバーアクション
- * KanbanBoardコンポーネントで使用
+ * Server actions to fetch and update board's StatusList and RepoCard from Supabase
+ * Used by KanbanBoard component
  */
 
 'use server'
@@ -15,10 +15,10 @@ import type {
 import { createClient } from '@/lib/supabase/server'
 
 /**
- * ボードのStatusListを取得
+ * Get board's StatusList
  *
- * @param boardId - ボードID
- * @returns StatusList配列（order順）
+ * @param boardId - Board ID
+ * @returns Array of StatusList (ordered by order field)
  */
 export async function getStatusLists(
   boardId: string,
@@ -37,7 +37,7 @@ export async function getStatusLists(
       return { success: false, error: error.message }
     }
 
-    // DBの型をドメイン型にマッピング
+    // Map DB type to domain type
     const mapped: StatusListDomain[] = (statusLists || []).map((sl) => ({
       id: sl.id,
       title: sl.name,
@@ -60,10 +60,10 @@ export async function getStatusLists(
 }
 
 /**
- * ボードのRepoCardを取得
+ * Get board's RepoCard
  *
- * @param boardId - ボードID
- * @returns RepoCard配列（order順）
+ * @param boardId - Board ID
+ * @returns Array of RepoCard (ordered by order field)
  */
 export async function getRepoCards(
   boardId: string,
@@ -82,7 +82,7 @@ export async function getRepoCards(
       return { success: false, error: error.message }
     }
 
-    // DBの型をドメイン型にマッピング
+    // Map DB type to domain type
     const mapped: RepoCardDomain[] = (repoCards || []).map((rc) => ({
       id: rc.id,
       title: rc.repo_name,
@@ -110,10 +110,10 @@ export async function getRepoCards(
 }
 
 /**
- * ボードのStatusListとRepoCardを一括取得
+ * Get board's StatusList and RepoCard in batch
  *
- * @param boardId - ボードID
- * @returns StatusListとRepoCardの配列
+ * @param boardId - Board ID
+ * @returns Arrays of StatusList and RepoCard
  */
 export async function getBoardData(boardId: string): Promise<{
   success: boolean
@@ -150,11 +150,11 @@ export async function getBoardData(boardId: string): Promise<{
 }
 
 /**
- * デフォルトのStatusListを作成
- * 新規ボード作成時に呼び出される
+ * Create default StatusList
+ * Called when creating a new board
  *
- * @param boardId - ボードID
- * @returns 作成されたStatusList配列
+ * @param boardId - Board ID
+ * @returns Array of created StatusList
  */
 export async function createDefaultStatusLists(
   boardId: string,
@@ -184,7 +184,7 @@ export async function createDefaultStatusLists(
       return { success: false, error: error.message }
     }
 
-    // DBの型をドメイン型にマッピング
+    // Map DB type to domain type
     const mapped: StatusListDomain[] = (data || []).map((sl) => ({
       id: sl.id,
       title: sl.name,
@@ -207,12 +207,12 @@ export async function createDefaultStatusLists(
 }
 
 /**
- * RepoCardのステータスと順序を更新（D&D後）
+ * Update RepoCard status and order (after drag & drop)
  *
- * @param cardId - カードID
- * @param statusId - 新しいステータスID
- * @param order - 新しい順序
- * @returns 更新結果
+ * @param cardId - Card ID
+ * @param statusId - New status ID
+ * @param order - New order
+ * @returns Update result
  */
 export async function updateCardPosition(
   cardId: string,
@@ -247,10 +247,10 @@ export async function updateCardPosition(
 }
 
 /**
- * 複数カードの順序を一括更新（D&D後の並べ替え）
+ * Batch update card order (reordering after drag & drop)
  *
- * @param updates - カードIDと新しい順序のペア配列
- * @returns 更新結果
+ * @param updates - Array of card ID and new order pairs
+ * @returns Update result
  */
 export async function updateCardsOrder(
   updates: { id: string; statusId: string; order: number }[],
@@ -258,7 +258,7 @@ export async function updateCardsOrder(
   try {
     const supabase = await createClient()
 
-    // 各カードを順番に更新（トランザクションの代わり）
+    // Update each card sequentially (as a transaction alternative)
     for (const update of updates) {
       const { error } = await supabase
         .from('repocard')
@@ -286,12 +286,12 @@ export async function updateCardsOrder(
 }
 
 /**
- * 新規ボードを作成
+ * Create new board
  *
- * @param userId - ユーザーID
- * @param name - ボード名
- * @param theme - テーマ
- * @returns 作成されたボードID
+ * @param userId - User ID
+ * @param name - Board name
+ * @param theme - Theme
+ * @returns Created board ID
  */
 export async function createBoard(
   userId: string,
@@ -301,7 +301,7 @@ export async function createBoard(
   try {
     const supabase = await createClient()
 
-    // ボードを作成
+    // Create board
     const { data: board, error: boardError } = await supabase
       .from('board')
       .insert({
@@ -318,14 +318,14 @@ export async function createBoard(
       return { success: false, error: boardError.message }
     }
 
-    // デフォルトのStatusListを作成
+    // Create default StatusList
     const defaultResult = await createDefaultStatusLists(board.id)
     if (!defaultResult.success) {
       console.error(
         'Failed to create default status lists:',
         defaultResult.error,
       )
-      // ボードは作成されているので、エラーを表示しつつも成功とする
+      // Board is created, so treat as success despite error display
     }
 
     return { success: true, boardId: board.id }
@@ -339,10 +339,10 @@ export async function createBoard(
 }
 
 /**
- * ボードを削除
+ * Delete board
  *
- * @param boardId - ボードID
- * @returns 削除結果
+ * @param boardId - Board ID
+ * @returns Deletion result
  */
 export async function deleteBoard(
   boardId: string,

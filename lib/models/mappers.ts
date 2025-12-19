@@ -1,8 +1,8 @@
 /**
  * Type Mappers
  *
- * Database層(Supabase types)とDomain層の変換関数
- * 型安全な変換を保証し、レイヤー間の依存を分離
+ * Conversion functions between Database layer (Supabase types) and Domain layer
+ * Ensures type-safe conversion and separates dependencies between layers
  */
 
 import type {
@@ -20,8 +20,8 @@ import type { StatusListDomain, RepoCardDomain, RepoCardMeta } from './domain'
 /**
  * Database StatusList → Domain StatusList
  *
- * データベース層の型をドメイン層の型に変換
- * フィールド名の変換: name → title, wip_limit → wipLimit
+ * Converts database layer type to domain layer type
+ * Field name mapping: name → title, wip_limit → wipLimit
  */
 export function dbStatusListToDomain(db: DbStatusList): StatusListDomain {
   return {
@@ -39,7 +39,7 @@ export function dbStatusListToDomain(db: DbStatusList): StatusListDomain {
 /**
  * Domain StatusList → Database StatusList (Insert)
  *
- * ドメイン層の型をデータベース挿入用の型に変換
+ * Converts domain layer type to database insert type
  */
 export function domainStatusListToDbInsert(
   domain: Omit<StatusListDomain, 'id' | 'createdAt' | 'updatedAt'>,
@@ -60,11 +60,11 @@ export function domainStatusListToDbInsert(
 /**
  * Database RepoCard → Domain RepoCard
  *
- * データベース層の型をドメイン層の型に変換
- * GitHubリポジトリ情報をUI表示用フィールドに変換
+ * Converts database layer type to domain layer type
+ * Transforms GitHub repository information into UI display fields
  */
 export function dbRepoCardToDomain(db: DbRepoCard): RepoCardDomain {
-  // meta の型安全な取得
+  // Type-safe meta extraction
   const meta = (db.meta as RepoCardMeta | null) ?? {}
 
   return {
@@ -86,7 +86,7 @@ export function dbRepoCardToDomain(db: DbRepoCard): RepoCardDomain {
 /**
  * Domain RepoCard → Database RepoCard (Insert)
  *
- * ドメイン層の型をデータベース挿入用の型に変換
+ * Converts domain layer type to database insert type
  */
 export function domainRepoCardToDbInsert(
   domain: Omit<
@@ -101,7 +101,7 @@ export function domainRepoCardToDbInsert(
     repo_name: domain.repoName,
     note: domain.note,
     order: domain.order,
-    meta: domain.meta as unknown as Json, // Json型に変換
+    meta: domain.meta as unknown as Json, // Convert to Json type
   }
 }
 
@@ -110,7 +110,7 @@ export function domainRepoCardToDbInsert(
 // ========================================
 
 /**
- * StatusList配列の一括変換: Database → Domain
+ * Batch conversion of StatusList array: Database → Domain
  */
 export function dbStatusListsToDomain(
   dbList: DbStatusList[],
@@ -119,7 +119,7 @@ export function dbStatusListsToDomain(
 }
 
 /**
- * RepoCard配列の一括変換: Database → Domain
+ * Batch conversion of RepoCard array: Database → Domain
  */
 export function dbRepoCardsToDomain(dbList: DbRepoCard[]): RepoCardDomain[] {
   return dbList.map(dbRepoCardToDomain)

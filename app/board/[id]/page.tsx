@@ -1,9 +1,9 @@
 /**
  * Board Detail Page
  *
- * 個別Kanbanボードを表示
- * - ボード情報をSupabaseからフェッチ
- * - KanbanBoardコンポーネントをレンダリング
+ * Displays individual Kanban board
+ * - Fetches board information from Supabase
+ * - Renders KanbanBoard component
  */
 
 import { type Metadata } from 'next'
@@ -22,7 +22,7 @@ export interface BoardPageProps {
 /**
  * generateMetadata
  *
- * ボード名をページタイトルに設定
+ * Sets board name as page title
  */
 export async function generateMetadata(
   props: BoardPageProps,
@@ -44,10 +44,10 @@ export async function generateMetadata(
 /**
  * BoardPage
  *
- * Kanbanボード詳細ページ
- * - ボードが存在しない場合は404
- * - ユーザー認証チェック (middleware.tsで実施済み)
- * - テーマをボード設定から適用
+ * Kanban board detail page
+ * - Returns 404 if board does not exist
+ * - User authentication check (already done in middleware.ts)
+ * - Applies theme from board settings
  */
 export default async function BoardPage(props: BoardPageProps) {
   const params = await props.params
@@ -56,7 +56,7 @@ export default async function BoardPage(props: BoardPageProps) {
   console.log('[DEBUG] BoardPage params:', params)
   console.log('[DEBUG] Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
 
-  // ボード情報を取得
+  // Fetch board information
   const { data: board, error: boardError } = await supabase
     .from('board')
     .select('*')
@@ -70,7 +70,7 @@ export default async function BoardPage(props: BoardPageProps) {
 
   console.log('[DEBUG] Board query result:', { board, boardError })
 
-  // ボードが存在しない、またはアクセス権限がない場合は404
+  // Return 404 if board does not exist or user lacks access permission
   if (boardError || !board) {
     console.error('[DEBUG] Board not found or error:', boardError)
     notFound()

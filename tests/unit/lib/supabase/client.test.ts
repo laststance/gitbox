@@ -2,9 +2,9 @@
  * Supabase Client Tests
  *
  * T028.1: Unit test for Supabase client initialization
- * - 環境変数の検証
- * - クライアントインスタンスの作成
- * - 認証設定の確認
+ * - Environment variable validation
+ * - Client instance creation
+ * - Authentication configuration verification
  */
 
 import { describe, it, expect } from 'vitest'

@@ -12,7 +12,7 @@ import { test, expect } from '@playwright/test'
 
 test.describe('User Story 3: Kanban Board Screenshots', () => {
   test.beforeEach(async ({ page }) => {
-    // 前提条件: ログイン済み、テスト用ボードが存在
+    // Prerequisites: Logged in, test board exists
     await page.goto('http://localhost:3008')
     await page.waitForLoadState('networkidle')
   })
@@ -20,7 +20,7 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
   test('SS-US3-01: Full Kanban board view with all columns', async ({
     page,
   }) => {
-    // すべてのステータス列が表示されたボード全体
+    // Full board with all status columns displayed
     await expect(page.locator('[data-testid^="status-column-"]')).toHaveCount(
       5,
       { timeout: 5000 },
@@ -33,7 +33,7 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
   })
 
   test('SS-US3-02: Backlog column with repository cards', async ({ page }) => {
-    // Backlog 列にフォーカスしたビュー
+    // View focused on Backlog column
     const backlogColumn = page.locator('[data-testid="status-column-backlog"]')
     await expect(backlogColumn).toBeVisible()
 
@@ -43,7 +43,7 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
   })
 
   test('SS-US3-03: Repository card detail view', async ({ page }) => {
-    // 個別のリポジトリカードの詳細
+    // Individual repository card details
     const card = page.locator('[data-testid^="repo-card-"]').first()
     await expect(card).toBeVisible()
 
@@ -53,12 +53,12 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
   })
 
   test('SS-US3-04: Card hover state', async ({ page }) => {
-    // カードのホバー状態
+    // Card hover state
     const card = page.locator('[data-testid^="repo-card-"]').first()
     await expect(card).toBeVisible()
 
     await card.hover()
-    await page.waitForTimeout(300) // ホバーアニメーション完了を待つ
+    await page.waitForTimeout(300) // Wait for hover animation to complete
 
     await page.screenshot({
       path: 'tests/e2e/screenshots/us3-04-card-hover-state.png',
@@ -66,11 +66,11 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
   })
 
   test('SS-US3-05: Card with overflow menu open', async ({ page }) => {
-    // オーバーフローメニューが開いた状態
+    // Overflow menu open state
     const card = page.locator('[data-testid^="repo-card-"]').first()
     await expect(card).toBeVisible()
 
-    // . キーでメニューを開く
+    // Open menu with . key
     await card.focus()
     await page.keyboard.press('.')
 
@@ -83,11 +83,11 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
   })
 
   test('SS-US3-06: Drag operation in progress', async ({ page }) => {
-    // ドラッグ操作中のビジュアル状態
+    // Visual state during drag operation
     const card = page.locator('[data-testid^="repo-card-"]').first()
     await expect(card).toBeVisible()
 
-    // ドラッグ開始
+    // Start drag
     await card.hover()
     await page.mouse.down()
     await page.waitForTimeout(200)
@@ -101,13 +101,13 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
   })
 
   test('SS-US3-07: WIP limit warning displayed', async ({ page }) => {
-    // WIP制限警告が表示された状態
+    // WIP limit warning displayed state
     const inProgressColumn = page.locator(
       '[data-testid="status-column-in-progress"]',
     )
     const backlogColumn = page.locator('[data-testid="status-column-backlog"]')
 
-    // WIP制限まで カードを移動
+    // Move cards up to WIP limit
     const cards = backlogColumn.locator('[data-testid^="repo-card-"]')
     for (let i = 0; i < 4; i++) {
       await cards.nth(i).dragTo(inProgressColumn)
@@ -123,8 +123,8 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
   })
 
   test('SS-US3-08: Empty column state', async ({ page }) => {
-    // 空のステータス列
-    // NOTE: テストデータに空の列がある場合のみ
+    // Empty status column
+    // NOTE: Only if test data has an empty column
     const doneColumn = page.locator('[data-testid="status-column-done"]')
     const cardsInDone = doneColumn.locator('[data-testid^="repo-card-"]')
 
@@ -136,7 +136,7 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
   })
 
   test('SS-US3-09: Keyboard navigation focus state', async ({ page }) => {
-    // キーボードナビゲーションでフォーカスされた状態
+    // Focus state with keyboard navigation
     await page.keyboard.press('Tab')
     await page.waitForTimeout(200)
 
@@ -151,13 +151,13 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
   test('SS-US3-10: Board with 100+ repositories (virtual scroll)', async ({
     page,
   }) => {
-    // 仮想スクロールが有効な大量リポジトリのビュー
-    // NOTE: テストデータに100+のリポジトリがある場合のみ
+    // View with many repositories with virtual scroll enabled
+    // NOTE: Only if test data has 100+ repositories
     const allCards = page.locator('[data-testid^="repo-card-"]')
     const cardCount = await allCards.count()
 
     if (cardCount >= 20) {
-      // @tanstack/react-virtual が有効になる閾値
+      // Threshold where @tanstack/react-virtual becomes active
       await page.screenshot({
         path: 'tests/e2e/screenshots/us3-10-virtual-scroll-active.png',
         fullPage: true,
@@ -169,7 +169,7 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
     page,
     viewport,
   }) => {
-    // モバイルビュー（縦向き）
+    // Mobile view (portrait)
     await page.setViewportSize({ width: 375, height: 812 }) // iPhone X/11/12/13
 
     await page.screenshot({
@@ -179,7 +179,7 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
   })
 
   test('SS-US3-12: Mobile responsive view (landscape)', async ({ page }) => {
-    // モバイルビュー（横向き）
+    // Mobile view (landscape)
     await page.setViewportSize({ width: 812, height: 375 }) // iPhone landscape
 
     await page.screenshot({
@@ -189,7 +189,7 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
   })
 
   test('SS-US3-13: Tablet responsive view (iPad)', async ({ page }) => {
-    // タブレットビュー
+    // Tablet view
     await page.setViewportSize({ width: 768, height: 1024 }) // iPad portrait
 
     await page.screenshot({
@@ -199,18 +199,18 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
   })
 
   test('SS-US3-14: Desktop wide view (4K)', async ({ page }) => {
-    // デスクトップ大画面ビュー
+    // Desktop wide screen view
     await page.setViewportSize({ width: 3840, height: 2160 }) // 4K resolution
 
     await page.screenshot({
       path: 'tests/e2e/screenshots/us3-14-desktop-4k.png',
-      fullPage: false, // ビューポート内のみ
+      fullPage: false, // Viewport only
     })
   })
 
   test('SS-US3-15: Dark theme comparison', async ({ page }) => {
-    // ダークテーマでのボード表示
-    // NOTE: テーマ切り替えが実装されている場合
+    // Board display with dark theme
+    // NOTE: If theme switching is implemented
     await page.emulateMedia({ colorScheme: 'dark' })
     await page.reload()
     await page.waitForLoadState('networkidle')
@@ -224,7 +224,7 @@ test.describe('User Story 3: Kanban Board Screenshots', () => {
   test('SS-US3-16: Accessibility features - High contrast', async ({
     page,
   }) => {
-    // ハイコントラストモード
+    // High contrast mode
     await page.emulateMedia({ colorScheme: 'dark', forcedColors: 'active' })
     await page.reload()
     await page.waitForLoadState('networkidle')
@@ -245,7 +245,7 @@ test.describe('User Story 3: Undo Operation Screenshots', () => {
     const todoColumn = page.locator('[data-testid="status-column-todo"]')
     const card = backlogColumn.locator('[data-testid^="repo-card-"]').first()
 
-    // カードを移動
+    // Move card
     await card.dragTo(todoColumn)
     await page.waitForTimeout(300)
 
@@ -263,7 +263,7 @@ test.describe('User Story 3: Undo Operation Screenshots', () => {
     const todoColumn = page.locator('[data-testid="status-column-todo"]')
     const card = backlogColumn.locator('[data-testid^="repo-card-"]').first()
 
-    // カードを移動してからアンドゥ
+    // Move card then undo
     await card.dragTo(todoColumn)
     await page.waitForTimeout(300)
 

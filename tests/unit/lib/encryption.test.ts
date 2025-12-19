@@ -1,12 +1,12 @@
 /**
  * Unit Test: Encryption/Decryption Module
  *
- * Constitution要件:
- * - Principle VI: TDD - テストファースト
- * - FR-011: 暗号化された認証情報はAES-256-GCMで保護
- * - FR-012: デフォルトでマスク表示（例: `github_*****xyz789`）
+ * Constitution requirements:
+ * - Principle VI: TDD - Test-first approach
+ * - FR-011: Encrypted credentials protected with AES-256-GCM
+ * - FR-012: Default masked display (e.g., `github_*****xyz789`)
  *
- * テスト対象:
+ * Test targets:
  * - AES-256-GCM encryption/decryption
  * - Masked display generation
  * - Error handling for invalid keys/data
@@ -57,7 +57,7 @@ describe('Encryption Module', () => {
       const encrypted1 = await encryptValue(testValue, testKey)
       const encrypted2 = await encryptValue(testValue, testKey)
 
-      // Due to random IV, encrypted values should be different even with same key
+      // Due to random IV, encrypted values should be different even with the same key
       expect(encrypted1).not.toBe(encrypted2)
     })
   })
@@ -218,7 +218,7 @@ describe('Encryption Module', () => {
     })
 
     it('should handle unicode characters correctly', async () => {
-      const unicodeValue = '日本語のパスワード🔐'
+      const unicodeValue = 'Japanese password日本語🔐'
       const encrypted = await encryptValue(unicodeValue, testKey)
       const decrypted = await decryptValue(encrypted, testKey)
 

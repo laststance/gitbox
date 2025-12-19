@@ -1,16 +1,16 @@
 /**
  * Board Page Client Component
  *
- * Constitution要件:
- * - Principle V: セキュリティファースト
- * - Principle VI: TDD - テストファースト
+ * Constitution requirements:
+ * - Principle V: Security first
+ * - Principle VI: TDD - Test-driven development
  *
  * User Story 4:
- * - Project Info modalの統合
+ * - Project Info modal integration
  * - Optimistic UI updates
  *
  * PRD 3.2:
- * - StatusList CRUD操作
+ * - StatusList CRUD operations
  */
 
 'use client'
@@ -66,15 +66,15 @@ export const BoardPageClient = memo(function BoardPageClient({
   )
 
   /**
-   * Project Info モーダルを開く
-   * Constitution要件: Principle VI - TDD
+   * Open Project Info modal
+   * Constitution requirement: Principle VI - TDD
    */
   const handleEditProjectInfo = useCallback(async (cardId: string) => {
     setSelectedCardId(cardId)
     setIsLoading(true)
 
     try {
-      // Project Info取得
+      // Fetch Project Info
       const data = await getProjectInfo(cardId)
       setProjectInfo({
         id: cardId,
@@ -84,7 +84,7 @@ export const BoardPageClient = memo(function BoardPageClient({
       setIsModalOpen(true)
     } catch (error) {
       console.error('Failed to load project info:', error)
-      // エラーの場合も空の状態でモーダルを開く
+      // Open modal with empty state even on error
       setProjectInfo({
         id: cardId,
         quickNote: '',
@@ -97,15 +97,15 @@ export const BoardPageClient = memo(function BoardPageClient({
   }, [])
 
   /**
-   * Project Info保存（Optimistic Update）
-   * Constitution要件: Principle V - セキュリティファースト
-   * T069: Optimistic updates実装
+   * Save Project Info (Optimistic Update)
+   * Constitution requirement: Principle V - Security first
+   * T069: Optimistic updates implementation
    */
   const handleSaveProjectInfo = useCallback(
     async (data: ProjectInfoData) => {
       if (!selectedCardId) return
 
-      // Optimistic Update: UIを即座に更新
+      // Optimistic Update: Immediately update UI
       setProjectInfo((prev) =>
         prev
           ? {
@@ -117,15 +117,15 @@ export const BoardPageClient = memo(function BoardPageClient({
       )
 
       try {
-        // バックエンド保存（非同期）
+        // Backend save (asynchronous)
         await upsertProjectInfo(selectedCardId, data)
 
-        // TODO: Redux stateも更新（Phase 6で実装）
+        // TODO: Update Redux state as well (implement in Phase 6)
         // dispatch(updateProjectInfo({ cardId: selectedCardId, data }));
       } catch (error) {
         console.error('Failed to save project info:', error)
 
-        // エラー時はロールバック
+        // Rollback on error
         try {
           const rollbackData = await getProjectInfo(selectedCardId)
           setProjectInfo({
@@ -137,8 +137,8 @@ export const BoardPageClient = memo(function BoardPageClient({
           console.error('Failed to rollback:', rollbackError)
         }
 
-        // ユーザーにエラー通知
-        // TODO: Toast notification (Phase 6で実装)
+        // Notify user of error
+        // TODO: Toast notification (implement in Phase 6)
         alert('Failed to save project information. Please try again.')
       }
     },
@@ -146,7 +146,7 @@ export const BoardPageClient = memo(function BoardPageClient({
   )
 
   /**
-   * モーダルを閉じる
+   * Close modal
    */
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false)
@@ -155,11 +155,11 @@ export const BoardPageClient = memo(function BoardPageClient({
   }, [])
 
   /**
-   * Maintenance Modeへ移動
-   * User Story 6で実装予定
+   * Move to Maintenance Mode
+   * Planned for User Story 6
    */
   const handleMoveToMaintenance = useCallback((cardId: string) => {
-    // TODO: Maintenance Modeへ移動 (User Story 6で実装)
+    // TODO: Move to Maintenance Mode (implement in User Story 6)
     console.log('Move to Maintenance:', cardId)
   }, [])
 
@@ -168,7 +168,7 @@ export const BoardPageClient = memo(function BoardPageClient({
   // ========================================
 
   /**
-   * StatusList追加ダイアログを開く
+   * Open StatusList add dialog
    */
   const handleOpenAddStatus = useCallback(() => {
     setSelectedStatus(null)
@@ -177,7 +177,7 @@ export const BoardPageClient = memo(function BoardPageClient({
   }, [])
 
   /**
-   * StatusList編集ダイアログを開く
+   * Open StatusList edit dialog
    */
   const handleEditStatus = useCallback((status: StatusListDomain) => {
     setSelectedStatus(status)
@@ -186,28 +186,28 @@ export const BoardPageClient = memo(function BoardPageClient({
   }, [])
 
   /**
-   * StatusListを保存（作成/更新）
+   * Save StatusList (create/update)
    */
   const handleSaveStatus = useCallback(
     async (data: { name: string; color: string; wipLimit: number | null }) => {
       if (statusDialogMode === 'create') {
-        // 新規作成
+        // Create new
         const newStatus = await createStatusList(
           boardId,
           data.name,
           data.color,
           data.wipLimit ?? undefined,
         )
-        // Redux更新
+        // Update Redux
         dispatch(setStatusLists([...statusLists, newStatus]))
       } else if (selectedStatus) {
-        // 更新
+        // Update existing
         await updateStatusList(selectedStatus.id, {
           name: data.name,
           color: data.color,
           wipLimit: data.wipLimit,
         })
-        // Redux更新
+        // Update Redux
         const updatedLists = statusLists.map((s) =>
           s.id === selectedStatus.id
             ? {
@@ -225,14 +225,14 @@ export const BoardPageClient = memo(function BoardPageClient({
   )
 
   /**
-   * StatusListを削除
+   * Delete StatusList
    */
   const handleDeleteStatus = useCallback(
     async (statusId: string) => {
       const targetStatus = statusLists.find((s) => s.id === statusId)
       if (!targetStatus) return
 
-      // 確認ダイアログ
+      // Confirmation dialog
       const confirmed = window.confirm(
         `Are you sure you want to delete "${targetStatus.title}"? This action cannot be undone.`,
       )
@@ -240,7 +240,7 @@ export const BoardPageClient = memo(function BoardPageClient({
 
       try {
         await deleteStatusList(statusId, boardId)
-        // Redux更新
+        // Update Redux
         const filteredLists = statusLists.filter((s) => s.id !== statusId)
         dispatch(setStatusLists(filteredLists))
       } catch (error) {
@@ -252,10 +252,10 @@ export const BoardPageClient = memo(function BoardPageClient({
   )
 
   /**
-   * カード追加（将来実装）
+   * Add card (future implementation)
    */
   const handleAddCard = useCallback((statusId: string) => {
-    // TODO: AddRepositoryComboboxを開く
+    // TODO: Open AddRepositoryCombobox
     console.log('Add card to status:', statusId)
   }, [])
 
@@ -269,18 +269,18 @@ export const BoardPageClient = memo(function BoardPageClient({
               {boardName}
             </h1>
 
-            {/* ボード操作ボタン */}
+            {/* Board operation buttons */}
             <div className="flex items-center gap-2">
               {/* Add Repositories - PRD 3.1 */}
               <AddRepositoryCombobox
                 boardId={boardId}
-                statusId={statusLists[0]?.id || ''} // 最初の列に追加（なければ空文字）
+                statusId={statusLists[0]?.id || ''} // Add to first column (empty string if none)
                 onRepositoriesAdded={() => {
-                  // TODO: ボードを再読み込み
+                  // TODO: Reload board
                   window.location.reload()
                 }}
                 onQuickNoteFocus={() => {
-                  // TODO: Quick noteフィールドにフォーカス
+                  // TODO: Focus on quick note field
                   console.log('Focus quick note')
                 }}
               />

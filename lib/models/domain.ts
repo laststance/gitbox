@@ -1,9 +1,9 @@
 /**
  * Domain Models
  *
- * ビジネスロジック層で使用する型定義
- * Database層(Supabase types)とUI層の中間に位置し、
- * アプリケーション全体で統一された型を提供
+ * Type definitions used in the business logic layer
+ * Positioned between Database layer (Supabase types) and UI layer,
+ * providing unified types throughout the application
  */
 
 // Re-export database types for mapper usage
@@ -17,24 +17,24 @@ export type {
 // ========================================
 
 /**
- * カンバンボードのステータス列を表すドメインモデル
- * UI層とRedux層で共通して使用
+ * Domain model representing a Kanban board status column
+ * Shared across UI layer and Redux layer
  */
 export interface StatusListDomain {
   id: string
-  /** 表示用タイトル (database: name) */
+  /** Display title (database: name) */
   title: string
-  /** WIP制限数 (database: wip_limit) */
+  /** WIP limit count (database: wip_limit) */
   wipLimit: number
-  /** 列の色コード */
+  /** Column color code */
   color: string
-  /** 表示順序 */
+  /** Display order */
   order: number
-  /** ボードID (データベース外部キー) */
+  /** Board ID (database foreign key) */
   boardId: string
-  /** 作成日時 */
+  /** Creation timestamp */
   createdAt: string
-  /** 更新日時 */
+  /** Update timestamp */
   updatedAt: string
 }
 
@@ -43,35 +43,35 @@ export interface StatusListDomain {
 // ========================================
 
 /**
- * GitHubリポジトリカードのドメインモデル
- * UI層とRedux層で共通して使用
+ * Domain model for GitHub repository cards
+ * Shared across UI layer and Redux layer
  */
 export interface RepoCardDomain {
   id: string
-  /** カード表示タイトル (GitHub repo名) */
+  /** Card display title (GitHub repo name) */
   title: string
-  /** リポジトリ説明文 (メモまたはGitHub description) */
+  /** Repository description (note or GitHub description) */
   description?: string
-  /** 所属ステータスID */
+  /** Status ID this card belongs to */
   statusId: string
-  /** ボードID (データベース外部キー) */
+  /** Board ID (database foreign key) */
   boardId: string
-  /** GitHubリポジトリオーナー */
+  /** GitHub repository owner */
   repoOwner: string
-  /** GitHubリポジトリ名 */
+  /** GitHub repository name */
   repoName: string
-  /** ユーザーメモ */
+  /** User note */
   note: string | null
-  /** カード表示順序 */
+  /** Card display order */
   order: number
-  /** GitHubメタデータ (stars, language, etc.) */
+  /** GitHub metadata (stars, language, etc.) */
   meta: RepoCardMeta
-  /** 作成日時 */
+  /** Creation timestamp */
   createdAt: string
-  /** 更新日時 */
+  /** Update timestamp */
   updatedAt: string
 
-  // UI拡張フィールド (オプショナル、将来の拡張用)
+  // UI extension fields (optional, for future enhancements)
   priority?: 'low' | 'medium' | 'high'
   assignee?: {
     name: string
@@ -84,7 +84,7 @@ export interface RepoCardDomain {
 }
 
 /**
- * RepoCardのGitHubメタデータ
+ * GitHub metadata for RepoCard
  */
 export interface RepoCardMeta {
   stars?: number
@@ -100,13 +100,13 @@ export interface RepoCardMeta {
 // ========================================
 
 /**
- * Redux state用の簡略化型
- * Immerの型推論問題を回避するため、Json型をunknownに変換
+ * Simplified type for Redux state
+ * Converts Json type to unknown to avoid Immer type inference issues
  */
 export type StatusListForRedux = StatusListDomain
 
 /**
- * Redux state用の簡略化型
- * Immerの型推論問題を回避するため、meta をunknownに変換
+ * Simplified type for Redux state
+ * Converts meta to unknown to avoid Immer type inference issues
  */
 export type RepoCardForRedux = Omit<RepoCardDomain, 'meta'> & { meta: unknown }

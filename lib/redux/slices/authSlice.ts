@@ -1,10 +1,10 @@
 /**
  * Auth Slice
  *
- * 認証状態の管理
- * - ユーザー情報
- * - セッション状態
- * - ロード状態
+ * Authentication state management
+ * - User information
+ * - Session state
+ * - Loading state
  */
 
 import type { PayloadAction } from '@reduxjs/toolkit'

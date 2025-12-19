@@ -1,17 +1,18 @@
 /**
  * Compressed Serializer
  *
- * LZ-String圧縮を使用したシリアライザー
- * 大きなデータを効率的に保存するために使用
+ * Serializer using LZ-String compression
+ * Used for efficiently storing large data
  *
- * 注意: このシリアライザーを使用するにはlz-stringパッケージが必要です
+ * Note: This serializer requires the lz-string package
  * pnpm add lz-string
  */
 
 import type { Serializer } from '../types'
+import { createModuleLoader } from '../utils/moduleLoader'
 
 /**
- * LZStringインターフェース（動的インポート用）
+ * LZString interface (for dynamic import)
  */
 interface LZStringModule {
   compressToUTF16: (input: string) => string
@@ -22,85 +23,57 @@ interface LZStringModule {
   decompressFromEncodedURIComponent: (input: string) => string | null
 }
 
-let lzStringModule: LZStringModule | null = null
-
 /**
- * LZ-Stringを動的にロード
+ * LZ-String module loader
  */
-async function loadLZString(): Promise<LZStringModule> {
-  if (lzStringModule) {
-    return lzStringModule
-  }
-
-  try {
-    const lzModule = await import('lz-string')
-    // eslint-disable-next-line require-atomic-updates -- シングルスレッド環境で安全に動作
-    lzStringModule = lzModule.default || lzModule
-    return lzStringModule
-  } catch {
-    throw new Error(
-      '[redux-storage-middleware] lz-string is not installed. ' +
-        'Please install it with: pnpm add lz-string',
-    )
-  }
-}
+const lzStringLoader = createModuleLoader<LZStringModule>({
+  moduleName: 'lz-string',
+  importFn: async () => import('lz-string'),
+})
 
 /**
- * 同期的にLZ-Stringを取得
- */
-function getLZString(): LZStringModule {
-  if (!lzStringModule) {
-    throw new Error(
-      '[redux-storage-middleware] LZ-String not loaded. ' +
-        'Call initCompressedSerializer() first.',
-    )
-  }
-  return lzStringModule
-}
-
-/**
- * 圧縮シリアライザーを初期化
+ * Initializes compressed serializer
  */
 export async function initCompressedSerializer(): Promise<void> {
-  await loadLZString()
+  await lzStringLoader.load()
 }
 
 /**
- * 圧縮フォーマット
+ * Compression format
  */
 export type CompressionFormat = 'utf16' | 'base64' | 'uri'
 
 /**
- * 圧縮シリアライザーオプション
+ * Compressed serializer options
  */
 export interface CompressedSerializerOptions {
   /**
-   * 圧縮フォーマット
+   * Compression format
    *
-   * - utf16: localStorage向け（最も効率的）
-   * - base64: 汎用
-   * - uri: URL向け
+   * - utf16: For localStorage (most efficient)
+   * - base64: General purpose
+   * - uri: For URLs
    *
    * @default 'utf16'
    */
   format?: CompressionFormat
 
   /**
-   * 圧縮前のJSON変換用replacer
+   * Replacer for JSON conversion before compression
    */
   replacer?: (key: string, value: unknown) => unknown
 
   /**
-   * 解凍後のJSON変換用reviver
+   * Reviver for JSON conversion after decompression
    */
   reviver?: (key: string, value: unknown) => unknown
 }
 
 /**
- * 圧縮シリアライザーを作成
+ * Creates compressed serializer
  *
- * @param options - オプション
- * @returns シリアライザー
+ * @param options - Options
+ * @returns Serializer
  *
  * @example
  * ```ts
@@ -109,7 +82,7 @@ export interface CompressedSerializerOptions {
  *
  * const bigData = { items: Array(10000).fill({ name: 'test' }) }
  * const compressed = serializer.serialize(bigData)
- * // compressed は大幅に小さくなる
+ * // compressed will be significantly smaller
  * ```
  */
 export function createCompressedSerializer<T = unknown>(
@@ -118,7 +91,7 @@ export function createCompressedSerializer<T = unknown>(
   const { format = 'utf16', replacer, reviver } = options
 
   const compress = (input: string): string => {
-    const lz = getLZString()
+    const lz = lzStringLoader.get()
     switch (format) {
       case 'base64':
         return lz.compressToBase64(input)
@@ -131,7 +104,7 @@ export function createCompressedSerializer<T = unknown>(
   }
 
   const decompress = (input: string): string | null => {
-    const lz = getLZString()
+    const lz = lzStringLoader.get()
     switch (format) {
       case 'base64':
         return lz.decompressFromBase64(input)
@@ -175,18 +148,18 @@ export function createCompressedSerializer<T = unknown>(
 }
 
 /**
- * LZ-Stringがロード済みかどうかを確認
+ * Checks if LZ-String is loaded
  */
 export function isLZStringLoaded(): boolean {
-  return lzStringModule !== null
+  return lzStringLoader.isLoaded()
 }
 
 /**
- * 圧縮率を計算
+ * Calculates compression ratio
  *
- * @param original - 圧縮前の文字列
- * @param compressed - 圧縮後の文字列
- * @returns 圧縮率（0-1、低いほど圧縮効果が高い）
+ * @param original - Original string before compression
+ * @param compressed - Compressed string
+ * @returns Compression ratio (0-1, lower is better compression)
  */
 export function getCompressionRatio(
   original: string,

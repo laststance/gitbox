@@ -1,8 +1,8 @@
 /**
  * RepoCard Component
  *
- * GitHubリポジトリを表示するカードコンポーネント
- * Kanbanボード上でドラッグ&ドロップ可能
+ * Card component displaying GitHub repositories
+ * Draggable on Kanban board
  */
 
 'use client'
@@ -13,24 +13,24 @@ import type { Database } from '@/lib/supabase/types'
 type RepoCardRow = Database['public']['Tables']['RepoCard']['Row']
 
 export interface RepoCardProps {
-  /** Repositoryカードのデータ */
+  /** Repository card data */
   card: RepoCardRow
-  /** オーバーフローメニューを開くハンドラー */
+  /** Overflow menu open handler */
   onMenuClick?: (cardId: string) => void
-  /** ドラッグ開始ハンドラー (dnd-kit用) */
+  /** Drag start handler (for dnd-kit) */
   onDragStart?: () => void
-  /** ドラッグ終了ハンドラー (dnd-kit用) */
+  /** Drag end handler (for dnd-kit) */
   onDragEnd?: () => void
 }
 
 /**
  * RepoCard
  *
- * Repository情報を表示するカードコンポーネント
- * - owner/name表示
- * - Quick note表示 (最大300文字)
- * - メタデータ (stars, language, topics) 表示
- * - OverflowMenuトリガー (. キーまたはクリック)
+ * Card component displaying repository information
+ * - Shows owner/name
+ * - Displays Quick note (max 300 characters)
+ * - Shows metadata (stars, language, topics)
+ * - OverflowMenu trigger (. key or click)
  */
 export const RepoCard = memo<RepoCardProps>(
   ({ card, onMenuClick, onDragStart, onDragEnd }) => {

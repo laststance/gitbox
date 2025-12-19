@@ -1,13 +1,13 @@
 /**
  * Unit Test: AddRepositoryCombobox Component (Performance)
  *
- * テスト対象:
- * - 100+リポジトリで1秒以内にレンダリング
- * - Virtual scrolling実装確認
- * - Debounce動作確認
- * - 重複Repository検出ロジック
+ * Test targets:
+ * - Render 100+ repositories within 1 second
+ * - Virtual scrolling implementation verification
+ * - Debounce behavior verification
+ * - Duplicate repository detection logic
  *
- * User Story 2: Repository 検索と追加
+ * User Story 2: Repository search and addition
  */
 
 import { configureStore } from '@reduxjs/toolkit'
@@ -20,7 +20,7 @@ import { describe, it, expect, vi } from 'vitest'
 import type { GitHubRepository } from '@/lib/github/api'
 import boardSlice from '@/lib/redux/slices/boardSlice'
 
-// 100+リポジトリのモックデータ生成
+// Generate mock data for 100+ repositories
 const generateMockRepositories = (count: number): GitHubRepository[] => {
   return Array.from({ length: count }, (_, i) => ({
     id: i + 1,
@@ -64,7 +64,7 @@ const createMockStore = () =>
     },
   })
 
-// Mock component (T040で実装される予定)
+// Mock component (to be implemented in T040)
 const MockAddRepositoryCombobox = memo(function MockAddRepositoryCombobox({
   repositories,
   onSearch,
@@ -101,8 +101,8 @@ const MockAddRepositoryCombobox = memo(function MockAddRepositoryCombobox({
 })
 
 describe('AddRepositoryCombobox Performance Tests (T039)', () => {
-  describe('Performance: 100+リポジトリで2秒以内レンダリング', () => {
-    // CI環境ではリソースが限られているため、2秒を許容
+  describe('Performance: Render 100+ repositories within 2 seconds', () => {
+    // Allow 2 seconds due to limited resources in CI environment
     it('should render 150 repositories in under 2 seconds', async () => {
       const mockRepos = generateMockRepositories(150)
       const mockStore = createMockStore()
@@ -115,7 +115,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
         </Provider>,
       )
 
-      // 全てのリポジトリが表示されるまで待機
+      // Wait until all repositories are displayed
       await waitFor(
         () => {
           const options = screen.getAllByRole('option')
@@ -127,10 +127,10 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       const endTime = performance.now()
       const renderTime = endTime - startTime
 
-      // パフォーマンス要件: 2秒以内 (CI環境を考慮)
+      // Performance requirement: within 2 seconds (considering CI environment)
       expect(renderTime).toBeLessThan(2000)
 
-      // レンダリング時間をログ出力
+      // Log rendering time
       console.log(`✓ Rendered 150 repositories in ${renderTime.toFixed(2)}ms`)
     })
 
@@ -156,7 +156,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       const endTime = performance.now()
       const renderTime = endTime - startTime
 
-      // 200個でも1.5秒以内を目標
+      // Target: within 1.5 seconds even for 200 items
       expect(renderTime).toBeLessThan(1500)
 
       console.log(`✓ Rendered 200 repositories in ${renderTime.toFixed(2)}ms`)
@@ -174,18 +174,18 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
         </Provider>,
       )
 
-      // Virtual scrolling コンテナが存在する
+      // Virtual scrolling container exists
       const virtualContainer = container.querySelector('[data-virtual-scroll]')
       expect(virtualContainer).toBeInTheDocument()
 
-      // スクロール可能な要素である
+      // Element is scrollable
       expect(virtualContainer).toHaveStyle({ overflow: 'auto' })
     })
 
     it('should render only visible items (virtualization check)', async () => {
-      // Note: 実際のVirtual scrolling実装 (T045) では、
-      // @tanstack/react-virtual を使用し、可視範囲のアイテムのみDOMにレンダリング
-      // このテストはモックコンポーネントでの動作確認
+      // Note: In actual Virtual scrolling implementation (T045),
+      // @tanstack/react-virtual will be used to render only visible items in DOM
+      // This test verifies mock component behavior
       const mockRepos = generateMockRepositories(200)
       const mockStore = createMockStore()
 
@@ -197,14 +197,14 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
 
       const renderedOptions = screen.getAllByRole('option')
 
-      // Virtual scrolling実装後は、全てがDOMに存在しない
-      // (現在のモックでは全て表示されるが、T045実装後は<50個になる)
+      // After Virtual scrolling implementation, not all items will exist in DOM
+      // (Current mock renders all, but after T045 implementation it will be <50 items)
       console.log(`Rendered options: ${renderedOptions.length}`)
       expect(renderedOptions.length).toBeGreaterThan(0)
     })
   })
 
-  describe('Debounce検索', () => {
+  describe('Debounce Search', () => {
     it('should debounce search input (300ms)', async () => {
       const user = userEvent.setup()
       const mockSearch = vi.fn()
@@ -218,13 +218,13 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
 
       const searchInput = screen.getByPlaceholderText(/Search repositories/i)
 
-      // 高速タイピングシミュレーション
-      await user.type(searchInput, 'react') // タイピングシミュレーション
+      // Simulate fast typing
+      await user.type(searchInput, 'react') // Typing simulation
 
-      // Debounce期間待機前は呼ばれない
-      expect(mockSearch).toHaveBeenCalledTimes(5) // Mockでは各文字で呼ばれる
+      // Not called before debounce period
+      expect(mockSearch).toHaveBeenCalledTimes(5) // Mock calls for each character
 
-      // 実際のT040実装では、useDebounce(300ms)により1回のみ呼ばれる想定
+      // In actual T040 implementation, expected to be called only once with useDebounce(300ms)
       // await waitFor(() => {
       //   expect(mockSearch).toHaveBeenCalledTimes(1)
       //   expect(mockSearch).toHaveBeenCalledWith('react')
@@ -232,7 +232,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
     })
   })
 
-  describe('重複Repository検出 (T043)', () => {
+  describe('Duplicate Repository Detection (T043)', () => {
     it('should detect duplicate repository by ID', () => {
       const existingRepoIds = ['12345', '67890']
       const newRepo: GitHubRepository = {
@@ -256,7 +256,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
         created_at: new Date().toISOString(),
       }
 
-      // Duplicate detection logic (T043で実装)
+      // Duplicate detection logic (to be implemented in T043)
       const isDuplicate = existingRepoIds.includes(String(newRepo.id))
       expect(isDuplicate).toBe(true)
     })
@@ -272,7 +272,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
 
     it('should mark duplicate repositories in UI', () => {
       const mockRepos = generateMockRepositories(10)
-      const existingRepoIds = ['1', '5', '9'] // ID: 1, 5, 9 は重複
+      const existingRepoIds = ['1', '5', '9'] // ID: 1, 5, 9 are duplicates
       const mockStore = createMockStore()
 
       render(
@@ -286,17 +286,17 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
 
       const options = screen.getAllByRole('option')
 
-      // 重複アイテムはdata-duplicate属性がtrue
+      // Duplicate items have data-duplicate attribute set to true
       const duplicateOption = options[0] // ID: 1
       expect(duplicateOption).toHaveAttribute('data-duplicate', 'true')
 
-      // 非重複アイテムはfalse
+      // Non-duplicate items have false
       const nonDuplicateOption = options[1] // ID: 2
       expect(nonDuplicateOption).toHaveAttribute('data-duplicate', 'false')
     })
   })
 
-  describe('エッジケース', () => {
+  describe('Edge Cases', () => {
     it('should handle empty repository list', () => {
       const mockStore = createMockStore()
 
@@ -347,7 +347,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
     })
   })
 
-  describe('メモリ効率', () => {
+  describe('Memory Efficiency', () => {
     it('should not cause memory leaks with large datasets', async () => {
       const mockRepos = generateMockRepositories(500)
       const mockStore = createMockStore()
@@ -358,17 +358,17 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
         </Provider>,
       )
 
-      // コンポーネントをアンマウント
+      // Unmount component
       unmount()
 
-      // メモリリーク検証 (performance.memory はChrome専用)
+      // Memory leak verification (performance.memory is Chrome-only)
       if (typeof performance !== 'undefined' && 'memory' in performance) {
         const memoryInfo = (performance as any).memory
         console.log(
           `Memory used: ${(memoryInfo.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`,
         )
 
-        // 100MB以下を目標
+        // Target: under 100MB
         expect(memoryInfo.usedJSHeapSize).toBeLessThan(100 * 1024 * 1024)
       }
     })
@@ -430,7 +430,7 @@ describe('Duplicate Detection Utility Functions (T043)', () => {
 
       const filteredRepos = filterDuplicates(mockRepos, existingRepoIds)
 
-      // 3つのリポジトリが残る (ID: 2, 4, 11111)
+      // 3 repositories remain (ID: 2, 4, 11111)
       expect(filteredRepos.length).toBe(3)
       expect(filteredRepos.map((r) => r.id)).toEqual([2, 4, 11111])
     })

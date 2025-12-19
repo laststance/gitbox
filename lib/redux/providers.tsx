@@ -6,7 +6,7 @@
  * Client Component wrapper for Redux Provider
  * Next.js 13+ App Router requires Provider to be in a Client Component
  *
- * Supabaseセッションを監視してReduxに同期
+ * Monitors Supabase session and synchronizes with Redux
  */
 
 import { useEffect, memo } from 'react'
@@ -19,7 +19,7 @@ import { setSession, setUser, setLoading } from './slices/authSlice'
 import { store } from './store'
 
 /**
- * Supabaseセッションを監視してReduxに同期するコンポーネント
+ * Component that monitors Supabase session and synchronizes with Redux
  */
 const AuthSync = memo(function AuthSync({
   children,
@@ -27,7 +27,7 @@ const AuthSync = memo(function AuthSync({
   children: React.ReactNode
 }): React.ReactNode {
   useEffect(() => {
-    // 初期セッション取得
+    // Get initial session
     const initSession = async () => {
       try {
         const {
@@ -54,7 +54,7 @@ const AuthSync = memo(function AuthSync({
 
     initSession()
 
-    // セッション変更を監視
+    // Monitor session changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {

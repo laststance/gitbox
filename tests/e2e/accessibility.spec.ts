@@ -2,10 +2,10 @@
  * Accessibility E2E Tests
  *
  * T028.9: E2E test for WCAG AA contrast validation across all 12 themes
- * - 各テーマの色コントラスト検証
- * - テキスト: 4.5:1 最小比率
- * - UI 要素: 3:1 最小比率
- * - Axe による自動アクセシビリティ検証
+ * - Color contrast validation for each theme
+ * - Text: 4.5:1 minimum ratio
+ * - UI elements: 3:1 minimum ratio
+ * - Automated accessibility validation with Axe
  */
 
 import { test, expect } from '@playwright/test'

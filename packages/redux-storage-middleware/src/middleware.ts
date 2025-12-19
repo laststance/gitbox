@@ -1,8 +1,8 @@
 /**
  * Redux Storage Middleware
  *
- * Redux state を LocalStorage に同期するカスタムミドルウェア
- * jotai/zustandのパターンを参考にSSR-safeで堅牢な実装
+ * Custom middleware for synchronizing Redux state with LocalStorage
+ * SSR-safe and robust implementation based on patterns from jotai/zustand
  */
 
 import type {
@@ -39,30 +39,79 @@ const ACTION_HYDRATE_ERROR = '@@redux-storage-middleware/HYDRATE_ERROR'
 const DEFAULT_DEBOUNCE_MS = 300
 const DEFAULT_VERSION = 0
 
+/**
+ * Minimum and maximum length for storage key names
+ */
+const MIN_STORAGE_KEY_LENGTH = 1
+const MAX_STORAGE_KEY_LENGTH = 255
+
+/**
+ * Valid storage key name pattern
+ * Only alphanumeric characters, dots, underscores, and hyphens are allowed
+ */
+const VALID_STORAGE_KEY_PATTERN = /^[a-zA-Z0-9._-]+$/
+
+/**
+ * Reserved key names prohibited for security reasons
+ * Prevents prototype pollution attacks
+ */
+const RESERVED_STORAGE_KEYS = new Set(['__proto__', 'prototype', 'constructor'])
+
+// =============================================================================
+// Validation
+// =============================================================================
+
+/**
+ * Validates storage key name
+ *
+ * @param name - The key name to validate
+ * @throws Error if the key name is invalid
+ *
+ * @example
+ * ```ts
+ * validateStorageKeyName('my-app-state')  // OK
+ * validateStorageKeyName('app.settings')  // OK
+ * validateStorageKeyName('')              // Error: empty key
+ * validateStorageKeyName('__proto__')     // Error: reserved word
+ * validateStorageKeyName('key with spaces') // Error: invalid characters
+ * ```
+ */
+function validateStorageKeyName(name: string): void {
+  // Length check
+  if (name.length < MIN_STORAGE_KEY_LENGTH) {
+    throw new Error(
+      `[redux-storage-middleware] Storage key name must not be empty`,
+    )
+  }
+
+  if (name.length > MAX_STORAGE_KEY_LENGTH) {
+    throw new Error(
+      `[redux-storage-middleware] Storage key name must not exceed ${MAX_STORAGE_KEY_LENGTH} characters`,
+    )
+  }
+
+  // Pattern check
+  if (!VALID_STORAGE_KEY_PATTERN.test(name)) {
+    throw new Error(
+      `[redux-storage-middleware] Storage key name "${name}" contains invalid characters. ` +
+        `Only alphanumeric characters, dots, underscores, and hyphens are allowed.`,
+    )
+  }
+
+  // Reserved word check
+  if (RESERVED_STORAGE_KEYS.has(name)) {
+    throw new Error(
+      `[redux-storage-middleware] Storage key name "${name}" is reserved and cannot be used.`,
+    )
+  }
+}
+
 // =============================================================================
 // Utility Functions
 // =============================================================================
 
 /**
- * オブジェクトから指定されたパスの値を取得
- * (将来の機能拡張用に保持)
- */
-function _getNestedValue(obj: unknown, path: string): unknown {
-  const keys = path.split('.')
-  let current = obj
-
-  for (const key of keys) {
-    if (current === null || current === undefined) {
-      return undefined
-    }
-    current = (current as Record<string, unknown>)[key]
-  }
-
-  return current
-}
-
-/**
- * オブジェクトから指定されたパスを除外
+ * Excludes specified paths from an object
  */
 function excludePaths<T extends object>(obj: T, paths: string[]): Partial<T> {
   if (paths.length === 0) {
@@ -93,7 +142,7 @@ function excludePaths<T extends object>(obj: T, paths: string[]): Partial<T> {
 }
 
 /**
- * 浅いマージ（デフォルト）
+ * Shallow merge (default)
  */
 function shallowMerge<T extends object>(
   persistedState: Partial<T>,
@@ -103,7 +152,7 @@ function shallowMerge<T extends object>(
 }
 
 /**
- * 深いマージ
+ * Deep merge
  */
 function deepMerge<T extends object>(
   persistedState: Partial<T>,
@@ -141,10 +190,10 @@ function deepMerge<T extends object>(
 // =============================================================================
 
 /**
- * Storage Middleware を作成
+ * Creates Storage Middleware
  *
- * @param config - ミドルウェア設定
- * @returns ミドルウェアとハイドレーションAPI
+ * @param config - Middleware configuration
+ * @returns Middleware and hydration API
  *
  * @example
  * ```ts
@@ -167,7 +216,7 @@ function deepMerge<T extends object>(
  *     getDefaultMiddleware().concat(middleware),
  * })
  *
- * // SSR時は手動でハイドレーション
+ * // Manual hydration for SSR
  * if (typeof window !== 'undefined') {
  *   api.rehydrate()
  * }
@@ -201,7 +250,10 @@ export function createStorageMiddleware<
     merge = shallowMerge,
   } = config
 
-  // パフォーマンス設定の解決
+  // Validate storage key name (security measure)
+  validateStorageKeyName(name)
+
+  // Resolve performance configuration
   const debounceMs =
     perfConfig?.debounceMs ?? legacyDebounceMs ?? DEFAULT_DEBOUNCE_MS
   const throttleMs = perfConfig?.throttleMs
@@ -223,11 +275,11 @@ export function createStorageMiddleware<
   // Storage Setup
   // ---------------------------------------------------------------------------
 
-  // SSR-safeなストレージを取得
+  // Get SSR-safe storage
   const getStorage = (): SyncStorage => {
     if (customStorage) {
-      // 非同期ストレージの場合は同期ラッパーを返す
-      // 注意: 実際の非同期処理は別途ハンドリングが必要
+      // Return synchronous wrapper for async storage
+      // Note: Actual async processing needs to be handled separately
       return customStorage as SyncStorage
     }
     return createSafeLocalStorage()
@@ -238,16 +290,16 @@ export function createStorageMiddleware<
   // ---------------------------------------------------------------------------
 
   /**
-   * 保存する状態を抽出
+   * Extracts state to save
    */
   const extractStateToSave = (state: S): Partial<S> => {
     let stateToSave: Partial<S>
 
     if (partialize) {
-      // partialize関数で選択
+      // Select using partialize function
       stateToSave = partialize(state)
     } else if (slices && slices.length > 0) {
-      // slices配列で選択
+      // Select using slices array
       stateToSave = {} as Partial<S>
       for (const sliceName of slices) {
         const value = (state as Record<string, unknown>)[sliceName]
@@ -256,11 +308,11 @@ export function createStorageMiddleware<
         }
       }
     } else {
-      // 全体を保存
+      // Save entire state
       stateToSave = state
     }
 
-    // 除外パスを適用
+    // Apply exclusion paths
     if (exclude.length > 0) {
       stateToSave = excludePaths(stateToSave as object, exclude) as Partial<S>
     }
@@ -269,7 +321,7 @@ export function createStorageMiddleware<
   }
 
   /**
-   * ストレージに保存
+   * Saves to storage
    */
   const saveToStorage = (state: S): void => {
     if (isServer()) {
@@ -296,7 +348,7 @@ export function createStorageMiddleware<
   }
 
   /**
-   * ストレージから読み込み
+   * Loads from storage
    */
   const loadFromStorage = (): PersistedState<Partial<S>> | null => {
     if (isServer()) {
@@ -323,25 +375,20 @@ export function createStorageMiddleware<
   // Debounce/Throttle Setup
   // ---------------------------------------------------------------------------
 
-  // cancelSaveは将来のAPI拡張用に保持（現在は未使用）
-  let _cancelSave: (() => void) | null = null
   let saveHandler: ((state: S) => void) | null = null
 
   const setupSaveHandler = (): void => {
     if (useIdleCallback) {
-      const { scheduledFn, cancel } = scheduleIdleCallback(saveToStorage, {
+      const { scheduledFn } = scheduleIdleCallback(saveToStorage, {
         timeout: idleTimeout,
       })
       saveHandler = scheduledFn as (state: S) => void
-      _cancelSave = cancel
     } else if (throttleMs) {
-      const { throttledFn, cancel } = throttle(saveToStorage, throttleMs)
+      const { throttledFn } = throttle(saveToStorage, throttleMs)
       saveHandler = throttledFn as (state: S) => void
-      _cancelSave = cancel
     } else {
-      const { debouncedFn, cancel } = debounce(saveToStorage, debounceMs)
+      const { debouncedFn } = debounce(saveToStorage, debounceMs)
       saveHandler = debouncedFn as (state: S) => void
-      _cancelSave = cancel
     }
   }
 
@@ -360,7 +407,7 @@ export function createStorageMiddleware<
       hydrationState = 'hydrating'
       onHydrate?.()
 
-      // コールバック通知
+      // Notify callbacks
       for (const callback of hydrateCallbacks) {
         callback(storeApi?.getState() as S)
       }
@@ -376,17 +423,17 @@ export function createStorageMiddleware<
 
         let state = persisted.state as S
 
-        // マイグレーション
+        // Migration
         if (migrate && persisted.version !== version) {
           state = (await migrate(state, persisted.version)) as S
         }
 
-        // 現在の状態とマージ
+        // Merge with current state
         if (storeApi) {
           const currentState = storeApi.getState()
           hydratedState = merge(state as Partial<S>, currentState)
 
-          // ストアを更新（ハイドレーションアクションをディスパッチ）
+          // Update store (dispatch hydration action)
           storeApi.dispatch({
             type: ACTION_HYDRATE_COMPLETE,
             payload: hydratedState,
@@ -395,17 +442,17 @@ export function createStorageMiddleware<
           hydratedState = state
         }
 
-        // eslint-disable-next-line require-atomic-updates -- シングルスレッド環境で安全に動作
+        // eslint-disable-next-line require-atomic-updates -- Safe to operate in single-threaded environment
         hydrationState = 'hydrated'
         onHydrationComplete?.(hydratedState)
 
-        // 完了コールバック通知
+        // Notify completion callbacks
         for (const callback of finishHydrationCallbacks) {
           callback(hydratedState)
         }
       } catch (error) {
         console.error('[redux-storage-middleware] Hydration failed:', error)
-        // eslint-disable-next-line require-atomic-updates -- シングルスレッド環境で安全に動作
+        // eslint-disable-next-line require-atomic-updates -- Safe to operate in single-threaded environment
         hydrationState = 'error'
         onError?.(error as Error, 'load')
       }
@@ -450,7 +497,7 @@ export function createStorageMiddleware<
     onFinishHydration: (callback: (state: S) => void): (() => void) => {
       finishHydrationCallbacks.add(callback)
 
-      // 既にハイドレーション完了済みの場合は即座にコールバック
+      // Call callback immediately if hydration is already complete
       if (hydrationState === 'hydrated' && hydratedState) {
         callback(hydratedState)
       }
@@ -468,9 +515,9 @@ export function createStorageMiddleware<
   const middleware: Middleware<object, S> = (store) => {
     storeApi = store as MiddlewareAPI<Dispatch<AnyAction>, S>
 
-    // 自動ハイドレーション
+    // Automatic hydration
     if (!skipHydration && !isServer()) {
-      // マイクロタスクで実行（ストア初期化後）
+      // Execute in microtask (after store initialization)
       Promise.resolve().then(() => {
         api.rehydrate()
       })
@@ -479,27 +526,27 @@ export function createStorageMiddleware<
     return (next) => (action) => {
       const result = next(action)
 
-      // ハイドレーションアクションの処理
+      // Handle hydration actions
       if (
         typeof action === 'object' &&
         action !== null &&
         'type' in action &&
         typeof action.type === 'string'
       ) {
-        // HYDRATE_COMPLETEアクションで内部状態を更新
+        // Update internal state with HYDRATE_COMPLETE action
         if (action.type === ACTION_HYDRATE_COMPLETE) {
           hydrationState = 'hydrated'
           hydratedState = (action as unknown as { payload: S }).payload
           return result
         }
 
-        // その他のミドルウェアアクションは保存しない
+        // Don't save other middleware actions
         if (action.type.startsWith('@@redux-storage-middleware/')) {
           return result
         }
       }
 
-      // ハイドレーション完了後のみ保存
+      // Save only after hydration is complete
       if (hydrationState === 'hydrated' && saveHandler) {
         saveHandler(store.getState())
       }
@@ -516,9 +563,9 @@ export function createStorageMiddleware<
 // =============================================================================
 
 /**
- * 旧APIとの互換性のためのラッパー
+ * Wrapper for backward compatibility with legacy API
  *
- * @deprecated createStorageMiddleware を使用してください
+ * @deprecated Use createStorageMiddleware instead
  */
 export function createLegacyStorageMiddleware(
   config: LegacyStorageMiddlewareConfig,
@@ -539,11 +586,11 @@ export function createLegacyStorageMiddleware(
 // =============================================================================
 
 /**
- * LocalStorage から初期状態を復元
+ * Restores initial state from LocalStorage
  *
- * @param storageKey - LocalStorage のキー
- * @param serializer - シリアライザー
- * @returns 復元された state または null
+ * @param storageKey - LocalStorage key
+ * @param serializer - Serializer
+ * @returns Restored state or null
  *
  * @example
  * ```ts
@@ -560,6 +607,9 @@ export function loadStateFromStorage<S = unknown>(
     PersistedState<S>
   > = defaultJsonSerializer as Serializer<PersistedState<S>>,
 ): PersistedState<S> | null {
+  // Validate storage key name
+  validateStorageKeyName(storageKey)
+
   if (isServer() || !isStorageAvailable()) {
     return null
   }
@@ -580,11 +630,14 @@ export function loadStateFromStorage<S = unknown>(
 }
 
 /**
- * LocalStorage から state を削除
+ * Removes state from LocalStorage
  *
- * @param storageKey - LocalStorage のキー
+ * @param storageKey - LocalStorage key
  */
 export function clearStorageState(storageKey: string): void {
+  // Validate storage key name
+  validateStorageKeyName(storageKey)
+
   if (isServer() || !isStorageAvailable()) {
     return
   }
@@ -598,12 +651,12 @@ export function clearStorageState(storageKey: string): void {
 }
 
 /**
- * ハイドレーション用のreducerエンハンサー
+ * Reducer enhancer for hydration
  *
- * ハイドレーションアクションを処理するためにreducerをラップ
+ * Wraps reducer to handle hydration actions
  *
- * @param reducer - 元のreducer
- * @returns ハイドレーション対応reducer
+ * @param reducer - Original reducer
+ * @returns Hydration-aware reducer
  *
  * @example
  * ```ts
@@ -619,7 +672,7 @@ export function withHydration<S>(
 ): (state: S | undefined, action: AnyAction) => S {
   return (state, action) => {
     if (action.type === ACTION_HYDRATE_COMPLETE) {
-      // ハイドレーション完了: 状態を上書き
+      // Hydration complete: overwrite state
       return action.payload as S
     }
 

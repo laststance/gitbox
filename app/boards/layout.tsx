@@ -1,9 +1,9 @@
 /**
  * Boards Layout
  *
- * レイアウト for /boards/* routes
- * - Sidebar ナビゲーション
- * - ユーザー情報を取得して Sidebar に渡す
+ * Layout for /boards/* routes
+ * - Sidebar navigation
+ * - Fetches user information and passes it to Sidebar
  */
 
 import { redirect } from 'next/navigation'

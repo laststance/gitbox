@@ -1,7 +1,7 @@
 /**
  * Utility Functions
  *
- * redux-storage-middleware で使用するユーティリティ関数のエクスポート
+ * Export utility functions used by redux-storage-middleware
  */
 
 export {

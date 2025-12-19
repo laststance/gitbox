@@ -2,9 +2,9 @@
  * Middleware Tests
  *
  * T028.7: Unit test for middleware auth and locale routing
- * - 認証チェックのテスト
- * - ロケールルーティングのテスト
- * - 公開パスとプライベートパスの検証
+ * - Authentication check tests
+ * - Locale routing tests
+ * - Public and private path validation
  */
 
 import { describe, it, expect } from 'vitest'

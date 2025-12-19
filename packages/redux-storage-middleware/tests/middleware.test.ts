@@ -1,11 +1,11 @@
 /**
  * Redux Storage Middleware Unit Tests
  *
- * テスト対象:
- * - createStorageMiddleware: メインのミドルウェアファクトリ
- * - loadStateFromStorage: ストレージからの復元
- * - clearStorageState: ストレージクリア
- * - withHydration: ハイドレーションreducerエンハンサー
+ * Tests for:
+ * - createStorageMiddleware: Main middleware factory
+ * - loadStateFromStorage: Restore from storage
+ * - clearStorageState: Clear storage
+ * - withHydration: Hydration reducer enhancer
  */
 
 import type { PayloadAction } from '@reduxjs/toolkit'
@@ -22,7 +22,7 @@ import {
 import { createMemoryStorage } from '../src/storage'
 import type { PersistedState } from '../src/types'
 
-// LocalStorage モック
+// LocalStorage mock
 const localStorageMock = (() => {
   let store: Record<string, string> = {}
 
@@ -44,13 +44,13 @@ const localStorageMock = (() => {
   }
 })()
 
-// グローバル localStorage をモック
+// Mock global localStorage
 Object.defineProperty(global, 'localStorage', {
   value: localStorageMock,
   writable: true,
 })
 
-// テスト用 Redux slice
+// Test Redux slice
 interface TestState {
   value: number
   name: string
@@ -105,7 +105,7 @@ describe('createStorageMiddleware', () => {
     vi.useRealTimers()
   })
 
-  it('指定された slices を LocalStorage に保存する', async () => {
+  it('saves specified slices to LocalStorage', async () => {
     const { middleware } = createStorageMiddleware({
       name: 'test-state',
       slices: ['test'],
@@ -122,16 +122,16 @@ describe('createStorageMiddleware', () => {
         getDefaultMiddleware().concat(middleware),
     })
 
-    // 手動でハイドレーション完了状態にする
+    // Manually set hydration complete state
     store.dispatch({ type: ACTION_HYDRATE_COMPLETE, payload: store.getState() })
 
-    // アクションをディスパッチ
+    // Dispatch action
     store.dispatch(increment())
 
-    // デバウンス待機
+    // Wait for debounce
     await vi.advanceTimersByTimeAsync(100)
 
-    // LocalStorage に保存されたことを確認
+    // Verify saved to LocalStorage
     const saved = localStorage.getItem('test-state')
     expect(saved).toBeTruthy()
 
@@ -141,7 +141,7 @@ describe('createStorageMiddleware', () => {
     expect(parsed.state).not.toHaveProperty('settings')
   })
 
-  it('partialize関数で細かい状態選択ができる', async () => {
+  it('can select fine-grained state with partialize function', async () => {
     const { middleware, api: _api } = createStorageMiddleware({
       name: 'test-partialize',
       partialize: (state: { test: TestState; settings: SettingsState }) => ({
@@ -172,7 +172,7 @@ describe('createStorageMiddleware', () => {
     expect((parsed.state as { test: TestState }).test.name).toBe('')
   })
 
-  it('複数回のアクションをデバウンスして保存する', async () => {
+  it('debounces and saves multiple actions', async () => {
     const { middleware } = createStorageMiddleware({
       name: 'test-debounce',
       slices: ['test'],
@@ -190,22 +190,22 @@ describe('createStorageMiddleware', () => {
 
     store.dispatch({ type: ACTION_HYDRATE_COMPLETE, payload: store.getState() })
 
-    // HYDRATE_COMPLETE後のすべてのpendingタイマーをフラッシュし、モックをクリア
+    // Flush all pending timers after HYDRATE_COMPLETE and clear mocks
     await vi.runAllTimersAsync()
     localStorageMock.setItem.mockClear()
 
-    // 連続でアクションをディスパッチ
+    // Dispatch actions consecutively
     store.dispatch(increment())
     store.dispatch(increment())
     store.dispatch(increment())
 
-    // デバウンス期間内では保存されない
+    // Not saved during debounce period
     await vi.advanceTimersByTimeAsync(100)
     expect(localStorageMock.setItem).not.toHaveBeenCalled()
 
-    // デバウンス完了後に1回だけ保存される
+    // Saved only once after debounce completes
     await vi.advanceTimersByTimeAsync(100)
-    // isStorageAvailable()のテストキーを除外して、実際の保存回数を検証
+    // Exclude isStorageAvailable() test key and verify actual save count
     const actualSaveCalls = localStorageMock.setItem.mock.calls.filter(
       (call) => call[0] !== '__redux_storage_middleware_test__',
     )
@@ -217,7 +217,7 @@ describe('createStorageMiddleware', () => {
     expect((parsed.state as { test: TestState }).test.value).toBe(3)
   })
 
-  it('throttleMsオプションでスロットルが使える', async () => {
+  it('can use throttle with throttleMs option', async () => {
     const { middleware } = createStorageMiddleware({
       name: 'test-throttle',
       slices: ['test'],
@@ -235,30 +235,30 @@ describe('createStorageMiddleware', () => {
 
     store.dispatch({ type: ACTION_HYDRATE_COMPLETE, payload: store.getState() })
 
-    // HYDRATE_COMPLETE後のすべてのpendingタイマーをフラッシュし、モックをクリア
+    // Flush all pending timers after HYDRATE_COMPLETE and clear mocks
     await vi.runAllTimersAsync()
     localStorageMock.setItem.mockClear()
 
-    // ヘルパー関数: isStorageAvailable()のテストキーを除外した保存回数を取得
+    // Helper function: Get save count excluding isStorageAvailable() test key
     const getActualSaveCount = () =>
       localStorageMock.setItem.mock.calls.filter(
         (call) => call[0] !== '__redux_storage_middleware_test__',
       ).length
 
-    // 最初のアクションで即時保存
+    // Immediate save on first action
     store.dispatch(increment())
     expect(getActualSaveCount()).toBe(1)
 
-    // スロットル期間内のアクション
+    // Action within throttle period
     store.dispatch(increment())
     expect(getActualSaveCount()).toBe(1)
 
-    // スロットル期間後
+    // After throttle period
     await vi.advanceTimersByTimeAsync(200)
     expect(getActualSaveCount()).toBe(2)
   })
 
-  it('excludeオプションで特定のパスを除外できる', async () => {
+  it('can exclude specific paths with exclude option', async () => {
     const { middleware } = createStorageMiddleware({
       name: 'test-exclude',
       exclude: ['test.name'],
@@ -286,8 +286,8 @@ describe('createStorageMiddleware', () => {
     expect((parsed.state as { test: TestState }).test.name).toBeUndefined()
   })
 
-  it('versionとmigrateでマイグレーションができる', async () => {
-    // 古いバージョンの状態を保存
+  it('can perform migration with version and migrate', async () => {
+    // Save old version state
     const oldState: PersistedState = {
       version: 0,
       state: { test: { value: 10, name: 'old' } },
@@ -316,7 +316,7 @@ describe('createStorageMiddleware', () => {
         getDefaultMiddleware().concat(middleware),
     })
 
-    // 手動でハイドレーション
+    // Manual hydration
     await api.rehydrate()
 
     expect(migrateFn).toHaveBeenCalledWith(
@@ -325,7 +325,7 @@ describe('createStorageMiddleware', () => {
     )
   })
 
-  it('skipHydration=falseで自動ハイドレーションが行われる', async () => {
+  it('performs auto-hydration when skipHydration=false', async () => {
     const preloadedState: PersistedState = {
       version: 0,
       state: { test: { value: 99, name: 'restored' } },
@@ -336,7 +336,7 @@ describe('createStorageMiddleware', () => {
 
     const { middleware } = createStorageMiddleware({
       name: 'test-auto-hydrate',
-      skipHydration: false, // 自動ハイドレーション
+      skipHydration: false, // Auto-hydration
       onHydrationComplete,
     })
 
@@ -348,13 +348,13 @@ describe('createStorageMiddleware', () => {
         getDefaultMiddleware().concat(middleware),
     })
 
-    // マイクロタスクの完了を待つ
+    // Wait for microtask completion
     await vi.advanceTimersByTimeAsync(0)
 
     expect(onHydrationComplete).toHaveBeenCalled()
   })
 
-  it('onSaveCompleteコールバックが呼ばれる', async () => {
+  it('calls onSaveComplete callback', async () => {
     const onSaveComplete = vi.fn()
 
     const { middleware } = createStorageMiddleware({
@@ -381,10 +381,10 @@ describe('createStorageMiddleware', () => {
     expect(onSaveComplete).toHaveBeenCalled()
   })
 
-  it('onErrorコールバックがエラー時に呼ばれる', async () => {
+  it('calls onError callback on error', async () => {
     const onError = vi.fn()
 
-    // エラーをスローするカスタムストレージ（safeStorageはエラーを握りつぶすため）
+    // Custom storage that throws errors (safeStorage suppresses errors)
     const errorStorage = {
       getItem: (): null => null,
       setItem: (): void => {
@@ -418,7 +418,7 @@ describe('createStorageMiddleware', () => {
     expect(onError).toHaveBeenCalledWith(expect.any(Error), 'save')
   })
 
-  it('カスタムストレージを使用できる', async () => {
+  it('can use custom storage', async () => {
     const customStorage = createMemoryStorage()
 
     const { middleware } = createStorageMiddleware({
@@ -462,7 +462,7 @@ describe('Hydration API', () => {
     vi.useRealTimers()
   })
 
-  it('api.hasHydrated()がハイドレーション完了を正しく報告する', async () => {
+  it('api.hasHydrated() correctly reports hydration completion', async () => {
     const preloadedState: PersistedState = {
       version: 0,
       state: { test: { value: 10, name: 'restored' } },
@@ -489,7 +489,7 @@ describe('Hydration API', () => {
     expect(api.hasHydrated()).toBe(true)
   })
 
-  it('api.getHydrationState()が正しい状態を返す', async () => {
+  it('api.getHydrationState() returns correct state', async () => {
     const { middleware, api } = createStorageMiddleware({
       name: 'test-hydration-state',
       skipHydration: true,
@@ -506,13 +506,13 @@ describe('Hydration API', () => {
     expect(api.getHydrationState()).toBe('idle')
 
     const promise = api.rehydrate()
-    // Note: 状態遷移は同期的なので即座に'hydrated'になる
+    // Note: State transition is synchronous, so immediately becomes 'hydrated'
     await promise
 
     expect(api.getHydrationState()).toBe('hydrated')
   })
 
-  it('api.clearStorage()でストレージをクリアできる', async () => {
+  it('api.clearStorage() can clear storage', async () => {
     localStorage.setItem(
       'test-clear',
       JSON.stringify({ version: 0, state: {} }),
@@ -538,7 +538,7 @@ describe('Hydration API', () => {
     expect(localStorage.getItem('test-clear')).toBeNull()
   })
 
-  it('api.onFinishHydration()でコールバックを登録できる', async () => {
+  it('api.onFinishHydration() can register callbacks', async () => {
     const preloadedState: PersistedState = {
       version: 0,
       state: { test: { value: 42, name: 'test' } },
@@ -566,11 +566,11 @@ describe('Hydration API', () => {
 
     expect(callback).toHaveBeenCalled()
 
-    // unsubscribeのテスト
+    // Test unsubscribe
     unsubscribe()
   })
 
-  it('既にハイドレーション完了済みの場合、onFinishHydrationは即座にコールバックを呼ぶ', async () => {
+  it('onFinishHydration immediately calls callback if hydration already completed', async () => {
     const preloadedState: PersistedState = {
       version: 0,
       state: { test: { value: 1, name: 'test' } },
@@ -608,7 +608,7 @@ describe('loadStateFromStorage', () => {
     vi.restoreAllMocks()
   })
 
-  it('LocalStorage から state を正しく復元する', () => {
+  it('correctly restores state from LocalStorage', () => {
     const state: PersistedState = {
       version: 0,
       state: { test: { value: 42, name: 'test' } },
@@ -619,12 +619,12 @@ describe('loadStateFromStorage', () => {
     expect(loaded).toEqual(state)
   })
 
-  it('存在しないキーの場合は null を返す', () => {
+  it('returns null for non-existent keys', () => {
     const loaded = loadStateFromStorage('non-existent-key')
     expect(loaded).toBeNull()
   })
 
-  it('JSON パースエラー時に null を返す', () => {
+  it('returns null on JSON parse error', () => {
     const consoleErrorSpy = vi
       .spyOn(console, 'error')
       .mockImplementation(() => {})
@@ -644,7 +644,7 @@ describe('clearStorageState', () => {
     vi.restoreAllMocks()
   })
 
-  it('LocalStorage から state を正しく削除する', () => {
+  it('correctly removes state from LocalStorage', () => {
     localStorage.setItem('test-clear', JSON.stringify({ test: 'data' }))
 
     expect(localStorage.getItem('test-clear')).toBeTruthy()
@@ -654,21 +654,21 @@ describe('clearStorageState', () => {
     expect(localStorage.getItem('test-clear')).toBeNull()
   })
 
-  it('removeItem エラー時に警告ログを出力', () => {
-    // safeLocalStorageはエラーをcatchして警告を出力する
+  it('outputs warning log on removeItem error', () => {
+    // safeLocalStorage catches errors and outputs warnings
     const consoleWarnSpy = vi
       .spyOn(console, 'warn')
       .mockImplementation(() => {})
 
-    // window.localStorageをエラースローするものに置換
-    // isStorageAvailableのテスト(__redux_storage_middleware_test__)は許可
+    // Replace window.localStorage with one that throws errors
+    // Allow isStorageAvailable test (__redux_storage_middleware_test__)
     const errorStorage = {
       getItem: () => null,
       setItem: () => {
-        // availability checkは許可
+        // Allow availability check
       },
       removeItem: (key: string) => {
-        // isStorageAvailable() で使われるテストキーは許可
+        // Allow test key used by isStorageAvailable()
         if (key === '__redux_storage_middleware_test__') {
           return
         }
@@ -692,7 +692,7 @@ describe('clearStorageState', () => {
 
     expect(consoleWarnSpy).toHaveBeenCalled()
 
-    // 元に戻す
+    // Restore
     Object.defineProperty(global, 'localStorage', {
       value: localStorageMock,
       writable: true,
@@ -710,7 +710,7 @@ describe('clearStorageState', () => {
 })
 
 describe('withHydration', () => {
-  it('HYDRATE_COMPLETEアクションで状態を上書きする', () => {
+  it('overrides state with HYDRATE_COMPLETE action', () => {
     const reducer = (state = { value: 0 }, action: { type: string }) => {
       if (action.type === 'INCREMENT') {
         return { value: state.value + 1 }
@@ -729,7 +729,7 @@ describe('withHydration', () => {
     expect(result).toEqual(newState)
   })
 
-  it('通常のアクションは元のreducerに渡される', () => {
+  it('passes normal actions to original reducer', () => {
     const reducer = (state = { value: 0 }, action: { type: string }) => {
       if (action.type === 'INCREMENT') {
         return { value: state.value + 1 }
@@ -757,15 +757,15 @@ describe('Integration Test: Store with Middleware', () => {
     vi.useRealTimers()
   })
 
-  it('Store 作成時に LocalStorage から state を復元し、変更を保存する', async () => {
-    // 初期状態を LocalStorage に保存
+  it('restores state from LocalStorage on Store creation and saves changes', async () => {
+    // Save initial state to LocalStorage
     const preloadedState: PersistedState = {
       version: 0,
       state: { test: { value: 10, name: 'initial' } },
     }
     localStorage.setItem('integration-test', JSON.stringify(preloadedState))
 
-    // Middleware 作成
+    // Create Middleware
     const { middleware, api } = createStorageMiddleware({
       name: 'integration-test',
       slices: ['test'],
@@ -773,7 +773,7 @@ describe('Integration Test: Store with Middleware', () => {
       skipHydration: true,
     })
 
-    // combineReducersでルートreducerを作成し、withHydrationを適用
+    // Create root reducer with combineReducers and apply withHydration
     const rootReducer = (
       state: { test: TestState } = { test: { value: 0, name: 'initial' } },
       action: { type: string; payload?: unknown },
@@ -786,30 +786,144 @@ describe('Integration Test: Store with Middleware', () => {
       }
     }
 
-    // Store 作成 - withHydrationはルートレベルで適用
+    // Create Store - withHydration applied at root level
     const store = configureStore({
       reducer: withHydration(rootReducer),
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(middleware),
     })
 
-    // 手動でハイドレーション
+    // Manual hydration
     await api.rehydrate()
-    // fake timers環境でmicrotaskをフラッシュ
+    // Flush microtasks in fake timers environment
     await vi.runAllTimersAsync()
 
-    // 初期状態が復元されたことを確認
+    // Verify initial state was restored
     expect(store.getState().test.value).toBe(10)
 
-    // 状態を変更
+    // Change state
     store.dispatch(setValue(20))
 
-    // デバウンス待機
+    // Wait for debounce
     await vi.advanceTimersByTimeAsync(100)
 
-    // LocalStorage に保存されたことを確認
+    // Verify saved to LocalStorage
     const saved = localStorage.getItem('integration-test')
     const parsed = JSON.parse(saved!) as PersistedState
     expect((parsed.state as { test: TestState }).test.value).toBe(20)
+  })
+})
+
+// =============================================================================
+// Storage Key Validation Tests
+// =============================================================================
+
+describe('Storage Key Validation', () => {
+  describe('createStorageMiddleware', () => {
+    it('rejects empty key names', () => {
+      expect(() =>
+        createStorageMiddleware({
+          name: '',
+          slices: ['test'],
+        }),
+      ).toThrow('[redux-storage-middleware] Storage key name must not be empty')
+    })
+
+    it('rejects key names with invalid characters', () => {
+      expect(() =>
+        createStorageMiddleware({
+          name: 'key with spaces',
+          slices: ['test'],
+        }),
+      ).toThrow('contains invalid characters')
+
+      expect(() =>
+        createStorageMiddleware({
+          name: 'key<script>',
+          slices: ['test'],
+        }),
+      ).toThrow('contains invalid characters')
+
+      expect(() =>
+        createStorageMiddleware({
+          name: 'key/path',
+          slices: ['test'],
+        }),
+      ).toThrow('contains invalid characters')
+    })
+
+    it('rejects reserved key names', () => {
+      expect(() =>
+        createStorageMiddleware({
+          name: '__proto__',
+          slices: ['test'],
+        }),
+      ).toThrow('is reserved and cannot be used')
+
+      expect(() =>
+        createStorageMiddleware({
+          name: 'prototype',
+          slices: ['test'],
+        }),
+      ).toThrow('is reserved and cannot be used')
+
+      expect(() =>
+        createStorageMiddleware({
+          name: 'constructor',
+          slices: ['test'],
+        }),
+      ).toThrow('is reserved and cannot be used')
+    })
+
+    it('accepts valid key names', () => {
+      expect(() =>
+        createStorageMiddleware({
+          name: 'my-app-state',
+          slices: ['test'],
+        }),
+      ).not.toThrow()
+
+      expect(() =>
+        createStorageMiddleware({
+          name: 'app.settings.v2',
+          slices: ['test'],
+        }),
+      ).not.toThrow()
+
+      expect(() =>
+        createStorageMiddleware({
+          name: 'user_preferences_123',
+          slices: ['test'],
+        }),
+      ).not.toThrow()
+    })
+  })
+
+  describe('loadStateFromStorage', () => {
+    it('rejects empty key names', () => {
+      expect(() => loadStateFromStorage('')).toThrow(
+        '[redux-storage-middleware] Storage key name must not be empty',
+      )
+    })
+
+    it('rejects reserved key names', () => {
+      expect(() => loadStateFromStorage('__proto__')).toThrow(
+        'is reserved and cannot be used',
+      )
+    })
+  })
+
+  describe('clearStorageState', () => {
+    it('rejects empty key names', () => {
+      expect(() => clearStorageState('')).toThrow(
+        '[redux-storage-middleware] Storage key name must not be empty',
+      )
+    })
+
+    it('rejects reserved key names', () => {
+      expect(() => clearStorageState('constructor')).toThrow(
+        'is reserved and cannot be used',
+      )
+    })
   })
 })

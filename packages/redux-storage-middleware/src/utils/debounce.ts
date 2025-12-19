@@ -1,22 +1,22 @@
 /**
  * Debounce Utility
  *
- * 連続した呼び出しを最後の1回にまとめるデバウンス関数
+ * Debounce function that combines consecutive calls into the last single call
  */
 
 /**
- * 関数をデバウンス化
+ * Debounces a function
  *
- * @param fn - デバウンス化する関数
- * @param ms - デバウンス時間（ミリ秒）
- * @returns デバウンス化された関数とキャンセル関数
+ * @param fn - Function to debounce
+ * @param ms - Debounce time (milliseconds)
+ * @returns Debounced function and cancel function
  *
  * @example
  * ```ts
  * const { debouncedFn, cancel } = debounce(saveToStorage, 300)
- * debouncedFn(state) // 300ms後に実行
- * debouncedFn(state) // 前回をキャンセルし、300ms後に実行
- * cancel() // 保留中の実行をキャンセル
+ * debouncedFn(state) // Executes after 300ms
+ * debouncedFn(state) // Cancels previous and executes after 300ms
+ * cancel() // Cancels pending execution
  * ```
  */
 export function debounce<Args extends unknown[]>(
@@ -47,13 +47,13 @@ export function debounce<Args extends unknown[]>(
 }
 
 /**
- * 即時実行付きデバウンス（leading edge）
+ * Debounce with immediate execution (leading edge)
  *
- * 最初の呼び出しで即時実行し、以降の呼び出しはデバウンス期間後に実行
+ * Executes immediately on first call, subsequent calls execute after debounce period
  *
- * @param fn - デバウンス化する関数
- * @param ms - デバウンス時間（ミリ秒）
- * @returns デバウンス化された関数とキャンセル関数
+ * @param fn - Function to debounce
+ * @param ms - Debounce time (milliseconds)
+ * @returns Debounced function and cancel function
  */
 export function debounceLeading<Args extends unknown[]>(
   fn: (...args: Args) => void,

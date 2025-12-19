@@ -1,7 +1,7 @@
 /**
  * Main Package Export Tests
  *
- * index.tsからの全エクスポートが正しく動作することを確認
+ * Verifies that all exports from index.ts work correctly
  */
 
 import { describe, expect, it } from 'vitest'
@@ -48,35 +48,35 @@ import {
 
 describe('Package Exports', () => {
   describe('Core exports', () => {
-    it('createStorageMiddleware がエクスポートされている', () => {
+    it('exports createStorageMiddleware', () => {
       expect(typeof createStorageMiddleware).toBe('function')
     })
 
-    it('createLegacyStorageMiddleware がエクスポートされている', () => {
+    it('exports createLegacyStorageMiddleware', () => {
       expect(typeof createLegacyStorageMiddleware).toBe('function')
     })
 
-    it('loadStateFromStorage がエクスポートされている', () => {
+    it('exports loadStateFromStorage', () => {
       expect(typeof loadStateFromStorage).toBe('function')
     })
 
-    it('clearStorageState がエクスポートされている', () => {
+    it('exports clearStorageState', () => {
       expect(typeof clearStorageState).toBe('function')
     })
 
-    it('withHydration がエクスポートされている', () => {
+    it('exports withHydration', () => {
       expect(typeof withHydration).toBe('function')
     })
 
-    it('shallowMerge がエクスポートされている', () => {
+    it('exports shallowMerge', () => {
       expect(typeof shallowMerge).toBe('function')
     })
 
-    it('deepMerge がエクスポートされている', () => {
+    it('exports deepMerge', () => {
       expect(typeof deepMerge).toBe('function')
     })
 
-    it('アクション定数がエクスポートされている', () => {
+    it('exports action constants', () => {
       expect(ACTION_HYDRATE_START).toBe(
         '@@redux-storage-middleware/HYDRATE_START',
       )
@@ -90,107 +90,107 @@ describe('Package Exports', () => {
   })
 
   describe('Storage exports', () => {
-    it('createSafeLocalStorage がエクスポートされている', () => {
+    it('exports createSafeLocalStorage', () => {
       expect(typeof createSafeLocalStorage).toBe('function')
     })
 
-    it('createSafeSessionStorage がエクスポートされている', () => {
+    it('exports createSafeSessionStorage', () => {
       expect(typeof createSafeSessionStorage).toBe('function')
     })
 
-    it('createNoopStorage がエクスポートされている', () => {
+    it('exports createNoopStorage', () => {
       expect(typeof createNoopStorage).toBe('function')
     })
 
-    it('createMemoryStorage がエクスポートされている', () => {
+    it('exports createMemoryStorage', () => {
       expect(typeof createMemoryStorage).toBe('function')
     })
 
-    it('toAsyncStorage がエクスポートされている', () => {
+    it('exports toAsyncStorage', () => {
       expect(typeof toAsyncStorage).toBe('function')
     })
 
-    it('isValidStorage がエクスポートされている', () => {
+    it('exports isValidStorage', () => {
       expect(typeof isValidStorage).toBe('function')
     })
 
-    it('getStorageSize がエクスポートされている', () => {
+    it('exports getStorageSize', () => {
       expect(typeof getStorageSize).toBe('function')
     })
 
-    it('getRemainingStorageQuota がエクスポートされている', () => {
+    it('exports getRemainingStorageQuota', () => {
       expect(typeof getRemainingStorageQuota).toBe('function')
     })
   })
 
   describe('Serializer exports', () => {
-    it('createJsonSerializer がエクスポートされている', () => {
+    it('exports createJsonSerializer', () => {
       expect(typeof createJsonSerializer).toBe('function')
     })
 
-    it('createEnhancedJsonSerializer がエクスポートされている', () => {
+    it('exports createEnhancedJsonSerializer', () => {
       expect(typeof createEnhancedJsonSerializer).toBe('function')
     })
 
-    it('defaultJsonSerializer がエクスポートされている', () => {
+    it('exports defaultJsonSerializer', () => {
       expect(defaultJsonSerializer).toHaveProperty('serialize')
       expect(defaultJsonSerializer).toHaveProperty('deserialize')
     })
 
-    it('dateReplacer がエクスポートされている', () => {
+    it('exports dateReplacer', () => {
       expect(typeof dateReplacer).toBe('function')
     })
 
-    it('dateReviver がエクスポートされている', () => {
+    it('exports dateReviver', () => {
       expect(typeof dateReviver).toBe('function')
     })
 
-    it('collectionReplacer がエクスポートされている', () => {
+    it('exports collectionReplacer', () => {
       expect(typeof collectionReplacer).toBe('function')
     })
 
-    it('collectionReviver がエクスポートされている', () => {
+    it('exports collectionReviver', () => {
       expect(typeof collectionReviver).toBe('function')
     })
   })
 
   describe('Utility exports', () => {
-    it('isServer がエクスポートされている', () => {
+    it('exports isServer', () => {
       expect(typeof isServer).toBe('function')
     })
 
-    it('isBrowser がエクスポートされている', () => {
+    it('exports isBrowser', () => {
       expect(typeof isBrowser).toBe('function')
     })
 
-    it('isStorageAvailable がエクスポートされている', () => {
+    it('exports isStorageAvailable', () => {
       expect(typeof isStorageAvailable).toBe('function')
     })
 
-    it('isSessionStorageAvailable がエクスポートされている', () => {
+    it('exports isSessionStorageAvailable', () => {
       expect(typeof isSessionStorageAvailable).toBe('function')
     })
 
-    it('debounce がエクスポートされている', () => {
+    it('exports debounce', () => {
       expect(typeof debounce).toBe('function')
     })
 
-    it('debounceLeading がエクスポートされている', () => {
+    it('exports debounceLeading', () => {
       expect(typeof debounceLeading).toBe('function')
     })
 
-    it('throttle がエクスポートされている', () => {
+    it('exports throttle', () => {
       expect(typeof throttle).toBe('function')
     })
 
-    it('scheduleIdleCallback がエクスポートされている', () => {
+    it('exports scheduleIdleCallback', () => {
       expect(typeof scheduleIdleCallback).toBe('function')
     })
   })
 })
 
 describe('Serializers Index Exports', () => {
-  it('serializers/index から全てのシリアライザーがエクスポートされている', async () => {
+  it('exports all serializers from serializers/index', async () => {
     const serializers = await import('../src/serializers')
 
     expect(typeof serializers.createJsonSerializer).toBe('function')
@@ -211,7 +211,7 @@ describe('Serializers Index Exports', () => {
 })
 
 describe('Utils Index Exports', () => {
-  it('utils/index から全てのユーティリティがエクスポートされている', async () => {
+  it('exports all utilities from utils/index', async () => {
     const utils = await import('../src/utils')
 
     expect(typeof utils.isServer).toBe('function')

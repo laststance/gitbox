@@ -1,10 +1,10 @@
 /**
  * Board Slice
  *
- * ボード状態の管理
- * - アクティブボード
- * - ドラッグ&ドロップ状態
- * - Undo/Redo 履歴
+ * Board state management
+ * - Active board
+ * - Drag & drop state
+ * - Undo/Redo history
  */
 
 import type { PayloadAction } from '@reduxjs/toolkit'
@@ -22,7 +22,7 @@ interface DragOperation {
   timestamp: number
 }
 
-// Immer の型推論問題を回避するため、再帰的な Json 型を unknown に変換
+// Convert recursive Json type to unknown to avoid Immer type inference issues
 type SimplifiedBoard = Omit<Board, 'settings'> & { settings: unknown }
 
 interface BoardState {
@@ -65,17 +65,17 @@ export const boardSlice = createSlice({
     setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload
     },
-    // ドラッグ操作の記録
+    // Record drag operation
     recordDragOperation: (state, action: PayloadAction<DragOperation>) => {
       state.lastDragOperation = action.payload
-      // 最大 10件まで履歴を保持
+      // Keep maximum 10 history entries
       state.undoHistory = [action.payload, ...state.undoHistory].slice(0, 10)
     },
-    // Undo 操作
+    // Undo operation
     clearLastDragOperation: (state) => {
       state.lastDragOperation = null
     },
-    // カードの楽観的更新
+    // Optimistic card update
     updateRepoCardOptimistic: (
       state,
       action: PayloadAction<{
@@ -92,7 +92,7 @@ export const boardSlice = createSlice({
         }
       }
     },
-    // ボード状態のリセット
+    // Reset board state
     clearBoard: (state) => {
       state.activeBoard = null
       state.statusLists = []

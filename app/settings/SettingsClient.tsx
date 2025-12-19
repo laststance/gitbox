@@ -1,7 +1,7 @@
 /**
  * Settings Client Component
  *
- * テーマ、タイポグラフィ、表示設定を管理
+ * Manages theme, typography, and display settings
  */
 
 'use client'

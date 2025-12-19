@@ -1,7 +1,7 @@
 /**
  * Vitest Test Setup
  *
- * グローバルテスト設定とモック
+ * Global test configuration and mocks
  */
 
 import * as matchers from '@testing-library/jest-dom/matchers'

@@ -1,31 +1,31 @@
 /**
  * Theme System
  *
- * テーマをDOMに適用し、CSS変数を管理する
+ * Applies themes to DOM and manages CSS variables
  */
 
 import type { Theme } from './supabase/types'
 
 /**
- * テーマをDOMに適用
+ * Apply theme to DOM
  *
- * @param theme - 適用するテーマ名
+ * @param theme - Theme name to apply
  *
  * @example
  * ```ts
- * applyTheme('sunrise')  // ライトテーマ
- * applyTheme('midnight') // ダークテーマ
+ * applyTheme('sunrise')  // Light theme
+ * applyTheme('midnight') // Dark theme
  * ```
  */
 export function applyTheme(theme: Theme): void {
   if (typeof document === 'undefined') {
-    return // SSR環境ではスキップ
+    return // Skip in SSR environment
   }
 
   const html = document.documentElement
   html.setAttribute('data-theme', theme)
 
-  // ダークテーマの場合は dark クラスを追加
+  // Add dark class for dark themes
   if (isDarkTheme(theme)) {
     html.classList.add('dark')
   } else {
@@ -34,9 +34,9 @@ export function applyTheme(theme: Theme): void {
 }
 
 /**
- * 現在適用されているテーマを取得
+ * Get currently applied theme
  *
- * @returns 現在のテーマ名、未設定の場合はnull
+ * @returns Current theme name, or null if not set
  */
 export function getCurrentTheme(): Theme | null {
   if (typeof document === 'undefined') {
@@ -50,10 +50,10 @@ export function getCurrentTheme(): Theme | null {
 }
 
 /**
- * CSS変数の値を取得
+ * Get CSS variable value
  *
- * @param variableName - CSS変数名（例: 'color-bg-primary'）
- * @returns CSS変数の値
+ * @param variableName - CSS variable name (e.g., 'color-bg-primary')
+ * @returns CSS variable value
  *
  * @example
  * ```ts
@@ -71,10 +71,10 @@ export function getCSSVariable(variableName: string): string {
 }
 
 /**
- * テーマがダークモードかを判定
+ * Check if theme is dark mode
  *
- * @param theme - テーマ名
- * @returns ダークモードの場合true
+ * @param theme - Theme name
+ * @returns true if dark mode
  */
 export function isDarkTheme(theme: Theme): boolean {
   const darkThemes: Theme[] = [
@@ -90,9 +90,9 @@ export function isDarkTheme(theme: Theme): boolean {
 }
 
 /**
- * すべてのテーマ名を取得
+ * Get all theme names
  *
- * @returns 12種類のテーマ名配列
+ * @returns Array of 12 theme names
  */
 export function getAllThemes(): Theme[] {
   return [
@@ -112,9 +112,9 @@ export function getAllThemes(): Theme[] {
 }
 
 /**
- * ライトテーマとダークテーマに分類
+ * Classify themes into light and dark
  *
- * @returns ライトとダークのテーマ配列
+ * @returns Arrays of light and dark themes
  */
 export function getThemesByMode(): {
   light: Theme[]

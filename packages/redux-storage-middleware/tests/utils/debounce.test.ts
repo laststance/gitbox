@@ -15,7 +15,7 @@ describe('debounce', () => {
     vi.useRealTimers()
   })
 
-  it('指定した時間後に関数を実行する', async () => {
+  it('executes the function after the specified time', async () => {
     const fn = vi.fn()
     const { debouncedFn } = debounce(fn, 100)
 
@@ -29,7 +29,7 @@ describe('debounce', () => {
     expect(fn).toHaveBeenCalledWith('arg1')
   })
 
-  it('連続した呼び出しを最後の1回にまとめる', async () => {
+  it('consolidates consecutive calls into the last one', async () => {
     const fn = vi.fn()
     const { debouncedFn } = debounce(fn, 100)
 
@@ -43,7 +43,7 @@ describe('debounce', () => {
     expect(fn).toHaveBeenCalledWith('arg3')
   })
 
-  it('cancelで保留中の実行をキャンセルできる', async () => {
+  it('can cancel pending execution with cancel', async () => {
     const fn = vi.fn()
     const { debouncedFn, cancel } = debounce(fn, 100)
 
@@ -55,7 +55,7 @@ describe('debounce', () => {
     expect(fn).not.toHaveBeenCalled()
   })
 
-  it('連続したcancelを呼び出してもエラーにならない', () => {
+  it('does not throw error when calling cancel consecutively', () => {
     const fn = vi.fn()
     const { cancel } = debounce(fn, 100)
 
@@ -76,7 +76,7 @@ describe('debounceLeading', () => {
     vi.useRealTimers()
   })
 
-  it('最初の呼び出しで即時実行する', async () => {
+  it('executes immediately on the first call', async () => {
     const fn = vi.fn()
     const { debouncedFn } = debounceLeading(fn, 100)
 
@@ -86,7 +86,7 @@ describe('debounceLeading', () => {
     expect(fn).toHaveBeenCalledWith('arg1')
   })
 
-  it('デバウンス期間内の呼び出しは無視される', async () => {
+  it('ignores calls within the debounce period', async () => {
     const fn = vi.fn()
     const { debouncedFn } = debounceLeading(fn, 100)
 
@@ -98,7 +98,7 @@ describe('debounceLeading', () => {
     expect(fn).toHaveBeenCalledWith('arg1')
   })
 
-  it('デバウンス期間後に再度実行できる', async () => {
+  it('can execute again after the debounce period', async () => {
     const fn = vi.fn()
     const { debouncedFn } = debounceLeading(fn, 100)
 
@@ -112,7 +112,7 @@ describe('debounceLeading', () => {
     expect(fn).toHaveBeenLastCalledWith('arg2')
   })
 
-  it('cancelでタイマーと待機状態をリセットできる', async () => {
+  it('can reset timer and waiting state with cancel', async () => {
     const fn = vi.fn()
     const { debouncedFn, cancel } = debounceLeading(fn, 100)
 

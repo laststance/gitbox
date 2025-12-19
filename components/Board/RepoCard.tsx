@@ -77,25 +77,25 @@ export const RepoCard = memo<RepoCardProps>(
     }
 
     /**
-     * キーボードナビゲーションハンドラー
-     * Constitution要件: Principle IV - キーボードナビゲーション完全サポート
+     * Keyboard navigation handler
+     * Requirements: Full keyboard navigation support
      *
      * @param e - KeyboardEvent
      */
     const handleKeyDown = (e: React.KeyboardEvent) => {
-      // Enter: デフォルトアクション (Project Infoモーダルを開く)
+      // Enter: Default action (open Project Info modal)
       if (e.key === 'Enter' && onEdit) {
         e.preventDefault()
         onEdit(card.id)
       }
 
-      // . (ピリオド): Overflow menuを開閉
+      // . (period): Toggle overflow menu
       if (e.key === '.' || e.key === 'Period') {
         e.preventDefault()
         setMenuOpen((prev) => !prev)
       }
 
-      // Escape: Overflow menuを閉じる
+      // Escape: Close overflow menu
       if (e.key === 'Escape' && menuOpen) {
         e.preventDefault()
         setMenuOpen(false)

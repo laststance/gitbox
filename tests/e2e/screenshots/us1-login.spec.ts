@@ -1,9 +1,9 @@
 /**
  * E2E Screenshot Test: User Story 1 - GitHub Login Flow
  *
- * 目的: GitHub OAuth ログインフローのスクリーンショットを撮影
+ * Purpose: Capture screenshots of GitHub OAuth login flow
  *
- * スクリーンショット対象:
+ * Screenshot targets:
  * 1. Landing page with "Sign in with GitHub" button
  * 2. Boards screen after successful authentication
  */

@@ -1,10 +1,10 @@
 /**
  * Audit Log Actions
  *
- * PRD 3.4: すべての機密情報アクセスを監査ログに記録
- * - Credentials閲覧
- * - Credentials コピー
- * - Credentials 追加/編集/削除
+ * PRD 3.4: Record all sensitive information access in audit logs
+ * - Credentials viewing
+ * - Credentials copying
+ * - Credentials creation/update/deletion
  */
 
 'use server'
@@ -46,7 +46,7 @@ interface AuditLogParams {
 }
 
 /**
- * 監査ログを記録する
+ * Record audit log event
  */
 export async function logAuditEvent({
   action,
@@ -98,7 +98,7 @@ export async function logAuditEvent({
 }
 
 /**
- * 認証情報の閲覧をログに記録
+ * Log credential view event
  */
 export async function logCredentialView(credentialId: string): Promise<void> {
   await logAuditEvent({
@@ -109,7 +109,7 @@ export async function logCredentialView(credentialId: string): Promise<void> {
 }
 
 /**
- * 認証情報のコピーをログに記録
+ * Log credential copy event
  */
 export async function logCredentialCopy(credentialId: string): Promise<void> {
   await logAuditEvent({
@@ -121,7 +121,7 @@ export async function logCredentialCopy(credentialId: string): Promise<void> {
 }
 
 /**
- * 認証情報の表示（reveal）をログに記録
+ * Log credential reveal event
  */
 export async function logCredentialReveal(credentialId: string): Promise<void> {
   await logAuditEvent({
@@ -133,7 +133,7 @@ export async function logCredentialReveal(credentialId: string): Promise<void> {
 }
 
 /**
- * 認証情報の作成をログに記録
+ * Log credential creation event
  */
 export async function logCredentialCreate(credentialId: string): Promise<void> {
   await logAuditEvent({
@@ -144,7 +144,7 @@ export async function logCredentialCreate(credentialId: string): Promise<void> {
 }
 
 /**
- * 認証情報の更新をログに記録
+ * Log credential update event
  */
 export async function logCredentialUpdate(credentialId: string): Promise<void> {
   await logAuditEvent({
@@ -155,7 +155,7 @@ export async function logCredentialUpdate(credentialId: string): Promise<void> {
 }
 
 /**
- * 認証情報の削除をログに記録
+ * Log credential deletion event
  */
 export async function logCredentialDelete(credentialId: string): Promise<void> {
   await logAuditEvent({
@@ -166,7 +166,7 @@ export async function logCredentialDelete(credentialId: string): Promise<void> {
 }
 
 /**
- * ボード作成をログに記録
+ * Log board creation event
  */
 export async function logBoardCreate(boardId: string): Promise<void> {
   await logAuditEvent({
@@ -177,7 +177,7 @@ export async function logBoardCreate(boardId: string): Promise<void> {
 }
 
 /**
- * 最近の監査ログを取得
+ * Get recent audit logs
  */
 export async function getRecentAuditLogs(limit = 50): Promise<{
   logs: AuditLog[]

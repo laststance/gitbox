@@ -1,23 +1,31 @@
 /**
  * Throttle Utility
  *
- * 一定期間に1回だけ実行を許可するスロットル関数
+ * Throttle function that allows execution only once per time period
  */
 
 /**
- * 関数をスロットル化
+ * Delay (milliseconds) for setTimeout fallback
+ * when requestIdleCallback is not available
  *
- * @param fn - スロットル化する関数
- * @param ms - スロットル時間（ミリ秒）
- * @returns スロットル化された関数とキャンセル関数
+ * 1ms is the minimum value to execute immediately while delaying to next event loop
+ */
+const IDLE_CALLBACK_FALLBACK_MS = 1
+
+/**
+ * Throttles a function
+ *
+ * @param fn - Function to throttle
+ * @param ms - Throttle time (milliseconds)
+ * @returns Throttled function and cancel function
  *
  * @example
  * ```ts
  * const { throttledFn, cancel } = throttle(saveToStorage, 1000)
- * throttledFn(state) // 即時実行
- * throttledFn(state) // 無視（1000ms経過前）
- * // 1000ms経過後
- * throttledFn(state) // 実行
+ * throttledFn(state) // Executes immediately
+ * throttledFn(state) // Ignored (before 1000ms elapsed)
+ * // After 1000ms elapsed
+ * throttledFn(state) // Executes
  * ```
  */
 export function throttle<Args extends unknown[]>(
@@ -33,7 +41,7 @@ export function throttle<Args extends unknown[]>(
     const remaining = ms - (now - lastCall)
 
     if (remaining <= 0) {
-      // スロットル期間経過済み - 即時実行
+      // Throttle period elapsed - execute immediately
       if (timeoutId !== null) {
         clearTimeout(timeoutId)
         timeoutId = null
@@ -41,7 +49,7 @@ export function throttle<Args extends unknown[]>(
       lastCall = now
       fn(...args)
     } else {
-      // スロットル期間内 - 最後の引数を保存し、期間後に実行
+      // Within throttle period - save last arguments and execute after period
       lastArgs = args
       if (timeoutId === null) {
         timeoutId = setTimeout(() => {
@@ -68,14 +76,14 @@ export function throttle<Args extends unknown[]>(
 }
 
 /**
- * requestIdleCallback を使用したアイドル時実行スロットル
+ * Idle-time execution throttle using requestIdleCallback
  *
- * ブラウザがアイドル状態の時に実行することで、
- * UIパフォーマンスへの影響を最小化
+ * Minimizes impact on UI performance by executing
+ * when browser is in idle state
  *
- * @param fn - 実行する関数
- * @param options - requestIdleCallback のオプション
- * @returns スケジュールされた関数とキャンセル関数
+ * @param fn - Function to execute
+ * @param options - requestIdleCallback options
+ * @returns Scheduled function and cancel function
  */
 export function scheduleIdleCallback<Args extends unknown[]>(
   fn: (...args: Args) => void,
@@ -84,12 +92,12 @@ export function scheduleIdleCallback<Args extends unknown[]>(
   let idleId: number | null = null
   let pendingArgs: Args | null = null
 
-  // requestIdleCallback が利用できない場合は setTimeout にフォールバック
+  // Fall back to setTimeout if requestIdleCallback is not available
   const requestIdle =
     typeof requestIdleCallback !== 'undefined'
       ? requestIdleCallback
       : (cb: () => void, _opts?: IdleRequestOptions) =>
-          setTimeout(cb, 1) as unknown as number
+          setTimeout(cb, IDLE_CALLBACK_FALLBACK_MS) as unknown as number
 
   const cancelIdle =
     typeof cancelIdleCallback !== 'undefined'

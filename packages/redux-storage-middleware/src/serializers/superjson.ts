@@ -1,66 +1,36 @@
 /**
  * SuperJSON Serializer
  *
- * superjsonを使用した高機能シリアライザー
- * Date, Map, Set, undefined, BigIntなどを自動的に処理
+ * High-performance serializer using superjson
+ * Automatically handles Date, Map, Set, undefined, BigInt, etc.
  *
- * 注意: このシリアライザーを使用するにはsuperjsonパッケージが必要です
+ * Note: This serializer requires the superjson package
  * pnpm add superjson
  */
 
 import type { Serializer } from '../types'
+import { createModuleLoader } from '../utils/moduleLoader'
 
 /**
- * SuperJSONインターフェース（動的インポート用）
+ * SuperJSON interface (for dynamic import)
  */
 interface SuperJSONModule {
   stringify: (value: unknown) => string
   parse: <T>(str: string) => T
 }
 
-let superjsonModule: SuperJSONModule | null = null
-
 /**
- * SuperJSONを動的にロード
- *
- * @returns SuperJSONモジュール
- * @throws superjsonがインストールされていない場合
+ * SuperJSON module loader
  */
-async function loadSuperJSON(): Promise<SuperJSONModule> {
-  if (superjsonModule) {
-    return superjsonModule
-  }
-
-  try {
-    const sjModule = await import('superjson')
-    // eslint-disable-next-line require-atomic-updates -- シングルスレッド環境で安全に動作
-    superjsonModule = sjModule.default || sjModule
-    return superjsonModule
-  } catch {
-    throw new Error(
-      '[redux-storage-middleware] superjson is not installed. ' +
-        'Please install it with: pnpm add superjson',
-    )
-  }
-}
+const superJsonLoader = createModuleLoader<SuperJSONModule>({
+  moduleName: 'superjson',
+  importFn: async () => import('superjson'),
+})
 
 /**
- * 同期的にSuperJSONをロード（既にロード済みの場合のみ使用可能）
- */
-function getSuperJSON(): SuperJSONModule {
-  if (!superjsonModule) {
-    throw new Error(
-      '[redux-storage-middleware] SuperJSON not loaded. ' +
-        'Call initSuperJsonSerializer() first.',
-    )
-  }
-  return superjsonModule
-}
-
-/**
- * SuperJSONシリアライザーを初期化
+ * Initializes SuperJSON serializer
  *
- * アプリケーション起動時に一度呼び出す必要がある
+ * Must be called once at application startup
  *
  * @example
  * ```ts
@@ -69,22 +39,22 @@ function getSuperJSON(): SuperJSONModule {
  * ```
  */
 export async function initSuperJsonSerializer(): Promise<void> {
-  await loadSuperJSON()
+  await superJsonLoader.load()
 }
 
 /**
- * SuperJSONシリアライザーを作成
+ * Creates SuperJSON serializer
  *
- * 使用前にinitSuperJsonSerializer()を呼び出す必要がある
+ * Must call initSuperJsonSerializer() before use
  *
- * @returns シリアライザー
+ * @returns Serializer
  *
  * @example
  * ```ts
  * await initSuperJsonSerializer()
  * const serializer = createSuperJsonSerializer()
  *
- * // Date, Map, Setなどを自動処理
+ * // Automatically handles Date, Map, Set, etc.
  * const data = {
  *   date: new Date(),
  *   map: new Map([['key', 'value']]),
@@ -99,7 +69,7 @@ export function createSuperJsonSerializer<T = unknown>(): Serializer<T> {
   return {
     serialize: (state: T): string => {
       try {
-        const superjson = getSuperJSON()
+        const superjson = superJsonLoader.get()
         return superjson.stringify(state)
       } catch (error) {
         console.error(
@@ -111,7 +81,7 @@ export function createSuperJsonSerializer<T = unknown>(): Serializer<T> {
     },
     deserialize: (str: string): T => {
       try {
-        const superjson = getSuperJSON()
+        const superjson = superJsonLoader.get()
         return superjson.parse<T>(str)
       } catch (error) {
         console.error(
@@ -125,8 +95,8 @@ export function createSuperJsonSerializer<T = unknown>(): Serializer<T> {
 }
 
 /**
- * SuperJSONがロード済みかどうかを確認
+ * Checks if SuperJSON is loaded
  */
 export function isSuperJsonLoaded(): boolean {
-  return superjsonModule !== null
+  return superJsonLoader.isLoaded()
 }

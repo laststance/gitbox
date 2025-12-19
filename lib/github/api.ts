@@ -1,13 +1,13 @@
 /**
  * GitHub REST API Client (RTK Query)
  *
- * GitHub REST API との通信を RTK Query で管理
- * Repository 検索、メタデータ取得に使用
+ * Manages communication with GitHub REST API using RTK Query
+ * Used for repository search and metadata retrieval
  */
 
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 
-// GitHub API のベース URL
+// GitHub API base URL
 const GITHUB_API_BASE_URL = 'https://api.github.com'
 
 export interface GitHubRepository {
@@ -50,7 +50,7 @@ export const githubApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: GITHUB_API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {
-      // GitHub OAuth トークンを追加（Supabase セッションから取得）
+      // Add GitHub OAuth token (retrieved from Supabase session)
       const state = getState() as any
       const session = state.auth?.session
 
@@ -64,7 +64,7 @@ export const githubApi = createApi({
   }),
   tagTypes: ['Repository'],
   endpoints: (builder) => ({
-    // リポジトリ検索
+    // Repository search
     searchRepositories: builder.query<
       SearchRepositoriesResponse,
       SearchRepositoriesParams
@@ -76,13 +76,13 @@ export const githubApi = createApi({
       providesTags: ['Repository'],
     }),
 
-    // ユーザーのリポジトリ一覧取得
+    // Get user's repository list
     getUserRepositories: builder.query<GitHubRepository[], string>({
       query: (username) => `/users/${username}/repos`,
       providesTags: ['Repository'],
     }),
 
-    // 認証ユーザーのリポジトリ一覧取得
+    // Get authenticated user's repository list
     getAuthenticatedUserRepositories: builder.query<
       GitHubRepository[],
       {
@@ -100,7 +100,7 @@ export const githubApi = createApi({
       providesTags: ['Repository'],
     }),
 
-    // 特定リポジトリの詳細取得
+    // Get specific repository details
     getRepository: builder.query<
       GitHubRepository,
       { owner: string; repo: string }
