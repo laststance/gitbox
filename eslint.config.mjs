@@ -85,6 +85,8 @@ export default defineConfig([
     'postcss.config.mjs',
     'tailwind.config.js',
     'playwright.config.ts',
+    // Package examples (have their own ESLint configs)
+    '**/packages/**/examples/**',
   ]),
   {
     plugins: {

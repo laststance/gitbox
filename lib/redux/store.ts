@@ -21,10 +21,10 @@ import boardReducer from './slices/boardSlice'
 import settingsReducer from './slices/settingsSlice'
 
 // Storage middleware の設定
-const storageMiddleware = createStorageMiddleware({
+const { middleware: storageMiddleware } = createStorageMiddleware({
   // settings と board スライスを LocalStorage に同期
+  name: 'gitbox-state',
   slices: ['settings', 'board'],
-  storageKey: 'gitbox-state',
 })
 
 export const store = configureStore({
