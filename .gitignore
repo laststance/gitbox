@@ -67,3 +67,7 @@ playwright-report/
 playwright/.cache/
 
 *storybook.log
+
+# Git worktrees (Crystal)
+/worktrees/
+/worktree-*/
