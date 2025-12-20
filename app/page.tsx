@@ -245,36 +245,203 @@ const Navigation = () => {
   )
 }
 
-// Kanban Preview Component (Visual illustration)
+/**
+ * Card data structure for the Kanban preview.
+ */
+interface KanbanCard {
+  /** Unique identifier for the card */
+  id: string
+  /** Display name of the card */
+  name: string
+  /** Tailwind CSS classes for background and border colors */
+  color: string
+}
+
+/**
+ * Column data structure for the Kanban preview.
+ */
+interface KanbanColumn {
+  /** Unique identifier for the column */
+  id: string
+  /** Display title of the column */
+  title: string
+  /** Cards contained in this column */
+  cards: KanbanCard[]
+}
+
+/**
+ * Initial columns data for the Kanban preview.
+ * Includes Backlog (3 cards), In Progress (1), Review (1), Done (2).
+ */
+const INITIAL_COLUMNS: KanbanColumn[] = [
+  {
+    id: 'backlog',
+    title: 'Backlog',
+    cards: [
+      {
+        id: 'react',
+        name: 'react',
+        color: 'bg-blue-500/20 border-blue-500/30',
+      },
+      {
+        id: 'vue',
+        name: 'vue',
+        color: 'bg-emerald-500/20 border-emerald-500/30',
+      },
+      {
+        id: 'angular',
+        name: 'angular',
+        color: 'bg-orange-500/20 border-orange-500/30',
+      },
+    ],
+  },
+  {
+    id: 'in-progress',
+    title: 'In Progress',
+    cards: [
+      {
+        id: 'nextjs',
+        name: 'next.js',
+        color: 'bg-purple-500/20 border-purple-500/30',
+      },
+    ],
+  },
+  {
+    id: 'review',
+    title: 'Review',
+    cards: [
+      {
+        id: 'typescript',
+        name: 'typescript',
+        color: 'bg-amber-500/20 border-amber-500/30',
+      },
+    ],
+  },
+  {
+    id: 'done',
+    title: 'Done',
+    cards: [
+      {
+        id: 'tailwind',
+        name: 'tailwind',
+        color: 'bg-cyan-500/20 border-cyan-500/30',
+      },
+      {
+        id: 'prisma',
+        name: 'prisma',
+        color: 'bg-rose-500/20 border-rose-500/30',
+      },
+    ],
+  },
+]
+
+/**
+ * Interactive Kanban Preview Component with HTML5 Drag & Drop.
+ * Demonstrates drag-and-drop functionality for the landing page hero section.
+ */
 const KanbanPreview = () => {
-  const columns = [
-    {
-      title: 'Backlog',
-      cards: [
-        { name: 'react', color: 'bg-blue-500/20 border-blue-500/30' },
-        { name: 'vue', color: 'bg-emerald-500/20 border-emerald-500/30' },
-      ],
-    },
-    {
-      title: 'In Progress',
-      cards: [
-        { name: 'next.js', color: 'bg-purple-500/20 border-purple-500/30' },
-      ],
-    },
-    {
-      title: 'Review',
-      cards: [
-        { name: 'typescript', color: 'bg-amber-500/20 border-amber-500/30' },
-      ],
-    },
-    {
-      title: 'Done',
-      cards: [
-        { name: 'tailwind', color: 'bg-cyan-500/20 border-cyan-500/30' },
-        { name: 'prisma', color: 'bg-rose-500/20 border-rose-500/30' },
-      ],
-    },
-  ]
+  const [columns, setColumns] = useState<KanbanColumn[]>(INITIAL_COLUMNS)
+  const [draggedCard, setDraggedCard] = useState<KanbanCard | null>(null)
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
+
+  /**
+   * Handles the start of a drag operation.
+   * @param e - The drag event
+   * @param card - The card being dragged
+   * @param sourceColumnId - The ID of the column the card is being dragged from
+   */
+  const handleDragStart = (
+    e: React.DragEvent<HTMLDivElement>,
+    card: KanbanCard,
+    sourceColumnId: string,
+  ) => {
+    setDraggedCard(card)
+    e.dataTransfer.setData('cardId', card.id)
+    e.dataTransfer.setData('sourceColumnId', sourceColumnId)
+    e.dataTransfer.effectAllowed = 'move'
+
+    // Apply drag styling after a brief delay to ensure visual feedback
+    requestAnimationFrame(() => {
+      const target = e.target as HTMLElement
+      target.style.opacity = '0.5'
+    })
+  }
+
+  /**
+   * Handles the end of a drag operation.
+   * @param e - The drag event
+   */
+  const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement
+    target.style.opacity = '1'
+    setDraggedCard(null)
+    setDragOverColumn(null)
+  }
+
+  /**
+   * Handles drag over event for columns.
+   * @param e - The drag event
+   * @param columnId - The ID of the column being dragged over
+   */
+  const handleDragOver = (
+    e: React.DragEvent<HTMLDivElement>,
+    columnId: string,
+  ) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverColumn(columnId)
+  }
+
+  /**
+   * Handles drag leave event for columns.
+   */
+  const handleDragLeave = () => {
+    setDragOverColumn(null)
+  }
+
+  /**
+   * Handles drop event for columns.
+   * Moves the card from source column to target column.
+   * @param e - The drag event
+   * @param targetColumnId - The ID of the column where the card is dropped
+   */
+  const handleDrop = (
+    e: React.DragEvent<HTMLDivElement>,
+    targetColumnId: string,
+  ) => {
+    e.preventDefault()
+    const cardId = e.dataTransfer.getData('cardId')
+    const sourceColumnId = e.dataTransfer.getData('sourceColumnId')
+
+    if (sourceColumnId === targetColumnId) {
+      setDragOverColumn(null)
+      return
+    }
+
+    setColumns((prevColumns) => {
+      const newColumns = prevColumns.map((col) => ({
+        ...col,
+        cards: [...col.cards],
+      }))
+
+      const sourceColumn = newColumns.find((col) => col.id === sourceColumnId)
+      const targetColumn = newColumns.find((col) => col.id === targetColumnId)
+
+      if (!sourceColumn || !targetColumn) return prevColumns
+
+      const cardIndex = sourceColumn.cards.findIndex(
+        (card) => card.id === cardId,
+      )
+      if (cardIndex === -1) return prevColumns
+
+      const [movedCard] = sourceColumn.cards.splice(cardIndex, 1)
+      targetColumn.cards.push(movedCard)
+
+      return newColumns
+    })
+
+    setDragOverColumn(null)
+  }
 
   return (
     <div className="relative w-full max-w-4xl mx-auto mt-16">
@@ -299,29 +466,46 @@ const KanbanPreview = () => {
         <div className="p-6 grid grid-cols-4 gap-4">
           {columns.map((column, idx) => (
             <div
-              key={column.title}
-              className="space-y-3"
+              key={column.id}
+              data-testid={`kanban-column-${column.id}`}
+              className={cn(
+                'p-3 rounded-lg border border-border/40 shadow-sm bg-muted/20',
+                'transition-all duration-200',
+                dragOverColumn === column.id &&
+                  'border-primary/50 bg-primary/5 shadow-md',
+              )}
+              onDragOver={(e) => handleDragOver(e, column.id)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, column.id)}
               style={{
                 animation: `fadeInUp 0.5s ease-out ${idx * 0.1}s forwards`,
                 opacity: 0,
               }}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-medium text-muted-foreground">
                   {column.title}
                 </span>
-                <span className="text-xs text-muted-foreground/60">
+                <span
+                  className="text-xs text-muted-foreground/60"
+                  data-testid={`column-count-${column.id}`}
+                >
                   {column.cards.length}
                 </span>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 min-h-[60px]">
                 {column.cards.map((card, cardIdx) => (
                   <div
-                    key={card.name}
+                    key={card.id}
+                    data-testid={`kanban-card-${card.id}`}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, card, column.id)}
+                    onDragEnd={handleDragEnd}
                     className={cn(
                       'p-3 rounded-lg border transition-all duration-200',
-                      'hover:scale-[1.02] hover:shadow-md cursor-grab',
+                      'hover:scale-[1.02] hover:shadow-md cursor-grab active:cursor-grabbing',
                       card.color,
+                      draggedCard?.id === card.id && 'opacity-50',
                     )}
                     style={{
                       animation: `fadeInUp 0.4s ease-out ${idx * 0.1 + cardIdx * 0.05 + 0.2}s forwards`,
