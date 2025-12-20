@@ -6,6 +6,9 @@
  * - loadStateFromStorage: Restore from storage
  * - clearStorageState: Clear storage
  * - withHydration: Hydration reducer enhancer
+ *
+ * These tests run in real browser environment via Vitest browser mode.
+ * Real localStorage is used instead of jsdom mocks.
  */
 
 import type { PayloadAction } from '@reduxjs/toolkit'
@@ -21,34 +24,6 @@ import {
 } from '../src/middleware'
 import { createMemoryStorage } from '../src/storage'
 import type { PersistedState } from '../src/types'
-
-// LocalStorage mock
-const localStorageMock = (() => {
-  let store: Record<string, string> = {}
-
-  return {
-    getItem: vi.fn((key: string) => store[key] || null),
-    setItem: vi.fn((key: string, value: string) => {
-      store[key] = value
-    }),
-    removeItem: vi.fn((key: string) => {
-      delete store[key]
-    }),
-    clear: () => {
-      store = {}
-    },
-    get length() {
-      return Object.keys(store).length
-    },
-    key: (index: number) => Object.keys(store)[index] || null,
-  }
-})()
-
-// Mock global localStorage
-Object.defineProperty(global, 'localStorage', {
-  value: localStorageMock,
-  writable: true,
-})
 
 // Test Redux slice
 interface TestState {
@@ -95,10 +70,10 @@ const { setTheme: _setTheme } = settingsSlice.actions
 
 describe('createStorageMiddleware', () => {
   beforeEach(() => {
-    localStorageMock.clear()
+    // Clear real browser localStorage
+    localStorage.clear()
     vi.clearAllTimers()
     vi.useFakeTimers()
-    vi.clearAllMocks()
   })
 
   afterEach(() => {
@@ -173,6 +148,9 @@ describe('createStorageMiddleware', () => {
   })
 
   it('debounces and saves multiple actions', async () => {
+    // Spy on real localStorage
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+
     const { middleware } = createStorageMiddleware({
       name: 'test-debounce',
       slices: ['test'],
@@ -192,7 +170,7 @@ describe('createStorageMiddleware', () => {
 
     // Flush all pending timers after HYDRATE_COMPLETE and clear mocks
     await vi.runAllTimersAsync()
-    localStorageMock.setItem.mockClear()
+    setItemSpy.mockClear()
 
     // Dispatch actions consecutively
     store.dispatch(increment())
@@ -201,23 +179,31 @@ describe('createStorageMiddleware', () => {
 
     // Not saved during debounce period
     await vi.advanceTimersByTimeAsync(100)
-    expect(localStorageMock.setItem).not.toHaveBeenCalled()
+    // Exclude isStorageAvailable() test key and verify actual save count
+    const actualSaveCalls = setItemSpy.mock.calls.filter(
+      (call) => call[0] !== '__redux_storage_middleware_test__',
+    )
+    expect(actualSaveCalls).toHaveLength(0)
 
     // Saved only once after debounce completes
     await vi.advanceTimersByTimeAsync(100)
-    // Exclude isStorageAvailable() test key and verify actual save count
-    const actualSaveCalls = localStorageMock.setItem.mock.calls.filter(
+    const finalSaveCalls = setItemSpy.mock.calls.filter(
       (call) => call[0] !== '__redux_storage_middleware_test__',
     )
-    expect(actualSaveCalls).toHaveLength(1)
-    expect(actualSaveCalls[0][0]).toBe('test-debounce')
+    expect(finalSaveCalls).toHaveLength(1)
+    expect(finalSaveCalls[0][0]).toBe('test-debounce')
 
     const saved = localStorage.getItem('test-debounce')
     const parsed = JSON.parse(saved!) as PersistedState
     expect((parsed.state as { test: TestState }).test.value).toBe(3)
+
+    setItemSpy.mockRestore()
   })
 
   it('can use throttle with throttleMs option', async () => {
+    // Spy on real localStorage
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+
     const { middleware } = createStorageMiddleware({
       name: 'test-throttle',
       slices: ['test'],
@@ -237,11 +223,11 @@ describe('createStorageMiddleware', () => {
 
     // Flush all pending timers after HYDRATE_COMPLETE and clear mocks
     await vi.runAllTimersAsync()
-    localStorageMock.setItem.mockClear()
+    setItemSpy.mockClear()
 
     // Helper function: Get save count excluding isStorageAvailable() test key
     const getActualSaveCount = () =>
-      localStorageMock.setItem.mock.calls.filter(
+      setItemSpy.mock.calls.filter(
         (call) => call[0] !== '__redux_storage_middleware_test__',
       ).length
 
@@ -256,6 +242,8 @@ describe('createStorageMiddleware', () => {
     // After throttle period
     await vi.advanceTimersByTimeAsync(200)
     expect(getActualSaveCount()).toBe(2)
+
+    setItemSpy.mockRestore()
   })
 
   it('can exclude specific paths with exclude option', async () => {
@@ -384,7 +372,7 @@ describe('createStorageMiddleware', () => {
   it('calls onError callback on error', async () => {
     const onError = vi.fn()
 
-    // Custom storage that throws errors (safeStorage suppresses errors)
+    // Custom storage that throws errors (use custom storage option)
     const errorStorage = {
       getItem: (): null => null,
       setItem: (): void => {
@@ -452,10 +440,9 @@ describe('createStorageMiddleware', () => {
 
 describe('Hydration API', () => {
   beforeEach(() => {
-    localStorageMock.clear()
+    localStorage.clear()
     vi.clearAllTimers()
     vi.useFakeTimers()
-    vi.clearAllMocks()
   })
 
   afterEach(() => {
@@ -604,8 +591,7 @@ describe('Hydration API', () => {
 
 describe('loadStateFromStorage', () => {
   beforeEach(() => {
-    localStorageMock.clear()
-    vi.restoreAllMocks()
+    localStorage.clear()
   })
 
   it('correctly restores state from LocalStorage', () => {
@@ -640,8 +626,7 @@ describe('loadStateFromStorage', () => {
 
 describe('clearStorageState', () => {
   beforeEach(() => {
-    localStorageMock.clear()
-    vi.restoreAllMocks()
+    localStorage.clear()
   })
 
   it('correctly removes state from LocalStorage', () => {
@@ -654,58 +639,34 @@ describe('clearStorageState', () => {
     expect(localStorage.getItem('test-clear')).toBeNull()
   })
 
-  it('outputs warning log on removeItem error', () => {
-    // safeLocalStorage catches errors and outputs warnings
-    const consoleWarnSpy = vi
-      .spyOn(console, 'warn')
+  it('outputs error log on removeItem error using custom storage', () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
       .mockImplementation(() => {})
 
-    // Replace window.localStorage with one that throws errors
-    // Allow isStorageAvailable test (__redux_storage_middleware_test__)
+    // Use createStorageMiddleware with custom error storage to test error handling
     const errorStorage = {
       getItem: () => null,
-      setItem: () => {
-        // Allow availability check
-      },
-      removeItem: (key: string) => {
-        // Allow test key used by isStorageAvailable()
-        if (key === '__redux_storage_middleware_test__') {
-          return
-        }
+      setItem: () => {},
+      removeItem: () => {
         throw new Error('Storage access denied')
       },
     }
-    Object.defineProperty(global, 'localStorage', {
-      value: errorStorage,
-      writable: true,
-      configurable: true,
+
+    // Create middleware with error storage and test clearStorage
+    const { api } = createStorageMiddleware({
+      name: 'test-remove-error',
+      storage: errorStorage,
+      skipHydration: true,
     })
-    if (typeof window !== 'undefined') {
-      Object.defineProperty(window, 'localStorage', {
-        value: errorStorage,
-        writable: true,
-        configurable: true,
-      })
-    }
 
-    clearStorageState('test-remove-error')
+    // This should trigger the error handler
+    api.clearStorage()
 
-    expect(consoleWarnSpy).toHaveBeenCalled()
+    // The implementation logs errors via console.error
+    expect(consoleErrorSpy).toHaveBeenCalled()
 
-    // Restore
-    Object.defineProperty(global, 'localStorage', {
-      value: localStorageMock,
-      writable: true,
-      configurable: true,
-    })
-    if (typeof window !== 'undefined') {
-      Object.defineProperty(window, 'localStorage', {
-        value: localStorageMock,
-        writable: true,
-        configurable: true,
-      })
-    }
-    consoleWarnSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
   })
 })
 
@@ -747,8 +708,7 @@ describe('withHydration', () => {
 
 describe('Integration Test: Store with Middleware', () => {
   beforeEach(() => {
-    localStorageMock.clear()
-    vi.restoreAllMocks()
+    localStorage.clear()
     vi.clearAllTimers()
     vi.useFakeTimers()
   })
