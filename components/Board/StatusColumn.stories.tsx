@@ -10,7 +10,6 @@
 import { DndContext } from '@dnd-kit/core'
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 
-
 import { StatusColumn } from './StatusColumn'
 
 const meta = {
@@ -41,12 +40,15 @@ const mockStatus = {
   color: '#3b82f6',
   wipLimit: 5,
   order: 0,
+  createdAt: '2024-01-01T00:00:00Z',
+  updatedAt: '2024-01-15T00:00:00Z',
 }
 
 const mockCards = [
   {
     id: 'card-1',
     statusId: 'status-1',
+    boardId: 'board-1',
     repoOwner: 'octocat',
     repoName: 'example-repo',
     title: 'example-repo',
@@ -60,10 +62,13 @@ const mockCards = [
       language: 'TypeScript',
       topics: ['react', 'nextjs'],
     },
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-15T00:00:00Z',
   },
   {
     id: 'card-2',
     statusId: 'status-1',
+    boardId: 'board-1',
     repoOwner: 'octocat',
     repoName: 'another-repo',
     title: 'another-repo',
@@ -77,6 +82,8 @@ const mockCards = [
       language: 'JavaScript',
       topics: ['nodejs'],
     },
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-15T00:00:00Z',
   },
 ]
 
@@ -124,7 +131,7 @@ export const WithoutColor: Story = {
   args: {
     status: {
       ...mockStatus,
-      color: undefined,
+      color: '',
     },
     cards: mockCards,
   },

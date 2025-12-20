@@ -115,7 +115,7 @@ export const WithEncryptedCredentials: Story = {
           id: 'cred-1',
           type: 'encrypted' as const,
           name: 'API Key',
-          encryptedValue: 'encrypted-value-here',
+          encrypted_value: 'encrypted-value-here',
         },
       ],
     },

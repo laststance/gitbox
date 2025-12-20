@@ -659,7 +659,7 @@ export function runOptimizationBenchmarks(
 }
 
 // Export for use in tests
-export { OptimizationResult }
+export type { OptimizationResult }
 
 // Run benchmarks when executed directly
 runOptimizationBenchmarks(1000)

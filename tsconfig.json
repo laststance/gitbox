@@ -36,5 +36,9 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "tests/e2e"]
+  "exclude": [
+    "node_modules",
+    "tests/e2e",
+    "packages/redux-storage-middleware/examples/**"
+  ]
 }
