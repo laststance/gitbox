@@ -1,9 +1,14 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
 /**
  * Vitest Configuration for redux-storage-middleware
  *
  * Uses Vitest 4.x browser mode with Playwright provider for real browser testing.
  * LocalStorage tests run in actual browser environment instead of jsdom mock.
  * Goal: 100% coverage
+ *
+ * Note: @ts-nocheck is required due to @types/node version mismatch in monorepo
+ * causing incompatible vitest types between root and package.
  */
 
 import { playwright } from '@vitest/browser-playwright'

@@ -19,7 +19,24 @@ const GITHUB_TOKEN_COOKIE = 'github_provider_token'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/boards' // Redirect to Boards screen after login
+
+  /**
+   * Post-authentication redirect destination.
+   *
+   * The `next` query parameter allows redirecting users back to their original
+   * destination after successful authentication. This enables a "return to
+   * original page" flow for protected routes.
+   *
+   * @example Intended usage flow (not yet implemented in middleware):
+   * 1. User visits /board/123 (unauthenticated)
+   * 2. Middleware redirects to /login?next=/board/123
+   * 3. Login page initiates OAuth with redirectTo: /auth/callback?next=/board/123
+   * 4. After successful auth, user is redirected to /board/123
+   *
+   * @default '/boards' - If `next` is not provided, redirects to the main boards page
+   * @note Currently, no code sets this parameter; it exists for future extensibility
+   */
+  const next = searchParams.get('next') ?? '/boards'
 
   if (code) {
     const supabase = await createClient()

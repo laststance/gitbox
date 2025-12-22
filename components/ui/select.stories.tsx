@@ -11,6 +11,7 @@ import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectLabel,
   SelectTrigger,
@@ -51,10 +52,12 @@ export const WithLabel: Story = {
         <SelectValue placeholder="Choose language" />
       </SelectTrigger>
       <SelectContent>
-        <SelectLabel>Languages</SelectLabel>
-        <SelectItem value="en">English</SelectItem>
-        <SelectItem value="ja">Japanese</SelectItem>
-        <SelectItem value="es">Spanish</SelectItem>
+        <SelectGroup>
+          <SelectLabel>Languages</SelectLabel>
+          <SelectItem value="en">English</SelectItem>
+          <SelectItem value="ja">Japanese</SelectItem>
+          <SelectItem value="es">Spanish</SelectItem>
+        </SelectGroup>
       </SelectContent>
     </Select>
   ),
