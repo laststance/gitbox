@@ -21,7 +21,7 @@ jobs:
         uses: ./.github/actions/prepare
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Run Tests
         run: pnpm test run
