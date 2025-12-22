@@ -493,7 +493,7 @@ const KanbanPreview = () => {
                   {column.cards.length}
                 </span>
               </div>
-              <div className="space-y-2 min-h-[60px]">
+              <div className="space-y-2 min-h-15">
                 {column.cards.map((card, cardIdx) => (
                   <div
                     key={card.id}
