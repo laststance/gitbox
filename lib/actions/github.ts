@@ -269,3 +269,148 @@ export async function checkGitHubTokenValidity(): Promise<{
     return { valid: false, error: 'Failed to verify token' }
   }
 }
+
+/**
+ * GitHub User type
+ */
+export interface GitHubUser {
+  id: number
+  login: string
+  avatar_url: string
+  name: string | null
+  type: 'User' | 'Organization'
+}
+
+/**
+ * GitHub Organization type
+ */
+export interface GitHubOrganization {
+  id: number
+  login: string
+  avatar_url: string
+  description: string | null
+}
+
+/**
+ * Get authenticated user's profile
+ *
+ * Fetches the current user's GitHub profile information.
+ *
+ * @returns The user's profile data or an error message
+ * @example
+ * const { data, error } = await getAuthenticatedUser()
+ * if (data) console.log(data.login) // => "ryota-murakami"
+ */
+export async function getAuthenticatedUser(): Promise<{
+  data: GitHubUser | null
+  error: string | null
+}> {
+  const token = await getGitHubToken()
+
+  if (!token) {
+    return {
+      data: null,
+      error: 'GitHub token not found. Please sign in again.',
+    }
+  }
+
+  try {
+    const response = await fetch(`${GITHUB_API_BASE_URL}/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github.v3+json',
+        'User-Agent': 'GitBox-App',
+      },
+      next: {
+        revalidate: 300, // Cache for 5 minutes
+      },
+    } as RequestInit)
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        return {
+          data: null,
+          error: 'GitHub token expired. Please sign in again.',
+        }
+      }
+      const errorData = await response.json().catch(() => ({}))
+      return {
+        data: null,
+        error: errorData.message || `GitHub API error: ${response.status}`,
+      }
+    }
+
+    const data = await response.json()
+    return { data, error: null }
+  } catch (error) {
+    console.error('Failed to fetch user:', error)
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Failed to fetch user',
+    }
+  }
+}
+
+/**
+ * Get authenticated user's organizations
+ *
+ * Fetches the list of organizations the current user belongs to.
+ * Used for the Organization Filter in AddRepositoryCombobox.
+ *
+ * @returns Array of organizations or an error message
+ * @example
+ * const { data, error } = await getAuthenticatedUserOrganizations()
+ * if (data) data.forEach(org => console.log(org.login))
+ */
+export async function getAuthenticatedUserOrganizations(): Promise<{
+  data: GitHubOrganization[] | null
+  error: string | null
+}> {
+  const token = await getGitHubToken()
+
+  if (!token) {
+    return {
+      data: null,
+      error: 'GitHub token not found. Please sign in again.',
+    }
+  }
+
+  try {
+    const response = await fetch(`${GITHUB_API_BASE_URL}/user/orgs`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github.v3+json',
+        'User-Agent': 'GitBox-App',
+      },
+      next: {
+        revalidate: 300, // Cache for 5 minutes
+      },
+    } as RequestInit)
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        return {
+          data: null,
+          error: 'GitHub token expired. Please sign in again.',
+        }
+      }
+      const errorData = await response.json().catch(() => ({}))
+      return {
+        data: null,
+        error: errorData.message || `GitHub API error: ${response.status}`,
+      }
+    }
+
+    const data = await response.json()
+    return { data, error: null }
+  } catch (error) {
+    console.error('Failed to fetch organizations:', error)
+    return {
+      data: null,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Failed to fetch organizations',
+    }
+  }
+}

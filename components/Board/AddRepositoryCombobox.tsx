@@ -4,8 +4,19 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react'
 
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   getAuthenticatedUserRepositories,
+  getAuthenticatedUser,
+  getAuthenticatedUserOrganizations,
   type GitHubRepository,
+  type GitHubUser,
+  type GitHubOrganization,
 } from '@/lib/actions/github'
 import { addRepositoriesToBoard } from '@/lib/actions/repo-cards'
 
@@ -43,12 +54,17 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   const [addError, setAddError] = useState<string | null>(null)
 
   // Filters
-  const [ownerFilter, setOwnerFilter] = useState('')
+  const [organizationFilter, setOrganizationFilter] = useState<string>('all')
   // TODO: Implement topics filter UI
   // const [topicsFilter, setTopicsFilter] = useState<string[]>([])
   const [visibilityFilter, setVisibilityFilter] = useState<
     'all' | 'public' | 'private'
   >('all')
+
+  // Organization filter state
+  const [currentUser, setCurrentUser] = useState<GitHubUser | null>(null)
+  const [organizations, setOrganizations] = useState<GitHubOrganization[]>([])
+  const [isLoadingOrgs, setIsLoadingOrgs] = useState(false)
 
   // Refs
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -89,12 +105,42 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     }
   }, [isOpen])
 
-  // Fetch repositories when combobox opens
+  /**
+   * Fetch current user and organizations for the Organization Filter
+   */
+  const fetchOrganizations = useCallback(async () => {
+    if (!isOpen) return
+
+    setIsLoadingOrgs(true)
+
+    try {
+      // Fetch user and organizations in parallel
+      const [userResult, orgsResult] = await Promise.all([
+        getAuthenticatedUser(),
+        getAuthenticatedUserOrganizations(),
+      ])
+
+      if (userResult.data) {
+        setCurrentUser(userResult.data)
+      }
+
+      if (orgsResult.data) {
+        setOrganizations(orgsResult.data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch organizations:', error)
+    } finally {
+      setIsLoadingOrgs(false)
+    }
+  }, [isOpen])
+
+  // Fetch repositories and organizations when combobox opens
   useEffect(() => {
     if (isOpen) {
       fetchRepositories()
+      fetchOrganizations()
     }
-  }, [isOpen, fetchRepositories])
+  }, [isOpen, fetchRepositories, fetchOrganizations])
 
   // Debounce search query (300ms)
   useEffect(() => {
@@ -122,10 +168,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       )
     }
 
-    // Owner filter
-    if (ownerFilter) {
-      filtered = filtered.filter((repo) =>
-        repo.owner.login.toLowerCase().includes(ownerFilter.toLowerCase()),
+    // Organization filter (exact match on owner login)
+    if (organizationFilter !== 'all') {
+      filtered = filtered.filter(
+        (repo) =>
+          repo.owner.login.toLowerCase() === organizationFilter.toLowerCase(),
       )
     }
 
@@ -142,7 +189,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     // }
 
     return filtered
-  }, [userRepos, debouncedQuery, ownerFilter, visibilityFilter])
+  }, [userRepos, debouncedQuery, organizationFilter, visibilityFilter])
 
   const isLoading = isLoadingRepos || isAdding
   const error = addError || reposError
@@ -278,13 +325,37 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
           {/* Filters */}
           <div className="mt-3 flex gap-2">
-            <input
-              type="text"
-              value={ownerFilter}
-              onChange={(e) => setOwnerFilter(e.target.value)}
-              placeholder="Filter by owner"
-              className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-            />
+            {/* Organization Filter */}
+            <Select
+              value={organizationFilter}
+              // eslint-disable-next-line @laststance/react-next/no-set-state-prop-drilling
+              onValueChange={setOrganizationFilter}
+            >
+              <SelectTrigger
+                className="flex-1 h-9 text-sm"
+                aria-label="Organization filter"
+              >
+                <SelectValue placeholder="Organization Filter" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Organizations</SelectItem>
+                {currentUser && (
+                  <SelectItem value={currentUser.login}>
+                    {currentUser.login} (Personal)
+                  </SelectItem>
+                )}
+                {organizations.map((org) => (
+                  <SelectItem key={org.id} value={org.login}>
+                    {org.login}
+                  </SelectItem>
+                ))}
+                {isLoadingOrgs && (
+                  <SelectItem value="loading" disabled>
+                    Loading...
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
 
             {/* Visibility filter */}
             <select
