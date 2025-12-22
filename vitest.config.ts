@@ -42,8 +42,10 @@ export default defineConfig({
       ],
     },
     alias: {
-      '@gitbox/redux-storage-middleware':
-        '/Users/ryotamurakami/laststance/gitbox/tests/__mocks__/@gitbox/redux-storage-middleware.ts',
+      '@gitbox/redux-storage-middleware': path.resolve(
+        dirname,
+        'tests/__mocks__/@gitbox/redux-storage-middleware.ts',
+      ),
     },
     projects: [
       {
