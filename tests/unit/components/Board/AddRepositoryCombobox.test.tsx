@@ -17,7 +17,7 @@ import { memo } from 'react'
 import { Provider } from 'react-redux'
 import { describe, it, expect, vi } from 'vitest'
 
-import type { GitHubRepository } from '@/lib/github/api'
+import type { GitHubRepository } from '@/lib/actions/github'
 import boardSlice from '@/lib/redux/slices/boardSlice'
 
 // Generate mock data for 100+ repositories

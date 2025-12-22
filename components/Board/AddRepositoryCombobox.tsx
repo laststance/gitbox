@@ -305,7 +305,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       {/* Combobox panel */}
       {isOpen && (
         <div
-          className="absolute right-0 top-full z-50 mt-2 w-[480px] rounded-lg border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-800"
+          className="absolute right-0 top-full z-50 mt-2 w-120 rounded-lg border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-800"
           role="combobox"
           aria-expanded={isOpen}
           aria-controls="repository-listbox"
@@ -440,7 +440,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
               role="listbox"
               aria-label="Repository options"
               aria-multiselectable="true"
-              className="mt-3 max-h-[300px] overflow-y-auto rounded-md border border-gray-200 dark:border-gray-700"
+              className="mt-3 max-h-75 overflow-y-auto rounded-md border border-gray-200 dark:border-gray-700"
               data-virtual-scroll={shouldVirtualize}
               style={
                 shouldVirtualize

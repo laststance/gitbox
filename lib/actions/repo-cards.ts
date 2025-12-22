@@ -10,7 +10,7 @@
 
 'use server'
 
-import type { GitHubRepository } from '@/lib/github/api'
+import type { GitHubRepository } from '@/lib/actions/github'
 import { createClient } from '@/lib/supabase/server'
 
 /**

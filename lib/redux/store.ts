@@ -6,14 +6,14 @@
  * - boardSlice: Board state
  * - settingsSlice: Settings (theme, language)
  * - storageMiddleware: LocalStorage synchronization
+ *
+ * Note: GitHub API calls use Server Actions (lib/actions/github.ts) instead of
+ * RTK Query for security reasons (HTTP-only cookie token access).
  */
 
 import { configureStore } from '@reduxjs/toolkit'
-import { setupListeners } from '@reduxjs/toolkit/query'
 import type { TypedUseSelectorHook } from 'react-redux'
 import { useDispatch, useSelector } from 'react-redux'
-
-import { githubApi } from '../github/api'
 
 import { createStorageMiddleware } from './middleware/storageMiddleware'
 import authReducer from './slices/authSlice'
@@ -32,25 +32,16 @@ export const store = configureStore({
     auth: authReducer,
     board: boardReducer,
     settings: settingsReducer,
-    [githubApi.reducerPath]: githubApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        // Ignore RTK Query actions
-        ignoredActions: [githubApi.reducerPath + '/executeQuery/fulfilled'],
         // Allow Date objects in Redux state
         ignoredActionPaths: ['meta.arg', 'payload.timestamp'],
-        ignoredPaths: [githubApi.reducerPath],
       },
-    })
-      .concat(githubApi.middleware)
-      .concat(storageMiddleware),
+    }).concat(storageMiddleware),
   devTools: process.env.NODE_ENV !== 'production',
 })
-
-// Enable RTK Query's refetchOnFocus/refetchOnReconnect
-setupListeners(store.dispatch)
 
 // TypeScript type definitions
 export type RootState = ReturnType<typeof store.getState>
