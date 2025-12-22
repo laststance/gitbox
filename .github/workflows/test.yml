@@ -20,5 +20,8 @@ jobs:
       - name: Prepare environment
         uses: ./.github/actions/prepare
 
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install chromium
+
       - name: Run Tests
         run: pnpm test run
