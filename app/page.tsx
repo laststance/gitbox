@@ -275,60 +275,60 @@ interface KanbanColumn {
  */
 const INITIAL_COLUMNS: KanbanColumn[] = [
   {
-    id: 'backlog',
-    title: 'Backlog',
+    id: 'planning',
+    title: 'Planning',
     cards: [
       {
-        id: 'react',
-        name: 'react',
+        id: 'dream board',
+        name: 'Dream Board',
         color: 'bg-blue-500/20 border-blue-500/30',
       },
       {
-        id: 'vue',
-        name: 'vue',
+        id: 'tiktok dashboard',
+        name: 'TikTok Dashboard',
         color: 'bg-emerald-500/20 border-emerald-500/30',
       },
       {
-        id: 'angular',
-        name: 'angular',
+        id: 'organify',
+        name: 'Organify',
         color: 'bg-orange-500/20 border-orange-500/30',
       },
     ],
   },
   {
-    id: 'in-progress',
-    title: 'In Progress',
+    id: 'design',
+    title: 'Design',
     cards: [
       {
-        id: 'nextjs',
-        name: 'next.js',
+        id: 'strawberry',
+        name: 'Strawberry',
         color: 'bg-purple-500/20 border-purple-500/30',
       },
     ],
   },
   {
-    id: 'review',
-    title: 'Review',
+    id: 'development',
+    title: 'Development',
     cards: [
       {
-        id: 'typescript',
-        name: 'typescript',
+        id: 'lemonade',
+        name: 'Lemonade',
         color: 'bg-amber-500/20 border-amber-500/30',
       },
     ],
   },
   {
-    id: 'done',
-    title: 'Done',
+    id: 'Production Release',
+    title: 'Producton Release',
     cards: [
       {
-        id: 'tailwind',
-        name: 'tailwind',
+        id: 'secret notes',
+        name: 'Secret Notes',
         color: 'bg-cyan-500/20 border-cyan-500/30',
       },
       {
-        id: 'prisma',
-        name: 'prisma',
+        id: 'lifelog app',
+        name: 'Lifelog App',
         color: 'bg-rose-500/20 border-rose-500/30',
       },
     ],
