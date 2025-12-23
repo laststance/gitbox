@@ -52,12 +52,19 @@ export interface ProjectInfoData {
   credentials?: Credential[]
 }
 
+/** Maximum character limit for notes */
+const NOTE_MAX_LENGTH = 20000
+
 /**
- * Validate quick note
+ * Validate note content
+ *
+ * @param note - The note content to validate
+ * @returns true if valid
+ * @throws Error if note exceeds character limit
  */
-function validateQuickNote(note: string): boolean {
-  if (note.length > 300) {
-    throw new Error('Quick note must be 300 characters or less')
+function validateNote(note: string): boolean {
+  if (note.length > NOTE_MAX_LENGTH) {
+    throw new Error(`Note must be ${NOTE_MAX_LENGTH} characters or less`)
   }
   return true
 }
@@ -226,7 +233,7 @@ export async function upsertProjectInfo(
   const supabase = await createClient()
 
   // Validation
-  validateQuickNote(data.quickNote)
+  validateNote(data.quickNote)
   data.links.forEach((link) => {
     if (link.url) {
       validateUrl(link.url)

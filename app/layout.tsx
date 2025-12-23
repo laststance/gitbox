@@ -24,6 +24,8 @@ import '@/styles/themes/dark/ocean.css'
 import '@/styles/themes/dark/plum.css'
 import '@/styles/themes/dark/rust.css'
 
+import { Toaster } from 'sonner'
+
 import { CommandPalette } from '@/components/CommandPalette/CommandPalette'
 import { ShortcutsHelp } from '@/components/ShortcutsHelp'
 import { Providers } from '@/lib/redux/providers'
@@ -49,6 +51,7 @@ export default function RootLayout({
           {children}
           <ShortcutsHelp />
           <CommandPalette />
+          <Toaster richColors position="bottom-right" />
         </Providers>
       </body>
     </html>

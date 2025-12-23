@@ -49,6 +49,8 @@ interface KanbanBoardProps {
   boardId?: string
   onEditProjectInfo?: (cardId: string) => void
   onMoveToMaintenance?: (cardId: string) => void
+  /** Callback when Note button is clicked on a card */
+  onNote?: (cardId: string) => void
   onEditStatus?: (status: StatusListDomain) => void
   onDeleteStatus?: (statusId: string) => void
   onAddCard?: (statusId: string) => void
@@ -116,6 +118,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     boardId = 'default-board',
     onEditProjectInfo,
     onMoveToMaintenance,
+    onNote,
     onEditStatus,
     onDeleteStatus,
     onAddCard,
@@ -332,6 +335,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                   cards={cards.filter((c) => c.statusId === status.id)}
                   onEdit={onEditProjectInfo}
                   onMaintenance={onMoveToMaintenance}
+                  onNote={onNote}
                   onEditStatus={onEditStatus}
                   onDeleteStatus={onDeleteStatus}
                   onAddCard={onAddCard}

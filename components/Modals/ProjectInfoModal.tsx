@@ -48,8 +48,8 @@ interface ProjectInfoModalProps {
   projectInfo: ProjectInfo
 }
 
-const QUICK_NOTE_MAX_LENGTH = 300
-const QUICK_NOTE_WARNING_THRESHOLD = 290
+const NOTE_MAX_LENGTH = 20000
+const NOTE_WARNING_THRESHOLD = 18000
 
 const URL_REGEX = /^https?:\/\/.+/
 
@@ -94,9 +94,9 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
     }
   }, [])
 
-  const handleQuickNoteChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleNoteChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value
-    if (value.length <= QUICK_NOTE_MAX_LENGTH) {
+    if (value.length <= NOTE_MAX_LENGTH) {
       setQuickNote(value)
     }
   }
@@ -262,7 +262,7 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
     urlErrors.size === 0 &&
     links.every((link) => !link.url || validateUrl(link.url))
   const charCount = quickNote.length
-  const isNearLimit = charCount >= QUICK_NOTE_WARNING_THRESHOLD
+  const isNearLimit = charCount >= NOTE_WARNING_THRESHOLD
 
   const charCountClassName = useMemo(
     () =>
@@ -300,16 +300,16 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
       </DialogHeader>
 
       <div className="space-y-6 py-4">
-        {/* Quick Note Section */}
+        {/* Note Section */}
         <div className="space-y-2">
-          <Label htmlFor="quick-note">Quick Note</Label>
+          <Label htmlFor="note">Note</Label>
           <Textarea
-            id="quick-note"
-            data-testid="quick-note-textarea"
-            placeholder="Project notes (1-3 lines, max 300 characters)"
+            id="note"
+            data-testid="note-textarea"
+            placeholder="Project notes"
             value={quickNote}
-            onChange={handleQuickNoteChange}
-            maxLength={QUICK_NOTE_MAX_LENGTH}
+            onChange={handleNoteChange}
+            maxLength={NOTE_MAX_LENGTH}
             rows={3}
             autoFocus
             aria-describedby="char-count"
@@ -319,7 +319,7 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
             data-testid="char-count"
             className={charCountClassName}
           >
-            {charCount} / {QUICK_NOTE_MAX_LENGTH}
+            {charCount} / {NOTE_MAX_LENGTH}
           </div>
         </div>
 
@@ -607,7 +607,7 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
  * Project Info Modal Component
  *
  * A modal dialog for editing project information.
- * - Quick note (1-3 lines, max 300 characters)
+ * - Note (max 20,000 characters)
  * - Links (Production URL, Tracking services, Supabase Dashboard)
  * - Credentials management with three patterns:
  *   - Reference: Dashboard URL only

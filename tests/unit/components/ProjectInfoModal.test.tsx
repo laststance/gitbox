@@ -7,7 +7,7 @@
  *
  * Test targets:
  * - URL validation logic
- * - Quick note character limit (300)
+ * - Note character limit (20,000)
  * - Form state management
  * - Save/Cancel behavior
  */
@@ -141,52 +141,52 @@ describe('ProjectInfoModal', () => {
     })
   })
 
-  describe('Quick Note Character Limit', () => {
+  describe('Note Character Limit', () => {
     it('should display character count', () => {
       render(<ProjectInfoModal {...defaultProps} />)
 
       const charCount = screen.getByTestId('char-count')
-      expect(charCount).toHaveTextContent('0 / 300')
+      expect(charCount).toHaveTextContent('0 / 20000')
     })
 
     it('should update character count on input', () => {
       render(<ProjectInfoModal {...defaultProps} />)
 
-      const textarea = screen.getByTestId('quick-note-textarea')
+      const textarea = screen.getByTestId('note-textarea')
       fireEvent.change(textarea, {
         target: { value: 'Test note' },
       })
 
       const charCount = screen.getByTestId('char-count')
-      expect(charCount).toHaveTextContent('9 / 300')
+      expect(charCount).toHaveTextContent('9 / 20000')
     })
 
-    it('should prevent input beyond 300 characters', () => {
+    it('should prevent input beyond 20000 characters', () => {
       render(<ProjectInfoModal {...defaultProps} />)
 
       const textarea = screen.getByTestId(
-        'quick-note-textarea',
+        'note-textarea',
       ) as HTMLTextAreaElement
 
       // In React controlled components, maxLength attribute works automatically,
-      // so test exactly 300 characters input
-      const maxText = 'a'.repeat(300)
+      // so test exactly 20000 characters input
+      const maxText = 'a'.repeat(20000)
 
       fireEvent.change(textarea, {
         target: { value: maxText },
       })
 
-      expect(textarea.value.length).toBe(300)
+      expect(textarea.value.length).toBe(20000)
 
       const charCount = screen.getByTestId('char-count')
-      expect(charCount).toHaveTextContent('300 / 300')
+      expect(charCount).toHaveTextContent('20000 / 20000')
     })
 
     it('should show warning when approaching limit', () => {
       render(<ProjectInfoModal {...defaultProps} />)
 
-      const textarea = screen.getByTestId('quick-note-textarea')
-      const nearLimit = 'a'.repeat(290)
+      const textarea = screen.getByTestId('note-textarea')
+      const nearLimit = 'a'.repeat(18000)
 
       fireEvent.change(textarea, {
         target: { value: nearLimit },
@@ -225,7 +225,7 @@ describe('ProjectInfoModal', () => {
     it('should call onSave with form data when saved', async () => {
       render(<ProjectInfoModal {...defaultProps} />)
 
-      const textarea = screen.getByTestId('quick-note-textarea')
+      const textarea = screen.getByTestId('note-textarea')
       fireEvent.change(textarea, {
         target: { value: 'Test note' },
       })
@@ -255,7 +255,7 @@ describe('ProjectInfoModal', () => {
     it('should reset form when cancelled', () => {
       const { rerender } = render(<ProjectInfoModal {...defaultProps} />)
 
-      const textarea = screen.getByTestId('quick-note-textarea')
+      const textarea = screen.getByTestId('note-textarea')
       fireEvent.change(textarea, {
         target: { value: 'Changed text' },
       })
@@ -267,7 +267,7 @@ describe('ProjectInfoModal', () => {
       rerender(<ProjectInfoModal {...defaultProps} isOpen={false} />)
       rerender(<ProjectInfoModal {...defaultProps} isOpen={true} />)
 
-      const textareaAfter = screen.getByTestId('quick-note-textarea')
+      const textareaAfter = screen.getByTestId('note-textarea')
       expect(textareaAfter).toHaveValue('')
     })
   })
@@ -327,10 +327,10 @@ describe('ProjectInfoModal', () => {
   })
 
   describe('Accessibility (WCAG AA)', () => {
-    it('should set focus to Quick note textarea on open', () => {
+    it('should set focus to Note textarea on open', () => {
       render(<ProjectInfoModal {...defaultProps} />)
 
-      const textarea = screen.getByTestId('quick-note-textarea')
+      const textarea = screen.getByTestId('note-textarea')
       expect(textarea).toHaveFocus()
     })
 
@@ -345,8 +345,8 @@ describe('ProjectInfoModal', () => {
     it('should support keyboard navigation', () => {
       render(<ProjectInfoModal {...defaultProps} />)
 
-      // autoFocus is set on Quick note
-      const textarea = screen.getByTestId('quick-note-textarea')
+      // autoFocus is set on Note textarea
+      const textarea = screen.getByTestId('note-textarea')
       expect(textarea).toHaveFocus()
 
       // Verify that focusable elements exist

@@ -19,19 +19,21 @@ import { useDispatch, useSelector } from 'react-redux'
 import { createStorageMiddleware } from '@gitbox/redux-storage-middleware'
 import authReducer from './slices/authSlice'
 import boardReducer from './slices/boardSlice'
+import draftReducer from './slices/draftSlice'
 import settingsReducer from './slices/settingsSlice'
 
 // Storage middleware configuration
 const { middleware: storageMiddleware } = createStorageMiddleware({
-  // Synchronize settings and board slices to LocalStorage
+  // Synchronize settings, board, and draft slices to LocalStorage
   name: 'gitbox-state',
-  slices: ['settings', 'board'],
+  slices: ['settings', 'board', 'draft'],
 })
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
     board: boardReducer,
+    draft: draftReducer,
     settings: settingsReducer,
   },
   middleware: (getDefaultMiddleware) =>

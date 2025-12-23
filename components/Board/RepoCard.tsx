@@ -2,7 +2,7 @@
 
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Calendar, GripVertical, MessageCircle, Paperclip } from 'lucide-react'
+import { Calendar, GripVertical, Paperclip, StickyNote } from 'lucide-react'
 import React, { memo, useState } from 'react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -36,6 +36,8 @@ interface RepoCardProps {
   card: RepoCardData
   onEdit?: (id: string) => void
   onMaintenance?: (id: string) => void
+  /** Callback when Note button is clicked */
+  onNote?: (id: string) => void
 }
 
 /**
@@ -48,7 +50,7 @@ interface RepoCardProps {
  * - Overflow menu for card actions
  */
 export const RepoCard = memo<RepoCardProps>(
-  ({ card, onEdit, onMaintenance }) => {
+  ({ card, onEdit, onMaintenance, onNote }) => {
     const {
       attributes,
       listeners,
@@ -151,7 +153,7 @@ export const RepoCard = memo<RepoCardProps>(
                 </div>
               )}
 
-              <div className="flex items-center justify-between pt-2 border-t border-border">
+              <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center gap-3 text-muted-foreground">
                   {card.dueDate && (
                     <div className="flex items-center gap-1">
@@ -164,14 +166,6 @@ export const RepoCard = memo<RepoCardProps>(
                       </span>
                     </div>
                   )}
-                  {card.comments && (
-                    <div className="flex items-center gap-1">
-                      <MessageCircle className="w-4 h-4" />
-                      <span className="text-xs font-medium">
-                        {card.comments}
-                      </span>
-                    </div>
-                  )}
                   {card.attachments && (
                     <div className="flex items-center gap-1">
                       <Paperclip className="w-4 h-4" />
@@ -180,6 +174,15 @@ export const RepoCard = memo<RepoCardProps>(
                       </span>
                     </div>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => onNote?.(card.id)}
+                    className="flex items-center gap-1 hover:text-foreground transition-colors"
+                    aria-label="Open note"
+                  >
+                    <StickyNote className="w-4 h-4" />
+                    <span className="text-sm font-medium">Note</span>
+                  </button>
                 </div>
 
                 {card.assignee && (

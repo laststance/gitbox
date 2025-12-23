@@ -114,7 +114,7 @@ export const translations = {
     },
     projectInfo: {
       title: 'Project Info',
-      quickNote: 'Quick Note',
+      note: 'Note',
       links: 'Links',
       credentials: 'Credentials',
       addLink: 'Add Link',
@@ -252,7 +252,7 @@ export const translations = {
     },
     projectInfo: {
       title: 'プロジェクト情報',
-      quickNote: 'クイックメモ',
+      note: 'ノート',
       links: 'リンク',
       credentials: '認証情報',
       addLink: 'リンクを追加',

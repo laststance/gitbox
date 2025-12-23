@@ -20,6 +20,7 @@ import { useState, useCallback, memo } from 'react'
 
 import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox'
 import { KanbanBoard } from '@/components/Board/KanbanBoard'
+import { NoteModal } from '@/components/Modals/NoteModal'
 import type { ProjectInfo } from '@/components/Modals/ProjectInfoModal'
 import { ProjectInfoModal } from '@/components/Modals/ProjectInfoModal'
 import { StatusListDialog } from '@/components/Modals/StatusListDialog'
@@ -35,6 +36,7 @@ import type { StatusListDomain } from '@/lib/models/domain'
 import {
   setStatusLists,
   selectStatusLists,
+  selectRepoCards,
 } from '@/lib/redux/slices/boardSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 
@@ -49,6 +51,7 @@ export const BoardPageClient = memo(function BoardPageClient({
 }: BoardPageClientProps) {
   const dispatch = useAppDispatch()
   const statusLists = useAppSelector(selectStatusLists)
+  const repoCards = useAppSelector(selectRepoCards)
 
   // Project Info Modal state
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -64,6 +67,12 @@ export const BoardPageClient = memo(function BoardPageClient({
   const [statusDialogMode, setStatusDialogMode] = useState<'create' | 'edit'>(
     'create',
   )
+
+  // NoteModal state
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false)
+  const [noteCardId, setNoteCardId] = useState<string | null>(null)
+  const [noteCardTitle, setNoteCardTitle] = useState('')
+  const [initialNote, setInitialNote] = useState('')
 
   /**
    * Open Project Info modal
@@ -161,6 +170,62 @@ export const BoardPageClient = memo(function BoardPageClient({
   const handleMoveToMaintenance = useCallback((cardId: string) => {
     // TODO: Move to Maintenance Mode (implement in User Story 6)
     console.log('Move to Maintenance:', cardId)
+  }, [])
+
+  // ========================================
+  // NoteModal handlers
+  // ========================================
+
+  /**
+   * Open NoteModal for a card
+   * Fetches current note from Supabase
+   */
+  const handleOpenNote = useCallback(
+    async (cardId: string) => {
+      const card = repoCards.find((c) => c.id === cardId)
+      if (!card) return
+
+      setNoteCardId(cardId)
+      setNoteCardTitle(card.title)
+
+      try {
+        const data = await getProjectInfo(cardId)
+        setInitialNote(data?.quickNote || '')
+      } catch (error) {
+        console.error('Failed to load note:', error)
+        setInitialNote('')
+      }
+
+      setIsNoteModalOpen(true)
+    },
+    [repoCards],
+  )
+
+  /**
+   * Save note to Supabase
+   * Called by NoteModal with optimistic update
+   */
+  const handleSaveNote = useCallback(
+    async (note: string) => {
+      if (!noteCardId) return
+
+      await upsertProjectInfo(noteCardId, {
+        quickNote: note,
+        links: [],
+        credentials: [],
+      })
+    },
+    [noteCardId],
+  )
+
+  /**
+   * Close NoteModal
+   */
+  const handleCloseNote = useCallback(() => {
+    setIsNoteModalOpen(false)
+    setNoteCardId(null)
+    setNoteCardTitle('')
+    setInitialNote('')
   }, [])
 
   // ========================================
@@ -306,6 +371,7 @@ export const BoardPageClient = memo(function BoardPageClient({
             boardId={boardId}
             onEditProjectInfo={handleEditProjectInfo}
             onMoveToMaintenance={handleMoveToMaintenance}
+            onNote={handleOpenNote}
             onEditStatus={handleEditStatus}
             onDeleteStatus={handleDeleteStatus}
             onAddCard={handleAddCard}
@@ -331,6 +397,18 @@ export const BoardPageClient = memo(function BoardPageClient({
         statusList={selectedStatus}
         mode={statusDialogMode}
       />
+
+      {/* NoteModal */}
+      {noteCardId && (
+        <NoteModal
+          isOpen={isNoteModalOpen}
+          onClose={handleCloseNote}
+          onSave={handleSaveNote}
+          cardId={noteCardId}
+          initialNote={initialNote}
+          cardTitle={noteCardTitle}
+        />
+      )}
     </>
   )
 })

@@ -23,6 +23,8 @@ interface StatusColumnProps {
   cards: RepoCardForRedux[]
   onEdit?: (id: string) => void
   onMaintenance?: (id: string) => void
+  /** Callback when Note button is clicked */
+  onNote?: (id: string) => void
   onEditStatus?: (status: StatusListDomain) => void
   onDeleteStatus?: (statusId: string) => void
   onAddCard?: (statusId: string) => void
@@ -43,6 +45,7 @@ export const StatusColumn = memo<StatusColumnProps>(
     cards,
     onEdit,
     onMaintenance,
+    onNote,
     onEditStatus,
     onDeleteStatus,
     onAddCard,
@@ -129,6 +132,7 @@ export const StatusColumn = memo<StatusColumnProps>(
                     card={card}
                     onEdit={onEdit}
                     onMaintenance={onMaintenance}
+                    onNote={onNote}
                   />
                 </motion.div>
               ))}
