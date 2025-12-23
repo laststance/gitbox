@@ -105,7 +105,7 @@ export const RepoCard = memo<RepoCardProps>(
     return (
       <div ref={setNodeRef} style={style} data-testid="repo-card">
         <Card
-          className="cursor-move transition-all duration-200 border bg-card hover:shadow-md dark:hover:shadow-lg focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+          className="transition-all duration-200 border bg-card hover:shadow-md dark:hover:shadow-lg focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
           tabIndex={0}
           onKeyDown={handleKeyDown}
         >
