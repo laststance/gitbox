@@ -1,5 +1,6 @@
 'use client'
 
+import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MoreHorizontal, Pencil, Trash2, Plus } from 'lucide-react'
@@ -16,6 +17,12 @@ import {
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 
 import { RepoCard } from './RepoCard'
+
+/**
+ * Drag type identifier for cards
+ * Used to distinguish card drags from column drags in DndContext
+ */
+export const CARD_DRAG_TYPE = 'card'
 
 // Types: Using Domain types for type-safe state management
 interface StatusColumnProps {
@@ -38,6 +45,7 @@ interface StatusColumnProps {
  * - WIP limit badge with exceeded warning
  * - Contains draggable repository cards
  * - Column actions (add card, edit, delete)
+ * - Acts as droppable for cards from other columns
  */
 export const StatusColumn = memo<StatusColumnProps>(
   ({
@@ -53,9 +61,18 @@ export const StatusColumn = memo<StatusColumnProps>(
     const cardIds = cards.map((c) => c.id)
     const isOverLimit = status.wipLimit > 0 && cards.length > status.wipLimit
 
+    // Make the column a droppable target for cards
+    const { setNodeRef, isOver } = useDroppable({
+      id: `droppable-${status.id}`,
+      data: {
+        type: 'column',
+        statusId: status.id,
+      },
+    })
+
     return (
       <div
-        className="flex flex-col h-full min-w-[280px] bg-background/50 backdrop-blur-sm rounded-xl p-4 border border-border"
+        className="flex flex-col h-full"
         data-testid={`status-column-${status.id}`}
       >
         <div className="flex items-center justify-between mb-4">
@@ -118,7 +135,14 @@ export const StatusColumn = memo<StatusColumnProps>(
         </div>
 
         <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
-          <div className="space-y-3 flex-1 overflow-y-auto">
+          <div
+            ref={setNodeRef}
+            className={`
+              space-y-3 flex-1 overflow-y-auto min-h-[100px] rounded-lg p-1
+              transition-colors duration-200
+              ${isOver ? 'bg-accent/50 ring-2 ring-primary/20' : ''}
+            `}
+          >
             <AnimatePresence>
               {cards.map((card) => (
                 <motion.div

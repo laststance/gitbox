@@ -11,15 +11,19 @@ import {
   KeyboardSensor,
   MouseSensor,
   TouchSensor,
-  closestCorners,
+  pointerWithin,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import { restrictToParentElement } from '@dnd-kit/modifiers'
-import { arrayMove } from '@dnd-kit/sortable'
+import { restrictToWindowEdges } from '@dnd-kit/modifiers'
+import {
+  arrayMove,
+  SortableContext,
+  horizontalListSortingStrategy,
+} from '@dnd-kit/sortable'
 import { motion } from 'framer-motion'
-import { AlertCircle } from 'lucide-react'
-import React, { useState, useEffect, memo, useCallback } from 'react'
+import { AlertCircle, GripVertical } from 'lucide-react'
+import React, { useState, useEffect, memo, useCallback, useMemo } from 'react'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -27,6 +31,7 @@ import {
   getBoardData,
   updateRepoCardPosition,
   batchUpdateRepoCardOrders,
+  batchUpdateStatusListOrders,
 } from '@/lib/actions/board'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import {
@@ -41,7 +46,12 @@ import {
 } from '@/lib/redux/slices/boardSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 
-import { StatusColumn } from './StatusColumn'
+import { SortableColumn, COLUMN_DRAG_TYPE } from './SortableColumn'
+
+/**
+ * Drag type identifier for active drag detection
+ */
+type DragType = 'column' | 'card' | null
 
 // Types: Using Domain types for type-safe state management
 
@@ -132,9 +142,23 @@ export const KanbanBoard = memo<KanbanBoardProps>(
 
     // Local state (temporary state not migrated to Redux)
     const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null)
+    const [activeDragType, setActiveDragType] = useState<DragType>(null)
     // History stack for undo functionality (max 10 entries)
     const [history, setHistory] = useState<RepoCardForRedux[][]>([])
+    const [columnHistory, setColumnHistory] = useState<StatusListDomain[][]>([])
     const [undoMessage, setUndoMessage] = useState<string | null>(null)
+
+    // Memoized sorted statuses for consistent rendering
+    const sortedStatuses = useMemo(
+      () => [...statuses].sort((a, b) => a.order - b.order),
+      [statuses],
+    )
+
+    // Column IDs for SortableContext
+    const columnIds = useMemo(
+      () => sortedStatuses.map((s) => s.id),
+      [sortedStatuses],
+    )
 
     const sensors = useSensors(
       useSensor(MouseSensor, {
@@ -181,19 +205,28 @@ export const KanbanBoard = memo<KanbanBoardProps>(
 
     /**
      * Undo functionality: Reverts the last drag & drop operation
+     * Supports both card and column operations
      * Requirements: <200ms response time
      */
     const handleUndo = useCallback(() => {
-      if (history.length === 0) return
+      // Try column undo first, then card undo
+      if (columnHistory.length > 0) {
+        const previousState = columnHistory[columnHistory.length - 1]
+        dispatch(setStatusLists(previousState))
+        setColumnHistory((prev) => prev.slice(0, -1))
+        setUndoMessage('Column order restored')
+        setTimeout(() => setUndoMessage(null), 2000)
+        return
+      }
 
-      const previousState = history[history.length - 1]
-      dispatch(setRepoCards(previousState))
-      setHistory((prev) => prev.slice(0, -1))
-
-      // Display undo feedback (auto-dismiss after 2 seconds)
-      setUndoMessage('Operation undone')
-      setTimeout(() => setUndoMessage(null), 2000)
-    }, [history, dispatch])
+      if (history.length > 0) {
+        const previousState = history[history.length - 1]
+        dispatch(setRepoCards(previousState))
+        setHistory((prev) => prev.slice(0, -1))
+        setUndoMessage('Card operation undone')
+        setTimeout(() => setUndoMessage(null), 2000)
+      }
+    }, [history, columnHistory, dispatch])
 
     // Keyboard shortcut: Z key to execute undo
     useEffect(() => {
@@ -209,27 +242,107 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       return () => window.removeEventListener('keydown', handleKeyDown)
     }, [handleUndo]) // Depends on handleUndo
 
+    /**
+     * Handle drag start event
+     * Detects whether column or card is being dragged
+     */
     const handleDragStart = (event: DragStartEvent) => {
-      setActiveId(event.active.id)
+      const { active } = event
+      setActiveId(active.id)
+
+      // Determine drag type from data
+      const dragData = active.data.current
+      if (dragData?.type === COLUMN_DRAG_TYPE) {
+        setActiveDragType('column')
+      } else {
+        setActiveDragType('card')
+      }
     }
 
+    /**
+     * Handle drag end event
+     * Processes both column and card reordering
+     */
     const handleDragEnd = async (event: DragEndEvent) => {
       const { active, over } = event
       setActiveId(null)
+      setActiveDragType(null)
 
       if (!over) return
 
+      // Handle column reordering
+      if (active.data.current?.type === COLUMN_DRAG_TYPE) {
+        if (active.id === over.id) return
+
+        const oldIndex = sortedStatuses.findIndex((s) => s.id === active.id)
+        const newIndex = sortedStatuses.findIndex((s) => s.id === over.id)
+
+        if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+          // Save current state to column history (max 10 entries)
+          setColumnHistory((prev) => {
+            const newHistory = [...prev, statuses]
+            return newHistory.slice(-10)
+          })
+
+          // Create reordered array with updated order values
+          const reordered = arrayMove(sortedStatuses, oldIndex, newIndex)
+          const updatedStatuses = reordered.map((status, index) => ({
+            ...status,
+            order: index,
+          }))
+
+          // Optimistic UI update
+          dispatch(setStatusLists(updatedStatuses))
+
+          // Sync to Supabase (background)
+          try {
+            const updates = updatedStatuses.map((status) => ({
+              id: status.id,
+              order: status.order,
+            }))
+            await batchUpdateStatusListOrders(updates)
+          } catch (error) {
+            console.error('Failed to sync column order:', error)
+            // Revert on error
+            dispatch(setStatusLists(statuses))
+          }
+        }
+        return
+      }
+
+      // Handle card reordering
       const activeCard = cards.find((c) => c.id === active.id)
       if (!activeCard) return
 
-      const overStatusId = over.id as string
-      const overCard = cards.find((c) => c.id === over.id)
-      const targetStatusId = overCard ? overCard.statusId : overStatusId
+      // Determine target status ID from over element
+      let targetStatusId: string
+      const overData = over.data.current
+
+      if (overData?.type === 'column' && overData?.statusId) {
+        // Dropped on a column droppable
+        targetStatusId = overData.statusId
+      } else {
+        // Dropped on a card or column
+        const overCard = cards.find((c) => c.id === over.id)
+        if (overCard) {
+          targetStatusId = overCard.statusId
+        } else {
+          // Check if dropped on droppable column
+          const overId = over.id.toString()
+          if (overId.startsWith('droppable-')) {
+            targetStatusId = overId.replace('droppable-', '')
+          } else {
+            // Assume it's a column ID directly
+            const overStatus = statuses.find((s) => s.id === overId)
+            targetStatusId = overStatus ? overId : activeCard.statusId
+          }
+        }
+      }
 
       // Save current state to history (max 10 entries)
       setHistory((prev) => {
         const newHistory = [...prev, cards]
-        return newHistory.slice(-10) // Keep only the latest 10 entries
+        return newHistory.slice(-10)
       })
 
       if (activeCard.statusId === targetStatusId) {
@@ -238,7 +351,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
         const oldIndex = columnCards.findIndex((c) => c.id === active.id)
         const newIndex = columnCards.findIndex((c) => c.id === over.id)
 
-        if (oldIndex !== newIndex) {
+        if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
           const reordered = arrayMove(columnCards, oldIndex, newIndex)
           const otherCards = cards.filter((c) => c.statusId !== targetStatusId)
 
@@ -257,6 +370,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           } catch (error) {
             console.error('Failed to sync card order:', error)
             // Revert on error (restore from history)
+            dispatch(setRepoCards(cards))
           }
         }
       } else {
@@ -320,16 +434,19 @@ export const KanbanBoard = memo<KanbanBoardProps>(
 
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCorners}
+          collisionDetection={pointerWithin}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
-          modifiers={[restrictToParentElement]}
+          modifiers={[restrictToWindowEdges]}
         >
-          <div className="flex gap-4 overflow-x-auto pb-4">
-            {[...statuses]
-              .sort((a, b) => a.order - b.order)
-              .map((status) => (
-                <StatusColumn
+          {/* Column-level SortableContext for horizontal reordering */}
+          <SortableContext
+            items={columnIds}
+            strategy={horizontalListSortingStrategy}
+          >
+            <div className="flex gap-4 overflow-x-auto pb-4">
+              {sortedStatuses.map((status) => (
+                <SortableColumn
                   key={status.id}
                   status={status}
                   cards={cards.filter((c) => c.statusId === status.id)}
@@ -341,10 +458,23 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                   onAddCard={onAddCard}
                 />
               ))}
-          </div>
+            </div>
+          </SortableContext>
 
+          {/* DragOverlay for both column and card previews */}
           <DragOverlay>
-            {activeCard ? (
+            {activeDragType === 'column' && activeId ? (
+              // Column drag preview
+              <div className="min-w-[280px] bg-background/80 backdrop-blur-sm rounded-xl p-4 border-2 border-primary shadow-2xl opacity-90">
+                <div className="flex items-center gap-2">
+                  <GripVertical className="w-4 h-4 text-muted-foreground" />
+                  <h3 className="font-semibold text-foreground">
+                    {sortedStatuses.find((s) => s.id === activeId)?.title}
+                  </h3>
+                </div>
+              </div>
+            ) : activeCard ? (
+              // Card drag preview
               <Card className="cursor-grabbing shadow-2xl rotate-3 opacity-90">
                 <CardContent className="p-4">
                   <h4 className="font-semibold text-foreground">

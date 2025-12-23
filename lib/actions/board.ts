@@ -229,6 +229,43 @@ export async function deleteStatusList(
   revalidatePath(`/board/${boardId}`)
 }
 
+/**
+ * Batch update status list orders
+ * Used for drag & drop column reordering
+ *
+ * @param updates - Array of status list updates with id and new order
+ * @returns void
+ * @example
+ * batchUpdateStatusListOrders([
+ *   { id: 'status-1', order: 0 },
+ *   { id: 'status-2', order: 1 },
+ * ])
+ */
+export async function batchUpdateStatusListOrders(
+  updates: Array<{ id: string; order: number }>,
+): Promise<void> {
+  const supabase = await createClient()
+
+  // Use parallel updates for performance
+  const updatePromises = updates.map(({ id, order }) =>
+    supabase
+      .from('statuslist')
+      .update({
+        order: order,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id),
+  )
+
+  const results = await Promise.all(updatePromises)
+
+  const errors = results.filter((r) => r.error)
+  if (errors.length > 0) {
+    console.error('Failed to batch update status list orders:', errors)
+    throw new Error('Failed to update column order')
+  }
+}
+
 // ========================================
 // RepoCard Operations
 // ========================================
