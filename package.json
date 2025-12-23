@@ -99,5 +99,10 @@
   },
   "volta": {
     "node": "24.12.0"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }
