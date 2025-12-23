@@ -1,7 +1,7 @@
 import type { Preview } from '@storybook/nextjs-vite'
 import React from 'react'
 
-import { initialize, mswDecorator } from 'msw-storybook-addon'
+import { initialize, mswLoader } from 'msw-storybook-addon'
 
 import { Provider as ReduxStoreProvider } from 'react-redux'
 import { store } from '../lib/redux/store'
@@ -34,7 +34,13 @@ const preview: Preview = {
         date: /Date$/i,
       },
     },
-
+    // Default Next.js navigation mocking for components using usePathname/useRouter
+    nextjs: {
+      navigation: {
+        pathname: '/boards',
+      },
+      appDirectory: true,
+    },
     a11y: {
       // 'todo' - show a11y violations in the test UI only
       // 'error' - fail CI on a11y violations
@@ -42,8 +48,10 @@ const preview: Preview = {
       test: 'todo',
     },
   },
+  // MSW loader must be in loaders (not decorators) to ensure
+  // service workers are registered before story rendering
+  loaders: [mswLoader],
   decorators: [
-    mswDecorator,
     (Story) => (
       <ReduxStoreProvider store={store}>
         <Story />

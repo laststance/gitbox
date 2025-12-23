@@ -23,12 +23,13 @@ const dirname =
 
 export default defineConfig({
   plugins: [react()],
+  // Pre-bundle dependencies to prevent Vite re-optimization during tests
+  optimizeDeps: {
+    include: ['superjson', 'lz-string'],
+  },
   test: {
+    // Shared configuration
     globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./tests/setup.ts'],
-    include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
-    exclude: ['tests/e2e/**/*', 'node_modules/**/*', 'dist/**/*'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -41,13 +42,26 @@ export default defineConfig({
         'dist/',
       ],
     },
-    alias: {
-      '@gitbox/redux-storage-middleware': path.resolve(
-        dirname,
-        'tests/__mocks__/@gitbox/redux-storage-middleware.ts',
-      ),
-    },
+    // Two separate test projects: unit tests (jsdom) and Storybook (browser)
     projects: [
+      // Unit tests project (jsdom environment)
+      {
+        extends: true,
+        test: {
+          name: 'unit',
+          environment: 'jsdom',
+          include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
+          exclude: ['tests/e2e/**/*', 'node_modules/**/*', 'dist/**/*'],
+          setupFiles: ['./tests/setup.ts'],
+          alias: {
+            '@gitbox/redux-storage-middleware': path.resolve(
+              dirname,
+              'tests/__mocks__/@gitbox/redux-storage-middleware.ts',
+            ),
+          },
+        },
+      },
+      // Storybook tests project (browser environment with Playwright)
       {
         extends: true,
         plugins: [
@@ -55,6 +69,8 @@ export default defineConfig({
           // See options at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon#storybooktest
           storybookTest({
             configDir: path.join(dirname, '.storybook'),
+            // Script to start Storybook (--no-open prevents browser opening)
+            storybookScript: 'pnpm storybook --no-open',
           }),
         ],
         test: {

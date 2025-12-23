@@ -39,9 +39,11 @@ describe('Middleware (middleware.ts)', () => {
       const matcher = config.matcher[0]
 
       expect(typeof matcher).toBe('string')
-      expect(matcher).toContain('_next/static')
-      expect(matcher).toContain('_next/image')
+      // Matcher uses negative lookahead to exclude _next, api, and static assets
+      // Pattern: (?!_next|api|favicon.ico|icons|.*\.(?:svg|png|...))
+      expect(matcher).toContain('_next')
       expect(matcher).toContain('favicon.ico')
+      expect(matcher).toContain('api')
     })
   })
 
