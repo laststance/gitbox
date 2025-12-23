@@ -11,10 +11,11 @@
  * RTK Query for security reasons (HTTP-only cookie token access).
  */
 
-import { createStorageMiddleware } from '@gitbox/redux-storage-middleware'
 import { configureStore } from '@reduxjs/toolkit'
 import type { TypedUseSelectorHook } from 'react-redux'
 import { useDispatch, useSelector } from 'react-redux'
+// eslint-disable-next-line import/order -- Workspace package resolution differs between local and CI environments
+import { createStorageMiddleware } from '@gitbox/redux-storage-middleware'
 
 import authReducer from './slices/authSlice'
 import boardReducer from './slices/boardSlice'
