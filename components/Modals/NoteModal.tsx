@@ -1,7 +1,7 @@
 'use client'
 
 import { StickyNote } from 'lucide-react'
-import { memo, useCallback, useEffect, useOptimistic, useState } from 'react'
+import { memo, useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -74,9 +74,6 @@ export const NoteModal = memo(function NoteModal({
   const [note, setNote] = useState(draft?.content ?? initialNote)
   const [isSaving, setIsSaving] = useState(false)
 
-  // Optimistic state for instant save feedback
-  const [optimisticSaved, setOptimisticSaved] = useOptimistic(false)
-
   // Sync note when modal opens or initial note changes
   useEffect(() => {
     if (isOpen) {
@@ -108,7 +105,6 @@ export const NoteModal = memo(function NoteModal({
     setIsSaving(true)
 
     // Optimistic: close modal and show toast immediately
-    setOptimisticSaved(true)
     onClose()
     toast.success('Note saved', {
       description: `Note for ${cardTitle} has been saved.`,
@@ -131,7 +127,7 @@ export const NoteModal = memo(function NoteModal({
     } finally {
       setIsSaving(false)
     }
-  }, [note, onSave, onClose, cardId, cardTitle, dispatch, setOptimisticSaved])
+  }, [note, onSave, onClose, cardId, cardTitle, dispatch])
 
   /**
    * Handle modal close without saving
@@ -186,7 +182,7 @@ export const NoteModal = memo(function NoteModal({
           <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={isSaving || optimisticSaved}>
+          <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? 'Saving...' : 'Save'}
           </Button>
         </DialogFooter>
