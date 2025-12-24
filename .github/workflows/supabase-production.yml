@@ -6,6 +6,7 @@ on:
     paths:
       - 'supabase/migrations/**'
       - 'supabase/config.toml'
+  workflow_dispatch:
 
 concurrency:
   group: supabase-production-${{ github.ref }}
