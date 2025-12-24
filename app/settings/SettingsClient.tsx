@@ -8,7 +8,9 @@
 
 import { Check, Sun, Moon, Monitor, Globe } from 'lucide-react'
 import Link from 'next/link'
-import { useState, memo, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import { useState, memo, useMemo, useCallback } from 'react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -165,8 +167,20 @@ const ThemeButton = memo(function ThemeButton({
 })
 
 export const SettingsClient = memo(function SettingsClient() {
+  const router = useRouter()
   const { theme, setTheme, mounted } = useTheme()
   const { language, setLanguage, t } = useI18n()
+
+  /**
+   * Handles the save settings action.
+   * Shows a success toast and navigates to the boards page.
+   */
+  const handleSaveSettings = useCallback(() => {
+    toast.success('Settings saved', {
+      description: 'Your preferences have been updated.',
+    })
+    router.push('/boards')
+  }, [router])
 
   const englishButtonClassName = useMemo(
     () =>
@@ -385,7 +399,7 @@ export const SettingsClient = memo(function SettingsClient() {
           <Link href="/boards">
             <Button variant="outline">Back to Boards</Button>
           </Link>
-          <Button>Save Settings</Button>
+          <Button onClick={handleSaveSettings}>Save Settings</Button>
         </div>
       </div>
     </div>
