@@ -11,7 +11,7 @@ import {
   KeyboardSensor,
   MouseSensor,
   TouchSensor,
-  pointerWithin,
+  closestCenter,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
@@ -434,7 +434,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
 
         <DndContext
           sensors={sensors}
-          collisionDetection={pointerWithin}
+          collisionDetection={closestCenter}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           modifiers={[restrictToWindowEdges]}
