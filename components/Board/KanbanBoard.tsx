@@ -31,7 +31,7 @@ import {
   getBoardData,
   updateRepoCardPosition,
   batchUpdateRepoCardOrders,
-  batchUpdateStatusListOrders,
+  swapStatusListPositions,
 } from '@/lib/actions/board'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import {
@@ -46,6 +46,7 @@ import {
 } from '@/lib/redux/slices/boardSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 
+import { NewRowDropZone, NEW_ROW_DROP_TYPE } from './NewRowDropZone'
 import { SortableColumn, COLUMN_DRAG_TYPE } from './SortableColumn'
 
 /**
@@ -148,11 +149,23 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     const [columnHistory, setColumnHistory] = useState<StatusListDomain[][]>([])
     const [undoMessage, setUndoMessage] = useState<string | null>(null)
 
-    // Memoized sorted statuses for consistent rendering
+    // Memoized sorted statuses for consistent rendering (by gridRow, then gridCol)
     const sortedStatuses = useMemo(
-      () => [...statuses].sort((a, b) => a.order - b.order),
+      () =>
+        [...statuses].sort((a, b) => {
+          if (a.gridRow !== b.gridRow) return a.gridRow - b.gridRow
+          return a.gridCol - b.gridCol
+        }),
       [statuses],
     )
+
+    // Calculate grid dimensions for CSS grid template
+    const gridDimensions = useMemo(() => {
+      if (statuses.length === 0) return { maxRow: 0, maxCol: 0 }
+      const maxRow = Math.max(...statuses.map((s) => s.gridRow))
+      const maxCol = Math.max(...statuses.map((s) => s.gridCol))
+      return { maxRow, maxCol }
+    }, [statuses])
 
     // Column IDs for SortableContext
     const columnIds = useMemo(
@@ -270,39 +283,93 @@ export const KanbanBoard = memo<KanbanBoardProps>(
 
       if (!over) return
 
-      // Handle column reordering
+      // Handle column position changes (2D grid)
       if (active.data.current?.type === COLUMN_DRAG_TYPE) {
         if (active.id === over.id) return
 
-        const oldIndex = sortedStatuses.findIndex((s) => s.id === active.id)
-        const newIndex = sortedStatuses.findIndex((s) => s.id === over.id)
+        const activeStatus = statuses.find((s) => s.id === active.id)
+        const overData = over.data.current
 
-        if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+        // Check if dropped on NewRowDropZone
+        if (overData?.type === NEW_ROW_DROP_TYPE && activeStatus) {
+          const targetRow = overData.gridRow as number
+          const targetCol = overData.gridCol as number
+
           // Save current state to column history (max 10 entries)
           setColumnHistory((prev) => {
             const newHistory = [...prev, statuses]
             return newHistory.slice(-10)
           })
 
-          // Create reordered array with updated order values
-          const reordered = arrayMove(sortedStatuses, oldIndex, newIndex)
-          const updatedStatuses = reordered.map((status, index) => ({
-            ...status,
-            order: index,
-          }))
+          // Move column to new row
+          const updatedStatuses = statuses.map((status) => {
+            if (status.id === activeStatus.id) {
+              return {
+                ...status,
+                gridRow: targetRow,
+                gridCol: targetCol,
+              }
+            }
+            return status
+          })
 
           // Optimistic UI update
           dispatch(setStatusLists(updatedStatuses))
 
           // Sync to Supabase (background)
           try {
-            const updates = updatedStatuses.map((status) => ({
-              id: status.id,
-              order: status.order,
-            }))
-            await batchUpdateStatusListOrders(updates)
+            const { updateStatusListPosition } =
+              await import('@/lib/actions/board')
+            await updateStatusListPosition(
+              activeStatus.id,
+              targetRow,
+              targetCol,
+            )
           } catch (error) {
-            console.error('Failed to sync column order:', error)
+            console.error('Failed to move column to new row:', error)
+            // Revert on error
+            dispatch(setStatusLists(statuses))
+          }
+          return
+        }
+
+        // Handle column swap (drop on another column)
+        const overStatus = statuses.find((s) => s.id === over.id)
+
+        if (activeStatus && overStatus) {
+          // Save current state to column history (max 10 entries)
+          setColumnHistory((prev) => {
+            const newHistory = [...prev, statuses]
+            return newHistory.slice(-10)
+          })
+
+          // Swap grid positions between the two columns
+          const updatedStatuses = statuses.map((status) => {
+            if (status.id === activeStatus.id) {
+              return {
+                ...status,
+                gridRow: overStatus.gridRow,
+                gridCol: overStatus.gridCol,
+              }
+            }
+            if (status.id === overStatus.id) {
+              return {
+                ...status,
+                gridRow: activeStatus.gridRow,
+                gridCol: activeStatus.gridCol,
+              }
+            }
+            return status
+          })
+
+          // Optimistic UI update
+          dispatch(setStatusLists(updatedStatuses))
+
+          // Sync to Supabase (background)
+          try {
+            await swapStatusListPositions(activeStatus.id, overStatus.id)
+          } catch (error) {
+            console.error('Failed to swap column positions:', error)
             // Revert on error
             dispatch(setStatusLists(statuses))
           }
@@ -441,7 +508,14 @@ export const KanbanBoard = memo<KanbanBoardProps>(
         >
           {/* Column-level SortableContext for 2D grid reordering */}
           <SortableContext items={columnIds} strategy={rectSortingStrategy}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-4">
+            <div
+              className="grid gap-4 pb-4"
+              style={{
+                gridTemplateColumns: `repeat(${gridDimensions.maxCol + 1}, minmax(280px, 1fr))`,
+                // Add extra row for NewRowDropZone when dragging
+                gridTemplateRows: `repeat(${gridDimensions.maxRow + 1 + (activeDragType === 'column' ? 1 : 0)}, auto)`,
+              }}
+            >
               {sortedStatuses.map((status) => (
                 <SortableColumn
                   key={status.id}
@@ -453,8 +527,20 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                   onEditStatus={onEditStatus}
                   onDeleteStatus={onDeleteStatus}
                   onAddCard={onAddCard}
+                  gridStyle={{
+                    gridRow: status.gridRow + 1, // CSS grid is 1-indexed
+                    gridColumn: status.gridCol + 1,
+                  }}
                 />
               ))}
+
+              {/* New Row Drop Zone - only visible during column drag */}
+              {activeDragType === 'column' && (
+                <NewRowDropZone
+                  targetRow={gridDimensions.maxRow + 1}
+                  columnCount={gridDimensions.maxCol + 1}
+                />
+              )}
             </div>
           </SortableContext>
 

@@ -29,6 +29,7 @@ type RepoCardRow = Tables<'repocard'>
 
 /**
  * Get all status lists for a board
+ * Ordered by grid position (row first, then column)
  */
 export async function getStatusLists(
   boardId: string,
@@ -39,7 +40,8 @@ export async function getStatusLists(
     .from('statuslist')
     .select('*')
     .eq('board_id', boardId)
-    .order('order', { ascending: true })
+    .order('grid_row', { ascending: true })
+    .order('grid_col', { ascending: true })
 
   if (error) {
     console.error('Failed to fetch status lists:', error)
@@ -52,7 +54,8 @@ export async function getStatusLists(
     title: row.name,
     wipLimit: row.wip_limit ?? 0,
     color: row.color ?? '#6B7280',
-    order: row.order,
+    gridRow: row.grid_row ?? 0,
+    gridCol: row.grid_col ?? 0,
     boardId: row.board_id,
     createdAt: row.created_at ?? new Date().toISOString(),
     updatedAt: row.updated_at ?? new Date().toISOString(),
@@ -62,6 +65,7 @@ export async function getStatusLists(
 /**
  * Create default status lists for a new board
  * Called when a board has no status lists
+ * All columns start in row 0 (single row layout)
  */
 export async function createDefaultStatusLists(
   boardId: string,
@@ -74,6 +78,8 @@ export async function createDefaultStatusLists(
       name: 'Backlog',
       color: '#8B7355',
       order: 0,
+      grid_row: 0,
+      grid_col: 0,
       wip_limit: null,
     },
     {
@@ -81,6 +87,8 @@ export async function createDefaultStatusLists(
       name: 'Todo',
       color: '#6B8E23',
       order: 1,
+      grid_row: 0,
+      grid_col: 1,
       wip_limit: 5,
     },
     {
@@ -88,6 +96,8 @@ export async function createDefaultStatusLists(
       name: 'In Progress',
       color: '#CD853F',
       order: 2,
+      grid_row: 0,
+      grid_col: 2,
       wip_limit: 3,
     },
     {
@@ -95,6 +105,8 @@ export async function createDefaultStatusLists(
       name: 'Review',
       color: '#4682B4',
       order: 3,
+      grid_row: 0,
+      grid_col: 3,
       wip_limit: 4,
     },
     {
@@ -102,6 +114,8 @@ export async function createDefaultStatusLists(
       name: 'Done',
       color: '#556B2F',
       order: 4,
+      grid_row: 0,
+      grid_col: 4,
       wip_limit: null,
     },
   ]
@@ -123,7 +137,8 @@ export async function createDefaultStatusLists(
     title: row.name,
     wipLimit: row.wip_limit ?? 0,
     color: row.color ?? '#6B7280',
-    order: row.order,
+    gridRow: row.grid_row ?? 0,
+    gridCol: row.grid_col ?? 0,
     boardId: row.board_id,
     createdAt: row.created_at ?? new Date().toISOString(),
     updatedAt: row.updated_at ?? new Date().toISOString(),
@@ -132,6 +147,7 @@ export async function createDefaultStatusLists(
 
 /**
  * Create a new status list
+ * New columns are placed in row 0 at the next available column
  */
 export async function createStatusList(
   boardId: string,
@@ -141,16 +157,17 @@ export async function createStatusList(
 ): Promise<StatusListDomain> {
   const supabase = await createClient()
 
-  // Get the current max order
-  const { data: maxOrderData } = await supabase
+  // Get the current max grid_col in row 0
+  const { data: maxColData } = await supabase
     .from('statuslist')
-    .select('order')
+    .select('grid_col')
     .eq('board_id', boardId)
-    .order('order', { ascending: false })
+    .eq('grid_row', 0)
+    .order('grid_col', { ascending: false })
     .limit(1)
     .single()
 
-  const nextOrder = (maxOrderData?.order ?? -1) + 1
+  const nextCol = (maxColData?.grid_col ?? -1) + 1
 
   const { data, error } = await supabase
     .from('statuslist')
@@ -158,7 +175,9 @@ export async function createStatusList(
       board_id: boardId,
       name,
       color,
-      order: nextOrder,
+      order: nextCol, // Keep order in sync for backwards compatibility
+      grid_row: 0,
+      grid_col: nextCol,
       wip_limit: wipLimit ?? null,
     })
     .select()
@@ -176,7 +195,8 @@ export async function createStatusList(
     title: data.name,
     wipLimit: data.wip_limit ?? 0,
     color: data.color ?? '#6B7280',
-    order: data.order,
+    gridRow: data.grid_row ?? 0,
+    gridCol: data.grid_col ?? 0,
     boardId: data.board_id,
     createdAt: data.created_at ?? new Date().toISOString(),
     updatedAt: data.updated_at ?? new Date().toISOString(),
@@ -231,28 +251,116 @@ export async function deleteStatusList(
 }
 
 /**
- * Batch update status list orders
- * Used for drag & drop column reordering
+ * Update a single status list position
+ * Used for moving a column to a new grid cell
  *
- * @param updates - Array of status list updates with id and new order
- * @returns void
+ * @param id - Status list ID
+ * @param gridRow - New row position (0-indexed)
+ * @param gridCol - New column position (0-indexed)
+ */
+export async function updateStatusListPosition(
+  id: string,
+  gridRow: number,
+  gridCol: number,
+): Promise<void> {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('statuslist')
+    .update({
+      grid_row: gridRow,
+      grid_col: gridCol,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+
+  if (error) {
+    console.error('Failed to update status list position:', error)
+    throw new Error('Failed to update column position')
+  }
+}
+
+/**
+ * Swap positions between two status lists
+ * Used when dropping a column onto an occupied cell
+ *
+ * @param id1 - First status list ID
+ * @param id2 - Second status list ID
+ */
+export async function swapStatusListPositions(
+  id1: string,
+  id2: string,
+): Promise<void> {
+  const supabase = await createClient()
+
+  // Get current positions
+  const { data: status1 } = await supabase
+    .from('statuslist')
+    .select('grid_row, grid_col')
+    .eq('id', id1)
+    .single()
+
+  const { data: status2 } = await supabase
+    .from('statuslist')
+    .select('grid_row, grid_col')
+    .eq('id', id2)
+    .single()
+
+  if (!status1 || !status2) {
+    throw new Error('Failed to find status lists to swap')
+  }
+
+  // Swap positions
+  const updatePromises = [
+    supabase
+      .from('statuslist')
+      .update({
+        grid_row: status2.grid_row,
+        grid_col: status2.grid_col,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id1),
+    supabase
+      .from('statuslist')
+      .update({
+        grid_row: status1.grid_row,
+        grid_col: status1.grid_col,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id2),
+  ]
+
+  const results = await Promise.all(updatePromises)
+  const errors = results.filter((r) => r.error)
+  if (errors.length > 0) {
+    console.error('Failed to swap status list positions:', errors)
+    throw new Error('Failed to swap column positions')
+  }
+}
+
+/**
+ * Batch update status list positions
+ * Used for complex drag & drop operations affecting multiple columns
+ *
+ * @param updates - Array of status list updates with id and new grid positions
  * @example
- * batchUpdateStatusListOrders([
- *   { id: 'status-1', order: 0 },
- *   { id: 'status-2', order: 1 },
+ * batchUpdateStatusListPositions([
+ *   { id: 'status-1', gridRow: 0, gridCol: 0 },
+ *   { id: 'status-2', gridRow: 1, gridCol: 0 },
  * ])
  */
-export async function batchUpdateStatusListOrders(
-  updates: Array<{ id: string; order: number }>,
+export async function batchUpdateStatusListPositions(
+  updates: Array<{ id: string; gridRow: number; gridCol: number }>,
 ): Promise<void> {
   const supabase = await createClient()
 
   // Use parallel updates for performance
-  const updatePromises = updates.map(({ id, order }) =>
+  const updatePromises = updates.map(({ id, gridRow, gridCol }) =>
     supabase
       .from('statuslist')
       .update({
-        order: order,
+        grid_row: gridRow,
+        grid_col: gridCol,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id),
@@ -262,9 +370,25 @@ export async function batchUpdateStatusListOrders(
 
   const errors = results.filter((r) => r.error)
   if (errors.length > 0) {
-    console.error('Failed to batch update status list orders:', errors)
-    throw new Error('Failed to update column order')
+    console.error('Failed to batch update status list positions:', errors)
+    throw new Error('Failed to update column positions')
   }
+}
+
+/**
+ * @deprecated Use batchUpdateStatusListPositions instead
+ * Kept for backwards compatibility during migration
+ */
+export async function batchUpdateStatusListOrders(
+  updates: Array<{ id: string; order: number }>,
+): Promise<void> {
+  // Convert order-based updates to grid positions (all in row 0)
+  const gridUpdates = updates.map(({ id, order }) => ({
+    id,
+    gridRow: 0,
+    gridCol: order,
+  }))
+  await batchUpdateStatusListPositions(gridUpdates)
 }
 
 // ========================================

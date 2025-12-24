@@ -297,6 +297,8 @@ export type Database = {
           id: string
           name: string
           order: number
+          grid_row: number
+          grid_col: number
           updated_at: string | null
           wip_limit: number | null
         }
@@ -307,6 +309,8 @@ export type Database = {
           id?: string
           name: string
           order?: number
+          grid_row?: number
+          grid_col?: number
           updated_at?: string | null
           wip_limit?: number | null
         }
@@ -317,6 +321,8 @@ export type Database = {
           id?: string
           name?: string
           order?: number
+          grid_row?: number
+          grid_col?: number
           updated_at?: string | null
           wip_limit?: number | null
         }

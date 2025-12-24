@@ -28,8 +28,10 @@ export interface StatusListDomain {
   wipLimit: number
   /** Column color code */
   color: string
-  /** Display order */
-  order: number
+  /** Grid row position (0-indexed) */
+  gridRow: number
+  /** Grid column position (0-indexed) */
+  gridCol: number
   /** Board ID (database foreign key) */
   boardId: string
   /** Creation timestamp */

@@ -29,7 +29,8 @@ const mockStatusList = {
   title: 'In Progress',
   color: '#4682B4',
   wipLimit: 5,
-  order: 1,
+  gridRow: 0,
+  gridCol: 1,
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-15T10:00:00Z',
 }

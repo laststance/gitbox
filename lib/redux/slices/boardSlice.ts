@@ -134,3 +134,40 @@ export const selectLastDragOperation = (state: { board: BoardState }) =>
   state.board.lastDragOperation
 export const selectCanUndo = (state: { board: BoardState }) =>
   state.board.lastDragOperation !== null
+
+/**
+ * Get grid dimensions from status lists
+ * @returns { maxRow, maxCol } - Maximum row and column indices
+ */
+export const selectGridDimensions = (state: { board: BoardState }) => {
+  const statuses = state.board.statusLists
+  if (statuses.length === 0) return { maxRow: 0, maxCol: 0 }
+
+  const maxRow = Math.max(...statuses.map((s) => s.gridRow))
+  const maxCol = Math.max(...statuses.map((s) => s.gridCol))
+  return { maxRow, maxCol }
+}
+
+/**
+ * Get status lists grouped by row for 2D rendering
+ * @returns Map<rowIndex, StatusListDomain[]>
+ */
+export const selectStatusesByRow = (state: { board: BoardState }) => {
+  const statuses = state.board.statusLists
+  const byRow = new Map<number, StatusListDomain[]>()
+
+  for (const status of statuses) {
+    const row = status.gridRow
+    if (!byRow.has(row)) {
+      byRow.set(row, [])
+    }
+    byRow.get(row)!.push(status)
+  }
+
+  // Sort each row by column
+  for (const [, rowStatuses] of byRow) {
+    rowStatuses.sort((a, b) => a.gridCol - b.gridCol)
+  }
+
+  return byRow
+}

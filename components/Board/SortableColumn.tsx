@@ -23,6 +23,8 @@ interface SortableColumnProps {
   onEditStatus?: (status: StatusListDomain) => void
   onDeleteStatus?: (statusId: string) => void
   onAddCard?: (statusId: string) => void
+  /** CSS Grid positioning style (gridRow, gridColumn) */
+  gridStyle?: React.CSSProperties
 }
 
 /**
@@ -55,6 +57,7 @@ export const SortableColumn = memo<SortableColumnProps>(
     onEditStatus,
     onDeleteStatus,
     onAddCard,
+    gridStyle,
   }) => {
     const {
       attributes,
@@ -72,9 +75,11 @@ export const SortableColumn = memo<SortableColumnProps>(
       },
     })
 
-    const style = {
+    // Combine dnd-kit transform with grid positioning
+    const style: React.CSSProperties = {
       transform: CSS.Transform.toString(transform),
       transition,
+      ...gridStyle,
     }
 
     return (

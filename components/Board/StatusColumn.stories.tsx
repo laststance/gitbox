@@ -42,7 +42,8 @@ const mockStatus = {
   title: 'To Do',
   color: '#3b82f6',
   wipLimit: 5,
-  order: 0,
+  gridRow: 0,
+  gridCol: 0,
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-15T00:00:00Z',
 }

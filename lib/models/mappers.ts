@@ -29,7 +29,8 @@ export function dbStatusListToDomain(db: DbStatusList): StatusListDomain {
     title: db.name, // name → title
     wipLimit: db.wip_limit ?? 0, // wip_limit → wipLimit (null -> 0)
     color: db.color ?? '#6366f1',
-    order: db.order,
+    gridRow: db.grid_row ?? 0, // grid_row → gridRow
+    gridCol: db.grid_col ?? 0, // grid_col → gridCol
     boardId: db.board_id,
     createdAt: db.created_at ?? new Date().toISOString(),
     updatedAt: db.updated_at ?? new Date().toISOString(),
@@ -49,7 +50,9 @@ export function domainStatusListToDbInsert(
     name: domain.title, // title → name
     wip_limit: domain.wipLimit, // wipLimit → wip_limit
     color: domain.color,
-    order: domain.order,
+    order: 0, // Keep for backwards compatibility
+    grid_row: domain.gridRow, // gridRow → grid_row
+    grid_col: domain.gridCol, // gridCol → grid_col
   }
 }
 
