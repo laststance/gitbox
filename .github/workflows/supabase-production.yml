@@ -1,0 +1,61 @@
+name: Supabase Production Migration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/config.toml'
+
+concurrency:
+  group: supabase-production-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_PROJECT_REF: mfeesjmtofgayktirswf
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link to Production Project
+        run: supabase link --project-ref $SUPABASE_PROJECT_REF
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Show Pending Migrations
+        run: supabase migration list
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Backup Database (Pre-Migration)
+        run: |
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          supabase db dump --linked -f backup_${TIMESTAMP}.sql
+          echo "BACKUP_FILE=backup_${TIMESTAMP}.sql" >> $GITHUB_ENV
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Upload Backup Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.sha }}
+          path: ${{ env.BACKUP_FILE }}
+          retention-days: 30
+
+      - name: Apply Migrations
+        run: supabase db push --linked
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Verify Migration Status
+        run: supabase migration list
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

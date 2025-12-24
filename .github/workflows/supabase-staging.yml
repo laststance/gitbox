@@ -1,0 +1,40 @@
+name: Supabase Staging Migration
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/config.toml'
+
+concurrency:
+  group: supabase-staging-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  migrate:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_PROJECT_REF: jqtxjzdxczqwsrvevmyk
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link to Staging Project
+        run: supabase link --project-ref $SUPABASE_PROJECT_REF
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Apply Migrations
+        run: supabase db push --linked
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Verify Migration Status
+        run: supabase migration list
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
