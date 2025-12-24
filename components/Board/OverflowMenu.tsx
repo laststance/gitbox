@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  MoreVertical,
+  MoreHorizontal,
   Github,
   ExternalLink,
   BarChart2,
@@ -79,7 +79,7 @@ export const OverflowMenu = memo<OverflowMenuProps>(
           className="p-1 rounded-md hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           data-testid={`overflow-menu-trigger-${cardId}`}
         >
-          <MoreVertical className="w-4 h-4" />
+          <MoreHorizontal className="w-4 h-4" />
           <span className="sr-only">Open menu</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent
