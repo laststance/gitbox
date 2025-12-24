@@ -699,3 +699,85 @@ export async function deleteBoardAction(
     return { error: 'Failed to delete board' }
   }
 }
+
+// ========================================
+// First Board Auto-Creation
+// ========================================
+
+/**
+ * Create a "First Board" for new users if they have no existing boards.
+ *
+ * This function is idempotent - it only creates a board if the user
+ * has zero boards. Safe to call on every login.
+ *
+ * @param userId - The authenticated user's ID
+ * @returns
+ * - Created board object if this was the user's first login
+ * - null if user already has boards (no action taken)
+ *
+ * @example
+ * // In OAuth callback after session exchange
+ * const newBoard = await createFirstBoardIfNeeded(session.user.id)
+ * if (newBoard) {
+ *   console.log('Created first board for new user:', newBoard.id)
+ * }
+ */
+export async function createFirstBoardIfNeeded(
+  userId: string,
+): Promise<{ id: string; name: string } | null> {
+  const supabase = await createClient()
+
+  // Check if user already has any boards
+  const { count, error: countError } = await supabase
+    .from('board')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+
+  if (countError) {
+    console.error('Failed to check existing boards:', countError)
+    // Don't block login on error - just skip first board creation
+    return null
+  }
+
+  // User already has boards - no action needed
+  if (count && count > 0) {
+    return null
+  }
+
+  // Create "First Board" for new user
+  const { data, error } = await supabase
+    .from('board')
+    .insert({
+      user_id: userId,
+      name: 'First Board',
+      theme: 'sunrise',
+    })
+    .select('id, name')
+    .single()
+
+  if (error || !data) {
+    console.error('Failed to create first board:', error)
+    // Don't block login on error
+    return null
+  }
+
+  // Create default status lists for the new board
+  try {
+    await createDefaultStatusLists(data.id)
+  } catch (statusError) {
+    console.error('Failed to create default status lists:', statusError)
+    // Board exists but without status lists - they'll be created on first access
+  }
+
+  // Log audit event
+  try {
+    await logBoardCreate(data.id)
+  } catch (auditError) {
+    console.error('Failed to log board creation:', auditError)
+    // Non-critical - don't block
+  }
+
+  console.log('Created first board for new user:', data.id)
+
+  return { id: data.id, name: data.name }
+}

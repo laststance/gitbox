@@ -4,6 +4,7 @@
  * Processes GitHub OAuth authentication callback
  * - Obtains authentication code and establishes session
  * - Saves provider_token in secure cookie (for GitHub API access)
+ * - Creates "First Board" for new users (if no boards exist)
  * - Error handling
  * - Redirects to Boards screen
  */
@@ -11,6 +12,7 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
+import { createFirstBoardIfNeeded } from '@/lib/actions/board'
 import { createClient } from '@/lib/supabase/server'
 
 // Cookie name
@@ -68,6 +70,11 @@ export async function GET(request: Request) {
         console.warn(
           'No provider_token in session - GitHub API access may be limited',
         )
+      }
+
+      // Create "First Board" for new users (idempotent - safe on every login)
+      if (data.session?.user?.id) {
+        await createFirstBoardIfNeeded(data.session.user.id)
       }
 
       // Session established successfully - redirect to Boards screen
