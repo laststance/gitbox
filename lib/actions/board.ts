@@ -16,6 +16,7 @@ import type {
 } from '@/lib/models/domain'
 import { createClient } from '@/lib/supabase/server'
 import type { Tables, TablesInsert } from '@/lib/supabase/types'
+import { boardNameSchema } from '@/lib/validations/board'
 
 import { logBoardCreate } from './audit-log'
 
@@ -480,4 +481,97 @@ export async function updateBoard(
 
   revalidatePath(`/board/${boardId}`)
   revalidatePath('/boards')
+}
+
+// ========================================
+// Board Rename/Delete Actions (useActionState compatible)
+// ========================================
+
+/**
+ * State returned from the rename board action.
+ */
+export type RenameBoardState = {
+  success?: boolean
+  newName?: string
+  errors?: { name?: string[] }
+}
+
+/**
+ * State returned from the delete board action.
+ */
+export type DeleteBoardState = {
+  success?: boolean
+  error?: string
+}
+
+/**
+ * Server Action for renaming a board.
+ * Compatible with useActionState (accepts prevState as first arg).
+ *
+ * @param prevState - Previous state from useActionState
+ * @param formData - Form data containing boardId and name fields
+ * @returns
+ * - On success: { success: true, newName: string }
+ * - On validation error: { errors: { name: string[] } }
+ * - On server error: { errors: { name: ['Failed to rename board'] } }
+ *
+ * @example
+ * // In React component with useActionState
+ * const [state, formAction, isPending] = useActionState(renameBoardAction, {})
+ * <form action={formAction}>
+ *   <input type="hidden" name="boardId" value={boardId} />
+ *   <input name="name" defaultValue={currentName} />
+ *   <button disabled={isPending}>Rename</button>
+ * </form>
+ */
+export async function renameBoardAction(
+  prevState: RenameBoardState,
+  formData: FormData,
+): Promise<RenameBoardState> {
+  const boardId = formData.get('boardId') as string
+  const name = formData.get('name') as string
+
+  const result = boardNameSchema.safeParse(name)
+  if (!result.success) {
+    return { errors: { name: result.error.flatten().formErrors } }
+  }
+
+  try {
+    await updateBoard(boardId, { name: result.data })
+    return { success: true, newName: result.data }
+  } catch {
+    return { errors: { name: ['Failed to rename board'] } }
+  }
+}
+
+/**
+ * Server Action for deleting a board.
+ * Compatible with useActionState (accepts prevState as first arg).
+ *
+ * @param prevState - Previous state from useActionState
+ * @param formData - Form data containing boardId field
+ * @returns
+ * - On success: { success: true }
+ * - On error: { error: 'Failed to delete board' }
+ *
+ * @example
+ * // In React component with useActionState
+ * const [state, formAction, isPending] = useActionState(deleteBoardAction, {})
+ * <form action={formAction}>
+ *   <input type="hidden" name="boardId" value={boardId} />
+ *   <button disabled={isPending}>Delete</button>
+ * </form>
+ */
+export async function deleteBoardAction(
+  prevState: DeleteBoardState,
+  formData: FormData,
+): Promise<DeleteBoardState> {
+  const boardId = formData.get('boardId') as string
+
+  try {
+    await deleteBoard(boardId)
+    return { success: true }
+  } catch {
+    return { error: 'Failed to delete board' }
+  }
 }
