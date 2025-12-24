@@ -146,3 +146,25 @@ export const WithoutWipLimit: Story = {
     cards: mockCards,
   },
 }
+
+/**
+ * Demonstrates the draggable header styling (Trello-style).
+ * When used within SortableColumn, the header receives drag attributes
+ * that enable column reordering.
+ */
+export const WithDraggableHeader: Story = {
+  args: {
+    status: mockStatus,
+    cards: mockCards,
+    onAddCard: (id) => console.log('Add card to status:', id),
+    onEditStatus: (status) => console.log('Edit status:', status),
+    onDeleteStatus: (id) => console.log('Delete status:', id),
+    // Mock drag attributes to show the draggable styling
+    dragAttributes: {
+      role: 'button',
+      tabIndex: 0,
+      'aria-roledescription': 'sortable',
+    },
+    dragListeners: {},
+  },
+}

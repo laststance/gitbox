@@ -2,7 +2,6 @@
 
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical } from 'lucide-react'
 import React, { memo } from 'react'
 
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
@@ -87,23 +86,8 @@ export const SortableColumn = memo<SortableColumnProps>(
         `}
         data-testid={`sortable-column-${status.id}`}
       >
-        {/* Column Header with Drag Handle */}
-        <div className="flex items-center gap-2 p-4 pb-2">
-          {/* Drag Handle */}
-          <div
-            {...attributes}
-            {...listeners}
-            className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-accent touch-none"
-            aria-label={`Drag to reorder ${status.title} column`}
-          >
-            <GripVertical className="w-4 h-4 text-muted-foreground" />
-          </div>
-
-          {/* Column Content (StatusColumn handles the rest) */}
-        </div>
-
-        {/* StatusColumn renders the actual column content */}
-        <div className="flex-1 px-4 pb-4 -mt-2">
+        {/* StatusColumn renders the column content with draggable header */}
+        <div className="flex-1 p-4">
           <StatusColumn
             status={status}
             cards={cards}
@@ -113,6 +97,8 @@ export const SortableColumn = memo<SortableColumnProps>(
             onEditStatus={onEditStatus}
             onDeleteStatus={onDeleteStatus}
             onAddCard={onAddCard}
+            dragAttributes={attributes}
+            dragListeners={listeners}
           />
         </div>
       </div>

@@ -35,6 +35,10 @@ interface StatusColumnProps {
   onEditStatus?: (status: StatusListDomain) => void
   onDeleteStatus?: (statusId: string) => void
   onAddCard?: (statusId: string) => void
+  /** Drag attributes from SortableColumn for column reordering */
+  dragAttributes?: React.HTMLAttributes<HTMLDivElement>
+  /** Drag listeners from SortableColumn for column reordering */
+  dragListeners?: React.DOMAttributes<HTMLDivElement>
 }
 
 /**
@@ -57,6 +61,8 @@ export const StatusColumn = memo<StatusColumnProps>(
     onEditStatus,
     onDeleteStatus,
     onAddCard,
+    dragAttributes,
+    dragListeners,
   }) => {
     const cardIds = cards.map((c) => c.id)
     const isOverLimit = status.wipLimit > 0 && cards.length > status.wipLimit
@@ -75,7 +81,13 @@ export const StatusColumn = memo<StatusColumnProps>(
         className="flex flex-col h-full"
         data-testid={`status-column-${status.id}`}
       >
-        <div className="flex items-center justify-between mb-4">
+        {/* Draggable Column Header */}
+        <div
+          {...dragAttributes}
+          {...dragListeners}
+          className="flex items-center justify-between mb-4 cursor-grab active:cursor-grabbing touch-none"
+          aria-label={`Drag to reorder ${status.title} column`}
+        >
           <div className="flex items-center gap-2">
             {status.color && (
               <div
@@ -108,12 +120,6 @@ export const StatusColumn = memo<StatusColumnProps>(
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-40">
-                {onAddCard && (
-                  <DropdownMenuItem onClick={() => onAddCard(status.id)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Card
-                  </DropdownMenuItem>
-                )}
                 {onEditStatus && (
                   <DropdownMenuItem onClick={() => onEditStatus(status)}>
                     <Pencil className="mr-2 h-4 w-4" />
@@ -173,6 +179,20 @@ export const StatusColumn = memo<StatusColumnProps>(
               ⚠️ WIP limit exceeded
             </p>
           </div>
+        )}
+
+        {/* Add Repo button at column bottom (Trello-style) */}
+        {onAddCard && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onAddCard(status.id)}
+            className="w-full mt-3 justify-start text-muted-foreground hover:text-foreground hover:bg-accent"
+            data-testid="add-repo-button"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Repo
+          </Button>
         )}
       </div>
     )

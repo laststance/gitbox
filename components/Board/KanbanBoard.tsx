@@ -22,7 +22,7 @@ import {
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { motion } from 'framer-motion'
-import { AlertCircle, GripVertical } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 import React, { useState, useEffect, memo, useCallback, useMemo } from 'react'
 
 import { Card, CardContent } from '@/components/ui/card'
@@ -464,14 +464,11 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           {/* DragOverlay for both column and card previews */}
           <DragOverlay>
             {activeDragType === 'column' && activeId ? (
-              // Column drag preview
+              // Column drag preview (Trello-style: no drag handle icon)
               <div className="min-w-[280px] bg-background/80 backdrop-blur-sm rounded-xl p-4 border-2 border-primary shadow-2xl opacity-90">
-                <div className="flex items-center gap-2">
-                  <GripVertical className="w-4 h-4 text-muted-foreground" />
-                  <h3 className="font-semibold text-foreground">
-                    {sortedStatuses.find((s) => s.id === activeId)?.title}
-                  </h3>
-                </div>
+                <h3 className="font-semibold text-foreground">
+                  {sortedStatuses.find((s) => s.id === activeId)?.title}
+                </h3>
               </div>
             ) : activeCard ? (
               // Card drag preview

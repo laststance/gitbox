@@ -2,7 +2,7 @@
 
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Calendar, GripVertical, Paperclip, StickyNote } from 'lucide-react'
+import { Calendar, Paperclip, StickyNote } from 'lucide-react'
 import React, { memo, useState } from 'react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -105,7 +105,14 @@ export const RepoCard = memo<RepoCardProps>(
     }
 
     return (
-      <div ref={setNodeRef} style={style} data-testid="repo-card">
+      <div
+        ref={setNodeRef}
+        style={style}
+        data-testid="repo-card"
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing"
+      >
         <Card
           className="transition-all duration-200 border bg-card hover:shadow-md dark:hover:shadow-lg focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
           tabIndex={0}
@@ -120,21 +127,16 @@ export const RepoCard = memo<RepoCardProps>(
                 >
                   {card.title}
                 </h4>
-                <div className="flex items-center gap-1">
-                  <OverflowMenu
-                    cardId={card.id}
-                    repoOwner={card.repoOwner}
-                    repoName={card.repoName}
-                    onEdit={onEdit}
-                    onMoveToMaintenance={onMaintenance}
-                    open={menuOpen}
-                    onOpenChange={handleMenuOpenChange}
-                    context="board"
-                  />
-                  <div {...attributes} {...listeners}>
-                    <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab active:cursor-grabbing" />
-                  </div>
-                </div>
+                <OverflowMenu
+                  cardId={card.id}
+                  repoOwner={card.repoOwner}
+                  repoName={card.repoName}
+                  onEdit={onEdit}
+                  onMoveToMaintenance={onMaintenance}
+                  open={menuOpen}
+                  onOpenChange={handleMenuOpenChange}
+                  context="board"
+                />
               </div>
 
               {card.description && (
