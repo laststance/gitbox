@@ -19,7 +19,7 @@ import { restrictToWindowEdges } from '@dnd-kit/modifiers'
 import {
   arrayMove,
   SortableContext,
-  horizontalListSortingStrategy,
+  rectSortingStrategy,
 } from '@dnd-kit/sortable'
 import { motion } from 'framer-motion'
 import { AlertCircle } from 'lucide-react'
@@ -79,7 +79,7 @@ interface KanbanBoardProps {
 // Loading Skeleton Component
 const KanbanSkeleton = memo(() => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-4">
       {[...Array(5)].map((_, colIndex) => (
         <div
           key={colIndex}
@@ -439,12 +439,9 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           onDragEnd={handleDragEnd}
           modifiers={[restrictToWindowEdges]}
         >
-          {/* Column-level SortableContext for horizontal reordering */}
-          <SortableContext
-            items={columnIds}
-            strategy={horizontalListSortingStrategy}
-          >
-            <div className="flex gap-4 overflow-x-auto pb-4">
+          {/* Column-level SortableContext for 2D grid reordering */}
+          <SortableContext items={columnIds} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-4">
               {sortedStatuses.map((status) => (
                 <SortableColumn
                   key={status.id}
@@ -464,11 +461,14 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           {/* DragOverlay for both column and card previews */}
           <DragOverlay>
             {activeDragType === 'column' && activeId ? (
-              // Column drag preview (Trello-style: no drag handle icon)
-              <div className="min-w-[280px] bg-background/80 backdrop-blur-sm rounded-xl p-4 border-2 border-primary shadow-2xl opacity-90">
+              // Column drag preview for 2D grid layout
+              <div className="w-[280px] max-w-full bg-background/80 backdrop-blur-sm rounded-xl p-4 border-2 border-primary shadow-2xl opacity-90 rotate-2">
                 <h3 className="font-semibold text-foreground">
                   {sortedStatuses.find((s) => s.id === activeId)?.title}
                 </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {cards.filter((c) => c.statusId === activeId).length} cards
+                </p>
               </div>
             ) : activeCard ? (
               // Card drag preview

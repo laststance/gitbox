@@ -5,6 +5,9 @@
  * Displays status title, color indicator, WIP limit badge, and contains
  * draggable repository cards. Supports column actions (add card, edit, delete)
  * and shows warnings when WIP limit is exceeded.
+ *
+ * The column now supports 2D grid layout with vertical drag-and-drop.
+ * When used with SortableColumn wrapper, columns can be reordered in any direction.
  */
 
 import { DndContext } from '@dnd-kit/core'

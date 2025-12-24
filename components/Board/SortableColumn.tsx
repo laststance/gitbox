@@ -29,11 +29,12 @@ interface SortableColumnProps {
  * Sortable Column Component
  *
  * Wraps StatusColumn with @dnd-kit useSortable hook to enable
- * column reordering via drag & drop.
+ * column reordering via drag & drop in a 2D grid layout.
  *
  * Features:
- * - Drag handle in column header for intuitive UX
+ * - Full 2D drag support (horizontal and vertical movement)
  * - Visual feedback during drag (opacity, scale, shadow)
+ * - Drop zone indicator (ring effect when hovering)
  * - Smooth CSS transitions for drop animation
  * - Maintains card DnD functionality within columns
  *
@@ -62,6 +63,7 @@ export const SortableColumn = memo<SortableColumnProps>(
       transform,
       transition,
       isDragging,
+      isOver,
     } = useSortable({
       id: status.id,
       data: {
@@ -80,9 +82,10 @@ export const SortableColumn = memo<SortableColumnProps>(
         ref={setNodeRef}
         style={style}
         className={`
-          flex flex-col h-full min-w-[280px] bg-background/50 backdrop-blur-sm
-          rounded-xl border border-border
+          flex flex-col h-full w-full bg-background/50 backdrop-blur-sm
+          rounded-xl border border-border transition-all duration-200
           ${isDragging ? 'opacity-50 shadow-2xl scale-[1.02] z-50' : ''}
+          ${isOver && !isDragging ? 'ring-2 ring-primary ring-offset-2' : ''}
         `}
         data-testid={`sortable-column-${status.id}`}
       >

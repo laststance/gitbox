@@ -5,6 +5,12 @@
  * Handles drag-and-drop operations, board data loading, and card position updates.
  * Integrates with Redux for state management and uses @dnd-kit for drag-and-drop.
  * Supports keyboard navigation and undo functionality.
+ *
+ * Layout Features:
+ * - 2D grid layout with responsive breakpoints (1-5 columns based on screen width)
+ * - Columns can be dragged vertically (up/down) and horizontally (left/right)
+ * - Uses rectSortingStrategy from @dnd-kit/sortable for full 2D movement
+ * - Auto-wrap layout adapts to viewport size
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'

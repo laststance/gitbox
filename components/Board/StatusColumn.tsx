@@ -86,7 +86,7 @@ export const StatusColumn = memo<StatusColumnProps>(
           {...dragAttributes}
           {...dragListeners}
           className="flex items-center justify-between mb-4 cursor-grab active:cursor-grabbing touch-none"
-          aria-label={`Drag to reorder ${status.title} column`}
+          aria-label={`Drag to reorder ${status.title} column. Use arrow keys to move in any direction.`}
         >
           <div className="flex items-center gap-2">
             {status.color && (
