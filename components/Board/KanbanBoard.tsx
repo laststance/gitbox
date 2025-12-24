@@ -32,6 +32,7 @@ import {
   updateRepoCardPosition,
   batchUpdateRepoCardOrders,
   swapStatusListPositions,
+  batchUpdateStatusListPositions,
 } from '@/lib/actions/board'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import {
@@ -46,6 +47,7 @@ import {
 } from '@/lib/redux/slices/boardSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 
+import { ColumnInsertZone, COLUMN_INSERT_DROP_TYPE } from './ColumnInsertZone'
 import { NewRowDropZone, NEW_ROW_DROP_TYPE } from './NewRowDropZone'
 import { SortableColumn, COLUMN_DRAG_TYPE } from './SortableColumn'
 
@@ -166,6 +168,37 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       const maxCol = Math.max(...statuses.map((s) => s.gridCol))
       return { maxRow, maxCol }
     }, [statuses])
+
+    /**
+     * Calculate insertion zones (empty grid positions) during column drag
+     * These zones allow dropping a column into an empty grid cell
+     */
+    const insertionZones = useMemo(() => {
+      // Only calculate when dragging a column
+      if (activeDragType !== 'column') return []
+
+      const zones: Array<{ gridRow: number; gridCol: number }> = []
+      const { maxRow, maxCol } = gridDimensions
+
+      // Build a set of occupied positions for quick lookup
+      const occupiedPositions = new Set(
+        statuses
+          .filter((s) => s.id !== activeId) // Exclude the dragged column
+          .map((s) => `${s.gridRow}-${s.gridCol}`),
+      )
+
+      // Find empty positions in each row (up to maxCol + 1 for adding at end)
+      for (let row = 0; row <= maxRow; row++) {
+        for (let col = 0; col <= maxCol + 1; col++) {
+          const posKey = `${row}-${col}`
+          if (!occupiedPositions.has(posKey)) {
+            zones.push({ gridRow: row, gridCol: col })
+          }
+        }
+      }
+
+      return zones
+    }, [activeDragType, gridDimensions, statuses, activeId])
 
     // Column IDs for SortableContext
     const columnIds = useMemo(
@@ -327,6 +360,91 @@ export const KanbanBoard = memo<KanbanBoardProps>(
             )
           } catch (error) {
             console.error('Failed to move column to new row:', error)
+            // Revert on error
+            dispatch(setStatusLists(statuses))
+          }
+          return
+        }
+
+        // Check if dropped on ColumnInsertZone (empty grid position)
+        if (overData?.type === COLUMN_INSERT_DROP_TYPE && activeStatus) {
+          const targetRow = overData.gridRow as number
+          const targetCol = overData.gridCol as number
+
+          // Skip if dropping at same position
+          if (
+            activeStatus.gridRow === targetRow &&
+            activeStatus.gridCol === targetCol
+          ) {
+            return
+          }
+
+          // Save current state to column history (max 10 entries)
+          setColumnHistory((prev) => {
+            const newHistory = [...prev, statuses]
+            return newHistory.slice(-10)
+          })
+
+          // Build list of position updates
+          const updates: Array<{
+            id: string
+            gridRow: number
+            gridCol: number
+          }> = []
+
+          // Move the dragged column to the target position
+          updates.push({
+            id: activeStatus.id,
+            gridRow: targetRow,
+            gridCol: targetCol,
+          })
+
+          // Check if any column needs to shift (if target position is occupied)
+          const columnAtTarget = statuses.find(
+            (s) =>
+              s.id !== activeStatus.id &&
+              s.gridRow === targetRow &&
+              s.gridCol === targetCol,
+          )
+
+          if (columnAtTarget) {
+            // Shift all columns at targetCol and beyond in the same row
+            const columnsToShift = statuses.filter(
+              (s) =>
+                s.id !== activeStatus.id &&
+                s.gridRow === targetRow &&
+                s.gridCol >= targetCol,
+            )
+            for (const col of columnsToShift) {
+              updates.push({
+                id: col.id,
+                gridRow: col.gridRow,
+                gridCol: col.gridCol + 1,
+              })
+            }
+          }
+
+          // Apply optimistic UI update
+          const updateMap = new Map(updates.map((u) => [u.id, u]))
+          const updatedStatuses = statuses.map((status) => {
+            const update = updateMap.get(status.id)
+            if (update) {
+              return {
+                ...status,
+                gridRow: update.gridRow,
+                gridCol: update.gridCol,
+              }
+            }
+            return status
+          })
+
+          dispatch(setStatusLists(updatedStatuses))
+
+          // Sync to Supabase (background)
+          try {
+            await batchUpdateStatusListPositions(updates)
+          } catch (error) {
+            console.error('Failed to insert column:', error)
             // Revert on error
             dispatch(setStatusLists(statuses))
           }
@@ -511,7 +629,8 @@ export const KanbanBoard = memo<KanbanBoardProps>(
             <div
               className="grid gap-4 pb-4"
               style={{
-                gridTemplateColumns: `repeat(${gridDimensions.maxCol + 1}, minmax(280px, 1fr))`,
+                // Add extra column when dragging to allow insertion at end
+                gridTemplateColumns: `repeat(${gridDimensions.maxCol + 1 + (activeDragType === 'column' ? 1 : 0)}, minmax(280px, 1fr))`,
                 // Add extra row for NewRowDropZone when dragging
                 gridTemplateRows: `repeat(${gridDimensions.maxRow + 1 + (activeDragType === 'column' ? 1 : 0)}, auto)`,
               }}
@@ -534,11 +653,21 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                 />
               ))}
 
+              {/* Column Insert Zones - empty grid positions during column drag */}
+              {insertionZones.map((zone) => (
+                <ColumnInsertZone
+                  key={`insert-${zone.gridRow}-${zone.gridCol}`}
+                  gridRow={zone.gridRow}
+                  gridCol={zone.gridCol}
+                  activeColumnId={activeId?.toString()}
+                />
+              ))}
+
               {/* New Row Drop Zone - only visible during column drag */}
               {activeDragType === 'column' && (
                 <NewRowDropZone
                   targetRow={gridDimensions.maxRow + 1}
-                  columnCount={gridDimensions.maxCol + 1}
+                  columnCount={gridDimensions.maxCol + 1 + 1} // +1 for expanded grid
                 />
               )}
             </div>
