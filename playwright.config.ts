@@ -4,7 +4,7 @@ import { defineConfig, devices } from '@playwright/test'
  * Playwright E2E Test Configuration for GitBox
  *
  * Configures auth setup with cookie injection for Supabase + GitHub OAuth,
- * and logged-in test projects that depend on the auth state.
+ * and separate projects for authenticated vs unauthenticated tests.
  */
 
 /** Path to store authenticated state for reuse across tests */
@@ -37,11 +37,23 @@ export default defineConfig({
   projects: [
     /**
      * Setup project: Injects auth cookies to bypass OAuth flow.
-     * Runs before all other projects that need authentication.
+     * Runs before authenticated tests.
      */
     {
       name: 'setup',
       testMatch: /auth\.setup\.ts/,
+    },
+
+    /**
+     * Unauthenticated tests: Landing page, login page, etc.
+     * These don't require authentication state.
+     */
+    {
+      name: 'unauthenticated',
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+      testMatch: /landing\.spec\.ts|login\.spec\.ts/,
     },
 
     /**
@@ -55,7 +67,7 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         storageState: AUTH_FILE,
       },
-      testIgnore: /auth\.setup\.ts/,
+      testMatch: /boards\.spec\.ts|kanban\.spec\.ts|settings\.spec\.ts/,
     },
   ],
 
