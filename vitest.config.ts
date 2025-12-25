@@ -40,6 +40,9 @@ export default defineConfig({
         '*.config.js',
         '.next/',
         'dist/',
+        // Supabase-related files (DB communication - tested via integration tests)
+        'lib/actions/**',
+        'lib/supabase/**',
       ],
     },
     // Two separate test projects: unit tests (jsdom) and Storybook (browser)
