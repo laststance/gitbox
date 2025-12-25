@@ -23,7 +23,6 @@ import type {
   PersistedState,
   SyncStorage,
   Serializer,
-  LegacyStorageMiddlewareConfig,
 } from './types'
 import { debounce } from './utils/debounce'
 import { isServer, isStorageAvailable } from './utils/isServer'
@@ -242,7 +241,6 @@ export function createStorageMiddleware<
       PersistedState<Partial<S>>
     >,
     performance: perfConfig,
-    debounceMs: legacyDebounceMs,
     onHydrate,
     onHydrationComplete,
     onSaveComplete,
@@ -265,8 +263,7 @@ export function createStorageMiddleware<
   const hydratedReducer = withHydration(rootReducer) as Reducer<S>
 
   // Resolve performance configuration
-  const debounceMs =
-    perfConfig?.debounceMs ?? legacyDebounceMs ?? DEFAULT_DEBOUNCE_MS
+  const debounceMs = perfConfig?.debounceMs ?? DEFAULT_DEBOUNCE_MS
   const throttleMs = perfConfig?.throttleMs
   const useIdleCallback = perfConfig?.useIdleCallback ?? false
   const idleTimeout = perfConfig?.idleTimeout ?? 1000
@@ -570,26 +567,6 @@ export function createStorageMiddleware<
 }
 
 // =============================================================================
-// Legacy API (Backward Compatibility)
-// =============================================================================
-
-/**
- * Wrapper for backward compatibility with legacy API
- *
- * @deprecated This function is no longer supported. Use createStorageMiddleware instead.
- * @throws Always throws an error directing users to migrate to the new API
- */
-export function createLegacyStorageMiddleware(
-  _config: LegacyStorageMiddlewareConfig,
-): Middleware {
-  throw new Error(
-    '[redux-storage-middleware] createLegacyStorageMiddleware is deprecated and no longer supported. ' +
-      'Please migrate to createStorageMiddleware({ rootReducer, name, slices, ... }). ' +
-      'See the README for migration guide.',
-  )
-}
-
-// =============================================================================
 // Standalone Functions
 // =============================================================================
 
@@ -659,34 +636,16 @@ export function clearStorageState(storageKey: string): void {
 }
 
 /**
- * Reducer enhancer for hydration
+ * Reducer enhancer for hydration (internal use only)
  *
- * Wraps reducer to handle hydration actions
+ * Wraps reducer to handle hydration actions.
+ * This function is used internally by createStorageMiddleware.
  *
- * @deprecated Use createStorageMiddleware with rootReducer instead.
- * The middleware now automatically wraps your reducer with hydration handling.
- *
+ * @internal
  * @param reducer - Original reducer
  * @returns Hydration-aware reducer
- *
- * @example
- * ```ts
- * // OLD (deprecated):
- * const { middleware } = createStorageMiddleware({ name, ... })
- * const store = configureStore({
- *   reducer: withHydration(rootReducer),
- *   middleware: (getDefault) => getDefault().concat(middleware),
- * })
- *
- * // NEW (recommended):
- * const { middleware, reducer } = createStorageMiddleware({ rootReducer, name, ... })
- * const store = configureStore({
- *   reducer,  // Already hydration-wrapped
- *   middleware: (getDefault) => getDefault().concat(middleware),
- * })
- * ```
  */
-export function withHydration<S>(
+function withHydration<S>(
   reducer: (state: S | undefined, action: UnknownAction) => S,
 ): (state: S | undefined, action: UnknownAction) => S {
   return (state, action) => {

@@ -190,7 +190,7 @@ export interface PerformanceConfig {
 export interface StorageMiddlewareConfig<S = unknown> {
   /**
    * Root reducer to wrap with hydration handling
-   * The middleware will automatically apply withHydration() to this reducer
+   * The middleware will automatically wrap this reducer with hydration support
    *
    * @required
    * @example combineReducers({ settings: settingsReducer, board: boardReducer })
@@ -270,15 +270,6 @@ export interface StorageMiddlewareConfig<S = unknown> {
    */
   performance?: PerformanceConfig
 
-  /**
-   * Debounce time (milliseconds)
-   * Kept for backward compatibility
-   *
-   * @deprecated Use performance.debounceMs instead
-   * @default 300
-   */
-  debounceMs?: number
-
   // ---------------------------------------------------------------------------
   // Callbacks
   // ---------------------------------------------------------------------------
@@ -316,21 +307,6 @@ export interface StorageMiddlewareConfig<S = unknown> {
    * @returns Merged state
    */
   merge?: (persistedState: Partial<S>, currentState: S) => S
-}
-
-// =============================================================================
-// Legacy Types (Backward Compatibility)
-// =============================================================================
-
-/**
- * Configuration type for backward compatibility with old version
- *
- * @deprecated Use StorageMiddlewareConfig instead
- */
-export interface LegacyStorageMiddlewareConfig {
-  slices: string[]
-  storageKey: string
-  debounceMs?: number
 }
 
 // =============================================================================

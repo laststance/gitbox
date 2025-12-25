@@ -9,10 +9,8 @@ import { describe, expect, it } from 'vitest'
 import {
   // Core
   createStorageMiddleware,
-  createLegacyStorageMiddleware,
   loadStateFromStorage,
   clearStorageState,
-  withHydration,
   shallowMerge,
   deepMerge,
   ACTION_HYDRATE_START,
@@ -52,20 +50,12 @@ describe('Package Exports', () => {
       expect(typeof createStorageMiddleware).toBe('function')
     })
 
-    it('exports createLegacyStorageMiddleware', () => {
-      expect(typeof createLegacyStorageMiddleware).toBe('function')
-    })
-
     it('exports loadStateFromStorage', () => {
       expect(typeof loadStateFromStorage).toBe('function')
     })
 
     it('exports clearStorageState', () => {
       expect(typeof clearStorageState).toBe('function')
-    })
-
-    it('exports withHydration', () => {
-      expect(typeof withHydration).toBe('function')
     })
 
     it('exports shallowMerge', () => {

@@ -38,10 +38,8 @@
 
 export {
   createStorageMiddleware,
-  createLegacyStorageMiddleware,
   loadStateFromStorage,
   clearStorageState,
-  withHydration,
   shallowMerge,
   deepMerge,
   ACTION_HYDRATE_START,
@@ -123,7 +121,6 @@ export type {
   // Configuration
   PerformanceConfig,
   StorageMiddlewareConfig,
-  LegacyStorageMiddlewareConfig,
   // Factory
   StorageMiddlewareResult,
   StorageStoreExtension,

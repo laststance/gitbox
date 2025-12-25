@@ -5,7 +5,6 @@
  * - createStorageMiddleware: Main middleware factory
  * - loadStateFromStorage: Restore from storage
  * - clearStorageState: Clear storage
- * - withHydration: Hydration reducer enhancer
  *
  * These tests run in real browser environment via Vitest browser mode.
  * Real localStorage is used instead of jsdom mocks.
@@ -19,8 +18,6 @@ import {
   createStorageMiddleware,
   loadStateFromStorage,
   clearStorageState,
-  withHydration,
-  ACTION_HYDRATE_COMPLETE,
 } from '../src/middleware'
 import { createMemoryStorage } from '../src/storage'
 import type { PersistedState } from '../src/types'
@@ -706,42 +703,6 @@ describe('clearStorageState', () => {
     expect(consoleErrorSpy).toHaveBeenCalled()
 
     consoleErrorSpy.mockRestore()
-  })
-})
-
-describe('withHydration', () => {
-  it('overrides state with HYDRATE_COMPLETE action', () => {
-    const reducer = (state = { value: 0 }, action: { type: string }) => {
-      if (action.type === 'INCREMENT') {
-        return { value: state.value + 1 }
-      }
-      return state
-    }
-
-    const enhancedReducer = withHydration(reducer)
-
-    const newState = { value: 100 }
-    const result = enhancedReducer(
-      { value: 0 },
-      { type: ACTION_HYDRATE_COMPLETE, payload: newState },
-    )
-
-    expect(result).toEqual(newState)
-  })
-
-  it('passes normal actions to original reducer', () => {
-    const reducer = (state = { value: 0 }, action: { type: string }) => {
-      if (action.type === 'INCREMENT') {
-        return { value: state.value + 1 }
-      }
-      return state
-    }
-
-    const enhancedReducer = withHydration(reducer)
-
-    const result = enhancedReducer({ value: 5 }, { type: 'INCREMENT' })
-
-    expect(result).toEqual({ value: 6 })
   })
 })
 
