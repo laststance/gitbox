@@ -24,7 +24,6 @@ const isE2ETestMode = () =>
 export async function proxy(request: NextRequest) {
   // In E2E test mode, bypass authentication and allow all requests
   if (isE2ETestMode()) {
-    console.log('[proxy] E2E test mode - bypassing auth check')
     return NextResponse.next({
       request: {
         headers: request.headers,

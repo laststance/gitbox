@@ -67,14 +67,6 @@ export async function createClient() {
 
   // In E2E test mode, wrap auth methods to return mock data
   const testMode = isE2ETestMode()
-  console.log(
-    '[createClient] APP_ENV:',
-    process.env.APP_ENV,
-    'NODE_ENV:',
-    process.env.NODE_ENV,
-    'isE2ETestMode:',
-    testMode,
-  )
   if (testMode) {
     // Use a Proxy to intercept auth methods while preserving all other client functionality
     const mockedAuth = {

@@ -64,7 +64,6 @@ export async function GET(request: Request) {
           maxAge: 60 * 60 * 24 * 7, // 7 days (adjust to match GitHub token expiration)
           path: '/',
         })
-        console.log(`GitHub provider_token saved to cookie: ${cookieName}`)
       } else {
         console.warn(
           'No provider_token in session - GitHub API access may be limited',

@@ -777,7 +777,5 @@ export async function createFirstBoardIfNeeded(
     // Non-critical - don't block
   }
 
-  console.log('Created first board for new user:', data.id)
-
   return { id: data.id, name: data.name }
 }

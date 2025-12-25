@@ -30,11 +30,17 @@ import { Toaster } from 'sonner'
 import { CommandPalette } from '@/components/CommandPalette/CommandPalette'
 import { ShortcutsHelp } from '@/components/ShortcutsHelp'
 import { Providers } from '@/lib/redux/providers'
+import { isMSWEnabled } from '@/lib/utils/isMSWEnabled'
 
 import { MSWProvider } from './msw-provider'
 
-// NOTE: Server-side MSW is initialized via instrumentation.ts (Next.js hook)
-// This ensures MSW starts BEFORE any route handlers run.
+// Server-side MSW initialization (runs at module load time)
+// Uses require() to avoid bundling issues with Next.js SSR
+if (process.env.NEXT_RUNTIME === 'nodejs' && isMSWEnabled()) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { server } = require('../mocks/server')
+  server.listen({ onUnhandledRequest: 'bypass' })
+}
 
 export default function RootLayout({
   children,
