@@ -70,7 +70,7 @@ export default withSentryConfig(nextConfig, {
 
   org: 'laststance',
 
-  project: 'gitbix',
+  project: 'gitbox',
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
