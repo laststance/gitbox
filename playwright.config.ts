@@ -67,7 +67,8 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         storageState: AUTH_FILE,
       },
-      testMatch: /boards\.spec\.ts|kanban\.spec\.ts|settings\.spec\.ts/,
+      testMatch:
+        /boards\.spec\.ts|kanban\.spec\.ts|settings\.spec\.ts|add-repository-combobox\.spec\.ts/,
     },
   ],
 

@@ -200,10 +200,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     }
 
     // Organization filter (exact match on owner login)
+    // Defensive null check for repos with missing owner data (GITBOX-1 fix)
     if (organizationFilter !== 'all') {
       filtered = filtered.filter(
         (repo) =>
-          repo.owner.login.toLowerCase() === organizationFilter.toLowerCase(),
+          repo.owner?.login?.toLowerCase() === organizationFilter.toLowerCase(),
       )
     }
 
