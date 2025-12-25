@@ -73,3 +73,6 @@ tests/e2e/.auth/*.json
 # Git worktrees (Crystal)
 /worktrees/
 /worktree-*/
+
+# Sentry Config File
+.env.sentry-build-plugin
