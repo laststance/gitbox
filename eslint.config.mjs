@@ -99,7 +99,10 @@ export default defineConfig([
       '@laststance/react-next/no-jsx-without-return': 'error',
       '@laststance/react-next/all-memo': 'error',
       '@laststance/react-next/no-use-reducer': 'error',
-      '@laststance/react-next/no-set-state-prop-drilling': 'error',
+      '@laststance/react-next/no-set-state-prop-drilling': [
+        'error',
+        { depth: 1 },
+      ],
       '@laststance/react-next/no-deopt-use-callback': 'error',
       '@laststance/react-next/prefer-stable-context-value': 'error',
       // Disable no-unstable-classname-prop - cn() is necessary for shadcn/ui patterns
