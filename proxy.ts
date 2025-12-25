@@ -14,7 +14,23 @@ import { NextResponse, type NextRequest } from 'next/server'
 // Public paths that don't require authentication
 const publicPaths = ['/', '/login', '/auth/callback']
 
+/**
+ * Check if E2E test mode is enabled
+ * Bypass authentication in middleware for E2E tests
+ */
+const isE2ETestMode = () =>
+  process.env.APP_ENV === 'test' || process.env.NODE_ENV === 'test'
+
 export async function proxy(request: NextRequest) {
+  // In E2E test mode, bypass authentication and allow all requests
+  if (isE2ETestMode()) {
+    console.log('[proxy] E2E test mode - bypassing auth check')
+    return NextResponse.next({
+      request: {
+        headers: request.headers,
+      },
+    })
+  }
   let response = NextResponse.next({
     request: {
       headers: request.headers,

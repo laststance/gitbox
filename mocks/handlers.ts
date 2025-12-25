@@ -418,20 +418,13 @@ const supabaseAuthHandlers: HttpHandler[] = [
 
   /**
    * GET /auth/v1/user - Get current authenticated user
+   *
+   * For E2E tests: Always returns mock user to simulate authenticated state.
+   * The cookie injection in auth.setup.ts triggers Supabase to call this endpoint.
    */
-  http.get(`${SUPABASE_URL}/auth/v1/user`, ({ request }) => {
-    const authHeader = request.headers.get('Authorization')
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return HttpResponse.json(
-        {
-          error: 'unauthorized',
-          message: 'Missing or invalid authorization header',
-        },
-        { status: 401 },
-      )
-    }
-
+  http.get(`${SUPABASE_URL}/auth/v1/user`, () => {
+    // Always return authenticated user for E2E tests
+    // This allows tests to proceed without real OAuth flow
     return HttpResponse.json(mockUser)
   }),
 

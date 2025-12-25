@@ -33,20 +33,8 @@ import { Providers } from '@/lib/redux/providers'
 
 import { MSWProvider } from './msw-provider'
 
-// Server-side MSW initialization
-// This runs at module load time for Node.js runtime only
-// Must be at the TOP of the file, before any components render
-if (process.env.NEXT_RUNTIME === 'nodejs') {
-  // Dynamic import to avoid bundling MSW in client bundle
-  const initMSW = async () => {
-    const { isMSWEnabled } = await import('@/lib/utils/isMSWEnabled')
-    if (isMSWEnabled()) {
-      const { server } = await import('../mocks/server')
-      server.listen({ onUnhandledRequest: 'bypass' })
-    }
-  }
-  initMSW()
-}
+// NOTE: Server-side MSW is initialized via instrumentation.ts (Next.js hook)
+// This ensures MSW starts BEFORE any route handlers run.
 
 export default function RootLayout({
   children,

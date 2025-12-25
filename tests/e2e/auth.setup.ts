@@ -29,9 +29,9 @@ const MOCK_USER = {
 
 /**
  * Creates a mock Supabase session token.
- * This is a simplified JWT structure for testing purposes.
+ * This is a simplified session structure for testing purposes.
  *
- * @returns Base64-encoded mock session data
+ * @returns JSON string of mock session data (Supabase SSR expects JSON, not Base64)
  */
 function createMockSupabaseSession(): string {
   const session = {
@@ -43,8 +43,8 @@ function createMockSupabaseSession(): string {
     user: MOCK_USER,
   }
 
-  // Supabase stores session as base64-encoded JSON
-  return Buffer.from(JSON.stringify(session)).toString('base64')
+  // Supabase SSR stores session as JSON string (NOT base64)
+  return JSON.stringify(session)
 }
 
 /**
