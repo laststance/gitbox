@@ -56,12 +56,6 @@ export default defineConfig({
           include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
           exclude: ['tests/e2e/**/*', 'node_modules/**/*', 'dist/**/*'],
           setupFiles: ['./tests/setup.ts'],
-          alias: {
-            '@gitbox/redux-storage-middleware': path.resolve(
-              dirname,
-              'tests/__mocks__/@gitbox/redux-storage-middleware.ts',
-            ),
-          },
         },
       },
       // Storybook tests project (browser environment with Playwright)
