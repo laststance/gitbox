@@ -12,7 +12,7 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-import { createClient } from '@/lib/supabase/server'
+import { createServerActionClient } from '@/lib/supabase/server'
 
 /**
  * Sign in with GitHub OAuth
@@ -20,7 +20,7 @@ import { createClient } from '@/lib/supabase/server'
  * @returns Redirect URL to GitHub authentication screen
  */
 export async function signInWithGitHub() {
-  const supabase = await createClient()
+  const supabase = await createServerActionClient()
   const origin =
     (await headers()).get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL
 
@@ -42,6 +42,10 @@ export async function signInWithGitHub() {
   if (data.url) {
     redirect(data.url)
   }
+
+  // Handle case where no URL is returned (unexpected state)
+  console.error('GitHub OAuth: No redirect URL returned')
+  redirect('/login?error=oauth_failed&message=No%20redirect%20URL%20returned')
 }
 
 /**
@@ -51,7 +55,7 @@ export async function signInWithGitHub() {
  * - Redirect to login page
  */
 export async function signOut() {
-  const supabase = await createClient()
+  const supabase = await createServerActionClient()
 
   const { error } = await supabase.auth.signOut()
 
@@ -69,7 +73,7 @@ export async function signOut() {
  * @returns Session information (null if not authenticated)
  */
 export async function getSession() {
-  const supabase = await createClient()
+  const supabase = await createServerActionClient()
 
   const {
     data: { session },
@@ -90,7 +94,7 @@ export async function getSession() {
  * @returns User information (null if not authenticated)
  */
 export async function getUser() {
-  const supabase = await createClient()
+  const supabase = await createServerActionClient()
 
   const {
     data: { user },

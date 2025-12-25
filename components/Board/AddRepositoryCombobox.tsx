@@ -66,6 +66,31 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   const [organizations, setOrganizations] = useState<GitHubOrganization[]>([])
   const [isLoadingOrgs, setIsLoadingOrgs] = useState(false)
 
+  /**
+   * Filter organizations to exclude currentUser (prevents duplicate SelectItem values)
+   * This avoids Radix Select reconciliation issues when the same value appears multiple times
+   */
+  const filteredOrganizations = useMemo(
+    () =>
+      organizations.filter(
+        (org) => org.login.toLowerCase() !== currentUser?.login?.toLowerCase(),
+      ),
+    [organizations, currentUser?.login],
+  )
+
+  /**
+   * Guarded organization filter change handler
+   * Prevents potential infinite re-render by checking if value actually changed
+   */
+  const handleOrganizationFilterChange = useCallback(
+    (value: string) => {
+      if (value !== organizationFilter) {
+        setOrganizationFilter(value)
+      }
+    },
+    [organizationFilter],
+  )
+
   // Refs
   const searchInputRef = useRef<HTMLInputElement>(null)
   const comboboxRef = useRef<HTMLDivElement>(null)
@@ -328,8 +353,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             {/* Organization Filter */}
             <Select
               value={organizationFilter}
-              // eslint-disable-next-line @laststance/react-next/no-set-state-prop-drilling
-              onValueChange={setOrganizationFilter}
+              onValueChange={handleOrganizationFilterChange}
             >
               <SelectTrigger
                 className="flex-1 h-9 text-sm"
@@ -344,18 +368,19 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                     {currentUser.login} (Personal)
                   </SelectItem>
                 )}
-                {organizations.map((org) => (
+                {filteredOrganizations.map((org) => (
                   <SelectItem key={org.id} value={org.login}>
                     {org.login}
                   </SelectItem>
                 ))}
-                {isLoadingOrgs && (
-                  <SelectItem value="loading" disabled>
-                    Loading...
-                  </SelectItem>
-                )}
               </SelectContent>
             </Select>
+            {/* Loading indicator for organizations */}
+            {isLoadingOrgs && (
+              <span className="text-xs text-gray-500 self-center">
+                Loading orgs...
+              </span>
+            )}
 
             {/* Visibility filter */}
             <select
