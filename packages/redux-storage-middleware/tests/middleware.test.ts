@@ -12,7 +12,7 @@
  */
 
 import type { PayloadAction } from '@reduxjs/toolkit'
-import { configureStore, createSlice } from '@reduxjs/toolkit'
+import { combineReducers, configureStore, createSlice } from '@reduxjs/toolkit'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 import {
@@ -81,24 +81,26 @@ describe('createStorageMiddleware', () => {
   })
 
   it('saves specified slices to LocalStorage', async () => {
-    const { middleware } = createStorageMiddleware({
+    const rootReducer = combineReducers({
+      test: testSlice.reducer,
+      settings: settingsSlice.reducer,
+    })
+
+    const { middleware, reducer } = createStorageMiddleware({
+      rootReducer,
       name: 'test-state',
       slices: ['test'],
       performance: { debounceMs: 100 },
-      skipHydration: true,
     })
 
     const store = configureStore({
-      reducer: {
-        test: testSlice.reducer,
-        settings: settingsSlice.reducer,
-      },
+      reducer,
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(middleware),
     })
 
-    // Manually set hydration complete state
-    store.dispatch({ type: ACTION_HYDRATE_COMPLETE, payload: store.getState() })
+    // Wait for auto-hydration via microtask
+    await vi.advanceTimersByTimeAsync(0)
 
     // Dispatch action
     store.dispatch(increment())
@@ -117,25 +119,28 @@ describe('createStorageMiddleware', () => {
   })
 
   it('can select fine-grained state with partialize function', async () => {
-    const { middleware, api: _api } = createStorageMiddleware({
+    const rootReducer = combineReducers({
+      test: testSlice.reducer,
+      settings: settingsSlice.reducer,
+    })
+
+    const { middleware, reducer } = createStorageMiddleware({
+      rootReducer,
       name: 'test-partialize',
       partialize: (state: { test: TestState; settings: SettingsState }) => ({
         test: { value: state.test.value, name: '' },
       }),
       performance: { debounceMs: 100 },
-      skipHydration: true,
     })
 
     const store = configureStore({
-      reducer: {
-        test: testSlice.reducer,
-        settings: settingsSlice.reducer,
-      },
+      reducer,
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(middleware),
     })
 
-    store.dispatch({ type: ACTION_HYDRATE_COMPLETE, payload: store.getState() })
+    // Wait for auto-hydration via microtask
+    await vi.advanceTimersByTimeAsync(0)
     store.dispatch(setName('should-not-save'))
     store.dispatch(increment())
 
@@ -151,24 +156,24 @@ describe('createStorageMiddleware', () => {
     // Spy on real localStorage
     const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
 
-    const { middleware } = createStorageMiddleware({
+    const rootReducer = combineReducers({
+      test: testSlice.reducer,
+    })
+
+    const { middleware, reducer } = createStorageMiddleware({
+      rootReducer,
       name: 'test-debounce',
       slices: ['test'],
       performance: { debounceMs: 200 },
-      skipHydration: true,
     })
 
     const store = configureStore({
-      reducer: {
-        test: testSlice.reducer,
-      },
+      reducer,
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(middleware),
     })
 
-    store.dispatch({ type: ACTION_HYDRATE_COMPLETE, payload: store.getState() })
-
-    // Flush all pending timers after HYDRATE_COMPLETE and clear mocks
+    // Wait for auto-hydration and flush all pending timers, then clear mocks
     await vi.runAllTimersAsync()
     setItemSpy.mockClear()
 
@@ -204,24 +209,24 @@ describe('createStorageMiddleware', () => {
     // Spy on real localStorage
     const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
 
-    const { middleware } = createStorageMiddleware({
+    const rootReducer = combineReducers({
+      test: testSlice.reducer,
+    })
+
+    const { middleware, reducer } = createStorageMiddleware({
+      rootReducer,
       name: 'test-throttle',
       slices: ['test'],
       performance: { throttleMs: 200 },
-      skipHydration: true,
     })
 
     const store = configureStore({
-      reducer: {
-        test: testSlice.reducer,
-      },
+      reducer,
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(middleware),
     })
 
-    store.dispatch({ type: ACTION_HYDRATE_COMPLETE, payload: store.getState() })
-
-    // Flush all pending timers after HYDRATE_COMPLETE and clear mocks
+    // Wait for auto-hydration and flush all pending timers, then clear mocks
     await vi.runAllTimersAsync()
     setItemSpy.mockClear()
 
@@ -247,22 +252,25 @@ describe('createStorageMiddleware', () => {
   })
 
   it('can exclude specific paths with exclude option', async () => {
-    const { middleware } = createStorageMiddleware({
+    const rootReducer = combineReducers({
+      test: testSlice.reducer,
+    })
+
+    const { middleware, reducer } = createStorageMiddleware({
+      rootReducer,
       name: 'test-exclude',
       exclude: ['test.name'],
       performance: { debounceMs: 100 },
-      skipHydration: true,
     })
 
     const store = configureStore({
-      reducer: {
-        test: testSlice.reducer,
-      },
+      reducer,
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(middleware),
     })
 
-    store.dispatch({ type: ACTION_HYDRATE_COMPLETE, payload: store.getState() })
+    // Wait for auto-hydration via microtask
+    await vi.advanceTimersByTimeAsync(0)
     store.dispatch(setName('should-be-excluded'))
     store.dispatch(setValue(42))
 
@@ -289,23 +297,25 @@ describe('createStorageMiddleware', () => {
       return state
     })
 
-    const { middleware, api } = createStorageMiddleware({
+    const rootReducer = combineReducers({
+      test: testSlice.reducer,
+    })
+
+    const { middleware, reducer } = createStorageMiddleware({
+      rootReducer,
       name: 'test-migrate',
       version: 1,
       migrate: migrateFn,
-      skipHydration: true,
     })
 
     const _store = configureStore({
-      reducer: {
-        test: testSlice.reducer,
-      },
+      reducer,
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(middleware),
     })
 
-    // Manual hydration
-    await api.rehydrate()
+    // Wait for auto-hydration (triggers migration)
+    await vi.advanceTimersByTimeAsync(0)
 
     expect(migrateFn).toHaveBeenCalledWith(
       expect.objectContaining({ test: { value: 10, name: 'old' } }),
@@ -313,7 +323,7 @@ describe('createStorageMiddleware', () => {
     )
   })
 
-  it('performs auto-hydration when skipHydration=false', async () => {
+  it('performs auto-hydration by default', async () => {
     const preloadedState: PersistedState = {
       version: 0,
       state: { test: { value: 99, name: 'restored' } },
@@ -322,21 +332,23 @@ describe('createStorageMiddleware', () => {
 
     const onHydrationComplete = vi.fn()
 
-    const { middleware } = createStorageMiddleware({
+    const rootReducer = combineReducers({
+      test: testSlice.reducer,
+    })
+
+    const { middleware, reducer } = createStorageMiddleware({
+      rootReducer,
       name: 'test-auto-hydrate',
-      skipHydration: false, // Auto-hydration
       onHydrationComplete,
     })
 
     configureStore({
-      reducer: {
-        test: testSlice.reducer,
-      },
+      reducer,
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(middleware),
     })
 
-    // Wait for microtask completion
+    // Wait for microtask completion (auto-hydration triggers automatically)
     await vi.advanceTimersByTimeAsync(0)
 
     expect(onHydrationComplete).toHaveBeenCalled()
@@ -345,23 +357,26 @@ describe('createStorageMiddleware', () => {
   it('calls onSaveComplete callback', async () => {
     const onSaveComplete = vi.fn()
 
-    const { middleware } = createStorageMiddleware({
+    const rootReducer = combineReducers({
+      test: testSlice.reducer,
+    })
+
+    const { middleware, reducer } = createStorageMiddleware({
+      rootReducer,
       name: 'test-onsave',
       slices: ['test'],
       performance: { debounceMs: 100 },
       onSaveComplete,
-      skipHydration: true,
     })
 
     const store = configureStore({
-      reducer: {
-        test: testSlice.reducer,
-      },
+      reducer,
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(middleware),
     })
 
-    store.dispatch({ type: ACTION_HYDRATE_COMPLETE, payload: store.getState() })
+    // Wait for auto-hydration via microtask
+    await vi.advanceTimersByTimeAsync(0)
     store.dispatch(increment())
 
     await vi.advanceTimersByTimeAsync(100)
@@ -381,24 +396,27 @@ describe('createStorageMiddleware', () => {
       removeItem: (): void => {},
     }
 
-    const { middleware } = createStorageMiddleware({
+    const rootReducer = combineReducers({
+      test: testSlice.reducer,
+    })
+
+    const { middleware, reducer } = createStorageMiddleware({
+      rootReducer,
       name: 'test-onerror',
       slices: ['test'],
       performance: { debounceMs: 100 },
       storage: errorStorage,
       onError,
-      skipHydration: true,
     })
 
     const store = configureStore({
-      reducer: {
-        test: testSlice.reducer,
-      },
+      reducer,
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(middleware),
     })
 
-    store.dispatch({ type: ACTION_HYDRATE_COMPLETE, payload: store.getState() })
+    // Wait for auto-hydration via microtask
+    await vi.advanceTimersByTimeAsync(0)
     store.dispatch(increment())
 
     await vi.advanceTimersByTimeAsync(100)
@@ -409,23 +427,26 @@ describe('createStorageMiddleware', () => {
   it('can use custom storage', async () => {
     const customStorage = createMemoryStorage()
 
-    const { middleware } = createStorageMiddleware({
+    const rootReducer = combineReducers({
+      test: testSlice.reducer,
+    })
+
+    const { middleware, reducer } = createStorageMiddleware({
+      rootReducer,
       name: 'test-custom-storage',
       slices: ['test'],
       storage: customStorage,
       performance: { debounceMs: 100 },
-      skipHydration: true,
     })
 
     const store = configureStore({
-      reducer: {
-        test: testSlice.reducer,
-      },
+      reducer,
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(middleware),
     })
 
-    store.dispatch({ type: ACTION_HYDRATE_COMPLETE, payload: store.getState() })
+    // Wait for auto-hydration via microtask
+    await vi.advanceTimersByTimeAsync(0)
     store.dispatch(increment())
 
     await vi.advanceTimersByTimeAsync(100)
@@ -456,45 +477,51 @@ describe('Hydration API', () => {
     }
     localStorage.setItem('test-has-hydrated', JSON.stringify(preloadedState))
 
-    const { middleware, api } = createStorageMiddleware({
+    const rootReducer = combineReducers({
+      test: testSlice.reducer,
+    })
+
+    const { middleware, reducer, api } = createStorageMiddleware({
+      rootReducer,
       name: 'test-has-hydrated',
-      skipHydration: true,
     })
 
     configureStore({
-      reducer: {
-        test: testSlice.reducer,
-      },
+      reducer,
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(middleware),
     })
 
+    // Initially false before microtask runs
     expect(api.hasHydrated()).toBe(false)
 
-    await api.rehydrate()
+    // Wait for auto-hydration via microtask
+    await vi.advanceTimersByTimeAsync(0)
 
     expect(api.hasHydrated()).toBe(true)
   })
 
   it('api.getHydrationState() returns correct state', async () => {
-    const { middleware, api } = createStorageMiddleware({
+    const rootReducer = combineReducers({
+      test: testSlice.reducer,
+    })
+
+    const { middleware, reducer, api } = createStorageMiddleware({
+      rootReducer,
       name: 'test-hydration-state',
-      skipHydration: true,
     })
 
     configureStore({
-      reducer: {
-        test: testSlice.reducer,
-      },
+      reducer,
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(middleware),
     })
 
+    // Initially idle before microtask runs
     expect(api.getHydrationState()).toBe('idle')
 
-    const promise = api.rehydrate()
-    // Note: State transition is synchronous, so immediately becomes 'hydrated'
-    await promise
+    // Wait for auto-hydration via microtask
+    await vi.advanceTimersByTimeAsync(0)
 
     expect(api.getHydrationState()).toBe('hydrated')
   })
@@ -505,15 +532,17 @@ describe('Hydration API', () => {
       JSON.stringify({ version: 0, state: {} }),
     )
 
-    const { middleware, api } = createStorageMiddleware({
+    const rootReducer = combineReducers({
+      test: testSlice.reducer,
+    })
+
+    const { middleware, reducer, api } = createStorageMiddleware({
+      rootReducer,
       name: 'test-clear',
-      skipHydration: true,
     })
 
     configureStore({
-      reducer: {
-        test: testSlice.reducer,
-      },
+      reducer,
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(middleware),
     })
@@ -534,22 +563,25 @@ describe('Hydration API', () => {
 
     const callback = vi.fn()
 
-    const { middleware, api } = createStorageMiddleware({
+    const rootReducer = combineReducers({
+      test: testSlice.reducer,
+    })
+
+    const { middleware, reducer, api } = createStorageMiddleware({
+      rootReducer,
       name: 'test-callback',
-      skipHydration: true,
     })
 
     configureStore({
-      reducer: {
-        test: testSlice.reducer,
-      },
+      reducer,
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(middleware),
     })
 
     const unsubscribe = api.onFinishHydration(callback)
 
-    await api.rehydrate()
+    // Wait for auto-hydration via microtask
+    await vi.advanceTimersByTimeAsync(0)
 
     expect(callback).toHaveBeenCalled()
 
@@ -567,20 +599,23 @@ describe('Hydration API', () => {
       JSON.stringify(preloadedState),
     )
 
-    const { middleware, api } = createStorageMiddleware({
+    const rootReducer = combineReducers({
+      test: testSlice.reducer,
+    })
+
+    const { middleware, reducer, api } = createStorageMiddleware({
+      rootReducer,
       name: 'test-immediate-callback',
-      skipHydration: true,
     })
 
     configureStore({
-      reducer: {
-        test: testSlice.reducer,
-      },
+      reducer,
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(middleware),
     })
 
-    await api.rehydrate()
+    // Wait for auto-hydration via microtask
+    await vi.advanceTimersByTimeAsync(0)
 
     const callback = vi.fn()
     api.onFinishHydration(callback)
@@ -653,11 +688,15 @@ describe('clearStorageState', () => {
       },
     }
 
+    const rootReducer = combineReducers({
+      test: testSlice.reducer,
+    })
+
     // Create middleware with error storage and test clearStorage
     const { api } = createStorageMiddleware({
+      rootReducer,
       name: 'test-remove-error',
       storage: errorStorage,
-      skipHydration: true,
     })
 
     // This should trigger the error handler
@@ -725,37 +764,29 @@ describe('Integration Test: Store with Middleware', () => {
     }
     localStorage.setItem('integration-test', JSON.stringify(preloadedState))
 
-    // Create Middleware
-    const { middleware, api } = createStorageMiddleware({
+    // Create root reducer with combineReducers
+    const rootReducer = combineReducers({
+      test: testSlice.reducer,
+    })
+
+    // Create Middleware with new API (rootReducer passed, reducer returned)
+    const { middleware, reducer } = createStorageMiddleware({
+      rootReducer,
       name: 'integration-test',
       slices: ['test'],
       performance: { debounceMs: 100 },
-      skipHydration: true,
     })
 
-    // Create root reducer with combineReducers and apply withHydration
-    const rootReducer = (
-      state: { test: TestState } = { test: { value: 0, name: 'initial' } },
-      action: { type: string; payload?: unknown },
-    ) => {
-      return {
-        test: testSlice.reducer(
-          state.test,
-          action as PayloadAction<number | string>,
-        ),
-      }
-    }
-
-    // Create Store - withHydration applied at root level
+    // Create Store - use returned reducer (already hydration-wrapped)
     const store = configureStore({
-      reducer: withHydration(rootReducer),
+      reducer,
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(middleware),
     })
 
-    // Manual hydration
-    await api.rehydrate()
-    // Flush microtasks in fake timers environment
+    // Wait for auto-hydration via microtask
+    await vi.advanceTimersByTimeAsync(0)
+    // Flush all pending timers
     await vi.runAllTimersAsync()
 
     // Verify initial state was restored
@@ -779,10 +810,16 @@ describe('Integration Test: Store with Middleware', () => {
 // =============================================================================
 
 describe('Storage Key Validation', () => {
+  // Create a simple rootReducer for validation tests
+  const validationRootReducer = combineReducers({
+    test: testSlice.reducer,
+  })
+
   describe('createStorageMiddleware', () => {
     it('rejects empty key names', () => {
       expect(() =>
         createStorageMiddleware({
+          rootReducer: validationRootReducer,
           name: '',
           slices: ['test'],
         }),
@@ -792,6 +829,7 @@ describe('Storage Key Validation', () => {
     it('rejects key names with invalid characters', () => {
       expect(() =>
         createStorageMiddleware({
+          rootReducer: validationRootReducer,
           name: 'key with spaces',
           slices: ['test'],
         }),
@@ -799,6 +837,7 @@ describe('Storage Key Validation', () => {
 
       expect(() =>
         createStorageMiddleware({
+          rootReducer: validationRootReducer,
           name: 'key<script>',
           slices: ['test'],
         }),
@@ -806,6 +845,7 @@ describe('Storage Key Validation', () => {
 
       expect(() =>
         createStorageMiddleware({
+          rootReducer: validationRootReducer,
           name: 'key/path',
           slices: ['test'],
         }),
@@ -815,6 +855,7 @@ describe('Storage Key Validation', () => {
     it('rejects reserved key names', () => {
       expect(() =>
         createStorageMiddleware({
+          rootReducer: validationRootReducer,
           name: '__proto__',
           slices: ['test'],
         }),
@@ -822,6 +863,7 @@ describe('Storage Key Validation', () => {
 
       expect(() =>
         createStorageMiddleware({
+          rootReducer: validationRootReducer,
           name: 'prototype',
           slices: ['test'],
         }),
@@ -829,6 +871,7 @@ describe('Storage Key Validation', () => {
 
       expect(() =>
         createStorageMiddleware({
+          rootReducer: validationRootReducer,
           name: 'constructor',
           slices: ['test'],
         }),
@@ -838,6 +881,7 @@ describe('Storage Key Validation', () => {
     it('accepts valid key names', () => {
       expect(() =>
         createStorageMiddleware({
+          rootReducer: validationRootReducer,
           name: 'my-app-state',
           slices: ['test'],
         }),
@@ -845,6 +889,7 @@ describe('Storage Key Validation', () => {
 
       expect(() =>
         createStorageMiddleware({
+          rootReducer: validationRootReducer,
           name: 'app.settings.v2',
           slices: ['test'],
         }),
@@ -852,6 +897,7 @@ describe('Storage Key Validation', () => {
 
       expect(() =>
         createStorageMiddleware({
+          rootReducer: validationRootReducer,
           name: 'user_preferences_123',
           slices: ['test'],
         }),

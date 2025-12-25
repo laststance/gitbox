@@ -38,6 +38,7 @@ SSR-safe Redux Toolkit middleware for localStorage persistence with selective sl
 - [Testing](#testing)
 - [Examples](#examples)
 - [TypeScript Support](#typescript-support)
+- [Migration Guide](#migration-guide)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -67,7 +68,7 @@ pnpm add lz-string     # For compression
 ## Quick Start
 
 ```typescript
-import { configureStore } from '@reduxjs/toolkit'
+import { combineReducers, configureStore } from '@reduxjs/toolkit'
 import { createStorageMiddleware } from '@gitbox/redux-storage-middleware'
 
 interface AppState {
@@ -75,23 +76,28 @@ interface AppState {
   settings: SettingsState
 }
 
-// Create middleware and API
-const { middleware, api } = createStorageMiddleware<AppState>({
+// Create root reducer
+const rootReducer = combineReducers({
+  emails: emailReducer,
+  settings: settingsReducer,
+})
+
+// Create middleware, reducer, and API
+const { middleware, reducer, api } = createStorageMiddleware<AppState>({
+  rootReducer, // Required: pass your root reducer
   name: 'my-app-state',
   slices: ['emails', 'settings'],
   version: 1,
 })
 
-// Configure store
+// Configure store with returned reducer (already hydration-wrapped)
 export const store = configureStore({
-  reducer: {
-    emails: emailReducer,
-    settings: settingsReducer,
-  },
+  reducer, // Use the returned reducer
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(middleware),
 })
 
+// Hydration happens automatically on client
 // Export API for manual control
 export { api as storageApi }
 ```
@@ -106,18 +112,18 @@ Creates the storage middleware and returns both the middleware and a control API
 
 #### Configuration Options
 
-| Option          | Type                        | Default        | Description                                            |
-| --------------- | --------------------------- | -------------- | ------------------------------------------------------ |
-| `name`          | `string`                    | **required**   | localStorage key name                                  |
-| `slices`        | `(keyof S)[]`               | `undefined`    | State slices to persist (all if undefined)             |
-| `partialize`    | `(state: S) => Partial<S>`  | `undefined`    | Custom state selector function                         |
-| `exclude`       | `string[]`                  | `[]`           | Dot-notation paths to exclude (e.g., `['auth.token']`) |
-| `version`       | `number`                    | `0`            | Storage version for migrations                         |
-| `skipHydration` | `boolean`                   | `false`        | Skip automatic hydration on init                       |
-| `storage`       | `StateStorage`              | `localStorage` | Custom storage backend                                 |
-| `serializer`    | `Serializer<T>`             | JSON           | Custom serialization logic                             |
-| `merge`         | `(persisted, current) => S` | shallow        | Merge strategy for hydration                           |
-| `migrate`       | `(state, version) => S`     | identity       | Version migration function                             |
+| Option        | Type                        | Default        | Description                                            |
+| ------------- | --------------------------- | -------------- | ------------------------------------------------------ |
+| `rootReducer` | `Reducer<S, AnyAction>`     | **required**   | Root reducer to wrap with hydration handling           |
+| `name`        | `string`                    | **required**   | localStorage key name                                  |
+| `slices`      | `(keyof S)[]`               | `undefined`    | State slices to persist (all if undefined)             |
+| `partialize`  | `(state: S) => Partial<S>`  | `undefined`    | Custom state selector function                         |
+| `exclude`     | `string[]`                  | `[]`           | Dot-notation paths to exclude (e.g., `['auth.token']`) |
+| `version`     | `number`                    | `0`            | Storage version for migrations                         |
+| `storage`     | `StateStorage`              | `localStorage` | Custom storage backend                                 |
+| `serializer`  | `Serializer<T>`             | JSON           | Custom serialization logic                             |
+| `merge`       | `(persisted, current) => S` | shallow        | Merge strategy for hydration                           |
+| `migrate`     | `(state, version) => S`     | identity       | Version migration function                             |
 
 #### Performance Options
 
@@ -141,8 +147,9 @@ Creates the storage middleware and returns both the middleware and a control API
 
 ```typescript
 interface StorageMiddlewareResult<S> {
-  middleware: Middleware<object, S>
-  api: HydrationApi<S>
+  middleware: Middleware<object, S> // Redux middleware
+  reducer: Reducer<S, AnyAction> // Hydration-wrapped reducer (use this in configureStore)
+  api: HydrationApi<S> // Control API
 }
 ```
 
@@ -265,7 +272,8 @@ const serializer = createCompressedSerializer<AppState>({
 ### Version Migrations
 
 ```typescript
-const { middleware } = createStorageMiddleware<AppState>({
+const { middleware, reducer } = createStorageMiddleware<AppState>({
+  rootReducer,
   name: 'my-app',
   slices: ['settings'],
   version: 2,
@@ -290,7 +298,8 @@ const { middleware } = createStorageMiddleware<AppState>({
 ```typescript
 import { shallowMerge, deepMerge } from '@gitbox/redux-storage-middleware'
 
-const { middleware } = createStorageMiddleware<AppState>({
+const { middleware, reducer } = createStorageMiddleware<AppState>({
+  rootReducer,
   name: 'my-app',
   slices: ['emails'],
   merge: deepMerge, // or shallowMerge (default)
@@ -340,7 +349,8 @@ export function StoreProvider({ children }) {
 ### Exclude Paths
 
 ```typescript
-const { middleware } = createStorageMiddleware<AppState>({
+const { middleware, reducer } = createStorageMiddleware<AppState>({
+  rootReducer,
   name: 'my-app',
   exclude: [
     'auth.token', // Skip sensitive data
@@ -353,7 +363,8 @@ const { middleware } = createStorageMiddleware<AppState>({
 ### Partialize Function
 
 ```typescript
-const { middleware } = createStorageMiddleware<AppState>({
+const { middleware, reducer } = createStorageMiddleware<AppState>({
+  rootReducer,
   name: 'my-app',
   partialize: (state) => ({
     // Only persist specific nested data
@@ -488,7 +499,8 @@ A production-grade demo showing 5000+ email persistence:
 **Configuration:**
 
 ```typescript
-const { middleware, api } = createStorageMiddleware<AppState>({
+const { middleware, reducer, api } = createStorageMiddleware<AppState>({
+  rootReducer, // Pass your root reducer
   name: 'gmail-clone-state',
   slices: ['emails'],
   version: 1,
@@ -517,7 +529,8 @@ Full TypeScript support with generic state typing:
 
 ```typescript
 // State type inference
-const { middleware, api } = createStorageMiddleware<RootState>({
+const { middleware, reducer, api } = createStorageMiddleware<RootState>({
+  rootReducer,  // Required: pass your root reducer
   name: 'app',
   slices: ['user', 'settings'],  // Type-checked against RootState keys
 })
@@ -538,12 +551,74 @@ import {
   ACTION_HYDRATE_ERROR,
   type StorageMiddlewareAction,
 } from '@gitbox/redux-storage-middleware'
-
-// Use in reducers for hydration handling
-import { withHydration } from '@gitbox/redux-storage-middleware'
-
-const enhancedReducer = withHydration(rootReducer)
 ```
+
+> **Note:** `withHydration()` is deprecated. The returned `reducer` from `createStorageMiddleware()` is already hydration-wrapped.
+
+---
+
+## Migration Guide
+
+### Upgrading from v0.1.x to v0.2.x
+
+**Breaking Changes:**
+
+1. `rootReducer` is now a required parameter
+2. `skipHydration` option has been removed (hydration is always enabled)
+3. Return type now includes `reducer` which must be used in `configureStore`
+
+**Before (v0.1.x):**
+
+```typescript
+import {
+  createStorageMiddleware,
+  withHydration,
+} from '@gitbox/redux-storage-middleware'
+
+const rootReducer = combineReducers({
+  settings: settingsReducer,
+  board: boardReducer,
+})
+
+const { middleware } = createStorageMiddleware({
+  name: 'my-app-state',
+  slices: ['settings'],
+  skipHydration: false, // This option no longer exists
+})
+
+const store = configureStore({
+  reducer: withHydration(rootReducer), // Manual wrapper required
+  middleware: (getDefault) => getDefault().concat(middleware),
+})
+```
+
+**After (v0.2.x):**
+
+```typescript
+import { createStorageMiddleware } from '@gitbox/redux-storage-middleware'
+
+const rootReducer = combineReducers({
+  settings: settingsReducer,
+  board: boardReducer,
+})
+
+const { middleware, reducer } = createStorageMiddleware({
+  rootReducer, // Required: pass your root reducer
+  name: 'my-app-state',
+  slices: ['settings'],
+})
+
+const store = configureStore({
+  reducer, // Use returned reducer (already hydration-wrapped)
+  middleware: (getDefault) => getDefault().concat(middleware),
+})
+```
+
+**Key Benefits of the New API:**
+
+- No more "silent failures" from forgetting to use `withHydration()`
+- Simpler, more intuitive API
+- Automatic hydration on client (no need to configure `skipHydration`)
 
 ---
 

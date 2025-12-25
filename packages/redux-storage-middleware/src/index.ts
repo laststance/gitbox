@@ -1,29 +1,34 @@
 /**
  * @gitbox/redux-storage-middleware
  *
- * Custom middleware to synchronize Redux state with LocalStorage
- * SSR-safe with version migration and hydration control support
+ * SSR-safe Redux Toolkit middleware for localStorage persistence
+ * Automatic hydration, version migration, and selective slice persistence
  *
  * @example
  * ```ts
- * import { createStorageMiddleware, withHydration } from '@gitbox/redux-storage-middleware'
+ * import { createStorageMiddleware } from '@gitbox/redux-storage-middleware'
+ * import { combineReducers, configureStore } from '@reduxjs/toolkit'
  *
- * const { middleware, api } = createStorageMiddleware({
+ * const rootReducer = combineReducers({
+ *   settings: settingsReducer,
+ *   board: boardReducer,
+ * })
+ *
+ * const { middleware, reducer, api } = createStorageMiddleware({
+ *   rootReducer,  // Required: pass your root reducer
  *   name: 'my-app-state',
- *   slices: ['settings', 'preferences'],
+ *   slices: ['settings'],
  *   version: 1,
  * })
  *
  * const store = configureStore({
- *   reducer: withHydration(rootReducer),
+ *   reducer,  // Use the returned reducer (already hydration-wrapped)
  *   middleware: (getDefaultMiddleware) =>
  *     getDefaultMiddleware().concat(middleware),
  * })
  *
- * // Check hydration status
- * if (api.hasHydrated()) {
- *   console.log('State restored from localStorage')
- * }
+ * // Hydration happens automatically on client
+ * // Check status with api.hasHydrated()
  * ```
  */
 

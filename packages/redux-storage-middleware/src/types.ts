@@ -4,7 +4,7 @@
  * Comprehensive type definitions based on patterns from jotai/zustand
  */
 
-import type { Middleware } from '@reduxjs/toolkit'
+import type { Action, Middleware, Reducer } from '@reduxjs/toolkit'
 
 // =============================================================================
 // Storage Types
@@ -189,6 +189,15 @@ export interface PerformanceConfig {
  */
 export interface StorageMiddlewareConfig<S = unknown> {
   /**
+   * Root reducer to wrap with hydration handling
+   * The middleware will automatically apply withHydration() to this reducer
+   *
+   * @required
+   * @example combineReducers({ settings: settingsReducer, board: boardReducer })
+   */
+  rootReducer: (state: S | undefined, action: Action) => S
+
+  /**
    * Storage key name
    *
    * @example 'my-app-state'
@@ -217,18 +226,6 @@ export interface StorageMiddlewareConfig<S = unknown> {
    * @example ['auth.token', 'temp']
    */
   exclude?: string[]
-
-  // ---------------------------------------------------------------------------
-  // Hydration
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Whether to skip automatic hydration
-   * If true, rehydrate() must be called manually
-   *
-   * @default false
-   */
-  skipHydration?: boolean
 
   // ---------------------------------------------------------------------------
   // Version & Migration
@@ -348,6 +345,12 @@ export interface StorageMiddlewareResult<S = unknown> {
    * Redux middleware
    */
   middleware: Middleware<object, S>
+
+  /**
+   * Hydration-wrapped reducer
+   * Use this as your store's reducer - it handles ACTION_HYDRATE_COMPLETE automatically
+   */
+  reducer: Reducer<S>
 
   /**
    * Hydration API

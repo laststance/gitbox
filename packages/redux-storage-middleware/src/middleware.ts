@@ -9,7 +9,8 @@ import type {
   Middleware,
   MiddlewareAPI,
   Dispatch,
-  AnyAction,
+  UnknownAction,
+  Reducer,
 } from '@reduxjs/toolkit'
 
 import { defaultJsonSerializer } from './serializers/json'
@@ -192,34 +193,33 @@ function deepMerge<T extends object>(
 /**
  * Creates Storage Middleware
  *
- * @param config - Middleware configuration
- * @returns Middleware and hydration API
+ * @param config - Middleware configuration (rootReducer is required)
+ * @returns Middleware, hydration-wrapped reducer, and hydration API
  *
  * @example
  * ```ts
- * const { middleware, api } = createStorageMiddleware({
+ * import { combineReducers, configureStore } from '@reduxjs/toolkit'
+ *
+ * const rootReducer = combineReducers({
+ *   settings: settingsReducer,
+ *   board: boardReducer,
+ * })
+ *
+ * const { middleware, reducer, api } = createStorageMiddleware({
+ *   rootReducer,  // Required: pass your root reducer
  *   name: 'my-app-state',
- *   slices: ['settings', 'preferences'],
- *   skipHydration: false,
+ *   slices: ['settings'],
  *   version: 1,
- *   migrate: (state, version) => {
- *     if (version === 0) {
- *       return { ...state, newField: 'default' }
- *     }
- *     return state
- *   },
  * })
  *
  * const store = configureStore({
- *   reducer: rootReducer,
+ *   reducer,  // Use the returned reducer (already hydration-wrapped)
  *   middleware: (getDefaultMiddleware) =>
  *     getDefaultMiddleware().concat(middleware),
  * })
  *
- * // Manual hydration for SSR
- * if (typeof window !== 'undefined') {
- *   api.rehydrate()
- * }
+ * // Hydration happens automatically on client
+ * // Use api.hasHydrated() to check status
  * ```
  */
 export function createStorageMiddleware<
@@ -230,11 +230,11 @@ export function createStorageMiddleware<
   // ---------------------------------------------------------------------------
 
   const {
+    rootReducer,
     name,
     slices,
     partialize,
     exclude = [],
-    skipHydration = false,
     version = DEFAULT_VERSION,
     migrate,
     storage: customStorage,
@@ -250,8 +250,19 @@ export function createStorageMiddleware<
     merge = shallowMerge,
   } = config
 
+  // Validate rootReducer is required
+  if (!rootReducer || typeof rootReducer !== 'function') {
+    throw new Error(
+      '[redux-storage-middleware] rootReducer is required. ' +
+        'Pass your root reducer to createStorageMiddleware({ rootReducer, ... })',
+    )
+  }
+
   // Validate storage key name (security measure)
   validateStorageKeyName(name)
+
+  // Create hydration-wrapped reducer
+  const hydratedReducer = withHydration(rootReducer) as Reducer<S>
 
   // Resolve performance configuration
   const debounceMs =
@@ -266,7 +277,7 @@ export function createStorageMiddleware<
 
   let hydrationState: HydrationState = 'idle'
   let hydratedState: S | null = null
-  let storeApi: MiddlewareAPI<Dispatch<AnyAction>, S> | null = null
+  let storeApi: MiddlewareAPI<Dispatch<UnknownAction>, S> | null = null
 
   const hydrateCallbacks = new Set<(state: S) => void>()
   const finishHydrationCallbacks = new Set<(state: S) => void>()
@@ -437,7 +448,7 @@ export function createStorageMiddleware<
           storeApi.dispatch({
             type: ACTION_HYDRATE_COMPLETE,
             payload: hydratedState,
-          } as AnyAction)
+          } as UnknownAction)
         } else {
           hydratedState = state
         }
@@ -513,10 +524,10 @@ export function createStorageMiddleware<
   // ---------------------------------------------------------------------------
 
   const middleware: Middleware<object, S> = (store) => {
-    storeApi = store as MiddlewareAPI<Dispatch<AnyAction>, S>
+    storeApi = store as MiddlewareAPI<Dispatch<UnknownAction>, S>
 
-    // Automatic hydration
-    if (!skipHydration && !isServer()) {
+    // Automatic hydration (always enabled on client)
+    if (!isServer()) {
       // Execute in microtask (after store initialization)
       Promise.resolve().then(() => {
         api.rehydrate()
@@ -555,7 +566,7 @@ export function createStorageMiddleware<
     }
   }
 
-  return { middleware, api }
+  return { middleware, reducer: hydratedReducer, api }
 }
 
 // =============================================================================
@@ -565,20 +576,17 @@ export function createStorageMiddleware<
 /**
  * Wrapper for backward compatibility with legacy API
  *
- * @deprecated Use createStorageMiddleware instead
+ * @deprecated This function is no longer supported. Use createStorageMiddleware instead.
+ * @throws Always throws an error directing users to migrate to the new API
  */
 export function createLegacyStorageMiddleware(
-  config: LegacyStorageMiddlewareConfig,
+  _config: LegacyStorageMiddlewareConfig,
 ): Middleware {
-  const { middleware } = createStorageMiddleware({
-    name: config.storageKey,
-    slices: config.slices,
-    performance: {
-      debounceMs: config.debounceMs,
-    },
-  })
-
-  return middleware
+  throw new Error(
+    '[redux-storage-middleware] createLegacyStorageMiddleware is deprecated and no longer supported. ' +
+      'Please migrate to createStorageMiddleware({ rootReducer, name, slices, ... }). ' +
+      'See the README for migration guide.',
+  )
 }
 
 // =============================================================================
@@ -655,21 +663,32 @@ export function clearStorageState(storageKey: string): void {
  *
  * Wraps reducer to handle hydration actions
  *
+ * @deprecated Use createStorageMiddleware with rootReducer instead.
+ * The middleware now automatically wraps your reducer with hydration handling.
+ *
  * @param reducer - Original reducer
  * @returns Hydration-aware reducer
  *
  * @example
  * ```ts
+ * // OLD (deprecated):
+ * const { middleware } = createStorageMiddleware({ name, ... })
  * const store = configureStore({
  *   reducer: withHydration(rootReducer),
- *   middleware: (getDefaultMiddleware) =>
- *     getDefaultMiddleware().concat(middleware),
+ *   middleware: (getDefault) => getDefault().concat(middleware),
+ * })
+ *
+ * // NEW (recommended):
+ * const { middleware, reducer } = createStorageMiddleware({ rootReducer, name, ... })
+ * const store = configureStore({
+ *   reducer,  // Already hydration-wrapped
+ *   middleware: (getDefault) => getDefault().concat(middleware),
  * })
  * ```
  */
 export function withHydration<S>(
-  reducer: (state: S | undefined, action: AnyAction) => S,
-): (state: S | undefined, action: AnyAction) => S {
+  reducer: (state: S | undefined, action: UnknownAction) => S,
+): (state: S | undefined, action: UnknownAction) => S {
   return (state, action) => {
     if (action.type === ACTION_HYDRATE_COMPLETE) {
       // Hydration complete: overwrite state

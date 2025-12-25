@@ -16,10 +16,7 @@ import { combineReducers, configureStore } from '@reduxjs/toolkit'
 import type { TypedUseSelectorHook } from 'react-redux'
 import { useDispatch, useSelector } from 'react-redux'
 
-import {
-  createStorageMiddleware,
-  withHydration,
-} from '@gitbox/redux-storage-middleware'
+import { createStorageMiddleware } from '@gitbox/redux-storage-middleware'
 import authReducer from './slices/authSlice'
 import boardReducer from './slices/boardSlice'
 import draftReducer from './slices/draftSlice'
@@ -33,16 +30,18 @@ const rootReducer = combineReducers({
   settings: settingsReducer,
 })
 
-// Storage middleware configuration
-const { middleware: storageMiddleware } = createStorageMiddleware({
-  // Synchronize settings, board, and draft slices to LocalStorage
-  name: 'gitbox-state',
-  slices: ['settings', 'board', 'draft'],
-})
+// Storage middleware configuration with new API
+// Returns hydration-wrapped reducer automatically
+const { middleware: storageMiddleware, reducer: hydratedReducer } =
+  createStorageMiddleware({
+    rootReducer, // Required: pass root reducer
+    name: 'gitbox-state',
+    slices: ['settings', 'board', 'draft'], // Persist these slices to localStorage
+  })
 
 export const store = configureStore({
-  // Wrap reducer with withHydration to handle localStorage state restoration
-  reducer: withHydration(rootReducer),
+  // Use returned reducer (already hydration-wrapped)
+  reducer: hydratedReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
