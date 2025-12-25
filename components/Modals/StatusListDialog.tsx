@@ -130,11 +130,16 @@ export const StatusListDialog = memo(function StatusListDialog({
             <Label htmlFor="status-name">Name</Label>
             <Input
               id="status-name"
+              name="status-column-title"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., In Progress, Review"
               maxLength={50}
               autoFocus
+              autoComplete="off"
+              data-1p-ignore
+              data-lpignore="true"
+              data-form-type="other"
             />
           </div>
 

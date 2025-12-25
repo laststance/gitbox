@@ -9,8 +9,9 @@
 
 import { cookies } from 'next/headers'
 
+import { getGitHubTokenCookieName } from '@/lib/constants/cookies'
+
 const GITHUB_API_BASE_URL = 'https://api.github.com'
-const GITHUB_TOKEN_COOKIE = 'github_provider_token'
 
 export interface GitHubRepository {
   id: number
@@ -38,7 +39,8 @@ export interface GitHubRepository {
  */
 async function getGitHubToken(): Promise<string | null> {
   const cookieStore = await cookies()
-  return cookieStore.get(GITHUB_TOKEN_COOKIE)?.value ?? null
+  const cookieName = getGitHubTokenCookieName()
+  return cookieStore.get(cookieName)?.value ?? null
 }
 
 /**

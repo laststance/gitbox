@@ -13,10 +13,8 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 import { createFirstBoardIfNeeded } from '@/lib/actions/board'
+import { getGitHubTokenCookieName } from '@/lib/constants/cookies'
 import { createRouteHandlerClient } from '@/lib/supabase/server'
-
-// Cookie name
-const GITHUB_TOKEN_COOKIE = 'github_provider_token'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -58,14 +56,15 @@ export async function GET(request: Request) {
       const providerToken = data.session?.provider_token
       if (providerToken) {
         const cookieStore = await cookies()
-        cookieStore.set(GITHUB_TOKEN_COOKIE, providerToken, {
+        const cookieName = getGitHubTokenCookieName()
+        cookieStore.set(cookieName, providerToken, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',
           maxAge: 60 * 60 * 24 * 7, // 7 days (adjust to match GitHub token expiration)
           path: '/',
         })
-        console.log('GitHub provider_token saved to cookie')
+        console.log(`GitHub provider_token saved to cookie: ${cookieName}`)
       } else {
         console.warn(
           'No provider_token in session - GitHub API access may be limited',
