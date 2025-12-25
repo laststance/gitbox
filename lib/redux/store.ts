@@ -12,15 +12,26 @@
  */
 
 /* eslint-disable import/order -- Workspace package @gitbox/* resolves differently in CI vs local environments */
-import { configureStore } from '@reduxjs/toolkit'
+import { combineReducers, configureStore } from '@reduxjs/toolkit'
 import type { TypedUseSelectorHook } from 'react-redux'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { createStorageMiddleware } from '@gitbox/redux-storage-middleware'
+import {
+  createStorageMiddleware,
+  withHydration,
+} from '@gitbox/redux-storage-middleware'
 import authReducer from './slices/authSlice'
 import boardReducer from './slices/boardSlice'
 import draftReducer from './slices/draftSlice'
 import settingsReducer from './slices/settingsSlice'
+
+// Combine all reducers
+const rootReducer = combineReducers({
+  auth: authReducer,
+  board: boardReducer,
+  draft: draftReducer,
+  settings: settingsReducer,
+})
 
 // Storage middleware configuration
 const { middleware: storageMiddleware } = createStorageMiddleware({
@@ -30,12 +41,8 @@ const { middleware: storageMiddleware } = createStorageMiddleware({
 })
 
 export const store = configureStore({
-  reducer: {
-    auth: authReducer,
-    board: boardReducer,
-    draft: draftReducer,
-    settings: settingsReducer,
-  },
+  // Wrap reducer with withHydration to handle localStorage state restoration
+  reducer: withHydration(rootReducer),
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {

@@ -26,6 +26,8 @@ interface SettingsState {
   typography: TypographySettings
   compactMode: boolean
   showArchived: boolean
+  /** Organization filter for AddRepositoryCombobox ('all' or organization login name) */
+  organizationFilter: string
 }
 
 const initialState: SettingsState = {
@@ -37,6 +39,7 @@ const initialState: SettingsState = {
   },
   compactMode: false,
   showArchived: false,
+  organizationFilter: 'all',
 }
 
 export const settingsSlice = createSlice({
@@ -58,6 +61,9 @@ export const settingsSlice = createSlice({
     setShowArchived: (state, action: PayloadAction<boolean>) => {
       state.showArchived = action.payload
     },
+    setOrganizationFilter: (state, action: PayloadAction<string>) => {
+      state.organizationFilter = action.payload
+    },
     resetSettings: () => initialState,
   },
 })
@@ -68,6 +74,7 @@ export const {
   setTypography,
   setCompactMode,
   setShowArchived,
+  setOrganizationFilter,
   resetSettings,
 } = settingsSlice.actions
 
@@ -84,3 +91,5 @@ export const selectCompactMode = (state: { settings: SettingsState }) =>
   state.settings.compactMode
 export const selectShowArchived = (state: { settings: SettingsState }) =>
   state.settings.showArchived
+export const selectOrganizationFilter = (state: { settings: SettingsState }) =>
+  state.settings.organizationFilter

@@ -19,6 +19,11 @@ import {
   type GitHubOrganization,
 } from '@/lib/actions/github'
 import { addRepositoriesToBoard } from '@/lib/actions/repo-cards'
+import {
+  selectOrganizationFilter,
+  setOrganizationFilter,
+} from '@/lib/redux/slices/settingsSlice'
+import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 
 interface AddRepositoryComboboxProps {
   boardId: string
@@ -53,8 +58,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   const [isAdding, setIsAdding] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
 
-  // Filters
-  const [organizationFilter, setOrganizationFilter] = useState<string>('all')
+  // Filters (organizationFilter persisted to localStorage via Redux)
+  const dispatch = useAppDispatch()
+  const organizationFilter = useAppSelector(selectOrganizationFilter)
   // TODO: Implement topics filter UI
   // const [topicsFilter, setTopicsFilter] = useState<string[]>([])
   const [visibilityFilter, setVisibilityFilter] = useState<
@@ -80,15 +86,15 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
   /**
    * Guarded organization filter change handler
-   * Prevents potential infinite re-render by checking if value actually changed
+   * Dispatches Redux action to persist organization filter to localStorage
    */
   const handleOrganizationFilterChange = useCallback(
     (value: string) => {
       if (value !== organizationFilter) {
-        setOrganizationFilter(value)
+        dispatch(setOrganizationFilter(value))
       }
     },
-    [organizationFilter],
+    [dispatch, organizationFilter],
   )
 
   // Refs
