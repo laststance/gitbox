@@ -13,7 +13,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 import { createFirstBoardIfNeeded } from '@/lib/actions/board'
-import { createClient } from '@/lib/supabase/server'
+import { createRouteHandlerClient } from '@/lib/supabase/server'
 
 // Cookie name
 const GITHUB_TOKEN_COOKIE = 'github_provider_token'
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
   const next = searchParams.get('next') ?? '/boards'
 
   if (code) {
-    const supabase = await createClient()
+    const supabase = await createRouteHandlerClient(request)
 
     try {
       // Establish session using authentication code
