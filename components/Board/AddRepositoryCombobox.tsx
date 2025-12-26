@@ -60,9 +60,8 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
   // Filters (organizationFilter persisted to localStorage via Redux)
   const dispatch = useAppDispatch()
-  const organizationFilter = useAppSelector(selectOrganizationFilter)
-  // TODO: Implement topics filter UI
-  // const [topicsFilter, setTopicsFilter] = useState<string[]>([])
+  // Nullish coalescing ensures safe default during Redux hydration (fixes GITBOX-1)
+  const organizationFilter = useAppSelector(selectOrganizationFilter) ?? 'all'
   const [visibilityFilter, setVisibilityFilter] = useState<
     'all' | 'public' | 'private'
   >('all')
@@ -212,13 +211,6 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     if (visibilityFilter !== 'all') {
       filtered = filtered.filter((repo) => repo.visibility === visibilityFilter)
     }
-
-    // TODO: Topics filter
-    // if (topicsFilter.length > 0) {
-    //   filtered = filtered.filter(repo =>
-    //     topicsFilter.some(topic => repo.topics?.includes(topic))
-    //   )
-    // }
 
     return filtered
   }, [userRepos, debouncedQuery, organizationFilter, visibilityFilter])

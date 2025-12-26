@@ -91,5 +91,10 @@ export const selectCompactMode = (state: { settings: SettingsState }) =>
   state.settings.compactMode
 export const selectShowArchived = (state: { settings: SettingsState }) =>
   state.settings.showArchived
-export const selectOrganizationFilter = (state: { settings: SettingsState }) =>
-  state.settings.organizationFilter
+/**
+ * Selector for organization filter with safe default
+ * @param state - Redux state with settings slice
+ * @returns Organization filter value, defaults to 'all' if state is hydrating
+ */
+export const selectOrganizationFilter = (state: { settings?: SettingsState }) =>
+  state.settings?.organizationFilter ?? 'all'
