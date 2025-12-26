@@ -64,12 +64,11 @@ describe('Middleware (middleware.ts)', () => {
   })
 
   describe('Locale Support', () => {
-    it('should support en and ja locales', () => {
-      const locales = ['en', 'ja']
+    it('should support en locale only', () => {
+      const locales = ['en']
 
       expect(locales).toContain('en')
-      expect(locales).toContain('ja')
-      expect(locales.length).toBe(2)
+      expect(locales.length).toBe(1)
     })
   })
 

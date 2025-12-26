@@ -6,7 +6,7 @@
 
 'use client'
 
-import { Check, Sun, Moon, Monitor, Globe } from 'lucide-react'
+import { Check, Sun, Moon, Monitor } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, memo, useMemo, useCallback } from 'react'
@@ -88,13 +88,6 @@ const THEME_BUTTON_SELECTED =
 const THEME_BUTTON_UNSELECTED =
   'border-border hover:border-primary/50 hover:bg-muted/50'
 
-/** Base styles for language button */
-const LANGUAGE_BUTTON_BASE =
-  'flex items-center gap-2 rounded-lg border-2 px-4 py-3 transition-all'
-const LANGUAGE_BUTTON_SELECTED =
-  'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
-const LANGUAGE_BUTTON_UNSELECTED = 'border-border hover:border-primary/50'
-
 const THEME_INFO: Record<
   ThemeType,
   { name: string; color: string; description: string }
@@ -169,7 +162,7 @@ const ThemeButton = memo(function ThemeButton({
 export const SettingsClient = memo(function SettingsClient() {
   const router = useRouter()
   const { theme, setTheme, mounted } = useTheme()
-  const { language, setLanguage, t } = useI18n()
+  const { t } = useI18n()
 
   /**
    * Handles the save settings action.
@@ -181,18 +174,6 @@ export const SettingsClient = memo(function SettingsClient() {
     })
     router.push('/boards')
   }, [router])
-
-  const englishButtonClassName = useMemo(
-    () =>
-      `${LANGUAGE_BUTTON_BASE} ${language === 'en' ? LANGUAGE_BUTTON_SELECTED : LANGUAGE_BUTTON_UNSELECTED}`,
-    [language],
-  )
-
-  const japaneseButtonClassName = useMemo(
-    () =>
-      `${LANGUAGE_BUTTON_BASE} ${language === 'ja' ? LANGUAGE_BUTTON_SELECTED : LANGUAGE_BUTTON_UNSELECTED}`,
-    [language],
-  )
 
   if (!mounted) {
     return (
@@ -345,51 +326,6 @@ export const SettingsClient = memo(function SettingsClient() {
                   <span className="text-sm text-muted-foreground">20px</span>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Language Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5" />
-              Language / 言語
-            </CardTitle>
-            <CardDescription>Choose your preferred language</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setLanguage('en')}
-                className={englishButtonClassName}
-              >
-                <span className="text-2xl">🇺🇸</span>
-                <div className="text-left">
-                  <span className="block font-medium">English</span>
-                  <span className="text-xs text-muted-foreground">English</span>
-                </div>
-                {language === 'en' && (
-                  <Check className="ml-2 h-4 w-4 text-primary" />
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setLanguage('ja')}
-                className={japaneseButtonClassName}
-              >
-                <span className="text-2xl">🇯🇵</span>
-                <div className="text-left">
-                  <span className="block font-medium">日本語</span>
-                  <span className="text-xs text-muted-foreground">
-                    Japanese
-                  </span>
-                </div>
-                {language === 'ja' && (
-                  <Check className="ml-2 h-4 w-4 text-primary" />
-                )}
-              </button>
             </div>
           </CardContent>
         </Card>

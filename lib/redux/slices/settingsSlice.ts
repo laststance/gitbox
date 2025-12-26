@@ -3,7 +3,6 @@
  *
  * User settings management (synchronized with LocalStorage)
  * - Theme
- * - Language
  * - Typography
  * - WIP limits
  */
@@ -13,8 +12,6 @@ import { createSlice } from '@reduxjs/toolkit'
 
 import type { Theme } from '@/lib/supabase/types'
 
-export type Locale = 'en' | 'ja'
-
 interface TypographySettings {
   baseSize: number // 14-18px
   scale: number // 1.2-1.4
@@ -22,7 +19,6 @@ interface TypographySettings {
 
 interface SettingsState {
   theme: Theme
-  locale: Locale
   typography: TypographySettings
   compactMode: boolean
   showArchived: boolean
@@ -32,7 +28,6 @@ interface SettingsState {
 
 const initialState: SettingsState = {
   theme: 'sunrise',
-  locale: 'ja',
   typography: {
     baseSize: 16,
     scale: 1.25,
@@ -48,9 +43,6 @@ export const settingsSlice = createSlice({
   reducers: {
     setTheme: (state, action: PayloadAction<Theme>) => {
       state.theme = action.payload
-    },
-    setLocale: (state, action: PayloadAction<Locale>) => {
-      state.locale = action.payload
     },
     setTypography: (state, action: PayloadAction<TypographySettings>) => {
       state.typography = action.payload
@@ -70,7 +62,6 @@ export const settingsSlice = createSlice({
 
 export const {
   setTheme,
-  setLocale,
   setTypography,
   setCompactMode,
   setShowArchived,
@@ -83,8 +74,6 @@ export default settingsSlice.reducer
 // Selectors
 export const selectTheme = (state: { settings: SettingsState }) =>
   state.settings.theme
-export const selectLocale = (state: { settings: SettingsState }) =>
-  state.settings.locale
 export const selectTypography = (state: { settings: SettingsState }) =>
   state.settings.typography
 export const selectCompactMode = (state: { settings: SettingsState }) =>
