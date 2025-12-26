@@ -701,6 +701,75 @@ export async function deleteBoardAction(
 }
 
 // ========================================
+// Board Theme Action (useActionState compatible)
+// ========================================
+
+/** Valid theme names for board customization */
+const VALID_THEMES = [
+  'sunrise',
+  'sandstone',
+  'mint',
+  'sky',
+  'lavender',
+  'rose',
+  'midnight',
+  'graphite',
+  'forest',
+  'ocean',
+  'plum',
+  'rust',
+] as const
+
+/**
+ * State returned from the update board theme action.
+ */
+export type UpdateBoardThemeState = {
+  success?: boolean
+  newTheme?: string
+  error?: string
+}
+
+/**
+ * Server Action for updating a board's theme.
+ * Compatible with useActionState (accepts prevState as first arg).
+ *
+ * @param prevState - Previous state from useActionState
+ * @param formData - Form data containing boardId and theme fields
+ * @returns
+ * - On success: { success: true, newTheme: string }
+ * - On validation error: { error: 'Invalid theme' }
+ * - On server error: { error: 'Failed to update theme' }
+ *
+ * @example
+ * // In React component with useActionState
+ * const [state, formAction, isPending] = useActionState(updateBoardThemeAction, {})
+ * <form action={formAction}>
+ *   <input type="hidden" name="boardId" value={boardId} />
+ *   <input type="hidden" name="theme" value="midnight" />
+ *   <button disabled={isPending}>Apply Theme</button>
+ * </form>
+ */
+export async function updateBoardThemeAction(
+  _prevState: UpdateBoardThemeState,
+  formData: FormData,
+): Promise<UpdateBoardThemeState> {
+  const boardId = formData.get('boardId') as string
+  const theme = formData.get('theme') as string
+
+  // Validate theme is in allowed list
+  if (!VALID_THEMES.includes(theme as (typeof VALID_THEMES)[number])) {
+    return { error: 'Invalid theme' }
+  }
+
+  try {
+    await updateBoard(boardId, { theme })
+    return { success: true, newTheme: theme }
+  } catch {
+    return { error: 'Failed to update theme' }
+  }
+}
+
+// ========================================
 // Board Favorite Operations
 // ========================================
 

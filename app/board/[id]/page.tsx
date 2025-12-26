@@ -76,5 +76,11 @@ export default async function BoardPage(props: BoardPageProps) {
     notFound()
   }
 
-  return <BoardPageClient boardId={board.id} boardName={board.name} />
+  return (
+    <BoardPageClient
+      boardId={board.id}
+      boardName={board.name}
+      boardTheme={board.theme}
+    />
+  )
 }

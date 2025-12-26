@@ -15,11 +15,13 @@
 
 'use client'
 
-import { Plus } from 'lucide-react'
-import { useState, useCallback, memo } from 'react'
+import { Plus, Settings } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useState, useCallback, memo, useEffect } from 'react'
 
 import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox'
 import { KanbanBoard } from '@/components/Board/KanbanBoard'
+import { BoardSettingsDialog } from '@/components/Boards/BoardSettingsDialog'
 import { NoteModal } from '@/components/Modals/NoteModal'
 import type { ProjectInfo } from '@/components/Modals/ProjectInfoModal'
 import { ProjectInfoModal } from '@/components/Modals/ProjectInfoModal'
@@ -45,19 +47,38 @@ import {
   selectRepoCards,
 } from '@/lib/redux/slices/boardSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
+import { applyTheme } from '@/lib/theme'
 
 interface BoardPageClientProps {
   boardId: string
   boardName: string
+  /** Board-specific theme (null for app default) */
+  boardTheme?: string | null
 }
 
 export const BoardPageClient = memo(function BoardPageClient({
   boardId,
   boardName,
+  boardTheme,
 }: BoardPageClientProps) {
+  const router = useRouter()
   const dispatch = useAppDispatch()
   const statusLists = useAppSelector(selectStatusLists)
   const repoCards = useAppSelector(selectRepoCards)
+
+  // Board Settings Dialog state
+  const [isBoardSettingsOpen, setIsBoardSettingsOpen] = useState(false)
+  const [displayName, setDisplayName] = useState(boardName)
+  const [currentTheme, setCurrentTheme] = useState<string | null>(
+    boardTheme ?? null,
+  )
+
+  // Apply board theme on mount and when it changes
+  useEffect(() => {
+    if (currentTheme) {
+      applyTheme(currentTheme as Parameters<typeof applyTheme>[0])
+    }
+  }, [currentTheme])
 
   // Project Info Modal state
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -356,6 +377,39 @@ export const BoardPageClient = memo(function BoardPageClient({
     console.log('Add card to status:', statusId)
   }, [])
 
+  // ========================================
+  // Board Settings Dialog handlers
+  // ========================================
+
+  /**
+   * Open Board Settings dialog
+   */
+  const handleOpenBoardSettings = useCallback(() => {
+    setIsBoardSettingsOpen(true)
+  }, [])
+
+  /**
+   * Handle board rename success (optimistic update)
+   */
+  const handleRenameSuccess = useCallback((newName: string) => {
+    setDisplayName(newName)
+  }, [])
+
+  /**
+   * Handle theme change (optimistic update)
+   */
+  const handleThemeChange = useCallback((newTheme: string) => {
+    setCurrentTheme(newTheme)
+    applyTheme(newTheme as Parameters<typeof applyTheme>[0])
+  }, [])
+
+  /**
+   * Handle board delete success
+   */
+  const handleDeleteSuccess = useCallback(() => {
+    router.push('/boards')
+  }, [router])
+
   return (
     <>
       <main className="flex h-screen flex-col">
@@ -363,7 +417,7 @@ export const BoardPageClient = memo(function BoardPageClient({
         <header className="border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {boardName}
+              {displayName}
             </h1>
 
             {/* Board operation buttons */}
@@ -409,7 +463,13 @@ export const BoardPageClient = memo(function BoardPageClient({
                 <Plus className="h-4 w-4" />
                 Add Column
               </Button>
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenBoardSettings}
+                className="gap-1"
+              >
+                <Settings className="h-4 w-4" />
                 Board Settings
               </Button>
             </div>
@@ -460,6 +520,18 @@ export const BoardPageClient = memo(function BoardPageClient({
           cardTitle={noteCardTitle}
         />
       )}
+
+      {/* Board Settings Dialog */}
+      <BoardSettingsDialog
+        isOpen={isBoardSettingsOpen}
+        onClose={() => setIsBoardSettingsOpen(false)}
+        boardId={boardId}
+        boardName={displayName}
+        currentTheme={currentTheme}
+        onRenameSuccess={handleRenameSuccess}
+        onThemeChange={handleThemeChange}
+        onDeleteSuccess={handleDeleteSuccess}
+      />
     </>
   )
 })
