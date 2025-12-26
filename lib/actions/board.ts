@@ -701,6 +701,108 @@ export async function deleteBoardAction(
 }
 
 // ========================================
+// Board Favorite Operations
+// ========================================
+
+/**
+ * State returned from the toggle favorite action.
+ */
+export type ToggleFavoriteState = {
+  success?: boolean
+  isFavorite?: boolean
+  error?: string
+}
+
+/**
+ * Toggle board favorite status.
+ *
+ * @param boardId - Board ID to toggle
+ * @returns
+ * - On success: { success: true, isFavorite: boolean }
+ * - On auth error: { success: false, error: 'Authentication required' }
+ * - On not found: { success: false, error: 'Board not found' }
+ * - On update error: { success: false, error: 'Failed to update favorite' }
+ *
+ * @example
+ * const result = await toggleBoardFavorite('board-123')
+ * if (result.success) {
+ *   console.log('New favorite status:', result.isFavorite)
+ * }
+ */
+export async function toggleBoardFavorite(
+  boardId: string,
+): Promise<ToggleFavoriteState> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    return { success: false, error: 'Authentication required' }
+  }
+
+  // Get current status
+  const { data: board, error: fetchError } = await supabase
+    .from('board')
+    .select('is_favorite')
+    .eq('id', boardId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (fetchError || !board) {
+    return { success: false, error: 'Board not found' }
+  }
+
+  // Toggle
+  const newStatus = !board.is_favorite
+  const { error: updateError } = await supabase
+    .from('board')
+    .update({ is_favorite: newStatus, updated_at: new Date().toISOString() })
+    .eq('id', boardId)
+
+  if (updateError) {
+    return { success: false, error: 'Failed to update favorite' }
+  }
+
+  revalidatePath('/boards')
+  revalidatePath('/boards/favorites')
+
+  return { success: true, isFavorite: newStatus }
+}
+
+/**
+ * Get favorite boards for current user.
+ *
+ * @returns
+ * - Array of favorite boards ordered by updated_at descending
+ * - Empty array if not authenticated or no favorites
+ *
+ * @example
+ * const favorites = await getFavoriteBoards()
+ * console.log(`Found ${favorites.length} favorite boards`)
+ */
+export async function getFavoriteBoards(): Promise<Tables<'board'>[]> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return []
+
+  const { data } = await supabase
+    .from('board')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('is_favorite', true)
+    .order('updated_at', { ascending: false })
+
+  return data || []
+}
+
+// ========================================
 // First Board Auto-Creation
 // ========================================
 

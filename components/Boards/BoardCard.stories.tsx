@@ -23,6 +23,7 @@ const mockBoard: Board = {
   settings: null,
   created_at: '2024-12-01T00:00:00Z',
   updated_at: '2024-12-15T00:00:00Z',
+  is_favorite: false,
 }
 
 const meta = {
@@ -45,6 +46,7 @@ const meta = {
   args: {
     onRename: fn(),
     onDelete: fn(),
+    onToggleFavorite: fn(),
   },
 } satisfies Meta<typeof BoardCard>
 
@@ -160,6 +162,20 @@ export const NullDate: Story = {
 /**
  * Grid of multiple board cards showing different themes.
  */
+/**
+ * Board marked as favorite (filled star shown).
+ */
+export const FavoriteBoard: Story = {
+  args: {
+    board: {
+      ...mockBoard,
+      id: 'board-fav',
+      name: 'My Favorite Project',
+      is_favorite: true,
+    },
+  },
+}
+
 export const ThemeShowcase: Story = {
   args: {
     board: mockBoard,
@@ -176,6 +192,7 @@ export const ThemeShowcase: Story = {
           }}
           onRename={fn()}
           onDelete={fn()}
+          onToggleFavorite={fn()}
         />
         <BoardCard
           board={{
@@ -186,16 +203,19 @@ export const ThemeShowcase: Story = {
           }}
           onRename={fn()}
           onDelete={fn()}
+          onToggleFavorite={fn()}
         />
         <BoardCard
           board={{ ...mockBoard, id: '3', name: 'Mint Board', theme: 'mint' }}
           onRename={fn()}
           onDelete={fn()}
+          onToggleFavorite={fn()}
         />
         <BoardCard
           board={{ ...mockBoard, id: '4', name: 'Sky Board', theme: 'sky' }}
           onRename={fn()}
           onDelete={fn()}
+          onToggleFavorite={fn()}
         />
         <BoardCard
           board={{
@@ -206,11 +226,13 @@ export const ThemeShowcase: Story = {
           }}
           onRename={fn()}
           onDelete={fn()}
+          onToggleFavorite={fn()}
         />
         <BoardCard
           board={{ ...mockBoard, id: '6', name: 'Rose Board', theme: 'rose' }}
           onRename={fn()}
           onDelete={fn()}
+          onToggleFavorite={fn()}
         />
       </div>
     ),

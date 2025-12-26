@@ -7,9 +7,9 @@
 
 'use client'
 
-import { Calendar, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { Calendar, MoreHorizontal, Pencil, Star, Trash2 } from 'lucide-react'
 import Link from 'next/link'
-import { memo, useCallback, useState } from 'react'
+import { memo, useCallback, useState, useTransition } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -19,6 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { toggleBoardFavorite } from '@/lib/actions/board'
 import type { Tables } from '@/lib/supabase/types'
 
 import { DeleteBoardDialog } from './DeleteBoardDialog'
@@ -33,6 +34,8 @@ interface BoardCardProps {
   onRename: (boardId: string, newName: string) => void
   /** Callback when board is deleted (for optimistic update) */
   onDelete: (boardId: string) => void
+  /** Callback when board favorite is toggled (for optimistic update) */
+  onToggleFavorite?: (boardId: string, isFavorite: boolean) => void
 }
 
 /**
@@ -53,9 +56,11 @@ export const BoardCard = memo(function BoardCard({
   board,
   onRename,
   onDelete,
+  onToggleFavorite,
 }: BoardCardProps) {
   const [isRenameOpen, setIsRenameOpen] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
   const handleRenameSuccess = useCallback(
     (newName: string) => {
@@ -84,6 +89,27 @@ export const BoardCard = memo(function BoardCard({
     setIsDeleteOpen(false)
   }, [])
 
+  const handleToggleFavorite = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      const newFavoriteStatus = !board.is_favorite
+      // Optimistic update
+      onToggleFavorite?.(board.id, newFavoriteStatus)
+
+      startTransition(async () => {
+        const result = await toggleBoardFavorite(board.id)
+        // If failed, revert optimistic update
+        if (!result.success) {
+          onToggleFavorite?.(board.id, board.is_favorite)
+          console.error('Failed to toggle favorite:', result.error)
+        }
+      })
+    },
+    [board.id, board.is_favorite, onToggleFavorite],
+  )
+
   return (
     <>
       <div className="group relative block rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md hover:border-blue-300 transition-all dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600">
@@ -94,37 +120,64 @@ export const BoardCard = memo(function BoardCard({
           aria-label={`Open board ${board.name}`}
         />
 
-        {/* Menu trigger - hover-reveal on desktop, always visible on touch */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-2 top-2 z-10 h-8 w-8 opacity-70 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
-              aria-label={`Open menu for ${board.name}`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleOpenRename}>
-              <Pencil className="mr-2 h-4 w-4" />
-              Rename
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={handleOpenDelete}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Top-right actions: Favorite star + Menu */}
+        <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
+          {/* Favorite star button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`h-8 w-8 transition-all ${
+              board.is_favorite
+                ? 'text-amber-500 hover:text-amber-600 opacity-100'
+                : 'text-gray-400 hover:text-amber-500 opacity-70 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100'
+            }`}
+            aria-label={
+              board.is_favorite
+                ? `Remove ${board.name} from favorites`
+                : `Add ${board.name} to favorites`
+            }
+            onClick={handleToggleFavorite}
+            disabled={isPending}
+          >
+            <Star
+              className={`h-4 w-4 transition-transform ${isPending ? 'animate-pulse' : ''} ${
+                board.is_favorite ? 'fill-current' : ''
+              }`}
+            />
+          </Button>
+
+          {/* Menu trigger */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 opacity-70 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                aria-label={`Open menu for ${board.name}`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleOpenRename}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Rename
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleOpenDelete}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
         {/* Card content */}
-        <h3 className="text-xl font-semibold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400 transition-colors pr-10">
+        <h3 className="text-xl font-semibold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400 transition-colors pr-16">
           {board.name}
         </h3>
 

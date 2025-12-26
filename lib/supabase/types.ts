@@ -74,6 +74,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          is_favorite: boolean
           name: string
           settings: Json | null
           theme: string | null
@@ -83,6 +84,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          is_favorite?: boolean
           name: string
           settings?: Json | null
           theme?: string | null
@@ -92,6 +94,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          is_favorite?: boolean
           name?: string
           settings?: Json | null
           theme?: string | null

@@ -9,7 +9,7 @@
 import { Check, Sun, Moon, Monitor } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState, memo, useMemo, useCallback } from 'react'
+import { memo, useMemo, useCallback } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,15 @@ import { Label } from '@/components/ui/label'
 import type { ThemeType } from '@/lib/hooks/use-theme'
 import { useTheme, LIGHT_THEMES, DARK_THEMES } from '@/lib/hooks/use-theme'
 import { useI18n } from '@/lib/i18n'
+import {
+  selectCompactMode,
+  selectShowCardMetadata,
+  selectWipWarnings,
+  setCompactMode,
+  setShowCardMetadata,
+  setWipWarnings,
+} from '@/lib/redux/slices/settingsSlice'
+import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 /** Base styles for the toggle switch container */
 const TOGGLE_BASE =
   'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
@@ -32,38 +41,31 @@ const TOGGLE_BASE =
 const TOGGLE_KNOB_BASE =
   'inline-block h-4 w-4 rounded-full bg-background shadow-lg transition-transform'
 
-// Simple Toggle Switch Component
+/**
+ * Toggle Switch Component (Controlled)
+ *
+ * A controlled toggle switch that displays a boolean state.
+ * @param id - Optional HTML id attribute for accessibility
+ * @param checked - Current checked state
+ * @param onCheckedChange - Callback when toggle is clicked
+ */
 const Toggle = memo(function Toggle({
   id,
   checked,
   onCheckedChange,
-  defaultChecked,
 }: {
   id?: string
-  checked?: boolean
-  onCheckedChange?: (checked: boolean) => void
-  defaultChecked?: boolean
+  checked: boolean
+  onCheckedChange: (checked: boolean) => void
 }) {
-  const [internalChecked, setInternalChecked] = useState(
-    defaultChecked ?? false,
-  )
-  const isChecked = checked !== undefined ? checked : internalChecked
-
-  const handleClick = () => {
-    const newValue = !isChecked
-    setInternalChecked(newValue)
-    onCheckedChange?.(newValue)
-  }
-
   const containerClassName = useMemo(
-    () => `${TOGGLE_BASE} ${isChecked ? 'bg-primary' : 'bg-input'}`,
-    [isChecked],
+    () => `${TOGGLE_BASE} ${checked ? 'bg-primary' : 'bg-input'}`,
+    [checked],
   )
 
   const knobClassName = useMemo(
-    () =>
-      `${TOGGLE_KNOB_BASE} ${isChecked ? 'translate-x-6' : 'translate-x-1'}`,
-    [isChecked],
+    () => `${TOGGLE_KNOB_BASE} ${checked ? 'translate-x-6' : 'translate-x-1'}`,
+    [checked],
   )
 
   return (
@@ -71,8 +73,8 @@ const Toggle = memo(function Toggle({
       id={id}
       type="button"
       role="switch"
-      aria-checked={isChecked}
-      onClick={handleClick}
+      aria-checked={checked}
+      onClick={() => onCheckedChange(!checked)}
       className={containerClassName}
     >
       <span className={knobClassName} />
@@ -161,8 +163,47 @@ const ThemeButton = memo(function ThemeButton({
 
 export const SettingsClient = memo(function SettingsClient() {
   const router = useRouter()
+  const dispatch = useAppDispatch()
   const { theme, setTheme, mounted } = useTheme()
   const { t } = useI18n()
+
+  // Redux state for display settings
+  const compactMode = useAppSelector(selectCompactMode)
+  const showCardMetadata = useAppSelector(selectShowCardMetadata)
+  const wipWarnings = useAppSelector(selectWipWarnings)
+
+  /**
+   * Handles compact mode toggle change.
+   * Dispatches Redux action to update and persist the setting.
+   */
+  const handleCompactModeChange = useCallback(
+    (value: boolean) => {
+      dispatch(setCompactMode(value))
+    },
+    [dispatch],
+  )
+
+  /**
+   * Handles show card metadata toggle change.
+   * Dispatches Redux action to update and persist the setting.
+   */
+  const handleShowCardMetadataChange = useCallback(
+    (value: boolean) => {
+      dispatch(setShowCardMetadata(value))
+    },
+    [dispatch],
+  )
+
+  /**
+   * Handles WIP warnings toggle change.
+   * Dispatches Redux action to update and persist the setting.
+   */
+  const handleWipWarningsChange = useCallback(
+    (value: boolean) => {
+      dispatch(setWipWarnings(value))
+    },
+    [dispatch],
+  )
 
   /**
    * Handles the save settings action.
@@ -276,7 +317,11 @@ export const SettingsClient = memo(function SettingsClient() {
                   Reduce spacing and card sizes for more content on screen
                 </p>
               </div>
-              <Toggle id="compact-mode" />
+              <Toggle
+                id="compact-mode"
+                checked={compactMode}
+                onCheckedChange={handleCompactModeChange}
+              />
             </div>
             <div className="flex items-center justify-between">
               <div>
@@ -285,7 +330,11 @@ export const SettingsClient = memo(function SettingsClient() {
                   Display stars, language, and last updated on cards
                 </p>
               </div>
-              <Toggle id="show-card-metadata" defaultChecked />
+              <Toggle
+                id="show-card-metadata"
+                checked={showCardMetadata}
+                onCheckedChange={handleShowCardMetadataChange}
+              />
             </div>
             <div className="flex items-center justify-between">
               <div>
@@ -294,7 +343,11 @@ export const SettingsClient = memo(function SettingsClient() {
                   Show visual warnings when WIP limits are exceeded
                 </p>
               </div>
-              <Toggle id="show-wip-warnings" defaultChecked />
+              <Toggle
+                id="show-wip-warnings"
+                checked={wipWarnings}
+                onCheckedChange={handleWipWarningsChange}
+              />
             </div>
           </CardContent>
         </Card>

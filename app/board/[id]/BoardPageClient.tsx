@@ -32,9 +32,11 @@ import {
 } from '@/lib/actions/board'
 import type { ProjectInfoData } from '@/lib/actions/project-info'
 import { getProjectInfo, upsertProjectInfo } from '@/lib/actions/project-info'
+import { moveToMaintenance } from '@/lib/actions/repo-cards'
 import type { StatusListDomain } from '@/lib/models/domain'
 import {
   setStatusLists,
+  setRepoCards,
   selectStatusLists,
   selectRepoCards,
 } from '@/lib/redux/slices/boardSlice'
@@ -165,12 +167,38 @@ export const BoardPageClient = memo(function BoardPageClient({
 
   /**
    * Move to Maintenance Mode
-   * Planned for User Story 6
+   *
+   * Transfers a card from the active board to maintenance archive.
+   * Uses optimistic UI update for immediate feedback.
+   *
+   * @param cardId - The card ID to move to maintenance
    */
-  const handleMoveToMaintenance = useCallback((cardId: string) => {
-    // TODO: Move to Maintenance Mode (implement in User Story 6)
-    console.log('Move to Maintenance:', cardId)
-  }, [])
+  const handleMoveToMaintenance = useCallback(
+    async (cardId: string) => {
+      // Find card to remove for optimistic update
+      const cardToRemove = repoCards.find((c) => c.id === cardId)
+      if (!cardToRemove) return
+
+      // Optimistic update: remove from state immediately
+      const previousCards = repoCards
+      dispatch(setRepoCards(repoCards.filter((c) => c.id !== cardId)))
+
+      try {
+        const result = await moveToMaintenance(cardId)
+        if (!result.success) {
+          // Revert on error
+          dispatch(setRepoCards(previousCards))
+          alert(`Failed to move to maintenance: ${result.error}`)
+        }
+      } catch (error) {
+        // Revert on error
+        dispatch(setRepoCards(previousCards))
+        console.error('Move to maintenance failed:', error)
+        alert('Failed to move to maintenance. Please try again.')
+      }
+    },
+    [repoCards, dispatch],
+  )
 
   // ========================================
   // NoteModal handlers
