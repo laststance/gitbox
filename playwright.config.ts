@@ -82,11 +82,16 @@ export default defineConfig({
      *
      * The env vars are explicitly set in the command to ensure they're
      * available during both build and start phases.
+     *
+     * NOTE: reuseExistingServer is set to false to ALWAYS use a fresh server
+     * with correct test environment variables. If set to true and a dev server
+     * (pnpm dev) is already running, it would be reused WITHOUT the test env vars,
+     * causing isTestMode() to return false and auth bypass to fail.
      */
     command:
       'NEXT_PUBLIC_ENABLE_MSW_MOCK=true APP_ENV=test pnpm build && pnpm start',
     url: 'http://localhost:3008',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120000,
     env: {
       NEXT_PUBLIC_ENABLE_MSW_MOCK: 'true',

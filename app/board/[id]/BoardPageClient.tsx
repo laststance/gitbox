@@ -32,11 +32,15 @@ import {
 } from '@/lib/actions/board'
 import type { ProjectInfoData } from '@/lib/actions/project-info'
 import { getProjectInfo, upsertProjectInfo } from '@/lib/actions/project-info'
-import { moveToMaintenance } from '@/lib/actions/repo-cards'
-import type { StatusListDomain } from '@/lib/models/domain'
+import {
+  moveToMaintenance,
+  type CreatedRepoCard,
+} from '@/lib/actions/repo-cards'
+import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import {
   setStatusLists,
   setRepoCards,
+  addRepoCards,
   selectStatusLists,
   selectRepoCards,
 } from '@/lib/redux/slices/boardSlice'
@@ -368,9 +372,28 @@ export const BoardPageClient = memo(function BoardPageClient({
               <AddRepositoryCombobox
                 boardId={boardId}
                 statusId={statusLists[0]?.id || ''} // Add to first column (empty string if none)
-                onRepositoriesAdded={() => {
-                  // TODO: Reload board
-                  window.location.reload()
+                onRepositoriesAdded={(createdCards: CreatedRepoCard[]) => {
+                  // Optimistic UI update: Add cards to Redux state immediately
+                  // No page reload needed - cards appear instantly
+                  const newCards: RepoCardForRedux[] = createdCards.map(
+                    (card) => ({
+                      id: card.id,
+                      title: `${card.repoOwner}/${card.repoName}`,
+                      description:
+                        (card.meta as { description?: string })?.description ||
+                        '',
+                      statusId: card.statusId,
+                      boardId: card.boardId,
+                      repoOwner: card.repoOwner,
+                      repoName: card.repoName,
+                      note: card.note,
+                      order: card.order,
+                      meta: card.meta,
+                      createdAt: card.createdAt,
+                      updatedAt: card.updatedAt,
+                    }),
+                  )
+                  dispatch(addRepoCards(newCards))
                 }}
                 onQuickNoteFocus={() => {
                   // TODO: Focus on quick note field

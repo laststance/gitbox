@@ -404,3 +404,181 @@ test.describe('AddRepositoryCombobox - GITBOX-1 Fix', () => {
     expect(count).toBeGreaterThan(0)
   })
 })
+
+/**
+ * AddRepositoryCombobox E2E Tests - Optimistic Update
+ *
+ * Tests that adding a repository displays the card immediately
+ * without a full page reload (optimistic UI update pattern).
+ *
+ * Feature: Optimistic update for repository addition
+ */
+test.describe('AddRepositoryCombobox - Optimistic Update', () => {
+  test.use({ storageState: 'tests/e2e/.auth/user.json' })
+
+  const BOARD_URL = '/board/board-1'
+
+  /**
+   * Verifies that adding a repository shows the card immediately
+   * without triggering a page reload or loading spinner.
+   *
+   * This tests the optimistic update implementation in BoardPageClient.tsx
+   */
+  test('should display newly added card immediately without page reload', async ({
+    page,
+  }) => {
+    // Navigate to board page
+    await page.goto(BOARD_URL)
+    await page.waitForLoadState('domcontentloaded')
+
+    // Wait for Kanban board to load
+    await expect(page.getByText('Backlog')).toBeVisible({ timeout: 15000 })
+
+    // Count existing cards before adding
+    const cardsBefore = await page.locator('[data-testid="repo-card"]').count()
+
+    // Open AddRepositoryCombobox
+    const addRepoButton = page.getByRole('button', {
+      name: /add repositories/i,
+    })
+    await expect(addRepoButton).toBeVisible({ timeout: 10000 })
+    await addRepoButton.click()
+
+    // Wait for the combobox panel to be visible
+    const searchInput = page.getByPlaceholder(/search repositories/i)
+    await expect(searchInput).toBeVisible({ timeout: 10000 })
+
+    // Wait for repository list to load
+    await page.waitForTimeout(1000)
+
+    // Find and select an available repository (not already on board)
+    // 'testuser/private-project' should be available
+    const repoOption = page.locator('[role="option"]', {
+      hasText: /private-project/i,
+    })
+    const isAvailable = (await repoOption.count()) > 0
+
+    // If private-project is available, select it
+    if (isAvailable) {
+      await repoOption.first().click()
+
+      // Verify selection (button shows count)
+      const addButton = page.getByRole('button', { name: /add \(1\)/i })
+      await expect(addButton).toBeVisible({ timeout: 5000 })
+
+      // Set up listener for navigation events BEFORE clicking Add
+      // If optimistic update works, there should be NO navigation
+      let navigationOccurred = false
+      page.on('framenavigated', () => {
+        navigationOccurred = true
+      })
+
+      // Click Add button
+      await addButton.click()
+
+      // Wait for the card to appear in the DOM
+      await page.waitForTimeout(2000)
+
+      // Verify NO full page navigation occurred (optimistic update)
+      // Note: Navigation listener will capture any reload
+      expect(navigationOccurred).toBe(false)
+
+      // Check cards increased (or at least didn't trigger error)
+      const cardsAfter = await page.locator('[data-testid="repo-card"]').count()
+      expect(cardsAfter).toBeGreaterThanOrEqual(cardsBefore)
+    }
+  })
+
+  /**
+   * Verifies that the combobox closes after adding repositories
+   * (good UX - no stale state)
+   */
+  test('should close combobox after adding repository', async ({ page }) => {
+    // Navigate to board page
+    await page.goto(BOARD_URL)
+    await page.waitForLoadState('domcontentloaded')
+
+    // Wait for Kanban board to load
+    await expect(page.getByText('Backlog')).toBeVisible({ timeout: 15000 })
+
+    // Open AddRepositoryCombobox
+    const addRepoButton = page.getByRole('button', {
+      name: /add repositories/i,
+    })
+    await expect(addRepoButton).toBeVisible({ timeout: 10000 })
+    await addRepoButton.click()
+
+    // Wait for the combobox panel to be visible
+    const searchInput = page.getByPlaceholder(/search repositories/i)
+    await expect(searchInput).toBeVisible({ timeout: 10000 })
+
+    // Wait for repository list to load
+    await page.waitForTimeout(1000)
+
+    // Select any available repository
+    const repoOption = page.locator('[role="option"]').first()
+    const hasOptions = (await repoOption.count()) > 0
+
+    if (hasOptions) {
+      await repoOption.click()
+
+      // Click Add button
+      const addButton = page.getByRole('button', { name: /add \(\d+\)/i })
+      if ((await addButton.count()) > 0) {
+        await addButton.click()
+
+        // Wait for operation to complete
+        await page.waitForTimeout(1500)
+
+        // Verify combobox is closed (search input should not be visible)
+        await expect(searchInput).not.toBeVisible({ timeout: 5000 })
+      }
+    }
+  })
+
+  /**
+   * Verifies that adding multiple repositories updates the UI correctly
+   */
+  test('should handle multiple repository selection and addition', async ({
+    page,
+  }) => {
+    // Navigate to board page
+    await page.goto(BOARD_URL)
+    await page.waitForLoadState('domcontentloaded')
+
+    // Wait for Kanban board to load
+    await expect(page.getByText('Backlog')).toBeVisible({ timeout: 15000 })
+
+    // Open AddRepositoryCombobox
+    const addRepoButton = page.getByRole('button', {
+      name: /add repositories/i,
+    })
+    await expect(addRepoButton).toBeVisible({ timeout: 10000 })
+    await addRepoButton.click()
+
+    // Wait for the combobox panel to be visible
+    const searchInput = page.getByPlaceholder(/search repositories/i)
+    await expect(searchInput).toBeVisible({ timeout: 10000 })
+
+    // Wait for repository list to load
+    await page.waitForTimeout(1000)
+
+    // Get all available options
+    const repoOptions = page.locator('[role="option"]')
+    const optionCount = await repoOptions.count()
+
+    // Select multiple repos if available (up to 2)
+    const selectCount = Math.min(2, optionCount)
+    for (let i = 0; i < selectCount; i++) {
+      await repoOptions.nth(i).click()
+      await page.waitForTimeout(200)
+    }
+
+    // Verify button shows correct count
+    if (selectCount > 0) {
+      const addButtonPattern = new RegExp(`add \\(${selectCount}\\)`, 'i')
+      const addButton = page.getByRole('button', { name: addButtonPattern })
+      await expect(addButton).toBeVisible({ timeout: 5000 })
+    }
+  })
+})

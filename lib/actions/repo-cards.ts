@@ -35,18 +35,54 @@ export interface AddRepoCardParams {
 }
 
 /**
+ * Created card data returned from addRepositoriesToBoard
+ * Used for optimistic UI updates in the client
+ */
+export interface CreatedRepoCard {
+  id: string
+  boardId: string
+  statusId: string
+  repoOwner: string
+  repoName: string
+  note: string
+  order: number
+  meta: {
+    stars?: number
+    language?: string | null
+    topics?: string[]
+    visibility?: string
+    description?: string | null
+    updatedAt?: string
+  }
+  createdAt: string
+  updatedAt: string
+}
+
+/**
  * Add multiple repositories to board
  *
  * @param boardId - Target board ID
  * @param statusId - Initial status (column) ID
  * @param repositories - List of GitHub repositories to add
- * @returns Number of cards added
+ * @returns
+ * - On success: `{ success: true, addedCount: number, cards: CreatedRepoCard[] }`
+ * - On failure: `{ success: false, addedCount: 0, errors: string[] }`
+ * @example
+ * const result = await addRepositoriesToBoard(boardId, statusId, repos)
+ * if (result.success) {
+ *   dispatch(addRepoCards(result.cards)) // Optimistic update
+ * }
  */
 export async function addRepositoriesToBoard(
   boardId: string,
   statusId: string,
   repositories: GitHubRepository[],
-): Promise<{ success: boolean; addedCount: number; errors?: string[] }> {
+): Promise<{
+  success: boolean
+  addedCount: number
+  cards?: CreatedRepoCard[]
+  errors?: string[]
+}> {
   try {
     const supabase = await createClient()
 
@@ -130,20 +166,40 @@ export async function addRepositoriesToBoard(
       },
     }))
 
-    const { error: insertError } = await supabase
+    const { data: insertedCards, error: insertError } = await supabase
       .from('repocard')
       .insert(cardsToInsert)
+      .select(
+        'id, board_id, status_id, repo_owner, repo_name, note, order, meta, created_at, updated_at',
+      )
 
     if (insertError) {
       console.error('RepoCard insert error:', insertError)
       throw new Error('Failed to add cards: ' + insertError.message)
     }
 
+    // Transform database response to CreatedRepoCard format
+    const createdCards: CreatedRepoCard[] = (insertedCards || []).map(
+      (card) => ({
+        id: card.id,
+        boardId: card.board_id,
+        statusId: card.status_id,
+        repoOwner: card.repo_owner,
+        repoName: card.repo_name,
+        note: card.note || '',
+        order: card.order,
+        meta: card.meta as CreatedRepoCard['meta'],
+        createdAt: card.created_at ?? new Date().toISOString(),
+        updatedAt: card.updated_at ?? new Date().toISOString(),
+      }),
+    )
+
     const duplicateCount = repositories.length - newRepos.length
 
     return {
       success: true,
       addedCount: newRepos.length,
+      cards: createdCards,
       errors:
         duplicateCount > 0
           ? [`${duplicateCount} repositories were duplicates`]

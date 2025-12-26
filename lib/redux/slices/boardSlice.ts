@@ -92,6 +92,13 @@ export const boardSlice = createSlice({
         }
       }
     },
+    /**
+     * Add new repo cards to the state (for optimistic updates)
+     * Unlike setRepoCards which replaces all cards, this appends new cards
+     */
+    addRepoCards: (state, action: PayloadAction<RepoCardForRedux[]>) => {
+      state.repoCards = [...state.repoCards, ...action.payload]
+    },
     // Reset board state
     clearBoard: (state) => {
       state.activeBoard = null
@@ -114,6 +121,7 @@ export const {
   recordDragOperation,
   clearLastDragOperation,
   updateRepoCardOptimistic,
+  addRepoCards,
   clearBoard,
 } = boardSlice.actions
 

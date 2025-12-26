@@ -18,7 +18,10 @@ import {
   type GitHubUser,
   type GitHubOrganization,
 } from '@/lib/actions/github'
-import { addRepositoriesToBoard } from '@/lib/actions/repo-cards'
+import {
+  addRepositoriesToBoard,
+  type CreatedRepoCard,
+} from '@/lib/actions/repo-cards'
 import { selectRepoCards } from '@/lib/redux/slices/boardSlice'
 import {
   selectOrganizationFilter,
@@ -29,7 +32,11 @@ import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 interface AddRepositoryComboboxProps {
   boardId: string
   statusId: string // Initial status (column) ID
-  onRepositoriesAdded: () => void
+  /**
+   * Callback when repositories are successfully added
+   * @param cards - The created repo cards for optimistic UI update
+   */
+  onRepositoriesAdded: (cards: CreatedRepoCard[]) => void
   onQuickNoteFocus: () => void
 }
 
@@ -306,7 +313,8 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       setSearchQuery('')
       setIsOpen(false)
 
-      onRepositoriesAdded()
+      // Pass created cards for optimistic UI update (no page reload needed)
+      onRepositoriesAdded(result.cards || [])
 
       // Auto-focus to Quick note field (T046)
       setTimeout(() => {
