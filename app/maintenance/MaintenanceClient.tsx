@@ -20,8 +20,20 @@ import {
   Star,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState, useCallback, memo, useMemo } from 'react'
+import {
+  useState,
+  useCallback,
+  memo,
+  useMemo,
+  useEffect,
+  useRef,
+  useTransition,
+} from 'react'
 
+import {
+  RestoreToBoardDialog,
+  type BoardOption,
+} from '@/components/Modals/RestoreToBoardDialog'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -30,6 +42,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import { getUserBoardsWithStatusLists } from '@/lib/actions/repo-cards'
 
 /** Base styles for view mode toggle button */
 const VIEW_TOGGLE_BASE = 'rounded-md p-2 transition-colors'
@@ -61,13 +74,38 @@ type ViewMode = 'grid' | 'list'
 type SortOption = 'name' | 'updated' | 'stars'
 
 export const MaintenanceClient = memo(function MaintenanceClient({
-  repos,
+  repos: initialRepos,
 }: MaintenanceClientProps) {
-  const _router = useRouter()
+  const router = useRouter()
+  const [repos, setRepos] = useState<MaintenanceRepo[]>(initialRepos)
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortOption>('updated')
   const [sortAsc, setSortAsc] = useState(false)
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
+  const [selectedRepo, setSelectedRepo] = useState<MaintenanceRepo | null>(null)
+
+  // Board data for restore dialog
+  const [boards, setBoards] = useState<BoardOption[]>([])
+  const [boardsError, setBoardsError] = useState<string | null>(null)
+  const hasFetchedBoards = useRef(false)
+  const [isLoadingBoards, startLoadingBoards] = useTransition()
+
+  // Fetch boards when dialog opens (only once per session)
+  useEffect(() => {
+    if (restoreDialogOpen && !hasFetchedBoards.current) {
+      hasFetchedBoards.current = true
+      startLoadingBoards(async () => {
+        const result = await getUserBoardsWithStatusLists()
+        if (result.success && result.boards) {
+          setBoards(result.boards)
+          setBoardsError(null)
+        } else {
+          setBoardsError(result.error || 'Failed to load boards')
+        }
+      })
+    }
+  }, [restoreDialogOpen])
 
   // Filter repos based on search
   const filteredRepos = repos.filter(
@@ -106,11 +144,25 @@ export const MaintenanceClient = memo(function MaintenanceClient({
     )
   }, [])
 
-  const handleRestore = useCallback(async (repoId: string) => {
-    // TODO: Implement restore to board action
-    console.log('Restore to board:', repoId)
-    alert('Restore to Board functionality will be implemented')
+  /**
+   * Open restore dialog for a specific maintenance item
+   */
+  const handleRestore = useCallback((repo: MaintenanceRepo) => {
+    setSelectedRepo(repo)
+    setRestoreDialogOpen(true)
   }, [])
+
+  /**
+   * Handle successful restore by removing item from local state
+   */
+  const handleRestored = useCallback(() => {
+    if (selectedRepo) {
+      setRepos((prev) => prev.filter((r) => r.id !== selectedRepo.id))
+      setSelectedRepo(null)
+    }
+    // Refresh to ensure server state is synced
+    router.refresh()
+  }, [selectedRepo, router])
 
   const gridToggleClassName = useMemo(
     () =>
@@ -244,9 +296,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                           <ExternalLink className="mr-2 h-4 w-4" />
                           Open on GitHub
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={async () => handleRestore(repo.id)}
-                        >
+                        <DropdownMenuItem onClick={() => handleRestore(repo)}>
                           <RotateCcw className="mr-2 h-4 w-4" />
                           Restore to Board
                         </DropdownMenuItem>
@@ -351,7 +401,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation()
-                          handleRestore(repo.id)
+                          handleRestore(repo)
                         }}
                       >
                         <RotateCcw className="h-4 w-4" />
@@ -364,6 +414,23 @@ export const MaintenanceClient = memo(function MaintenanceClient({
           </AnimatePresence>
         )}
       </main>
+
+      {/* Restore to Board Dialog */}
+      {selectedRepo && (
+        <RestoreToBoardDialog
+          isOpen={restoreDialogOpen}
+          onClose={() => {
+            setRestoreDialogOpen(false)
+            setSelectedRepo(null)
+          }}
+          maintenanceId={selectedRepo.id}
+          repoName={`${selectedRepo.repo_owner}/${selectedRepo.repo_name}`}
+          onRestored={handleRestored}
+          boards={boards}
+          isLoadingBoards={isLoadingBoards}
+          boardsError={boardsError}
+        />
+      )}
     </div>
   )
 })

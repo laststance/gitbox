@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { OPEN_SHORTCUTS_HELP } from '@/lib/events'
 
 interface ShortcutItem {
   key: string
@@ -140,6 +141,20 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen])
+
+  /**
+   * Custom event listener for opening modal from Sidebar
+   * Allows Shortcuts link in Sidebar to trigger this modal
+   */
+  useEffect(() => {
+    const handleOpenShortcuts = () => {
+      setIsOpen(true)
+    }
+
+    window.addEventListener(OPEN_SHORTCUTS_HELP, handleOpenShortcuts)
+    return () =>
+      window.removeEventListener(OPEN_SHORTCUTS_HELP, handleOpenShortcuts)
+  }, [])
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>

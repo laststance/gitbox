@@ -22,6 +22,7 @@ type Board = Tables<'board'>
 type OptimisticAction =
   | { type: 'rename'; boardId: string; newName: string }
   | { type: 'delete'; boardId: string }
+  | { type: 'toggleFavorite'; boardId: string; isFavorite: boolean }
 
 interface BoardGridProps {
   /** Initial boards data from server */
@@ -55,6 +56,12 @@ export const BoardGrid = memo(function BoardGrid({
           )
         case 'delete':
           return state.filter((board) => board.id !== action.boardId)
+        case 'toggleFavorite':
+          return state.map((board) =>
+            board.id === action.boardId
+              ? { ...board, is_favorite: action.isFavorite }
+              : board,
+          )
         default:
           return state
       }
@@ -75,6 +82,13 @@ export const BoardGrid = memo(function BoardGrid({
     [updateOptimisticBoards],
   )
 
+  const handleToggleFavorite = useCallback(
+    (boardId: string, isFavorite: boolean) => {
+      updateOptimisticBoards({ type: 'toggleFavorite', boardId, isFavorite })
+    },
+    [updateOptimisticBoards],
+  )
+
   if (optimisticBoards.length === 0) {
     return <EmptyState />
   }
@@ -87,6 +101,7 @@ export const BoardGrid = memo(function BoardGrid({
           board={board}
           onRename={handleRename}
           onDelete={handleDelete}
+          onToggleFavorite={handleToggleFavorite}
         />
       ))}
     </div>

@@ -19,6 +19,7 @@ import React, { useState, memo, useMemo } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { signOut } from '@/lib/actions/auth'
+import { openShortcutsHelp } from '@/lib/events'
 
 /** Base styles for navigation item */
 const NAV_ITEM_BASE =
@@ -150,13 +151,15 @@ export const Sidebar = memo(function Sidebar({
           isActive={pathname === '/settings'}
         />
 
-        {/* Shortcuts */}
-        <NavItem
-          href="#"
-          icon={<Keyboard className="h-4 w-4" />}
-          label="Shortcuts"
-          isActive={false}
-        />
+        {/* Shortcuts - button that opens ShortcutsHelp modal */}
+        <button
+          type="button"
+          onClick={openShortcutsHelp}
+          className={`${NAV_ITEM_BASE} ${NAV_ITEM_INACTIVE} w-full`}
+        >
+          <Keyboard className="h-4 w-4" />
+          <span>Shortcuts</span>
+        </button>
       </nav>
 
       {/* Profile & Sign out */}
