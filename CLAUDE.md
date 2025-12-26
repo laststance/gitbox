@@ -46,15 +46,17 @@ This application requires GitHub authentication to access any functionality beyo
 | **Production URL** | `https://gitbox-laststance.vercel.app` |
 
 **⚠️ WARNING:** Do NOT use `https://vercel.com/ryota-murakamis-projects/gitbox` - this is an incorrect duplicate project.
+**⚠️ WARNING:** `vercel env pull` を実行すると `.env.local` が本番認証情報で上書きされます。
+開発環境では必ず `jqtxjzdxczqwsrvevmyk` の認証情報を使用してください。
 
 ---
 
 ## Supabase Configuration
 
-| Environment | Supabase URL                               | Credentials File        |
-| ----------- | ------------------------------------------ | ----------------------- |
-| Development | `https://jqtxjzdxczqwsrvevmyk.supabase.co` | `.env.local`            |
-| Production  | `https://mfeesjmtofgayktirswf.supabase.co` | `.env.production.local` |
+| Environment       | Supabase URL                               | Credentials File        |
+| ----------------- | ------------------------------------------ | ----------------------- |
+| Local Development | `https://jqtxjzdxczqwsrvevmyk.supabase.co` | `.env`                  |
+| Production        | `https://mfeesjmtofgayktirswf.supabase.co` | `.env.production.local` |
 
 **🔴 CRITICAL:** Use lowercase table names in Server Actions:
 
@@ -165,6 +167,13 @@ Stored in httpOnly cookie `github_provider_token` (set in `app/auth/callback/rou
 ---
 
 ## MSW (Mock Service Worker) Setup
+
+**🔴 CRITICAL: MSW is for testing only (E2E tests + Unit tests)**
+
+MSW must NEVER be enabled in development or production environments. It is exclusively used for:
+
+- **E2E tests** (`pnpm test:e2e`) - Playwright runs with `APP_ENV=test`
+- **Unit tests** (`pnpm test`) - Vitest/Storybook uses MSW for API mocking
 
 MSW is configured following [next-msw-integration](https://github.com/laststance/next-msw-integration) pattern.
 

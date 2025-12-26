@@ -375,6 +375,259 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
   })
 })
 
+/**
+ * Existing Repo Filtering Tests
+ *
+ * Tests for the feature that filters out repositories already placed on the current board
+ * from the AddRepositoryCombobox dropdown selection.
+ *
+ * Implementation: Uses Redux selectRepoCards to get existing cards and creates a Set
+ * of "owner/repo" identifiers for O(1) lookup performance.
+ */
+describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
+  /**
+   * Helper function to create existingRepoIdentifiers Set
+   * This mirrors the implementation in AddRepositoryCombobox.tsx lines 78-87
+   */
+  const createExistingRepoIdentifiers = (
+    repoCards: Array<{ repoOwner: string; repoName: string }>,
+  ): Set<string> => {
+    return new Set(
+      repoCards.map(
+        (card) =>
+          `${card.repoOwner.toLowerCase()}/${card.repoName.toLowerCase()}`,
+      ),
+    )
+  }
+
+  /**
+   * Helper function to filter repos by existing identifiers
+   * This mirrors the implementation in AddRepositoryCombobox.tsx lines 210-213
+   */
+  const filterExistingRepos = (
+    repos: GitHubRepository[],
+    existingIdentifiers: Set<string>,
+  ): GitHubRepository[] => {
+    return repos.filter(
+      (repo) => !existingIdentifiers.has(repo.full_name.toLowerCase()),
+    )
+  }
+
+  describe('existingRepoIdentifiers Set Creation', () => {
+    it('should create empty Set when no cards exist on board', () => {
+      const repoCards: Array<{ repoOwner: string; repoName: string }> = []
+      const identifiers = createExistingRepoIdentifiers(repoCards)
+
+      expect(identifiers.size).toBe(0)
+    })
+
+    it('should create Set with correct "owner/repo" format', () => {
+      const repoCards = [
+        { repoOwner: 'facebook', repoName: 'react' },
+        { repoOwner: 'vercel', repoName: 'next.js' },
+      ]
+      const identifiers = createExistingRepoIdentifiers(repoCards)
+
+      expect(identifiers.size).toBe(2)
+      expect(identifiers.has('facebook/react')).toBe(true)
+      expect(identifiers.has('vercel/next.js')).toBe(true)
+    })
+
+    it('should normalize to lowercase for case-insensitive matching', () => {
+      const repoCards = [
+        { repoOwner: 'Facebook', repoName: 'React' },
+        { repoOwner: 'VERCEL', repoName: 'NEXT.JS' },
+      ]
+      const identifiers = createExistingRepoIdentifiers(repoCards)
+
+      // All should be lowercase
+      expect(identifiers.has('facebook/react')).toBe(true)
+      expect(identifiers.has('vercel/next.js')).toBe(true)
+      // Original case should not be found
+      expect(identifiers.has('Facebook/React')).toBe(false)
+    })
+
+    it('should handle special characters in repo names', () => {
+      const repoCards = [
+        { repoOwner: 'user', repoName: 'repo-with-dashes' },
+        { repoOwner: 'org', repoName: 'repo_with_underscores' },
+        { repoOwner: 'team', repoName: 'repo.with.dots' },
+      ]
+      const identifiers = createExistingRepoIdentifiers(repoCards)
+
+      expect(identifiers.has('user/repo-with-dashes')).toBe(true)
+      expect(identifiers.has('org/repo_with_underscores')).toBe(true)
+      expect(identifiers.has('team/repo.with.dots')).toBe(true)
+    })
+  })
+
+  describe('Repository Filtering Logic', () => {
+    it('should filter out repos that exist on the board', () => {
+      const allRepos = generateMockRepositories(10)
+      // Mark repos 0, 5 as already on board
+      const existingCards = [
+        {
+          repoOwner: allRepos[0].owner.login,
+          repoName: allRepos[0].name,
+        },
+        {
+          repoOwner: allRepos[5].owner.login,
+          repoName: allRepos[5].name,
+        },
+      ]
+      const identifiers = createExistingRepoIdentifiers(existingCards)
+
+      const filtered = filterExistingRepos(allRepos, identifiers)
+
+      // Should have 8 repos (10 - 2 existing)
+      expect(filtered.length).toBe(8)
+      // Existing repos should not be in filtered list
+      expect(filtered.find((r) => r.id === allRepos[0].id)).toBeUndefined()
+      expect(filtered.find((r) => r.id === allRepos[5].id)).toBeUndefined()
+      // Other repos should still be present
+      expect(filtered.find((r) => r.id === allRepos[1].id)).toBeDefined()
+    })
+
+    it('should return all repos when board is empty', () => {
+      const allRepos = generateMockRepositories(20)
+      const identifiers = createExistingRepoIdentifiers([])
+
+      const filtered = filterExistingRepos(allRepos, identifiers)
+
+      expect(filtered.length).toBe(20)
+    })
+
+    it('should return empty array when all repos are on board', () => {
+      const allRepos = generateMockRepositories(5)
+      const existingCards = allRepos.map((repo) => ({
+        repoOwner: repo.owner.login,
+        repoName: repo.name,
+      }))
+      const identifiers = createExistingRepoIdentifiers(existingCards)
+
+      const filtered = filterExistingRepos(allRepos, identifiers)
+
+      expect(filtered.length).toBe(0)
+    })
+
+    it('should handle case-insensitive matching correctly', () => {
+      const allRepos = [
+        {
+          ...generateMockRepositories(1)[0],
+          full_name: 'Facebook/React',
+          owner: { login: 'Facebook', avatar_url: '' },
+          name: 'React',
+        },
+      ]
+      // Existing card has different case
+      const existingCards = [{ repoOwner: 'facebook', repoName: 'react' }]
+      const identifiers = createExistingRepoIdentifiers(existingCards)
+
+      const filtered = filterExistingRepos(allRepos, identifiers)
+
+      // Should be filtered out despite case difference
+      expect(filtered.length).toBe(0)
+    })
+  })
+
+  describe('Set O(1) Lookup Performance', () => {
+    it('should perform efficiently with 50+ cards on board', () => {
+      const allRepos = generateMockRepositories(200)
+      // Simulate 50 cards already on board
+      const existingCards = allRepos.slice(0, 50).map((repo) => ({
+        repoOwner: repo.owner.login,
+        repoName: repo.name,
+      }))
+
+      const startTime = performance.now()
+      const identifiers = createExistingRepoIdentifiers(existingCards)
+      const filtered = filterExistingRepos(allRepos, identifiers)
+      const endTime = performance.now()
+
+      // Should complete in under 50ms
+      expect(endTime - startTime).toBeLessThan(50)
+      // Should have filtered correctly
+      expect(filtered.length).toBe(150)
+
+      console.log(
+        `✓ Filtered 200 repos with 50 existing in ${(endTime - startTime).toFixed(2)}ms`,
+      )
+    })
+
+    it('should maintain O(1) lookup with large existing card sets', () => {
+      const allRepos = generateMockRepositories(100)
+      const existingCards = allRepos.slice(0, 75).map((repo) => ({
+        repoOwner: repo.owner.login,
+        repoName: repo.name,
+      }))
+      const identifiers = createExistingRepoIdentifiers(existingCards)
+
+      // Measure multiple lookups
+      const startTime = performance.now()
+      for (let i = 0; i < 1000; i++) {
+        identifiers.has('facebook/react')
+        identifiers.has('vercel/next.js')
+        identifiers.has('nonexistent/repo')
+      }
+      const endTime = performance.now()
+
+      // 3000 lookups should complete in under 10ms (O(1) per lookup)
+      expect(endTime - startTime).toBeLessThan(10)
+
+      console.log(
+        `✓ 3000 Set lookups completed in ${(endTime - startTime).toFixed(2)}ms`,
+      )
+    })
+  })
+
+  describe('Edge Cases', () => {
+    it('should handle repos with empty owner', () => {
+      const allRepos = generateMockRepositories(1)
+      allRepos[0].full_name = '/repo-name'
+      allRepos[0].owner = { login: '', avatar_url: '' }
+
+      const existingCards = [{ repoOwner: '', repoName: 'repo-name' }]
+      const identifiers = createExistingRepoIdentifiers(existingCards)
+
+      const filtered = filterExistingRepos(allRepos, identifiers)
+
+      expect(filtered.length).toBe(0)
+    })
+
+    it('should handle repos with special unicode characters', () => {
+      const allRepos = generateMockRepositories(1)
+      allRepos[0].full_name = 'user/日本語-repo'
+      allRepos[0].owner = { login: 'user', avatar_url: '' }
+      allRepos[0].name = '日本語-repo'
+
+      const existingCards = [{ repoOwner: 'user', repoName: '日本語-repo' }]
+      const identifiers = createExistingRepoIdentifiers(existingCards)
+
+      const filtered = filterExistingRepos(allRepos, identifiers)
+
+      expect(filtered.length).toBe(0)
+    })
+
+    it('should not match partial repo names', () => {
+      const allRepos = generateMockRepositories(1)
+      allRepos[0].full_name = 'facebook/react'
+      allRepos[0].owner = { login: 'facebook', avatar_url: '' }
+      allRepos[0].name = 'react'
+
+      // Existing card has similar but different name
+      const existingCards = [
+        { repoOwner: 'facebook', repoName: 'react-native' },
+      ]
+      const identifiers = createExistingRepoIdentifiers(existingCards)
+
+      const filtered = filterExistingRepos(allRepos, identifiers)
+
+      // 'facebook/react' should NOT be filtered out by 'facebook/react-native'
+      expect(filtered.length).toBe(1)
+    })
+  })
+})
+
 describe('Duplicate Detection Utility Functions (T043)', () => {
   describe('checkDuplicateRepository', () => {
     it('should return true for duplicate repository', () => {

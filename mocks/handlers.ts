@@ -469,6 +469,9 @@ const supabaseDbHandlers: HttpHandler[] = [
 
   /**
    * GET /rest/v1/board - List boards
+   *
+   * Handles both array and single object responses based on Accept header.
+   * Supabase `.single()` sets Accept: application/vnd.pgrst.object+json
    */
   http.get(`${SUPABASE_URL}/rest/v1/board`, ({ request }) => {
     const params = getSearchParams(request)
@@ -477,9 +480,20 @@ const supabaseDbHandlers: HttpHandler[] = [
     // Handle select parameter for partial data
     const selectParam = params.get('select')
     if (selectParam === 'id, name') {
-      return HttpResponse.json(
-        filtered.map((b) => ({ id: b.id, name: b.name })),
-      )
+      const mapped = filtered.map((b) => ({ id: b.id, name: b.name }))
+      // Check if .single() was requested
+      const acceptHeader = request.headers.get('Accept') || ''
+      if (acceptHeader.includes('application/vnd.pgrst.object+json')) {
+        return HttpResponse.json(mapped[0] || null)
+      }
+      return HttpResponse.json(mapped)
+    }
+
+    // Check if .single() was requested (Supabase client sets this header)
+    const acceptHeader = request.headers.get('Accept') || ''
+    if (acceptHeader.includes('application/vnd.pgrst.object+json')) {
+      // Return single object for .single() calls
+      return HttpResponse.json(filtered[0] || null)
     }
 
     return HttpResponse.json(filtered)

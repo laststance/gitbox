@@ -13,6 +13,204 @@
 
 import { test, expect } from '@playwright/test'
 
+/**
+ * AddRepositoryCombobox E2E Tests - Existing Repo Filtering
+ *
+ * Tests that repositories already placed on the current board are
+ * filtered out from the combobox dropdown selection.
+ *
+ * Feature: filter out repos already on current board (bdc87e6)
+ */
+test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
+  test.use({ storageState: 'tests/e2e/.auth/user.json' })
+
+  const BOARD_URL = '/board/board-1'
+
+  /**
+   * Verifies that repositories already on the board do NOT appear in the combobox
+   *
+   * The MSW mock data has these repos on board-1:
+   * - testuser/test-repo (card-1)
+   * - testuser/another-repo (card-2)
+   * - laststance/create-react-app-vite (card-3)
+   *
+   * These should be filtered from the combobox selection.
+   */
+  test('should not display repositories that are already on the board', async ({
+    page,
+  }) => {
+    // Navigate to board page
+    await page.goto(BOARD_URL)
+    await page.waitForLoadState('domcontentloaded')
+
+    // Wait for Kanban board to load (column names indicate data is ready)
+    // This ensures Redux store has repoCards populated before we open the combobox
+    await expect(page.getByText('Backlog')).toBeVisible({ timeout: 15000 })
+
+    // Open AddRepositoryCombobox
+    const addRepoButton = page.getByRole('button', {
+      name: /add repositories/i,
+    })
+    await expect(addRepoButton).toBeVisible({ timeout: 10000 })
+    await addRepoButton.click()
+
+    // Wait for the combobox panel to be visible
+    const searchInput = page.getByPlaceholder(/search repositories/i)
+    await expect(searchInput).toBeVisible({ timeout: 10000 })
+
+    // Wait for repository list to load
+    await page.waitForTimeout(1000)
+
+    // Get all visible repository options
+    const repoOptions = page.locator('[role="option"]')
+    const optionTexts: string[] = []
+
+    const count = await repoOptions.count()
+    for (let i = 0; i < count; i++) {
+      const text = await repoOptions.nth(i).textContent()
+      if (text) optionTexts.push(text.toLowerCase())
+    }
+
+    // These repos are already on the board (from mockRepoCards in handlers.ts)
+    // They should NOT appear in the combobox
+    const existingRepos = ['testuser/test-repo', 'testuser/another-repo']
+
+    for (const repo of existingRepos) {
+      const found = optionTexts.some((text) => text.includes(repo))
+      expect(found).toBe(false)
+    }
+  })
+
+  /**
+   * Verifies that searching for an existing repo shows no results
+   */
+  test('should show no results when searching for a repo already on board', async ({
+    page,
+  }) => {
+    // Navigate to board page
+    await page.goto(BOARD_URL)
+    await page.waitForLoadState('domcontentloaded')
+
+    // Wait for Kanban board to load (column names indicate data is ready)
+    await expect(page.getByText('Backlog')).toBeVisible({ timeout: 15000 })
+
+    // Open AddRepositoryCombobox
+    const addRepoButton = page.getByRole('button', {
+      name: /add repositories/i,
+    })
+    await expect(addRepoButton).toBeVisible({ timeout: 10000 })
+    await addRepoButton.click()
+
+    // Wait for the combobox panel to be visible
+    const searchInput = page.getByPlaceholder(/search repositories/i)
+    await expect(searchInput).toBeVisible({ timeout: 10000 })
+
+    // Wait for initial load
+    await page.waitForTimeout(500)
+
+    // Search for a repo that's already on the board
+    await searchInput.fill('test-repo')
+
+    // Wait for debounced search (300ms) + filter
+    await page.waitForTimeout(500)
+
+    // Since 'testuser/test-repo' is on the board, it should be filtered out
+    // The only other matching repo would be if there's another one with 'test-repo' in the name
+    const repoOptions = page.locator('[role="option"]')
+    const count = await repoOptions.count()
+
+    // Check that 'testuser/test-repo' specifically is not in the list
+    for (let i = 0; i < count; i++) {
+      const text = await repoOptions.nth(i).textContent()
+      expect(text?.toLowerCase()).not.toContain('testuser/test-repo')
+    }
+  })
+
+  /**
+   * Verifies that non-existing repos still appear in the combobox
+   */
+  test('should display repositories that are NOT on the board', async ({
+    page,
+  }) => {
+    // Navigate to board page
+    await page.goto(BOARD_URL)
+    await page.waitForLoadState('domcontentloaded')
+
+    // Wait for Kanban board to load (column names indicate data is ready)
+    await expect(page.getByText('Backlog')).toBeVisible({ timeout: 15000 })
+
+    // Open AddRepositoryCombobox
+    const addRepoButton = page.getByRole('button', {
+      name: /add repositories/i,
+    })
+    await expect(addRepoButton).toBeVisible({ timeout: 10000 })
+    await addRepoButton.click()
+
+    // Wait for the combobox panel to be visible
+    const searchInput = page.getByPlaceholder(/search repositories/i)
+    await expect(searchInput).toBeVisible({ timeout: 10000 })
+
+    // Wait for repository list to load
+    await page.waitForTimeout(1000)
+
+    // 'testuser/private-project' is in mockGitHubRepos but NOT on the board
+    // It should appear in the combobox
+    const repoOptions = page.locator('[role="option"]')
+    const count = await repoOptions.count()
+
+    let foundPrivateProject = false
+    for (let i = 0; i < count; i++) {
+      const text = await repoOptions.nth(i).textContent()
+      if (text?.toLowerCase().includes('private-project')) {
+        foundPrivateProject = true
+        break
+      }
+    }
+
+    // This repo should be available since it's not on the board
+    expect(foundPrivateProject).toBe(true)
+  })
+
+  /**
+   * Verifies case-insensitive filtering works correctly
+   */
+  test('should filter repos case-insensitively', async ({ page }) => {
+    // Navigate to board page
+    await page.goto(BOARD_URL)
+    await page.waitForLoadState('domcontentloaded')
+
+    // Wait for Kanban board to load (column names indicate data is ready)
+    await expect(page.getByText('Backlog')).toBeVisible({ timeout: 15000 })
+
+    // Open AddRepositoryCombobox
+    const addRepoButton = page.getByRole('button', {
+      name: /add repositories/i,
+    })
+    await expect(addRepoButton).toBeVisible({ timeout: 10000 })
+    await addRepoButton.click()
+
+    // Wait for the combobox panel to be visible
+    const searchInput = page.getByPlaceholder(/search repositories/i)
+    await expect(searchInput).toBeVisible({ timeout: 10000 })
+
+    // Wait for repository list to load
+    await page.waitForTimeout(1000)
+
+    // Search with different case - 'TEST-REPO' should still not show 'testuser/test-repo'
+    await searchInput.fill('TEST-REPO')
+    await page.waitForTimeout(500)
+
+    const repoOptions = page.locator('[role="option"]')
+    const count = await repoOptions.count()
+
+    // Verify testuser/test-repo is not in results (case-insensitive match)
+    for (let i = 0; i < count; i++) {
+      const text = await repoOptions.nth(i).textContent()
+      expect(text?.toLowerCase()).not.toContain('testuser/test-repo')
+    }
+  })
+})
+
 test.describe('AddRepositoryCombobox - GITBOX-1 Fix', () => {
   test.use({ storageState: 'tests/e2e/.auth/user.json' })
 
