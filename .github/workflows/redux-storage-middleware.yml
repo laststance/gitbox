@@ -6,11 +6,13 @@ on:
     paths:
       - 'packages/redux-storage-middleware/**'
       - '.github/workflows/redux-storage-middleware.yml'
+      - 'pnpm-lock.yaml'
   pull_request:
     branches: [main]
     paths:
       - 'packages/redux-storage-middleware/**'
       - '.github/workflows/redux-storage-middleware.yml'
+      - 'pnpm-lock.yaml'
 
 concurrency:
   group: redux-storage-middleware-${{ github.ref }}
