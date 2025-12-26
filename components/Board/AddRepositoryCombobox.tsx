@@ -19,6 +19,7 @@ import {
   type GitHubOrganization,
 } from '@/lib/actions/github'
 import { addRepositoriesToBoard } from '@/lib/actions/repo-cards'
+import { selectRepoCards } from '@/lib/redux/slices/boardSlice'
 import {
   selectOrganizationFilter,
   setOrganizationFilter,
@@ -65,6 +66,25 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   const [visibilityFilter, setVisibilityFilter] = useState<
     'all' | 'public' | 'private'
   >('all')
+
+  // Get existing repo cards on this board for duplicate filtering
+  const existingRepoCards = useAppSelector(selectRepoCards)
+
+  /**
+   * Set of "owner/repo" identifiers for repos already on the board.
+   * Used to filter out duplicates from the combobox options.
+   * @example Set { "facebook/react", "vercel/next.js" }
+   */
+  const existingRepoIdentifiers = useMemo(
+    () =>
+      new Set(
+        existingRepoCards.map(
+          (card) =>
+            `${card.repoOwner.toLowerCase()}/${card.repoName.toLowerCase()}`,
+        ),
+      ),
+    [existingRepoCards],
+  )
 
   // Organization filter state
   const [currentUser, setCurrentUser] = useState<GitHubUser | null>(null)
@@ -187,6 +207,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
     let filtered = userRepos
 
+    // Filter out repos already on this board (highest priority filter)
+    filtered = filtered.filter(
+      (repo) => !existingRepoIdentifiers.has(repo.full_name.toLowerCase()),
+    )
+
     // Filter by search query
     if (debouncedQuery) {
       filtered = filtered.filter(
@@ -213,7 +238,13 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     }
 
     return filtered
-  }, [userRepos, debouncedQuery, organizationFilter, visibilityFilter])
+  }, [
+    userRepos,
+    debouncedQuery,
+    organizationFilter,
+    visibilityFilter,
+    existingRepoIdentifiers,
+  ])
 
   const isLoading = isLoadingRepos || isAdding
   const error = addError || reposError
