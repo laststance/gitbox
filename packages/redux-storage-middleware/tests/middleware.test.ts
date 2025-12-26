@@ -14,12 +14,12 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 import { combineReducers, configureStore, createSlice } from '@reduxjs/toolkit'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
+import { createMemoryStorage } from '../src/storage'
 import {
   createStorageMiddleware,
   loadStateFromStorage,
   clearStorageState,
-} from '../src/middleware'
-import { createMemoryStorage } from '../src/storage'
+} from '../src/storageMiddleware'
 import type { PersistedState } from '../src/types'
 
 // Test Redux slice

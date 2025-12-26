@@ -45,7 +45,7 @@ export {
   ACTION_HYDRATE_START,
   ACTION_HYDRATE_COMPLETE,
   ACTION_HYDRATE_ERROR,
-} from './middleware'
+} from './storageMiddleware'
 
 // =============================================================================
 // Storage

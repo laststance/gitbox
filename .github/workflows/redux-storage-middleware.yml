@@ -1,0 +1,102 @@
+name: Redux Storage Middleware
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/redux-storage-middleware/**'
+      - '.github/workflows/redux-storage-middleware.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/redux-storage-middleware/**'
+      - '.github/workflows/redux-storage-middleware.yml'
+
+concurrency:
+  group: redux-storage-middleware-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: packages/redux-storage-middleware
+
+jobs:
+  typecheck:
+    name: TypeScript Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare environment
+        uses: ./.github/actions/prepare
+
+      - name: TypeScript Check
+        run: pnpm typecheck
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare environment
+        uses: ./.github/actions/prepare
+
+      - name: Lint (ESLint)
+        run: pnpm lint
+        working-directory: .
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare environment
+        uses: ./.github/actions/prepare
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run Unit Tests
+        run: pnpm test:run
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare environment
+        uses: ./.github/actions/prepare
+
+      - name: Build Package
+        run: pnpm build
+
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare environment
+        uses: ./.github/actions/prepare
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build gmail-clone example
+        run: pnpm build
+        working-directory: packages/redux-storage-middleware/examples/gmail-clone
+
+      - name: Run E2E Tests
+        run: pnpm test:e2e
+        working-directory: packages/redux-storage-middleware/examples/gmail-clone
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: packages/redux-storage-middleware/examples/gmail-clone/playwright-report/
+          retention-days: 7

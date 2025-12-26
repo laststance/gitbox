@@ -307,6 +307,198 @@ test.describe('Gmail Clone - Performance Metrics', () => {
   })
 })
 
+test.describe('Gmail Clone - Browser Close/Reopen Persistence', () => {
+  /**
+   * Test that localStorage data persists across browser sessions.
+   *
+   * This simulates a real user scenario:
+   * 1. User opens app, generates emails
+   * 2. User closes browser completely
+   * 3. User reopens browser and navigates back
+   * 4. Emails should be restored from localStorage
+   */
+  test('should persist state after browser close and reopen', async ({
+    browser,
+  }) => {
+    // Create first browser context (session 1)
+    const context1 = await browser.newContext()
+    const page1 = await context1.newPage()
+
+    // Navigate and generate emails
+    await page1.goto('/')
+    await page1.evaluate(() => localStorage.clear())
+    await page1.reload()
+    await page1.waitForLoadState('networkidle')
+
+    // Wait for hydration
+    await page1.waitForFunction(
+      () => {
+        const footer = document.querySelector('footer')
+        return footer?.textContent?.includes('✅ Complete') ?? false
+      },
+      { timeout: 10000 },
+    )
+
+    // Generate 100 emails
+    await page1.click('button:has-text("+100 Emails")')
+    await page1.waitForTimeout(500)
+
+    // Verify emails exist in localStorage
+    const emailCountSession1 = await page1.evaluate(() => {
+      const data = localStorage.getItem('gmail-clone-state')
+      if (!data) return 0
+      try {
+        const persisted = JSON.parse(data)
+        return persisted.state?.emails?.emails?.length ?? 0
+      } catch {
+        return 0
+      }
+    })
+    expect(emailCountSession1).toBe(100)
+
+    // Save localStorage state before closing
+    const storageState = await page1.evaluate(() => {
+      const data = localStorage.getItem('gmail-clone-state')
+      return data
+    })
+    expect(storageState).not.toBeNull()
+
+    // Close the first browser context (simulates browser close)
+    await context1.close()
+
+    // Create a NEW browser context (simulates browser reopen)
+    const context2 = await browser.newContext()
+    const page2 = await context2.newPage()
+
+    // Navigate to the app
+    await page2.goto('/')
+
+    // Inject the saved localStorage state (simulating browser's localStorage persistence)
+    await page2.evaluate((savedState) => {
+      if (savedState) {
+        localStorage.setItem('gmail-clone-state', savedState)
+      }
+    }, storageState)
+
+    // Reload to trigger hydration from localStorage
+    await page2.reload()
+    await page2.waitForLoadState('networkidle')
+
+    // Wait for hydration
+    await page2.waitForFunction(
+      () => {
+        const footer = document.querySelector('footer')
+        return footer?.textContent?.includes('✅ Complete') ?? false
+      },
+      { timeout: 10000 },
+    )
+
+    // Verify emails were restored from localStorage
+    const emailCountSession2 = await page2.evaluate(() => {
+      const data = localStorage.getItem('gmail-clone-state')
+      if (!data) return 0
+      try {
+        const persisted = JSON.parse(data)
+        return persisted.state?.emails?.emails?.length ?? 0
+      } catch {
+        return 0
+      }
+    })
+
+    // Critical assertion: emails should persist across browser sessions
+    expect(emailCountSession2).toBe(100)
+
+    // Cleanup
+    await context2.close()
+  })
+
+  test('should restore complex state after browser restart', async ({
+    browser,
+  }) => {
+    // Session 1: Create complex state with 1000 emails
+    const context1 = await browser.newContext()
+    const page1 = await context1.newPage()
+
+    await page1.goto('/')
+    await page1.evaluate(() => localStorage.clear())
+    await page1.reload()
+    await page1.waitForLoadState('networkidle')
+
+    // Wait for hydration
+    await page1.waitForFunction(
+      () => {
+        const footer = document.querySelector('footer')
+        return footer?.textContent?.includes('✅ Complete') ?? false
+      },
+      { timeout: 10000 },
+    )
+
+    // Generate 1000 emails for complex state test
+    await page1.click('button:has-text("+1000 Emails")')
+    await page1.waitForTimeout(800)
+
+    // Capture state
+    const storageState = await page1.evaluate(() =>
+      localStorage.getItem('gmail-clone-state'),
+    )
+    const originalSize = await page1.evaluate(() => {
+      const data = localStorage.getItem('gmail-clone-state')
+      return data ? new Blob([data]).size : 0
+    })
+
+    expect(originalSize).toBeGreaterThan(500000) // Should be > 500KB for 1000 emails
+
+    // Close session 1
+    await context1.close()
+
+    // Session 2: Restore and verify
+    const context2 = await browser.newContext()
+    const page2 = await context2.newPage()
+    await page2.goto('/')
+
+    // Inject saved state
+    await page2.evaluate((savedState) => {
+      if (savedState) {
+        localStorage.setItem('gmail-clone-state', savedState)
+      }
+    }, storageState)
+
+    // Measure hydration time after browser restart
+    const hydrationStart = Date.now()
+    await page2.reload()
+    await page2.waitForLoadState('networkidle')
+    await page2.waitForFunction(
+      () => {
+        const footer = document.querySelector('footer')
+        return footer?.textContent?.includes('✅ Complete') ?? false
+      },
+      { timeout: 10000 },
+    )
+    const hydrationTime = Date.now() - hydrationStart
+
+    // Verify state integrity
+    const restoredCount = await page2.evaluate(() => {
+      const data = localStorage.getItem('gmail-clone-state')
+      if (!data) return 0
+      try {
+        const persisted = JSON.parse(data)
+        return persisted.state?.emails?.emails?.length ?? 0
+      } catch {
+        return 0
+      }
+    })
+
+    expect(restoredCount).toBe(1000)
+    expect(hydrationTime).toBeLessThan(3000) // Hydration should be fast
+
+    console.log(
+      `[Browser Restart] 1000 emails restored in ${hydrationTime}ms after browser restart`,
+    )
+
+    await context2.close()
+  })
+})
+
 test.describe('Gmail Clone - UI Interactions', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
