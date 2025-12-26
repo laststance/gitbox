@@ -142,15 +142,25 @@ test.describe('AddRepositoryCombobox - GITBOX-1 Fix', () => {
     await expect(searchInput).toBeVisible({ timeout: 10000 })
 
     // Verify organization filter selector is present
-    const orgFilterTrigger = page.getByRole('combobox').first()
+    // Note: Using aria-label to target the specific organization filter combobox
+    const orgFilterTrigger = page.getByRole('combobox', {
+      name: /organization filter/i,
+    })
     await expect(orgFilterTrigger).toBeVisible()
 
-    // Click the organization filter
+    // Click the organization filter to open dropdown
     await orgFilterTrigger.click()
 
-    // Wait for dropdown options to appear
-    const allOption = page.getByRole('option', { name: /all organizations/i })
-    await expect(allOption).toBeVisible({ timeout: 5000 })
+    // Wait for dropdown to appear - Radix Select uses listbox role for the dropdown content
+    // The options are rendered in a portal, so we need to look for them in the page
+    await page.waitForTimeout(500) // Give time for dropdown animation
+
+    // Look for "All Organizations" option in the dropdown
+    // Radix Select items have role="option" when the dropdown is open
+    const allOption = page.locator('[role="option"]', {
+      hasText: /all organizations/i,
+    })
+    await expect(allOption.first()).toBeVisible({ timeout: 5000 })
   })
 
   /**

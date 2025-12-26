@@ -11,19 +11,14 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { isTestMode } from '@/tests/isTestMode'
+
 // Public paths that don't require authentication
 const publicPaths = ['/', '/login', '/auth/callback']
 
-/**
- * Check if E2E test mode is enabled
- * Bypass authentication in middleware for E2E tests
- */
-const isE2ETestMode = () =>
-  process.env.APP_ENV === 'test' || process.env.NODE_ENV === 'test'
-
 export async function proxy(request: NextRequest) {
   // In E2E test mode, bypass authentication and allow all requests
-  if (isE2ETestMode()) {
+  if (isTestMode()) {
     return NextResponse.next({
       request: {
         headers: request.headers,

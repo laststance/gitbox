@@ -10,8 +10,99 @@
 import { cookies } from 'next/headers'
 
 import { getGitHubTokenCookieName } from '@/lib/constants/cookies'
+import { isTestMode } from '@/tests/isTestMode'
 
 const GITHUB_API_BASE_URL = 'https://api.github.com'
+
+/**
+ * Mock data for E2E testing
+ * Matches the mock data in mocks/handlers.ts
+ */
+const MOCK_GITHUB_USER = {
+  id: 12345,
+  login: 'testuser',
+  avatar_url: 'https://avatars.githubusercontent.com/u/12345?v=4',
+  name: 'Test User',
+  type: 'User' as const,
+}
+
+const MOCK_GITHUB_REPOS = [
+  {
+    id: 1,
+    node_id: 'R_kgDOGq0qMQ',
+    name: 'test-repo',
+    full_name: 'testuser/test-repo',
+    owner: {
+      login: 'testuser',
+      avatar_url: 'https://avatars.githubusercontent.com/u/12345?v=4',
+    },
+    description: 'A test repository for GitBox',
+    html_url: 'https://github.com/testuser/test-repo',
+    homepage: 'https://test-repo.dev',
+    stargazers_count: 42,
+    watchers_count: 42,
+    language: 'TypeScript',
+    topics: ['react', 'nextjs'],
+    visibility: 'public' as const,
+    updated_at: '2024-01-15T00:00:00.000Z',
+    created_at: '2023-01-01T00:00:00.000Z',
+  },
+  {
+    id: 2,
+    node_id: 'R_kgDOGq0qMg',
+    name: 'another-repo',
+    full_name: 'testuser/another-repo',
+    owner: {
+      login: 'testuser',
+      avatar_url: 'https://avatars.githubusercontent.com/u/12345?v=4',
+    },
+    description: 'Another test repository',
+    html_url: 'https://github.com/testuser/another-repo',
+    homepage: null,
+    stargazers_count: 128,
+    watchers_count: 128,
+    language: 'JavaScript',
+    topics: ['nodejs', 'api'],
+    visibility: 'public' as const,
+    updated_at: '2024-01-10T00:00:00.000Z',
+    created_at: '2023-06-01T00:00:00.000Z',
+  },
+  {
+    id: 3,
+    node_id: 'R_kgDOGq0qMz',
+    name: 'private-project',
+    full_name: 'testuser/private-project',
+    owner: {
+      login: 'testuser',
+      avatar_url: 'https://avatars.githubusercontent.com/u/12345?v=4',
+    },
+    description: 'A private project',
+    html_url: 'https://github.com/testuser/private-project',
+    homepage: null,
+    stargazers_count: 0,
+    watchers_count: 1,
+    language: 'Python',
+    topics: ['private', 'internal'],
+    visibility: 'private' as const,
+    updated_at: '2024-01-20T00:00:00.000Z',
+    created_at: '2024-01-01T00:00:00.000Z',
+  },
+]
+
+const MOCK_GITHUB_ORGS = [
+  {
+    id: 100,
+    login: 'laststance',
+    avatar_url: 'https://avatars.githubusercontent.com/u/100?v=4',
+    description: 'Laststance.io organization',
+  },
+  {
+    id: 101,
+    login: 'test-org',
+    avatar_url: 'https://avatars.githubusercontent.com/u/101?v=4',
+    description: 'Test organization for development',
+  },
+]
 
 export interface GitHubRepository {
   id: number
@@ -51,6 +142,11 @@ export async function getAuthenticatedUserRepositories(params?: {
   per_page?: number
   page?: number
 }): Promise<{ data: GitHubRepository[] | null; error: string | null }> {
+  // E2E test mode: return mock data
+  if (isTestMode()) {
+    return { data: MOCK_GITHUB_REPOS, error: null }
+  }
+
   const token = await getGitHubToken()
 
   if (!token) {
@@ -119,6 +215,20 @@ export async function searchRepositories(params: {
   data: { total_count: number; items: GitHubRepository[] } | null
   error: string | null
 }> {
+  // E2E test mode: return filtered mock data
+  if (isTestMode()) {
+    const query = params.q.toLowerCase()
+    const filtered = MOCK_GITHUB_REPOS.filter(
+      (repo) =>
+        repo.name.toLowerCase().includes(query) ||
+        (repo.description?.toLowerCase().includes(query) ?? false),
+    )
+    return {
+      data: { total_count: filtered.length, items: filtered },
+      error: null,
+    }
+  }
+
   const token = await getGitHubToken()
 
   if (!token) {
@@ -185,6 +295,15 @@ export async function getRepository(
   owner: string,
   repo: string,
 ): Promise<{ data: GitHubRepository | null; error: string | null }> {
+  // E2E test mode: return mock data
+  if (isTestMode()) {
+    const fullName = `${owner}/${repo}`
+    const found = MOCK_GITHUB_REPOS.find((r) => r.full_name === fullName)
+    return found
+      ? { data: found, error: null }
+      : { data: null, error: 'Repository not found.' }
+  }
+
   const token = await getGitHubToken()
 
   if (!token) {
@@ -247,6 +366,11 @@ export async function checkGitHubTokenValidity(): Promise<{
   valid: boolean
   error: string | null
 }> {
+  // E2E test mode: always valid
+  if (isTestMode()) {
+    return { valid: true, error: null }
+  }
+
   const token = await getGitHubToken()
 
   if (!token) {
@@ -307,6 +431,11 @@ export async function getAuthenticatedUser(): Promise<{
   data: GitHubUser | null
   error: string | null
 }> {
+  // E2E test mode: return mock user
+  if (isTestMode()) {
+    return { data: MOCK_GITHUB_USER, error: null }
+  }
+
   const token = await getGitHubToken()
 
   if (!token) {
@@ -368,6 +497,11 @@ export async function getAuthenticatedUserOrganizations(): Promise<{
   data: GitHubOrganization[] | null
   error: string | null
 }> {
+  // E2E test mode: return mock organizations
+  if (isTestMode()) {
+    return { data: MOCK_GITHUB_ORGS, error: null }
+  }
+
   const token = await getGitHubToken()
 
   if (!token) {

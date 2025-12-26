@@ -148,6 +148,12 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     const [activeDragType, setActiveDragType] = useState<DragType>(null)
     // History stack for undo functionality (max 10 entries)
     const [history, setHistory] = useState<RepoCardForRedux[][]>([])
+
+    // Hydration-safe mounting state: prevents SSR/CSR mismatch for dynamic grid styles
+    const [isMounted, setIsMounted] = useState(false)
+    useEffect(() => {
+      setIsMounted(true)
+    }, [])
     const [columnHistory, setColumnHistory] = useState<StatusListDomain[][]>([])
     const [undoMessage, setUndoMessage] = useState<string | null>(null)
 
@@ -628,43 +634,55 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           <SortableContext items={columnIds} strategy={rectSortingStrategy}>
             <div
               className="grid gap-4 pb-4"
-              style={{
-                // Add extra column when dragging to allow insertion at end
-                gridTemplateColumns: `repeat(${gridDimensions.maxCol + 1 + (activeDragType === 'column' ? 1 : 0)}, minmax(280px, 1fr))`,
-                // Add extra row for NewRowDropZone when dragging
-                gridTemplateRows: `repeat(${gridDimensions.maxRow + 1 + (activeDragType === 'column' ? 1 : 0)}, auto)`,
-              }}
+              suppressHydrationWarning
+              style={
+                isMounted
+                  ? {
+                      // Add extra column when dragging to allow insertion at end
+                      gridTemplateColumns: `repeat(${gridDimensions.maxCol + 1 + (activeDragType === 'column' ? 1 : 0)}, minmax(280px, 1fr))`,
+                      // Add extra row for NewRowDropZone when dragging
+                      gridTemplateRows: `repeat(${gridDimensions.maxRow + 1 + (activeDragType === 'column' ? 1 : 0)}, auto)`,
+                    }
+                  : {
+                      // Stable initial styles for SSR hydration
+                      gridTemplateColumns: 'repeat(1, minmax(280px, 1fr))',
+                      gridTemplateRows: 'repeat(1, auto)',
+                    }
+              }
             >
-              {sortedStatuses.map((status) => (
-                <SortableColumn
-                  key={status.id}
-                  status={status}
-                  cards={cards.filter((c) => c.statusId === status.id)}
-                  onEdit={onEditProjectInfo}
-                  onMaintenance={onMoveToMaintenance}
-                  onNote={onNote}
-                  onEditStatus={onEditStatus}
-                  onDeleteStatus={onDeleteStatus}
-                  onAddCard={onAddCard}
-                  gridStyle={{
-                    gridRow: status.gridRow + 1, // CSS grid is 1-indexed
-                    gridColumn: status.gridCol + 1,
-                  }}
-                />
-              ))}
+              {/* Render columns only after hydration to prevent SSR mismatch */}
+              {isMounted &&
+                sortedStatuses.map((status) => (
+                  <SortableColumn
+                    key={status.id}
+                    status={status}
+                    cards={cards.filter((c) => c.statusId === status.id)}
+                    onEdit={onEditProjectInfo}
+                    onMaintenance={onMoveToMaintenance}
+                    onNote={onNote}
+                    onEditStatus={onEditStatus}
+                    onDeleteStatus={onDeleteStatus}
+                    onAddCard={onAddCard}
+                    gridStyle={{
+                      gridRow: status.gridRow + 1, // CSS grid is 1-indexed
+                      gridColumn: status.gridCol + 1,
+                    }}
+                  />
+                ))}
 
               {/* Column Insert Zones - empty grid positions during column drag */}
-              {insertionZones.map((zone) => (
-                <ColumnInsertZone
-                  key={`insert-${zone.gridRow}-${zone.gridCol}`}
-                  gridRow={zone.gridRow}
-                  gridCol={zone.gridCol}
-                  activeColumnId={activeId?.toString()}
-                />
-              ))}
+              {isMounted &&
+                insertionZones.map((zone) => (
+                  <ColumnInsertZone
+                    key={`insert-${zone.gridRow}-${zone.gridCol}`}
+                    gridRow={zone.gridRow}
+                    gridCol={zone.gridCol}
+                    activeColumnId={activeId?.toString()}
+                  />
+                ))}
 
               {/* New Row Drop Zone - only visible during column drag */}
-              {activeDragType === 'column' && (
+              {isMounted && activeDragType === 'column' && (
                 <NewRowDropZone
                   targetRow={gridDimensions.maxRow + 1}
                   columnCount={gridDimensions.maxCol + 1 + 1} // +1 for expanded grid
@@ -677,7 +695,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           <DragOverlay>
             {activeDragType === 'column' && activeId ? (
               // Column drag preview for 2D grid layout
-              <div className="w-[280px] max-w-full bg-background/80 backdrop-blur-sm rounded-xl p-4 border-2 border-primary shadow-2xl opacity-90 rotate-2">
+              <div className="w-70 max-w-full bg-background/80 backdrop-blur-sm rounded-xl p-4 border-2 border-primary shadow-2xl opacity-90 rotate-2">
                 <h3 className="font-semibold text-foreground">
                   {sortedStatuses.find((s) => s.id === activeId)?.title}
                 </h3>

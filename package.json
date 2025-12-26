@@ -28,7 +28,6 @@
     "lint:fix": "eslint . --fix --concurrency=auto --max-warnings 0",
     "test": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
     "prepare": "husky",
     "prettier": "prettier --ignore-unknown --write .",
     "storybook": "storybook dev -p 6006",

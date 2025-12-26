@@ -73,7 +73,18 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'pnpm build && pnpm start',
+    /**
+     * Build and start with test environment variables.
+     *
+     * CRITICAL: NEXT_PUBLIC_* vars must be set at BUILD time because Next.js
+     * inlines them during the build process. Setting them only at runtime
+     * (via env property below) is NOT sufficient.
+     *
+     * The env vars are explicitly set in the command to ensure they're
+     * available during both build and start phases.
+     */
+    command:
+      'NEXT_PUBLIC_ENABLE_MSW_MOCK=true APP_ENV=test pnpm build && pnpm start',
     url: 'http://localhost:3008',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
