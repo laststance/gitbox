@@ -30,7 +30,6 @@ const {
   rootReducer, // Required: pass root reducer
   name: 'gmail-clone-state',
   slices: ['emails'],
-  version: 1,
   performance: {
     debounceMs: 300, // Debounce writes for performance
     useIdleCallback: false, // Disabled for E2E test predictability

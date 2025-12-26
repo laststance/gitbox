@@ -21,8 +21,6 @@ import type {
   HydrationApi,
   HydrationState,
   PersistedState,
-  SyncStorage,
-  Serializer,
 } from './types'
 import { debounce } from './utils/debounce'
 import { isServer, isStorageAvailable } from './utils/isServer'
@@ -37,7 +35,7 @@ const ACTION_HYDRATE_COMPLETE = '@@redux-storage-middleware/HYDRATE_COMPLETE'
 const ACTION_HYDRATE_ERROR = '@@redux-storage-middleware/HYDRATE_ERROR'
 
 const DEFAULT_DEBOUNCE_MS = 300
-const DEFAULT_VERSION = 0
+const INTERNAL_VERSION = 0 // Reserved for future migration support
 
 /**
  * Minimum and maximum length for storage key names
@@ -109,37 +107,6 @@ function validateStorageKeyName(name: string): void {
 // =============================================================================
 // Utility Functions
 // =============================================================================
-
-/**
- * Excludes specified paths from an object
- */
-function excludePaths<T extends object>(obj: T, paths: string[]): Partial<T> {
-  if (paths.length === 0) {
-    return obj
-  }
-
-  const result = JSON.parse(JSON.stringify(obj)) as T
-
-  for (const path of paths) {
-    const keys = path.split('.')
-    let current: Record<string, unknown> = result as Record<string, unknown>
-
-    for (let i = 0; i < keys.length - 1; i++) {
-      const key = keys[i]
-      if (current[key] === null || current[key] === undefined) {
-        break
-      }
-      current = current[key] as Record<string, unknown>
-    }
-
-    const lastKey = keys[keys.length - 1]
-    if (current && lastKey in current) {
-      delete current[lastKey]
-    }
-  }
-
-  return result
-}
 
 /**
  * Shallow merge (default)
@@ -232,20 +199,10 @@ export function createStorageMiddleware<
     rootReducer,
     name,
     slices,
-    partialize,
-    exclude = [],
-    version = DEFAULT_VERSION,
-    migrate,
-    storage: customStorage,
-    serializer = defaultJsonSerializer as Serializer<
-      PersistedState<Partial<S>>
-    >,
     performance: perfConfig,
-    onHydrate,
     onHydrationComplete,
     onSaveComplete,
     onError,
-    merge = shallowMerge,
   } = config
 
   // Validate rootReducer is required
@@ -283,15 +240,8 @@ export function createStorageMiddleware<
   // Storage Setup
   // ---------------------------------------------------------------------------
 
-  // Get SSR-safe storage
-  const getStorage = (): SyncStorage => {
-    if (customStorage) {
-      // Return synchronous wrapper for async storage
-      // Note: Actual async processing needs to be handled separately
-      return customStorage as SyncStorage
-    }
-    return createSafeLocalStorage()
-  }
+  // Get SSR-safe storage (always localStorage)
+  const getStorage = () => createSafeLocalStorage()
 
   // ---------------------------------------------------------------------------
   // Serialization
@@ -301,31 +251,19 @@ export function createStorageMiddleware<
    * Extracts state to save
    */
   const extractStateToSave = (state: S): Partial<S> => {
-    let stateToSave: Partial<S>
-
-    if (partialize) {
-      // Select using partialize function
-      stateToSave = partialize(state)
-    } else if (slices && slices.length > 0) {
+    if (slices && slices.length > 0) {
       // Select using slices array
-      stateToSave = {} as Partial<S>
+      const stateToSave = {} as Partial<S>
       for (const sliceName of slices) {
         const value = (state as Record<string, unknown>)[sliceName]
         if (value !== undefined) {
           ;(stateToSave as Record<string, unknown>)[sliceName] = value
         }
       }
-    } else {
-      // Save entire state
-      stateToSave = state
+      return stateToSave
     }
-
-    // Apply exclusion paths
-    if (exclude.length > 0) {
-      stateToSave = excludePaths(stateToSave as object, exclude) as Partial<S>
-    }
-
-    return stateToSave
+    // Save entire state
+    return state
   }
 
   /**
@@ -341,11 +279,11 @@ export function createStorageMiddleware<
       const stateToSave = extractStateToSave(state)
 
       const persistedState: PersistedState<Partial<S>> = {
-        version,
+        version: INTERNAL_VERSION,
         state: stateToSave,
       }
 
-      const serialized = serializer.serialize(persistedState)
+      const serialized = defaultJsonSerializer.serialize(persistedState)
       storage.setItem(name, serialized)
 
       onSaveComplete?.(state)
@@ -371,7 +309,9 @@ export function createStorageMiddleware<
         return null
       }
 
-      return serializer.deserialize(serialized)
+      return defaultJsonSerializer.deserialize(serialized) as PersistedState<
+        Partial<S>
+      >
     } catch (error) {
       console.error('[redux-storage-middleware] Failed to load state:', error)
       onError?.(error as Error, 'load')
@@ -413,7 +353,6 @@ export function createStorageMiddleware<
       }
 
       hydrationState = 'hydrating'
-      onHydrate?.()
 
       // Notify callbacks
       for (const callback of hydrateCallbacks) {
@@ -429,17 +368,12 @@ export function createStorageMiddleware<
           return
         }
 
-        let state = persisted.state as S
+        const state = persisted.state as S
 
-        // Migration
-        if (migrate && persisted.version !== version) {
-          state = (await migrate(state, persisted.version)) as S
-        }
-
-        // Merge with current state
+        // Merge with current state using shallow merge
         if (storeApi) {
           const currentState = storeApi.getState()
-          hydratedState = merge(state as Partial<S>, currentState)
+          hydratedState = shallowMerge(state as Partial<S>, currentState)
 
           // Update store (dispatch hydration action)
           storeApi.dispatch({
@@ -450,7 +384,6 @@ export function createStorageMiddleware<
           hydratedState = state
         }
 
-        // eslint-disable-next-line require-atomic-updates -- Safe to operate in single-threaded environment
         hydrationState = 'hydrated'
         onHydrationComplete?.(hydratedState)
 
@@ -460,7 +393,6 @@ export function createStorageMiddleware<
         }
       } catch (error) {
         console.error('[redux-storage-middleware] Hydration failed:', error)
-        // eslint-disable-next-line require-atomic-updates -- Safe to operate in single-threaded environment
         hydrationState = 'error'
         onError?.(error as Error, 'load')
       }
@@ -574,7 +506,6 @@ export function createStorageMiddleware<
  * Restores initial state from LocalStorage
  *
  * @param storageKey - LocalStorage key
- * @param serializer - Serializer
  * @returns Restored state or null
  *
  * @example
@@ -588,9 +519,6 @@ export function createStorageMiddleware<
  */
 export function loadStateFromStorage<S = unknown>(
   storageKey: string,
-  serializer: Serializer<
-    PersistedState<S>
-  > = defaultJsonSerializer as Serializer<PersistedState<S>>,
 ): PersistedState<S> | null {
   // Validate storage key name
   validateStorageKeyName(storageKey)
@@ -607,7 +535,7 @@ export function loadStateFromStorage<S = unknown>(
       return null
     }
 
-    return serializer.deserialize(serialized)
+    return defaultJsonSerializer.deserialize(serialized) as PersistedState<S>
   } catch (error) {
     console.error('[redux-storage-middleware] Failed to load state:', error)
     return null

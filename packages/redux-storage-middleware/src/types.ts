@@ -73,15 +73,17 @@ export interface JsonSerializerOptions {
 }
 
 // =============================================================================
-// Migration Types
+// Migration Types (Internal)
 // =============================================================================
 
 /**
  * Wrapper for persisted state
+ * @internal Used internally for storage format. Always uses version: 0.
  */
 export interface PersistedState<T = unknown> {
   /**
-   * Schema version
+   * Schema version (always 0 - reserved for future use)
+   * @internal
    */
   version: number
 
@@ -90,14 +92,6 @@ export interface PersistedState<T = unknown> {
    */
   state: T
 }
-
-/**
- * Migration function
- */
-export type MigrateFn<T = unknown> = (
-  persistedState: unknown,
-  fromVersion: number,
-) => T | Promise<T>
 
 // =============================================================================
 // Hydration Types
@@ -212,55 +206,6 @@ export interface StorageMiddlewareConfig<S = unknown> {
    */
   slices?: string[]
 
-  /**
-   * Selector function to persist only part of state
-   * Based on zustand's partialize pattern
-   *
-   * @example (state) => ({ user: state.user.profile })
-   */
-  partialize?: (state: S) => Partial<S>
-
-  /**
-   * List of paths to exclude from persistence
-   *
-   * @example ['auth.token', 'temp']
-   */
-  exclude?: string[]
-
-  // ---------------------------------------------------------------------------
-  // Version & Migration
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Schema version
-   * Increment when state structure changes
-   *
-   * @default 0
-   */
-  version?: number
-
-  /**
-   * Migration function
-   * Converts from old version to new version
-   */
-  migrate?: MigrateFn<S>
-
-  // ---------------------------------------------------------------------------
-  // Storage & Serialization
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Custom storage
-   * If not specified, uses localStorage
-   */
-  storage?: StateStorage
-
-  /**
-   * Custom serializer
-   * If not specified, uses JSON.stringify/parse
-   */
-  serializer?: Serializer<PersistedState<Partial<S>>>
-
   // ---------------------------------------------------------------------------
   // Performance
   // ---------------------------------------------------------------------------
@@ -273,11 +218,6 @@ export interface StorageMiddlewareConfig<S = unknown> {
   // ---------------------------------------------------------------------------
   // Callbacks
   // ---------------------------------------------------------------------------
-
-  /**
-   * Callback when hydration starts
-   */
-  onHydrate?: () => void
 
   /**
    * Callback when hydration completes
@@ -293,20 +233,6 @@ export interface StorageMiddlewareConfig<S = unknown> {
    * Callback when error occurs
    */
   onError?: (error: Error, operation: 'load' | 'save' | 'clear') => void
-
-  // ---------------------------------------------------------------------------
-  // Merge Strategy
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Merge function during hydration
-   * Defaults to shallow merge
-   *
-   * @param persistedState - Persisted state
-   * @param currentState - Current state
-   * @returns Merged state
-   */
-  merge?: (persistedState: Partial<S>, currentState: S) => S
 }
 
 // =============================================================================

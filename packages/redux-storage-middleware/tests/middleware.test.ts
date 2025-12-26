@@ -14,7 +14,7 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 import { combineReducers, configureStore, createSlice } from '@reduxjs/toolkit'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
-import { createMemoryStorage } from '../src/storage'
+// Note: createMemoryStorage import removed - no longer used after YAGNI cleanup
 import {
   createStorageMiddleware,
   loadStateFromStorage,
@@ -62,7 +62,7 @@ const settingsSlice = createSlice({
   },
 })
 
-const { increment, setValue, setName } = testSlice.actions
+const { increment, setValue } = testSlice.actions
 const { setTheme: _setTheme } = settingsSlice.actions
 
 describe('createStorageMiddleware', () => {
@@ -113,40 +113,6 @@ describe('createStorageMiddleware', () => {
     expect(parsed.state).toHaveProperty('test')
     expect((parsed.state as { test: TestState }).test.value).toBe(1)
     expect(parsed.state).not.toHaveProperty('settings')
-  })
-
-  it('can select fine-grained state with partialize function', async () => {
-    const rootReducer = combineReducers({
-      test: testSlice.reducer,
-      settings: settingsSlice.reducer,
-    })
-
-    const { middleware, reducer } = createStorageMiddleware({
-      rootReducer,
-      name: 'test-partialize',
-      partialize: (state: { test: TestState; settings: SettingsState }) => ({
-        test: { value: state.test.value, name: '' },
-      }),
-      performance: { debounceMs: 100 },
-    })
-
-    const store = configureStore({
-      reducer,
-      middleware: (getDefaultMiddleware) =>
-        getDefaultMiddleware().concat(middleware),
-    })
-
-    // Wait for auto-hydration via microtask
-    await vi.advanceTimersByTimeAsync(0)
-    store.dispatch(setName('should-not-save'))
-    store.dispatch(increment())
-
-    await vi.advanceTimersByTimeAsync(100)
-
-    const saved = localStorage.getItem('test-partialize')
-    const parsed = JSON.parse(saved!) as PersistedState
-    expect((parsed.state as { test: TestState }).test.value).toBe(1)
-    expect((parsed.state as { test: TestState }).test.name).toBe('')
   })
 
   it('debounces and saves multiple actions', async () => {
@@ -248,78 +214,6 @@ describe('createStorageMiddleware', () => {
     setItemSpy.mockRestore()
   })
 
-  it('can exclude specific paths with exclude option', async () => {
-    const rootReducer = combineReducers({
-      test: testSlice.reducer,
-    })
-
-    const { middleware, reducer } = createStorageMiddleware({
-      rootReducer,
-      name: 'test-exclude',
-      exclude: ['test.name'],
-      performance: { debounceMs: 100 },
-    })
-
-    const store = configureStore({
-      reducer,
-      middleware: (getDefaultMiddleware) =>
-        getDefaultMiddleware().concat(middleware),
-    })
-
-    // Wait for auto-hydration via microtask
-    await vi.advanceTimersByTimeAsync(0)
-    store.dispatch(setName('should-be-excluded'))
-    store.dispatch(setValue(42))
-
-    await vi.advanceTimersByTimeAsync(100)
-
-    const saved = localStorage.getItem('test-exclude')
-    const parsed = JSON.parse(saved!) as PersistedState
-    expect((parsed.state as { test: TestState }).test.value).toBe(42)
-    expect((parsed.state as { test: TestState }).test.name).toBeUndefined()
-  })
-
-  it('can perform migration with version and migrate', async () => {
-    // Save old version state
-    const oldState: PersistedState = {
-      version: 0,
-      state: { test: { value: 10, name: 'old' } },
-    }
-    localStorage.setItem('test-migrate', JSON.stringify(oldState))
-
-    const migrateFn = vi.fn((state, version) => {
-      if (version === 0) {
-        return { ...state, test: { ...state.test, migrated: true } }
-      }
-      return state
-    })
-
-    const rootReducer = combineReducers({
-      test: testSlice.reducer,
-    })
-
-    const { middleware, reducer } = createStorageMiddleware({
-      rootReducer,
-      name: 'test-migrate',
-      version: 1,
-      migrate: migrateFn,
-    })
-
-    const _store = configureStore({
-      reducer,
-      middleware: (getDefaultMiddleware) =>
-        getDefaultMiddleware().concat(middleware),
-    })
-
-    // Wait for auto-hydration (triggers migration)
-    await vi.advanceTimersByTimeAsync(0)
-
-    expect(migrateFn).toHaveBeenCalledWith(
-      expect.objectContaining({ test: { value: 10, name: 'old' } }),
-      0,
-    )
-  })
-
   it('performs auto-hydration by default', async () => {
     const preloadedState: PersistedState = {
       version: 0,
@@ -380,81 +274,9 @@ describe('createStorageMiddleware', () => {
 
     expect(onSaveComplete).toHaveBeenCalled()
   })
-
-  it('calls onError callback on error', async () => {
-    const onError = vi.fn()
-
-    // Custom storage that throws errors (use custom storage option)
-    const errorStorage = {
-      getItem: (): null => null,
-      setItem: (): void => {
-        throw new Error('QuotaExceededError')
-      },
-      removeItem: (): void => {},
-    }
-
-    const rootReducer = combineReducers({
-      test: testSlice.reducer,
-    })
-
-    const { middleware, reducer } = createStorageMiddleware({
-      rootReducer,
-      name: 'test-onerror',
-      slices: ['test'],
-      performance: { debounceMs: 100 },
-      storage: errorStorage,
-      onError,
-    })
-
-    const store = configureStore({
-      reducer,
-      middleware: (getDefaultMiddleware) =>
-        getDefaultMiddleware().concat(middleware),
-    })
-
-    // Wait for auto-hydration via microtask
-    await vi.advanceTimersByTimeAsync(0)
-    store.dispatch(increment())
-
-    await vi.advanceTimersByTimeAsync(100)
-
-    expect(onError).toHaveBeenCalledWith(expect.any(Error), 'save')
-  })
-
-  it('can use custom storage', async () => {
-    const customStorage = createMemoryStorage()
-
-    const rootReducer = combineReducers({
-      test: testSlice.reducer,
-    })
-
-    const { middleware, reducer } = createStorageMiddleware({
-      rootReducer,
-      name: 'test-custom-storage',
-      slices: ['test'],
-      storage: customStorage,
-      performance: { debounceMs: 100 },
-    })
-
-    const store = configureStore({
-      reducer,
-      middleware: (getDefaultMiddleware) =>
-        getDefaultMiddleware().concat(middleware),
-    })
-
-    // Wait for auto-hydration via microtask
-    await vi.advanceTimersByTimeAsync(0)
-    store.dispatch(increment())
-
-    await vi.advanceTimersByTimeAsync(100)
-
-    const saved = customStorage.getItem('test-custom-storage')
-    expect(saved).toBeTruthy()
-
-    const parsed = JSON.parse(saved!) as PersistedState
-    expect((parsed.state as { test: TestState }).test.value).toBe(1)
-  })
 })
+// Note: 'calls onError callback on error' and 'can use custom storage' tests were removed
+// because the 'storage' config option was removed in the YAGNI cleanup.
 
 describe('Hydration API', () => {
   beforeEach(() => {
@@ -671,39 +493,8 @@ describe('clearStorageState', () => {
     expect(localStorage.getItem('test-clear')).toBeNull()
   })
 
-  it('outputs error log on removeItem error using custom storage', () => {
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {})
-
-    // Use createStorageMiddleware with custom error storage to test error handling
-    const errorStorage = {
-      getItem: () => null,
-      setItem: () => {},
-      removeItem: () => {
-        throw new Error('Storage access denied')
-      },
-    }
-
-    const rootReducer = combineReducers({
-      test: testSlice.reducer,
-    })
-
-    // Create middleware with error storage and test clearStorage
-    const { api } = createStorageMiddleware({
-      rootReducer,
-      name: 'test-remove-error',
-      storage: errorStorage,
-    })
-
-    // This should trigger the error handler
-    api.clearStorage()
-
-    // The implementation logs errors via console.error
-    expect(consoleErrorSpy).toHaveBeenCalled()
-
-    consoleErrorSpy.mockRestore()
-  })
+  // Note: 'outputs error log on removeItem error using custom storage' test was removed
+  // because the 'storage' config option was removed in the YAGNI cleanup.
 })
 
 describe('Integration Test: Store with Middleware', () => {

@@ -112,9 +112,6 @@ export type {
   // Serializer
   Serializer,
   JsonSerializerOptions,
-  // Migration
-  PersistedState,
-  MigrateFn,
   // Hydration
   HydrationState,
   HydrationApi,
