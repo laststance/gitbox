@@ -22,7 +22,7 @@ PWA for managing GitHub repositories in Kanban format.
 pnpm install
 pnpm dev        # http://localhost:3008
 pnpm test       # Unit tests
-pnpm test:e2e   # E2E tests
+pnpm e2e        # E2E tests
 ```
 
 ## License

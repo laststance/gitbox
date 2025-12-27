@@ -40,7 +40,7 @@ jobs:
           APP_ENV: test
 
       - name: Run E2E tests
-        run: pnpm test:e2e
+        run: pnpm e2e
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://mock.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: mock-anon-key

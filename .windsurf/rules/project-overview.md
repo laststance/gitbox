@@ -280,7 +280,7 @@ pnpm build
 
 # テスト
 pnpm test
-pnpm test:e2e
+pnpm e2e
 ```
 
 ---

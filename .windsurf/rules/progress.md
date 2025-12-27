@@ -209,7 +209,7 @@ ESLint v9
 pnpm dev          # 開発サーバー (localhost:3008)
 pnpm build        # ビルド
 pnpm test         # Vitest
-pnpm test:e2e     # Playwright
+pnpm e2e          # Playwright
 ```
 
 ---

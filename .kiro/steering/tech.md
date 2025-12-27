@@ -67,7 +67,7 @@ Client-server hybrid architecture where:
 ```bash
 # Dev: pnpm dev (port 3008)
 # Build: pnpm build
-# Test: pnpm test && pnpm test:e2e
+# Test: pnpm test && pnpm e2e
 # Quality: pnpm lint && pnpm typecheck
 ```
 

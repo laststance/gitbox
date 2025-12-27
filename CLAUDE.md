@@ -17,7 +17,7 @@ This application requires GitHub authentication to access any functionality beyo
 
 ## Critical Rules
 
-- 🔴 **Always run before ending session as parallel:** `pnpm test`, `pnpm lint`, `pnpm build`, `pnpm typecheck`, `pnpm test:e2e`
+- 🔴 **Always run before ending session as parallel:** `pnpm test`, `pnpm lint`, `pnpm build`, `pnpm typecheck`, `pnpm e2e`
 - 🔴 **Vercel project:** Use ONLY `laststance/gitbox` (ID: `prj_M4T9K5HjwFx0e9PIueEhOFn1UmUM`)
 
 ---
@@ -170,7 +170,7 @@ Stored in httpOnly cookie `github_provider_token` (set in `app/auth/callback/rou
 
 MSW must NEVER be enabled in development or production environments. It is exclusively used for:
 
-- **E2E tests** (`pnpm test:e2e`) - Playwright runs with `APP_ENV=test`
+- **E2E tests** (`pnpm e2e`) - Playwright runs with `APP_ENV=test`
 - **Unit tests** (`pnpm test`) - Vitest/Storybook uses MSW for API mocking
 
 MSW is configured following [next-msw-integration](https://github.com/laststance/next-msw-integration) pattern.
@@ -214,10 +214,10 @@ app/
 
 ```bash
 # Run Playwright tests (MSW auto-enabled)
-pnpm test:e2e
+pnpm e2e
 
-# Run with headed browser
-pnpm test:e2e:headed
+# Run with headed browser (add --headed flag)
+pnpm e2e --headed
 ```
 
 ### Test Configuration
