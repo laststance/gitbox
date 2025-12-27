@@ -346,6 +346,10 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                         hasRenameError ? 'name-error' : 'name-char-count'
                       }
                       autoFocus
+                      autoComplete="off"
+                      data-1p-ignore
+                      data-lpignore="true"
+                      data-form-type="other"
                     />
 
                     <div className="flex items-center justify-between">

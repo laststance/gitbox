@@ -94,10 +94,7 @@ export const RenameBoardDialog = memo(function RenameBoardDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent
-        className="sm:max-w-[400px]"
-        accessibleTitle="Rename Board"
-      >
+      <DialogContent className="sm:max-w-100" accessibleTitle="Rename Board">
         <DialogHeader>
           <DialogTitle>Rename Board</DialogTitle>
           <DialogDescription>
@@ -118,6 +115,10 @@ export const RenameBoardDialog = memo(function RenameBoardDialog({
               aria-invalid={hasError}
               aria-describedby={hasError ? 'name-error' : 'name-char-count'}
               autoFocus
+              autoComplete="off"
+              data-1p-ignore
+              data-lpignore="true"
+              data-form-type="other"
             />
 
             <div className="flex items-center justify-between">
