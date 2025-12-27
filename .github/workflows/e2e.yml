@@ -69,7 +69,11 @@ jobs:
         id: coverage
         if: always()
         run: |
+          echo "=== Debug: Checking coverage directory ==="
+          ls -la coverage-e2e/ || echo "coverage-e2e/ not found"
+          ls -la coverage-e2e/coverage/ || echo "coverage-e2e/coverage/ not found"
           if [ -f "coverage-e2e/coverage/coverage-summary.json" ]; then
+            echo "=== coverage-summary.json found ==="
             LINES_PCT=$(jq '.total.lines.pct // 0' coverage-e2e/coverage/coverage-summary.json)
             FUNCTIONS_PCT=$(jq '.total.functions.pct // 0' coverage-e2e/coverage/coverage-summary.json)
             BRANCHES_PCT=$(jq '.total.branches.pct // 0' coverage-e2e/coverage/coverage-summary.json)
@@ -91,7 +95,9 @@ jobs:
             fi
             echo "color=${COLOR}" >> $GITHUB_OUTPUT
             echo "coverage_available=true" >> $GITHUB_OUTPUT
+            echo "=== Coverage extracted: lines_pct=$LINES_PCT, color=$COLOR ==="
           else
+            echo "=== coverage-summary.json NOT found ==="
             echo "coverage_available=false" >> $GITHUB_OUTPUT
             echo "lines_pct=0" >> $GITHUB_OUTPUT
           fi
