@@ -275,7 +275,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
         <DialogContent
-          className="sm:max-w-[560px]"
+          className="sm:max-w-140"
           accessibleTitle="Board Settings"
         >
           <DialogHeader>
@@ -329,7 +329,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
           </nav>
 
           {/* Tab Panels */}
-          <div className="min-h-[280px] py-4">
+          <div className="min-h-70 py-4">
             {/* General Tab: Rename */}
             {activeTab === 'general' && (
               <div

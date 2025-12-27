@@ -11,15 +11,13 @@ This application requires GitHub authentication to access any functionality beyo
 | Local       | `http://localhost:3008`                | ✅ Yes     |
 | Production  | `https://gitbox-laststance.vercel.app` | ✅ Yes     |
 
-**Limitation:** @dnd-kit drag operations cannot be tested via Claude Chrome (use Playwright instead).
+**Limitation:** @dnd-kit drag operations cannot be tested via Claude Chrome (use Playwright instead in e2e).
 
 ---
 
 ## Critical Rules
 
 - 🔴 **Always run before ending session as parallel:** `pnpm test`, `pnpm lint`, `pnpm build`, `pnpm typecheck`, `pnpm test:e2e`
-- 🔴 **NEVER MODIFY** `eslint.config.mjs`
-- 🔴 **All documentation in English**
 - 🔴 **Vercel project:** Use ONLY `laststance/gitbox` (ID: `prj_M4T9K5HjwFx0e9PIueEhOFn1UmUM`)
 
 ---
@@ -53,10 +51,10 @@ This application requires GitHub authentication to access any functionality beyo
 
 ## Supabase Configuration
 
-| Environment       | Supabase URL                               | Credentials File        |
-| ----------------- | ------------------------------------------ | ----------------------- |
-| Local Development | `https://jqtxjzdxczqwsrvevmyk.supabase.co` | `.env`                  |
-| Production        | `https://mfeesjmtofgayktirswf.supabase.co` | `.env.production.local` |
+| Environment                                          | Supabase URL                               | Credentials File  |
+| ---------------------------------------------------- | ------------------------------------------ | ----------------- |
+| Local Development(for http:localhost:3008)           | `https://jqtxjzdxczqwsrvevmyk.supabase.co` | `.env`            |
+| Productio(for https://gitbox-laststance.vercel.app/) | `https://mfeesjmtofgayktirswf.supabase.co` | `.env.production` |
 
 **🔴 CRITICAL:** Use lowercase table names in Server Actions:
 
