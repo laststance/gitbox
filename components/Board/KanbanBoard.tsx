@@ -610,7 +610,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     const activeCard = cards.find((c) => c.id === activeId)
 
     return (
-      <div className="w-full h-full p-6 relative">
+      <div className="w-fit min-w-full h-full p-6 relative">
         {/* Undo message display */}
         {undoMessage && (
           <motion.div
@@ -633,7 +633,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           {/* Column-level SortableContext for 2D grid reordering */}
           <SortableContext items={columnIds} strategy={rectSortingStrategy}>
             <div
-              className="grid gap-4 pb-4"
+              className="grid gap-4 pb-4 w-fit min-w-full"
               suppressHydrationWarning
               style={
                 isMounted

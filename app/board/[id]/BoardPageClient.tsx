@@ -476,8 +476,8 @@ export const BoardPageClient = memo(function BoardPageClient({
           </div>
         </header>
 
-        {/* Kanban Board */}
-        <div className="flex-1 overflow-hidden bg-gray-100 dark:bg-gray-900">
+        {/* Kanban Board - horizontal scroll enabled for 6+ columns */}
+        <div className="flex-1 overflow-x-auto overflow-y-auto bg-gray-100 dark:bg-gray-900">
           <KanbanBoard
             boardId={boardId}
             onEditProjectInfo={handleEditProjectInfo}
