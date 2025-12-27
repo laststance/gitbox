@@ -5,7 +5,7 @@
  * Implements cookie-based authentication using @supabase/ssr
  */
 
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 import type { Database } from './types'
@@ -23,6 +23,8 @@ const isE2ETestMode = () =>
 
 /**
  * Create Supabase client for use in Server Components
+ *
+ * Uses getAll/setAll pattern required for PKCE flow support.
  *
  * @example
  * ```tsx
@@ -43,22 +45,24 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
+        /**
+         * Get all cookies for PKCE flow support.
+         */
+        getAll() {
+          return cookieStore.getAll()
         },
-        set(name: string, value: string, options: CookieOptions) {
+        /**
+         * Set all cookies for PKCE flow support.
+         * Wrapped in try-catch because Server Components cannot write cookies.
+         */
+        setAll(cookiesToSet) {
           try {
-            cookieStore.set({ name, value, ...options })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options),
+            )
           } catch {
-            // set doesn't work in Server Components - ignored
-            // Will be handled by middleware.ts or Route Handler
-          }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: '', ...options })
-          } catch {
-            // remove doesn't work in Server Components - ignored
+            // setAll doesn't work in Server Components - ignored
+            // Will be handled by proxy.ts or Route Handler
           }
         },
       },
@@ -114,6 +118,8 @@ export async function createClient() {
 /**
  * Create Supabase client for use in Route Handlers
  *
+ * Uses getAll/setAll pattern required for PKCE flow support.
+ *
  * @example
  * ```tsx
  * import { createRouteHandlerClient } from '@/lib/supabase/server'
@@ -134,14 +140,13 @@ export async function createRouteHandlerClient(_request: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
+        getAll() {
+          return cookieStore.getAll()
         },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options })
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options),
+          )
         },
       },
     },
@@ -150,6 +155,8 @@ export async function createRouteHandlerClient(_request: Request) {
 
 /**
  * Create Supabase client for use in Server Actions
+ *
+ * Uses getAll/setAll pattern required for PKCE flow support.
  *
  * @example
  * ```tsx
@@ -178,14 +185,13 @@ export async function createServerActionClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
+        getAll() {
+          return cookieStore.getAll()
         },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options })
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options),
+          )
         },
       },
     },

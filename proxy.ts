@@ -8,7 +8,7 @@
  * @see https://nextjs.org/docs/messages/middleware-to-proxy
  */
 
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { isTestMode } from '@/tests/isTestMode'
@@ -25,79 +25,70 @@ export async function proxy(request: NextRequest) {
       },
     })
   }
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
 
-  // Create Supabase client with cookie operations
+  // Create response that we'll modify with cookie updates
+  let supabaseResponse = NextResponse.next({ request })
+
+  // Create Supabase client with getAll/setAll (required for PKCE flow)
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
+        /**
+         * Get all cookies from the incoming request.
+         * Required for PKCE flow to retrieve the code verifier.
+         */
+        getAll() {
+          return request.cookies.getAll()
         },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
+        /**
+         * Set cookies on both request (for downstream server code)
+         * and response (for browser).
+         * This is critical for PKCE flow cookie persistence.
+         */
+        setAll(cookiesToSet) {
+          // Set on request for downstream server code
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value),
+          )
+          // Create new response with the updated request
+          supabaseResponse = NextResponse.next({ request })
+          // Set on response for browser
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options),
+          )
         },
       },
     },
   )
 
-  // Get session
+  // IMPORTANT: Use getUser() not getSession() for proper session refresh
+  // This also handles PKCE token exchange correctly
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
   // Check path
   const { pathname } = request.nextUrl
 
   // Allow public paths without authentication
   if (publicPaths.includes(pathname)) {
-    return response
+    return supabaseResponse
   }
 
   // Redirect to login if not authenticated
-  if (!session) {
+  if (!user) {
     const loginUrl = new URL('/login', request.url)
-    return NextResponse.redirect(loginUrl)
+    // Copy cookies to redirect response
+    const redirectResponse = NextResponse.redirect(loginUrl)
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value)
+    })
+    return redirectResponse
   }
 
-  return response
+  return supabaseResponse
 }
 
 export const config = {

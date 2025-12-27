@@ -1,11 +1,13 @@
 /**
  * Supabase Client (Browser)
  *
- * Supabase client for client-side use
- * Used for authentication and database operations in browser environment
+ * Supabase client for client-side use.
+ * Uses createBrowserClient from @supabase/ssr for proper cookie handling
+ * and PKCE flow support.
  */
 
-import { createClient, type Session } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
+import type { Session } from '@supabase/supabase-js'
 
 import type { Database } from './types'
 
@@ -21,15 +23,16 @@ if (!supabaseAnonKey) {
   throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY')
 }
 
-// Supabase client singleton instance
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    flowType: 'pkce', // Recommended for GitHub OAuth
-  },
-})
+/**
+ * Supabase browser client singleton instance.
+ *
+ * Uses @supabase/ssr's createBrowserClient for proper cookie-based
+ * session handling with PKCE flow support.
+ */
+export const supabase = createBrowserClient<Database>(
+  supabaseUrl,
+  supabaseAnonKey,
+)
 
 /**
  * Get current user session
