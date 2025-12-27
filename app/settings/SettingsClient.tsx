@@ -92,8 +92,14 @@ const THEME_BUTTON_UNSELECTED =
 
 const THEME_INFO: Record<
   ThemeType,
-  { name: string; color: string; description: string }
+  { name: string; color: string; description: string; needsBorder?: boolean }
 > = {
+  default: {
+    name: 'Default',
+    color: '#fafafa',
+    description: 'Clean neutral',
+    needsBorder: true,
+  },
   sunrise: {
     name: 'Sunrise',
     color: '#f59e0b',
@@ -108,6 +114,7 @@ const THEME_INFO: Record<
   sky: { name: 'Sky', color: '#0ea5e9', description: 'Calm blue' },
   lavender: { name: 'Lavender', color: '#a78bfa', description: 'Soft purple' },
   rose: { name: 'Rose', color: '#f43f5e', description: 'Vibrant pink' },
+  dark: { name: 'Dark', color: '#18181b', description: 'Clean dark' },
   midnight: { name: 'Midnight', color: '#1e40af', description: 'Deep blue' },
   graphite: { name: 'Graphite', color: '#374151', description: 'Dark gray' },
   forest: { name: 'Forest', color: '#166534', description: 'Dark green' },
@@ -146,7 +153,7 @@ const ThemeButton = memo(function ThemeButton({
         </div>
       ) : (
         <div
-          className="h-10 w-10 rounded-full shadow-md"
+          className={`h-10 w-10 rounded-full shadow-md ${info.needsBorder ? 'border border-gray-200' : ''}`}
           style={{ backgroundColor: info.color }}
         />
       )}

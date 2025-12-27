@@ -2,7 +2,7 @@
  * SettingsClient Component Stories
  *
  * A client component for the Settings page.
- * Allows users to customize theme (12 themes: 6 light + 6 dark),
+ * Allows users to customize theme (14 themes: 7 light + 7 dark),
  * language (English/Japanese), and other display preferences.
  * Uses Redux for state management and localStorage for persistence.
  */

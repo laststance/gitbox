@@ -233,7 +233,7 @@ test.describe('Board Settings Dialog (Authenticated)', () => {
   })
 
   test.describe('Theme Tab', () => {
-    test('should display all 12 theme options', async ({ page }) => {
+    test('should display all 14 theme options', async ({ page }) => {
       // Open dialog
       const settingsButton = page.getByRole('button', {
         name: /board settings/i,
@@ -247,7 +247,10 @@ test.describe('Board Settings Dialog (Authenticated)', () => {
       const themeTab = dialog.getByRole('tab', { name: /theme/i })
       await themeTab.click()
 
-      // Check for light themes
+      // Check for light themes (7)
+      await expect(
+        dialog.getByRole('button', { name: /select default theme/i }),
+      ).toBeVisible()
       await expect(
         dialog.getByRole('button', { name: /select sunrise theme/i }),
       ).toBeVisible()
@@ -267,7 +270,10 @@ test.describe('Board Settings Dialog (Authenticated)', () => {
         dialog.getByRole('button', { name: /select rose theme/i }),
       ).toBeVisible()
 
-      // Check for dark themes
+      // Check for dark themes (7)
+      await expect(
+        dialog.getByRole('button', { name: /select dark theme/i }),
+      ).toBeVisible()
       await expect(
         dialog.getByRole('button', { name: /select midnight theme/i }),
       ).toBeVisible()

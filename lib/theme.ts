@@ -78,6 +78,7 @@ export function getCSSVariable(variableName: string): string {
  */
 export function isDarkTheme(theme: Theme): boolean {
   const darkThemes: Theme[] = [
+    'dark',
     'midnight',
     'graphite',
     'forest',
@@ -92,16 +93,18 @@ export function isDarkTheme(theme: Theme): boolean {
 /**
  * Get all theme names
  *
- * @returns Array of 12 theme names
+ * @returns Array of 14 theme names
  */
 export function getAllThemes(): Theme[] {
   return [
+    'default',
     'sunrise',
     'sandstone',
     'mint',
     'sky',
     'lavender',
     'rose',
+    'dark',
     'midnight',
     'graphite',
     'forest',
@@ -121,7 +124,15 @@ export function getThemesByMode(): {
   dark: Theme[]
 } {
   return {
-    light: ['sunrise', 'sandstone', 'mint', 'sky', 'lavender', 'rose'],
-    dark: ['midnight', 'graphite', 'forest', 'ocean', 'plum', 'rust'],
+    light: [
+      'default',
+      'sunrise',
+      'sandstone',
+      'mint',
+      'sky',
+      'lavender',
+      'rose',
+    ],
+    dark: ['dark', 'midnight', 'graphite', 'forest', 'ocean', 'plum', 'rust'],
   }
 }

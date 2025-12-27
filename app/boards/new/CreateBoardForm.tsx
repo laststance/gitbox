@@ -9,16 +9,32 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState, useTransition, memo, useMemo } from 'react'
+import {
+  useState,
+  useTransition,
+  memo,
+  useMemo,
+  useEffect,
+  useRef,
+} from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createBoard } from '@/lib/actions/board'
+import { DARK_THEMES, type ThemeType } from '@/lib/hooks/use-theme'
 
 // Theme definitions from PRD
 const THEMES = {
   light: [
+    {
+      id: 'default',
+      name: 'Default',
+      color: '#fafafa',
+      description: 'Clean neutral',
+      /** Special styling for white circle on white background */
+      needsBorder: true,
+    },
     {
       id: 'sunrise',
       name: 'Sunrise',
@@ -42,6 +58,12 @@ const THEMES = {
     { id: 'rose', name: 'Rose', color: '#f43f5e', description: 'Vibrant pink' },
   ],
   dark: [
+    {
+      id: 'dark',
+      name: 'Dark',
+      color: '#18181b',
+      description: 'Clean dark',
+    },
     {
       id: 'midnight',
       name: 'Midnight',
@@ -85,8 +107,52 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [name, setName] = useState('')
-  const [theme, setTheme] = useState('sunrise')
+  const [theme, setTheme] = useState('default')
   const [error, setError] = useState<string | null>(null)
+
+  /** Store original theme to restore on unmount */
+  const originalThemeRef = useRef<string | null>(null)
+  const originalDarkClassRef = useRef<boolean>(false)
+
+  /**
+   * Theme Preview Effect
+   * Applies selected theme to the page so users can see what they're choosing.
+   * Restores original theme when leaving the page.
+   */
+  useEffect(() => {
+    const root = document.documentElement
+
+    // Capture original theme state on first render
+    if (originalThemeRef.current === null) {
+      originalThemeRef.current = root.getAttribute('data-theme')
+      originalDarkClassRef.current = root.classList.contains('dark')
+    }
+
+    // Apply preview theme
+    root.setAttribute('data-theme', theme)
+
+    // Handle dark class for dark themes
+    const isDark = DARK_THEMES.includes(theme as ThemeType)
+    if (isDark) {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
+
+    // Cleanup: restore original theme on unmount
+    return () => {
+      if (originalThemeRef.current) {
+        root.setAttribute('data-theme', originalThemeRef.current)
+      } else {
+        root.removeAttribute('data-theme')
+      }
+      if (originalDarkClassRef.current) {
+        root.classList.add('dark')
+      } else {
+        root.classList.remove('dark')
+      }
+    }
+  }, [theme])
 
   /** Memoized classNames for light theme buttons based on current theme selection */
   const lightThemeClassNames = useMemo(
@@ -171,7 +237,7 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
                 }
               >
                 <div
-                  className="h-8 w-8 rounded-full shadow-inner"
+                  className={`h-8 w-8 rounded-full shadow-inner ${'needsBorder' in t && t.needsBorder ? 'border border-gray-200 shadow-sm' : ''}`}
                   style={{ backgroundColor: t.color }}
                 />
                 <span className="text-xs font-medium">{t.name}</span>

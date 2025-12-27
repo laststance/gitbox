@@ -16,6 +16,7 @@ const subscribe = () => () => {}
 
 export type ThemeType =
   // Light themes
+  | 'default'
   | 'sunrise'
   | 'sandstone'
   | 'mint'
@@ -23,6 +24,7 @@ export type ThemeType =
   | 'lavender'
   | 'rose'
   // Dark themes
+  | 'dark'
   | 'midnight'
   | 'graphite'
   | 'forest'
@@ -33,6 +35,7 @@ export type ThemeType =
   | 'system'
 
 export const LIGHT_THEMES: ThemeType[] = [
+  'default',
   'sunrise',
   'sandstone',
   'mint',
@@ -42,6 +45,7 @@ export const LIGHT_THEMES: ThemeType[] = [
 ]
 
 export const DARK_THEMES: ThemeType[] = [
+  'dark',
   'midnight',
   'graphite',
   'forest',

@@ -4,7 +4,7 @@
  * Test targets:
  * - Tab navigation (General, Theme, Danger Zone)
  * - Board rename validation and submission
- * - Theme selection (12 themes: 6 light + 6 dark)
+ * - Theme selection (14 themes: 7 light + 7 dark)
  * - Delete confirmation flow
  * - Accessibility (ARIA roles, keyboard support)
  */
@@ -240,12 +240,15 @@ describe('BoardSettingsDialog', () => {
   })
 
   describe('Theme Tab', () => {
-    it('should display 12 theme options', () => {
+    it('should display 14 theme options', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       fireEvent.click(screen.getByRole('tab', { name: /theme/i }))
 
-      // Light themes (6)
+      // Light themes (7)
+      expect(
+        screen.getByRole('button', { name: /select default theme/i }),
+      ).toBeInTheDocument()
       expect(
         screen.getByRole('button', { name: /select sunrise theme/i }),
       ).toBeInTheDocument()
@@ -265,7 +268,10 @@ describe('BoardSettingsDialog', () => {
         screen.getByRole('button', { name: /select rose theme/i }),
       ).toBeInTheDocument()
 
-      // Dark themes (6)
+      // Dark themes (7)
+      expect(
+        screen.getByRole('button', { name: /select dark theme/i }),
+      ).toBeInTheDocument()
       expect(
         screen.getByRole('button', { name: /select midnight theme/i }),
       ).toBeInTheDocument()
@@ -567,26 +573,26 @@ describe('BoardSettingsDialog', () => {
   })
 
   describe('Edge Cases', () => {
-    it('should handle null currentTheme (defaults to sunrise)', () => {
+    it('should handle null currentTheme (defaults to default)', () => {
       render(<BoardSettingsDialog {...defaultProps} currentTheme={null} />)
 
       fireEvent.click(screen.getByRole('tab', { name: /theme/i }))
 
-      const sunriseButton = screen.getByRole('button', {
-        name: /select sunrise theme/i,
+      const defaultButton = screen.getByRole('button', {
+        name: /select default theme/i,
       })
-      expect(sunriseButton).toHaveAttribute('aria-pressed', 'true')
+      expect(defaultButton).toHaveAttribute('aria-pressed', 'true')
     })
 
-    it('should handle undefined currentTheme (defaults to sunrise)', () => {
+    it('should handle undefined currentTheme (defaults to default)', () => {
       render(<BoardSettingsDialog {...defaultProps} currentTheme={undefined} />)
 
       fireEvent.click(screen.getByRole('tab', { name: /theme/i }))
 
-      const sunriseButton = screen.getByRole('button', {
-        name: /select sunrise theme/i,
+      const defaultButton = screen.getByRole('button', {
+        name: /select default theme/i,
       })
-      expect(sunriseButton).toHaveAttribute('aria-pressed', 'true')
+      expect(defaultButton).toHaveAttribute('aria-pressed', 'true')
     })
 
     it('should handle special characters in board name', () => {

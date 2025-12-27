@@ -2,7 +2,7 @@
  * Settings Page
  *
  * PRD: Settings screen
- * - Theme selection (12 themes)
+ * - Theme selection (14 themes)
  * - Typography settings
  * - Display settings
  * - WIP settings

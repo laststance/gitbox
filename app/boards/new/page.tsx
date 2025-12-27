@@ -3,7 +3,7 @@
  *
  * PRD: Board creation screen
  * - Board name input
- * - Theme selection (12 themes)
+ * - Theme selection (14 themes)
  */
 
 import { redirect } from 'next/navigation'

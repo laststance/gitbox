@@ -492,12 +492,14 @@ export type AuditLog = Tables<'auditlog'>
 
 // Theme type (stored as string in board.theme)
 export type Theme =
+  | 'default'
   | 'sunrise'
   | 'sandstone'
   | 'mint'
   | 'sky'
   | 'lavender'
   | 'rose'
+  | 'dark'
   | 'midnight'
   | 'graphite'
   | 'forest'

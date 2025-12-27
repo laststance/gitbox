@@ -509,7 +509,7 @@ const supabaseDbHandlers: HttpHandler[] = [
       id: `board-${Date.now()}`,
       name: body.name || 'New Board',
       user_id: body.user_id || MOCK_USER_ID,
-      theme: body.theme || 'sunrise',
+      theme: body.theme || 'default',
       settings: body.settings || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

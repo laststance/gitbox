@@ -76,8 +76,14 @@ type BoardThemeType = Exclude<ThemeType, 'system'>
 /** Theme metadata for display */
 const THEME_INFO: Record<
   BoardThemeType,
-  { name: string; color: string; description: string }
+  { name: string; color: string; description: string; needsBorder?: boolean }
 > = {
+  default: {
+    name: 'Default',
+    color: '#fafafa',
+    description: 'Clean neutral',
+    needsBorder: true,
+  },
   sunrise: { name: 'Sunrise', color: '#f59e0b', description: 'Warm amber' },
   sandstone: {
     name: 'Sandstone',
@@ -88,6 +94,7 @@ const THEME_INFO: Record<
   sky: { name: 'Sky', color: '#0ea5e9', description: 'Calm blue' },
   lavender: { name: 'Lavender', color: '#a78bfa', description: 'Soft purple' },
   rose: { name: 'Rose', color: '#f43f5e', description: 'Vibrant pink' },
+  dark: { name: 'Dark', color: '#18181b', description: 'Clean dark' },
   midnight: { name: 'Midnight', color: '#1e40af', description: 'Deep blue' },
   graphite: { name: 'Graphite', color: '#374151', description: 'Dark gray' },
   forest: { name: 'Forest', color: '#166534', description: 'Dark green' },
@@ -171,14 +178,14 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
     initialThemeState,
   )
   const [selectedTheme, setSelectedTheme] = useState<string>(
-    currentTheme || 'sunrise',
+    currentTheme || 'default',
   )
   const [lastCurrentTheme, setLastCurrentTheme] = useState(currentTheme)
 
   // Sync theme from props
   if (currentTheme !== lastCurrentTheme) {
     setLastCurrentTheme(currentTheme)
-    setSelectedTheme(currentTheme || 'sunrise')
+    setSelectedTheme(currentTheme || 'default')
   }
 
   // Delete form state
@@ -423,7 +430,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                           aria-pressed={isSelected}
                         >
                           <div
-                            className="h-8 w-8 rounded-full shadow-sm"
+                            className={`h-8 w-8 rounded-full shadow-sm ${info.needsBorder ? 'border border-gray-200' : ''}`}
                             style={{ backgroundColor: info.color }}
                           />
                           <span className="text-xs font-medium">
