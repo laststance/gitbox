@@ -77,9 +77,6 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      date-fns:
-        specifier: ^4.1.0
-        version: 4.1.0
       framer-motion:
         specifier: ^12.23.26
         version: 12.23.26(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -110,9 +107,6 @@ importers:
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@4.1.18)
-      ts-pattern:
-        specifier: ^5.9.0
-        version: 5.9.0
       zod:
         specifier: ^4.2.1
         version: 4.2.1
@@ -5073,9 +5067,6 @@ packages:
   ts-dedent@2.2.0:
     resolution: {integrity: sha512-q5W7tVM71e2xjHZTlgfTDoPF/SmqKG5hddq9SzR49CH2hayqRKJtQ4mtRlSxKaJlR/+9rEM+mnBHf7I2/BQcpQ==}
     engines: {node: '>=6.10'}
-
-  ts-pattern@5.9.0:
-    resolution: {integrity: sha512-6s5V71mX8qBUmlgbrfL33xDUwO0fq48rxAu2LBE11WBeGdpCPOsXksQbZJHvHwhrd3QjUusd3mAOM5Gg0mFBLg==}
 
   tsconfck@3.1.6:
     resolution: {integrity: sha512-ks6Vjr/jEw0P1gmOVwutM3B7fWxoWBL2KRDb1JfqGVawBmO5UsvmWOQFGHBPl5yxYz4eERr19E6L7NMv+Fej4w==}
@@ -10502,8 +10493,6 @@ snapshots:
       typescript: 5.9.3
 
   ts-dedent@2.2.0: {}
-
-  ts-pattern@5.9.0: {}
 
   tsconfck@3.1.6(typescript@5.9.3):
     optionalDependencies:

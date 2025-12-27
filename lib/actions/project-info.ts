@@ -18,6 +18,7 @@
 
 'use server'
 
+import * as Sentry from '@sentry/nextjs'
 import { revalidatePath } from 'next/cache'
 
 import { createClient } from '@/lib/supabase/server'
@@ -160,7 +161,9 @@ export async function getProjectInfo(
       // Return empty state if data doesn't exist
       return { quickNote: '', links: [], credentials: [] }
     }
-    console.error('Failed to fetch project info:', infoError)
+    Sentry.captureException(infoError, {
+      extra: { context: 'Fetch project info', repoCardId },
+    })
     throw new Error('Failed to fetch project information')
   }
 
@@ -197,7 +200,10 @@ export async function getProjectInfo(
     .eq('project_info_id', projectInfo.id)
 
   if (credError) {
-    console.error('Failed to fetch credentials:', credError)
+    Sentry.captureMessage('Failed to fetch credentials (non-critical)', {
+      level: 'warning',
+      extra: { projectInfoId: projectInfo.id, error: credError },
+    })
     // Credential fetch failure is not critical, return empty array
   }
 
@@ -284,7 +290,9 @@ export async function upsertProjectInfo(
         .eq('id', existingInfo.id)
 
       if (updateError) {
-        console.error('Failed to update project info:', updateError)
+        Sentry.captureException(updateError, {
+          extra: { context: 'Update project info', repoCardId },
+        })
         throw new Error('Failed to update project information')
       }
     } else {
@@ -302,7 +310,9 @@ export async function upsertProjectInfo(
         .single<{ id: string }>()
 
       if (createError || !newProjectInfo) {
-        console.error('Failed to create project info:', createError)
+        Sentry.captureException(createError ?? new Error('No data returned'), {
+          extra: { context: 'Create project info', repoCardId },
+        })
         throw new Error('Failed to create project information')
       }
 
@@ -336,7 +346,10 @@ export async function upsertProjectInfo(
           .in('id', credentialsToDelete)
 
         if (deleteError) {
-          console.error('Failed to delete credentials:', deleteError)
+          Sentry.captureMessage('Failed to delete credentials (non-critical)', {
+            level: 'warning',
+            extra: { credentialsToDelete, error: deleteError },
+          })
         }
       }
 
@@ -366,7 +379,12 @@ export async function upsertProjectInfo(
             .eq('id', credential.id)
 
           if (updateCredError) {
-            console.error('Failed to update credential:', updateCredError)
+            Sentry.captureException(updateCredError, {
+              extra: {
+                context: 'Update credential',
+                credentialId: credential.id,
+              },
+            })
             throw new Error(`Failed to update credential: ${credential.name}`)
           }
         } else {
@@ -376,7 +394,12 @@ export async function upsertProjectInfo(
             .insert(credentialData as CredentialInsert)
 
           if (insertCredError) {
-            console.error('Failed to insert credential:', insertCredError)
+            Sentry.captureException(insertCredError, {
+              extra: {
+                context: 'Insert credential',
+                credentialName: credential.name,
+              },
+            })
             throw new Error(`Failed to create credential: ${credential.name}`)
           }
         }
@@ -416,7 +439,9 @@ export async function deleteProjectInfo(repoCardId: string): Promise<void> {
     .eq('id', projectInfo.id)
 
   if (error) {
-    console.error('Failed to delete project info:', error)
+    Sentry.captureException(error, {
+      extra: { context: 'Delete project info', repoCardId },
+    })
     throw new Error('Failed to delete project information')
   }
 

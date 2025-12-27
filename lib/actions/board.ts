@@ -7,6 +7,7 @@
 
 'use server'
 
+import * as Sentry from '@sentry/nextjs'
 import { revalidatePath } from 'next/cache'
 
 import type {
@@ -44,7 +45,9 @@ export async function getStatusLists(
     .order('grid_col', { ascending: true })
 
   if (error) {
-    console.error('Failed to fetch status lists:', error)
+    Sentry.captureException(error, {
+      extra: { context: 'Fetch status lists', boardId },
+    })
     throw new Error('Failed to fetch status lists')
   }
 
@@ -126,7 +129,9 @@ export async function createDefaultStatusLists(
     .select()
 
   if (error) {
-    console.error('Failed to create default status lists:', error)
+    Sentry.captureException(error, {
+      extra: { context: 'Create default status lists', boardId },
+    })
     throw new Error('Failed to create default status lists')
   }
 
@@ -147,7 +152,6 @@ export async function createDefaultStatusLists(
 
 /**
  * Create a new status list
- * New columns are placed in row 0 at the next available column
  */
 export async function createStatusList(
   boardId: string,
@@ -184,7 +188,9 @@ export async function createStatusList(
     .single()
 
   if (error || !data) {
-    console.error('Failed to create status list:', error)
+    Sentry.captureException(error ?? new Error('No data returned'), {
+      extra: { context: 'Create status list', boardId, name },
+    })
     throw new Error('Failed to create status list')
   }
 
@@ -223,7 +229,9 @@ export async function updateStatusList(
     .eq('id', statusId)
 
   if (error) {
-    console.error('Failed to update status list:', error)
+    Sentry.captureException(error, {
+      extra: { context: 'Update status list', statusId, updates },
+    })
     throw new Error('Failed to update status list')
   }
 }
@@ -243,7 +251,9 @@ export async function deleteStatusList(
     .eq('id', statusId)
 
   if (error) {
-    console.error('Failed to delete status list:', error)
+    Sentry.captureException(error, {
+      extra: { context: 'Delete status list', statusId, boardId },
+    })
     throw new Error('Failed to delete status list')
   }
 
@@ -275,7 +285,9 @@ export async function updateStatusListPosition(
     .eq('id', id)
 
   if (error) {
-    console.error('Failed to update status list position:', error)
+    Sentry.captureException(error, {
+      extra: { context: 'Update status list position', id, gridRow, gridCol },
+    })
     throw new Error('Failed to update column position')
   }
 }
@@ -331,9 +343,16 @@ export async function swapStatusListPositions(
   ]
 
   const results = await Promise.all(updatePromises)
-  const errors = results.filter((r) => r.error)
-  if (errors.length > 0) {
-    console.error('Failed to swap status list positions:', errors)
+  const errorResults = results.filter((r) => r.error)
+  if (errorResults.length > 0) {
+    Sentry.captureException(new Error('Failed to swap status list positions'), {
+      extra: {
+        context: 'Swap status list positions',
+        id1,
+        id2,
+        errors: errorResults,
+      },
+    })
     throw new Error('Failed to swap column positions')
   }
 }
@@ -368,27 +387,19 @@ export async function batchUpdateStatusListPositions(
 
   const results = await Promise.all(updatePromises)
 
-  const errors = results.filter((r) => r.error)
-  if (errors.length > 0) {
-    console.error('Failed to batch update status list positions:', errors)
+  const errorResults = results.filter((r) => r.error)
+  if (errorResults.length > 0) {
+    Sentry.captureException(
+      new Error('Failed to batch update status list positions'),
+      {
+        extra: {
+          context: 'Batch update status list positions',
+          errors: errorResults,
+        },
+      },
+    )
     throw new Error('Failed to update column positions')
   }
-}
-
-/**
- * @deprecated Use batchUpdateStatusListPositions instead
- * Kept for backwards compatibility during migration
- */
-export async function batchUpdateStatusListOrders(
-  updates: Array<{ id: string; order: number }>,
-): Promise<void> {
-  // Convert order-based updates to grid positions (all in row 0)
-  const gridUpdates = updates.map(({ id, order }) => ({
-    id,
-    gridRow: 0,
-    gridCol: order,
-  }))
-  await batchUpdateStatusListPositions(gridUpdates)
 }
 
 // ========================================
@@ -408,7 +419,9 @@ export async function getRepoCards(boardId: string): Promise<RepoCardDomain[]> {
     .order('order', { ascending: true })
 
   if (error) {
-    console.error('Failed to fetch repo cards:', error)
+    Sentry.captureException(error, {
+      extra: { context: 'Fetch repo cards', boardId },
+    })
     throw new Error('Failed to fetch repo cards')
   }
 
@@ -459,7 +472,9 @@ export async function updateRepoCardPosition(
     .eq('id', cardId)
 
   if (error) {
-    console.error('Failed to update repo card position:', error)
+    Sentry.captureException(error, {
+      extra: { context: 'Update repo card position', cardId, statusId, order },
+    })
     throw new Error('Failed to update repo card position')
   }
 }
@@ -487,9 +502,17 @@ export async function batchUpdateRepoCardOrders(
 
   const results = await Promise.all(updatePromises)
 
-  const errors = results.filter((r) => r.error)
-  if (errors.length > 0) {
-    console.error('Failed to batch update repo card orders:', errors)
+  const errorResults = results.filter((r) => r.error)
+  if (errorResults.length > 0) {
+    Sentry.captureException(
+      new Error('Failed to batch update repo card orders'),
+      {
+        extra: {
+          context: 'Batch update repo card orders',
+          errors: errorResults,
+        },
+      },
+    )
     throw new Error('Failed to update some repo cards')
   }
 }
@@ -553,7 +576,9 @@ export async function createBoard(
     .single()
 
   if (error || !data) {
-    console.error('Failed to create board:', error)
+    Sentry.captureException(error ?? new Error('No data returned'), {
+      extra: { context: 'Create board', name, theme },
+    })
     throw new Error('Failed to create board')
   }
 
@@ -577,7 +602,9 @@ export async function deleteBoard(boardId: string): Promise<void> {
   const { error } = await supabase.from('board').delete().eq('id', boardId)
 
   if (error) {
-    console.error('Failed to delete board:', error)
+    Sentry.captureException(error, {
+      extra: { context: 'Delete board', boardId },
+    })
     throw new Error('Failed to delete board')
   }
 
@@ -599,7 +626,9 @@ export async function updateBoard(
     .eq('id', boardId)
 
   if (error) {
-    console.error('Failed to update board:', error)
+    Sentry.captureException(error, {
+      extra: { context: 'Update board', boardId, updates },
+    })
     throw new Error('Failed to update board')
   }
 
@@ -905,7 +934,9 @@ export async function createFirstBoardIfNeeded(
     .eq('user_id', userId)
 
   if (countError) {
-    console.error('Failed to check existing boards:', countError)
+    Sentry.captureException(countError, {
+      extra: { context: 'Check existing boards', userId },
+    })
     // Don't block login on error - just skip first board creation
     return null
   }
@@ -927,7 +958,9 @@ export async function createFirstBoardIfNeeded(
     .single()
 
   if (error || !data) {
-    console.error('Failed to create first board:', error)
+    Sentry.captureException(error ?? new Error('No data returned'), {
+      extra: { context: 'Create first board', userId },
+    })
     // Don't block login on error
     return null
   }
@@ -936,7 +969,12 @@ export async function createFirstBoardIfNeeded(
   try {
     await createDefaultStatusLists(data.id)
   } catch (statusError) {
-    console.error('Failed to create default status lists:', statusError)
+    Sentry.captureException(statusError, {
+      extra: {
+        context: 'Create default status lists for first board',
+        boardId: data.id,
+      },
+    })
     // Board exists but without status lists - they'll be created on first access
   }
 
@@ -944,7 +982,9 @@ export async function createFirstBoardIfNeeded(
   try {
     await logBoardCreate(data.id)
   } catch (auditError) {
-    console.error('Failed to log board creation:', auditError)
+    Sentry.captureException(auditError, {
+      extra: { context: 'Log board creation audit', boardId: data.id },
+    })
     // Non-critical - don't block
   }
 

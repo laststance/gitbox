@@ -9,6 +9,7 @@
 
 'use server'
 
+import * as Sentry from '@sentry/nextjs'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
@@ -33,7 +34,9 @@ export async function signInWithGitHub() {
   })
 
   if (error) {
-    console.error('GitHub OAuth sign in error:', error)
+    Sentry.captureException(error, {
+      extra: { context: 'GitHub OAuth sign in' },
+    })
     redirect(
       `/login?error=oauth_failed&message=${encodeURIComponent(error.message)}`,
     )
@@ -44,7 +47,7 @@ export async function signInWithGitHub() {
   }
 
   // Handle case where no URL is returned (unexpected state)
-  console.error('GitHub OAuth: No redirect URL returned')
+  Sentry.captureMessage('GitHub OAuth: No redirect URL returned', 'error')
   redirect('/login?error=oauth_failed&message=No%20redirect%20URL%20returned')
 }
 
@@ -60,7 +63,7 @@ export async function signOut() {
   const { error } = await supabase.auth.signOut()
 
   if (error) {
-    console.error('Sign out error:', error)
+    Sentry.captureException(error, { extra: { context: 'Sign out' } })
     throw new Error(error.message)
   }
 
@@ -81,7 +84,7 @@ export async function getSession() {
   } = await supabase.auth.getSession()
 
   if (error) {
-    console.error('Get session error:', error)
+    Sentry.captureException(error, { extra: { context: 'Get session' } })
     return null
   }
 
@@ -102,7 +105,7 @@ export async function getUser() {
   } = await supabase.auth.getUser()
 
   if (error) {
-    console.error('Get user error:', error)
+    Sentry.captureException(error, { extra: { context: 'Get user' } })
     return null
   }
 

@@ -8,7 +8,6 @@
 import type {
   StatusList as DbStatusList,
   RepoCard as DbRepoCard,
-  Json,
 } from '@/lib/supabase/types'
 
 import type { StatusListDomain, RepoCardDomain, RepoCardMeta } from './domain'
@@ -34,25 +33,6 @@ export function dbStatusListToDomain(db: DbStatusList): StatusListDomain {
     boardId: db.board_id,
     createdAt: db.created_at ?? new Date().toISOString(),
     updatedAt: db.updated_at ?? new Date().toISOString(),
-  }
-}
-
-/**
- * Domain StatusList → Database StatusList (Insert)
- *
- * Converts domain layer type to database insert type
- */
-export function domainStatusListToDbInsert(
-  domain: Omit<StatusListDomain, 'id' | 'createdAt' | 'updatedAt'>,
-): Omit<DbStatusList, 'id' | 'created_at' | 'updated_at'> {
-  return {
-    board_id: domain.boardId,
-    name: domain.title, // title → name
-    wip_limit: domain.wipLimit, // wipLimit → wip_limit
-    color: domain.color,
-    order: 0, // Keep for backwards compatibility
-    grid_row: domain.gridRow, // gridRow → grid_row
-    grid_col: domain.gridCol, // gridCol → grid_col
   }
 }
 
@@ -84,46 +64,4 @@ export function dbRepoCardToDomain(db: DbRepoCard): RepoCardDomain {
     createdAt: db.created_at ?? new Date().toISOString(),
     updatedAt: db.updated_at ?? new Date().toISOString(),
   }
-}
-
-/**
- * Domain RepoCard → Database RepoCard (Insert)
- *
- * Converts domain layer type to database insert type
- */
-export function domainRepoCardToDbInsert(
-  domain: Omit<
-    RepoCardDomain,
-    'id' | 'createdAt' | 'updatedAt' | 'title' | 'description'
-  >,
-): Omit<DbRepoCard, 'id' | 'created_at' | 'updated_at'> {
-  return {
-    board_id: domain.boardId,
-    status_id: domain.statusId,
-    repo_owner: domain.repoOwner,
-    repo_name: domain.repoName,
-    note: domain.note,
-    order: domain.order,
-    meta: domain.meta as unknown as Json, // Convert to Json type
-  }
-}
-
-// ========================================
-// Batch Mappers
-// ========================================
-
-/**
- * Batch conversion of StatusList array: Database → Domain
- */
-export function dbStatusListsToDomain(
-  dbList: DbStatusList[],
-): StatusListDomain[] {
-  return dbList.map(dbStatusListToDomain)
-}
-
-/**
- * Batch conversion of RepoCard array: Database → Domain
- */
-export function dbRepoCardsToDomain(dbList: DbRepoCard[]): RepoCardDomain[] {
-  return dbList.map(dbRepoCardToDomain)
 }

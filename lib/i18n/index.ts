@@ -3,4 +3,4 @@
  */
 
 export { translations, type TranslationKeys } from './translations'
-export { I18nProvider, useI18n, useTranslation } from './context'
+export { I18nProvider, useI18n } from './context'

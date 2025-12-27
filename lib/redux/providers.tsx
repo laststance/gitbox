@@ -9,6 +9,7 @@
  * Monitors Supabase session and synchronizes with Redux
  */
 
+import * as Sentry from '@sentry/nextjs'
 import { useEffect, memo } from 'react'
 import { Provider } from 'react-redux'
 
@@ -35,7 +36,9 @@ const AuthSync = memo(function AuthSync({
           error,
         } = await supabase.auth.getSession()
         if (error) {
-          console.error('Failed to get session:', error)
+          Sentry.captureException(error, {
+            extra: { context: 'Get Supabase session' },
+          })
           store.dispatch(setLoading(false))
           return
         }
@@ -47,7 +50,9 @@ const AuthSync = memo(function AuthSync({
           store.dispatch(setLoading(false))
         }
       } catch (err) {
-        console.error('Session init error:', err)
+        Sentry.captureException(err, {
+          extra: { context: 'Session initialization' },
+        })
         store.dispatch(setLoading(false))
       }
     }

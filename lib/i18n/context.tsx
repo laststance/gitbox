@@ -55,15 +55,3 @@ export function useI18n() {
   }
   return context
 }
-
-/**
- * Utility hook for getting translations (simpler API).
- * @returns Object containing translations
- * @example
- * const { t } = useTranslation()
- * return <span>{t.settings.title}</span>
- */
-export function useTranslation() {
-  const { t } = useI18n()
-  return { t }
-}
