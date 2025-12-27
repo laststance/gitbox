@@ -78,7 +78,7 @@ export const StatusColumn = memo<StatusColumnProps>(
 
     return (
       <div
-        className="flex flex-col h-full"
+        className="flex flex-col h-full min-h-0"
         data-testid={`status-column-${status.id}`}
       >
         {/* Draggable Column Header */}
@@ -144,7 +144,7 @@ export const StatusColumn = memo<StatusColumnProps>(
           <div
             ref={setNodeRef}
             className={`
-              space-y-3 flex-1 overflow-y-auto min-h-[100px] rounded-lg p-1
+              space-y-3 flex-1 min-h-0 overflow-y-auto rounded-lg p-1
               transition-colors duration-200
               ${isOver ? 'bg-accent/50 ring-2 ring-primary/20' : ''}
             `}

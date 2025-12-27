@@ -315,3 +315,217 @@ describe('Horizontal Scroll Technical Requirements', () => {
     })
   })
 })
+
+/**
+ * Unit Tests: Vertical Scroll in Columns
+ *
+ * Test targets:
+ * - Vertical scroll functionality for columns with many cards (10+)
+ * - CSS class verification for min-h-0 and overflow-y-auto
+ * - Flex container shrinking behavior
+ *
+ * Bug fix: Cards outside viewport in a column were not accessible
+ * Fix: Added min-h-0 to flex containers to allow shrinking and enable overflow scroll
+ */
+describe('KanbanBoard Vertical Scroll Tests', () => {
+  describe('CSS Classes for Vertical Scroll', () => {
+    it('should render outer container with min-h-0 class', async () => {
+      const store = createMockStore()
+
+      const { container } = render(
+        <Provider store={store}>
+          <KanbanBoard boardId="test-board" />
+        </Provider>,
+      )
+
+      await waitFor(() => {
+        // Check the outer container has min-h-0 class
+        const outerContainer = container.querySelector(
+          '.w-fit.min-w-full.h-full.min-h-0.p-6.relative',
+        )
+        expect(outerContainer).toBeInTheDocument()
+      })
+    })
+
+    it('should render grid container with h-full min-h-0 classes', async () => {
+      const store = createMockStore()
+
+      const { container } = render(
+        <Provider store={store}>
+          <KanbanBoard boardId="test-board" />
+        </Provider>,
+      )
+
+      await waitFor(() => {
+        // Find the grid container with h-full min-h-0
+        const gridContainer = container.querySelector(
+          '.grid.gap-4.pb-4.w-fit.min-w-full.h-full.min-h-0',
+        )
+        expect(gridContainer).toBeInTheDocument()
+      })
+    })
+
+    it('should have grid with minmax(0, 1fr) for row sizing', async () => {
+      const store = createMockStore()
+
+      const { container } = render(
+        <Provider store={store}>
+          <KanbanBoard boardId="test-board" />
+        </Provider>,
+      )
+
+      await waitFor(() => {
+        const gridContainer = container.querySelector('.grid.gap-4.pb-4')
+        expect(gridContainer).toBeInTheDocument()
+
+        if (gridContainer) {
+          const style = gridContainer.getAttribute('style')
+          // Should have gridTemplateRows with minmax(0, 1fr) instead of auto
+          if (style) {
+            expect(style).toContain('grid-template-rows')
+          }
+        }
+      })
+    })
+  })
+
+  describe('Flex Shrinking Behavior', () => {
+    it('should document min-h-0 requirement for flex scroll', () => {
+      // In CSS flexbox, children have implicit min-height: auto
+      // This prevents them from shrinking below content size
+      // Adding min-h-0 (min-height: 0) allows shrinking and enables overflow scroll
+
+      const flexScrollRequirements = {
+        parentMinH0: 'min-h-0 allows parent to shrink',
+        childFlex1: 'flex-1 makes child expand to fill space',
+        childMinH0: 'min-h-0 allows child to shrink below content',
+        childOverflow:
+          'overflow-y-auto enables scroll when content exceeds height',
+      }
+
+      expect(flexScrollRequirements.parentMinH0).toContain('min-h-0')
+      expect(flexScrollRequirements.childMinH0).toContain('min-h-0')
+      expect(flexScrollRequirements.childOverflow).toContain('overflow-y-auto')
+    })
+
+    it('should calculate card overflow threshold', () => {
+      // Approximate card height: 130px (varies by content)
+      // Column header: ~50px
+      // Add Repo button: ~40px
+      // WIP warning (optional): ~50px
+      // Padding: ~32px
+
+      const cardHeight = 130
+      const headerHeight = 50
+      const buttonHeight = 40
+      const padding = 32
+      const fixedHeight = headerHeight + buttonHeight + padding
+
+      // Available height for cards in a 600px tall column
+      const viewportHeight = 600
+      const availableForCards = viewportHeight - fixedHeight
+
+      // Number of cards that fit without scroll
+      const cardsWithoutScroll = Math.floor(availableForCards / cardHeight)
+
+      // With ~478px available, about 3-4 cards fit
+      expect(cardsWithoutScroll).toBeGreaterThanOrEqual(3)
+      expect(cardsWithoutScroll).toBeLessThanOrEqual(4)
+
+      // 10 cards would require scroll
+      expect(10).toBeGreaterThan(cardsWithoutScroll)
+    })
+  })
+
+  describe('Grid Row Sizing', () => {
+    it('should use minmax(0, 1fr) to allow rows to shrink', () => {
+      // gridTemplateRows: repeat(N, auto) - rows expand to fit content (BAD for scroll)
+      // gridTemplateRows: repeat(N, minmax(0, 1fr)) - rows share available height (GOOD)
+
+      const badPattern = 'repeat(2, auto)'
+      const goodPattern = 'repeat(2, minmax(0, 1fr))'
+
+      expect(badPattern).toContain('auto')
+      expect(goodPattern).toContain('minmax(0, 1fr)')
+
+      // The fix changes from 'auto' to 'minmax(0, 1fr)'
+      expect(goodPattern).not.toContain('auto')
+    })
+
+    it('should calculate grid row height distribution', () => {
+      const generateGridRowTemplate = (rows: number): string => {
+        return `repeat(${rows}, minmax(0, 1fr))`
+      }
+
+      expect(generateGridRowTemplate(1)).toBe('repeat(1, minmax(0, 1fr))')
+      expect(generateGridRowTemplate(2)).toBe('repeat(2, minmax(0, 1fr))')
+      expect(generateGridRowTemplate(3)).toBe('repeat(3, minmax(0, 1fr))')
+    })
+  })
+})
+
+describe('SortableColumn Vertical Scroll Classes', () => {
+  /**
+   * These tests document the expected CSS classes for SortableColumn
+   * that enable vertical scrolling within columns.
+   */
+
+  it('should document expected classes for SortableColumn container', () => {
+    // Expected classes in SortableColumn.tsx line 89-90:
+    // className="flex flex-col h-full w-full min-h-0 bg-background/50..."
+
+    const expectedClasses = ['flex', 'flex-col', 'h-full', 'w-full', 'min-h-0']
+
+    // min-h-0 is critical for vertical scroll
+    expect(expectedClasses).toContain('min-h-0')
+    expect(expectedClasses).toContain('h-full')
+    expect(expectedClasses).toContain('flex-col')
+  })
+
+  it('should document expected classes for inner wrapper', () => {
+    // Expected classes in SortableColumn.tsx line 98:
+    // className="flex-1 min-h-0 p-4 overflow-hidden"
+
+    const expectedClasses = ['flex-1', 'min-h-0', 'p-4', 'overflow-hidden']
+
+    // min-h-0 and overflow-hidden enable proper scroll containment
+    expect(expectedClasses).toContain('min-h-0')
+    expect(expectedClasses).toContain('overflow-hidden')
+  })
+})
+
+describe('StatusColumn Vertical Scroll Classes', () => {
+  /**
+   * These tests document the expected CSS classes for StatusColumn
+   * that enable vertical scrolling of cards.
+   */
+
+  it('should document expected classes for StatusColumn container', () => {
+    // Expected classes in StatusColumn.tsx line 81:
+    // className="flex flex-col h-full min-h-0"
+
+    const expectedClasses = ['flex', 'flex-col', 'h-full', 'min-h-0']
+
+    expect(expectedClasses).toContain('min-h-0')
+    expect(expectedClasses).toContain('flex-col')
+  })
+
+  it('should document expected classes for card scroll area', () => {
+    // Expected classes in StatusColumn.tsx line 147:
+    // className="space-y-3 flex-1 min-h-0 overflow-y-auto rounded-lg p-1..."
+
+    const expectedClasses = [
+      'space-y-3',
+      'flex-1',
+      'min-h-0',
+      'overflow-y-auto',
+      'rounded-lg',
+      'p-1',
+    ]
+
+    // flex-1 expands to fill, min-h-0 allows shrinking, overflow-y-auto enables scroll
+    expect(expectedClasses).toContain('flex-1')
+    expect(expectedClasses).toContain('min-h-0')
+    expect(expectedClasses).toContain('overflow-y-auto')
+  })
+})

@@ -610,7 +610,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     const activeCard = cards.find((c) => c.id === activeId)
 
     return (
-      <div className="w-fit min-w-full h-full p-6 relative">
+      <div className="w-fit min-w-full h-full min-h-0 p-6 relative">
         {/* Undo message display */}
         {undoMessage && (
           <motion.div
@@ -633,15 +633,15 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           {/* Column-level SortableContext for 2D grid reordering */}
           <SortableContext items={columnIds} strategy={rectSortingStrategy}>
             <div
-              className="grid gap-4 pb-4 w-fit min-w-full"
+              className="grid gap-4 pb-4 w-fit min-w-full h-full min-h-0"
               suppressHydrationWarning
               style={
                 isMounted
                   ? {
                       // Add extra column when dragging to allow insertion at end
                       gridTemplateColumns: `repeat(${gridDimensions.maxCol + 1 + (activeDragType === 'column' ? 1 : 0)}, minmax(280px, 1fr))`,
-                      // Add extra row for NewRowDropZone when dragging
-                      gridTemplateRows: `repeat(${gridDimensions.maxRow + 1 + (activeDragType === 'column' ? 1 : 0)}, auto)`,
+                      // Use minmax(0, 1fr) to allow rows to shrink and enable card scrolling
+                      gridTemplateRows: `repeat(${gridDimensions.maxRow + 1 + (activeDragType === 'column' ? 1 : 0)}, minmax(0, 1fr))`,
                     }
                   : {
                       // Stable initial styles for SSR hydration
