@@ -105,3 +105,18 @@ vi.mock('next/headers', () => ({
     get: vi.fn(),
   }),
 }))
+
+// Mock @gitbox/redux-storage-middleware for CI compatibility
+// The monorepo package dist may not exist in CI environment
+vi.mock('@gitbox/redux-storage-middleware', () => ({
+  createStorageMiddleware: vi.fn(() => ({
+    middleware:
+      () => (next: (action: unknown) => unknown) => (action: unknown) =>
+        next(action),
+    reducer: (rootReducer: unknown) => rootReducer,
+    api: {
+      clearStorage: vi.fn(),
+      getStoredState: vi.fn(),
+    },
+  })),
+}))
