@@ -1,4 +1,4 @@
-import { test as setup } from '@playwright/test'
+import { test as setup } from './fixtures/coverage'
 
 /**
  * Path to store authenticated browser state for reuse across tests.

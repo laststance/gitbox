@@ -3,8 +3,10 @@ import { defineConfig, devices } from '@playwright/test'
 /**
  * Playwright E2E Test Configuration for GitBox
  *
- * Configures auth setup with cookie injection for Supabase + GitHub OAuth,
- * and separate projects for authenticated vs unauthenticated tests.
+ * Features:
+ * - Auth setup with cookie injection for Supabase + GitHub OAuth
+ * - Separate projects for authenticated vs unauthenticated tests
+ * - V8 code coverage collection with monocart-reporter
  */
 
 /** Path to store authenticated state for reuse across tests */
@@ -23,7 +25,66 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : 1,
 
-  reporter: [['html', { outputFolder: 'playwright-report' }]],
+  /**
+   * Reporters: list for console output + monocart for coverage
+   */
+  reporter: [
+    ['list'],
+    [
+      'monocart-reporter',
+      {
+        name: 'GitBox E2E Coverage Report',
+        outputFile: './coverage-e2e/index.html',
+        coverage: {
+          reports: [
+            ['v8'],
+            ['html', { subdir: 'istanbul' }],
+            ['lcovonly', { file: 'lcov.info' }],
+            ['text-summary'],
+            ['json-summary', { file: 'coverage-summary.json' }],
+          ],
+          entryFilter: {
+            '**/node_modules/**': false,
+            '**/_next/static/chunks/webpack*': false,
+            '**/_next/static/chunks/polyfills*': false,
+            '**/_next/static/**': true,
+          },
+          sourceFilter: {
+            // Exclude: Server-side only code (E2E cannot trigger)
+            '**/lib/actions/**': false,
+            '**/lib/supabase/**': false,
+            '**/app/auth/callback/**': false,
+            '**/instrumentation*.ts': false,
+            '**/sentry.*.config.ts': false,
+            // Exclude: Test/dev infrastructure
+            '**/tests/**': false,
+            '**/mocks/**': false,
+            '**/*.spec.ts': false,
+            '**/*.test.ts': false,
+            '**/*.test.tsx': false,
+            '**/*.stories.tsx': false,
+            '**/.storybook/**': false,
+            // Exclude: Config & build
+            '**/*.config.ts': false,
+            '**/*.config.js': false,
+            '**/*.config.mjs': false,
+            '**/node_modules/**': false,
+            '**/.next/**': false,
+            // Include: Client code
+            '**/app/**': true,
+            '**/components/**': true,
+            '**/lib/**': true,
+            '**/packages/**': true,
+          },
+          sourcePath: (filePath: string) => {
+            return filePath
+              .replace(/^webpack:\/\/gitbox\//, '')
+              .replace(/^\.\//g, '')
+          },
+        },
+      },
+    ],
+  ],
 
   timeout: 60000,
 
@@ -68,7 +129,7 @@ export default defineConfig({
         storageState: AUTH_FILE,
       },
       testMatch:
-        /boards\.spec\.ts|kanban\.spec\.ts|settings\.spec\.ts|board-settings\.spec\.ts|add-repository-combobox\.spec\.ts|create-board\.spec\.ts/,
+        /boards\.spec\.ts|kanban\.spec\.ts|settings\.spec\.ts|board-settings\.spec\.ts|add-repository-combobox\.spec\.ts|create-board\.spec\.ts|favorites\.spec\.ts/,
     },
   ],
 

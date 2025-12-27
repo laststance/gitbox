@@ -68,6 +68,9 @@ playwright-report/
 playwright/.cache/
 tests/e2e/.auth/*.json
 
+# E2E Coverage
+coverage-e2e/
+
 *storybook.log
 
 # Git worktrees (Crystal)

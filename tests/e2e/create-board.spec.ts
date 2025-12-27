@@ -10,7 +10,7 @@
  * - Form validation
  */
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures/coverage'
 
 test.describe('Create Board Page (Authenticated)', () => {
   test.use({ storageState: 'tests/e2e/.auth/user.json' })

@@ -4,7 +4,7 @@
  * Tests for the public landing page (unauthenticated)
  */
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures/coverage'
 
 test.describe('Landing Page', () => {
   test('should display the landing page with hero section', async ({

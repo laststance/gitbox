@@ -12,7 +12,7 @@
  * - Delete confirmation flow
  */
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures/coverage'
 
 test.describe('Board Settings Dialog (Authenticated)', () => {
   test.use({ storageState: 'tests/e2e/.auth/user.json' })

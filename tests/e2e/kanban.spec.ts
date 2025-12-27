@@ -9,7 +9,7 @@
  * non-drag interactions.
  */
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures/coverage'
 
 test.describe('Kanban Board (Authenticated)', () => {
   test.use({ storageState: 'tests/e2e/.auth/user.json' })

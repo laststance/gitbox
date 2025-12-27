@@ -6,10 +6,14 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -43,10 +47,82 @@ jobs:
           NEXT_PUBLIC_ENABLE_MSW_MOCK: 'true'
           APP_ENV: test
 
-      - name: Upload test artifacts
+      # Coverage Artifact (always upload)
+      - name: Upload E2E coverage report
         uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
+        with:
+          name: e2e-coverage-report
+          path: coverage-e2e/
+          retention-days: 30
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: playwright-report
           path: playwright-report/
-          retention-days: 7
+          retention-days: 30
+
+      # Extract coverage percentage
+      - name: Extract coverage percentage
+        id: coverage
+        if: always()
+        run: |
+          if [ -f "coverage-e2e/coverage/coverage-summary.json" ]; then
+            LINES_PCT=$(jq '.total.lines.pct // 0' coverage-e2e/coverage/coverage-summary.json)
+            FUNCTIONS_PCT=$(jq '.total.functions.pct // 0' coverage-e2e/coverage/coverage-summary.json)
+            BRANCHES_PCT=$(jq '.total.branches.pct // 0' coverage-e2e/coverage/coverage-summary.json)
+            STATEMENTS_PCT=$(jq '.total.statements.pct // 0' coverage-e2e/coverage/coverage-summary.json)
+
+            echo "lines_pct=${LINES_PCT}" >> $GITHUB_OUTPUT
+            echo "functions_pct=${FUNCTIONS_PCT}" >> $GITHUB_OUTPUT
+            echo "branches_pct=${BRANCHES_PCT}" >> $GITHUB_OUTPUT
+            echo "statements_pct=${STATEMENTS_PCT}" >> $GITHUB_OUTPUT
+
+            if (( $(echo "$LINES_PCT >= 80" | bc -l) )); then
+              COLOR="brightgreen"
+            elif (( $(echo "$LINES_PCT >= 60" | bc -l) )); then
+              COLOR="yellow"
+            elif (( $(echo "$LINES_PCT >= 40" | bc -l) )); then
+              COLOR="orange"
+            else
+              COLOR="red"
+            fi
+            echo "color=${COLOR}" >> $GITHUB_OUTPUT
+            echo "coverage_available=true" >> $GITHUB_OUTPUT
+          else
+            echo "coverage_available=false" >> $GITHUB_OUTPUT
+            echo "lines_pct=0" >> $GITHUB_OUTPUT
+          fi
+
+      # Badge update (main branch only)
+      - name: Update coverage badge
+        if: github.ref == 'refs/heads/main' && steps.coverage.outputs.coverage_available == 'true'
+        uses: Schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          gistID: 7782ae901e4ba955b064eadeeac72c45
+          filename: gitbox-e2e-coverage.json
+          label: E2E Coverage
+          message: ${{ steps.coverage.outputs.lines_pct }}%
+          color: ${{ steps.coverage.outputs.color }}
+          namedLogo: playwright
+
+      # PR Comment
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request' && steps.coverage.outputs.coverage_available == 'true'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: e2e-coverage
+          message: |
+            ## 🧪 E2E Coverage Report
+
+            | Metric | Coverage |
+            |--------|----------|
+            | **Lines** | ${{ steps.coverage.outputs.lines_pct }}% |
+            | **Functions** | ${{ steps.coverage.outputs.functions_pct }}% |
+            | **Branches** | ${{ steps.coverage.outputs.branches_pct }}% |
+            | **Statements** | ${{ steps.coverage.outputs.statements_pct }}% |
+
+            📊 Full report available in [workflow artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})

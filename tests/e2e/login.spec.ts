@@ -4,7 +4,7 @@
  * Tests for the login page and OAuth flow initiation
  */
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures/coverage'
 
 test.describe('Login Page', () => {
   test('should display the login page', async ({ page }) => {

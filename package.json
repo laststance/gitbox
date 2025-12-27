@@ -99,6 +99,7 @@
     "husky": "^9.1.7",
     "jsdom": "^27.3.0",
     "lint-staged": "^16.2.7",
+    "monocart-reporter": "^2.9.23",
     "msw": "^2.12.4",
     "msw-storybook-addon": "^2.0.6",
     "playwright": "^1.57.0",
