@@ -34,11 +34,13 @@ test.describe('Create Board Page (Authenticated)', () => {
     })
 
     test('should display theme selection section', async ({ page }) => {
-      // Theme label
-      await expect(page.getByText('Theme')).toBeVisible()
-      // Light and Dark sections
-      await expect(page.getByText('Light')).toBeVisible()
-      await expect(page.getByText('Dark').first()).toBeVisible()
+      // Theme label text (Label component, not associated with input)
+      await expect(page.getByText('Theme', { exact: true })).toBeVisible({
+        timeout: 10000,
+      })
+      // Light and Dark sections - use paragraph selector for specificity
+      await expect(page.locator('p:has-text("Light")')).toBeVisible()
+      await expect(page.locator('p:has-text("Dark")')).toBeVisible()
     })
 
     test('should display Cancel and Create Board buttons', async ({ page }) => {
@@ -99,7 +101,13 @@ test.describe('Create Board Page (Authenticated)', () => {
 
   test.describe('Theme Preview', () => {
     test('should apply Default theme to page on load', async ({ page }) => {
-      // Check that data-theme attribute is set to "default"
+      // Wait for React to apply theme via useEffect
+      // The theme is applied after the component mounts
+      await page.waitForFunction(
+        () => document.documentElement.getAttribute('data-theme') === 'default',
+        { timeout: 10000 },
+      )
+
       const dataTheme = await page.locator('html').getAttribute('data-theme')
       expect(dataTheme).toBe('default')
     })
@@ -107,9 +115,22 @@ test.describe('Create Board Page (Authenticated)', () => {
     test('should apply dark theme when dark theme is selected', async ({
       page,
     }) => {
+      // Wait for initial theme to be applied
+      await page.waitForFunction(
+        () => document.documentElement.getAttribute('data-theme') !== null,
+        { timeout: 10000 },
+      )
+
       // Click on Midnight theme
       const midnightButton = page.locator('button:has-text("Midnight")').first()
       await midnightButton.click()
+
+      // Wait for theme change
+      await page.waitForFunction(
+        () =>
+          document.documentElement.getAttribute('data-theme') === 'midnight',
+        { timeout: 5000 },
+      )
 
       // Check that data-theme attribute is set to "midnight"
       const dataTheme = await page.locator('html').getAttribute('data-theme')
@@ -125,32 +146,50 @@ test.describe('Create Board Page (Authenticated)', () => {
     test('should apply light theme when light theme is selected', async ({
       page,
     }) => {
+      // Wait for initial theme
+      await page.waitForFunction(
+        () => document.documentElement.getAttribute('data-theme') !== null,
+        { timeout: 10000 },
+      )
+
       // First select a dark theme
       const midnightButton = page.locator('button:has-text("Midnight")').first()
       await midnightButton.click()
 
-      // Verify dark is applied
-      let hasDarkClass = await page
-        .locator('html')
-        .evaluate((el) => el.classList.contains('dark'))
-      expect(hasDarkClass).toBe(true)
+      // Wait for dark theme
+      await page.waitForFunction(
+        () => document.documentElement.classList.contains('dark'),
+        { timeout: 5000 },
+      )
 
       // Now select a light theme
       const sunriseButton = page.locator('button:has-text("Sunrise")').first()
       await sunriseButton.click()
+
+      // Wait for sunrise theme
+      await page.waitForFunction(
+        () => document.documentElement.getAttribute('data-theme') === 'sunrise',
+        { timeout: 5000 },
+      )
 
       // Check that data-theme is now sunrise
       const dataTheme = await page.locator('html').getAttribute('data-theme')
       expect(dataTheme).toBe('sunrise')
 
       // Check that dark class is removed
-      hasDarkClass = await page
+      const hasDarkClass = await page
         .locator('html')
         .evaluate((el) => el.classList.contains('dark'))
       expect(hasDarkClass).toBe(false)
     })
 
     test('should cycle through multiple themes', async ({ page }) => {
+      // Wait for initial theme to be applied
+      await page.waitForFunction(
+        () => document.documentElement.getAttribute('data-theme') !== null,
+        { timeout: 10000 },
+      )
+
       const themeSequence = [
         { name: 'Sunrise', id: 'sunrise', isDark: false },
         { name: 'Midnight', id: 'midnight', isDark: true },
@@ -164,6 +203,15 @@ test.describe('Create Board Page (Authenticated)', () => {
           .locator(`button:has-text("${theme.name}")`)
           .first()
         await themeButton.click()
+
+        // Wait for theme to be applied
+        await page.waitForFunction(
+          (expectedTheme) =>
+            document.documentElement.getAttribute('data-theme') ===
+            expectedTheme,
+          theme.id,
+          { timeout: 5000 },
+        )
 
         // Verify data-theme attribute
         const dataTheme = await page.locator('html').getAttribute('data-theme')
@@ -180,6 +228,12 @@ test.describe('Create Board Page (Authenticated)', () => {
     test('should visually update page background when theme changes', async ({
       page,
     }) => {
+      // Wait for initial theme to be applied
+      await page.waitForFunction(
+        () => document.documentElement.getAttribute('data-theme') !== null,
+        { timeout: 10000 },
+      )
+
       // Get initial background color
       const initialBg = await page.evaluate(() => {
         return getComputedStyle(document.body).backgroundColor
@@ -189,8 +243,12 @@ test.describe('Create Board Page (Authenticated)', () => {
       const midnightButton = page.locator('button:has-text("Midnight")').first()
       await midnightButton.click()
 
-      // Wait for theme to apply
-      await page.waitForTimeout(100)
+      // Wait for theme change to be applied
+      await page.waitForFunction(
+        () =>
+          document.documentElement.getAttribute('data-theme') === 'midnight',
+        { timeout: 5000 },
+      )
 
       // Get new background color
       const darkBg = await page.evaluate(() => {
