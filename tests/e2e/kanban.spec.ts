@@ -4,9 +4,10 @@
  * Tests for the Kanban board view (/board/[id])
  * Requires authentication (uses storageState from auth.setup.ts)
  *
- * Note: @dnd-kit drag operations cannot be fully tested via automation
- * due to event.isTrusted === true validation. These tests focus on
- * non-drag interactions.
+ * @remarks
+ * For @dnd-kit drag operations, see kanban-dnd.spec.ts which uses
+ * CDP (Chrome DevTools Protocol) to generate `isTrusted: true` events.
+ * These tests focus on non-drag interactions and UI elements.
  */
 
 import { test, expect } from './fixtures/coverage'

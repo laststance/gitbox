@@ -148,7 +148,7 @@ export default defineConfig({
         storageState: AUTH_FILE,
       },
       testMatch:
-        /boards\.spec\.ts|kanban\.spec\.ts|settings\.spec\.ts|board-settings\.spec\.ts|add-repository-combobox\.spec\.ts|create-board\.spec\.ts|favorites\.spec\.ts/,
+        /boards\.spec\.ts|kanban\.spec\.ts|kanban-dnd\.spec\.ts|settings\.spec\.ts|board-settings\.spec\.ts|add-repository-combobox\.spec\.ts|create-board\.spec\.ts|favorites\.spec\.ts|helpers\/cdp-drag\.spec\.ts/,
     },
   ],
 
