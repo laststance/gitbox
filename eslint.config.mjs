@@ -79,6 +79,7 @@ export default defineConfig([
     '**/*.backup/**',
     '**/.backup/**',
     '**/coverage/**',
+    '**/coverage-e2e/**',
     'public/sw.js',
     // Config files not in tsconfig
     'eslint.config.mjs',

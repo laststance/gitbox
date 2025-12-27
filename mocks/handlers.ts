@@ -104,15 +104,16 @@ const mockSession: MockSession = {
 }
 
 /**
- * Mock boards data
+ * Initial mock boards data (immutable reference for reset)
  */
-const mockBoards = [
+const INITIAL_MOCK_BOARDS = [
   {
     id: MOCK_BOARD_ID,
     name: 'Test Board',
     user_id: MOCK_USER_ID,
     theme: 'sunrise',
     settings: null,
+    is_favorite: false,
     created_at: '2024-01-01T00:00:00.000Z',
     updated_at: '2024-01-01T00:00:00.000Z',
   },
@@ -122,10 +123,27 @@ const mockBoards = [
     user_id: MOCK_USER_ID,
     theme: 'midnight',
     settings: null,
+    is_favorite: false,
     created_at: '2024-01-02T00:00:00.000Z',
     updated_at: '2024-01-02T00:00:00.000Z',
   },
 ]
+
+type MockBoard = (typeof INITIAL_MOCK_BOARDS)[number]
+
+/**
+ * Mock boards data (mutable to allow state persistence in tests)
+ * Reset via POST /__msw__/reset endpoint between tests
+ */
+let mockBoards: MockBoard[] = INITIAL_MOCK_BOARDS.map((b) => ({ ...b }))
+
+/**
+ * Reset mock data to initial state (called between tests for isolation)
+ * Exported for use by the /__msw__/reset API route
+ */
+export function resetMockData() {
+  mockBoards = INITIAL_MOCK_BOARDS.map((b) => ({ ...b }))
+}
 
 /**
  * Mock status lists (Kanban columns)
@@ -381,10 +399,17 @@ function filterByParams<T extends Record<string, unknown>>(
 
   // Handle Supabase PostgREST query parameters
   for (const [key, value] of params.entries()) {
-    // Handle eq filter (e.g., board_id=eq.board-1)
+    // Handle eq filter (e.g., board_id=eq.board-1, is_favorite=eq.true)
     if (value.startsWith('eq.')) {
       const filterValue = value.slice(3)
-      filtered = filtered.filter((item) => item[key] === filterValue)
+      filtered = filtered.filter((item) => {
+        const itemValue = item[key]
+        // Handle boolean comparisons (PostgREST sends "true"/"false" as strings)
+        if (typeof itemValue === 'boolean') {
+          return itemValue === (filterValue === 'true')
+        }
+        return itemValue === filterValue
+      })
     }
   }
 
@@ -526,6 +551,8 @@ const supabaseDbHandlers: HttpHandler[] = [
 
   /**
    * PATCH /rest/v1/board - Update board
+   *
+   * Persists changes to mockBoards array for state consistency in tests.
    */
   http.patch(`${SUPABASE_URL}/rest/v1/board`, async ({ request }) => {
     const body = (await request.json()) as Partial<(typeof mockBoards)[0]>
@@ -541,6 +568,12 @@ const supabaseDbHandlers: HttpHandler[] = [
       ...filtered[0],
       ...body,
       updated_at: new Date().toISOString(),
+    }
+
+    // Persist the update in mockBoards array for state consistency
+    const boardIndex = mockBoards.findIndex((b) => b.id === filtered[0].id)
+    if (boardIndex !== -1) {
+      mockBoards[boardIndex] = updatedBoard
     }
 
     const preferHeader = request.headers.get('Prefer')
