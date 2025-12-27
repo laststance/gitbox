@@ -733,14 +733,18 @@ export async function deleteBoardAction(
 // Board Theme Action (useActionState compatible)
 // ========================================
 
-/** Valid theme names for board customization */
+/** Valid theme names for board customization (14 themes: 7 light + 7 dark) */
 const VALID_THEMES = [
+  // Light themes
+  'default',
   'sunrise',
   'sandstone',
   'mint',
   'sky',
   'lavender',
   'rose',
+  // Dark themes
+  'dark',
   'midnight',
   'graphite',
   'forest',

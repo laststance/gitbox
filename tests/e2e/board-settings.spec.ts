@@ -336,6 +336,108 @@ test.describe('Board Settings Dialog (Authenticated)', () => {
       const saveButton = dialog.getByRole('button', { name: /save theme/i })
       await expect(saveButton).toBeVisible()
     })
+
+    test('should save "default" theme without error (regression test)', async ({
+      page,
+    }) => {
+      // Open dialog
+      const settingsButton = page.getByRole('button', {
+        name: /board settings/i,
+      })
+      await settingsButton.click()
+
+      const dialog = page.getByRole('dialog')
+      await expect(dialog).toBeVisible({ timeout: 10000 })
+
+      // Go to Theme tab
+      const themeTab = dialog.getByRole('tab', { name: /theme/i })
+      await themeTab.click()
+
+      // Select default theme
+      const defaultButton = dialog.getByRole('button', {
+        name: /select default theme/i,
+      })
+      await defaultButton.click()
+      await expect(defaultButton).toHaveAttribute('aria-pressed', 'true')
+
+      // Save theme
+      const saveButton = dialog.getByRole('button', { name: /save theme/i })
+      await saveButton.click()
+
+      // Wait for action to complete
+      await page.waitForTimeout(1000)
+
+      // The key regression test: should NOT show "Invalid theme" error
+      // This was the bug - 'default' was rejected as invalid
+      await expect(page.getByText(/invalid theme/i)).not.toBeVisible()
+    })
+
+    test('should save "dark" theme without error (regression test)', async ({
+      page,
+    }) => {
+      // Open dialog
+      const settingsButton = page.getByRole('button', {
+        name: /board settings/i,
+      })
+      await settingsButton.click()
+
+      const dialog = page.getByRole('dialog')
+      await expect(dialog).toBeVisible({ timeout: 10000 })
+
+      // Go to Theme tab
+      const themeTab = dialog.getByRole('tab', { name: /theme/i })
+      await themeTab.click()
+
+      // Select dark theme
+      const darkButton = dialog.getByRole('button', {
+        name: /select dark theme/i,
+      })
+      await darkButton.click()
+      await expect(darkButton).toHaveAttribute('aria-pressed', 'true')
+
+      // Save theme
+      const saveButton = dialog.getByRole('button', { name: /save theme/i })
+      await saveButton.click()
+
+      // Wait for action to complete
+      await page.waitForTimeout(1000)
+
+      // The key regression test: should NOT show "Invalid theme" error
+      // This was the bug - 'dark' was rejected as invalid
+      await expect(page.getByText(/invalid theme/i)).not.toBeVisible()
+    })
+
+    test('should save "midnight" theme without error', async ({ page }) => {
+      // Open dialog
+      const settingsButton = page.getByRole('button', {
+        name: /board settings/i,
+      })
+      await settingsButton.click()
+
+      const dialog = page.getByRole('dialog')
+      await expect(dialog).toBeVisible({ timeout: 10000 })
+
+      // Go to Theme tab
+      const themeTab = dialog.getByRole('tab', { name: /theme/i })
+      await themeTab.click()
+
+      // Select midnight theme
+      const midnightButton = dialog.getByRole('button', {
+        name: /select midnight theme/i,
+      })
+      await midnightButton.click()
+      await expect(midnightButton).toHaveAttribute('aria-pressed', 'true')
+
+      // Save theme
+      const saveButton = dialog.getByRole('button', { name: /save theme/i })
+      await saveButton.click()
+
+      // Wait for action to complete
+      await page.waitForTimeout(1000)
+
+      // Should NOT show error toast
+      await expect(page.getByText(/invalid theme/i)).not.toBeVisible()
+    })
   })
 
   test.describe('Danger Zone Tab - Delete', () => {
