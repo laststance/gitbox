@@ -8,7 +8,7 @@
 import { test, expect } from './fixtures/coverage'
 
 test.describe('Settings Page (Authenticated)', () => {
-  test.use({ storageState: 'tests/e2e/.auth/user.json' })
+  test.use({ storageState: 'e2e/.auth/user.json' })
 
   test('should display the settings page', async ({ page }) => {
     await page.goto('/settings')

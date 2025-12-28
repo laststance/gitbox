@@ -15,7 +15,7 @@
 import { test, expect } from './fixtures/coverage'
 
 test.describe('Board Settings Dialog (Authenticated)', () => {
-  test.use({ storageState: 'tests/e2e/.auth/user.json' })
+  test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = '/board/board-1'
 

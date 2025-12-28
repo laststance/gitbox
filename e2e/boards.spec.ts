@@ -8,7 +8,7 @@
 import { test, expect } from './fixtures/coverage'
 
 test.describe('Boards Page (Authenticated)', () => {
-  test.use({ storageState: 'tests/e2e/.auth/user.json' })
+  test.use({ storageState: 'e2e/.auth/user.json' })
 
   test('should display the boards list page', async ({ page }) => {
     await page.goto('/boards')

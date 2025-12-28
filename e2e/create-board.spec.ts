@@ -13,7 +13,7 @@
 import { test, expect } from './fixtures/coverage'
 
 test.describe('Create Board Page (Authenticated)', () => {
-  test.use({ storageState: 'tests/e2e/.auth/user.json' })
+  test.use({ storageState: 'e2e/.auth/user.json' })
 
   const CREATE_BOARD_URL = '/boards/new'
 

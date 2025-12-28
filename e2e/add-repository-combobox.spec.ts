@@ -22,7 +22,7 @@ import { test, expect } from './fixtures/coverage'
  * Feature: filter out repos already on current board (bdc87e6)
  */
 test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
-  test.use({ storageState: 'tests/e2e/.auth/user.json' })
+  test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = '/board/board-1'
 
@@ -212,7 +212,7 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
 })
 
 test.describe('AddRepositoryCombobox - GITBOX-1 Fix', () => {
-  test.use({ storageState: 'tests/e2e/.auth/user.json' })
+  test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = '/board/board-1'
 
@@ -414,7 +414,7 @@ test.describe('AddRepositoryCombobox - GITBOX-1 Fix', () => {
  * Feature: Optimistic update for repository addition
  */
 test.describe('AddRepositoryCombobox - Optimistic Update', () => {
-  test.use({ storageState: 'tests/e2e/.auth/user.json' })
+  test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = '/board/board-1'
 

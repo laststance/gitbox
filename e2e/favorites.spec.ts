@@ -11,7 +11,7 @@
 import { test, expect } from './fixtures/coverage'
 
 test.describe('Board Favorites Feature', () => {
-  test.use({ storageState: 'tests/e2e/.auth/user.json' })
+  test.use({ storageState: 'e2e/.auth/user.json' })
 
   test.beforeEach(async ({ page }) => {
     // Reset MSW mock data to initial state for test isolation

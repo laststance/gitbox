@@ -13,7 +13,7 @@
 import { test, expect } from './fixtures/coverage'
 
 test.describe('Kanban Board (Authenticated)', () => {
-  test.use({ storageState: 'tests/e2e/.auth/user.json' })
+  test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = '/board/board-1'
 
@@ -105,7 +105,7 @@ test.describe('Kanban Board (Authenticated)', () => {
  * Fix: Added overflow-x-auto to parent and w-fit min-w-full to grid container.
  */
 test.describe('Kanban Board Horizontal Scroll', () => {
-  test.use({ storageState: 'tests/e2e/.auth/user.json' })
+  test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = '/board/board-1'
 
@@ -245,7 +245,7 @@ test.describe('Kanban Board Horizontal Scroll', () => {
  * there are 6+ columns that exceed the viewport width.
  */
 test.describe('Kanban Board Horizontal Scroll - Multi Column', () => {
-  test.use({ storageState: 'tests/e2e/.auth/user.json' })
+  test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = '/board/board-1'
 
@@ -384,7 +384,7 @@ test.describe('Kanban Board Horizontal Scroll - Multi Column', () => {
  * - Grid rows need `minmax(0, 1fr)` instead of `auto` to distribute height equally
  */
 test.describe('Kanban Board Vertical Scroll', () => {
-  test.use({ storageState: 'tests/e2e/.auth/user.json' })
+  test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = '/board/board-1'
 
@@ -552,7 +552,7 @@ test.describe('Kanban Board Vertical Scroll', () => {
  * a column has many cards that exceed the column height.
  */
 test.describe('Kanban Board Vertical Scroll - Many Cards', () => {
-  test.use({ storageState: 'tests/e2e/.auth/user.json' })
+  test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = '/board/board-1'
 

@@ -4,7 +4,7 @@ import { test as setup } from './fixtures/coverage'
  * Path to store authenticated browser state for reuse across tests.
  * Contains cookies and localStorage after auth setup completes.
  */
-export const AUTH_FILE = 'tests/e2e/.auth/user.json'
+export const AUTH_FILE = 'e2e/.auth/user.json'
 
 /**
  * Supabase project reference (extracted from Supabase URL).

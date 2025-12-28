@@ -13,7 +13,7 @@
 import { test, expect } from '../fixtures/coverage'
 
 test.describe('CDP Drag Helper Integration', () => {
-  test.use({ storageState: 'tests/e2e/.auth/user.json' })
+  test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = '/board/board-1'
 
