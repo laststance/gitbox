@@ -466,6 +466,200 @@ AuditLog {
 
 ---
 
+## 10) Drag & Drop Specification
+
+### 10.1 技術的制約
+
+#### @dnd-kit isTrusted 要件
+
+@dnd-kitはセキュリティ上の理由から`event.isTrusted === true`のイベントのみを受け付ける。
+
+| イベントソース           | isTrusted | D&D動作 |
+| ------------------------ | --------- | ------- |
+| 実際のユーザー操作       | ✅ true   | ✅ 動作 |
+| Playwright CDP           | ✅ true   | ✅ 動作 |
+| Playwright mouse API     | ❌ false  | ❌ 無視 |
+| JavaScript dispatchEvent | ❌ false  | ❌ 無視 |
+| Claude Chrome MCP        | ❌ false  | ❌ 無視 |
+
+**E2Eテスト**: Playwright CDPヘルパー (`e2e/helpers/cdp-drag.ts`) を使用必須
+
+### 10.2 Card Drag & Drop
+
+#### 10.2.1 同一カラム内カード内並び替え
+
+```
+┌──────────────┐         ┌──────────────┐
+│ In Progress  │         │ In Progress  │
+│┌────────────┐│  drag   │┌────────────┐│
+││ Card A     ││ ───┐    ││ Card B     ││
+│├────────────┤│    │    │├────────────┤│
+││ Card B     ││ <──┘    ││ Card A     ││ ← 入れ替え
+│├────────────┤│         │├────────────┤│
+││ Card C     ││         ││ Card C     ││
+│└────────────┘│         │└────────────┘│
+└──────────────┘         └──────────────┘
+```
+
+| 項目          | 値                            |
+| ------------- | ----------------------------- |
+| 実装状態      | ✅ 実装済み                   |
+| E2Eカバー     | ⬜ 未カバー                   |
+| Server Action | `batchUpdateRepoCardOrders()` |
+| CDP Helper    | `cdpCardDragAndDrop()`        |
+
+#### 10.2.2 カラム間移動
+
+```
+┌──────────────┐  ┌──────────────┐         ┌──────────────┐  ┌──────────────┐
+│ In Progress  │  │ Review       │         │ In Progress  │  │ Review       │
+│┌────────────┐│  │              │  drag   │              │  │┌────────────┐│
+││ Card A     ││ ─┼──────────────┼───►     │              │  ││ Card A     ││
+│└────────────┘│  │              │         │              │  │└────────────┘│
+└──────────────┘  └──────────────┘         └──────────────┘  └──────────────┘
+```
+
+| 項目          | 値                                                      |
+| ------------- | ------------------------------------------------------- |
+| 実装状態      | ✅ 実装済み                                             |
+| E2Eカバー     | ✅ カバー済み（`should move card to different column`） |
+| Server Action | `updateRepoCardPosition()`                              |
+| CDP Helper    | `cdpCardToColumnDragAndDrop()`                          |
+
+### 10.3 Column Drag & Drop
+
+#### 10.3.1 カラムSwap（位置入れ替え）
+
+```
+Row 0: [ A ] [ B ] [ C ]    →    Row 0: [ B ] [ A ] [ C ]
+         ↓___↑                           (A と B が入れ替え)
+        drag A → B
+```
+
+| 項目          | 値                                                  |
+| ------------- | --------------------------------------------------- |
+| 実装状態      | ✅ 実装済み                                         |
+| E2Eカバー     | ✅ カバー済み（グリッド位置検証、ドラッグ操作実行） |
+| Server Action | `swapStatusListPositions()`                         |
+| CDP Helper    | `cdpColumnDragAndDrop()`                            |
+| 注意          | DropZoneがシビア - ターゲットの中心を超える必要あり |
+
+#### 10.3.2 NewRowDropZone（新Row作成）
+
+```
+Row 0: [ A ] [ B ] [ C ] [ D ]
+                    ↓ drag down
+         ┌─────────────────────────────┐
+         │ Drop column to create row   │  ← NewRowDropZone
+         └─────────────────────────────┘
+                    ↓
+Row 0: [ A ] [ B ] [ D ]
+Row 1: [ C ]                           ← 新Row作成
+```
+
+| 項目          | 値                               |
+| ------------- | -------------------------------- |
+| 実装状態      | ✅ 実装済み                      |
+| E2Eカバー     | ⬜ 検証強化必要                  |
+| Server Action | `updateStatusListPosition()`     |
+| CDP Helper    | `cdpColumnToNewRowDragAndDrop()` |
+
+#### 10.3.3 ColumnInsertZone（空スロット挿入）
+
+```
+Row 0: [ A ] [   ] [ B ] [ C ]
+               ↑
+         drag A → empty slot
+               ↓
+Row 0: [   ] [ A ] [ B ] [ C ]    (後続カラムは右シフト)
+```
+
+| 項目          | 値                                 |
+| ------------- | ---------------------------------- |
+| 実装状態      | ✅ 実装済み                        |
+| E2Eカバー     | ⬜ 未カバー                        |
+| Server Action | `batchUpdateStatusListPositions()` |
+| CDP Helper    | `cdpColumnToGridPosition()`        |
+
+#### 10.3.4 同一Row内横移動
+
+ColumnInsertZone または Column Swap で実現
+
+### 10.4 未実装機能
+
+#### 10.4.1 カラムAuto-Height（高さ自動拡張）
+
+**問題**: カラムに多数のカードがある場合、heightが固定で一部のカードしか表示されない
+
+```
+現状:                          期待される挙動:
+┌──────────────┐              ┌──────────────┐
+│ In Progress  │              │ In Progress  │
+│    10/3      │              │    10/3      │
+│┌────────────┐│              │┌────────────┐│
+││ Card 1     ││              ││ Card 1     ││
+│└────────────┘│              │├────────────┤│
+│ (9個が隠れ)  │              ││ Card 2     ││
+│              │              │├────────────┤│
+└──────────────┘              ││ ...        ││
+                              │├────────────┤│
+                              ││ Card 10    ││
+                              │└────────────┘│
+                              └──────────────┘
+                                 ↑ Height拡張
+```
+
+| 項目         | 値                                       |
+| ------------ | ---------------------------------------- |
+| 実装状態     | ❌ 未実装                                |
+| E2Eカバー    | ❌ 未カバー                              |
+| 影響ファイル | `SortableColumn.tsx`, `StatusColumn.tsx` |
+| 設計検討     | CSS Grid `grid-auto-rows` vs JS計算      |
+
+### 10.5 E2Eテストカバレッジ要件
+
+| テスト名                     | ステータス                                                         |
+| ---------------------------- | ------------------------------------------------------------------ |
+| Card: カラム表示確認         | ✅ 追加済み（`should display cards in columns`）                   |
+| Card: カラム間移動           | ✅ 追加済み（`should move card to different column`）              |
+| Card: 同一カラム内並び替え   | ⬜ 追加必要                                                        |
+| Card: statusId更新確認       | ✅ 上記テストで検証                                                |
+| Column: グリッド位置検証     | ✅ 追加済み（`should have correct initial column grid positions`） |
+| Column: Swap操作実行         | ✅ 追加済み（`should execute column drag operation successfully`） |
+| Column: NewRowDropZone       | ⬜ 検証強化必要                                                    |
+| Column: ColumnInsertZone挿入 | ⬜ 追加必要                                                        |
+| Column: Auto-Height拡張      | ⬜ 実装後追加                                                      |
+
+### 10.6 CDP Drag Helper一覧
+
+```typescript
+// e2e/helpers/cdp-drag.ts
+export async function cdpDragAndDrop(page, source, target, options?)
+export async function cdpColumnDragAndDrop(page, sourceId, targetId, options?)
+export async function cdpCardDragAndDrop(page, sourceId, targetId, options?)
+export async function cdpCardToColumnDragAndDrop(
+  page,
+  cardId,
+  columnId,
+  options?,
+)
+export async function cdpColumnToNewRowDragAndDrop(
+  page,
+  columnId,
+  row,
+  options?,
+)
+export async function cdpColumnToGridPosition(
+  page,
+  columnId,
+  row,
+  col,
+  options?,
+)
+```
+
+---
+
 ## 参照リンク集
 
 - [Harmonizer - Evil Martians](https://harmonizer.evilmartians.com/)

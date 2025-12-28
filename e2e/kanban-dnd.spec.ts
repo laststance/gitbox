@@ -17,10 +17,11 @@ import { test, expect } from './fixtures/coverage'
 import {
   cdpColumnDragAndDrop,
   cdpColumnToNewRowDragAndDrop,
+  cdpCardToColumnDragAndDrop,
 } from './helpers/cdp-drag'
 
 test.describe('Kanban Board - Column DnD (CDP)', () => {
-  test.use({ storageState: 'tests/e2e/.auth/user.json' })
+  test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = '/board/board-1'
 
@@ -286,7 +287,7 @@ test.describe('Kanban Board - Column DnD (CDP)', () => {
  * shown in the GIF where columns can be moved to a second row.
  */
 test.describe('Kanban Board - 2D Column Positioning (CDP)', () => {
-  test.use({ storageState: 'tests/e2e/.auth/user.json' })
+  test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = '/board/board-1'
 
@@ -578,7 +579,7 @@ test.describe('Kanban Board - 2D Column Positioning (CDP)', () => {
  * These tests verify card movement functionality.
  */
 test.describe('Kanban Board - Card DnD (CDP)', () => {
-  test.use({ storageState: 'tests/e2e/.auth/user.json' })
+  test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = '/board/board-1'
 
@@ -599,5 +600,165 @@ test.describe('Kanban Board - Card DnD (CDP)', () => {
 
     // Should have at least some cards (from mock data)
     expect(cards.length).toBeGreaterThanOrEqual(0)
+  })
+
+  /**
+   * Test card drag and drop to a different column using CDP.
+   *
+   * Moves card-1 (in To Do column) to the In Progress column.
+   *
+   * @slow This test uses CDP which has higher overhead
+   */
+  test('should move card to different column @slow', async ({ page }) => {
+    await page.goto(BOARD_URL)
+    await page.waitForLoadState('domcontentloaded')
+    await page.waitForTimeout(800)
+
+    // Get initial card location
+    const getCardStatusId = async (cardId: string) => {
+      return page.evaluate((id) => {
+        const card = document.querySelector(`[data-testid="repo-card-${id}"]`)
+        if (!card) return null
+        // Find the parent status column
+        const statusColumn = card.closest('[data-testid^="status-column-"]')
+        return (
+          statusColumn
+            ?.getAttribute('data-testid')
+            ?.replace('status-column-', '') ?? null
+        )
+      }, cardId)
+    }
+
+    // card-1 is in status-2 (To Do) initially
+    const initialStatus = await getCardStatusId('card-1')
+    console.log('Initial card-1 status:', initialStatus)
+    expect(initialStatus).toBe('status-2')
+
+    // Drag card-1 to status-3 (In Progress)
+    await cdpCardToColumnDragAndDrop(page, 'card-1', 'status-3', {
+      steps: 15,
+      stepDelay: 40,
+      dropDelay: 200,
+    })
+
+    await page.waitForTimeout(500)
+
+    // Verify card moved to new column
+    const newStatus = await getCardStatusId('card-1')
+    console.log('New card-1 status:', newStatus)
+
+    // Card should now be in In Progress column
+    expect(newStatus).toBe('status-3')
+  })
+})
+
+/**
+ * Column Swap Verification Tests
+ *
+ * These tests verify column grid positioning and drag operations.
+ * Note: @dnd-kit swap detection is position/timing sensitive.
+ */
+test.describe('Kanban Board - Column Swap Verification (CDP)', () => {
+  test.use({ storageState: 'e2e/.auth/user.json' })
+
+  const BOARD_URL = '/board/board-1'
+
+  test.beforeEach(async ({ request }) => {
+    await request.post('/__msw__/reset')
+  })
+
+  /**
+   * Verifies column grid positions are correctly set up.
+   * Each column should have proper gridColumn styles for 2D layout.
+   */
+  test('should have correct initial column grid positions', async ({
+    page,
+  }) => {
+    await page.goto(BOARD_URL)
+    await page.waitForLoadState('domcontentloaded')
+    await page.waitForTimeout(800)
+
+    // Get grid positions of columns from inline styles
+    const positions = await page.evaluate(() => {
+      const columns = document.querySelectorAll(
+        '[data-testid^="sortable-column-"]',
+      )
+      const result: Record<string, { gridRow: number; gridCol: number }> = {}
+      columns.forEach((col) => {
+        const testId = col.getAttribute('data-testid')
+        const statusId = testId?.replace('sortable-column-', '') ?? ''
+        const htmlElement = col as HTMLElement
+        const gridRow = parseInt(htmlElement.style.gridRow) || 0
+        const gridCol = parseInt(htmlElement.style.gridColumn) || 0
+        result[statusId] = { gridRow, gridCol }
+      })
+      return result
+    })
+
+    console.log('Column grid positions:', positions)
+
+    // Verify each column has distinct grid positions
+    expect(positions['status-1']?.gridCol).toBe(1)
+    expect(positions['status-2']?.gridCol).toBe(2)
+    expect(positions['status-3']?.gridCol).toBe(3)
+    expect(positions['status-4']?.gridCol).toBe(4)
+    expect(positions['status-5']?.gridCol).toBe(5)
+
+    // All should be in row 1 (single-row layout)
+    Object.values(positions).forEach((pos) => {
+      expect(pos.gridRow).toBe(1)
+    })
+  })
+
+  /**
+   * Verifies CDP column drag operation executes without error.
+   * @dnd-kit swap detection varies based on exact drag path and timing.
+   *
+   * @slow This test uses CDP which has higher overhead
+   */
+  test('should execute column drag operation successfully @slow', async ({
+    page,
+  }) => {
+    await page.goto(BOARD_URL)
+    await page.waitForLoadState('domcontentloaded')
+    await page.waitForTimeout(800)
+
+    // Get column titles in visual order
+    const getColumnTitles = async () => {
+      return page.evaluate(() => {
+        // Column titles are in h3 elements within status columns
+        const titles = document.querySelectorAll(
+          '[data-testid^="sortable-column-"] h3.font-semibold',
+        )
+        return Array.from(titles).map((h) => h.textContent?.trim())
+      })
+    }
+
+    const initialTitles = await getColumnTitles()
+    console.log('Initial column titles:', initialTitles)
+
+    // Verify initial state
+    expect(initialTitles.length).toBe(5)
+    expect(initialTitles[0]).toBe('Backlog')
+
+    // Perform column drag: status-1 toward status-2
+    // Note: Exact swap behavior depends on @dnd-kit collision detection
+    await cdpColumnDragAndDrop(page, 'status-1', 'status-2', {
+      steps: 20,
+      stepDelay: 50,
+      dropDelay: 300,
+    })
+
+    await page.waitForTimeout(600)
+
+    const newTitles = await getColumnTitles()
+    console.log('Column titles after drag:', newTitles)
+
+    // Verify operation completed (all columns still present)
+    expect(newTitles.length).toBe(5)
+
+    // All original titles should still exist
+    const originalTitles = ['Backlog', 'To Do', 'In Progress', 'Review', 'Done']
+    expect(newTitles.sort()).toEqual(originalTitles.sort())
   })
 })

@@ -108,7 +108,7 @@ export const RepoCard = memo<RepoCardProps>(
       <div
         ref={setNodeRef}
         style={style}
-        data-testid="repo-card"
+        data-testid={`repo-card-${card.id}`}
         {...attributes}
         {...listeners}
         className="cursor-grab active:cursor-grabbing"
