@@ -17,10 +17,6 @@
 - **Settings**（Theme/Type/Display/WIP）
 - **Shortcuts (?)**
 
-### Kanban基本方針
-
-Board=列、列=Status、D&Dで**列間=状態更新** / **同列上下=優先度変更**。フィルタ/グループ/プロパティ表示はNotion型の考え方を踏襲。
-
 ---
 
 ## 2) デザインシステム
@@ -45,7 +41,7 @@ Board=列、列=Status、D&Dで**列間=状態更新** / **同列上下=優先�
 - ステップ：1px刻み（最小12px〜推奨28pxまで）
 - 運用：アップロード済みOKLCHパレットをソース・オブ・トゥルースとする（Tailwind tokens）
 
-### 2.2 Design Tokens（12 Themes）
+### 2.2 Design Tokens（14 Themes）
 
 #### Token Set（共通キー）
 
@@ -85,8 +81,8 @@ color.success / warning / danger
 
 #### Theme Names
 
-- **Light:** Sunrise / Sandstone / Mint / Sky / Lavender / Rose
-- **Dark:** Midnight / Graphite / Forest / Ocean / Plum / Rust
+- **Light:** Light /Sunrise / Sandstone / Mint / Sky / Lavender / Rose
+- **Dark:** Dark / Midnight / Graphite / Forest / Ocean / Plum / Rust
 
 ---
 
@@ -98,7 +94,6 @@ color.success / warning / danger
 
 - Combobox検索（owner/repo, topics, visibility）
 - 複数一括追加/重複検知
-- 追加直後に"Quick note"へフォーカス
 
 #### 受け入れ基準
 
