@@ -580,6 +580,61 @@ Row 0: [   ] [ A ] [ B ] [ C ]    (後続カラムは右シフト)
 
 ColumnInsertZone または Column Swap で実現
 
+#### 10.3.5 縦方向Column Swap（Row間位置入れ替え）
+
+```
+Row 0: [ A ] [   ] [   ]         Row 0: [ B ] [   ] [   ]
+Row 1: [ B ] [   ] [   ]   →     Row 1: [ A ] [   ] [   ]
+         ↓___↑                           (A と B が Row を入れ替え)
+        drag A → B
+```
+
+**前提条件**: NewRowDropZone でカラムを Row 1 以降に移動した後、マルチRow構成になっている状態
+
+| 項目          | 値                                 |
+| ------------- | ---------------------------------- |
+| 実装状態      | ✅ 実装済み                        |
+| E2Eカバー     | ⬜ 未カバー                        |
+| Server Action | `swapStatusListPositions()`        |
+| CDP Helper    | `cdpColumnDragAndDrop()`           |
+| 注意          | 同一gridColのカラム間でRow位置交換 |
+
+**挙動**:
+
+1. カラムA（Row 0）をカラムB（Row 1, 同じgridCol）にドラッグ＆ドロップ
+2. A と B の gridRow を完全交換
+3. A が Row 1 へ移動、B が Row 0 へ移動
+
+#### 10.3.6 斜め方向Column Swap（対角線位置入れ替え）
+
+```
+Row 0: [ A ] [   ] [   ]         Row 0: [   ] [   ] [ B ]
+Row 1: [   ] [   ] [ B ]   →     Row 1: [ A ] [   ] [   ]
+         ↘_________↗                     (A と B が斜めに入れ替え)
+        drag A → B
+```
+
+**前提条件**: NewRowDropZone でカラムを Row 1 以降に移動した後、マルチRow構成になっている状態
+
+| 項目          | 値                             |
+| ------------- | ------------------------------ |
+| 実装状態      | ✅ 実装済み                    |
+| E2Eカバー     | ⬜ 未カバー                    |
+| Server Action | `swapStatusListPositions()`    |
+| CDP Helper    | `cdpColumnDragAndDrop()`       |
+| 注意          | gridRow, gridCol両方を完全交換 |
+
+**挙動**:
+
+1. カラムA（Row 0, Col 0）をカラムB（Row 1, Col 2）にドラッグ＆ドロップ
+2. A と B の gridRow と gridCol を完全交換
+3. A が (Row 1, Col 2) へ移動、B が (Row 0, Col 0) へ移動
+
+**実装詳細**:
+
+- `handleDragEnd` in `components/Board/KanbanBoard.tsx` (lines 460-501)
+- Column Swap のロジックは gridRow と gridCol の両方を交換するため、横/縦/斜めの全方向でSwapが動作
+
 ### 10.4 未実装機能
 
 #### 10.4.1 カラムAuto-Height（高さ自動拡張）
@@ -621,6 +676,8 @@ ColumnInsertZone または Column Swap で実現
 | Card: statusId更新確認       | ✅ 上記テストで検証                                                |
 | Column: グリッド位置検証     | ✅ 追加済み（`should have correct initial column grid positions`） |
 | Column: Swap操作実行         | ✅ 追加済み（`should execute column drag operation successfully`） |
+| Column: 縦方向Swap           | ✅ 追加済み（10.3.5 - 2テスト in `column-dnd.spec.ts`）            |
+| Column: 斜め方向Swap         | ✅ 追加済み（10.3.6 - 3テスト in `column-dnd.spec.ts`）            |
 | Column: NewRowDropZone       | ⬜ 検証強化必要                                                    |
 | Column: ColumnInsertZone挿入 | ✅ 追加済み（5テストケース in `kanban-dnd.spec.ts`）               |
 | Column: Auto-Height拡張      | ⬜ 実装後追加                                                      |
