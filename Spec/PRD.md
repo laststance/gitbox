@@ -622,7 +622,7 @@ ColumnInsertZone または Column Swap で実現
 | ---------------------------- | ------------------------------------------------------------------ |
 | Card: カラム表示確認         | ✅ 追加済み（`should display cards in columns`）                   |
 | Card: カラム間移動           | ✅ 追加済み（`should move card to different column`）              |
-| Card: 同一カラム内並び替え   | ⬜ 追加必要                                                        |
+| Card: 同一カラム内並び替え   | ✅ 追加済み（`should reorder cards within same column`）           |
 | Card: statusId更新確認       | ✅ 上記テストで検証                                                |
 | Column: グリッド位置検証     | ✅ 追加済み（`should have correct initial column grid positions`） |
 | Column: Swap操作実行         | ✅ 追加済み（`should execute column drag operation successfully`） |

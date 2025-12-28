@@ -272,6 +272,45 @@ const mockRepoCards = [
     created_at: '2024-01-03T00:00:00.000Z',
     updated_at: '2024-01-03T00:00:00.000Z',
   },
+  // Additional cards in To Do column for intra-column reorder E2E testing
+  {
+    id: 'card-4',
+    board_id: MOCK_BOARD_ID,
+    status_id: MOCK_STATUS_IDS.todo,
+    repo_owner: 'laststance',
+    repo_name: 'nsx',
+    note: 'Monorepo CLI tool',
+    order: 1,
+    meta: {
+      stars: 85,
+      language: 'TypeScript',
+      topics: ['cli', 'monorepo', 'npm'],
+      visibility: 'public',
+      description: 'Monorepo workspace CLI tool',
+      updatedAt: '2024-01-18T00:00:00.000Z',
+    },
+    created_at: '2024-01-04T00:00:00.000Z',
+    updated_at: '2024-01-04T00:00:00.000Z',
+  },
+  {
+    id: 'card-5',
+    board_id: MOCK_BOARD_ID,
+    status_id: MOCK_STATUS_IDS.todo,
+    repo_owner: 'laststance',
+    repo_name: 'use-app-state',
+    note: 'State management hook',
+    order: 2,
+    meta: {
+      stars: 120,
+      language: 'TypeScript',
+      topics: ['react', 'hooks', 'state'],
+      visibility: 'public',
+      description: 'Simple React state management hook',
+      updatedAt: '2024-01-12T00:00:00.000Z',
+    },
+    created_at: '2024-01-05T00:00:00.000Z',
+    updated_at: '2024-01-05T00:00:00.000Z',
+  },
 ]
 
 /**
