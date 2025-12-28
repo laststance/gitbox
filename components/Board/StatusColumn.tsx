@@ -32,6 +32,8 @@ interface StatusColumnProps {
   onMaintenance?: (id: string) => void
   /** Callback when Note button is clicked */
   onNote?: (id: string) => void
+  /** Callback when repository is removed from board */
+  onRemove?: (id: string) => void
   onEditStatus?: (status: StatusListDomain) => void
   onDeleteStatus?: (statusId: string) => void
   onAddCard?: (statusId: string) => void
@@ -58,6 +60,7 @@ export const StatusColumn = memo<StatusColumnProps>(
     onEdit,
     onMaintenance,
     onNote,
+    onRemove,
     onEditStatus,
     onDeleteStatus,
     onAddCard,
@@ -160,6 +163,7 @@ export const StatusColumn = memo<StatusColumnProps>(
                     onEdit={onEdit}
                     onMaintenance={onMaintenance}
                     onNote={onNote}
+                    onRemove={onRemove}
                   />
                 </motion.div>
               ))}

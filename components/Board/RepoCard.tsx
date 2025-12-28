@@ -38,6 +38,8 @@ interface RepoCardProps {
   onMaintenance?: (id: string) => void
   /** Callback when Note button is clicked */
   onNote?: (id: string) => void
+  /** Callback when repository is removed from board */
+  onRemove?: (id: string) => void
 }
 
 /**
@@ -50,7 +52,7 @@ interface RepoCardProps {
  * - Overflow menu for card actions
  */
 export const RepoCard = memo<RepoCardProps>(
-  ({ card, onEdit, onMaintenance, onNote }) => {
+  ({ card, onEdit, onMaintenance, onNote, onRemove }) => {
     const {
       attributes,
       listeners,
@@ -133,6 +135,7 @@ export const RepoCard = memo<RepoCardProps>(
                   repoName={card.repoName}
                   onEdit={onEdit}
                   onMoveToMaintenance={onMaintenance}
+                  onRemove={onRemove}
                   open={menuOpen}
                   onOpenChange={handleMenuOpenChange}
                   context="board"

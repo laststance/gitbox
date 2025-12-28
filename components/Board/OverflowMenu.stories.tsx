@@ -34,6 +34,7 @@ export const BoardContext: Story = {
     context: 'board',
     onEdit: (id) => console.log('Edit:', id),
     onMoveToMaintenance: (id) => console.log('Move to maintenance:', id),
+    onRemove: (id) => console.log('Remove from board:', id),
   },
 }
 
@@ -68,5 +69,21 @@ export const WithAllUrls: Story = {
     context: 'board',
     onEdit: (id) => console.log('Edit:', id),
     onMoveToMaintenance: (id) => console.log('Move to maintenance:', id),
+    onRemove: (id) => console.log('Remove from board:', id),
+  },
+}
+
+/**
+ * Demonstrates the remove from board feature with confirmation dialog.
+ * This story shows the destructive action styling and AlertDialog.
+ */
+export const WithRemoveAction: Story = {
+  args: {
+    cardId: 'card-5',
+    repoOwner: 'laststance',
+    repoName: 'gitbox',
+    context: 'board',
+    onEdit: (id) => console.log('Edit:', id),
+    onRemove: (id) => console.log('Remove from board:', id),
   },
 }

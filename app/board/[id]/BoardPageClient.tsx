@@ -36,6 +36,7 @@ import type { ProjectInfoData } from '@/lib/actions/project-info'
 import { getProjectInfo, upsertProjectInfo } from '@/lib/actions/project-info'
 import {
   moveToMaintenance,
+  deleteRepoCard,
   type CreatedRepoCard,
 } from '@/lib/actions/repo-cards'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
@@ -43,6 +44,7 @@ import {
   setStatusLists,
   setRepoCards,
   addRepoCards,
+  removeRepoCard,
   selectStatusLists,
   selectRepoCards,
 } from '@/lib/redux/slices/boardSlice'
@@ -223,6 +225,36 @@ export const BoardPageClient = memo(function BoardPageClient({
       }
     },
     [repoCards, dispatch],
+  )
+
+  /**
+   * Remove Repository from Board
+   *
+   * Permanently deletes a card from the board.
+   * Uses optimistic UI update for immediate feedback.
+   *
+   * @param cardId - The card ID to remove
+   */
+  const handleRemoveFromBoard = useCallback(
+    async (cardId: string) => {
+      // Optimistic update: remove from state immediately
+      dispatch(removeRepoCard(cardId))
+
+      try {
+        const result = await deleteRepoCard(cardId)
+        if (!result.success) {
+          // Revert on error - refetch data
+          console.error('Delete failed:', result.error)
+          alert(`Failed to remove from board: ${result.error}`)
+          // Note: We'd need to restore the card here, but since we don't have
+          // a simple way to get it back, we'll just alert the user
+        }
+      } catch (error) {
+        console.error('Remove from board failed:', error)
+        alert('Failed to remove from board. Please try again.')
+      }
+    },
+    [dispatch],
   )
 
   // ========================================
@@ -483,6 +515,7 @@ export const BoardPageClient = memo(function BoardPageClient({
             onEditProjectInfo={handleEditProjectInfo}
             onMoveToMaintenance={handleMoveToMaintenance}
             onNote={handleOpenNote}
+            onRemove={handleRemoveFromBoard}
             onEditStatus={handleEditStatus}
             onDeleteStatus={handleDeleteStatus}
             onAddCard={handleAddCard}

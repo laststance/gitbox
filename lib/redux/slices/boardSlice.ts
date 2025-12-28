@@ -99,6 +99,15 @@ export const boardSlice = createSlice({
     addRepoCards: (state, action: PayloadAction<RepoCardForRedux[]>) => {
       state.repoCards = [...state.repoCards, ...action.payload]
     },
+    /**
+     * Remove a repo card from the state (for optimistic updates)
+     * @param cardId - The ID of the card to remove
+     */
+    removeRepoCard: (state, action: PayloadAction<string>) => {
+      state.repoCards = state.repoCards.filter(
+        (card) => card.id !== action.payload,
+      )
+    },
     // Reset board state
     clearBoard: (state) => {
       state.activeBoard = null
@@ -122,6 +131,7 @@ export const {
   clearLastDragOperation,
   updateRepoCardOptimistic,
   addRepoCards,
+  removeRepoCard,
   clearBoard,
 } = boardSlice.actions
 
