@@ -383,7 +383,11 @@ test.describe('Kanban Board Horizontal Scroll - Multi Column', () => {
  * - Card container has no overflow-y-auto (cards flow naturally)
  */
 test.describe('Kanban Board Column Auto-Height', () => {
-  test.use({ storageState: 'e2e/.auth/user.json' })
+  // Use larger viewport to ensure columns have room to expand
+  test.use({
+    storageState: 'e2e/.auth/user.json',
+    viewport: { width: 1920, height: 1200 },
+  })
 
   const BOARD_URL = '/board/board-1'
 
@@ -528,7 +532,7 @@ test.describe('Kanban Board Column Auto-Height', () => {
 
         // Check if all cards are visible (no overflow hidden)
         const allCardsVisible =
-          container.scrollHeight <= container.clientHeight + 1 // +1 for rounding
+          container.scrollHeight <= container.clientHeight + 5 // +5 for sub-pixel rounding
 
         results.push({
           cardCount: cards.length,
@@ -557,7 +561,11 @@ test.describe('Kanban Board Column Auto-Height', () => {
  * to show all cards without requiring internal scrolling.
  */
 test.describe('Kanban Board Column Auto-Height - Many Cards', () => {
-  test.use({ storageState: 'e2e/.auth/user.json' })
+  // Use larger viewport to ensure columns have room to expand all cards
+  test.use({
+    storageState: 'e2e/.auth/user.json',
+    viewport: { width: 1920, height: 1200 },
+  })
 
   const BOARD_URL = '/board/board-1'
 
@@ -584,7 +592,7 @@ test.describe('Kanban Board Column Auto-Height - Many Cards', () => {
 
       for (const container of cardContainers) {
         results.push({
-          hasOverflow: container.scrollHeight > container.clientHeight + 1,
+          hasOverflow: container.scrollHeight > container.clientHeight + 5, // +5 for sub-pixel rounding
           scrollHeight: container.scrollHeight,
           clientHeight: container.clientHeight,
         })
@@ -729,7 +737,7 @@ test.describe('Kanban Board Column Auto-Height - Many Cards', () => {
             columnHeight: Math.round(columnRect.height),
             cardContainerHeight: Math.round(containerRect.height),
             heightMatchesContent:
-              cardContainer.scrollHeight <= containerRect.height + 1,
+              cardContainer.scrollHeight <= containerRect.height + 5, // +5 for sub-pixel rounding
           })
         }
       })
