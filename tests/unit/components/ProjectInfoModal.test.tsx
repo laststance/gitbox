@@ -10,12 +10,45 @@
  * - Note character limit (20,000)
  * - Form state management
  * - Save/Cancel behavior
+ *
+ * Note: PlateEditor is mocked as a native textarea for unit testing.
+ * Actual rich text editor behavior is covered in E2E tests.
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { ProjectInfoModal } from '@/components/Modals/ProjectInfoModal'
+
+/**
+ * Mock PlateEditor with a native textarea for unit testing.
+ * This allows us to test the modal's form logic without complex
+ * contenteditable interactions.
+ */
+vi.mock('@/components/editor/PlateEditor', () => ({
+  PlateEditor: ({
+    initialValue,
+    onChange,
+    placeholder,
+    disabled,
+    'data-testid': testId,
+  }: {
+    initialValue?: string
+    onChange?: (value: string) => void
+    placeholder?: string
+    disabled?: boolean
+    'data-testid'?: string
+  }) => (
+    <textarea
+      data-testid={testId}
+      defaultValue={initialValue}
+      onChange={(e) => onChange?.(e.target.value)}
+      placeholder={placeholder}
+      disabled={disabled}
+      autoFocus
+    />
+  ),
+}))
 
 describe('ProjectInfoModal', () => {
   const mockOnSave = vi.fn()
@@ -152,7 +185,7 @@ describe('ProjectInfoModal', () => {
     it('should update character count on input', () => {
       render(<ProjectInfoModal {...defaultProps} />)
 
-      const textarea = screen.getByTestId('note-textarea')
+      const textarea = screen.getByTestId('note-editor')
       fireEvent.change(textarea, {
         target: { value: 'Test note' },
       })
@@ -164,9 +197,7 @@ describe('ProjectInfoModal', () => {
     it('should prevent input beyond 20000 characters', () => {
       render(<ProjectInfoModal {...defaultProps} />)
 
-      const textarea = screen.getByTestId(
-        'note-textarea',
-      ) as HTMLTextAreaElement
+      const textarea = screen.getByTestId('note-editor') as HTMLTextAreaElement
 
       // In React controlled components, maxLength attribute works automatically,
       // so test exactly 20000 characters input
@@ -185,7 +216,7 @@ describe('ProjectInfoModal', () => {
     it('should show warning when approaching limit', () => {
       render(<ProjectInfoModal {...defaultProps} />)
 
-      const textarea = screen.getByTestId('note-textarea')
+      const textarea = screen.getByTestId('note-editor')
       const nearLimit = 'a'.repeat(18000)
 
       fireEvent.change(textarea, {
@@ -225,7 +256,7 @@ describe('ProjectInfoModal', () => {
     it('should call onSave with form data when saved', async () => {
       render(<ProjectInfoModal {...defaultProps} />)
 
-      const textarea = screen.getByTestId('note-textarea')
+      const textarea = screen.getByTestId('note-editor')
       fireEvent.change(textarea, {
         target: { value: 'Test note' },
       })
@@ -255,7 +286,7 @@ describe('ProjectInfoModal', () => {
     it('should reset form when cancelled', () => {
       const { rerender } = render(<ProjectInfoModal {...defaultProps} />)
 
-      const textarea = screen.getByTestId('note-textarea')
+      const textarea = screen.getByTestId('note-editor')
       fireEvent.change(textarea, {
         target: { value: 'Changed text' },
       })
@@ -267,7 +298,7 @@ describe('ProjectInfoModal', () => {
       rerender(<ProjectInfoModal {...defaultProps} isOpen={false} />)
       rerender(<ProjectInfoModal {...defaultProps} isOpen={true} />)
 
-      const textareaAfter = screen.getByTestId('note-textarea')
+      const textareaAfter = screen.getByTestId('note-editor')
       expect(textareaAfter).toHaveValue('')
     })
   })
@@ -330,7 +361,7 @@ describe('ProjectInfoModal', () => {
     it('should set focus to Note textarea on open', () => {
       render(<ProjectInfoModal {...defaultProps} />)
 
-      const textarea = screen.getByTestId('note-textarea')
+      const textarea = screen.getByTestId('note-editor')
       expect(textarea).toHaveFocus()
     })
 
@@ -346,7 +377,7 @@ describe('ProjectInfoModal', () => {
       render(<ProjectInfoModal {...defaultProps} />)
 
       // autoFocus is set on Note textarea
-      const textarea = screen.getByTestId('note-textarea')
+      const textarea = screen.getByTestId('note-editor')
       expect(textarea).toHaveFocus()
 
       // Verify that focusable elements exist

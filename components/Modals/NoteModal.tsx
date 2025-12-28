@@ -4,6 +4,7 @@ import { StickyNote } from 'lucide-react'
 import { memo, useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
+import { PlateEditor } from '@/components/editor/PlateEditor'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -13,7 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Textarea } from '@/components/ui/textarea'
 import {
   deleteDraftNote,
   selectDraftNote,
@@ -82,12 +82,13 @@ export const NoteModal = memo(function NoteModal({
   }, [isOpen, initialNote, draft?.content])
 
   /**
-   * Handle note text change
-   * Saves to Redux draft state for persistence
+   * Handle note text change from PlateEditor.
+   * Saves to Redux draft state for persistence.
+   *
+   * @param value - Plain text content from PlateEditor
    */
   const handleNoteChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const value = e.target.value
+    (value: string) => {
       if (value.length <= NOTE_MAX_LENGTH) {
         setNote(value)
         // Save draft to Redux (persisted to LocalStorage)
@@ -149,24 +150,27 @@ export const NoteModal = memo(function NoteModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <StickyNote className="w-5 h-5" />
             Project Note
           </DialogTitle>
           <DialogDescription>
-            Add notes about {cardTitle}. Your draft is automatically saved.
+            Add notes about {cardTitle}. Your draft is automatically saved. Use
+            the toolbar for formatting.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-2">
-          <Textarea
-            value={note}
+          {/* Key forces editor re-mount when initialNote changes (e.g., from Supabase) */}
+          <PlateEditor
+            key={initialNote}
+            initialValue={note}
             onChange={handleNoteChange}
-            placeholder="Write your project notes here..."
-            className="min-h-80 text-sm resize-y"
-            aria-describedby="note-char-count"
+            placeholder="Write your project notes... Use the toolbar for formatting."
+            minHeight="320px"
+            data-testid="note-editor"
           />
           <p id="note-char-count" className={charCountClass}>
             {charCount.toLocaleString()} / {NOTE_MAX_LENGTH.toLocaleString()}

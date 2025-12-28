@@ -18,6 +18,7 @@
 import { Plus, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState, useCallback, memo, useEffect } from 'react'
+import { toast } from 'sonner'
 
 import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox'
 import { KanbanBoard } from '@/components/Board/KanbanBoard'
@@ -168,6 +169,9 @@ export const BoardPageClient = memo(function BoardPageClient({
       try {
         // Backend save (asynchronous)
         await upsertProjectInfo(selectedCardId, data)
+        toast.success('Project info saved', {
+          description: 'Your project information has been saved.',
+        })
 
         // TODO: Update Redux state as well (implement in Phase 6)
         // dispatch(updateProjectInfo({ cardId: selectedCardId, data }));
@@ -186,9 +190,9 @@ export const BoardPageClient = memo(function BoardPageClient({
           console.error('Failed to rollback:', rollbackError)
         }
 
-        // Notify user of error
-        // TODO: Toast notification (implement in Phase 6)
-        alert('Failed to save project information. Please try again.')
+        toast.error('Failed to save project info', {
+          description: 'Please try again.',
+        })
       }
     },
     [selectedCardId],
@@ -256,13 +260,21 @@ export const BoardPageClient = memo(function BoardPageClient({
         if (!result.success) {
           // Revert on error - refetch data
           console.error('Delete failed:', result.error)
-          alert(`Failed to remove from board: ${result.error}`)
+          toast.error('Failed to remove from board', {
+            description: result.error,
+          })
           // Note: We'd need to restore the card here, but since we don't have
           // a simple way to get it back, we'll just alert the user
+        } else {
+          toast.success('Repository removed', {
+            description: 'The repository has been removed from the board.',
+          })
         }
       } catch (error) {
         console.error('Remove from board failed:', error)
-        alert('Failed to remove from board. Please try again.')
+        toast.error('Failed to remove from board', {
+          description: 'Please try again.',
+        })
       }
     },
     [dispatch],
@@ -351,35 +363,53 @@ export const BoardPageClient = memo(function BoardPageClient({
    */
   const handleSaveStatus = useCallback(
     async (data: { name: string; color: string; wipLimit: number | null }) => {
-      if (statusDialogMode === 'create') {
-        // Create new
-        const newStatus = await createStatusList(
-          boardId,
-          data.name,
-          data.color,
-          data.wipLimit ?? undefined,
+      try {
+        if (statusDialogMode === 'create') {
+          // Create new
+          const newStatus = await createStatusList(
+            boardId,
+            data.name,
+            data.color,
+            data.wipLimit ?? undefined,
+          )
+          // Update Redux
+          dispatch(setStatusLists([...statusLists, newStatus]))
+          toast.success('Column created', {
+            description: `"${data.name}" has been created.`,
+          })
+        } else if (selectedStatus) {
+          // Update existing
+          await updateStatusList(selectedStatus.id, {
+            name: data.name,
+            color: data.color,
+            wipLimit: data.wipLimit,
+          })
+          // Update Redux
+          const updatedLists = statusLists.map((s) =>
+            s.id === selectedStatus.id
+              ? {
+                  ...s,
+                  title: data.name,
+                  color: data.color,
+                  wipLimit: data.wipLimit ?? 0,
+                }
+              : s,
+          )
+          dispatch(setStatusLists(updatedLists))
+          toast.success('Column updated', {
+            description: `"${data.name}" has been updated.`,
+          })
+        }
+      } catch (error) {
+        console.error('Failed to save status list:', error)
+        toast.error(
+          statusDialogMode === 'create'
+            ? 'Failed to create column'
+            : 'Failed to update column',
+          {
+            description: 'Please try again.',
+          },
         )
-        // Update Redux
-        dispatch(setStatusLists([...statusLists, newStatus]))
-      } else if (selectedStatus) {
-        // Update existing
-        await updateStatusList(selectedStatus.id, {
-          name: data.name,
-          color: data.color,
-          wipLimit: data.wipLimit,
-        })
-        // Update Redux
-        const updatedLists = statusLists.map((s) =>
-          s.id === selectedStatus.id
-            ? {
-                ...s,
-                title: data.name,
-                color: data.color,
-                wipLimit: data.wipLimit ?? 0,
-              }
-            : s,
-        )
-        dispatch(setStatusLists(updatedLists))
       }
     },
     [boardId, dispatch, statusLists, statusDialogMode, selectedStatus],
@@ -404,9 +434,14 @@ export const BoardPageClient = memo(function BoardPageClient({
         // Update Redux
         const filteredLists = statusLists.filter((s) => s.id !== statusId)
         dispatch(setStatusLists(filteredLists))
+        toast.success('Column deleted', {
+          description: `"${targetStatus.title}" has been deleted.`,
+        })
       } catch (error) {
         console.error('Failed to delete status list:', error)
-        alert('Failed to delete column. Please try again.')
+        toast.error('Failed to delete column', {
+          description: 'Please try again.',
+        })
       }
     },
     [boardId, dispatch, statusLists],

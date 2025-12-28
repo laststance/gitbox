@@ -2,6 +2,7 @@
 
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react'
+import { toast } from 'sonner'
 
 import {
   Select,
@@ -347,7 +348,21 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       // Show warning if some repositories were duplicates
       if (result.errors && result.errors.length > 0) {
         console.warn('Duplicate repositories detected:', result.errors)
+        toast.warning('Some repositories already exist', {
+          description: result.errors.join(', '),
+        })
       }
+
+      // Show success toast
+      toast.success(
+        `${result.addedCount} ${result.addedCount === 1 ? 'repository' : 'repositories'} added`,
+        {
+          description:
+            result.addedCount === 1
+              ? `"${selectedRepos[0].full_name}" has been added to the board.`
+              : `${result.addedCount} repositories have been added to the board.`,
+        },
+      )
 
       // Success: clear selection and close combobox
       setSelectedRepos([])

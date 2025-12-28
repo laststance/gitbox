@@ -10,6 +10,7 @@
 import { Calendar, MoreHorizontal, Pencil, Star, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { memo, useCallback, useState, useTransition } from 'react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -104,10 +105,20 @@ export const BoardCard = memo(function BoardCard({
         if (!result.success) {
           onToggleFavorite?.(board.id, board.is_favorite)
           console.error('Failed to toggle favorite:', result.error)
+          toast.error('Failed to update favorite', {
+            description: result.error,
+          })
+        } else {
+          toast.success(
+            newFavoriteStatus ? 'Added to favorites' : 'Removed from favorites',
+            {
+              description: `"${board.name}" has been ${newFavoriteStatus ? 'added to' : 'removed from'} favorites.`,
+            },
+          )
         }
       })
     },
-    [board.id, board.is_favorite, onToggleFavorite],
+    [board.id, board.is_favorite, board.name, onToggleFavorite],
   )
 
   return (

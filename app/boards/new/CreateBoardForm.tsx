@@ -17,6 +17,7 @@ import {
   useEffect,
   useRef,
 } from 'react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -191,10 +192,18 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
     startTransition(async () => {
       try {
         const board = await createBoard(name.trim(), theme)
+        toast.success('Board created', {
+          description: `"${name.trim()}" has been created.`,
+        })
         router.push(`/board/${board.id}`)
       } catch (err) {
         console.error('Failed to create board:', err)
-        setError(err instanceof Error ? err.message : 'Failed to create board')
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to create board'
+        setError(errorMessage)
+        toast.error('Failed to create board', {
+          description: errorMessage,
+        })
       }
     })
   }

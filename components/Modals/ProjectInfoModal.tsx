@@ -3,6 +3,7 @@
 import { Plus, X, Eye, EyeOff } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react'
 
+import { PlateEditor } from '@/components/editor/PlateEditor'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -21,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 import type { Credential, ProjectLink } from '@/lib/actions/project-info'
 import { generateMaskedDisplay } from '@/lib/encryption'
 
@@ -94,12 +94,15 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
     }
   }, [])
 
-  const handleNoteChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value
+  /**
+   * Handles note changes from PlateEditor.
+   * Enforces maximum length constraint.
+   */
+  const handleNoteChange = useCallback((value: string) => {
     if (value.length <= NOTE_MAX_LENGTH) {
       setQuickNote(value)
     }
-  }
+  }, [])
 
   const handleAddUrl = () => {
     setLinks([...links, { url: '', type: 'production' }])
@@ -287,7 +290,7 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
 
   return (
     <DialogContent
-      className="sm:max-w-[600px]"
+      className="max-w-4xl max-h-[90vh] overflow-y-auto"
       data-testid="project-info-modal"
       aria-labelledby="project-info-title"
       aria-describedby="project-info-description"
@@ -300,19 +303,15 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
       </DialogHeader>
 
       <div className="space-y-6 py-4">
-        {/* Note Section */}
+        {/* Note Section - Rich Text Editor */}
         <div className="space-y-2">
           <Label htmlFor="note">Note</Label>
-          <Textarea
-            id="note"
-            data-testid="note-textarea"
-            placeholder="Project notes"
-            value={quickNote}
+          <PlateEditor
+            data-testid="note-editor"
+            initialValue={quickNote}
             onChange={handleNoteChange}
-            maxLength={NOTE_MAX_LENGTH}
-            rows={3}
-            autoFocus
-            aria-describedby="char-count"
+            placeholder="Write your project notes... Use the toolbar for formatting."
+            minHeight="300px"
           />
           <div
             id="char-count"
