@@ -10,10 +10,10 @@ import { defineConfig, devices } from '@playwright/test'
  */
 
 /** Path to store authenticated state for reuse across tests */
-const AUTH_FILE = 'tests/e2e/.auth/user.json'
+const AUTH_FILE = 'e2e/.auth/user.json'
 
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: './e2e',
 
   /**
    * Disable parallel execution for MSW compatibility.

@@ -75,7 +75,7 @@ export default defineConfig([
     'lib/supabase/types.ts',
     'lib/supabase/database.types.ts',
     'lib/github/api.ts',
-    'tests/e2e/**',
+    'e2e/**',
     '**/*.backup/**',
     '**/.backup/**',
     '**/coverage/**',
