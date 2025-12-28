@@ -683,18 +683,12 @@ const KanbanPreview = () => {
                     : 'mb-3',
                 )}
               >
-                {column.id.startsWith('empty-') ? (
-                  // Empty column - just show drag handle centered
-                  <GripVertical className="h-4 w-4 text-muted-foreground/30" />
-                ) : (
+                {column.id.startsWith('empty-') ? null : (
                   // Regular column - show title and count
                   <>
-                    <div className="flex items-center gap-1.5">
-                      <GripVertical className="h-3 w-3 text-muted-foreground/40" />
-                      <span className="text-xs font-medium text-muted-foreground">
-                        {column.title}
-                      </span>
-                    </div>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {column.title}
+                    </span>
                     <span
                       className="text-xs text-muted-foreground/60"
                       data-testid={`column-count-${column.id}`}
@@ -728,12 +722,9 @@ const KanbanPreview = () => {
                         opacity: 0,
                       }}
                     >
-                      <div className="flex items-center gap-2">
-                        <GripVertical className="h-3 w-3 text-muted-foreground/40" />
-                        <span className="text-xs font-medium text-foreground">
-                          {card.name}
-                        </span>
-                      </div>
+                      <span className="text-xs font-medium text-foreground">
+                        {card.name}
+                      </span>
                     </div>
                   ))}
                 </div>
