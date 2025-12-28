@@ -103,6 +103,17 @@ export const BoardPageClient = memo(function BoardPageClient({
   const [noteCardTitle, setNoteCardTitle] = useState('')
   const [initialNote, setInitialNote] = useState('')
 
+  // AddRepositoryCombobox controlled state
+  const [addRepoStatusId, setAddRepoStatusId] = useState<string>('')
+  const [isAddRepoComboboxOpen, setIsAddRepoComboboxOpen] = useState(false)
+
+  // Initialize addRepoStatusId when statusLists loads
+  useEffect(() => {
+    if (statusLists.length > 0 && !addRepoStatusId) {
+      setAddRepoStatusId(statusLists[0].id)
+    }
+  }, [statusLists, addRepoStatusId])
+
   /**
    * Open Project Info modal
    * Constitution requirement: Principle VI - TDD
@@ -402,12 +413,32 @@ export const BoardPageClient = memo(function BoardPageClient({
   )
 
   /**
-   * Add card (future implementation)
+   * Opens the AddRepositoryCombobox for the specified column
+   *
+   * @param statusId - The status list ID where new repos will be added
+   * @example
+   * // Clicking "Add Repo" button in a column
+   * handleAddCard("status-123") // Opens combobox targeting that column
    */
   const handleAddCard = useCallback((statusId: string) => {
-    // TODO: Open AddRepositoryCombobox
-    console.log('Add card to status:', statusId)
+    setAddRepoStatusId(statusId)
+    setIsAddRepoComboboxOpen(true)
   }, [])
+
+  /**
+   * Handles AddRepositoryCombobox open state changes
+   * Resets to first column when closing
+   */
+  const handleAddRepoOpenChange = useCallback(
+    (open: boolean) => {
+      setIsAddRepoComboboxOpen(open)
+      if (!open && statusLists.length > 0) {
+        // Reset to first column when closing
+        setAddRepoStatusId(statusLists[0].id)
+      }
+    },
+    [statusLists],
+  )
 
   // ========================================
   // Board Settings Dialog handlers
@@ -457,7 +488,9 @@ export const BoardPageClient = memo(function BoardPageClient({
               {/* Add Repositories - PRD 3.1 */}
               <AddRepositoryCombobox
                 boardId={boardId}
-                statusId={statusLists[0]?.id || ''} // Add to first column (empty string if none)
+                statusId={addRepoStatusId || statusLists[0]?.id || ''}
+                isOpen={isAddRepoComboboxOpen}
+                onOpenChange={handleAddRepoOpenChange}
                 onRepositoriesAdded={(createdCards: CreatedRepoCard[]) => {
                   // Optimistic UI update: Add cards to Redux state immediately
                   // No page reload needed - cards appear instantly

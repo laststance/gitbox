@@ -38,6 +38,16 @@ interface AddRepositoryComboboxProps {
    */
   onRepositoriesAdded: (cards: CreatedRepoCard[]) => void
   onQuickNoteFocus: () => void
+  /**
+   * Controlled mode: External open state
+   * When provided, the component uses this value instead of internal state
+   */
+  isOpen?: boolean
+  /**
+   * Controlled mode: Callback when open state changes
+   * Called when the combobox should open or close
+   */
+  onOpenChange?: (open: boolean) => void
 }
 
 /**
@@ -57,9 +67,40 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   statusId,
   onRepositoriesAdded,
   onQuickNoteFocus,
+  isOpen: controlledIsOpen,
+  onOpenChange,
 }: AddRepositoryComboboxProps) {
-  // State
-  const [isOpen, setIsOpen] = useState(false)
+  // State - supports both controlled and uncontrolled modes
+  const [internalIsOpen, setInternalIsOpen] = useState(false)
+
+  // Use controlled state if provided, otherwise use internal state
+  const isOpen = controlledIsOpen ?? internalIsOpen
+
+  /**
+   * Toggle the combobox open state
+   * Used for the main trigger button
+   */
+  const handleToggleOpen = () => {
+    const newOpen = !isOpen
+    if (onOpenChange) {
+      onOpenChange(newOpen)
+    } else {
+      setInternalIsOpen(newOpen)
+    }
+  }
+
+  /**
+   * Close the combobox
+   * Used for Cancel button and after successful add
+   */
+  const handleClose = () => {
+    if (onOpenChange) {
+      onOpenChange(false)
+    } else {
+      setInternalIsOpen(false)
+    }
+  }
+
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [selectedRepos, setSelectedRepos] = useState<GitHubRepository[]>([])
@@ -311,7 +352,12 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       // Success: clear selection and close combobox
       setSelectedRepos([])
       setSearchQuery('')
-      setIsOpen(false)
+      // Close combobox (supports both controlled and uncontrolled modes)
+      if (onOpenChange) {
+        onOpenChange(false)
+      } else {
+        setInternalIsOpen(false)
+      }
 
       // Pass created cards for optimistic UI update (no page reload needed)
       onRepositoriesAdded(result.cards || [])
@@ -332,7 +378,12 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   // Keyboard navigation (WCAG AA)
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
-      setIsOpen(false)
+      // Close combobox (supports both controlled and uncontrolled modes)
+      if (onOpenChange) {
+        onOpenChange(false)
+      } else {
+        setInternalIsOpen(false)
+      }
       searchInputRef.current?.blur()
     } else if (e.key === 'Enter' && selectedRepos.length > 0) {
       handleAddRepositories()
@@ -344,7 +395,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       {/* Combobox trigger button */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggleOpen}
         className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
@@ -640,7 +691,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
           <div className="mt-4 flex justify-end gap-2">
             <button
               type="button"
-              onClick={() => setIsOpen(false)}
+              onClick={handleClose}
               className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
             >
               Cancel
