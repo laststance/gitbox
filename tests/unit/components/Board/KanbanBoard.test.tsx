@@ -71,9 +71,9 @@ describe('KanbanBoard Horizontal Scroll Tests', () => {
 
       // Wait for hydration
       await waitFor(() => {
-        // Check the outer container has w-fit min-w-full classes
+        // Check the outer container has w-fit min-w-full classes (auto-height: no h-full)
         const outerContainer = container.querySelector(
-          '.w-fit.min-w-full.h-full.p-6.relative',
+          '.w-fit.min-w-full.p-6.relative',
         )
         expect(outerContainer).toBeInTheDocument()
       })
@@ -190,16 +190,19 @@ describe('BoardPageClient Wrapper Tests (Overflow)', () => {
     expect(expectedClasses).toContain('flex-1')
   })
 
-  it('should document expected classes for KanbanBoard container', () => {
+  it('should document expected classes for KanbanBoard container (auto-height)', () => {
     // Expected classes in KanbanBoard.tsx line 613:
-    // className="w-fit min-w-full h-full p-6 relative"
+    // className="w-fit min-w-full p-6 relative"
+    // Note: h-full removed for auto-height expansion
 
-    const expectedClasses = ['w-fit', 'min-w-full', 'h-full', 'p-6', 'relative']
+    const expectedClasses = ['w-fit', 'min-w-full', 'p-6', 'relative']
 
     // w-fit allows container to grow beyond viewport
     // min-w-full ensures it's at least as wide as viewport
+    // auto-height: no h-full constraint
     expect(expectedClasses).toContain('w-fit')
     expect(expectedClasses).toContain('min-w-full')
+    expect(expectedClasses).not.toContain('h-full')
   })
 
   it('should document expected classes for grid container', () => {
@@ -317,19 +320,19 @@ describe('Horizontal Scroll Technical Requirements', () => {
 })
 
 /**
- * Unit Tests: Vertical Scroll in Columns
+ * Unit Tests: Column Auto-Height Expansion
  *
  * Test targets:
- * - Vertical scroll functionality for columns with many cards (10+)
- * - CSS class verification for min-h-0 and overflow-y-auto
- * - Flex container shrinking behavior
+ * - Auto-height expansion for columns (no internal scrolling)
+ * - CSS class verification for removed height constraints
+ * - Grid row sizing with minmax(min-content, auto)
  *
- * Bug fix: Cards outside viewport in a column were not accessible
- * Fix: Added min-h-0 to flex containers to allow shrinking and enable overflow scroll
+ * Feature: Columns automatically expand to show all cards without internal scrolling.
+ * Implementation: Removed h-full, min-h-0 constraints and overflow-y-auto from columns.
  */
-describe('KanbanBoard Vertical Scroll Tests', () => {
-  describe('CSS Classes for Vertical Scroll', () => {
-    it('should render outer container with min-h-0 class', async () => {
+describe('KanbanBoard Column Auto-Height Tests', () => {
+  describe('CSS Classes for Auto-Height', () => {
+    it('should render outer container without height constraints', async () => {
       const store = createMockStore()
 
       const { container } = render(
@@ -339,15 +342,15 @@ describe('KanbanBoard Vertical Scroll Tests', () => {
       )
 
       await waitFor(() => {
-        // Check the outer container has min-h-0 class
+        // Check the outer container exists (without h-full min-h-0)
         const outerContainer = container.querySelector(
-          '.w-fit.min-w-full.h-full.min-h-0.p-6.relative',
+          '.w-fit.min-w-full.p-6.relative',
         )
         expect(outerContainer).toBeInTheDocument()
       })
     })
 
-    it('should render grid container with h-full min-h-0 classes', async () => {
+    it('should render grid container without h-full min-h-0 classes', async () => {
       const store = createMockStore()
 
       const { container } = render(
@@ -357,15 +360,15 @@ describe('KanbanBoard Vertical Scroll Tests', () => {
       )
 
       await waitFor(() => {
-        // Find the grid container with h-full min-h-0
+        // Find the grid container (without height constraints)
         const gridContainer = container.querySelector(
-          '.grid.gap-4.pb-4.w-fit.min-w-full.h-full.min-h-0',
+          '.grid.gap-4.pb-4.w-fit.min-w-full',
         )
         expect(gridContainer).toBeInTheDocument()
       })
     })
 
-    it('should have grid with minmax(0, 1fr) for row sizing', async () => {
+    it('should have grid with minmax(min-content, auto) for row sizing', async () => {
       const store = createMockStore()
 
       const { container } = render(
@@ -380,7 +383,7 @@ describe('KanbanBoard Vertical Scroll Tests', () => {
 
         if (gridContainer) {
           const style = gridContainer.getAttribute('style')
-          // Should have gridTemplateRows with minmax(0, 1fr) instead of auto
+          // Should have gridTemplateRows with minmax(min-content, auto) for auto-height
           if (style) {
             expect(style).toContain('grid-template-rows')
           }
@@ -389,30 +392,28 @@ describe('KanbanBoard Vertical Scroll Tests', () => {
     })
   })
 
-  describe('Flex Shrinking Behavior', () => {
-    it('should document min-h-0 requirement for flex scroll', () => {
-      // In CSS flexbox, children have implicit min-height: auto
-      // This prevents them from shrinking below content size
-      // Adding min-h-0 (min-height: 0) allows shrinking and enables overflow scroll
+  describe('Auto-Height Expansion Behavior', () => {
+    it('should document auto-height expansion requirements', () => {
+      // Auto-height pattern:
+      // - Columns expand to fit all cards (no internal scrolling)
+      // - Grid rows use minmax(min-content, auto) to expand based on content
+      // - No overflow-y-auto on card containers
 
-      const flexScrollRequirements = {
-        parentMinH0: 'min-h-0 allows parent to shrink',
-        childFlex1: 'flex-1 makes child expand to fill space',
-        childMinH0: 'min-h-0 allows child to shrink below content',
-        childOverflow:
-          'overflow-y-auto enables scroll when content exceeds height',
+      const autoHeightRequirements = {
+        gridRowSizing: 'minmax(min-content, auto) expands rows to fit content',
+        noHeightConstraint: 'Remove h-full and min-h-0 from containers',
+        noOverflow: 'Remove overflow-y-auto to allow natural expansion',
       }
 
-      expect(flexScrollRequirements.parentMinH0).toContain('min-h-0')
-      expect(flexScrollRequirements.childMinH0).toContain('min-h-0')
-      expect(flexScrollRequirements.childOverflow).toContain('overflow-y-auto')
+      expect(autoHeightRequirements.gridRowSizing).toContain('min-content')
+      expect(autoHeightRequirements.noHeightConstraint).toContain('h-full')
+      expect(autoHeightRequirements.noOverflow).toContain('overflow-y-auto')
     })
 
-    it('should calculate card overflow threshold', () => {
+    it('should calculate column height based on card count', () => {
       // Approximate card height: 130px (varies by content)
       // Column header: ~50px
       // Add Repo button: ~40px
-      // WIP warning (optional): ~50px
       // Padding: ~32px
 
       const cardHeight = 130
@@ -421,111 +422,114 @@ describe('KanbanBoard Vertical Scroll Tests', () => {
       const padding = 32
       const fixedHeight = headerHeight + buttonHeight + padding
 
-      // Available height for cards in a 600px tall column
-      const viewportHeight = 600
-      const availableForCards = viewportHeight - fixedHeight
+      // Column with 5 cards
+      const cardCount = 5
+      const expectedColumnHeight = fixedHeight + cardCount * cardHeight
 
-      // Number of cards that fit without scroll
-      const cardsWithoutScroll = Math.floor(availableForCards / cardHeight)
-
-      // With ~478px available, about 3-4 cards fit
-      expect(cardsWithoutScroll).toBeGreaterThanOrEqual(3)
-      expect(cardsWithoutScroll).toBeLessThanOrEqual(4)
-
-      // 10 cards would require scroll
-      expect(10).toBeGreaterThan(cardsWithoutScroll)
+      // With auto-height, column expands to fit all cards
+      expect(expectedColumnHeight).toBe(122 + 5 * 130) // 772px
+      expect(expectedColumnHeight).toBeGreaterThan(600) // Exceeds typical viewport
     })
   })
 
   describe('Grid Row Sizing', () => {
-    it('should use minmax(0, 1fr) to allow rows to shrink', () => {
-      // gridTemplateRows: repeat(N, auto) - rows expand to fit content (BAD for scroll)
-      // gridTemplateRows: repeat(N, minmax(0, 1fr)) - rows share available height (GOOD)
+    it('should use minmax(min-content, auto) for auto-height expansion', () => {
+      // gridTemplateRows: repeat(N, minmax(0, 1fr)) - bounded height (OLD - for scroll)
+      // gridTemplateRows: repeat(N, minmax(min-content, auto)) - auto-height (NEW)
 
-      const badPattern = 'repeat(2, auto)'
-      const goodPattern = 'repeat(2, minmax(0, 1fr))'
+      const scrollPattern = 'repeat(2, minmax(0, 1fr))'
+      const autoHeightPattern = 'repeat(2, minmax(min-content, auto))'
 
-      expect(badPattern).toContain('auto')
-      expect(goodPattern).toContain('minmax(0, 1fr)')
+      expect(scrollPattern).toContain('minmax(0, 1fr)')
+      expect(autoHeightPattern).toContain('minmax(min-content, auto)')
 
-      // The fix changes from 'auto' to 'minmax(0, 1fr)'
-      expect(goodPattern).not.toContain('auto')
+      // Auto-height uses min-content, not 0
+      expect(autoHeightPattern).toContain('min-content')
     })
 
-    it('should calculate grid row height distribution', () => {
+    it('should calculate grid row height distribution for auto-height', () => {
       const generateGridRowTemplate = (rows: number): string => {
-        return `repeat(${rows}, minmax(0, 1fr))`
+        return `repeat(${rows}, minmax(min-content, auto))`
       }
 
-      expect(generateGridRowTemplate(1)).toBe('repeat(1, minmax(0, 1fr))')
-      expect(generateGridRowTemplate(2)).toBe('repeat(2, minmax(0, 1fr))')
-      expect(generateGridRowTemplate(3)).toBe('repeat(3, minmax(0, 1fr))')
+      expect(generateGridRowTemplate(1)).toBe(
+        'repeat(1, minmax(min-content, auto))',
+      )
+      expect(generateGridRowTemplate(2)).toBe(
+        'repeat(2, minmax(min-content, auto))',
+      )
+      expect(generateGridRowTemplate(3)).toBe(
+        'repeat(3, minmax(min-content, auto))',
+      )
     })
   })
 })
 
-describe('SortableColumn Vertical Scroll Classes', () => {
+describe('SortableColumn Auto-Height Classes', () => {
   /**
    * These tests document the expected CSS classes for SortableColumn
-   * that enable vertical scrolling within columns.
+   * that enable auto-height expansion (no internal scrolling).
    */
 
-  it('should document expected classes for SortableColumn container', () => {
+  it('should document expected classes for SortableColumn container (auto-height)', () => {
     // Expected classes in SortableColumn.tsx line 89-90:
-    // className="flex flex-col h-full w-full min-h-0 bg-background/50..."
+    // className="flex flex-col w-full bg-background/50..."
+    // Note: h-full and min-h-0 removed for auto-height expansion
 
-    const expectedClasses = ['flex', 'flex-col', 'h-full', 'w-full', 'min-h-0']
+    const expectedClasses = ['flex', 'flex-col', 'w-full']
 
-    // min-h-0 is critical for vertical scroll
-    expect(expectedClasses).toContain('min-h-0')
-    expect(expectedClasses).toContain('h-full')
+    // Auto-height: removed h-full and min-h-0
     expect(expectedClasses).toContain('flex-col')
+    expect(expectedClasses).toContain('w-full')
+    expect(expectedClasses).not.toContain('h-full')
+    expect(expectedClasses).not.toContain('min-h-0')
   })
 
-  it('should document expected classes for inner wrapper', () => {
+  it('should document expected classes for inner wrapper (auto-height)', () => {
     // Expected classes in SortableColumn.tsx line 98:
-    // className="flex-1 min-h-0 p-4 overflow-hidden"
+    // className="flex-1 p-4"
+    // Note: min-h-0 and overflow-hidden removed for auto-height expansion
 
-    const expectedClasses = ['flex-1', 'min-h-0', 'p-4', 'overflow-hidden']
+    const expectedClasses = ['flex-1', 'p-4']
 
-    // min-h-0 and overflow-hidden enable proper scroll containment
-    expect(expectedClasses).toContain('min-h-0')
-    expect(expectedClasses).toContain('overflow-hidden')
+    // Auto-height: removed min-h-0 and overflow-hidden
+    expect(expectedClasses).toContain('flex-1')
+    expect(expectedClasses).toContain('p-4')
+    expect(expectedClasses).not.toContain('min-h-0')
+    expect(expectedClasses).not.toContain('overflow-hidden')
   })
 })
 
-describe('StatusColumn Vertical Scroll Classes', () => {
+describe('StatusColumn Auto-Height Classes', () => {
   /**
    * These tests document the expected CSS classes for StatusColumn
-   * that enable vertical scrolling of cards.
+   * that enable auto-height expansion of cards.
    */
 
-  it('should document expected classes for StatusColumn container', () => {
+  it('should document expected classes for StatusColumn container (auto-height)', () => {
     // Expected classes in StatusColumn.tsx line 81:
-    // className="flex flex-col h-full min-h-0"
+    // className="flex flex-col"
+    // Note: h-full and min-h-0 removed for auto-height expansion
 
-    const expectedClasses = ['flex', 'flex-col', 'h-full', 'min-h-0']
+    const expectedClasses = ['flex', 'flex-col']
 
-    expect(expectedClasses).toContain('min-h-0')
+    // Auto-height: removed h-full and min-h-0
     expect(expectedClasses).toContain('flex-col')
+    expect(expectedClasses).not.toContain('h-full')
+    expect(expectedClasses).not.toContain('min-h-0')
   })
 
-  it('should document expected classes for card scroll area', () => {
+  it('should document expected classes for card area (auto-height)', () => {
     // Expected classes in StatusColumn.tsx line 147:
-    // className="space-y-3 flex-1 min-h-0 overflow-y-auto rounded-lg p-1..."
+    // className="space-y-3 flex-1 rounded-lg p-1..."
+    // Note: min-h-0 and overflow-y-auto removed for auto-height expansion
 
-    const expectedClasses = [
-      'space-y-3',
-      'flex-1',
-      'min-h-0',
-      'overflow-y-auto',
-      'rounded-lg',
-      'p-1',
-    ]
+    const expectedClasses = ['space-y-3', 'flex-1', 'rounded-lg', 'p-1']
 
-    // flex-1 expands to fill, min-h-0 allows shrinking, overflow-y-auto enables scroll
+    // Auto-height: flex-1 expands, NO overflow-y-auto (cards flow naturally)
     expect(expectedClasses).toContain('flex-1')
-    expect(expectedClasses).toContain('min-h-0')
-    expect(expectedClasses).toContain('overflow-y-auto')
+    expect(expectedClasses).toContain('space-y-3')
+    expect(expectedClasses).not.toContain('min-h-0')
+    expect(expectedClasses).not.toContain('overflow-y-auto')
   })
 })

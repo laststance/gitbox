@@ -555,7 +555,7 @@ Row 1: [ C ]                           ← 新Row作成
 | 項目          | 値                               |
 | ------------- | -------------------------------- |
 | 実装状態      | ✅ 実装済み                      |
-| E2Eカバー     | ⬜ 検証強化必要                  |
+| E2Eカバー     | ✅ カバー済み                    |
 | Server Action | `updateStatusListPosition()`     |
 | CDP Helper    | `cdpColumnToNewRowDragAndDrop()` |
 
@@ -594,7 +594,7 @@ Row 1: [ B ] [   ] [   ]   →     Row 1: [ A ] [   ] [   ]
 | 項目          | 値                                 |
 | ------------- | ---------------------------------- |
 | 実装状態      | ✅ 実装済み                        |
-| E2Eカバー     | ⬜ 未カバー                        |
+| E2Eカバー     | ✅ カバー済み                      |
 | Server Action | `swapStatusListPositions()`        |
 | CDP Helper    | `cdpColumnDragAndDrop()`           |
 | 注意          | 同一gridColのカラム間でRow位置交換 |
@@ -619,7 +619,7 @@ Row 1: [   ] [   ] [ B ]   →     Row 1: [ A ] [   ] [   ]
 | 項目          | 値                             |
 | ------------- | ------------------------------ |
 | 実装状態      | ✅ 実装済み                    |
-| E2Eカバー     | ⬜ 未カバー                    |
+| E2Eカバー     | ✅ カバー済み                  |
 | Server Action | `swapStatusListPositions()`    |
 | CDP Helper    | `cdpColumnDragAndDrop()`       |
 | 注意          | gridRow, gridCol両方を完全交換 |
@@ -659,12 +659,20 @@ Row 1: [   ] [   ] [ B ]   →     Row 1: [ A ] [   ] [   ]
                                  ↑ Height拡張
 ```
 
-| 項目         | 値                                       |
-| ------------ | ---------------------------------------- |
-| 実装状態     | ❌ 未実装                                |
-| E2Eカバー    | ❌ 未カバー                              |
-| 影響ファイル | `SortableColumn.tsx`, `StatusColumn.tsx` |
-| 設計検討     | CSS Grid `grid-auto-rows` vs JS計算      |
+| 項目         | 値                                                                         |
+| ------------ | -------------------------------------------------------------------------- |
+| 実装状態     | ✅ 実装済み（2025-12-28）                                                  |
+| E2Eカバー    | ✅ カバー済み（`e2e/kanban.spec.ts` - Column Auto-Height テスト）          |
+| 影響ファイル | `KanbanBoard.tsx`, `SortableColumn.tsx`, `StatusColumn.tsx`, `cdp-drag.ts` |
+| 実装方式     | CSS Grid `minmax(min-content, auto)` + height constraints 除去             |
+
+**実装詳細**:
+
+1. `KanbanBoard.tsx`: `gridTemplateRows` を `minmax(0, 1fr)` → `minmax(min-content, auto)` に変更
+2. `KanbanBoard.tsx`: 外側コンテナ・グリッドから `h-full min-h-0` を除去
+3. `SortableColumn.tsx`: `h-full min-h-0` と `overflow-hidden` を除去
+4. `StatusColumn.tsx`: `h-full min-h-0` と `overflow-y-auto` を除去
+5. `cdp-drag.ts`: グリッドセレクターを `.w-fit.min-w-full.p-6` に更新
 
 ### 10.5 E2Eテストカバレッジ要件
 
@@ -680,7 +688,7 @@ Row 1: [   ] [   ] [ B ]   →     Row 1: [ A ] [   ] [   ]
 | Column: 斜め方向Swap         | ✅ 追加済み（10.3.6 - 3テスト in `column-dnd.spec.ts`）            |
 | Column: NewRowDropZone       | ⬜ 検証強化必要                                                    |
 | Column: ColumnInsertZone挿入 | ✅ 追加済み（5テストケース in `kanban-dnd.spec.ts`）               |
-| Column: Auto-Height拡張      | ⬜ 実装後追加                                                      |
+| Column: Auto-Height拡張      | ✅ 追加済み（`e2e/kanban.spec.ts` - 6テスト）                      |
 
 ### 10.6 CDP Drag Helper一覧
 

@@ -483,6 +483,12 @@ export async function cdpCardToColumnDragAndDrop(
  * @param targetRow - Target row index for the NewRowDropZone (typically maxRow + 1)
  * @param options - Drag configuration options
  *
+ * @remarks
+ * Enhanced targeting strategy:
+ * 1. Uses viewport-relative positioning for drop zone targeting
+ * 2. Moves in multiple phases to ensure drop zone visibility
+ * 3. Targets below the grid container for reliable detection
+ *
  * @example
  * ```typescript
  * // Move "Backlog" column to a new second row
@@ -507,71 +513,76 @@ export async function cdpColumnToNewRowDragAndDrop(
     const sourceSelector = `[data-testid="sortable-column-${sourceColumnId}"]`
     const sourceCoords = await getColumnDragHandleCenter(page, sourceSelector)
 
+    // Get grid container for positioning reference
+    const gridContainer = page.locator('.grid.gap-4.pb-4').first()
+    const gridBox = await gridContainer.boundingBox()
+    if (!gridBox) throw new Error('Grid container not found')
+
     // 1. Move to source and initiate drag
     await dispatchMouseEvent(client, 'mouseMoved', sourceCoords, 'none', 0)
     await sleep(50)
     await dispatchMouseEvent(client, 'mousePressed', sourceCoords, 'left', 1)
-    await sleep(200) // Extra time for @dnd-kit to initialize drag state
+    await sleep(250) // Extra time for @dnd-kit to initialize drag state
 
-    // 2. Move down slightly to trigger NewRowDropZone visibility
+    // 2. Move down gradually to trigger NewRowDropZone visibility
     // NewRowDropZone only appears during active column drag
-    const midPoint: Coordinates = {
+    const phase1Point: Coordinates = {
       x: sourceCoords.x,
-      y: sourceCoords.y + 100, // Move down to make drop zone appear
+      y: sourceCoords.y + 150, // Move down to make drop zone appear
     }
-    await dispatchMouseEvent(client, 'mouseMoved', midPoint, 'left', 0)
-    await sleep(150)
+    await dispatchMouseEvent(client, 'mouseMoved', phase1Point, 'left', 0)
+    await sleep(200)
 
-    // 3. Wait for NewRowDropZone to become visible and get its coordinates
-    const dropZoneSelector = `[class*="border-dashed"]:has-text("Drop column")`
-    let targetCoords: Coordinates
-
-    try {
-      const dropZone = page.locator(dropZoneSelector).first()
-      await dropZone.waitFor({ state: 'visible', timeout: 3000 })
-
-      const box = await dropZone.boundingBox()
-      if (box) {
-        targetCoords = {
-          x: Math.round(box.x + box.width / 2),
-          y: Math.round(box.y + box.height / 2),
-        }
-      } else {
-        // Fallback: estimate drop zone position (bottom of grid area)
-        const gridContainer = page.locator('.grid.gap-4.pb-4').first()
-        const gridBox = await gridContainer.boundingBox()
-        if (!gridBox) throw new Error('Grid container not found')
-
-        targetCoords = {
-          x: Math.round(gridBox.x + gridBox.width / 2),
-          y: Math.round(gridBox.y + gridBox.height + 50),
-        }
-      }
-    } catch {
-      // Fallback if drop zone not found: calculate estimated position
-      const viewport = page.viewportSize()
-      if (!viewport) throw new Error('Viewport not available')
-
-      targetCoords = {
-        x: Math.round(viewport.width / 2),
-        y: Math.round(viewport.height - 100), // Near bottom of viewport
-      }
+    // 3. Calculate target position: bottom of grid container + offset
+    // The drop zone appears at the bottom of the grid
+    const targetCoords: Coordinates = {
+      x: Math.round(gridBox.x + gridBox.width / 2),
+      y: Math.round(gridBox.y + gridBox.height + 40), // Below grid, in drop zone
     }
 
-    // 4. Drag to NewRowDropZone with smooth motion
-    const points = interpolateCoordinates(midPoint, targetCoords, steps)
-    for (const point of points) {
+    // 4. Move to intermediate point first
+    const phase2Point: Coordinates = {
+      x: targetCoords.x,
+      y: Math.round((phase1Point.y + targetCoords.y) / 2),
+    }
+    const phase1Steps = Math.floor(steps / 2)
+    const points1 = interpolateCoordinates(
+      phase1Point,
+      phase2Point,
+      phase1Steps,
+    )
+    for (const point of points1) {
       await dispatchMouseEvent(client, 'mouseMoved', point, 'left', 0)
       await sleep(stepDelay)
     }
 
-    // 5. Hold at drop zone (allow visual feedback and drop detection)
+    // 5. Final approach to drop zone
+    const phase2Steps = steps - phase1Steps
+    const points2 = interpolateCoordinates(
+      phase2Point,
+      targetCoords,
+      phase2Steps,
+    )
+    for (const point of points2) {
+      await dispatchMouseEvent(client, 'mouseMoved', point, 'left', 0)
+      await sleep(stepDelay)
+    }
+
+    // 6. Hold at drop zone (allow visual feedback and drop detection)
     await dispatchMouseEvent(client, 'mouseMoved', targetCoords, 'left', 0)
     await sleep(dropDelay)
 
-    // 6. Release to complete drop to new row
-    await dispatchMouseEvent(client, 'mouseReleased', targetCoords, 'left', 1)
-    await sleep(300) // Allow grid reflow animation
+    // 7. Move slightly more into drop zone for better detection
+    const finalCoords: Coordinates = {
+      x: targetCoords.x,
+      y: targetCoords.y + 10,
+    }
+    await dispatchMouseEvent(client, 'mouseMoved', finalCoords, 'left', 0)
+    await sleep(100)
+
+    // 8. Release to complete drop to new row
+    await dispatchMouseEvent(client, 'mouseReleased', finalCoords, 'left', 1)
+    await sleep(400) // Allow grid reflow animation
   } finally {
     await client.detach()
   }
@@ -660,7 +671,7 @@ export async function cdpColumnToInsertZone(
       const ROW_GAP = 16
       const GRID_PADDING = 24
 
-      const gridContainer = page.locator('.w-fit.min-w-full.h-full.p-6').first()
+      const gridContainer = page.locator('.w-fit.min-w-full.p-6').first()
       const gridBox = await gridContainer.boundingBox()
       if (!gridBox) throw new Error('Grid container not found')
 
@@ -743,7 +754,7 @@ export async function cdpColumnToGridPosition(
     const GRID_PADDING = 24 // p-6 = 1.5rem = 24px
 
     // Get grid container position
-    const gridContainer = page.locator('.w-fit.min-w-full.h-full.p-6').first()
+    const gridContainer = page.locator('.w-fit.min-w-full.p-6').first()
     const gridBox = await gridContainer.boundingBox()
     if (!gridBox) throw new Error('Grid container not found')
 

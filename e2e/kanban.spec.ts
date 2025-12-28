@@ -147,8 +147,8 @@ test.describe('Kanban Board Horizontal Scroll', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('domcontentloaded')
 
-    // Find the outer KanbanBoard container
-    const kanbanContainer = page.locator('.w-fit.min-w-full.h-full.p-6').first()
+    // Find the outer KanbanBoard container (auto-height: no h-full constraint)
+    const kanbanContainer = page.locator('.w-fit.min-w-full.p-6').first()
     await expect(kanbanContainer).toBeVisible({ timeout: 10000 })
   })
 
@@ -372,23 +372,22 @@ test.describe('Kanban Board Horizontal Scroll - Multi Column', () => {
 })
 
 /**
- * Vertical Scroll Tests
+ * Column Auto-Height Tests
  *
- * Tests for vertical scrolling functionality within columns when there are many cards.
- * Bug fix: Cards outside viewport were not scrollable when column had 10+ cards.
- * Fix: Added min-h-0 throughout flex hierarchy and changed gridTemplateRows to minmax(0, 1fr).
+ * Tests for column auto-height expansion behavior.
+ * Feature: Columns automatically expand to show all cards without internal scrolling.
  *
- * CSS Pattern for enabling scroll in flex containers:
- * - Parent flex container needs `min-h-0` to allow children to shrink below content size
- * - Child with overflow-y-auto needs `min-h-0` and `flex-1` to receive bounded height
- * - Grid rows need `minmax(0, 1fr)` instead of `auto` to distribute height equally
+ * CSS Pattern for auto-height expansion:
+ * - Grid uses `minmax(min-content, auto)` for rows to expand based on content
+ * - Columns have no height constraints (removed h-full, min-h-0)
+ * - Card container has no overflow-y-auto (cards flow naturally)
  */
-test.describe('Kanban Board Vertical Scroll', () => {
+test.describe('Kanban Board Column Auto-Height', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = '/board/board-1'
 
-  test('should have KanbanBoard container with min-h-0 for flex shrinking', async ({
+  test('should have KanbanBoard container without height constraints', async ({
     page,
   }) => {
     await page.goto(BOARD_URL)
@@ -397,15 +396,16 @@ test.describe('Kanban Board Vertical Scroll', () => {
     // Wait for hydration
     await page.waitForTimeout(500)
 
-    // Find the outer KanbanBoard container with min-h-0 class
-    const kanbanContainer = page.locator('.w-fit.min-w-full.h-full.min-h-0.p-6')
+    // Find the outer KanbanBoard container (should not have h-full or min-h-0)
+    const kanbanContainer = page.locator('.w-fit.min-w-full.p-6').first()
     await expect(kanbanContainer).toBeVisible({ timeout: 10000 })
 
-    // Verify the container has the min-h-0 class for flex shrinking
-    await expect(kanbanContainer).toHaveClass(/min-h-0/)
+    // Verify container exists and is visible
+    const classes = await kanbanContainer.getAttribute('class')
+    expect(classes).not.toContain('h-full')
   })
 
-  test('should have grid container with h-full min-h-0 classes', async ({
+  test('should have grid container without h-full min-h-0 classes', async ({
     page,
   }) => {
     await page.goto(BOARD_URL)
@@ -414,16 +414,17 @@ test.describe('Kanban Board Vertical Scroll', () => {
     // Wait for hydration - grid appears after isMounted is true
     await page.waitForTimeout(500)
 
-    // Find the grid container with vertical scroll support classes
-    const gridContainer = page.locator('.grid.gap-4.pb-4.h-full.min-h-0')
+    // Find the grid container
+    const gridContainer = page.locator('.grid.gap-4.pb-4').first()
     await expect(gridContainer).toBeVisible({ timeout: 10000 })
 
-    // Verify the grid has h-full and min-h-0 for proper height constraints
-    await expect(gridContainer).toHaveClass(/h-full/)
-    await expect(gridContainer).toHaveClass(/min-h-0/)
+    // Verify the grid does NOT have height-constraining classes
+    const classes = await gridContainer.getAttribute('class')
+    expect(classes).not.toContain('h-full')
+    expect(classes).not.toContain('min-h-0')
   })
 
-  test('should have grid with correct gridTemplateRows style using minmax(0, 1fr)', async ({
+  test('should have grid with correct gridTemplateRows style using minmax(min-content, auto)', async ({
     page,
   }) => {
     await page.goto(BOARD_URL)
@@ -439,15 +440,16 @@ test.describe('Kanban Board Vertical Scroll', () => {
       return grid.getAttribute('style')
     })
 
-    // Verify grid has inline style with gridTemplateRows using minmax(0, 1fr)
+    // Verify grid has inline style with gridTemplateRows using minmax(min-content, auto)
     expect(gridStyle).not.toBeNull()
     expect(gridStyle).toContain('grid-template-rows')
-    // Should use minmax(0, 1fr) instead of auto to allow row shrinking
-    // Browser normalizes 0 to 0px in CSS, so we check for minmax(0px, 1fr)
-    expect(gridStyle).toContain('minmax(0px, 1fr)')
+    // Should use minmax(min-content, auto) for auto-height expansion
+    expect(gridStyle).toContain('minmax(min-content, auto)')
   })
 
-  test('should have SortableColumn with min-h-0 class', async ({ page }) => {
+  test('should have SortableColumn without height constraints', async ({
+    page,
+  }) => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('domcontentloaded')
 
@@ -460,11 +462,12 @@ test.describe('Kanban Board Vertical Scroll', () => {
       .first()
     await expect(sortableColumn).toBeVisible({ timeout: 10000 })
 
-    // Verify the column has min-h-0 for flex shrinking
-    await expect(sortableColumn).toHaveClass(/min-h-0/)
+    // Verify the column does NOT have height-constraining classes
+    const classes = await sortableColumn.getAttribute('class')
+    expect(classes).not.toContain('h-full')
   })
 
-  test('should have StatusColumn container with min-h-0 class', async ({
+  test('should have StatusColumn container without min-h-0 constraint', async ({
     page,
   }) => {
     await page.goto(BOARD_URL)
@@ -477,11 +480,11 @@ test.describe('Kanban Board Vertical Scroll', () => {
     const statusColumn = page.locator('[data-testid^="status-column-"]').first()
     await expect(statusColumn).toBeVisible({ timeout: 10000 })
 
-    // Verify the column has min-h-0 for flex shrinking
-    await expect(statusColumn).toHaveClass(/min-h-0/)
+    // Verify the column exists (auto-height allows natural expansion)
+    await expect(statusColumn).toHaveClass(/flex-col/)
   })
 
-  test('should have card container with overflow-y-auto for vertical scrolling', async ({
+  test('should have card container without overflow-y-auto (no internal scroll)', async ({
     page,
   }) => {
     await page.goto(BOARD_URL)
@@ -490,177 +493,75 @@ test.describe('Kanban Board Vertical Scroll', () => {
     // Wait for hydration
     await page.waitForTimeout(500)
 
-    // Find the card container inside a column (space-y-3 flex-1 min-h-0 overflow-y-auto)
-    const cardContainer = page
-      .locator('.space-y-3.flex-1.min-h-0.overflow-y-auto')
-      .first()
+    // Find the card container inside a column (space-y-3 flex-1)
+    const cardContainer = page.locator('.space-y-3.flex-1').first()
     await expect(cardContainer).toBeVisible({ timeout: 10000 })
 
-    // Verify it has the necessary classes for vertical scroll
-    await expect(cardContainer).toHaveClass(/overflow-y-auto/)
-    await expect(cardContainer).toHaveClass(/min-h-0/)
-    await expect(cardContainer).toHaveClass(/flex-1/)
+    // Verify it does NOT have overflow-y-auto (cards should expand, not scroll)
+    const classes = await cardContainer.getAttribute('class')
+    expect(classes).not.toContain('overflow-y-auto')
   })
 
-  test('should enable vertical scroll when cards overflow column height', async ({
-    page,
-  }) => {
+  test('should expand column height to fit all cards', async ({ page }) => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('domcontentloaded')
 
     // Wait for hydration
     await page.waitForTimeout(500)
 
-    // Check if any card container has scrollable content
-    const scrollInfo = await page.evaluate(() => {
+    // Verify columns expand to fit content (no hidden cards)
+    const columnInfo = await page.evaluate(() => {
       const cardContainers = Array.from(
-        document.querySelectorAll('.space-y-3.flex-1.min-h-0.overflow-y-auto'),
-      )
-      for (const container of cardContainers) {
-        if (container.scrollHeight > container.clientHeight) {
-          return {
-            scrollHeight: container.scrollHeight,
-            clientHeight: container.clientHeight,
-            hasVerticalScroll: container.scrollHeight > container.clientHeight,
-          }
-        }
-      }
-      // If no container has overflow, return info about first container
-      const first = cardContainers[0]
-      if (first) {
-        return {
-          scrollHeight: first.scrollHeight,
-          clientHeight: first.clientHeight,
-          hasVerticalScroll: false,
-          note: 'No column currently has overflow - test data may have few cards',
-        }
-      }
-      return null
-    })
-
-    // Verify card container exists
-    expect(scrollInfo).not.toBeNull()
-    expect(scrollInfo?.scrollHeight).toBeGreaterThanOrEqual(0)
-    expect(scrollInfo?.clientHeight).toBeGreaterThanOrEqual(0)
-  })
-})
-
-/**
- * Vertical Scroll with Many Cards
- *
- * These tests verify vertical scrolling works correctly when
- * a column has many cards that exceed the column height.
- */
-test.describe('Kanban Board Vertical Scroll - Many Cards', () => {
-  test.use({ storageState: 'e2e/.auth/user.json' })
-
-  const BOARD_URL = '/board/board-1'
-
-  test('should scroll vertically to reveal hidden cards when column has overflow', async ({
-    page,
-  }) => {
-    await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
-
-    // Wait for hydration
-    await page.waitForTimeout(500)
-
-    // Find a card container that has overflow (if any)
-    const scrollResult = await page.evaluate(() => {
-      const cardContainers = Array.from(
-        document.querySelectorAll('.space-y-3.flex-1.min-h-0.overflow-y-auto'),
-      )
-
-      for (const container of cardContainers) {
-        if (container.scrollHeight > container.clientHeight) {
-          // Found a container with overflow
-          const initialScrollTop = container.scrollTop
-
-          // Scroll down
-          container.scrollTop = container.scrollHeight - container.clientHeight
-
-          const afterScrollTop = container.scrollTop
-
-          // Scroll back to top
-          container.scrollTop = 0
-
-          const finalScrollTop = container.scrollTop
-
-          return {
-            hasOverflow: true,
-            initialScrollTop,
-            afterScrollTop,
-            finalScrollTop,
-            scrolledSuccessfully: afterScrollTop > 0,
-            returnedToTop: finalScrollTop === 0,
-          }
-        }
-      }
-
-      return {
-        hasOverflow: false,
-        note: 'No column has enough cards to require scrolling in current test data',
-      }
-    })
-
-    expect(scrollResult).not.toBeNull()
-
-    // If there's overflow, verify scroll works correctly
-    if (scrollResult.hasOverflow) {
-      expect(scrollResult.scrolledSuccessfully).toBe(true)
-      expect(scrollResult.returnedToTop).toBe(true)
-    }
-  })
-
-  test('should maintain card count after vertical scroll', async ({ page }) => {
-    await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
-
-    // Wait for hydration
-    await page.waitForTimeout(500)
-
-    // Count cards in all columns before and after scroll
-    const cardCountResult = await page.evaluate(() => {
-      const cardContainers = document.querySelectorAll(
-        '.space-y-3.flex-1.min-h-0.overflow-y-auto',
+        document.querySelectorAll('.space-y-3.flex-1'),
       )
 
       const results: Array<{
-        containerIndex: number
-        initialCount: number
-        afterScrollCount: number
+        cardCount: number
+        containerHeight: number
+        contentHeight: number
+        allCardsVisible: boolean
       }> = []
 
-      cardContainers.forEach((container, index) => {
-        const initialCount = container.children.length
+      for (const container of cardContainers) {
+        const cards = container.querySelectorAll('[data-testid^="repo-card-"]')
+        const rect = container.getBoundingClientRect()
 
-        // Scroll if possible
-        if (container.scrollHeight > container.clientHeight) {
-          container.scrollTop = 100
-        }
-
-        const afterScrollCount = container.children.length
-
-        // Reset scroll
-        container.scrollTop = 0
+        // Check if all cards are visible (no overflow hidden)
+        const allCardsVisible =
+          container.scrollHeight <= container.clientHeight + 1 // +1 for rounding
 
         results.push({
-          containerIndex: index,
-          initialCount,
-          afterScrollCount,
+          cardCount: cards.length,
+          containerHeight: Math.round(rect.height),
+          contentHeight: container.scrollHeight,
+          allCardsVisible,
         })
-      })
+      }
 
       return results
     })
 
-    // Card count should remain the same after scrolling (DOM doesn't change)
-    cardCountResult.forEach((result) => {
-      expect(result.afterScrollCount).toBe(result.initialCount)
+    // Verify all columns show all their cards
+    columnInfo.forEach((col) => {
+      if (col.cardCount > 0) {
+        expect(col.allCardsVisible).toBe(true)
+      }
     })
   })
+})
 
-  test('should have proper flex hierarchy for vertical scroll to work', async ({
+/**
+ * Column Auto-Height with Many Cards
+ *
+ * These tests verify that columns with many cards properly expand
+ * to show all cards without requiring internal scrolling.
+ */
+test.describe('Kanban Board Column Auto-Height - Many Cards', () => {
+  test.use({ storageState: 'e2e/.auth/user.json' })
+
+  const BOARD_URL = '/board/board-1'
+
+  test('should show all cards without internal column scrollbar', async ({
     page,
   }) => {
     await page.goto(BOARD_URL)
@@ -669,15 +570,88 @@ test.describe('Kanban Board Vertical Scroll - Many Cards', () => {
     // Wait for hydration
     await page.waitForTimeout(500)
 
-    // Verify the complete flex hierarchy from KanbanBoard to card container
+    // Verify no card container has internal overflow (scrollHeight === clientHeight)
+    const overflowCheck = await page.evaluate(() => {
+      const cardContainers = Array.from(
+        document.querySelectorAll('.space-y-3.flex-1'),
+      )
+
+      const results: Array<{
+        hasOverflow: boolean
+        scrollHeight: number
+        clientHeight: number
+      }> = []
+
+      for (const container of cardContainers) {
+        results.push({
+          hasOverflow: container.scrollHeight > container.clientHeight + 1,
+          scrollHeight: container.scrollHeight,
+          clientHeight: container.clientHeight,
+        })
+      }
+
+      return results
+    })
+
+    // All containers should NOT have internal overflow (auto-height expands)
+    overflowCheck.forEach((result) => {
+      expect(result.hasOverflow).toBe(false)
+    })
+  })
+
+  test('should maintain all cards visible at all times', async ({ page }) => {
+    await page.goto(BOARD_URL)
+    await page.waitForLoadState('domcontentloaded')
+
+    // Wait for hydration
+    await page.waitForTimeout(500)
+
+    // Count total cards in all columns
+    const cardCountResult = await page.evaluate(() => {
+      const cardContainers = document.querySelectorAll('.space-y-3.flex-1')
+
+      let totalCards = 0
+      let visibleCards = 0
+
+      cardContainers.forEach((container) => {
+        const cards = container.querySelectorAll('[data-testid^="repo-card-"]')
+        totalCards += cards.length
+
+        // Check each card's visibility
+        cards.forEach((card) => {
+          const rect = card.getBoundingClientRect()
+          if (rect.height > 0 && rect.width > 0) {
+            visibleCards++
+          }
+        })
+      })
+
+      return { totalCards, visibleCards }
+    })
+
+    // All cards should be visible (no hidden cards due to overflow)
+    expect(cardCountResult.visibleCards).toBe(cardCountResult.totalCards)
+  })
+
+  test('should have proper flex hierarchy for auto-height to work', async ({
+    page,
+  }) => {
+    await page.goto(BOARD_URL)
+    await page.waitForLoadState('domcontentloaded')
+
+    // Wait for hydration
+    await page.waitForTimeout(500)
+
+    // Verify the hierarchy supports auto-height expansion
     const hierarchyCheck = await page.evaluate(() => {
       // Find the grid
       const grid = document.querySelector('.grid.gap-4.pb-4')
       if (!grid) return { error: 'Grid not found' }
 
       const gridClasses = grid.className
-      const gridHasMinH0 = gridClasses.includes('min-h-0')
-      const gridHasHFull = gridClasses.includes('h-full')
+      // Auto-height: should NOT have height-constraining classes
+      const gridHasNoHeightConstraint =
+        !gridClasses.includes('h-full') && !gridClasses.includes('min-h-0')
 
       // Find a sortable column
       const sortableColumn = document.querySelector(
@@ -686,7 +660,7 @@ test.describe('Kanban Board Vertical Scroll - Many Cards', () => {
       if (!sortableColumn) return { error: 'SortableColumn not found' }
 
       const sortableClasses = sortableColumn.className
-      const sortableHasMinH0 = sortableClasses.includes('min-h-0')
+      const sortableHasNoHeightConstraint = !sortableClasses.includes('h-full')
 
       // Find a status column
       const statusColumn = document.querySelector(
@@ -694,46 +668,36 @@ test.describe('Kanban Board Vertical Scroll - Many Cards', () => {
       )
       if (!statusColumn) return { error: 'StatusColumn not found' }
 
-      const statusClasses = statusColumn.className
-      const statusHasMinH0 = statusClasses.includes('min-h-0')
-
       // Find the card container
-      const cardContainer = document.querySelector(
-        '.space-y-3.flex-1.min-h-0.overflow-y-auto',
-      )
+      const cardContainer = document.querySelector('.space-y-3.flex-1')
       if (!cardContainer) return { error: 'Card container not found' }
 
       const cardClasses = cardContainer.className
-      const cardHasOverflowYAuto = cardClasses.includes('overflow-y-auto')
-      const cardHasMinH0 = cardClasses.includes('min-h-0')
+      // Auto-height: should NOT have overflow-y-auto
+      const cardHasNoOverflow = !cardClasses.includes('overflow-y-auto')
       const cardHasFlex1 = cardClasses.includes('flex-1')
 
       return {
-        grid: { hasMinH0: gridHasMinH0, hasHFull: gridHasHFull },
-        sortableColumn: { hasMinH0: sortableHasMinH0 },
-        statusColumn: { hasMinH0: statusHasMinH0 },
+        grid: { noHeightConstraint: gridHasNoHeightConstraint },
+        sortableColumn: { noHeightConstraint: sortableHasNoHeightConstraint },
         cardContainer: {
-          hasOverflowYAuto: cardHasOverflowYAuto,
-          hasMinH0: cardHasMinH0,
+          noOverflow: cardHasNoOverflow,
           hasFlex1: cardHasFlex1,
         },
         hierarchyComplete: true,
       }
     })
 
-    // Verify the complete hierarchy is correct for vertical scroll
+    // Verify the hierarchy supports auto-height expansion
     expect(hierarchyCheck.error).toBeUndefined()
-    expect(hierarchyCheck.grid?.hasMinH0).toBe(true)
-    expect(hierarchyCheck.grid?.hasHFull).toBe(true)
-    expect(hierarchyCheck.sortableColumn?.hasMinH0).toBe(true)
-    expect(hierarchyCheck.statusColumn?.hasMinH0).toBe(true)
-    expect(hierarchyCheck.cardContainer?.hasOverflowYAuto).toBe(true)
-    expect(hierarchyCheck.cardContainer?.hasMinH0).toBe(true)
+    expect(hierarchyCheck.grid?.noHeightConstraint).toBe(true)
+    expect(hierarchyCheck.sortableColumn?.noHeightConstraint).toBe(true)
+    expect(hierarchyCheck.cardContainer?.noOverflow).toBe(true)
     expect(hierarchyCheck.cardContainer?.hasFlex1).toBe(true)
     expect(hierarchyCheck.hierarchyComplete).toBe(true)
   })
 
-  test('should have bounded column height for scroll to work', async ({
+  test('should have column height matching content height', async ({
     page,
   }) => {
     await page.goto(BOARD_URL)
@@ -742,35 +706,41 @@ test.describe('Kanban Board Vertical Scroll - Many Cards', () => {
     // Wait for hydration
     await page.waitForTimeout(500)
 
-    // Verify columns have bounded heights (not expanding infinitely)
+    // Verify columns expand to match their content
     const heightInfo = await page.evaluate(() => {
       const sortableColumns = document.querySelectorAll(
         '[data-testid^="sortable-column-"]',
       )
-      const viewport = {
-        width: window.innerWidth,
-        height: window.innerHeight,
-      }
 
-      const columnHeights: number[] = []
+      const results: Array<{
+        columnHeight: number
+        cardContainerHeight: number
+        heightMatchesContent: boolean
+      }> = []
+
       sortableColumns.forEach((column) => {
-        const rect = column.getBoundingClientRect()
-        columnHeights.push(rect.height)
+        const columnRect = column.getBoundingClientRect()
+        const cardContainer = column.querySelector('.space-y-3.flex-1')
+
+        if (cardContainer) {
+          const containerRect = cardContainer.getBoundingClientRect()
+          // Column should accommodate full card container height
+          results.push({
+            columnHeight: Math.round(columnRect.height),
+            cardContainerHeight: Math.round(containerRect.height),
+            heightMatchesContent:
+              cardContainer.scrollHeight <= containerRect.height + 1,
+          })
+        }
       })
 
-      return {
-        viewportHeight: viewport.height,
-        columnHeights,
-        allColumnsBounded: columnHeights.every((h) => h <= viewport.height),
-      }
+      return results
     })
 
-    expect(heightInfo.columnHeights.length).toBeGreaterThan(0)
-    // Columns should be bounded by viewport height (or slightly less due to margins)
-    // This verifies the min-h-0 and minmax(0, 1fr) fixes are working
-    heightInfo.columnHeights.forEach((height) => {
-      // Column height should be reasonable (not expanding to content height)
-      expect(height).toBeLessThanOrEqual(heightInfo.viewportHeight * 1.1) // Allow 10% margin
+    expect(heightInfo.length).toBeGreaterThan(0)
+    // All columns should have height matching their content
+    heightInfo.forEach((info) => {
+      expect(info.heightMatchesContent).toBe(true)
     })
   })
 })
