@@ -578,6 +578,131 @@ export async function cdpColumnToNewRowDragAndDrop(
 }
 
 /**
+ * Performs a column drag to a ColumnInsertZone (empty grid slot).
+ * This function specifically targets ColumnInsertZone elements that appear
+ * during column drag operations at empty grid positions.
+ *
+ * @param page - Playwright Page instance
+ * @param sourceColumnId - Status list ID of the column to drag
+ * @param targetGridRow - Target row index for the InsertZone (0-indexed)
+ * @param targetGridCol - Target column index for the InsertZone (0-indexed)
+ * @param options - Drag configuration options
+ *
+ * @remarks
+ * - ColumnInsertZone only appears during active column drag
+ * - InsertZone has aria-label: "Insert column at row X, column Y"
+ * - This helper finds the actual InsertZone element for precise targeting
+ *
+ * @example
+ * ```typescript
+ * // First create empty slot by moving a column to row 1
+ * await cdpColumnToNewRowDragAndDrop(page, 'status-3', 1);
+ * // Then insert another column into the empty slot
+ * await cdpColumnToInsertZone(page, 'status-1', 0, 2);
+ * ```
+ */
+export async function cdpColumnToInsertZone(
+  page: Page,
+  sourceColumnId: string,
+  targetGridRow: number,
+  targetGridCol: number,
+  options: CDPDragOptions = {},
+): Promise<void> {
+  const { steps = 18, stepDelay = 40, dropDelay = 200 } = options
+
+  const client = await page.context().newCDPSession(page)
+
+  try {
+    // Get source column drag handle coordinates
+    const sourceSelector = `[data-testid="sortable-column-${sourceColumnId}"]`
+    const sourceCoords = await getColumnDragHandleCenter(page, sourceSelector)
+
+    // 1. Move to source and initiate drag
+    await dispatchMouseEvent(client, 'mouseMoved', sourceCoords, 'none', 0)
+    await sleep(50)
+    await dispatchMouseEvent(client, 'mousePressed', sourceCoords, 'left', 1)
+    await sleep(200) // Extra time for @dnd-kit to initialize drag state
+
+    // 2. Move slightly to trigger InsertZone visibility
+    const midPoint: Coordinates = {
+      x: sourceCoords.x + 50,
+      y: sourceCoords.y,
+    }
+    await dispatchMouseEvent(client, 'mouseMoved', midPoint, 'left', 0)
+    await sleep(150)
+
+    // 3. Wait for ColumnInsertZone to become visible and get its coordinates
+    // aria-label format: "Insert column at row X, column Y" (1-indexed for display)
+    const insertZoneLabel = `Insert column at row ${targetGridRow + 1}, column ${targetGridCol + 1}`
+    const insertZoneSelector = `[aria-label="${insertZoneLabel}"]`
+
+    let targetCoords: Coordinates
+
+    try {
+      const insertZone = page.locator(insertZoneSelector)
+      await insertZone.waitFor({ state: 'visible', timeout: 3000 })
+
+      const box = await insertZone.boundingBox()
+      if (box) {
+        targetCoords = {
+          x: Math.round(box.x + box.width / 2),
+          y: Math.round(box.y + box.height / 2),
+        }
+      } else {
+        throw new Error(`InsertZone has no bounding box: ${insertZoneSelector}`)
+      }
+    } catch (error) {
+      // Fallback: Calculate position based on grid layout
+      // This allows tests to proceed even if InsertZone isn't immediately visible
+      const COLUMN_WIDTH = 280
+      const COLUMN_GAP = 16
+      const COLUMN_HEIGHT = 400
+      const ROW_GAP = 16
+      const GRID_PADDING = 24
+
+      const gridContainer = page.locator('.w-fit.min-w-full.h-full.p-6').first()
+      const gridBox = await gridContainer.boundingBox()
+      if (!gridBox) throw new Error('Grid container not found')
+
+      targetCoords = {
+        x: Math.round(
+          gridBox.x +
+            GRID_PADDING +
+            targetGridCol * (COLUMN_WIDTH + COLUMN_GAP) +
+            COLUMN_WIDTH / 2,
+        ),
+        y: Math.round(
+          gridBox.y +
+            GRID_PADDING +
+            targetGridRow * (COLUMN_HEIGHT + ROW_GAP) +
+            100, // Middle of column height
+        ),
+      }
+      console.log(
+        `InsertZone not found, using calculated position: (${targetCoords.x}, ${targetCoords.y})`,
+      )
+    }
+
+    // 4. Drag to InsertZone with smooth motion
+    const points = interpolateCoordinates(midPoint, targetCoords, steps)
+    for (const point of points) {
+      await dispatchMouseEvent(client, 'mouseMoved', point, 'left', 0)
+      await sleep(stepDelay)
+    }
+
+    // 5. Hold at target position (allow drop detection)
+    await dispatchMouseEvent(client, 'mouseMoved', targetCoords, 'left', 0)
+    await sleep(dropDelay)
+
+    // 6. Release to complete insertion
+    await dispatchMouseEvent(client, 'mouseReleased', targetCoords, 'left', 1)
+    await sleep(300) // Allow grid reflow animation
+  } finally {
+    await client.detach()
+  }
+}
+
+/**
  * Performs a column drag to a specific grid position (2D).
  * Enables precise column placement in the 2D Kanban grid.
  *

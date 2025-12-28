@@ -577,9 +577,9 @@ Row 0: [   ] [ A ] [ B ] [ C ]    (後続カラムは右シフト)
 | 項目          | 値                                 |
 | ------------- | ---------------------------------- |
 | 実装状態      | ✅ 実装済み                        |
-| E2Eカバー     | ⬜ 未カバー                        |
+| E2Eカバー     | ✅ カバー済み                      |
 | Server Action | `batchUpdateStatusListPositions()` |
-| CDP Helper    | `cdpColumnToGridPosition()`        |
+| CDP Helper    | `cdpColumnToInsertZone()`          |
 
 #### 10.3.4 同一Row内横移動
 
@@ -627,7 +627,7 @@ ColumnInsertZone または Column Swap で実現
 | Column: グリッド位置検証     | ✅ 追加済み（`should have correct initial column grid positions`） |
 | Column: Swap操作実行         | ✅ 追加済み（`should execute column drag operation successfully`） |
 | Column: NewRowDropZone       | ⬜ 検証強化必要                                                    |
-| Column: ColumnInsertZone挿入 | ⬜ 追加必要                                                        |
+| Column: ColumnInsertZone挿入 | ✅ 追加済み（5テストケース in `kanban-dnd.spec.ts`）               |
 | Column: Auto-Height拡張      | ⬜ 実装後追加                                                      |
 
 ### 10.6 CDP Drag Helper一覧
@@ -656,6 +656,7 @@ export async function cdpColumnToGridPosition(
   col,
   options?,
 )
+export async function cdpColumnToInsertZone(page, columnId, row, col, options?)
 ```
 
 ---
