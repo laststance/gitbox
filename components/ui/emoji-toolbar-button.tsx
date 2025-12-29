@@ -1,4 +1,3 @@
-'use client'
 /* eslint-disable react-hooks/refs */
 
 import type { Emoji } from '@emoji-mart/data'
@@ -118,7 +117,7 @@ export function EmojiPicker({
     <div
       className={cn(
         'flex flex-col rounded-xl bg-popover text-popover-foreground',
-        'h-[23rem] w-80 border shadow-md',
+        'h-92 w-80 border shadow-md',
       )}
     >
       <EmojiPickerNavigation
