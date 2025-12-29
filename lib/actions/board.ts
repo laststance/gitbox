@@ -55,7 +55,6 @@ export async function getStatusLists(
   return (data || []).map((row: StatusListRow) => ({
     id: row.id,
     title: row.name,
-    wipLimit: row.wip_limit ?? 0,
     color: row.color ?? '#6B7280',
     gridRow: row.grid_row ?? 0,
     gridCol: row.grid_col ?? 0,
@@ -78,48 +77,43 @@ export async function createDefaultStatusLists(
   const defaultLists: TablesInsert<'statuslist'>[] = [
     {
       board_id: boardId,
-      name: 'Backlog',
+      name: 'Pending',
       color: '#8B7355',
       order: 0,
       grid_row: 0,
       grid_col: 0,
-      wip_limit: null,
     },
     {
       board_id: boardId,
-      name: 'Todo',
+      name: 'Planning',
       color: '#6B8E23',
       order: 1,
       grid_row: 0,
       grid_col: 1,
-      wip_limit: 5,
     },
     {
       board_id: boardId,
-      name: 'In Progress',
+      name: 'Focus Development',
       color: '#CD853F',
       order: 2,
       grid_row: 0,
       grid_col: 2,
-      wip_limit: 3,
     },
     {
       board_id: boardId,
-      name: 'Review',
+      name: 'MVP Release',
       color: '#4682B4',
       order: 3,
       grid_row: 0,
       grid_col: 3,
-      wip_limit: 4,
     },
     {
       board_id: boardId,
-      name: 'Done',
+      name: 'Production Release',
       color: '#556B2F',
       order: 4,
       grid_row: 0,
       grid_col: 4,
-      wip_limit: null,
     },
   ]
 
@@ -140,7 +134,6 @@ export async function createDefaultStatusLists(
   return (data || []).map((row: StatusListRow) => ({
     id: row.id,
     title: row.name,
-    wipLimit: row.wip_limit ?? 0,
     color: row.color ?? '#6B7280',
     gridRow: row.grid_row ?? 0,
     gridCol: row.grid_col ?? 0,
@@ -157,7 +150,6 @@ export async function createStatusList(
   boardId: string,
   name: string,
   color: string = '#6B7280',
-  wipLimit?: number,
 ): Promise<StatusListDomain> {
   const supabase = await createClient()
 
@@ -182,7 +174,6 @@ export async function createStatusList(
       order: nextCol, // Keep order in sync for backwards compatibility
       grid_row: 0,
       grid_col: nextCol,
-      wip_limit: wipLimit ?? null,
     })
     .select()
     .single()
@@ -199,7 +190,6 @@ export async function createStatusList(
   return {
     id: data.id,
     title: data.name,
-    wipLimit: data.wip_limit ?? 0,
     color: data.color ?? '#6B7280',
     gridRow: data.grid_row ?? 0,
     gridCol: data.grid_col ?? 0,
@@ -214,14 +204,13 @@ export async function createStatusList(
  */
 export async function updateStatusList(
   statusId: string,
-  updates: { name?: string; color?: string; wipLimit?: number | null },
+  updates: { name?: string; color?: string },
 ): Promise<void> {
   const supabase = await createClient()
 
   const updateData: Record<string, unknown> = {}
   if (updates.name !== undefined) updateData.name = updates.name
   if (updates.color !== undefined) updateData.color = updates.color
-  if (updates.wipLimit !== undefined) updateData.wip_limit = updates.wipLimit
 
   const { error } = await supabase
     .from('statuslist')

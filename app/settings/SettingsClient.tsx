@@ -26,10 +26,8 @@ import { useTheme, LIGHT_THEMES, DARK_THEMES } from '@/lib/hooks/use-theme'
 import {
   selectCompactMode,
   selectShowCardMetadata,
-  selectWipWarnings,
   setCompactMode,
   setShowCardMetadata,
-  setWipWarnings,
 } from '@/lib/redux/slices/settingsSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 /** Base styles for the toggle switch container */
@@ -175,7 +173,6 @@ export const SettingsClient = memo(function SettingsClient() {
   // Redux state for display settings
   const compactMode = useAppSelector(selectCompactMode)
   const showCardMetadata = useAppSelector(selectShowCardMetadata)
-  const wipWarnings = useAppSelector(selectWipWarnings)
 
   /**
    * Handles compact mode toggle change.
@@ -195,17 +192,6 @@ export const SettingsClient = memo(function SettingsClient() {
   const handleShowCardMetadataChange = useCallback(
     (value: boolean) => {
       dispatch(setShowCardMetadata(value))
-    },
-    [dispatch],
-  )
-
-  /**
-   * Handles WIP warnings toggle change.
-   * Dispatches Redux action to update and persist the setting.
-   */
-  const handleWipWarningsChange = useCallback(
-    (value: boolean) => {
-      dispatch(setWipWarnings(value))
     },
     [dispatch],
   )
@@ -339,19 +325,6 @@ export const SettingsClient = memo(function SettingsClient() {
                 id="show-card-metadata"
                 checked={showCardMetadata}
                 onCheckedChange={handleShowCardMetadataChange}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="show-wip-warnings">WIP Limit Warnings</Label>
-                <p className="text-sm text-muted-foreground">
-                  Show visual warnings when WIP limits are exceeded
-                </p>
-              </div>
-              <Toggle
-                id="show-wip-warnings"
-                checked={wipWarnings}
-                onCheckedChange={handleWipWarningsChange}
               />
             </div>
           </CardContent>

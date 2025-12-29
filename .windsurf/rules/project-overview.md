@@ -132,7 +132,7 @@ board {
   name: string,
   user_id: uuid,
   theme: string,
-  settings: jsonb  -- { wipLimits, compact }
+  settings: jsonb  -- { compact }
 }
 
 -- statuslist テーブル
@@ -141,7 +141,6 @@ statuslist {
   board_id: uuid,
   name: string,
   color: string,
-  wip_limit: int,
   "order": int
 }
 

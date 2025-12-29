@@ -38,9 +38,6 @@ jobs:
 
       # Note: Database backups are handled by Supabase Pro Plan's
       # automatic daily backups and Point-in-Time Recovery feature.
-      # Manual backup artifacts were removed for security reasons
-      # (public repo artifact exposure risk).
-
       - name: Apply Migrations
         run: supabase db push --linked
         env:

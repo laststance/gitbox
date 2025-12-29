@@ -289,7 +289,7 @@ export async function cdpDragAndDrop(
  *
  * @example
  * ```typescript
- * // Drag "Backlog" column to "Done" column's position
+ * // Drag "Pending" column to "Production Release" column's position
  * await cdpColumnDragAndDrop(page, 'status-1', 'status-5');
  * ```
  */
@@ -418,8 +418,8 @@ export async function cdpCardDragAndDrop(
  *
  * @example
  * ```typescript
- * // Move card-1 to the "Done" column
- * await cdpCardToColumnDragAndDrop(page, 'card-1', 'status-done');
+ * // Move card-1 to the "Production Release" column
+ * await cdpCardToColumnDragAndDrop(page, 'card-1', 'status-5');
  * ```
  */
 export async function cdpCardToColumnDragAndDrop(
@@ -491,7 +491,7 @@ export async function cdpCardToColumnDragAndDrop(
  *
  * @example
  * ```typescript
- * // Move "Backlog" column to a new second row
+ * // Move "Pending" column to a new second row
  * await cdpColumnToNewRowDragAndDrop(page, 'status-1', 1);
  * ```
  */

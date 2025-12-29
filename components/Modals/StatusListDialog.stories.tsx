@@ -2,9 +2,8 @@
  * StatusListDialog Component Stories
  *
  * A dialog component for creating and editing status columns in the Kanban board.
- * Allows setting column name, color (with preset options and custom color picker),
- * and WIP (Work In Progress) limit. Supports both create and edit modes with
- * proper form validation and error handling.
+ * Allows setting column name and color (with preset options and custom color picker).
+ * Supports both create and edit modes with proper form validation and error handling.
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
@@ -28,7 +27,6 @@ const mockStatusList = {
   boardId: 'board-1',
   title: 'In Progress',
   color: '#4682B4',
-  wipLimit: 5,
   gridRow: 0,
   gridCol: 1,
   createdAt: '2024-01-01T00:00:00Z',
@@ -55,35 +53,6 @@ export const EditMode: Story = {
     onClose: () => console.log('Dialog closed'),
     onSave: async (data) => {
       console.log('Updating status:', data)
-      await new Promise((resolve) => setTimeout(resolve, 500))
-    },
-  },
-}
-
-export const WithWipLimit: Story = {
-  args: {
-    isOpen: true,
-    mode: 'create',
-    onClose: () => console.log('Dialog closed'),
-    onSave: async (data) => {
-      console.log('Creating status with WIP limit:', data)
-      await new Promise((resolve) => setTimeout(resolve, 500))
-    },
-  },
-  render: (args) => <StatusListDialog {...args} />,
-}
-
-export const WithoutWipLimit: Story = {
-  args: {
-    isOpen: true,
-    mode: 'edit',
-    statusList: {
-      ...mockStatusList,
-      wipLimit: 0,
-    },
-    onClose: () => console.log('Dialog closed'),
-    onSave: async (data) => {
-      console.log('Updating status without WIP limit:', data)
       await new Promise((resolve) => setTimeout(resolve, 500))
     },
   },

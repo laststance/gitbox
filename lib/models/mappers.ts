@@ -20,13 +20,12 @@ import type { StatusListDomain, RepoCardDomain, RepoCardMeta } from './domain'
  * Database StatusList → Domain StatusList
  *
  * Converts database layer type to domain layer type
- * Field name mapping: name → title, wip_limit → wipLimit
+ * Field name mapping: name → title
  */
 export function dbStatusListToDomain(db: DbStatusList): StatusListDomain {
   return {
     id: db.id,
     title: db.name, // name → title
-    wipLimit: db.wip_limit ?? 0, // wip_limit → wipLimit (null -> 0)
     color: db.color ?? '#6366f1',
     gridRow: db.grid_row ?? 0, // grid_row → gridRow
     gridCol: db.grid_col ?? 0, // grid_col → gridCol

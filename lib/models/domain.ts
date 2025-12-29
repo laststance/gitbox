@@ -24,8 +24,6 @@ export interface StatusListDomain {
   id: string
   /** Display title (database: name) */
   title: string
-  /** WIP limit count (database: wip_limit) */
-  wipLimit: number
   /** Column color code */
   color: string
   /** Grid row position (0-indexed) */

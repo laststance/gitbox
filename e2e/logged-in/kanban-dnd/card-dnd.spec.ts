@@ -36,9 +36,9 @@ test.describe('10.2 Card Drag & Drop', () => {
    * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    *
    * PRD Diagram:
-   * ┌──────────────┐         ┌──────────────┐
-   * │ In Progress  │         │ In Progress  │
-   * │┌────────────┐│  drag   │┌────────────┐│
+   * ┌──────────────────┐         ┌──────────────────┐
+   * │ Focus Development│         │ Focus Development│
+   * │┌────────────┐    │  drag   │┌────────────┐    │
    * ││ Card A     ││ ───┐    ││ Card B     ││
    * │├────────────┤│    │    │├────────────┤│
    * ││ Card B     ││ <──┘    ││ Card A     ││ ← 入れ替え
@@ -74,12 +74,12 @@ test.describe('10.2 Card Drag & Drop', () => {
     /**
      * Test intra-column card reorder using CDP.
      *
-     * Reorders cards within the same column (To Do) by dragging
+     * Reorders cards within the same column (Planning) by dragging
      * card-1 (position 0) below card-4 (position 1).
      *
      * Pre-condition:
      * ┌──────────────┐
-     * │   To Do      │
+     * │   Planning   │
      * │┌────────────┐│
      * ││ card-1     ││  ← position: 0 (test-repo)
      * │├────────────┤│
@@ -91,7 +91,7 @@ test.describe('10.2 Card Drag & Drop', () => {
      *
      * Expected result after drag:
      * ┌──────────────┐
-     * │   To Do      │
+     * │   Planning   │
      * │┌────────────┐│
      * ││ card-4     ││  ← position: 0
      * │├────────────┤│
@@ -128,9 +128,9 @@ test.describe('10.2 Card Drag & Drop', () => {
         }, columnId)
       }
 
-      // Get initial card order in To Do column (status-2)
+      // Get initial card order in Planning column (status-2)
       const initialOrder = await getCardOrderInColumn('status-2')
-      console.log('Initial card order in To Do:', initialOrder)
+      console.log('Initial card order in Planning:', initialOrder)
 
       // Verify initial state: card-1, card-4, card-5 in order
       expect(initialOrder.length).toBeGreaterThanOrEqual(2)
@@ -157,7 +157,7 @@ test.describe('10.2 Card Drag & Drop', () => {
 
       // Get new card order after reorder
       const newOrder = await getCardOrderInColumn('status-2')
-      console.log('New card order in To Do:', newOrder)
+      console.log('New card order in Planning:', newOrder)
 
       // Verify reorder completed successfully
       // All cards should still exist in the column
@@ -195,12 +195,12 @@ test.describe('10.2 Card Drag & Drop', () => {
    * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    *
    * PRD Diagram:
-   * ┌──────────────┐  ┌──────────────┐         ┌──────────────┐  ┌──────────────┐
-   * │ In Progress  │  │ Review       │         │ In Progress  │  │ Review       │
-   * │┌────────────┐│  │              │  drag   │              │  │┌────────────┐│
-   * ││ Card A     ││ ─┼──────────────┼───►     │              │  ││ Card A     ││
-   * │└────────────┘│  │              │         │              │  │└────────────┘│
-   * └──────────────┘  └──────────────┘         └──────────────┘  └──────────────┘
+   * ┌──────────────────┐  ┌─────────────┐         ┌──────────────────┐  ┌─────────────┐
+   * │ Focus Development│  │ MVP Release │         │ Focus Development│  │ MVP Release │
+   * │┌────────────┐    │  │             │  drag   │                  │  │┌────────────┐│
+   * ││ Card A     ││   │ ─┼─────────────┼───►     │                  │  ││ Card A     ││
+   * │└────────────┘    │  │             │         │                  │  │└────────────┘│
+   * └──────────────────┘  └─────────────┘         └──────────────────┘  └─────────────┘
    *
    * | 項目          | 値                                                      |
    * | ------------- | ------------------------------------------------------- |
@@ -213,7 +213,7 @@ test.describe('10.2 Card Drag & Drop', () => {
     /**
      * Test card drag and drop to a different column using CDP.
      *
-     * Moves card-1 (in To Do column) to the In Progress column.
+     * Moves card-1 (in Planning column) to the Focus Development column.
      *
      * @slow This test uses CDP which has higher overhead
      */
@@ -237,12 +237,12 @@ test.describe('10.2 Card Drag & Drop', () => {
         }, cardId)
       }
 
-      // card-1 is in status-2 (To Do) initially
+      // card-1 is in status-2 (Planning) initially
       const initialStatus = await getCardStatusId('card-1')
       console.log('Initial card-1 status:', initialStatus)
       expect(initialStatus).toBe('status-2')
 
-      // Drag card-1 to status-3 (In Progress)
+      // Drag card-1 to status-3 (Focus Development)
       await cdpCardToColumnDragAndDrop(page, 'card-1', 'status-3', {
         steps: 15,
         stepDelay: 40,
@@ -255,7 +255,7 @@ test.describe('10.2 Card Drag & Drop', () => {
       const newStatus = await getCardStatusId('card-1')
       console.log('New card-1 status:', newStatus)
 
-      // Card should now be in In Progress column
+      // Card should now be in Focus Development column
       expect(newStatus).toBe('status-3')
     })
 
@@ -290,9 +290,9 @@ test.describe('10.2 Card Drag & Drop', () => {
       const initialInfo = await getCardInfo('card-1')
       console.log('Initial card info:', initialInfo)
       expect(initialInfo?.statusId).toBe('status-2')
-      expect(initialInfo?.columnTitle).toBe('To Do')
+      expect(initialInfo?.columnTitle).toBe('Planning')
 
-      // Move card to Done column (status-5)
+      // Move card to Production Release column (status-5)
       await cdpCardToColumnDragAndDrop(page, 'card-1', 'status-5', {
         steps: 20,
         stepDelay: 35,
@@ -304,9 +304,9 @@ test.describe('10.2 Card Drag & Drop', () => {
       const newInfo = await getCardInfo('card-1')
       console.log('New card info:', newInfo)
 
-      // Verify card is now in Done column
+      // Verify card is now in Production Release column
       expect(newInfo?.statusId).toBe('status-5')
-      expect(newInfo?.columnTitle).toBe('Done')
+      expect(newInfo?.columnTitle).toBe('Production Release')
     })
   })
 })

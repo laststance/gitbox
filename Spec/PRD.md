@@ -14,7 +14,7 @@
 
 - **Maintenance Mode**（完了・保守中のプロジェクト保管庫。Sidebarリンクで遷移、Explorer UI）
 - **Command Palette (⌘K)**
-- **Settings**（Theme/Type/Display/WIP）
+- **Settings**（Theme/Type/Display）
 - **Shortcuts (?)**
 
 ---
@@ -105,7 +105,7 @@ color.success / warning / danger
 #### 機能仕様
 
 - **列=Status**（例：Suspend / Spec designing / Active / Completed）
-- 列CRUD操作、WIP limit設定
+- 列CRUD操作
 - **カード**：repo名、一言メモ、任意メタ（Stars/Updated/Visibility/Language/Topics等）
 - **⋯（Overflow menu）**：**Project Info**モーダル起動
 
@@ -279,8 +279,7 @@ Restore to Board     // Maintenanceのみ表示
 │ AI Experiments                                 ○ avatar   [?]       │
 │ [ Add Repositories ] [ Filter ] [ Compact ] [ Refresh ] [ ⌘K ]     │
 │                                                                      │
-│ Suspend           Spec designing      Active             Completed    │
-│ (WIP 3/4)         (WIP –)             (WIP 5/6)          (WIP –)      │
+│ Pending           Planning            Focus Development  Production Release │
 │ ┌───────────────────────────┐   ┌───────────────────────────┐         │
 │ │ repo-ml-lab        [⋯]    │   │ ui-research        [⋯]    │         │
 │ │ "On hold this week"       │   │ "Draft spec"              │         │
@@ -453,11 +452,11 @@ Floating Toolbar (on text selection):
 
 ```javascript
 Board {
-  id, name, lists[StatusList], theme, settings{wipLimits, compact}
+  id, name, lists[StatusList], theme, settings{compact}
 }
 
 StatusList {
-  id, name, color, wipLimit, order
+  id, name, color, order
 }
 
 RepoCard {

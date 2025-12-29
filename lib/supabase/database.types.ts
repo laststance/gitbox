@@ -303,7 +303,6 @@ export type Database = {
           name: string
           order: number
           updated_at: string | null
-          wip_limit: number | null
         }
         Insert: {
           board_id: string
@@ -313,7 +312,6 @@ export type Database = {
           name: string
           order?: number
           updated_at?: string | null
-          wip_limit?: number | null
         }
         Update: {
           board_id?: string
@@ -323,7 +321,6 @@ export type Database = {
           name?: string
           order?: number
           updated_at?: string | null
-          wip_limit?: number | null
         }
         Relationships: [
           {

@@ -362,7 +362,7 @@ export const BoardPageClient = memo(function BoardPageClient({
    * Save StatusList (create/update)
    */
   const handleSaveStatus = useCallback(
-    async (data: { name: string; color: string; wipLimit: number | null }) => {
+    async (data: { name: string; color: string }) => {
       try {
         if (statusDialogMode === 'create') {
           // Create new
@@ -370,7 +370,6 @@ export const BoardPageClient = memo(function BoardPageClient({
             boardId,
             data.name,
             data.color,
-            data.wipLimit ?? undefined,
           )
           // Update Redux
           dispatch(setStatusLists([...statusLists, newStatus]))
@@ -382,7 +381,6 @@ export const BoardPageClient = memo(function BoardPageClient({
           await updateStatusList(selectedStatus.id, {
             name: data.name,
             color: data.color,
-            wipLimit: data.wipLimit,
           })
           // Update Redux
           const updatedLists = statusLists.map((s) =>
@@ -391,7 +389,6 @@ export const BoardPageClient = memo(function BoardPageClient({
                   ...s,
                   title: data.name,
                   color: data.color,
-                  wipLimit: data.wipLimit ?? 0,
                 }
               : s,
           )

@@ -5,7 +5,6 @@
  * - Theme selection (14 themes)
  * - Typography settings
  * - Display settings
- * - WIP settings
  */
 
 import { redirect } from 'next/navigation'

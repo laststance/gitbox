@@ -32,11 +32,7 @@ const PRESET_COLORS = [
 interface StatusListDialogProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: {
-    name: string
-    color: string
-    wipLimit: number | null
-  }) => Promise<void>
+  onSave: (data: { name: string; color: string }) => Promise<void>
   statusList?: StatusListDomain | null
   mode: 'create' | 'edit'
 }
@@ -47,7 +43,6 @@ interface StatusListDialogProps {
  * A dialog for creating and editing status columns in the Kanban board.
  * - Column name input with validation
  * - Color selection (preset options and custom color picker)
- * - WIP (Work In Progress) limit configuration
  * - Supports both create and edit modes
  */
 export const StatusListDialog = memo(function StatusListDialog({
@@ -59,7 +54,6 @@ export const StatusListDialog = memo(function StatusListDialog({
 }: StatusListDialogProps) {
   const [name, setName] = useState('')
   const [color, setColor] = useState('#6B7280')
-  const [wipLimit, setWipLimit] = useState<string>('')
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -68,11 +62,9 @@ export const StatusListDialog = memo(function StatusListDialog({
     if (statusList && mode === 'edit') {
       setName(statusList.title)
       setColor(statusList.color)
-      setWipLimit(statusList.wipLimit > 0 ? String(statusList.wipLimit) : '')
     } else {
       setName('')
       setColor('#6B7280')
-      setWipLimit('')
     }
     setError(null)
   }, [statusList, mode, isOpen])
@@ -89,18 +81,11 @@ export const StatusListDialog = memo(function StatusListDialog({
       return
     }
 
-    const wipLimitValue = wipLimit.trim() ? parseInt(wipLimit, 10) : null
-    if (wipLimitValue !== null && (isNaN(wipLimitValue) || wipLimitValue < 0)) {
-      setError('WIP limit must be a positive number')
-      return
-    }
-
     try {
       setIsSaving(true)
       await onSave({
         name: name.trim(),
         color,
-        wipLimit: wipLimitValue,
       })
       onClose()
     } catch (err) {
@@ -180,24 +165,6 @@ export const StatusListDialog = memo(function StatusListDialog({
                 {color}
               </span>
             </div>
-          </div>
-
-          {/* WIP Limit */}
-          <div className="space-y-2">
-            <Label htmlFor="wip-limit">WIP Limit (optional)</Label>
-            <Input
-              id="wip-limit"
-              type="number"
-              min="0"
-              max="99"
-              value={wipLimit}
-              onChange={(e) => setWipLimit(e.target.value)}
-              placeholder="No limit"
-              className="w-32"
-            />
-            <p className="text-xs text-muted-foreground">
-              Work-in-progress limit. Leave empty for no limit.
-            </p>
           </div>
 
           {/* Error */}

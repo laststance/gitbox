@@ -4,7 +4,6 @@
  * User settings management (synchronized with LocalStorage)
  * - Theme
  * - Typography
- * - WIP limits
  */
 
 import type { PayloadAction } from '@reduxjs/toolkit'
@@ -23,8 +22,6 @@ interface SettingsState {
   compactMode: boolean
   /** Display stars, language, and last updated on cards */
   showCardMetadata: boolean
-  /** Show visual warnings when WIP limits are exceeded */
-  wipWarnings: boolean
   showArchived: boolean
   /** Organization filter for AddRepositoryCombobox ('all' or organization login name) */
   organizationFilter: string
@@ -38,7 +35,6 @@ const initialState: SettingsState = {
   },
   compactMode: false,
   showCardMetadata: true,
-  wipWarnings: true,
   showArchived: false,
   organizationFilter: 'all',
 }
@@ -59,9 +55,6 @@ export const settingsSlice = createSlice({
     setShowCardMetadata: (state, action: PayloadAction<boolean>) => {
       state.showCardMetadata = action.payload
     },
-    setWipWarnings: (state, action: PayloadAction<boolean>) => {
-      state.wipWarnings = action.payload
-    },
     setShowArchived: (state, action: PayloadAction<boolean>) => {
       state.showArchived = action.payload
     },
@@ -77,7 +70,6 @@ export const {
   setTypography,
   setCompactMode,
   setShowCardMetadata,
-  setWipWarnings,
   setShowArchived,
   setOrganizationFilter,
   resetSettings,
@@ -94,8 +86,6 @@ export const selectCompactMode = (state: { settings: SettingsState }) =>
   state.settings.compactMode
 export const selectShowCardMetadata = (state: { settings: SettingsState }) =>
   state.settings.showCardMetadata
-export const selectWipWarnings = (state: { settings: SettingsState }) =>
-  state.settings.wipWarnings
 export const selectShowArchived = (state: { settings: SettingsState }) =>
   state.settings.showArchived
 /**

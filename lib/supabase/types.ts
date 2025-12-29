@@ -303,7 +303,6 @@ export type Database = {
           grid_row: number
           grid_col: number
           updated_at: string | null
-          wip_limit: number | null
         }
         Insert: {
           board_id: string
@@ -315,7 +314,6 @@ export type Database = {
           grid_row?: number
           grid_col?: number
           updated_at?: string | null
-          wip_limit?: number | null
         }
         Update: {
           board_id?: string
@@ -327,7 +325,6 @@ export type Database = {
           grid_row?: number
           grid_col?: number
           updated_at?: string | null
-          wip_limit?: number | null
         }
         Relationships: [
           {

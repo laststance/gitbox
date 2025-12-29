@@ -45,7 +45,7 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
 
     // Wait for Kanban board to load (column names indicate data is ready)
     // This ensures Redux store has repoCards populated before we open the combobox
-    await expect(page.getByText('Backlog')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
 
     // Open AddRepositoryCombobox
     const addRepoButton = page.getByRole('button', {
@@ -92,7 +92,7 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
     await page.waitForLoadState('domcontentloaded')
 
     // Wait for Kanban board to load (column names indicate data is ready)
-    await expect(page.getByText('Backlog')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
 
     // Open AddRepositoryCombobox
     const addRepoButton = page.getByRole('button', {
@@ -137,7 +137,7 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
     await page.waitForLoadState('domcontentloaded')
 
     // Wait for Kanban board to load (column names indicate data is ready)
-    await expect(page.getByText('Backlog')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
 
     // Open AddRepositoryCombobox
     const addRepoButton = page.getByRole('button', {
@@ -180,7 +180,7 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
     await page.waitForLoadState('domcontentloaded')
 
     // Wait for Kanban board to load (column names indicate data is ready)
-    await expect(page.getByText('Backlog')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
 
     // Open AddRepositoryCombobox
     const addRepoButton = page.getByRole('button', {
@@ -432,7 +432,7 @@ test.describe('AddRepositoryCombobox - Optimistic Update', () => {
     await page.waitForLoadState('domcontentloaded')
 
     // Wait for Kanban board to load
-    await expect(page.getByText('Backlog')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
 
     // Count existing cards before adding
     const cardsBefore = await page.locator('[data-testid="repo-card"]').count()
@@ -499,7 +499,7 @@ test.describe('AddRepositoryCombobox - Optimistic Update', () => {
     await page.waitForLoadState('domcontentloaded')
 
     // Wait for Kanban board to load
-    await expect(page.getByText('Backlog')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
 
     // Open AddRepositoryCombobox
     const addRepoButton = page.getByRole('button', {
@@ -547,7 +547,7 @@ test.describe('AddRepositoryCombobox - Optimistic Update', () => {
     await page.waitForLoadState('domcontentloaded')
 
     // Wait for Kanban board to load
-    await expect(page.getByText('Backlog')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
 
     // Open AddRepositoryCombobox
     const addRepoButton = page.getByRole('button', {
@@ -613,9 +613,9 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
     await page.waitForLoadState('domcontentloaded')
 
     // Wait for Kanban board to load
-    await expect(page.getByText('Backlog')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
 
-    // Find the Add Repo button in the Backlog column (using data-testid)
+    // Find the Add Repo button in the Pending column (using data-testid)
     // Each column has an "Add Repo" button at the bottom
     const addRepoButtonInColumn = page.getByTestId('add-repo-button').first()
 
@@ -648,7 +648,7 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
     await page.waitForLoadState('domcontentloaded')
 
     // Wait for Kanban board to load
-    await expect(page.getByText('Backlog')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
 
     // Get all Add Repo buttons in columns
     const addRepoButtons = page.getByTestId('add-repo-button')
@@ -702,7 +702,7 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
     await page.waitForLoadState('domcontentloaded')
 
     // Wait for Kanban board to load
-    await expect(page.getByText('Backlog')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
 
     // Find and click Add Repo button in column
     const addRepoButtonInColumn = page.getByTestId('add-repo-button').first()
@@ -738,7 +738,7 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
     await page.waitForLoadState('domcontentloaded')
 
     // Wait for Kanban board to load
-    await expect(page.getByText('Backlog')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
 
     // Test 1: Open from header button
     const headerAddRepoButton = page.getByRole('button', {
@@ -783,7 +783,7 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
     await page.waitForLoadState('domcontentloaded')
 
     // Wait for Kanban board to load
-    await expect(page.getByText('Backlog')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
 
     // Count cards before adding
     const cardsBefore = await page.locator('[data-testid="repo-card"]').count()

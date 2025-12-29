@@ -2,9 +2,8 @@
  * StatusColumn Component Stories
  *
  * A column component representing a status list in the Kanban board.
- * Displays status title, color indicator, WIP limit badge, and contains
- * draggable repository cards. Supports column actions (add card, edit, delete)
- * and shows warnings when WIP limit is exceeded.
+ * Displays status title, color indicator, and contains draggable repository cards.
+ * Supports column actions (add card, edit, delete).
  *
  * The column now supports 2D grid layout with vertical drag-and-drop.
  * When used with SortableColumn wrapper, columns can be reordered in any direction.
@@ -39,9 +38,8 @@ type Story = StoryObj<typeof meta>
 const mockStatus = {
   id: 'status-1',
   boardId: 'board-1',
-  title: 'To Do',
+  title: 'Planning',
   color: '#3b82f6',
-  wipLimit: 5,
   gridRow: 0,
   gridCol: 0,
   createdAt: '2024-01-01T00:00:00Z',
@@ -111,41 +109,11 @@ export const Empty: Story = {
   },
 }
 
-export const WithWipLimit: Story = {
-  args: {
-    status: {
-      ...mockStatus,
-      wipLimit: 2,
-    },
-    cards: mockCards,
-  },
-}
-
-export const WipLimitExceeded: Story = {
-  args: {
-    status: {
-      ...mockStatus,
-      wipLimit: 1,
-    },
-    cards: mockCards,
-  },
-}
-
 export const WithoutColor: Story = {
   args: {
     status: {
       ...mockStatus,
       color: '',
-    },
-    cards: mockCards,
-  },
-}
-
-export const WithoutWipLimit: Story = {
-  args: {
-    status: {
-      ...mockStatus,
-      wipLimit: 0,
     },
     cards: mockCards,
   },

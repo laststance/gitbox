@@ -42,9 +42,8 @@ type Story = StoryObj<typeof meta>
 const mockStatus = {
   id: 'status-1',
   boardId: 'board-1',
-  title: 'To Do',
+  title: 'Planning',
   color: '#3b82f6',
-  wipLimit: 5,
   gridRow: 0,
   gridCol: 0,
   createdAt: '2024-01-01T00:00:00Z',
@@ -138,20 +137,6 @@ export const WithGridStyle: Story = {
 }
 
 /**
- * Sortable column with WIP limit warning.
- * Shows visual indicator when card count exceeds limit.
- */
-export const WithWipLimitExceeded: Story = {
-  args: {
-    status: {
-      ...mockStatus,
-      wipLimit: 1,
-    },
-    cards: mockCards,
-  },
-}
-
-/**
  * Sortable column in different status (In Progress).
  * Demonstrates different color theming.
  */
@@ -181,7 +166,6 @@ export const Done: Story = {
       title: 'Done',
       color: '#22c55e',
       gridCol: 2,
-      wipLimit: 0,
     },
     cards: mockCards,
   },

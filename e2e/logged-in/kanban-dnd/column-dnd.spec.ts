@@ -110,10 +110,10 @@ test.describe('10.3 Column Drag & Drop', () => {
         return Array.from(headers).map((h) => h.textContent?.trim())
       })
 
-      // Initial order: Backlog, To Do, In Progress, Review, Done
-      expect(columnTitles).toContain('Backlog')
-      expect(columnTitles).toContain('To Do')
-      expect(columnTitles).toContain('In Progress')
+      // Initial order: Pending, Planning, Focus Development, MVP Release, Production Release
+      expect(columnTitles).toContain('Pending')
+      expect(columnTitles).toContain('Planning')
+      expect(columnTitles).toContain('Focus Development')
     })
 
     /**
@@ -170,8 +170,8 @@ test.describe('10.3 Column Drag & Drop', () => {
     /**
      * Test column drag and drop using CDP events.
      *
-     * This test simulates dragging the "Backlog" column (position 0)
-     * to the "In Progress" column's position (position 2).
+     * This test simulates dragging the "Pending" column (position 0)
+     * to the "Focus Development" column's position (position 2).
      *
      * @slow This test uses CDP which has higher overhead
      */
@@ -197,11 +197,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       const initialOrder = await getColumnOrder()
       console.log('Initial column order:', initialOrder)
 
-      // Verify initial state: Backlog should be first
-      expect(initialOrder[0]?.title).toBe('Backlog')
+      // Verify initial state: Pending should be first
+      expect(initialOrder[0]?.title).toBe('Pending')
       expect(initialOrder.length).toBe(5)
 
-      // Perform CDP drag: Move Backlog (status-1) toward In Progress (status-3)
+      // Perform CDP drag: Move Pending (status-1) toward Focus Development (status-3)
       await cdpColumnDragAndDrop(page, 'status-1', 'status-3', {
         steps: 30,
         stepDelay: 40,
@@ -218,11 +218,11 @@ test.describe('10.3 Column Drag & Drop', () => {
 
       // All original columns should still exist
       const originalTitles = [
-        'Backlog',
-        'To Do',
-        'In Progress',
-        'Review',
-        'Done',
+        'Pending',
+        'Planning',
+        'Focus Development',
+        'MVP Release',
+        'Production Release',
       ]
       const newTitles = newOrder.map((c) => c.title)
       expect(newTitles.sort()).toEqual(originalTitles.sort())
@@ -245,7 +245,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       console.log('Initial column titles:', initialTitles)
 
       expect(initialTitles.length).toBe(5)
-      expect(initialTitles[0]).toBe('Backlog')
+      expect(initialTitles[0]).toBe('Pending')
 
       // Perform column drag: status-1 toward status-2
       await cdpColumnDragAndDrop(page, 'status-1', 'status-2', {
@@ -264,11 +264,11 @@ test.describe('10.3 Column Drag & Drop', () => {
 
       // All original titles should still exist
       const originalTitles = [
-        'Backlog',
-        'To Do',
-        'In Progress',
-        'Review',
-        'Done',
+        'Pending',
+        'Planning',
+        'Focus Development',
+        'MVP Release',
+        'Production Release',
       ]
       expect(newTitles.sort()).toEqual(originalTitles.sort())
     })
@@ -358,7 +358,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       const initial = await getColumnTitles(page)
       console.log('Initial:', initial)
 
-      // First drag: Move Backlog (status-1) to To Do (status-2) position
+      // First drag: Move Pending (status-1) to Planning (status-2) position
       await cdpColumnDragAndDrop(page, 'status-1', 'status-2', {
         steps: 15,
         stepDelay: 25,
@@ -369,7 +369,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       const afterFirstDrag = await getColumnTitles(page)
       console.log('After first drag:', afterFirstDrag)
 
-      // Second drag: Move Review (status-4) to Done (status-5) position
+      // Second drag: Move MVP Release (status-4) to Production Release (status-5) position
       await cdpColumnDragAndDrop(page, 'status-4', 'status-5', {
         steps: 15,
         stepDelay: 25,
@@ -536,7 +536,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       ) {
         console.log(`NewRowDropZone attempt ${attempt}/${MAX_ATTEMPTS}`)
 
-        // Drag status-3 (In Progress) to NewRowDropZone
+        // Drag status-3 (Focus Development) to NewRowDropZone
         await cdpColumnToNewRowDragAndDrop(page, 'status-3', 1, {
           steps: 30 + attempt * 5, // More steps on retry
           stepDelay: 35 + attempt * 10,
@@ -819,7 +819,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       const initialPositions = await getGridPositions(page)
       console.log('Initial positions:', initialPositions)
 
-      // Move status-4 (Review) to new row
+      // Move status-4 (MVP Release) to new row
       await cdpColumnToNewRowDragAndDrop(page, 'status-4', 1, {
         steps: 30,
         stepDelay: 40,
@@ -838,7 +838,7 @@ test.describe('10.3 Column Drag & Drop', () => {
 
       // All columns should exist
       const titles = await getColumnTitles(page)
-      expect(titles).toContain('Review')
+      expect(titles).toContain('MVP Release')
       expect(titles.length).toBe(5)
     })
   })
@@ -896,7 +896,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       expect(initialPositions['status-4']?.gridRow).toBe(1)
       expect(initialPositions['status-5']?.gridRow).toBe(1)
 
-      // Move status-3 (In Progress) to NewRowDropZone to create empty slot
+      // Move status-3 (Focus Development) to NewRowDropZone to create empty slot
       await cdpColumnToNewRowDragAndDrop(page, 'status-3', 1, {
         steps: 25,
         stepDelay: 35,
@@ -983,8 +983,8 @@ test.describe('10.3 Column Drag & Drop', () => {
 
       // Verify all columns still exist
       const titles = await getColumnTitles(page)
-      expect(titles).toContain('Backlog')
-      expect(titles).toContain('In Progress')
+      expect(titles).toContain('Pending')
+      expect(titles).toContain('Focus Development')
     })
 
     /**
@@ -1046,11 +1046,11 @@ test.describe('10.3 Column Drag & Drop', () => {
 
       // All columns should still exist
       const titles = await getColumnTitles(page)
-      expect(titles).toContain('Backlog')
-      expect(titles).toContain('To Do')
-      expect(titles).toContain('In Progress')
-      expect(titles).toContain('Review')
-      expect(titles).toContain('Done')
+      expect(titles).toContain('Pending')
+      expect(titles).toContain('Planning')
+      expect(titles).toContain('Focus Development')
+      expect(titles).toContain('MVP Release')
+      expect(titles).toContain('Production Release')
     })
 
     /**
@@ -1404,7 +1404,7 @@ test.describe('10.3 Column Drag & Drop', () => {
           'Multi-row layout not created (NewRowDropZone not detected) - skipping vertical swap test',
         )
         // Verify columns still exist
-        expect(await getColumnTitles(page)).toContain('In Progress')
+        expect(await getColumnTitles(page)).toContain('Focus Development')
         return
       }
 
@@ -1570,7 +1570,7 @@ test.describe('10.3 Column Drag & Drop', () => {
         console.log(
           'Multi-row layout not created - skipping diagonal swap test',
         )
-        expect(await getColumnTitles(page)).toContain('Review')
+        expect(await getColumnTitles(page)).toContain('MVP Release')
         return
       }
 

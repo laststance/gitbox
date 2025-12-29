@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { MoreHorizontal, Pencil, Trash2, Plus } from 'lucide-react'
 import React, { memo } from 'react'
 
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -48,7 +47,6 @@ interface StatusColumnProps {
  *
  * A column representing a status list in the Kanban board.
  * - Displays status title and color indicator
- * - WIP limit badge with exceeded warning
  * - Contains draggable repository cards
  * - Column actions (add card, edit, delete)
  * - Acts as droppable for cards from other columns
@@ -68,7 +66,6 @@ export const StatusColumn = memo<StatusColumnProps>(
     dragListeners,
   }) => {
     const cardIds = cards.map((c) => c.id)
-    const isOverLimit = status.wipLimit > 0 && cards.length > status.wipLimit
 
     // Make the column a droppable target for cards
     const { setNodeRef, isOver } = useDroppable({
@@ -98,15 +95,6 @@ export const StatusColumn = memo<StatusColumnProps>(
             <h3 className="font-semibold text-foreground">{status.title}</h3>
           </div>
           <div className="flex items-center gap-1">
-            {status.wipLimit > 0 && (
-              <Badge
-                variant={isOverLimit ? 'destructive' : 'secondary'}
-                className="text-xs"
-                data-testid="wip-limit-badge"
-              >
-                {cards.length}/{status.wipLimit}
-              </Badge>
-            )}
             {/* Column Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -170,17 +158,6 @@ export const StatusColumn = memo<StatusColumnProps>(
             </AnimatePresence>
           </div>
         </SortableContext>
-
-        {isOverLimit && (
-          <div
-            className="mt-3 p-2 bg-destructive/10 border border-destructive/20 rounded-md"
-            data-testid="wip-limit-warning"
-          >
-            <p className="text-xs text-destructive font-medium">
-              ⚠️ WIP limit exceeded
-            </p>
-          </div>
-        )}
 
         {/* Add Repo button at column bottom (Trello-style) */}
         {onAddCard && (
