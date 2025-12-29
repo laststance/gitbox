@@ -36,20 +36,10 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-      - name: Backup Database (Pre-Migration)
-        run: |
-          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-          supabase db dump --linked -f backup_${TIMESTAMP}.sql
-          echo "BACKUP_FILE=backup_${TIMESTAMP}.sql" >> $GITHUB_ENV
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: Upload Backup Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: db-backup-${{ github.sha }}
-          path: ${{ env.BACKUP_FILE }}
-          retention-days: 30
+      # Note: Database backups are handled by Supabase Pro Plan's
+      # automatic daily backups and Point-in-Time Recovery feature.
+      # Manual backup artifacts were removed for security reasons
+      # (public repo artifact exposure risk).
 
       - name: Apply Migrations
         run: supabase db push --linked

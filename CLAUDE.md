@@ -67,6 +67,8 @@ await supabase.from('Board').select('*') // ❌ Wrong
 
 **🔴 CRITICAL:** Never use Supabase Dashboard for production schema changes. Always use migrations.
 
+**Backup Strategy:** Database backups are handled automatically by Supabase Pro Plan (daily backups + Point-in-Time Recovery). No manual backup artifacts are created in CI/CD.
+
 #### CI/CD Workflow (Recommended)
 
 | Branch    | Target                   | Workflow                                    |
