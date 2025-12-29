@@ -150,7 +150,7 @@ export const NoteModal = memo(function NoteModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <StickyNote className="w-5 h-5" />
@@ -169,7 +169,7 @@ export const NoteModal = memo(function NoteModal({
             initialValue={note}
             onChange={handleNoteChange}
             placeholder="Write your project notes... Use the toolbar for formatting."
-            minHeight="320px"
+            minHeight="430px"
             data-testid="note-editor"
           />
           <p id="note-char-count" className={charCountClass}>
