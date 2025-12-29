@@ -91,7 +91,7 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
       category: 'Help',
     },
     {
-      key: '⌘K',
+      key: '⌘ K',
       description: 'Open command palette',
       icon: <Command className="w-4 h-4" />,
       category: 'Navigation',
@@ -200,7 +200,7 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
                           </div>
                         </td>
                         <td className="px-4 py-3 w-32">
-                          <kbd className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-semibold bg-muted border border-border rounded-md shadow-sm min-w-[3rem]">
+                          <kbd className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-semibold bg-muted border border-border rounded-md shadow-sm min-w-12">
                             {shortcut.key}
                           </kbd>
                         </td>
