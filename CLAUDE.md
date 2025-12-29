@@ -51,10 +51,10 @@ This application requires GitHub authentication to access any functionality beyo
 
 ## Supabase Configuration
 
-| Environment                                          | Supabase URL                               | Credentials File  |
-| ---------------------------------------------------- | ------------------------------------------ | ----------------- |
-| Local Development(for http:localhost:3008)           | `https://jqtxjzdxczqwsrvevmyk.supabase.co` | `.env`            |
-| Productio(for https://gitbox-laststance.vercel.app/) | `https://mfeesjmtofgayktirswf.supabase.co` | `.env.production` |
+| Environment                                            | Supabase URL                               | Credentials File  |
+| ------------------------------------------------------ | ------------------------------------------ | ----------------- |
+| Local Development (for http://localhost:3008)          | `https://jqtxjzdxczqwsrvevmyk.supabase.co` | `.env`            |
+| Production (for https://gitbox-laststance.vercel.app/) | `https://mfeesjmtofgayktirswf.supabase.co` | `.env.production` |
 
 **🔴 CRITICAL:** Use lowercase table names in Server Actions:
 
@@ -63,38 +63,55 @@ await supabase.from('board').select('*') // ✅ Correct
 await supabase.from('Board').select('*') // ❌ Wrong
 ```
 
+### Local Development Migration
+
+**Setup:** Local dev connects to remote Supabase project (not Docker).
+
+```bash
+# Link to dev project
+supabase link --project-ref jqtxjzdxczqwsrvevmyk
+
+# Create new migration
+supabase migration new <description>
+
+# Apply to dev project
+supabase db push --linked
+
+# Check status
+supabase migration list
+```
+
+**⚠️ Note:** Dev and Production use separate remote Supabase projects. Always test migrations on dev before merging to main.
+
 ### Production Migration Procedure
 
 **🔴 CRITICAL:** Never use Supabase Dashboard for production schema changes. Always use migrations.
 
 **Backup Strategy:** Database backups are handled automatically by Supabase Pro Plan (daily backups + Point-in-Time Recovery). No manual backup artifacts are created in CI/CD.
 
-#### CI/CD Workflow (Recommended)
+#### CI/CD Workflow
 
-| Branch    | Target                   | Workflow                                    |
-| --------- | ------------------------ | ------------------------------------------- |
-| `develop` | gitbox-dev (staging)     | `.github/workflows/supabase-staging.yml`    |
-| `main`    | gitbox-prod (production) | `.github/workflows/supabase-production.yml` |
+| Branch | Target                   | Workflow                                    |
+| ------ | ------------------------ | ------------------------------------------- |
+| `main` | gitbox-prod (production) | `.github/workflows/supabase-production.yml` |
 
 **Steps:**
 
 1. Create migration file: `supabase migration new <description>`
 2. Write SQL in `supabase/migrations/YYYYMMDDHHMMSS_<description>.sql`
-3. Test locally: `supabase db reset` → verify schema
-4. Push to `develop` → auto-deploys to staging
-5. Verify staging → merge to `main` → production deploys (requires approval)
+3. Test on dev: `supabase link --project-ref jqtxjzdxczqwsrvevmyk` → `supabase db push --linked`
+4. Merge to `main` → production deploys (requires approval)
 
 **Required Setup:**
 
 - GitHub Secret: `SUPABASE_ACCESS_TOKEN` (from https://supabase.com/dashboard/account/tokens)
 - GitHub Environment: `production` with required reviewers
 
-#### Manual Migration Commands
+#### Manual Production Migration
 
 ```bash
-# Link to project
-supabase link --project-ref mfeesjmtofgayktirswf  # Production
-supabase link --project-ref jqtxjzdxczqwsrvevmyk  # Staging
+# Link to production (use with caution)
+supabase link --project-ref mfeesjmtofgayktirswf
 
 # Push migrations
 supabase db push --linked
