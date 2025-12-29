@@ -11,7 +11,7 @@
  * - Cancel closes dialog without action
  */
 
-import { test, expect } from './fixtures/coverage'
+import { test, expect } from '../fixtures/coverage'
 
 test.describe('Remove from Board Feature', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })

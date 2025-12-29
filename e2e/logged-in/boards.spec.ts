@@ -5,7 +5,7 @@
  * Requires authentication (uses storageState from auth.setup.ts)
  */
 
-import { test, expect } from './fixtures/coverage'
+import { test, expect } from '../fixtures/coverage'
 
 test.describe('Boards Page (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })

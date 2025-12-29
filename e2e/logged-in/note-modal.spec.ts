@@ -12,7 +12,7 @@
  * - Character count validation
  */
 
-import { test, expect } from './fixtures/coverage'
+import { test, expect } from '../fixtures/coverage'
 
 test.describe('NoteModal (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })

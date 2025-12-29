@@ -16,12 +16,12 @@
  * @see e2e/helpers/cdp-drag.ts for CDP drag helper implementation
  */
 
-import { test, expect } from '../fixtures/coverage'
+import { test, expect } from '../../fixtures/coverage'
 import {
   cdpColumnDragAndDrop,
   cdpColumnToNewRowDragAndDrop,
   cdpColumnToInsertZone,
-} from '../helpers/cdp-drag'
+} from '../../helpers/cdp-drag'
 
 const BOARD_URL = '/board/board-1'
 

@@ -10,7 +10,7 @@
  * These tests focus on non-drag interactions and UI elements.
  */
 
-import { test, expect } from './fixtures/coverage'
+import { test, expect } from '../fixtures/coverage'
 
 test.describe('Kanban Board (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })

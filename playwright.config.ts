@@ -121,7 +121,7 @@ export default defineConfig({
      */
     {
       name: 'setup',
-      testMatch: /auth\.setup\.ts/,
+      testMatch: 'auth.setup.ts',
     },
 
     /**
@@ -133,7 +133,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
       },
-      testMatch: /landing\.spec\.ts|login\.spec\.ts/,
+      testMatch: /unauthenticated\/.*[.]spec.ts/,
     },
 
     /**
@@ -147,8 +147,7 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         storageState: AUTH_FILE,
       },
-      testMatch:
-        /boards\.spec\.ts|kanban\.spec\.ts|kanban-dnd\/.*\.spec\.ts|settings\.spec\.ts|board-settings\.spec\.ts|add-repository-combobox\.spec\.ts|create-board\.spec\.ts|favorites\.spec\.ts|helpers\/cdp-drag\.spec\.ts|remove-from-board\.spec\.ts|note-modal\.spec\.ts/,
+      testMatch: /logged-in\/.*[.]spec.ts/,
     },
   ],
 

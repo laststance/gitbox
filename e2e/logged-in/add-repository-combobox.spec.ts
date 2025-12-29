@@ -11,7 +11,7 @@
  * 3. Opening AddRepositoryCombobox should NOT crash
  */
 
-import { test, expect } from './fixtures/coverage'
+import { test, expect } from '../fixtures/coverage'
 
 /**
  * AddRepositoryCombobox E2E Tests - Existing Repo Filtering

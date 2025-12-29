@@ -5,7 +5,7 @@
  * Requires authentication
  */
 
-import { test, expect } from './fixtures/coverage'
+import { test, expect } from '../fixtures/coverage'
 
 test.describe('Settings Page (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
