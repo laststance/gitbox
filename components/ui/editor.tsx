@@ -1,73 +1,130 @@
-/**
- * Plate Editor Components
- *
- * Provides the base Editor and EditorContainer components for Plate.js rich text editor.
- * Uses platejs/react for the core editing functionality.
- */
-
 'use client'
 
-import { PlateContent } from 'platejs/react'
+import type { VariantProps } from 'class-variance-authority'
+import { cva } from 'class-variance-authority'
+import type { PlateContentProps, PlateViewProps } from 'platejs/react'
+import { PlateContainer, PlateContent, PlateView } from 'platejs/react'
 import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-/**
- * Editor Container Component
- *
- * Wraps the editor content with proper positioning context.
- * Required for features like cursor overlay to work correctly.
- */
-export const EditorContainer = React.memo(function EditorContainer({
+const editorContainerVariants = cva(
+  'relative w-full cursor-text select-text overflow-y-auto caret-primary selection:bg-brand/25 focus-visible:outline-none [&_.slate-selection-area]:z-50 [&_.slate-selection-area]:border [&_.slate-selection-area]:border-brand/25 [&_.slate-selection-area]:bg-brand/15',
+  {
+    defaultVariants: {
+      variant: 'default',
+    },
+    variants: {
+      variant: {
+        comment: cn(
+          'flex flex-wrap justify-between gap-1 px-1 py-0.5 text-sm',
+          'rounded-md border-[1.5px] border-transparent bg-transparent',
+          'has-[[data-slate-editor]:focus]:border-brand/50 has-[[data-slate-editor]:focus]:ring-2 has-[[data-slate-editor]:focus]:ring-brand/30',
+          'has-aria-disabled:border-input has-aria-disabled:bg-muted',
+        ),
+        default: 'h-full',
+        demo: 'h-[650px]',
+        select: cn(
+          'group rounded-md border border-input ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2',
+          'has-data-readonly:w-fit has-data-readonly:cursor-default has-data-readonly:border-transparent has-data-readonly:focus-within:[box-shadow:none]',
+        ),
+      },
+    },
+  },
+)
+
+export function EditorContainer({
   className,
+  variant,
+  ...props
+}: React.ComponentProps<'div'> & VariantProps<typeof editorContainerVariants>) {
+  return (
+    <PlateContainer
+      className={cn(
+        'ignore-click-outside/toolbar',
+        editorContainerVariants({ variant }),
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+const editorVariants = cva(
+  cn(
+    'group/editor',
+    'relative w-full cursor-text select-text overflow-x-hidden whitespace-pre-wrap break-words',
+    'rounded-md ring-offset-background focus-visible:outline-none',
+    '**:data-slate-placeholder:!top-1/2 **:data-slate-placeholder:-translate-y-1/2 placeholder:text-muted-foreground/80 **:data-slate-placeholder:text-muted-foreground/80 **:data-slate-placeholder:opacity-100!',
+    '[&_strong]:font-bold',
+  ),
+  {
+    defaultVariants: {
+      variant: 'default',
+    },
+    variants: {
+      disabled: {
+        true: 'cursor-not-allowed opacity-50',
+      },
+      focused: {
+        true: 'ring-2 ring-ring ring-offset-2',
+      },
+      variant: {
+        ai: 'w-full px-0 text-base md:text-sm',
+        aiChat:
+          'max-h-[min(70vh,320px)] w-full max-w-[700px] overflow-y-auto px-3 py-2 text-base md:text-sm',
+        comment: cn('rounded-none border-none bg-transparent text-sm'),
+        default:
+          'size-full px-16 pt-4 pb-72 text-base sm:px-[max(64px,calc(50%-350px))]',
+        demo: 'size-full px-16 pt-4 pb-72 text-base sm:px-[max(64px,calc(50%-350px))]',
+        fullWidth: 'size-full px-16 pt-4 pb-72 text-base sm:px-24',
+        none: '',
+        select: 'px-3 py-2 text-base data-readonly:w-fit',
+      },
+    },
+  },
+)
+
+export type EditorProps = PlateContentProps &
+  VariantProps<typeof editorVariants>
+
+export const Editor = ({
+  className,
+  disabled,
+  focused,
+  variant,
   ref,
   ...props
-}: React.HTMLAttributes<HTMLDivElement> & {
-  ref?: React.Ref<HTMLDivElement>
-}) {
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        'relative w-full cursor-text caret-primary selection:bg-brand/25',
-        className,
-      )}
-      {...props}
-    />
-  )
-})
+}: EditorProps & { ref?: React.RefObject<HTMLDivElement | null> }) => (
+  <PlateContent
+    ref={ref}
+    className={cn(
+      editorVariants({
+        disabled,
+        focused,
+        variant,
+      }),
+      className,
+    )}
+    disabled={disabled}
+    disableDefaultStyles
+    {...props}
+  />
+)
 
-/**
- * Editor Component
- *
- * The main editable area for the Plate rich text editor.
- * Styled to match the application's design system.
- */
-export const Editor = React.memo(function Editor({
+Editor.displayName = 'Editor'
+
+export function EditorView({
   className,
+  variant,
   ...props
-}: React.ComponentPropsWithoutRef<typeof PlateContent>) {
+}: PlateViewProps & VariantProps<typeof editorVariants>) {
   return (
-    <PlateContent
-      className={cn(
-        'relative w-full overflow-x-auto whitespace-pre-wrap break-words',
-        'min-h-[200px] w-full rounded-md border border-input bg-background px-4 py-3',
-        'text-base ring-offset-background',
-        'placeholder:text-muted-foreground',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-        '[&_strong]:font-bold [&_em]:italic [&_u]:underline',
-        '[&_h1]:text-3xl [&_h1]:font-bold [&_h1]:mb-4',
-        '[&_h2]:text-2xl [&_h2]:font-bold [&_h2]:mb-3',
-        '[&_h3]:text-xl [&_h3]:font-semibold [&_h3]:mb-2',
-        '[&_blockquote]:border-l-4 [&_blockquote]:border-muted-foreground/30 [&_blockquote]:pl-4 [&_blockquote]:italic',
-        '[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-2',
-        '[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-2',
-        '[&_li]:mb-1',
-        '[&_a]:text-primary [&_a]:underline',
-        '[&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-sm',
-        className,
-      )}
+    <PlateView
       {...props}
+      className={cn(editorVariants({ variant }), className)}
     />
   )
-})
+}
+
+EditorView.displayName = 'EditorView'

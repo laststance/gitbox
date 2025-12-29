@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select'
 import type { Credential, ProjectLink } from '@/lib/actions/project-info'
 import { generateMaskedDisplay } from '@/lib/encryption'
+import { getSlateTextLength, parseSlateValue } from '@/lib/utils/slate-utils'
 
 /** Base styles for character count */
 const CHAR_COUNT_BASE = 'text-sm text-right'
@@ -96,10 +97,20 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
 
   /**
    * Handles note changes from PlateEditor.
-   * Enforces maximum length constraint.
+   * Enforces maximum length constraint based on text content (not JSON size).
+   *
+   * @param value - JSON string (Slate format) from PlateEditor
    */
   const handleNoteChange = useCallback((value: string) => {
-    if (value.length <= NOTE_MAX_LENGTH) {
+    try {
+      const slateValue = parseSlateValue(value)
+      const textLength = getSlateTextLength(slateValue)
+
+      if (textLength <= NOTE_MAX_LENGTH) {
+        setQuickNote(value)
+      }
+    } catch {
+      // If parsing fails, still allow the change
       setQuickNote(value)
     }
   }, [])
@@ -264,7 +275,17 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
   const isFormValid =
     urlErrors.size === 0 &&
     links.every((link) => !link.url || validateUrl(link.url))
-  const charCount = quickNote.length
+
+  // Calculate text length from JSON (Slate format) for character count
+  const charCount = useMemo(() => {
+    try {
+      const slateValue = parseSlateValue(quickNote)
+      return getSlateTextLength(slateValue)
+    } catch {
+      return 0
+    }
+  }, [quickNote])
+
   const isNearLimit = charCount >= NOTE_WARNING_THRESHOLD
 
   const charCountClassName = useMemo(
@@ -310,7 +331,7 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
             data-testid="note-editor"
             initialValue={quickNote}
             onChange={handleNoteChange}
-            placeholder="Write your project notes... Use the toolbar for formatting."
+            placeholder="Type / for commands, or start writing..."
             minHeight="300px"
           />
           <div

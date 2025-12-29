@@ -23,6 +23,7 @@ import { revalidatePath } from 'next/cache'
 
 import { createClient } from '@/lib/supabase/server'
 import type { TablesInsert, Tables, TablesUpdate } from '@/lib/supabase/types'
+import { getSlateTextLength, parseSlateValue } from '@/lib/utils/slate-utils'
 
 type ProjectInfoRow = Tables<'projectinfo'>
 type ProjectInfoInsert = TablesInsert<'projectinfo'>
@@ -59,13 +60,28 @@ const NOTE_MAX_LENGTH = 20000
 /**
  * Validate note content
  *
- * @param note - The note content to validate
+ * Note: quickNote is now stored as JSON (Slate format).
+ * We validate the actual text length, not the JSON string length.
+ *
+ * @param note - The note content to validate (JSON string)
  * @returns true if valid
- * @throws Error if note exceeds character limit
+ * @throws Error if text content exceeds character limit
  */
 function validateNote(note: string): boolean {
-  if (note.length > NOTE_MAX_LENGTH) {
-    throw new Error(`Note must be ${NOTE_MAX_LENGTH} characters or less`)
+  try {
+    // Parse JSON to get actual text length
+    const slateValue = parseSlateValue(note)
+    const textLength = getSlateTextLength(slateValue)
+
+    if (textLength > NOTE_MAX_LENGTH) {
+      throw new Error(`Note must be ${NOTE_MAX_LENGTH} characters or less`)
+    }
+  } catch {
+    // If parsing fails, fall back to raw length check
+    // This handles legacy plain text notes
+    if (note.length > NOTE_MAX_LENGTH) {
+      throw new Error(`Note must be ${NOTE_MAX_LENGTH} characters or less`)
+    }
   }
   return true
 }
@@ -253,8 +269,10 @@ export async function upsertProjectInfo(
     })
   }
 
-  // XSS escape
-  const escapedNote = escapeHtml(data.quickNote)
+  // Note: quickNote is now stored as JSON (Slate format).
+  // JSON is inherently safe when stored as a string and parsed client-side.
+  // No HTML escaping needed for the note content.
+  // XSS is prevented because the Plate editor renders content safely.
 
   // Convert links to match type
   const linksJson = {
@@ -279,7 +297,7 @@ export async function upsertProjectInfo(
       // Update
       projectInfoId = existingInfo.id
       const updateData: ProjectInfoUpdate = {
-        quick_note: escapedNote,
+        quick_note: data.quickNote,
         links: linksJson,
         updated_at: new Date().toISOString(),
       }
@@ -299,7 +317,7 @@ export async function upsertProjectInfo(
       // Create new
       const insertData: ProjectInfoInsert = {
         repo_card_id: repoCardId,
-        quick_note: escapedNote,
+        quick_note: data.quickNote,
         links: linksJson,
       }
 

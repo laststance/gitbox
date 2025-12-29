@@ -1,7 +1,7 @@
 'use client'
 
 import { StickyNote } from 'lucide-react'
-import { memo, useCallback, useEffect, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { PlateEditor } from '@/components/editor/PlateEditor'
@@ -20,6 +20,7 @@ import {
   updateDraftNote,
 } from '@/lib/redux/slices/draftSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
+import { getSlateTextLength, parseSlateValue } from '@/lib/utils/slate-utils'
 
 /** Maximum character limit for notes */
 const NOTE_MAX_LENGTH = 20000
@@ -82,16 +83,39 @@ export const NoteModal = memo(function NoteModal({
   }, [isOpen, initialNote, draft?.content])
 
   /**
-   * Handle note text change from PlateEditor.
+   * Calculate text length from the current note (JSON format).
+   * Memoized to prevent recalculation on every render.
+   */
+  const charCount = useMemo(() => {
+    try {
+      const slateValue = parseSlateValue(note)
+      return getSlateTextLength(slateValue)
+    } catch {
+      return 0
+    }
+  }, [note])
+
+  /**
+   * Handle note change from PlateEditor.
    * Saves to Redux draft state for persistence.
    *
-   * @param value - Plain text content from PlateEditor
+   * @param value - JSON string (Slate format) from PlateEditor
    */
   const handleNoteChange = useCallback(
     (value: string) => {
-      if (value.length <= NOTE_MAX_LENGTH) {
+      // Parse the JSON to get the text length for validation
+      try {
+        const slateValue = parseSlateValue(value)
+        const textLength = getSlateTextLength(slateValue)
+
+        if (textLength <= NOTE_MAX_LENGTH) {
+          setNote(value)
+          // Save draft to Redux (persisted to LocalStorage)
+          dispatch(updateDraftNote({ cardId, content: value }))
+        }
+      } catch {
+        // If parsing fails, still allow the change (might be valid JSON in progress)
         setNote(value)
-        // Save draft to Redux (persisted to LocalStorage)
         dispatch(updateDraftNote({ cardId, content: value }))
       }
     },
@@ -138,8 +162,7 @@ export const NoteModal = memo(function NoteModal({
     onClose()
   }, [onClose])
 
-  // Calculate character count display
-  const charCount = note.length
+  // Character count styling based on proximity to limit
   const isNearLimit = charCount >= NOTE_WARNING_THRESHOLD
   const charCountClass = isNearLimit
     ? 'text-sm text-right text-orange-500'
@@ -163,12 +186,10 @@ export const NoteModal = memo(function NoteModal({
         </DialogHeader>
 
         <div className="space-y-2">
-          {/* Key forces editor re-mount when initialNote changes (e.g., from Supabase) */}
           <PlateEditor
-            key={initialNote}
             initialValue={note}
             onChange={handleNoteChange}
-            placeholder="Write your project notes... Use the toolbar for formatting."
+            placeholder="Type / for commands, or start writing..."
             minHeight="430px"
             data-testid="note-editor"
           />
