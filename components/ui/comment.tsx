@@ -1,5 +1,3 @@
-'use client'
-
 import { getCommentKey, getDraftCommentKey } from '@platejs/comment'
 import { CommentPlugin, useCommentId } from '@platejs/comment/react'
 import {
@@ -228,16 +226,16 @@ export function Comment(props: {
       </div>
 
       {isFirst && showDocumentContent && (
-        <div className="relative mt-1 flex pl-[32px] text-sm text-subtle-foreground">
+        <div className="relative mt-1 flex pl-8 text-sm text-subtle-foreground">
           {discussionLength > 1 && (
-            <div className="absolute top-[5px] left-3 h-full w-0.5 shrink-0 bg-muted" />
+            <div className="absolute top-1.25 left-3 h-full w-0.5 shrink-0 bg-muted" />
           )}
           <div className="my-px w-0.5 shrink-0 bg-highlight" />
           {documentContent && <div className="ml-2">{documentContent}</div>}
         </div>
       )}
 
-      <div className="relative my-1 pl-[26px]">
+      <div className="relative my-1 pl-6.5">
         {!isLast && (
           <div className="absolute top-0 left-3 h-full w-0.5 shrink-0 bg-muted" />
         )}
@@ -254,7 +252,7 @@ export function Comment(props: {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="size-[28px]"
+                  className="size-7"
                   onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                     e.stopPropagation()
                     void onCancel()
@@ -565,7 +563,7 @@ export function CommentCreateForm({
           <EditorContainer variant="comment">
             <Editor
               variant="comment"
-              className="min-h-[25px] grow pt-0.5 pr-8"
+              className="min-h-6.25 grow pt-0.5 pr-8"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()
