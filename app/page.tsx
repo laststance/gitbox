@@ -885,10 +885,15 @@ const FEATURE_SUBTITLES = [
   'Build more than ever. Lose track of nothing.',
 ] as const
 
-// Random selection at module load - suppressHydrationWarning handles SSR/client mismatch
-const SUBTITLE_INDEX = Math.floor(Math.random() * FEATURE_SUBTITLES.length)
-
 const FeaturesSection = () => {
+  // SSR-safe: Start with first subtitle, randomize on client
+  const [subtitleIndex, setSubtitleIndex] = useState(0)
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSubtitleIndex(Math.floor(Math.random() * FEATURE_SUBTITLES.length))
+  }, [])
+
   const features = [
     {
       icon: <Columns3 className="h-8 w-8" />,
@@ -923,11 +928,8 @@ const FeaturesSection = () => {
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 bg-linear-to-b from-foreground to-muted-foreground bg-clip-text text-transparent">
             For AI Era Developers
           </h2>
-          <p
-            className="text-lg text-muted-foreground max-w-2xl mx-auto"
-            suppressHydrationWarning
-          >
-            {FEATURE_SUBTITLES[SUBTITLE_INDEX]}
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            {FEATURE_SUBTITLES[subtitleIndex]}
           </p>
         </div>
 
