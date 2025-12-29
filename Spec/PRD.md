@@ -128,7 +128,44 @@ color.success / warning / danger
 
 リスト/テーブル/サイドバーUIのHIG（[Apple Developer](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables)）
 
-### 3.4 Project Info（モーダル）
+### 3.4 NoteModal（リッチテキストノート）
+
+各RepoカードのNoteボタンから起動可能な、フル機能のWYSIWYGエディタ
+
+#### 機能仕様
+
+- **Plate Editor**ベースのリッチテキストエディタ
+- **Fixed Toolbar**: 常時表示のフォーマットツールバー（Bold, Italic, Headings, Lists等）
+- **Floating Toolbar**: テキスト選択時に表示されるコンテキストツールバー
+- **Slash Commands**: `/`入力でコマンドメニュー表示（/h1, /code, /table等）
+- **Markdown Autoformat**: `# `→H1, `* `→箇条書き, `1. `→番号付きリスト, `> `→引用
+- **文字数カウント**: 最大20,000文字、リアルタイム表示
+- **自動下書き保存**: 編集中は自動でドラフト保存
+
+#### 対応フォーマット
+
+| カテゴリ   | 要素                                                           |
+| ---------- | -------------------------------------------------------------- |
+| **Block**  | Heading (H1-H3), Paragraph, Blockquote, Code Block, Table      |
+| **List**   | Bullet List, Numbered List                                     |
+| **Inline** | Bold, Italic, Underline, Strikethrough, Inline Code, Highlight |
+| **Media**  | Link (URL埋め込み)                                             |
+
+#### データ形式
+
+- **保存形式**: JSON（Slate format）
+- **レガシー対応**: プレーンテキストからの自動マイグレーション
+- **文字数計算**: JSONからテキストを抽出してカウント
+
+#### 受け入れ基準
+
+- キーボードショートカット動作（Cmd+B=Bold, Cmd+I=Italic）
+- Slash commandsでブロック挿入
+- Markdown autoformatが正しく変換
+- 保存後に再オープンでフォーマット保持
+- ページリフレッシュ後もデータ永続
+
+### 3.5 Project Info（モーダル）
 
 すべてのRepoカードから起動可能
 
@@ -334,6 +371,82 @@ core-cli          "Security"           2025-07-01      87     [⋯]
 └───────────────────────────────────────────────┘
 ```
 
+### 5.6 NoteModal（リッチテキストエディタ）
+
+````
+┌───────────────────────────────────────────────────────────┐
+│ Project Note                                          [×] │
+│ Add notes about owner/repo-name. Use toolbar for         │
+│ formatting.                                               │
+│-----------------------------------------------------------│
+│ ┌───────────────────────────────────────────────────────┐ │
+│ │ [B] [I] [U] [S] [~] [<>] | [H▾] | [•] [1.] | [🔗] [📊] │ │ ← Fixed Toolbar
+│ └───────────────────────────────────────────────────────┘ │
+│ ┌───────────────────────────────────────────────────────┐ │
+│ │                                                       │ │
+│ │  # Project Overview                                   │ │ ← H1 Heading
+│ │                                                       │ │
+│ │  This project uses **React** and _TypeScript_.        │ │ ← Bold, Italic
+│ │                                                       │ │
+│ │  ## Key Features                                      │ │ ← H2 Heading
+│ │  • Authentication system                              │ │ ← Bullet List
+│ │  • Dashboard with analytics                           │ │
+│ │  • API integration                                    │ │
+│ │                                                       │ │
+│ │  ```typescript                                        │ │ ← Code Block
+│ │  const config = { theme: 'dark' }                     │ │
+│ │  ```                                                  │ │
+│ │                                                       │ │
+│ │  > Note: Deploy to production after testing.          │ │ ← Blockquote
+│ │                                                       │ │
+│ │  | Header 1 | Header 2 | Header 3 |                   │ │ ← Table
+│ │  |----------|----------|----------|                   │ │
+│ │  | Cell 1   | Cell 2   | Cell 3   |                   │ │
+│ │                                                       │ │
+│ │  Type / for commands...                               │ │ ← Placeholder
+│ │                                                       │ │
+│ └───────────────────────────────────────────────────────┘ │
+│                                                           │
+│                                    1,234 / 20,000         │ ← Character Count
+│                                    Draft saved 10:30 AM   │ ← Auto-save Status
+│                                                           │
+│                              [ Cancel ]  [ Save ]         │
+└───────────────────────────────────────────────────────────┘
+
+Slash Command Menu (on "/" input):
+┌─────────────────────┐
+│ /h1  Heading 1      │
+│ /h2  Heading 2      │
+│ /h3  Heading 3      │
+│ /code  Code Block   │
+│ /table  Table       │
+│ /quote  Blockquote  │
+│ /list  Bullet List  │
+│ /num  Numbered List │
+└─────────────────────┘
+
+Floating Toolbar (on text selection):
+┌─────────────────────────────────────┐
+│ [B] [I] [U] [S] [<>] [🔗] | [H▾]    │
+└─────────────────────────────────────┘
+````
+
+#### Toolbar Buttons
+
+| アイコン | 機能            | ショートカット |
+| -------- | --------------- | -------------- |
+| **B**    | Bold            | Cmd+B          |
+| _I_      | Italic          | Cmd+I          |
+| <u>U</u> | Underline       | Cmd+U          |
+| ~~S~~    | Strikethrough   | -              |
+| `<>`     | Inline Code     | -              |
+| 🖌️       | Highlight       | -              |
+| H▾       | Heading (H1-H3) | -              |
+| •        | Bullet List     | -              |
+| 1.       | Numbered List   | -              |
+| 🔗       | Link            | Cmd+K          |
+| 📊       | Table           | -              |
+
 ---
 
 ## 6) データモデル（セキュリティ強化版）
@@ -348,7 +461,10 @@ StatusList {
 }
 
 RepoCard {
-  id, repoOwner, repoName, note, statusId, order,
+  id, repoOwner, repoName, statusId, order,
+  note: JSON,  // Slate format - リッチテキスト（Plate Editor）
+                // 例: [{"type":"p","children":[{"text":"..."}]}]
+                // レガシー: プレーンテキストは自動マイグレーション
   meta{stars, updatedAt, visibility, language, topics[]}
 }
 
