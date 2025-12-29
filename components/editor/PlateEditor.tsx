@@ -54,6 +54,8 @@ export interface PlateEditorProps {
   className?: string
   /** Minimum height for the editor content area */
   minHeight?: string
+  /** Maximum height for the editor content area (enables scrolling) */
+  maxHeight?: string
   /** data-testid for testing */
   'data-testid'?: string
 }
@@ -90,6 +92,7 @@ export const PlateEditor = memo(function PlateEditor({
   disabled = false,
   className,
   minHeight = '200px',
+  maxHeight,
   'data-testid': testId = 'plate-editor',
 }: PlateEditorProps) {
   /**
@@ -137,7 +140,7 @@ export const PlateEditor = memo(function PlateEditor({
               'rounded-lg border border-input bg-background shadow-sm',
               disabled && 'cursor-not-allowed opacity-50',
             )}
-            style={{ minHeight }}
+            style={{ minHeight, maxHeight }}
           >
             <Editor
               placeholder={placeholder}

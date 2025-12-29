@@ -191,6 +191,7 @@ export const NoteModal = memo(function NoteModal({
             onChange={handleNoteChange}
             placeholder="Type / for commands, or start writing..."
             minHeight="430px"
+            maxHeight="430px"
             data-testid="note-editor"
           />
           <p id="note-char-count" className={charCountClass}>

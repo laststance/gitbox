@@ -219,6 +219,128 @@ test.describe('NoteModal (Authenticated)', () => {
   })
 })
 
+test.describe('NoteModal Editor Height & Scroll (Authenticated)', () => {
+  test.use({ storageState: 'e2e/.auth/user.json' })
+
+  const BOARD_URL = '/board/board-1'
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto(BOARD_URL)
+    await page.waitForLoadState('domcontentloaded')
+  })
+
+  test('should maintain fixed editor height with overflow scroll', async ({
+    page,
+  }) => {
+    // Open NoteModal
+    const card = page.locator('[data-testid^="repo-card-"]').first()
+    await expect(card).toBeVisible({ timeout: 10000 })
+    const noteButton = card.getByRole('button', { name: 'Open note' })
+    await noteButton.click()
+
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible({ timeout: 5000 })
+
+    // Get the editor container (PlateContainer with overflow-y-auto)
+    const editorContainer = dialog.locator('[data-testid="note-editor"] > div')
+    await expect(editorContainer).toBeVisible()
+
+    // Get initial height of the editor container
+    const initialHeight = await editorContainer.evaluate(
+      (el) => el.getBoundingClientRect().height,
+    )
+
+    // Focus on editor and type many lines of text
+    const editorContent = dialog.locator('[data-slate-editor="true"]')
+    await editorContent.click()
+
+    // Clear existing content
+    await page.keyboard.press('Meta+a')
+    await page.keyboard.press('Backspace')
+
+    // Type multiple lines to exceed editor height
+    const lines = Array.from(
+      { length: 20 },
+      (_, i) =>
+        `Line ${i + 1}: Testing scroll behavior with fixed height editor.`,
+    ).join('\n')
+    await page.keyboard.type(lines)
+
+    // Wait for content to render
+    await page.waitForTimeout(500)
+
+    // Get height after adding content
+    const finalHeight = await editorContainer.evaluate(
+      (el) => el.getBoundingClientRect().height,
+    )
+
+    // Height should remain the same (fixed) - allow tolerance for rendering variations
+    // Note: Some browser rendering can cause small variations, but should not exceed 15px
+    expect(Math.abs(finalHeight - initialHeight)).toBeLessThan(15)
+
+    // Verify the editor container has overflow-y-auto style applied
+    const hasOverflowScroll = await editorContainer.evaluate((el) => {
+      const style = window.getComputedStyle(el)
+      return style.overflowY === 'auto' || style.overflowY === 'scroll'
+    })
+    expect(hasOverflowScroll).toBe(true)
+  })
+
+  test('should be scrollable when content exceeds editor height', async ({
+    page,
+  }) => {
+    // Open NoteModal
+    const card = page.locator('[data-testid^="repo-card-"]').first()
+    await expect(card).toBeVisible({ timeout: 10000 })
+    const noteButton = card.getByRole('button', { name: 'Open note' })
+    await noteButton.click()
+
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible({ timeout: 5000 })
+
+    // Focus on editor
+    const editorContent = dialog.locator('[data-slate-editor="true"]')
+    await editorContent.click()
+
+    // Clear existing content
+    await page.keyboard.press('Meta+a')
+    await page.keyboard.press('Backspace')
+
+    // Type unique marker text at the top
+    await page.keyboard.type('TOP_MARKER_TEXT')
+    await page.keyboard.press('Enter')
+
+    // Type many lines to push the marker out of view
+    for (let i = 0; i < 25; i++) {
+      await page.keyboard.type(`Line ${i + 1}: Filler content for scroll test`)
+      await page.keyboard.press('Enter')
+    }
+
+    await page.keyboard.type('BOTTOM_MARKER_TEXT')
+
+    // Wait for content to render
+    await page.waitForTimeout(500)
+
+    // The editor container should now have scrollable content
+    const editorContainer = dialog.locator('[data-testid="note-editor"] > div')
+
+    // Check that scroll height is greater than client height (content is scrollable)
+    const isScrollable = await editorContainer.evaluate((el) => {
+      return el.scrollHeight > el.clientHeight
+    })
+    expect(isScrollable).toBe(true)
+
+    // Scroll to top and verify TOP_MARKER_TEXT is visible
+    await editorContainer.evaluate((el) => {
+      el.scrollTop = 0
+    })
+    await page.waitForTimeout(200)
+
+    // TOP_MARKER_TEXT should be visible after scrolling to top
+    await expect(editorContent).toContainText('TOP_MARKER_TEXT')
+  })
+})
+
 test.describe('NoteModal Formatting (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
