@@ -23,7 +23,6 @@ import {
 import { Label } from '@/components/ui/label'
 import type { ThemeType } from '@/lib/hooks/use-theme'
 import { useTheme, LIGHT_THEMES, DARK_THEMES } from '@/lib/hooks/use-theme'
-import { useI18n } from '@/lib/i18n'
 import {
   selectCompactMode,
   selectShowCardMetadata,
@@ -172,7 +171,6 @@ export const SettingsClient = memo(function SettingsClient() {
   const router = useRouter()
   const dispatch = useAppDispatch()
   const { theme, setTheme, mounted } = useTheme()
-  const { t } = useI18n()
 
   // Redux state for display settings
   const compactMode = useAppSelector(selectCompactMode)
@@ -362,16 +360,16 @@ export const SettingsClient = memo(function SettingsClient() {
         {/* Typography Settings */}
         <Card>
           <CardHeader>
-            <CardTitle>{t.settings.typography}</CardTitle>
+            <CardTitle>Typography</CardTitle>
             <CardDescription>
-              {t.settings.typographyDescription}
+              Adjust text size for better readability
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
                 <Label htmlFor="font-size" className="mb-2 block">
-                  {t.settings.fontSize}
+                  Base Font Size
                 </Label>
                 <div className="flex items-center gap-4">
                   <span className="text-sm text-muted-foreground">12px</span>

@@ -13,7 +13,6 @@ import * as Sentry from '@sentry/nextjs'
 import { useEffect, memo } from 'react'
 import { Provider } from 'react-redux'
 
-import { I18nProvider } from '@/lib/i18n'
 import { supabase } from '@/lib/supabase/client'
 
 import { setSession, setUser, setLoading } from './slices/authSlice'
@@ -87,9 +86,7 @@ export const Providers = memo(function Providers({
 }) {
   return (
     <Provider store={store}>
-      <I18nProvider>
-        <AuthSync>{children}</AuthSync>
-      </I18nProvider>
+      <AuthSync>{children}</AuthSync>
     </Provider>
   )
 })
