@@ -19,11 +19,11 @@ export const BOARD_NAME_MAX_LENGTH = 50
  */
 export const boardNameSchema = z
   .string()
+  .trim()
   .min(1, 'Board name is required')
   .max(
     BOARD_NAME_MAX_LENGTH,
     `Board name must be ${BOARD_NAME_MAX_LENGTH} characters or less`,
   )
-  .trim()
 
 export type BoardNameInput = z.infer<typeof boardNameSchema>
