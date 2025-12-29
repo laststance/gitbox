@@ -32,6 +32,16 @@ This application requires GitHub authentication to access any functionality beyo
 
 ---
 
+## Documentation & Planning
+
+| Document | Path          | Description                                                                            |
+| -------- | ------------- | -------------------------------------------------------------------------------------- |
+| **PRD**  | `Spec/PRD.md` | Product Requirements Document with feature specifications, wireframes, and data models |
+
+**📋 Feature Tracking:** Unimplemented features from PRD are tracked as [GitHub Issues](https://github.com/laststance/gitbox/issues). Check open issues before implementing new features.
+
+---
+
 ## Vercel Configuration
 
 **🔴 CRITICAL: Use ONLY this Vercel project**
