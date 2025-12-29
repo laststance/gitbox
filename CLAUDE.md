@@ -274,10 +274,10 @@ pnpm e2e --headed
 packages/redux-storage-middleware/  # Local package
 ```
 
-### 12 Theme System
+### 14 Theme System
 
-Light: sunrise, sandstone, mint, sky, lavender, rose
-Dark: midnight, graphite, forest, ocean, plum, rust
+Light: default, sunrise, sandstone, mint, sky, lavender, rose
+Dark: dark, midnight, graphite, forest, ocean, plum, rust
 
 ### Shortcuts
 
