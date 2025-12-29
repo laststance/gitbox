@@ -1059,7 +1059,12 @@ const Footer = () => {
             <Github className="h-4 w-4" />
             GitHub
           </a>
-          <span>Made by Laststance.io</span>
+          <span>
+            Made by{' '}
+            <a href="https://laststance.io/" target="_blank">
+              Laststance.io
+            </a>
+          </span>
         </div>
       </div>
     </footer>
