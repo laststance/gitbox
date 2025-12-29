@@ -877,13 +877,24 @@ const HeroSection = () => {
 }
 
 // Features Section Component
+const FEATURE_SUBTITLES = [
+  'Tame the repo chaos from AI-powered development',
+  'Your repos multiply faster than ever. We help you stay organized.',
+  'Ship fast with AI. Stay organized with GitBox.',
+  'In the age of vibe coding, chaos needs a home.',
+  'Build more than ever. Lose track of nothing.',
+] as const
+
+// Random selection at module load - suppressHydrationWarning handles SSR/client mismatch
+const SUBTITLE_INDEX = Math.floor(Math.random() * FEATURE_SUBTITLES.length)
+
 const FeaturesSection = () => {
   const features = [
     {
       icon: <Columns3 className="h-8 w-8" />,
       title: 'Kanban Board',
       description:
-        'Visual status-based organization for all your GitHub repositories. Create custom columns like Backlog, In Progress, Review, and Done.',
+        'Visual status-based organization for your ever-growing collection of repositories. Create custom columns like Backlog, In Progress, Review, and Done.',
     },
     {
       icon: <GripVertical className="h-8 w-8" />,
@@ -901,7 +912,7 @@ const FeaturesSection = () => {
       icon: <Archive className="h-8 w-8" />,
       title: 'Maintenance Mode',
       description:
-        'Archive completed or deprecated projects. Keep your board clean while preserving historical data.',
+        'Archive completed or experimental projects. Keep your board clean while preserving historical data.',
     },
   ]
 
@@ -910,10 +921,13 @@ const FeaturesSection = () => {
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 bg-linear-to-b from-foreground to-muted-foreground bg-clip-text text-transparent">
-            Built for Developers
+            For AI Era Developers
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Everything you need to organize and track your GitHub repositories
+          <p
+            className="text-lg text-muted-foreground max-w-2xl mx-auto"
+            suppressHydrationWarning
+          >
+            {FEATURE_SUBTITLES[SUBTITLE_INDEX]}
           </p>
         </div>
 
