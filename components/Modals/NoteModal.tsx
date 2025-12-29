@@ -193,6 +193,7 @@ export const NoteModal = memo(function NoteModal({
             minHeight="430px"
             maxHeight="430px"
             data-testid="note-editor"
+            autoFocus
           />
           <p id="note-char-count" className={charCountClass}>
             {charCount.toLocaleString()} / {NOTE_MAX_LENGTH.toLocaleString()}

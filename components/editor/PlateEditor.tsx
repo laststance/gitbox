@@ -21,7 +21,7 @@
 'use client'
 
 import { Plate, usePlateEditor } from 'platejs/react'
-import { memo, useCallback, useMemo } from 'react'
+import { memo, useCallback, useEffect, useMemo } from 'react'
 
 import { Editor, EditorContainer } from '@/components/ui/editor'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -58,6 +58,8 @@ export interface PlateEditorProps {
   maxHeight?: string
   /** data-testid for testing */
   'data-testid'?: string
+  /** Automatically focus the editor on mount */
+  autoFocus?: boolean
 }
 
 // ============================================================================
@@ -94,6 +96,7 @@ export const PlateEditor = memo(function PlateEditor({
   minHeight = '200px',
   maxHeight,
   'data-testid': testId = 'plate-editor',
+  autoFocus = false,
 }: PlateEditorProps) {
   /**
    * Parse initial value from string (JSON or legacy plain text).
@@ -112,6 +115,19 @@ export const PlateEditor = memo(function PlateEditor({
     plugins: EditorPlugins,
     value: initialEditorValue,
   })
+
+  /**
+   * Auto-focus the editor when mounted if autoFocus is true.
+   * Uses setTimeout(0) to ensure DOM is ready after React render cycle.
+   */
+  useEffect(() => {
+    if (autoFocus) {
+      const timer = setTimeout(() => {
+        editor.tf.focus({ edge: 'end' })
+      }, 0)
+      return () => clearTimeout(timer)
+    }
+  }, [autoFocus, editor])
 
   /**
    * Handle editor content changes.
