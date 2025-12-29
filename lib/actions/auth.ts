@@ -10,9 +10,10 @@
 'use server'
 
 import * as Sentry from '@sentry/nextjs'
-import { headers } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
+import { getGitHubTokenCookieName } from '@/lib/constants/cookies'
 import { createServerActionClient } from '@/lib/supabase/server'
 
 /**
@@ -54,11 +55,16 @@ export async function signInWithGitHub() {
 /**
  * Sign out
  *
- * - Delete Supabase session
- * - Redirect to login page
+ * Terminates the user session by:
+ * - Deleting the Supabase session
+ * - Deleting the GitHub provider token cookie
+ * - Redirecting to the landing page
+ *
+ * @throws Error if Supabase sign out fails
  */
 export async function signOut() {
   const supabase = await createServerActionClient()
+  const cookieStore = await cookies()
 
   const { error } = await supabase.auth.signOut()
 
@@ -67,7 +73,11 @@ export async function signOut() {
     throw new Error(error.message)
   }
 
-  redirect('/login')
+  // Delete GitHub provider token cookie
+  const githubTokenCookieName = getGitHubTokenCookieName()
+  cookieStore.delete(githubTokenCookieName)
+
+  redirect('/')
 }
 
 /**
