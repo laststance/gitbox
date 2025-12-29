@@ -286,6 +286,16 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     // Keyboard shortcut: Z key to execute undo
     useEffect(() => {
       const handleKeyDown = (event: KeyboardEvent) => {
+        // Skip if user is typing in an input field, textarea, or contentEditable element
+        const target = event.target as HTMLElement
+        if (
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable
+        ) {
+          return
+        }
+
         // Z key (both uppercase and lowercase, no Cmd/Ctrl required)
         if (event.key === 'z' || event.key === 'Z') {
           event.preventDefault()
