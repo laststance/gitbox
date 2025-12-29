@@ -34,27 +34,6 @@ export function applyTheme(theme: Theme): void {
 }
 
 /**
- * Get CSS variable value
- *
- * @param variableName - CSS variable name (e.g., 'color-bg-primary')
- * @returns CSS variable value
- *
- * @example
- * ```ts
- * const bgColor = getCSSVariable('color-bg-primary')
- * // "#ffffff"
- * ```
- */
-export function getCSSVariable(variableName: string): string {
-  if (typeof window === 'undefined') {
-    return ''
-  }
-
-  const styles = getComputedStyle(document.documentElement)
-  return styles.getPropertyValue(`--${variableName}`).trim()
-}
-
-/**
  * Check if theme is dark mode
  *
  * @param theme - Theme name
