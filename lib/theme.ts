@@ -34,22 +34,6 @@ export function applyTheme(theme: Theme): void {
 }
 
 /**
- * Get currently applied theme
- *
- * @returns Current theme name, or null if not set
- */
-export function getCurrentTheme(): Theme | null {
-  if (typeof document === 'undefined') {
-    return null
-  }
-
-  const html = document.documentElement
-  const theme = html.getAttribute('data-theme')
-
-  return theme as Theme | null
-}
-
-/**
  * Get CSS variable value
  *
  * @param variableName - CSS variable name (e.g., 'color-bg-primary')
