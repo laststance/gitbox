@@ -1,6 +1,7 @@
 'use client'
 
 import type {
+  CollisionDetection,
   DragEndEvent,
   DragStartEvent,
   UniqueIdentifier,
@@ -12,6 +13,7 @@ import {
   MouseSensor,
   TouchSensor,
   closestCenter,
+  pointerWithin,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
@@ -55,6 +57,32 @@ import { SortableColumn, COLUMN_DRAG_TYPE } from './SortableColumn'
  * Drag type identifier for active drag detection
  */
 type DragType = 'column' | 'card' | null
+
+/**
+ * Custom collision detection algorithm for more forgiving column swap.
+ *
+ * Combines `pointerWithin` (priority) with `closestCenter` (fallback):
+ * - pointerWithin: Triggers when pointer is INSIDE a droppable (very forgiving)
+ * - closestCenter: Falls back to center-distance calculation when pointer is outside all droppables
+ *
+ * This makes horizontal column swapping much easier - users don't need to
+ * precisely target the center of the target column.
+ *
+ * @param args - Collision detection arguments from @dnd-kit
+ * @returns Array of collision results, prioritizing pointer-based collisions
+ */
+const forgivingCollisionDetection: CollisionDetection = (args) => {
+  // First, check if pointer is inside any droppable (most forgiving)
+  const pointerCollisions = pointerWithin(args)
+
+  // If pointer is inside a droppable, use that result
+  if (pointerCollisions.length > 0) {
+    return pointerCollisions
+  }
+
+  // Fallback: Use closestCenter when pointer is outside all droppables
+  return closestCenter(args)
+}
 
 // Types: Using Domain types for type-safe state management
 
@@ -604,7 +632,9 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       }
     }
 
-    if (loading) {
+    // Only show skeleton on initial load (no data yet)
+    // Not on subsequent refetches when data already exists (e.g., after note save)
+    if (loading && statuses.length === 0) {
       return (
         <div className="w-full p-6">
           <KanbanSkeleton />
@@ -638,7 +668,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
 
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCenter}
+          collisionDetection={forgivingCollisionDetection}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           modifiers={[restrictToWindowEdges]}

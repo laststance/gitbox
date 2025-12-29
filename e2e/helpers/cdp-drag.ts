@@ -312,9 +312,9 @@ export async function cdpColumnDragAndDrop(
     const sourceCoords = await getColumnDragHandleCenter(page, sourceSelector)
     const targetCoords = await getColumnDragHandleCenter(page, targetSelector)
 
-    // Calculate overshoot position - @dnd-kit sortable needs drag PAST target center to trigger swap
-    // Add 100px overshoot in the drag direction (horizontal)
-    const overshootX = targetCoords.x > sourceCoords.x ? 150 : -150
+    // Calculate overshoot position - with forgivingCollisionDetection (pointerWithin + closestCenter),
+    // we need less overshoot than before. 50px is sufficient for reliable swap detection.
+    const overshootX = targetCoords.x > sourceCoords.x ? 50 : -50
     const overshootCoords: Coordinates = {
       x: targetCoords.x + overshootX,
       y: targetCoords.y,

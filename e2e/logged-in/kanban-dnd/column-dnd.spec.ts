@@ -90,7 +90,7 @@ test.describe('10.3 Column Drag & Drop', () => {
    * | E2Eカバー     | ✅ カバー済み                                       |
    * | Server Action | `swapStatusListPositions()`                         |
    * | CDP Helper    | `cdpColumnDragAndDrop()`                            |
-   * | 注意          | DropZoneがシビア - ターゲットの中心を超える必要あり |
+   * | 衝突検出      | forgivingCollisionDetection (pointerWithin優先)    |
    */
   test.describe('10.3.1 カラムSwap（位置入れ替え）', () => {
     /**

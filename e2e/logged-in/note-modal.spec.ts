@@ -217,6 +217,61 @@ test.describe('NoteModal (Authenticated)', () => {
     const boldText = editorContent.locator('strong.slate-bold')
     await expect(boldText).toHaveCount(1, { timeout: 3000 })
   })
+
+  test('should NOT show skeleton after saving note (regression test)', async ({
+    page,
+  }) => {
+    // This test verifies the fix for the issue where saving a note
+    // caused the entire board to show skeleton due to revalidatePath
+    // triggering a re-render and setting loading=true.
+    //
+    // Fix: KanbanBoard only shows skeleton when loading=true AND statuses.length===0
+
+    // Wait for board content to load
+    const card = page.locator('[data-testid^="repo-card-"]').first()
+    await expect(card).toBeVisible({ timeout: 10000 })
+
+    // Open NoteModal
+    const noteButton = card.getByRole('button', { name: 'Open note' })
+    await noteButton.click()
+
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible({ timeout: 5000 })
+
+    // Type some text to trigger a change
+    const editorContent = dialog.locator('[data-slate-editor="true"]')
+    await editorContent.click()
+    await page.keyboard.type(' - E2E test timestamp: ' + Date.now())
+
+    // Get reference to a column header (to verify board stays visible)
+    const columnHeader = page.locator('[data-testid^="status-column-"]').first()
+    await expect(columnHeader).toBeVisible()
+
+    // Click Save button
+    const saveButton = dialog.getByRole('button', { name: /save/i })
+    await saveButton.click()
+
+    // Dialog should close
+    await expect(dialog).not.toBeVisible({ timeout: 5000 })
+
+    // CRITICAL: Verify board content remains visible (no skeleton)
+    // The column header should remain visible immediately after save
+    await expect(columnHeader).toBeVisible()
+
+    // Wait a moment for any potential revalidation to complete
+    await page.waitForTimeout(500)
+
+    // Board should still be visible (not replaced by skeleton)
+    await expect(columnHeader).toBeVisible()
+
+    // Repo cards should also remain visible
+    await expect(card).toBeVisible()
+
+    // Skeleton should NOT be visible
+    // KanbanSkeleton uses these classes: animate-pulse, bg-muted
+    const skeleton = page.locator('.animate-pulse').first()
+    await expect(skeleton).not.toBeVisible({ timeout: 1000 })
+  })
 })
 
 test.describe('NoteModal Editor Height & Scroll (Authenticated)', () => {
