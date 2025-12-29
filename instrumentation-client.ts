@@ -4,8 +4,48 @@
 
 import * as Sentry from '@sentry/nextjs'
 
+/** Hostnames where Sentry should be disabled */
+const DISABLED_HOSTNAMES = ['localhost', '127.0.0.1'] as const
+
+/**
+ * Determines if Sentry should be enabled on the client.
+ * Only enables in production environment, NOT in:
+ * - localhost development
+ * - 127.0.0.1 (local IP)
+ *
+ * @returns {boolean} Whether Sentry should be enabled
+ *
+ * @example
+ * // On localhost:3008 -> false
+ * // On gitbox-laststance.vercel.app -> true
+ */
+const isSentryEnabled = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  const hostname = window.location.hostname
+
+  // Disable on localhost and local IP addresses
+  if (
+    DISABLED_HOSTNAMES.includes(hostname as (typeof DISABLED_HOSTNAMES)[number])
+  ) {
+    return false
+  }
+
+  // Disable on any local network address (192.168.x.x, 10.x.x.x, etc.)
+  if (hostname.startsWith('192.168.') || hostname.startsWith('10.')) {
+    return false
+  }
+
+  return true
+}
+
 Sentry.init({
   dsn: 'https://06b1775946774ab1527986b339ea85ed@o1245861.ingest.us.sentry.io/4510597804261376',
+
+  // Only enable Sentry in production environment (not localhost)
+  enabled: isSentryEnabled(),
 
   // Add optional integrations for additional features
   integrations: [Sentry.replayIntegration()],
