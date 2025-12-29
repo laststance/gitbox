@@ -320,9 +320,11 @@ core-cli          "Security"           2025-07-01      87     [⋯]
 ```
 ┌───────────────────────────────────────────────┐
 │ Settings                                      │
-│ Theme (12)                                    │
-│  Light: Sunrise / Sandstone / Mint / Sky / ...│
-│  Dark : Midnight / Graphite / Forest / ...    │
+│ Theme (14)                                    │
+│  Light: Light / Sunrise / Sandstone / Mint /  │
+│         Sky / Lavender / Rose                 │
+│  Dark : Dark / Midnight / Graphite / Forest / │
+│         Ocean / Plum / Rust                   │
 │  [ Preview ] [ Apply ]                        │
 │-----------------------------------------------│
 │ Typography                                    │
