@@ -498,12 +498,12 @@ AuditLog {
 └──────────────┘         └──────────────┘
 ```
 
-| 項目          | 値                            |
-| ------------- | ----------------------------- |
-| 実装状態      | ✅ 実装済み                   |
-| E2Eカバー     | ⬜ 未カバー                   |
-| Server Action | `batchUpdateRepoCardOrders()` |
-| CDP Helper    | `cdpCardDragAndDrop()`        |
+| 項目          | 値                                                         |
+| ------------- | ---------------------------------------------------------- |
+| 実装状態      | ✅ 実装済み                                                |
+| E2Eカバー     | ✅ カバー済み（`should reorder cards within same column`） |
+| Server Action | `batchUpdateRepoCardOrders()`                              |
+| CDP Helper    | `cdpCardDragAndDrop()`                                     |
 
 #### 10.2.2 カラム間移動
 
@@ -688,8 +688,8 @@ Row 1: [   ] [   ] [ B ]   →     Row 1: [ A ] [   ] [   ]
 | Column: Swap操作実行         | ✅ 追加済み（`should execute column drag operation successfully`） |
 | Column: 縦方向Swap           | ✅ 追加済み（10.3.5 - 2テスト in `column-dnd.spec.ts`）            |
 | Column: 斜め方向Swap         | ✅ 追加済み（10.3.6 - 3テスト in `column-dnd.spec.ts`）            |
-| Column: NewRowDropZone       | ⬜ 検証強化必要                                                    |
-| Column: ColumnInsertZone挿入 | ✅ 追加済み（5テストケース in `kanban-dnd.spec.ts`）               |
+| Column: NewRowDropZone       | ✅ 追加済み（6テストケース in `column-dnd.spec.ts`）               |
+| Column: ColumnInsertZone挿入 | ✅ 追加済み（5テストケース in `column-dnd.spec.ts`）               |
 | Column: Auto-Height拡張      | ✅ 追加済み（`e2e/kanban.spec.ts` - 6テスト）                      |
 
 ### 10.6 CDP Drag Helper一覧
