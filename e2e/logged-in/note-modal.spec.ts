@@ -21,7 +21,9 @@ test.describe('NoteModal (Authenticated)', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    // Use networkidle to wait for all data fetches to complete
+    // This prevents flakiness caused by cards not being rendered yet
+    await page.waitForLoadState('networkidle')
   })
 
   test('should open NoteModal from repo card Note button', async ({ page }) => {
@@ -282,7 +284,9 @@ test.describe('NoteModal Editor Height & Scroll (Authenticated)', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    // Use networkidle to wait for all data fetches to complete
+    // This prevents flakiness caused by cards not being rendered yet
+    await page.waitForLoadState('networkidle')
   })
 
   test('should maintain fixed editor height with overflow scroll', async ({
@@ -413,7 +417,8 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
 
   test('should support markdown autoformat for heading', async ({ page }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    // Use networkidle to wait for all data fetches to complete
+    await page.waitForLoadState('networkidle')
 
     // Open NoteModal
     const card = page.locator('[data-testid^="repo-card-"]').first()
@@ -446,7 +451,8 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    // Use networkidle to wait for all data fetches to complete
+    await page.waitForLoadState('networkidle')
 
     // Open NoteModal
     const card = page.locator('[data-testid^="repo-card-"]').first()
