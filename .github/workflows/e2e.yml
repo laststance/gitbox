@@ -11,9 +11,15 @@ permissions:
   pull-requests: write
 
 jobs:
-  e2e:
+  # Sharded E2E test execution
+  e2e-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2, 3, 4]
+        shardTotal: [4]
 
     steps:
       - uses: actions/checkout@v4
@@ -39,16 +45,147 @@ jobs:
           NEXT_PUBLIC_ENABLE_MSW_MOCK: 'true'
           APP_ENV: test
 
-      - name: Run E2E tests
-        run: pnpm e2e
+      - name: Run E2E tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
+        run: pnpm exec playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://mock.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: mock-anon-key
           NEXT_PUBLIC_ENABLE_MSW_MOCK: 'true'
           APP_ENV: test
+          SHARD_INDEX: ${{ matrix.shardIndex }}
 
-      # Coverage Artifact (always upload)
-      - name: Upload E2E coverage report
+      - name: Upload blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-${{ matrix.shardIndex }}
+          path: blob-report
+          retention-days: 1
+
+      - name: Upload coverage report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ matrix.shardIndex }}
+          path: coverage-e2e-shard-${{ matrix.shardIndex }}/
+          retention-days: 1
+
+  # Merge reports from all shards
+  merge-reports:
+    if: ${{ !cancelled() }}
+    needs: [e2e-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download blob reports
+        uses: actions/download-artifact@v4
+        with:
+          path: all-blob-reports
+          pattern: blob-report-*
+          merge-multiple: true
+
+      - name: Download coverage reports
+        uses: actions/download-artifact@v4
+        with:
+          path: all-coverage-reports
+          pattern: coverage-report-*
+          merge-multiple: true
+
+      - name: Merge Playwright reports
+        run: |
+          pnpm exec playwright merge-reports --reporter html ./all-blob-reports
+
+      - name: Merge coverage reports
+        run: |
+          # Install nyc for merging coverage
+          pnpm add -D nyc
+
+          # Create directory for merged coverage
+          mkdir -p coverage-e2e/coverage
+
+          # Find and merge all coverage.json files
+          find all-coverage-reports -name 'coverage.json' -exec cp {} coverage-e2e/coverage/ \; 2>/dev/null || true
+
+          # If we have coverage files, merge them
+          if ls all-coverage-reports/*/coverage/v8/*.json 1> /dev/null 2>&1; then
+            # Copy V8 coverage files
+            mkdir -p coverage-e2e/coverage/v8
+            for dir in all-coverage-reports/*/coverage/v8/; do
+              if [ -d "$dir" ]; then
+                cp "$dir"*.json coverage-e2e/coverage/v8/ 2>/dev/null || true
+              fi
+            done
+          fi
+
+          # Merge coverage summaries
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+
+            const summaryFiles = [];
+            const dirs = fs.readdirSync('all-coverage-reports').filter(f =>
+              fs.statSync(path.join('all-coverage-reports', f)).isDirectory()
+            );
+
+            for (const dir of dirs) {
+              const summaryPath = path.join('all-coverage-reports', dir, 'coverage', 'coverage-summary.json');
+              if (fs.existsSync(summaryPath)) {
+                summaryFiles.push(JSON.parse(fs.readFileSync(summaryPath, 'utf8')));
+              }
+            }
+
+            if (summaryFiles.length === 0) {
+              console.log('No coverage summaries found');
+              process.exit(0);
+            }
+
+            // Merge totals
+            const merged = { total: { lines: { total: 0, covered: 0, pct: 0 }, statements: { total: 0, covered: 0, pct: 0 }, functions: { total: 0, covered: 0, pct: 0 }, branches: { total: 0, covered: 0, pct: 0 } } };
+
+            for (const summary of summaryFiles) {
+              if (summary.total) {
+                for (const metric of ['lines', 'statements', 'functions', 'branches']) {
+                  if (summary.total[metric]) {
+                    merged.total[metric].total += summary.total[metric].total || 0;
+                    merged.total[metric].covered += summary.total[metric].covered || 0;
+                  }
+                }
+              }
+            }
+
+            // Calculate percentages
+            for (const metric of ['lines', 'statements', 'functions', 'branches']) {
+              if (merged.total[metric].total > 0) {
+                merged.total[metric].pct = Math.round((merged.total[metric].covered / merged.total[metric].total) * 10000) / 100;
+              }
+            }
+
+            fs.writeFileSync('coverage-e2e/coverage/coverage-summary.json', JSON.stringify(merged, null, 2));
+            console.log('Merged coverage:', JSON.stringify(merged.total, null, 2));
+          "
+
+      - name: Upload merged Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload merged coverage report
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -56,13 +193,13 @@ jobs:
           path: coverage-e2e/
           retention-days: 30
 
-      - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 30
+      # Check if any shard failed
+      - name: Check test results
+        run: |
+          if [ "${{ needs.e2e-tests.result }}" == "failure" ]; then
+            echo "Some E2E tests failed"
+            exit 1
+          fi
 
       # Extract coverage percentage
       - name: Extract coverage percentage
@@ -116,7 +253,7 @@ jobs:
         with:
           header: e2e-coverage
           message: |
-            ## 🧪 E2E Coverage Report
+            ## 🧪 E2E Coverage Report (Sharded: 4 parallel jobs)
 
             | Metric | Coverage |
             |--------|----------|
