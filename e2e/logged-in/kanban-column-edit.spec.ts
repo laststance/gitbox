@@ -24,7 +24,7 @@ test.describe('Kanban Board Column Edit Dialog', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
     await page.waitForTimeout(500)
 
     // Find and click on the first column options button
@@ -66,7 +66,7 @@ test.describe('Kanban Board Column Edit Dialog', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
     await page.waitForTimeout(500)
 
     // Open column edit dialog
@@ -105,7 +105,7 @@ test.describe('Kanban Board Column Edit Dialog', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
     await page.waitForTimeout(500)
 
     // Focus on the body (not in any input)

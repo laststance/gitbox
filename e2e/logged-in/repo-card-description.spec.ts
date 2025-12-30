@@ -31,7 +31,7 @@ test.describe('RepoCard Description Persistence', () => {
   }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -70,7 +70,7 @@ test.describe('RepoCard Description Persistence', () => {
   }) => {
     // Step 1: Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -84,11 +84,11 @@ test.describe('RepoCard Description Persistence', () => {
     const favoritesLink = page.getByRole('link', { name: /favorites/i })
     await favoritesLink.click()
     await expect(page).toHaveURL(/\/boards\/favorites/)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Step 3: Navigate back to board
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -111,7 +111,7 @@ test.describe('RepoCard Description Persistence', () => {
   test('should persist descriptions after page refresh', async ({ page }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -123,7 +123,7 @@ test.describe('RepoCard Description Persistence', () => {
 
     // Refresh the page
     await page.reload()
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -145,7 +145,7 @@ test.describe('RepoCard Description Persistence', () => {
   test('should show correct description for each card', async ({ page }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -191,7 +191,7 @@ test.describe('RepoCard Description Persistence', () => {
   }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })

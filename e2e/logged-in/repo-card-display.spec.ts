@@ -21,7 +21,7 @@ test.describe('Repo Card Display (Authenticated)', () => {
     await page.goto(BOARD_URL)
 
     // Wait for page to stabilize
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // The board name should be displayed in the header
     // This verifies that activeBoard is set (board name comes from it)
@@ -39,7 +39,7 @@ test.describe('Repo Card Display (Authenticated)', () => {
     await page.goto(BOARD_URL)
 
     // Wait for page to stabilize
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Look for column headers - boards should have at least one column
     // Columns typically have headers with status names
@@ -51,7 +51,7 @@ test.describe('Repo Card Display (Authenticated)', () => {
     await page.goto(BOARD_URL)
 
     // Wait for page to stabilize
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Each column should have an "Add Repo" button
     // This verifies columns are rendering their content area

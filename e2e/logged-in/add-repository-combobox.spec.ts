@@ -41,7 +41,7 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
   }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load (column names indicate data is ready)
     // This ensures Redux store has repoCards populated before we open the combobox
@@ -89,7 +89,7 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
   }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load (column names indicate data is ready)
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -134,7 +134,7 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
   }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load (column names indicate data is ready)
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -177,7 +177,7 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
   test('should filter repos case-insensitively', async ({ page }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load (column names indicate data is ready)
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -262,7 +262,7 @@ test.describe('AddRepositoryCombobox - GITBOX-1 Fix', () => {
 
     // Step 2: Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Step 3: Set organization filter in localStorage (simulating persisted state)
     // The Redux store uses 'gitbox-state' key with settings.organizationFilter
@@ -279,7 +279,7 @@ test.describe('AddRepositoryCombobox - GITBOX-1 Fix', () => {
 
     // Step 4: Reload page to apply localStorage state
     await page.reload()
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Step 5: Open AddRepositoryCombobox
     const addRepoButton = page.getByRole('button', {
@@ -326,7 +326,7 @@ test.describe('AddRepositoryCombobox - GITBOX-1 Fix', () => {
   }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Open AddRepositoryCombobox
     const addRepoButton = page.getByRole('button', {
@@ -369,7 +369,7 @@ test.describe('AddRepositoryCombobox - GITBOX-1 Fix', () => {
   }) => {
     // Set organization filter to 'all' in localStorage
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     await page.evaluate(() => {
       const existingState = localStorage.getItem('gitbox-state')
@@ -382,7 +382,7 @@ test.describe('AddRepositoryCombobox - GITBOX-1 Fix', () => {
     })
 
     await page.reload()
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Open AddRepositoryCombobox
     const addRepoButton = page.getByRole('button', {
@@ -429,7 +429,7 @@ test.describe('AddRepositoryCombobox - Optimistic Update', () => {
   }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -496,7 +496,7 @@ test.describe('AddRepositoryCombobox - Optimistic Update', () => {
   test('should close combobox after adding repository', async ({ page }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -544,7 +544,7 @@ test.describe('AddRepositoryCombobox - Optimistic Update', () => {
   }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -610,7 +610,7 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
   }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -645,7 +645,7 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
   }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -699,7 +699,7 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
   }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -735,7 +735,7 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
   }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -780,7 +780,7 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
   }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })

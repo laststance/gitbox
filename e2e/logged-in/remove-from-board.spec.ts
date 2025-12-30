@@ -22,7 +22,7 @@ test.describe('Remove from Board Feature', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for hydration and cards to load
     await page.waitForTimeout(500)
@@ -54,7 +54,7 @@ test.describe('Remove from Board Feature', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
     await page.waitForTimeout(500)
 
     // Open overflow menu
@@ -95,7 +95,7 @@ test.describe('Remove from Board Feature', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
     await page.waitForTimeout(500)
 
     // Open overflow menu and click Remove from Board
@@ -125,7 +125,7 @@ test.describe('Remove from Board Feature', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
     await page.waitForTimeout(500)
 
     // Count initial cards
@@ -183,7 +183,7 @@ test.describe('Remove from Board Feature', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
     await page.waitForTimeout(500)
 
     // Get the first card's repo name
@@ -219,7 +219,7 @@ test.describe('Remove from Board Feature', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
     await page.waitForTimeout(500)
 
     // Open overflow menu
@@ -256,7 +256,7 @@ test.describe('Remove from Board - Keyboard Accessibility', () => {
 
   test('should close confirmation dialog with Escape key', async ({ page }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
     await page.waitForTimeout(500)
 
     // Open overflow menu

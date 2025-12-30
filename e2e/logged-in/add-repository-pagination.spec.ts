@@ -30,7 +30,7 @@ test.describe('AddRepositoryCombobox - Pagination UI', () => {
   test('should load and display repositories in combobox', async ({ page }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -69,7 +69,7 @@ test.describe('AddRepositoryCombobox - Pagination UI', () => {
   test('should filter repositories when searching', async ({ page }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -113,7 +113,7 @@ test.describe('AddRepositoryCombobox - Pagination UI', () => {
   test('should display organization filter dropdown', async ({ page }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -146,7 +146,7 @@ test.describe('AddRepositoryCombobox - Pagination UI', () => {
   test('should allow selecting repositories', async ({ page }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -190,7 +190,7 @@ test.describe('AddRepositoryCombobox - Pagination UI', () => {
   test('should close combobox when clicking Cancel', async ({ page }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -223,7 +223,7 @@ test.describe('AddRepositoryCombobox - Pagination UI', () => {
   test('should allow reopening combobox after closing', async ({ page }) => {
     // Navigate to board page
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })

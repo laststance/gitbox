@@ -99,7 +99,7 @@ test.describe('10.3 Column Drag & Drop', () => {
      */
     test('should display columns in initial order', async ({ page }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(500)
 
       // Verify initial column order by checking visible column titles
@@ -124,7 +124,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(500)
 
       // Check for sortable column wrappers
@@ -148,7 +148,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       const positions = await getGridPositions(page)
@@ -177,7 +177,7 @@ test.describe('10.3 Column Drag & Drop', () => {
      */
     test('should drag column using CDP events @slow', async ({ page }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       // Get initial column order
@@ -238,7 +238,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       const initialTitles = await getColumnTitles(page)
@@ -283,7 +283,7 @@ test.describe('10.3 Column Drag & Drop', () => {
      */
     test('should show visual feedback during column drag', async ({ page }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       // Create CDP session for manual drag control
@@ -352,7 +352,7 @@ test.describe('10.3 Column Drag & Drop', () => {
      */
     test('should handle multiple sequential column drags', async ({ page }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       const initial = await getColumnTitles(page)
@@ -419,7 +419,7 @@ test.describe('10.3 Column Drag & Drop', () => {
      */
     test('should show NewRowDropZone during column drag', async ({ page }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       const client = await page.context().newCDPSession(page)
@@ -514,7 +514,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       // Verify initial state: all columns in row 1
@@ -561,7 +561,7 @@ test.describe('10.3 Column Drag & Drop', () => {
         } else if (attempt < MAX_ATTEMPTS) {
           // Reset by refreshing page for next attempt
           await page.reload()
-          await page.waitForLoadState('domcontentloaded')
+          await page.waitForLoadState('networkidle')
           await page.waitForTimeout(800)
         }
       }
@@ -592,7 +592,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       const initialPositions = await getGridPositions(page)
@@ -641,7 +641,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       // Get initial grid info
@@ -702,7 +702,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       const client = await page.context().newCDPSession(page)
@@ -813,7 +813,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       const initialPositions = await getGridPositions(page)
@@ -883,7 +883,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       // Verify initial state: All columns in row 1 (CSS 1-indexed)
@@ -1000,7 +1000,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       // Step 1: Create empty slot by moving status-3 to row 1
@@ -1060,7 +1060,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       const initialGrid = await page.evaluate(() => {
@@ -1120,7 +1120,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       // First create an empty slot
@@ -1222,7 +1222,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       const initialPositions = await getGridPositions(page)
@@ -1281,7 +1281,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       const initialPositions = await getGridPositions(page)
@@ -1319,7 +1319,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       // Drag status-1 toward status-3 (horizontal movement within row 1)
@@ -1374,7 +1374,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       // Step 1: Create multi-row layout by moving status-3 to Row 1
@@ -1471,7 +1471,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       // Create multi-row layout
@@ -1545,7 +1545,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       // Step 1: Create multi-row layout by moving status-4 to Row 1
@@ -1649,7 +1649,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       const originalTitles = await getColumnTitles(page)
@@ -1689,7 +1689,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       // Create multi-row layout with status-3

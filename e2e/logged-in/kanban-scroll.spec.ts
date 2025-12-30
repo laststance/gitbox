@@ -17,7 +17,7 @@ test.describe('Kanban Board Horizontal Scroll', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Find the scrollable container parent of KanbanBoard
     const scrollContainer = page.locator('.overflow-x-auto').first()
@@ -31,7 +31,7 @@ test.describe('Kanban Board Horizontal Scroll', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for hydration - grid appears after isMounted is true
     await page.waitForTimeout(500)
@@ -49,7 +49,7 @@ test.describe('Kanban Board Horizontal Scroll', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Find the outer KanbanBoard container (auto-height: no h-full constraint)
     const kanbanContainer = page.locator('.w-fit.min-w-full.p-6').first()
@@ -60,7 +60,7 @@ test.describe('Kanban Board Horizontal Scroll', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for hydration
     await page.waitForTimeout(500)
@@ -90,7 +90,7 @@ test.describe('Kanban Board Horizontal Scroll', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for hydration
     await page.waitForTimeout(500)
@@ -112,7 +112,7 @@ test.describe('Kanban Board Horizontal Scroll', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Find Add Column button
     const addColumnButton = page.getByRole('button', { name: /add column/i })
@@ -157,7 +157,7 @@ test.describe('Kanban Board Horizontal Scroll - Multi Column', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for hydration
     await page.waitForTimeout(500)
@@ -214,7 +214,7 @@ test.describe('Kanban Board Horizontal Scroll - Multi Column', () => {
 
   test('should maintain column visibility after scroll', async ({ page }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for hydration
     await page.waitForTimeout(500)
@@ -250,7 +250,7 @@ test.describe('Kanban Board Horizontal Scroll - Multi Column', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for hydration
     await page.waitForTimeout(500)

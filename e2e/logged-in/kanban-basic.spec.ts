@@ -24,7 +24,7 @@ test.describe('Kanban Board (Authenticated)', () => {
     await expect(page).toHaveURL(/\/board\//)
 
     // Wait for page to stabilize
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Page should have main elements loaded (use first() since there are multiple main elements)
     const main = page.locator('main').first()
@@ -35,7 +35,7 @@ test.describe('Kanban Board (Authenticated)', () => {
     await page.goto(BOARD_URL)
 
     // Wait for page to stabilize
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Look for Add Repositories button (visible in the snapshot)
     const addRepoButton = page.getByRole('button', {
@@ -52,7 +52,7 @@ test.describe('Kanban Board (Authenticated)', () => {
     await page.goto(BOARD_URL)
 
     // Wait for page to stabilize
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Look for board settings button
     const settingsButton = page.getByRole('button', { name: /board settings/i })
@@ -63,7 +63,7 @@ test.describe('Kanban Board (Authenticated)', () => {
     await page.goto(BOARD_URL)
 
     // Wait for page to stabilize
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Look for All Boards link in navigation
     const boardsLink = page.getByRole('link', { name: /all boards/i })
@@ -78,7 +78,7 @@ test.describe('Kanban Board (Authenticated)', () => {
     await page.goto(BOARD_URL)
 
     // Wait for page to stabilize
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Look for user info (Test User text or avatar)
     const userInfo = page.locator('img[alt="Test User"], :text("Test User")')
@@ -89,7 +89,7 @@ test.describe('Kanban Board (Authenticated)', () => {
     await page.goto(BOARD_URL)
 
     // Wait for page to stabilize
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Look for sign out button
     const signOutButton = page.getByRole('button', { name: /sign out/i })

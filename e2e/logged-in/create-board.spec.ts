@@ -19,7 +19,7 @@ test.describe('Create Board Page (Authenticated)', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto(CREATE_BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
   })
 
   test.describe('Page Rendering', () => {
@@ -287,7 +287,7 @@ test.describe('Create Board Page (Authenticated)', () => {
     test('should go back when Cancel is clicked', async ({ page }) => {
       // Navigate to boards first, then to create
       await page.goto('/boards')
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
 
       const createLink = page.getByRole('link', { name: /create board/i })
       await createLink.click()

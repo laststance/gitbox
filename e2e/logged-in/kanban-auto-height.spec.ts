@@ -25,7 +25,7 @@ test.describe('Kanban Board Column Auto-Height', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for hydration
     await page.waitForTimeout(500)
@@ -43,7 +43,7 @@ test.describe('Kanban Board Column Auto-Height', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for hydration - grid appears after isMounted is true
     await page.waitForTimeout(500)
@@ -62,7 +62,7 @@ test.describe('Kanban Board Column Auto-Height', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for hydration
     await page.waitForTimeout(500)
@@ -85,7 +85,7 @@ test.describe('Kanban Board Column Auto-Height', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for hydration
     await page.waitForTimeout(500)
@@ -105,7 +105,7 @@ test.describe('Kanban Board Column Auto-Height', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for hydration
     await page.waitForTimeout(500)
@@ -122,7 +122,7 @@ test.describe('Kanban Board Column Auto-Height', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for hydration
     await page.waitForTimeout(500)
@@ -138,7 +138,7 @@ test.describe('Kanban Board Column Auto-Height', () => {
 
   test('should expand column height to fit all cards', async ({ page }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for hydration
     await page.waitForTimeout(500)
@@ -205,7 +205,7 @@ test.describe('Kanban Board Column Auto-Height - Many Cards', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for hydration
     await page.waitForTimeout(500)
@@ -242,7 +242,7 @@ test.describe('Kanban Board Column Auto-Height - Many Cards', () => {
 
   test('should maintain all cards visible at all times', async ({ page }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for hydration
     await page.waitForTimeout(500)
@@ -278,7 +278,7 @@ test.describe('Kanban Board Column Auto-Height - Many Cards', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for hydration
     await page.waitForTimeout(500)
@@ -342,7 +342,7 @@ test.describe('Kanban Board Column Auto-Height - Many Cards', () => {
     page,
   }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Wait for hydration and cards to be rendered
     await page.waitForTimeout(500)

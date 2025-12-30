@@ -25,7 +25,7 @@ test.describe('Boards Page (Authenticated)', () => {
     await page.goto('/boards')
 
     // Wait for page to stabilize
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Look for user info section (Test User text or avatar)
     const userIndicator = page.locator(
@@ -38,7 +38,7 @@ test.describe('Boards Page (Authenticated)', () => {
     await page.goto('/boards')
 
     // Wait for page to stabilize
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Look for create board link (it's a link, not a button based on the snapshot)
     const createLink = page.getByRole('link', { name: /create board/i })
@@ -51,7 +51,7 @@ test.describe('Boards Page (Authenticated)', () => {
     await page.goto('/boards')
 
     // Wait for page to stabilize
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Click on the first board link/card
     const boardLink = page.locator('a[href*="/board/"]').first()
@@ -68,7 +68,7 @@ test.describe('Boards Page (Authenticated)', () => {
     await page.goto('/boards')
 
     // Wait for page to stabilize
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
 
     // Click create board link
     const createLink = page.getByRole('link', { name: /create board/i })

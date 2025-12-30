@@ -21,7 +21,7 @@ test.describe('Board Settings Dialog (Authenticated)', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto(BOARD_URL)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
   })
 
   test.describe('Dialog Open/Close', () => {

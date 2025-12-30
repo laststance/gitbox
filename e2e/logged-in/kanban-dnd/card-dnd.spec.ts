@@ -61,7 +61,7 @@ test.describe('10.2 Card Drag & Drop', () => {
      */
     test('should display cards in columns', async ({ page }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(500)
 
       // Check for repo cards in columns
@@ -106,7 +106,7 @@ test.describe('10.2 Card Drag & Drop', () => {
      */
     test('should reorder cards within same column @slow', async ({ page }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       /**
@@ -219,7 +219,7 @@ test.describe('10.2 Card Drag & Drop', () => {
      */
     test('should move card to different column @slow', async ({ page }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       // Get initial card location
@@ -267,7 +267,7 @@ test.describe('10.2 Card Drag & Drop', () => {
       page,
     }) => {
       await page.goto(BOARD_URL)
-      await page.waitForLoadState('domcontentloaded')
+      await page.waitForLoadState('networkidle')
       await page.waitForTimeout(800)
 
       // Get initial card data
