@@ -10,7 +10,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 import {
   createSafeLocalStorage,
-  createSafeSessionStorage as _createSafeSessionStorage,
   createNoopStorage,
   createMemoryStorage,
   toAsyncStorage,

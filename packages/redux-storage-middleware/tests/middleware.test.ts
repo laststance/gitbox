@@ -63,7 +63,6 @@ const settingsSlice = createSlice({
 })
 
 const { increment, setValue } = testSlice.actions
-const { setTheme: _setTheme } = settingsSlice.actions
 
 describe('createStorageMiddleware', () => {
   beforeEach(() => {

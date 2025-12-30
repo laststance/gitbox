@@ -2,67 +2,48 @@
 import storybook from 'eslint-plugin-storybook'
 
 import { defineConfig, globalIgnores } from 'eslint/config'
-import { fixupConfigRules } from '@eslint/compat'
 import nextVitals from 'eslint-config-next/core-web-vitals'
 import nextTs from 'eslint-config-next/typescript'
 import laststanceReactNextPlugin from '@laststance/react-next-eslint-plugin'
 import tsPrefixer from 'eslint-config-ts-prefixer'
+import reactYouMightNotNeedAnEffect from 'eslint-plugin-react-you-might-not-need-an-effect'
 
-// Helper to merge configs and deduplicate plugins
-function mergeConfigs(...configArrays) {
+/**
+ * Merge multiple config arrays and deduplicate plugins.
+ * Required because eslint-config-next and eslint-config-ts-prefixer
+ * both define 'import' and '@typescript-eslint' plugins.
+ */
+function dedupePlugins(...configArrays) {
   const merged = []
-  const allPlugins = {}
+  const plugins = {}
 
-  for (const configArray of configArrays) {
-    const fixed = fixupConfigRules(configArray)
-    for (const config of fixed) {
+  for (const configs of configArrays) {
+    for (const config of configs) {
       if (config.plugins) {
-        // Merge plugins into a single object
-        Object.assign(allPlugins, config.plugins)
-        // Remove plugins from this config to avoid redefinition
-        const { plugins, ...rest } = config
-        if (Object.keys(rest).length > 0) {
-          merged.push(rest)
-        }
+        Object.assign(plugins, config.plugins)
+        const { plugins: _, ...rest } = config
+        if (Object.keys(rest).length > 0) merged.push(rest)
       } else {
         merged.push(config)
       }
     }
   }
 
-  // Add all plugins in a single config object if any exist
-  if (Object.keys(allPlugins).length > 0) {
-    merged.push({ plugins: allPlugins })
+  if (Object.keys(plugins).length > 0) {
+    merged.unshift({ plugins })
   }
 
   return merged
 }
 
 export default defineConfig([
-  ...mergeConfigs(nextVitals, nextTs, tsPrefixer),
-  {
-    rules: {
-      '@typescript-eslint/no-unused-vars': [
-        'error',
-        {
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-          caughtErrorsIgnorePattern: '^_',
-        },
-      ],
-      // Ban global fetch - use axios instead for MSW compatibility
-      'no-restricted-globals': [
-        'error',
-        {
-          name: 'fetch',
-          message:
-            'Use axios instead of fetch for MSW compatibility. Import from lib/axios.ts.',
-        },
-      ],
-      // Ban console usage - use logger (server) or Sentry (client) instead
-      'no-console': 'error',
-    },
-  },
+  // Core configs - dedupePlugins merges duplicate plugins (import, @typescript-eslint)
+  ...dedupePlugins(nextVitals, nextTs, tsPrefixer),
+
+  // React "You Might Not Need an Effect" rules
+  reactYouMightNotNeedAnEffect.configs.recommended,
+
+  // Global ignores
   globalIgnores([
     '**/.vscode/**',
     '**/node_modules/**',
@@ -102,6 +83,25 @@ export default defineConfig([
     // Package benchmarks use console.log for output
     '**/packages/**/benchmarks/**',
   ]),
+
+  // Project-specific rules
+  {
+    rules: {
+      // Ban global fetch - use axios instead for MSW compatibility
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'fetch',
+          message:
+            'Use axios instead of fetch for MSW compatibility. Import from lib/axios.ts.',
+        },
+      ],
+      // Ban console usage - use logger (server) or Sentry (client) instead
+      'no-console': 'error',
+    },
+  },
+
+  // @laststance/react-next-eslint-plugin rules
   {
     plugins: {
       '@laststance/react-next': laststanceReactNextPlugin,
@@ -127,18 +127,24 @@ export default defineConfig([
       'react/no-unescaped-entities': 'warn',
     },
   },
+
+  // Page/Layout components don't need memo
   {
     files: ['**/app/**/page.tsx', '**/app/**/layout.tsx'],
     rules: {
       '@laststance/react-next/all-memo': 'off',
     },
   },
+
+  // next.config allows require imports
   {
     files: ['next.config.js', 'next.config.ts'],
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
     },
   },
+
+  // Test files - relaxed rules
   {
     files: [
       '**/*.test.ts',
@@ -153,6 +159,8 @@ export default defineConfig([
       'no-console': 'off',
     },
   },
+
+  // Storybook files
   {
     files: ['**/*.stories.tsx', '**/*.stories.ts'],
     rules: {
@@ -160,6 +168,7 @@ export default defineConfig([
       'no-console': 'off',
     },
   },
+
   // Plate UI components from registry - relax rules for auto-generated code
   {
     files: [
@@ -198,8 +207,68 @@ export default defineConfig([
       '@next/next/no-img-element': 'off',
       // Allow console.warn in Plate editor transforms (external library pattern)
       'no-console': 'off',
+      // Plate UI components use patterns that trigger these rules
+      'react-you-might-not-need-an-effect/no-derived-state': 'off',
+      'react-you-might-not-need-an-effect/no-pass-data-to-parent': 'off',
+      'react-you-might-not-need-an-effect/no-initialize-state': 'off',
     },
   },
+
+  // SSR hydration hooks - useMounted pattern is intentional for SSR safety
+  {
+    files: [
+      'hooks/use-mounted.ts',
+      // KanbanBoard.tsx uses isMounted pattern for SSR-safe grid styles
+      'components/Board/KanbanBoard.tsx',
+      // FeaturesSection uses random subtitle selection that must be client-side only
+      'app/page.tsx',
+    ],
+    rules: {
+      'react-you-might-not-need-an-effect/no-initialize-state': 'off',
+    },
+  },
+
+  // KanbanBoard data fetching pattern - fetch on mount with dispatch is intentional
+  {
+    files: ['components/Board/KanbanBoard.tsx'],
+    rules: {
+      // Data fetching on mount with dispatch to parent store is the standard Redux pattern
+      'react-you-might-not-need-an-effect/no-pass-data-to-parent': 'off',
+    },
+  },
+
+  // BoardPageClient - theme application and state initialization patterns
+  {
+    files: ['**/app/board/*/BoardPageClient.tsx'],
+    rules: {
+      // Theme application on mount/change is an intentional side effect
+      // State initialization when data loads is also intentional
+      'react-you-might-not-need-an-effect/no-event-handler': 'off',
+      'react-you-might-not-need-an-effect/no-chain-state-updates': 'off',
+    },
+  },
+
+  // Combobox/Dialog patterns - useEffect for data fetching on open is intentional
+  {
+    files: [
+      'components/Board/AddRepositoryCombobox.tsx',
+      'app/maintenance/MaintenanceClient.tsx',
+    ],
+    rules: {
+      // Data fetching when dialog opens is a valid pattern
+      'react-you-might-not-need-an-effect/no-event-handler': 'off',
+      'react-you-might-not-need-an-effect/no-derived-state': 'off',
+    },
+  },
+
+  // Command palette - keyboard focus and scroll-into-view are intentional
+  {
+    files: ['components/CommandPalette/CommandPalette.tsx'],
+    rules: {
+      'react-you-might-not-need-an-effect/no-event-handler': 'off',
+    },
+  },
+
   // Package internal code - allow structured logging for library consumers
   {
     files: ['packages/**/src/**/*.ts'],

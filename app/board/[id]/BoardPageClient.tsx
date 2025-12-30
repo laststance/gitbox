@@ -101,7 +101,7 @@ export const BoardPageClient = memo(function BoardPageClient({
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const [projectInfo, setProjectInfo] = useState<ProjectInfo | null>(null)
-  const [_isLoading, setIsLoading] = useState(false)
+  const [, setIsLoading] = useState(false)
 
   // StatusList Dialog state
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false)
