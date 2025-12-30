@@ -37,6 +37,7 @@ import {
   swapStatusListPositions,
   batchUpdateStatusListPositions,
 } from '@/lib/actions/board'
+import { getCommentsForCards } from '@/lib/actions/project-info'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import {
   setStatusLists,
@@ -180,6 +181,8 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     const [activeDragType, setActiveDragType] = useState<DragType>(null)
     // History stack for undo functionality (max 10 entries)
     const [history, setHistory] = useState<RepoCardForRedux[][]>([])
+    // Comments map: cardId → comment text (from projectinfo.comment)
+    const [comments, setComments] = useState<Record<string, string>>({})
 
     // Hydration-safe mounting state: prevents SSR/CSR mismatch for dynamic grid styles
     const [isMounted, setIsMounted] = useState(false)
@@ -276,6 +279,13 @@ export const KanbanBoard = memo<KanbanBoardProps>(
 
           dispatch(setStatusLists(statusLists))
           dispatch(setRepoCards(repoCards))
+
+          // Fetch comments for all cards (Phase 3: Comment Display)
+          if (repoCards.length > 0) {
+            const cardIds = repoCards.map((card) => card.id)
+            const commentsMap = await getCommentsForCards(cardIds)
+            setComments(commentsMap)
+          }
         } catch (err) {
           Sentry.captureException(err, { tags: { action: 'fetchBoardData' } })
           dispatch(setError('Failed to fetch board data. Please try again.'))
@@ -284,6 +294,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
         }
       }
 
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state -- Comments are fetched async, not derived from other state
       fetchData()
     }, [boardId, dispatch])
 
@@ -711,6 +722,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                     key={status.id}
                     status={status}
                     cards={cards.filter((c) => c.statusId === status.id)}
+                    comments={comments}
                     onEdit={onEditProjectInfo}
                     onMaintenance={onMoveToMaintenance}
                     onNote={onNote}

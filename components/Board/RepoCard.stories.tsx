@@ -10,7 +10,6 @@
 import { DndContext } from '@dnd-kit/core'
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 
-
 import { RepoCard } from './RepoCard'
 
 const meta = {
@@ -105,6 +104,65 @@ export const WithAllMetadata: Story = {
       dueDate: '2024-12-25',
       attachments: 10,
       comments: 20,
+    },
+  },
+}
+
+/**
+ * With inline comment displayed (Phase 3: Comment Display)
+ */
+export const WithComment: Story = {
+  args: {
+    card: mockCard,
+    comment: 'npmリリース完了、当分は機能追加予定なし',
+  },
+}
+
+/**
+ * With long comment that spans multiple lines
+ */
+export const WithLongComment: Story = {
+  args: {
+    card: mockCard,
+    comment:
+      'プロトタイプ作ったけど微妙、差分表示エディタで苦戦中。リファクタリング予定あり。チームでレビュー待ち。',
+  },
+}
+
+/**
+ * With empty comment (shows "Add comment" placeholder)
+ */
+export const WithEmptyComment: Story = {
+  args: {
+    card: mockCard,
+    comment: '',
+    showComment: true,
+  },
+}
+
+/**
+ * Comment hidden (showComment = false)
+ */
+export const CommentHidden: Story = {
+  args: {
+    card: mockCard,
+    comment: 'This comment should not be visible',
+    showComment: false,
+  },
+}
+
+/**
+ * With custom comment style
+ */
+export const WithStyledComment: Story = {
+  args: {
+    card: mockCard,
+    comment: '重要：来週リリース予定',
+    commentStyle: {
+      borderColor: 'blue',
+      backgroundColor: 'tinted',
+      fontSize: 'base',
+      fontWeight: 'semibold',
     },
   },
 }

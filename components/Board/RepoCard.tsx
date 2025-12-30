@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 
+import { CommentDisplay, type CommentStyleSettings } from './CommentDisplay'
 import { OverflowMenu } from './OverflowMenu'
 
 // Types
@@ -24,6 +25,7 @@ interface RepoCardData {
   tags?: string[]
   dueDate?: string
   attachments?: number
+  /** @deprecated Use comment prop instead */
   comments?: number
   statusId: string
   /** GitHub repository owner */
@@ -34,12 +36,20 @@ interface RepoCardData {
 
 interface RepoCardProps {
   card: RepoCardData
+  /** Inline comment text (from projectinfo.comment) */
+  comment?: string
+  /** Comment display style settings */
+  commentStyle?: Partial<CommentStyleSettings>
+  /** Whether to show the comment section */
+  showComment?: boolean
   onEdit?: (id: string) => void
   onMaintenance?: (id: string) => void
   /** Callback when Note button is clicked */
   onNote?: (id: string) => void
   /** Callback when repository is removed from board */
   onRemove?: (id: string) => void
+  /** Callback when comment area is clicked (for editing) */
+  onCommentClick?: (id: string) => void
 }
 
 /**
@@ -52,7 +62,17 @@ interface RepoCardProps {
  * - Overflow menu for card actions
  */
 export const RepoCard = memo<RepoCardProps>(
-  ({ card, onEdit, onMaintenance, onNote, onRemove }) => {
+  ({
+    card,
+    comment,
+    commentStyle,
+    showComment = true,
+    onEdit,
+    onMaintenance,
+    onNote,
+    onRemove,
+    onCommentClick,
+  }) => {
     const {
       attributes,
       listeners,
@@ -156,6 +176,16 @@ export const RepoCard = memo<RepoCardProps>(
                     </Badge>
                   ))}
                 </div>
+              )}
+
+              {/* Inline Comment (Card-in-Card style) */}
+              {showComment && (
+                <CommentDisplay
+                  comment={comment}
+                  onClick={() => onCommentClick?.(card.id)}
+                  style={commentStyle}
+                  showEmptyState={true}
+                />
               )}
 
               <div className="flex items-center justify-between pt-2">

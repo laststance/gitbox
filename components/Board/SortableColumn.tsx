@@ -17,6 +17,8 @@ export const COLUMN_DRAG_TYPE = 'column'
 interface SortableColumnProps {
   status: StatusListDomain
   cards: RepoCardForRedux[]
+  /** Map of cardId → comment text from projectinfo.comment */
+  comments?: Record<string, string>
   onEdit?: (id: string) => void
   onMaintenance?: (id: string) => void
   onNote?: (id: string) => void
@@ -53,6 +55,7 @@ export const SortableColumn = memo<SortableColumnProps>(
   ({
     status,
     cards,
+    comments,
     onEdit,
     onMaintenance,
     onNote,
@@ -102,6 +105,7 @@ export const SortableColumn = memo<SortableColumnProps>(
           <StatusColumn
             status={status}
             cards={cards}
+            comments={comments}
             onEdit={onEdit}
             onMaintenance={onMaintenance}
             onNote={onNote}

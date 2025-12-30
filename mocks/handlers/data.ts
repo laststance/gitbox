@@ -472,12 +472,60 @@ export function filterByParams<T extends Record<string, unknown>>(
 // Exported Mock Data (for use in tests/stories)
 // ============================================================================
 
+/**
+ * Mock project info (comments, notes, links for cards)
+ * Used for Phase 3: Comment Display on RepoCard
+ */
+export const mockProjectInfo = [
+  {
+    id: 'projinfo-1',
+    repo_card_id: MOCK_CARD_ID,
+    note: 'Important project notes here',
+    comment: 'npmリリース完了、当分は機能追加予定なし',
+    links: [
+      { title: 'Documentation', url: 'https://docs.example.com' },
+      { title: 'Staging', url: 'https://staging.example.com' },
+    ],
+    created_at: '2024-01-01T00:00:00.000Z',
+    updated_at: '2024-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'projinfo-2',
+    repo_card_id: 'card-2',
+    note: 'Another repo notes',
+    comment: 'プロトタイプ作ったけど微妙、差分表示エディタで苦戦中',
+    links: [],
+    created_at: '2024-01-02T00:00:00.000Z',
+    updated_at: '2024-01-02T00:00:00.000Z',
+  },
+  {
+    id: 'projinfo-3',
+    repo_card_id: 'card-3',
+    note: '',
+    comment: '', // Empty comment for testing empty state
+    links: [],
+    created_at: '2024-01-03T00:00:00.000Z',
+    updated_at: '2024-01-03T00:00:00.000Z',
+  },
+  {
+    id: 'projinfo-4',
+    repo_card_id: 'card-4',
+    note: 'CLI tool documentation',
+    comment: 'v2.0リリース準備中',
+    links: [{ title: 'npm', url: 'https://www.npmjs.com/package/nsx' }],
+    created_at: '2024-01-04T00:00:00.000Z',
+    updated_at: '2024-01-04T00:00:00.000Z',
+  },
+  // card-5 has no projectinfo - testing when projectinfo doesn't exist
+]
+
 export const mockData = {
   user: mockUser,
   session: mockSession,
   boards: mockBoards,
   statusLists: mockStatusLists,
   repoCards: mockRepoCards,
+  projectInfo: mockProjectInfo,
   gitHubUser: mockGitHubUser,
   gitHubRepos: mockGitHubRepos,
   gitHubOrgs: mockGitHubOrgs,

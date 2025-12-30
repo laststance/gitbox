@@ -459,6 +459,123 @@ export async function upsertProjectInfo(
 }
 
 /**
+ * Get comments for multiple repo cards (batch fetch)
+ *
+ * Efficiently fetches comment field for multiple cards in a single query.
+ * Used when loading a board to display inline comments on RepoCards.
+ *
+ * @param repoCardIds - Array of repo card IDs to fetch comments for
+ * @returns Map of repo card ID to comment string
+ *
+ * @example
+ * const comments = await getCommentsForCards(['card-1', 'card-2'])
+ * // Returns: { 'card-1': 'Some comment', 'card-2': '' }
+ */
+export async function getCommentsForCards(
+  repoCardIds: string[],
+): Promise<Record<string, string>> {
+  if (repoCardIds.length === 0) {
+    return {}
+  }
+
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('projectinfo')
+    .select('repo_card_id, comment')
+    .in('repo_card_id', repoCardIds)
+
+  if (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'Batch fetch comments', repoCardIds },
+    })
+    // Return empty map on error (non-critical)
+    return {}
+  }
+
+  // Convert to map
+  const commentsMap: Record<string, string> = {}
+  for (const row of data || []) {
+    commentsMap[row.repo_card_id] = row.comment || ''
+  }
+
+  // Fill missing cards with empty string
+  for (const cardId of repoCardIds) {
+    if (!(cardId in commentsMap)) {
+      commentsMap[cardId] = ''
+    }
+  }
+
+  return commentsMap
+}
+
+/**
+ * Update comment for a single repo card
+ *
+ * Upserts the comment field in projectinfo table.
+ * Used for inline editing on RepoCard.
+ *
+ * @param repoCardId - The repo card ID
+ * @param comment - The new comment text (max 2000 chars)
+ * @throws Error if comment exceeds character limit
+ *
+ * @example
+ * await updateComment('card-1', 'Updated comment text')
+ */
+export async function updateComment(
+  repoCardId: string,
+  comment: string,
+): Promise<void> {
+  const supabase = await createClient()
+
+  // Validate
+  validateComment(comment)
+
+  // Check if projectinfo exists
+  const { data: existingInfo } = await supabase
+    .from('projectinfo')
+    .select('id')
+    .eq('repo_card_id', repoCardId)
+    .single<{ id: string }>()
+
+  if (existingInfo) {
+    // Update existing
+    const { error } = await supabase
+      .from('projectinfo')
+      .update({
+        comment,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existingInfo.id)
+
+    if (error) {
+      Sentry.captureException(error, {
+        extra: { context: 'Update comment', repoCardId },
+      })
+      throw new Error('Failed to update comment')
+    }
+  } else {
+    // Create new projectinfo with just the comment
+    const { error } = await supabase.from('projectinfo').insert({
+      repo_card_id: repoCardId,
+      comment,
+      note: '',
+      links: { production: [], tracking: [], supabase: [] },
+    })
+
+    if (error) {
+      Sentry.captureException(error, {
+        extra: { context: 'Create comment', repoCardId },
+      })
+      throw new Error('Failed to save comment')
+    }
+  }
+
+  // Invalidate cache
+  revalidatePath('/board')
+}
+
+/**
  * Delete project info
  */
 export async function deleteProjectInfo(repoCardId: string): Promise<void> {

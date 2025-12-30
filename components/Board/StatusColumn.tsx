@@ -27,6 +27,8 @@ export const CARD_DRAG_TYPE = 'card'
 interface StatusColumnProps {
   status: StatusListDomain
   cards: RepoCardForRedux[]
+  /** Map of cardId → comment text from projectinfo.comment */
+  comments?: Record<string, string>
   onEdit?: (id: string) => void
   onMaintenance?: (id: string) => void
   /** Callback when Note button is clicked */
@@ -55,6 +57,7 @@ export const StatusColumn = memo<StatusColumnProps>(
   ({
     status,
     cards,
+    comments,
     onEdit,
     onMaintenance,
     onNote,
@@ -148,6 +151,7 @@ export const StatusColumn = memo<StatusColumnProps>(
                 >
                   <RepoCard
                     card={card}
+                    comment={comments?.[card.id]}
                     onEdit={onEdit}
                     onMaintenance={onMaintenance}
                     onNote={onNote}

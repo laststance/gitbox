@@ -20,6 +20,7 @@ import {
   mockBoards,
   mockStatusLists,
   mockRepoCards,
+  mockProjectInfo,
   getSearchParams,
   filterByParams,
   updateMockBoard,
@@ -402,25 +403,27 @@ export const supabaseDbHandlers: HttpHandler[] = [
 
   /**
    * GET /rest/v1/projectinfo - List project info
+   *
+   * Supports filtering by repo_card_id for batch comment fetching.
+   * Also supports Supabase "in" filter for multiple IDs.
    */
   http.get(`${SUPABASE_URL}/rest/v1/projectinfo`, ({ request }) => {
     const params = getSearchParams(request)
 
-    const mockProjectInfo = [
-      {
-        id: 'projinfo-1',
-        repo_card_id: MOCK_CARD_ID,
-        note: 'Important project notes here',
-        comment: 'Inline comment for Card-in-Card display',
-        links: [
-          { title: 'Documentation', url: 'https://docs.example.com' },
-          { title: 'Staging', url: 'https://staging.example.com' },
-        ],
-        created_at: '2024-01-01T00:00:00.000Z',
-        updated_at: '2024-01-01T00:00:00.000Z',
-      },
-    ]
+    // Handle Supabase "in" filter for batch fetching (e.g., repo_card_id=in.(card-1,card-2))
+    const repoCardIdParam = params.get('repo_card_id')
+    if (repoCardIdParam?.startsWith('in.(')) {
+      const idsMatch = repoCardIdParam.match(/in\.\((.+)\)/)
+      if (idsMatch) {
+        const ids = idsMatch[1].split(',')
+        const filtered = mockProjectInfo.filter((p) =>
+          ids.includes(p.repo_card_id),
+        )
+        return HttpResponse.json(filtered)
+      }
+    }
 
+    // Standard PostgREST filter
     const filtered = filterByParams(mockProjectInfo, params)
     return HttpResponse.json(filtered)
   }),
