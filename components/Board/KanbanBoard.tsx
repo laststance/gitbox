@@ -37,7 +37,7 @@ import {
   swapStatusListPositions,
   batchUpdateStatusListPositions,
 } from '@/lib/actions/board'
-import { getCommentsForCards } from '@/lib/actions/project-info'
+import { getCommentsForCards, updateComment } from '@/lib/actions/project-info'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import {
   setStatusLists,
@@ -297,6 +297,35 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state -- Comments are fetched async, not derived from other state
       fetchData()
     }, [boardId, dispatch])
+
+    /**
+     * Handle comment change from inline edit
+     * Performs optimistic update and persists to database
+     *
+     * @param cardId - The repo card ID
+     * @param newComment - The new comment text
+     */
+    const handleCommentChange = useCallback(
+      async (cardId: string, newComment: string) => {
+        // Optimistic update: Update local state immediately
+        setComments((prev) => ({
+          ...prev,
+          [cardId]: newComment,
+        }))
+
+        // Persist to database
+        try {
+          await updateComment(cardId, newComment)
+        } catch (error) {
+          // Revert on error
+          Sentry.captureException(error, {
+            extra: { context: 'Update comment', cardId },
+          })
+          // Could implement rollback here if needed
+        }
+      },
+      [],
+    )
 
     /**
      * Undo functionality: Reverts the last drag & drop operation
@@ -727,6 +756,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                     onMaintenance={onMoveToMaintenance}
                     onNote={onNote}
                     onRemove={onRemove}
+                    onCommentChange={handleCommentChange}
                     onEditStatus={onEditStatus}
                     onDeleteStatus={onDeleteStatus}
                     onAddCard={onAddCard}

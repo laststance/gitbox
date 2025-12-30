@@ -166,3 +166,17 @@ export const WithStyledComment: Story = {
     },
   },
 }
+
+/**
+ * With comment change callback (Phase 4: Inline Edit)
+ * Click on the comment to see the edit mode
+ */
+export const WithCommentEdit: Story = {
+  args: {
+    card: mockCard,
+    comment: 'Click me to edit this comment',
+    onCommentChange: (id, newComment) => {
+      console.log(`Card ${id} comment changed to: ${newComment}`)
+    },
+  },
+}

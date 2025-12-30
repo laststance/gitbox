@@ -24,6 +24,8 @@ interface SortableColumnProps {
   onNote?: (id: string) => void
   /** Callback when repository is removed from board */
   onRemove?: (id: string) => void
+  /** Callback when comment is updated (for optimistic updates) */
+  onCommentChange?: (cardId: string, newComment: string) => void
   onEditStatus?: (status: StatusListDomain) => void
   onDeleteStatus?: (statusId: string) => void
   onAddCard?: (statusId: string) => void
@@ -60,6 +62,7 @@ export const SortableColumn = memo<SortableColumnProps>(
     onMaintenance,
     onNote,
     onRemove,
+    onCommentChange,
     onEditStatus,
     onDeleteStatus,
     onAddCard,
@@ -110,6 +113,7 @@ export const SortableColumn = memo<SortableColumnProps>(
             onMaintenance={onMaintenance}
             onNote={onNote}
             onRemove={onRemove}
+            onCommentChange={onCommentChange}
             onEditStatus={onEditStatus}
             onDeleteStatus={onDeleteStatus}
             onAddCard={onAddCard}

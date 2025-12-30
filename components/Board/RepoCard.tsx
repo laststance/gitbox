@@ -3,13 +3,14 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Calendar, Paperclip, StickyNote } from 'lucide-react'
-import React, { memo, useState } from 'react'
+import React, { memo, useCallback, useState } from 'react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 
 import { CommentDisplay, type CommentStyleSettings } from './CommentDisplay'
+import { CommentInlineEdit } from './CommentInlineEdit'
 import { OverflowMenu } from './OverflowMenu'
 
 // Types
@@ -48,8 +49,10 @@ interface RepoCardProps {
   onNote?: (id: string) => void
   /** Callback when repository is removed from board */
   onRemove?: (id: string) => void
-  /** Callback when comment area is clicked (for editing) */
+  /** Callback when comment area is clicked (for editing) - deprecated, editing is now built-in */
   onCommentClick?: (id: string) => void
+  /** Callback when comment is updated (for optimistic updates in parent) */
+  onCommentChange?: (id: string, newComment: string) => void
 }
 
 /**
@@ -72,6 +75,7 @@ export const RepoCard = memo<RepoCardProps>(
     onNote,
     onRemove,
     onCommentClick,
+    onCommentChange,
   }) => {
     const {
       attributes,
@@ -83,6 +87,7 @@ export const RepoCard = memo<RepoCardProps>(
     } = useSortable({ id: card.id })
 
     const [menuOpen, setMenuOpen] = useState(false)
+    const [isEditingComment, setIsEditingComment] = useState(false)
 
     /**
      * Handle menu open state changes from OverflowMenu dropdown.
@@ -93,6 +98,35 @@ export const RepoCard = memo<RepoCardProps>(
     const handleMenuOpenChange = (open: boolean) => {
       setMenuOpen(open)
     }
+
+    /**
+     * Handle click on comment area to start editing
+     */
+    const handleCommentClick = useCallback(() => {
+      setIsEditingComment(true)
+      onCommentClick?.(card.id)
+    }, [card.id, onCommentClick])
+
+    /**
+     * Handle saving the comment
+     *
+     * @param newComment - The new comment value
+     */
+    const handleCommentSave = useCallback(
+      async (newComment: string) => {
+        // Optimistic update - notify parent immediately
+        onCommentChange?.(card.id, newComment)
+        setIsEditingComment(false)
+      },
+      [card.id, onCommentChange],
+    )
+
+    /**
+     * Handle cancelling comment edit
+     */
+    const handleCommentCancel = useCallback(() => {
+      setIsEditingComment(false)
+    }, [])
 
     const style = {
       transform: CSS.Transform.toString(transform),
@@ -179,14 +213,23 @@ export const RepoCard = memo<RepoCardProps>(
               )}
 
               {/* Inline Comment (Card-in-Card style) */}
-              {showComment && (
-                <CommentDisplay
-                  comment={comment}
-                  onClick={() => onCommentClick?.(card.id)}
-                  style={commentStyle}
-                  showEmptyState={true}
-                />
-              )}
+              {showComment &&
+                (isEditingComment ? (
+                  <CommentInlineEdit
+                    initialValue={comment ?? ''}
+                    onSave={handleCommentSave}
+                    onCancel={handleCommentCancel}
+                    style={commentStyle}
+                    enableAutoSave={true}
+                  />
+                ) : (
+                  <CommentDisplay
+                    comment={comment}
+                    onClick={handleCommentClick}
+                    style={commentStyle}
+                    showEmptyState={true}
+                  />
+                ))}
 
               <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center gap-3 text-muted-foreground">
