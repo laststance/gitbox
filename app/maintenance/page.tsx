@@ -10,9 +10,12 @@
 
 import { redirect } from 'next/navigation'
 
+import { createModuleLogger } from '@/lib/logger'
 import { createClient } from '@/lib/supabase/server'
 
 import { MaintenanceClient, type MaintenanceRepo } from './MaintenanceClient'
+
+const log = createModuleLogger('maintenance')
 
 export default async function MaintenancePage() {
   const supabase = await createClient()
@@ -34,7 +37,7 @@ export default async function MaintenancePage() {
     .order('updated_at', { ascending: false })
 
   if (error) {
-    console.error('Failed to fetch maintenance repos:', error)
+    log.error({ error }, 'Failed to fetch maintenance repos')
   }
 
   // Map maintenance data to MaintenanceRepo format

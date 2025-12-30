@@ -12,6 +12,9 @@
 import { isAxiosError } from 'axios'
 
 import { createGitHubAxios, hasGitHubToken } from '@/lib/axios-github'
+import { createModuleLogger } from '@/lib/logger'
+
+const log = createModuleLogger('github')
 
 export interface GitHubRepository {
   id: number
@@ -82,7 +85,7 @@ function handleGitHubError(error: unknown, context: string): string {
     return `GitHub API error: ${error.response?.status ?? 'unknown'}`
   }
 
-  console.error(`Failed to ${context}:`, error)
+  log.error({ error }, `Failed to ${context}`)
   return error instanceof Error ? error.message : `Failed to ${context}`
 }
 

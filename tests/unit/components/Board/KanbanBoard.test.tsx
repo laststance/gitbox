@@ -286,11 +286,6 @@ describe('Horizontal Scroll Technical Requirements', () => {
 
         const maxCols = calculateMaxColumnsWithoutScroll(viewport)
 
-        // Document the threshold for each viewport
-        console.log(
-          `Viewport ${viewport}px: max ${maxCols} columns without scroll`,
-        )
-
         // Verify calculation
         const widthWithMaxCols =
           maxCols * columnWidth + (maxCols - 1) * gapWidth

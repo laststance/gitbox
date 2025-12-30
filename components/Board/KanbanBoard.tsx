@@ -23,6 +23,7 @@ import {
   SortableContext,
   rectSortingStrategy,
 } from '@dnd-kit/sortable'
+import * as Sentry from '@sentry/nextjs'
 import { motion } from 'framer-motion'
 import { AlertCircle } from 'lucide-react'
 import React, { useState, useEffect, memo, useCallback, useMemo } from 'react'
@@ -276,7 +277,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           dispatch(setStatusLists(statusLists))
           dispatch(setRepoCards(repoCards))
         } catch (err) {
-          console.error('Board data fetch error:', err)
+          Sentry.captureException(err, { tags: { action: 'fetchBoardData' } })
           dispatch(setError('Failed to fetch board data. Please try again.'))
         } finally {
           dispatch(setLoading(false))
@@ -406,7 +407,9 @@ export const KanbanBoard = memo<KanbanBoardProps>(
               targetCol,
             )
           } catch (error) {
-            console.error('Failed to move column to new row:', error)
+            Sentry.captureException(error, {
+              tags: { action: 'moveColumnToNewRow' },
+            })
             // Revert on error
             dispatch(setStatusLists(statuses))
           }
@@ -491,7 +494,9 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           try {
             await batchUpdateStatusListPositions(updates)
           } catch (error) {
-            console.error('Failed to insert column:', error)
+            Sentry.captureException(error, {
+              tags: { action: 'insertColumn' },
+            })
             // Revert on error
             dispatch(setStatusLists(statuses))
           }
@@ -534,7 +539,9 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           try {
             await swapStatusListPositions(activeStatus.id, overStatus.id)
           } catch (error) {
-            console.error('Failed to swap column positions:', error)
+            Sentry.captureException(error, {
+              tags: { action: 'swapColumnPositions' },
+            })
             // Revert on error
             dispatch(setStatusLists(statuses))
           }
@@ -600,7 +607,9 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           try {
             await batchUpdateRepoCardOrders(updates)
           } catch (error) {
-            console.error('Failed to sync card order:', error)
+            Sentry.captureException(error, {
+              tags: { action: 'syncCardOrder' },
+            })
             // Revert on error (restore from history)
             dispatch(setRepoCards(cards))
           }
@@ -625,7 +634,9 @@ export const KanbanBoard = memo<KanbanBoardProps>(
 
           await updateRepoCardPosition(activeCard.id, targetStatusId, newOrder)
         } catch (error) {
-          console.error('Failed to sync card position:', error)
+          Sentry.captureException(error, {
+            tags: { action: 'syncCardPosition' },
+          })
           // Revert on error
           dispatch(setRepoCards(cards))
         }

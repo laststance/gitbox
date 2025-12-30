@@ -371,10 +371,6 @@ describe('Performance characteristics', () => {
 
     expect(allRepos.length).toBe(1000)
     expect(endTime - startTime).toBeLessThan(100) // Should complete in under 100ms
-
-    console.log(
-      `✓ Accumulated 1000 repos from 10 pages in ${(endTime - startTime).toFixed(2)}ms`,
-    )
   })
 
   it('should handle Set-based deduplication efficiently', () => {
@@ -398,9 +394,5 @@ describe('Performance characteristics', () => {
 
     expect(allRepos.length).toBe(700) // 500 + 200 (300 - 100 overlapping)
     expect(endTime - startTime).toBeLessThan(50) // Should complete in under 50ms
-
-    console.log(
-      `✓ Deduplicated 800 repos in ${(endTime - startTime).toFixed(2)}ms`,
-    )
   })
 })

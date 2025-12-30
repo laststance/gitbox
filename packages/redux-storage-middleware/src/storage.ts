@@ -46,7 +46,7 @@ function createSafeStorage(
       try {
         return getBackend().getItem(name)
       } catch {
-        console.warn(
+        console.error(
           `[redux-storage-middleware] Failed to read from ${storageName}: ${name}`,
         )
         return null
@@ -56,7 +56,7 @@ function createSafeStorage(
       try {
         getBackend().setItem(name, value)
       } catch (error) {
-        console.warn(
+        console.error(
           `[redux-storage-middleware] Failed to write to ${storageName}: ${name}`,
           error,
         )
@@ -66,7 +66,7 @@ function createSafeStorage(
       try {
         getBackend().removeItem(name)
       } catch {
-        console.warn(
+        console.error(
           `[redux-storage-middleware] Failed to remove from ${storageName}: ${name}`,
         )
       }

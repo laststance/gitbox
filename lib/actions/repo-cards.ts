@@ -13,7 +13,10 @@
 import { revalidatePath } from 'next/cache'
 
 import type { GitHubRepository } from '@/lib/actions/github'
+import { createModuleLogger } from '@/lib/logger'
 import { createClient } from '@/lib/supabase/server'
+
+const log = createModuleLogger('repo-cards')
 
 /**
  * RepoCard addition parameters
@@ -174,7 +177,7 @@ export async function addRepositoriesToBoard(
       )
 
     if (insertError) {
-      console.error('RepoCard insert error:', insertError)
+      log.error({ error: insertError }, 'RepoCard insert error')
       throw new Error('Failed to add cards: ' + insertError.message)
     }
 
@@ -206,7 +209,7 @@ export async function addRepositoriesToBoard(
           : undefined,
     }
   } catch (error) {
-    console.error('Add repositories error:', error)
+    log.error({ error }, 'Add repositories error')
     return {
       success: false,
       addedCount: 0,
@@ -242,13 +245,13 @@ export async function checkDuplicateRepository(
       .maybeSingle()
 
     if (error) {
-      console.error('Check duplicate error:', error)
+      log.error({ error }, 'Check duplicate error')
       return false
     }
 
     return data !== null
   } catch (error) {
-    console.error('Check duplicate error:', error)
+    log.error({ error }, 'Check duplicate error')
     return false
   }
 }
@@ -294,7 +297,7 @@ export async function updateRepoCardNote(
       .eq('id', cardId)
 
     if (updateError) {
-      console.error('Update note error:', updateError)
+      log.error({ error: updateError }, 'Update note error')
       return {
         success: false,
         error: 'Failed to update note',
@@ -303,7 +306,7 @@ export async function updateRepoCardNote(
 
     return { success: true }
   } catch (error) {
-    console.error('Update note error:', error)
+    log.error({ error }, 'Update note error')
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -343,7 +346,7 @@ export async function deleteRepoCard(
       .eq('id', cardId)
 
     if (deleteError) {
-      console.error('Delete card error:', deleteError)
+      log.error({ error: deleteError }, 'Delete card error')
       return {
         success: false,
         error: 'Failed to delete card',
@@ -352,7 +355,7 @@ export async function deleteRepoCard(
 
     return { success: true }
   } catch (error) {
-    console.error('Delete card error:', error)
+    log.error({ error }, 'Delete card error')
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -400,7 +403,7 @@ export async function updateRepoCardOrder(
       .eq('id', cardId)
 
     if (updateError) {
-      console.error('Update order error:', updateError)
+      log.error({ error: updateError }, 'Update order error')
       return {
         success: false,
         error: 'Failed to move card',
@@ -409,7 +412,7 @@ export async function updateRepoCardOrder(
 
     return { success: true }
   } catch (error) {
-    console.error('Update order error:', error)
+    log.error({ error }, 'Update order error')
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -550,7 +553,7 @@ export async function restoreToBoard(
       .single()
 
     if (insertError || !newCard) {
-      console.error('RepoCard insert error:', insertError)
+      log.error({ error: insertError }, 'RepoCard insert error')
       return { success: false, error: 'Failed to restore repository' }
     }
 
@@ -563,7 +566,7 @@ export async function restoreToBoard(
     if (deleteError) {
       // Rollback: delete the card we just created
       await supabase.from('repocard').delete().eq('id', newCard.id)
-      console.error('Maintenance delete error:', deleteError)
+      log.error({ error: deleteError }, 'Maintenance delete error')
       return { success: false, error: 'Failed to remove from maintenance' }
     }
 
@@ -572,7 +575,7 @@ export async function restoreToBoard(
 
     return { success: true, cardId: newCard.id }
   } catch (error) {
-    console.error('Restore to board error:', error)
+    log.error({ error }, 'Restore to board error')
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -631,7 +634,7 @@ export async function getUserBoardsWithStatusLists(): Promise<{
       .order('created_at', { ascending: false })
 
     if (boardsError) {
-      console.error('Failed to fetch boards:', boardsError)
+      log.error({ error: boardsError }, 'Failed to fetch boards')
       return { success: false, error: 'Failed to fetch boards' }
     }
 
@@ -648,7 +651,7 @@ export async function getUserBoardsWithStatusLists(): Promise<{
       .order('order', { ascending: true })
 
     if (statusError) {
-      console.error('Failed to fetch status lists:', statusError)
+      log.error({ error: statusError }, 'Failed to fetch status lists')
       return { success: false, error: 'Failed to fetch status lists' }
     }
 
@@ -672,7 +675,7 @@ export async function getUserBoardsWithStatusLists(): Promise<{
 
     return { success: true, boards: result }
   } catch (error) {
-    console.error('Get user boards with status lists error:', error)
+    log.error({ error }, 'Get user boards with status lists error')
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -740,7 +743,7 @@ export async function moveToMaintenance(
       .single()
 
     if (insertError || !maintEntry) {
-      console.error('Maintenance insert error:', insertError)
+      log.error({ error: insertError }, 'Maintenance insert error')
       return { success: false, error: 'Failed to move to maintenance' }
     }
 
@@ -753,7 +756,7 @@ export async function moveToMaintenance(
     if (deleteError) {
       // Rollback: delete the maintenance entry we just created
       await supabase.from('maintenance').delete().eq('id', maintEntry.id)
-      console.error('RepoCard delete error:', deleteError)
+      log.error({ error: deleteError }, 'RepoCard delete error')
       return { success: false, error: 'Failed to remove card from board' }
     }
 
@@ -763,7 +766,7 @@ export async function moveToMaintenance(
 
     return { success: true, maintenanceId: maintEntry.id }
   } catch (error) {
-    console.error('Move to maintenance error:', error)
+    log.error({ error }, 'Move to maintenance error')
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',

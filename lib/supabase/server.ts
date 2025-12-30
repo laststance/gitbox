@@ -8,7 +8,11 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
+import { createModuleLogger } from '@/lib/logger'
+
 import type { Database } from './types'
+
+const log = createModuleLogger('supabase')
 
 /**
  * Check if E2E test mode is enabled
@@ -246,7 +250,7 @@ export async function getUser() {
   } = await supabase.auth.getUser()
 
   if (error) {
-    console.error('Failed to get user:', error)
+    log.error({ error }, 'Failed to get user')
     return null
   }
 
@@ -283,7 +287,7 @@ export async function getSession() {
   } = await supabase.auth.getSession()
 
   if (error) {
-    console.error('Failed to get session:', error)
+    log.error({ error }, 'Failed to get session')
     return null
   }
 

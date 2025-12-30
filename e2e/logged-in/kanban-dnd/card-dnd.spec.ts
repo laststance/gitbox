@@ -130,7 +130,6 @@ test.describe('10.2 Card Drag & Drop', () => {
 
       // Get initial card order in Planning column (status-2)
       const initialOrder = await getCardOrderInColumn('status-2')
-      console.log('Initial card order in Planning:', initialOrder)
 
       // Verify initial state: card-1, card-4, card-5 in order
       expect(initialOrder.length).toBeGreaterThanOrEqual(2)
@@ -157,7 +156,6 @@ test.describe('10.2 Card Drag & Drop', () => {
 
       // Get new card order after reorder
       const newOrder = await getCardOrderInColumn('status-2')
-      console.log('New card order in Planning:', newOrder)
 
       // Verify reorder completed successfully
       // All cards should still exist in the column
@@ -170,18 +168,8 @@ test.describe('10.2 Card Drag & Drop', () => {
       const newCard4Index = newOrder.indexOf('card-4')
 
       if (newCard1Index !== -1 && newCard4Index !== -1) {
-        console.log(
-          `Position change: card-1 moved from index ${card1Index} to ${newCard1Index}`,
-        )
-        console.log(
-          `Position change: card-4 moved from index ${card4Index} to ${newCard4Index}`,
-        )
-
         // If swap occurred, card-4 should now come before card-1
         // OR the order should have changed from initial
-        const orderChanged =
-          newCard1Index !== card1Index || newCard4Index !== card4Index
-        console.log('Order changed:', orderChanged)
 
         // Verify the drag operation executed (all cards still present)
         expect(newOrder.length).toBe(initialOrder.length)
@@ -239,7 +227,6 @@ test.describe('10.2 Card Drag & Drop', () => {
 
       // card-1 is in status-2 (Planning) initially
       const initialStatus = await getCardStatusId('card-1')
-      console.log('Initial card-1 status:', initialStatus)
       expect(initialStatus).toBe('status-2')
 
       // Drag card-1 to status-3 (Focus Development)
@@ -253,7 +240,6 @@ test.describe('10.2 Card Drag & Drop', () => {
 
       // Verify card moved to new column
       const newStatus = await getCardStatusId('card-1')
-      console.log('New card-1 status:', newStatus)
 
       // Card should now be in Focus Development column
       expect(newStatus).toBe('status-3')
@@ -288,7 +274,6 @@ test.describe('10.2 Card Drag & Drop', () => {
       }
 
       const initialInfo = await getCardInfo('card-1')
-      console.log('Initial card info:', initialInfo)
       expect(initialInfo?.statusId).toBe('status-2')
       expect(initialInfo?.columnTitle).toBe('Planning')
 
@@ -302,7 +287,6 @@ test.describe('10.2 Card Drag & Drop', () => {
       await page.waitForTimeout(600)
 
       const newInfo = await getCardInfo('card-1')
-      console.log('New card info:', newInfo)
 
       // Verify card is now in Production Release column
       expect(newInfo?.statusId).toBe('status-5')

@@ -152,7 +152,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(800)
 
       const positions = await getGridPositions(page)
-      console.log('Column grid positions:', positions)
 
       // Verify each column has distinct grid positions
       expect(positions['status-1']?.gridCol).toBe(1)
@@ -195,7 +194,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       }
 
       const initialOrder = await getColumnOrder()
-      console.log('Initial column order:', initialOrder)
 
       // Verify initial state: Pending should be first
       expect(initialOrder[0]?.title).toBe('Pending')
@@ -211,7 +209,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(500)
 
       const newOrder = await getColumnOrder()
-      console.log('New column order after drag:', newOrder)
 
       // Verify drag completed successfully (no errors, same number of columns)
       expect(newOrder.length).toBe(5)
@@ -242,7 +239,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(800)
 
       const initialTitles = await getColumnTitles(page)
-      console.log('Initial column titles:', initialTitles)
 
       expect(initialTitles.length).toBe(5)
       expect(initialTitles[0]).toBe('Pending')
@@ -257,7 +253,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(600)
 
       const newTitles = await getColumnTitles(page)
-      console.log('Column titles after drag:', newTitles)
 
       // Verify operation completed (all columns still present)
       expect(newTitles.length).toBe(5)
@@ -356,7 +351,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(800)
 
       const initial = await getColumnTitles(page)
-      console.log('Initial:', initial)
 
       // First drag: Move Pending (status-1) to Planning (status-2) position
       await cdpColumnDragAndDrop(page, 'status-1', 'status-2', {
@@ -367,7 +361,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(400)
 
       const afterFirstDrag = await getColumnTitles(page)
-      console.log('After first drag:', afterFirstDrag)
 
       // Second drag: Move MVP Release (status-4) to Production Release (status-5) position
       await cdpColumnDragAndDrop(page, 'status-4', 'status-5', {
@@ -378,7 +371,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(400)
 
       const afterSecondDrag = await getColumnTitles(page)
-      console.log('After second drag:', afterSecondDrag)
 
       // Verify both drags resulted in changes
       expect(afterFirstDrag.length).toBe(initial.length)
@@ -482,7 +474,6 @@ test.describe('10.3 Column Drag & Drop', () => {
           return null
         })
 
-        console.log('Drop zone text found:', dropZoneText)
         // Verify drop zone appears during drag
         expect(dropZoneText).not.toBeNull()
         expect(dropZoneText).toContain('new row')
@@ -519,7 +510,6 @@ test.describe('10.3 Column Drag & Drop', () => {
 
       // Verify initial state: all columns in row 1
       const initialPositions = await getGridPositions(page)
-      console.log('Initial grid positions:', initialPositions)
 
       expect(initialPositions['status-1']?.gridRow).toBe(1)
       expect(initialPositions['status-2']?.gridRow).toBe(1)
@@ -534,8 +524,6 @@ test.describe('10.3 Column Drag & Drop', () => {
         attempt <= MAX_ATTEMPTS && !dropSucceeded;
         attempt++
       ) {
-        console.log(`NewRowDropZone attempt ${attempt}/${MAX_ATTEMPTS}`)
-
         // Drag status-3 (Focus Development) to NewRowDropZone
         await cdpColumnToNewRowDragAndDrop(page, 'status-3', 1, {
           steps: 30 + attempt * 5, // More steps on retry
@@ -546,12 +534,10 @@ test.describe('10.3 Column Drag & Drop', () => {
         await page.waitForTimeout(600)
 
         const newPositions = await getGridPositions(page)
-        console.log(`Grid positions after attempt ${attempt}:`, newPositions)
 
         // Check if column moved to row 2
         if (newPositions['status-3']?.gridRow === 2) {
           dropSucceeded = true
-          console.log('✅ NewRowDropZone drop detected successfully')
 
           // Verify grid integrity
           expect(newPositions['status-1']?.gridRow).toBe(1)
@@ -564,15 +550,6 @@ test.describe('10.3 Column Drag & Drop', () => {
           await page.waitForLoadState('networkidle')
           await page.waitForTimeout(800)
         }
-      }
-
-      // Log outcome
-      if (dropSucceeded) {
-        console.log('✅ NewRowDropZone test passed with verified grid change')
-      } else {
-        console.log(
-          '⚠️ NewRowDropZone drop not detected after retries - @dnd-kit timing sensitivity',
-        )
       }
 
       // Verify all 5 columns still exist regardless of drop detection
@@ -596,7 +573,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(800)
 
       const initialPositions = await getGridPositions(page)
-      console.log('Initial positions:', initialPositions)
 
       // Record original grid column positions
       const originalCols = {
@@ -615,7 +591,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(700)
 
       const newPositions = await getGridPositions(page)
-      console.log('Positions after drop:', newPositions)
 
       // Verify remaining columns are still in row 1
       if (newPositions['status-3']?.gridRow === 2) {
@@ -623,8 +598,6 @@ test.describe('10.3 Column Drag & Drop', () => {
         expect(newPositions['status-2']?.gridRow).toBe(1)
         expect(newPositions['status-4']?.gridRow).toBe(1)
         expect(newPositions['status-5']?.gridRow).toBe(1)
-
-        console.log('✅ Remaining columns verified in original row')
       }
 
       // All columns should exist
@@ -683,8 +656,6 @@ test.describe('10.3 Column Drag & Drop', () => {
           templateRows: rowMatch ? rowMatch[1] : null,
         }
       })
-
-      console.log('Grid template after drop:', newGridInfo?.templateRows)
 
       // Verify grid structure is valid
       expect(newGridInfo).not.toBeNull()
@@ -783,7 +754,6 @@ test.describe('10.3 Column Drag & Drop', () => {
           return { found: false }
         })
 
-        console.log('Hover feedback:', hoverFeedback)
         // Verify drop zone was found during drag (either default or hover state)
         expect(hoverFeedback.found).toBe(true)
 
@@ -817,7 +787,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(800)
 
       const initialPositions = await getGridPositions(page)
-      console.log('Initial positions:', initialPositions)
 
       // Move status-4 (MVP Release) to new row
       await cdpColumnToNewRowDragAndDrop(page, 'status-4', 1, {
@@ -828,11 +797,9 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(700)
 
       const newPositions = await getGridPositions(page)
-      console.log('After moving status-4:', newPositions)
 
       // Verify status-4 moved to row 2 if drop was detected
       if (newPositions['status-4']?.gridRow === 2) {
-        console.log('✅ status-4 successfully moved to new row')
         expect(newPositions['status-4']?.gridCol).toBe(1)
       }
 
@@ -888,7 +855,6 @@ test.describe('10.3 Column Drag & Drop', () => {
 
       // Verify initial state: All columns in row 1 (CSS 1-indexed)
       const initialPositions = await getGridPositions(page)
-      console.log('Initial grid positions:', initialPositions)
 
       expect(initialPositions['status-1']?.gridRow).toBe(1)
       expect(initialPositions['status-2']?.gridRow).toBe(1)
@@ -906,7 +872,6 @@ test.describe('10.3 Column Drag & Drop', () => {
 
       // Verify status-3 moved to row 2
       const positionsAfterMove = await getGridPositions(page)
-      console.log('Grid positions after NewRow move:', positionsAfterMove)
 
       const status3Moved = positionsAfterMove['status-3']?.gridRow === 2
 
@@ -958,11 +923,6 @@ test.describe('10.3 Column Drag & Drop', () => {
             return zones.length > 0
           })
 
-          console.log(
-            'ColumnInsertZone visible during drag:',
-            insertZoneVisible,
-          )
-
           // Release drag
           await client.send('Input.dispatchMouseEvent', {
             type: 'mouseReleased',
@@ -975,10 +935,6 @@ test.describe('10.3 Column Drag & Drop', () => {
         } finally {
           await client.detach()
         }
-      } else {
-        console.log(
-          'NewRowDropZone drop not detected by @dnd-kit - continuing with test',
-        )
       }
 
       // Verify all columns still exist
@@ -1005,7 +961,6 @@ test.describe('10.3 Column Drag & Drop', () => {
 
       // Step 1: Create empty slot by moving status-3 to row 1
       const initialPositions = await getGridPositions(page)
-      console.log('Initial positions:', initialPositions)
 
       await cdpColumnToNewRowDragAndDrop(page, 'status-3', 1, {
         steps: 25,
@@ -1015,20 +970,15 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(700)
 
       const positionsAfterNewRow = await getGridPositions(page)
-      console.log('After NewRow drop:', positionsAfterNewRow)
 
       const emptySlotCreated = positionsAfterNewRow['status-3']?.gridRow === 2
       if (!emptySlotCreated) {
-        console.log(
-          'Empty slot not created (NewRowDropZone drop not detected) - skipping insert test',
-        )
         const titles = await getColumnTitles(page)
         expect(titles.length).toBe(5)
         return
       }
 
       const status1OriginalCol = positionsAfterNewRow['status-1']?.gridCol
-      console.log(`status-1 original gridCol: ${status1OriginalCol}`)
 
       // Step 2: Insert status-1 into the empty slot
       await cdpColumnToInsertZone(page, 'status-1', 0, 2, {
@@ -1039,10 +989,8 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(700)
 
       const positionsAfterInsert = await getGridPositions(page)
-      console.log('After InsertZone drop:', positionsAfterInsert)
 
       const status1NewCol = positionsAfterInsert['status-1']?.gridCol
-      console.log(`status-1 new gridCol: ${status1NewCol}`)
 
       // All columns should still exist
       const titles = await getColumnTitles(page)
@@ -1135,7 +1083,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       const emptySlotCreated = positions['status-3']?.gridRow === 2
 
       if (!emptySlotCreated) {
-        console.log('Empty slot not created - skipping visual feedback test')
         return
       }
 
@@ -1197,8 +1144,6 @@ test.describe('10.3 Column Drag & Drop', () => {
           }
         })
 
-        console.log('InsertZone info:', insertZoneInfo)
-
         // Release drag
         await client.send('Input.dispatchMouseEvent', {
           type: 'mouseReleased',
@@ -1226,7 +1171,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(800)
 
       const initialPositions = await getGridPositions(page)
-      console.log('Initial positions:', initialPositions)
 
       expect(initialPositions['status-1']?.gridCol).toBe(1)
       expect(initialPositions['status-2']?.gridCol).toBe(2)
@@ -1243,7 +1187,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(700)
 
       const positionsAfterDrag = await getGridPositions(page)
-      console.log('Positions after drag:', positionsAfterDrag)
 
       const allPositionsValid = Object.values(positionsAfterDrag).every(
         (pos) => pos.gridRow >= 1 && pos.gridCol >= 1,
@@ -1379,7 +1322,6 @@ test.describe('10.3 Column Drag & Drop', () => {
 
       // Step 1: Create multi-row layout by moving status-3 to Row 1
       const initialPositions = await getGridPositions(page)
-      console.log('Initial positions (all Row 1):', initialPositions)
 
       // Verify initial state: all columns in Row 1
       expect(initialPositions['status-1']?.gridRow).toBe(1)
@@ -1394,15 +1336,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(700)
 
       const positionsAfterNewRow = await getGridPositions(page)
-      console.log('After NewRowDropZone:', positionsAfterNewRow)
 
       // Check if multi-row layout was created
       const multiRowCreated = positionsAfterNewRow['status-3']?.gridRow === 2
 
       if (!multiRowCreated) {
-        console.log(
-          'Multi-row layout not created (NewRowDropZone not detected) - skipping vertical swap test',
-        )
         // Verify columns still exist
         expect(await getColumnTitles(page)).toContain('Focus Development')
         return
@@ -1413,14 +1351,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       const status1BeforeSwap = positionsAfterNewRow['status-1']
       const status3BeforeSwap = positionsAfterNewRow['status-3']
 
-      console.log('Before vertical swap:')
-      console.log(
-        `  status-1: Row ${status1BeforeSwap?.gridRow}, Col ${status1BeforeSwap?.gridCol}`,
-      )
-      console.log(
-        `  status-3: Row ${status3BeforeSwap?.gridRow}, Col ${status3BeforeSwap?.gridCol}`,
-      )
-
       // Perform vertical swap
       await cdpColumnDragAndDrop(page, 'status-1', 'status-3', {
         steps: 25,
@@ -1430,19 +1360,10 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(700)
 
       const positionsAfterSwap = await getGridPositions(page)
-      console.log('After vertical swap:', positionsAfterSwap)
 
       // Verify swap occurred - positions should be exchanged
       const status1AfterSwap = positionsAfterSwap['status-1']
       const status3AfterSwap = positionsAfterSwap['status-3']
-
-      console.log('After vertical swap:')
-      console.log(
-        `  status-1: Row ${status1AfterSwap?.gridRow}, Col ${status1AfterSwap?.gridCol}`,
-      )
-      console.log(
-        `  status-3: Row ${status3AfterSwap?.gridRow}, Col ${status3AfterSwap?.gridCol}`,
-      )
 
       // Verify all columns still exist
       expect(Object.keys(positionsAfterSwap).length).toBe(5)
@@ -1455,11 +1376,6 @@ test.describe('10.3 Column Drag & Drop', () => {
         // Swap occurred - verify correct exchange
         expect(status1AfterSwap?.gridRow).toBe(status3BeforeSwap?.gridRow)
         expect(status3AfterSwap?.gridRow).toBe(status1BeforeSwap?.gridRow)
-        console.log('✅ Vertical swap verified successfully')
-      } else {
-        console.log(
-          '⚠️ Swap not detected by @dnd-kit - CDP drop position may need adjustment',
-        )
       }
     })
 
@@ -1486,7 +1402,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       const multiRowCreated = positionsAfterNewRow['status-2']?.gridRow === 2
 
       if (!multiRowCreated) {
-        console.log('Skipping grid integrity test - multi-row not created')
         return
       }
 
@@ -1504,7 +1419,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       Object.entries(finalPositions).forEach(([id, pos]) => {
         expect(pos.gridRow).toBeGreaterThanOrEqual(1)
         expect(pos.gridCol).toBeGreaterThanOrEqual(1)
-        console.log(`${id}: Row ${pos.gridRow}, Col ${pos.gridCol}`)
       })
 
       // Verify all 5 columns exist
@@ -1550,7 +1464,6 @@ test.describe('10.3 Column Drag & Drop', () => {
 
       // Step 1: Create multi-row layout by moving status-4 to Row 1
       const initialPositions = await getGridPositions(page)
-      console.log('Initial positions:', initialPositions)
 
       // Move status-4 to Row 1 (CSS row 2)
       await cdpColumnToNewRowDragAndDrop(page, 'status-4', 1, {
@@ -1561,15 +1474,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(700)
 
       const positionsAfterNewRow = await getGridPositions(page)
-      console.log('After NewRowDropZone:', positionsAfterNewRow)
 
       // Check if multi-row layout was created
       const multiRowCreated = positionsAfterNewRow['status-4']?.gridRow === 2
 
       if (!multiRowCreated) {
-        console.log(
-          'Multi-row layout not created - skipping diagonal swap test',
-        )
         expect(await getColumnTitles(page)).toContain('MVP Release')
         return
       }
@@ -1579,14 +1488,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       // status-4 is now at (Row 2, Col X) - different row AND potentially different col
       const status1Before = positionsAfterNewRow['status-1']
       const status4Before = positionsAfterNewRow['status-4']
-
-      console.log('Before diagonal swap:')
-      console.log(
-        `  status-1: Row ${status1Before?.gridRow}, Col ${status1Before?.gridCol}`,
-      )
-      console.log(
-        `  status-4: Row ${status4Before?.gridRow}, Col ${status4Before?.gridCol}`,
-      )
 
       // Verify they are at different rows (and potentially different columns)
       expect(status1Before?.gridRow).not.toBe(status4Before?.gridRow)
@@ -1600,18 +1501,9 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(700)
 
       const positionsAfterSwap = await getGridPositions(page)
-      console.log('After diagonal swap:', positionsAfterSwap)
 
       const status1After = positionsAfterSwap['status-1']
       const status4After = positionsAfterSwap['status-4']
-
-      console.log('After diagonal swap:')
-      console.log(
-        `  status-1: Row ${status1After?.gridRow}, Col ${status1After?.gridCol}`,
-      )
-      console.log(
-        `  status-4: Row ${status4After?.gridRow}, Col ${status4After?.gridCol}`,
-      )
 
       // Verify all columns exist
       expect(Object.keys(positionsAfterSwap).length).toBe(5)
@@ -1625,19 +1517,13 @@ test.describe('10.3 Column Drag & Drop', () => {
         status4After?.gridCol !== status4Before?.gridCol
 
       if (rowSwapped || colSwapped) {
-        console.log('✅ Diagonal swap operation detected')
         // If swap occurred, verify positions are exchanged
         if (rowSwapped && colSwapped) {
           expect(status1After?.gridRow).toBe(status4Before?.gridRow)
           expect(status1After?.gridCol).toBe(status4Before?.gridCol)
           expect(status4After?.gridRow).toBe(status1Before?.gridRow)
           expect(status4After?.gridCol).toBe(status1Before?.gridCol)
-          console.log('✅ Full diagonal swap (row + col) verified')
         }
-      } else {
-        console.log(
-          '⚠️ Diagonal swap not detected - CDP positioning may need adjustment',
-        )
       }
     })
 
@@ -1653,7 +1539,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(800)
 
       const originalTitles = await getColumnTitles(page)
-      console.log('Original column titles:', originalTitles)
 
       // Create multi-row layout
       await cdpColumnToNewRowDragAndDrop(page, 'status-5', 1, {
@@ -1672,7 +1557,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(600)
 
       const titlesAfterSwap = await getColumnTitles(page)
-      console.log('Titles after swap:', titlesAfterSwap)
 
       // Verify all original titles still exist (order may differ)
       expect(titlesAfterSwap.sort()).toEqual(originalTitles.sort())
@@ -1709,7 +1593,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(600)
 
       const finalPositions = await getGridPositions(page)
-      console.log('Final grid positions:', finalPositions)
 
       // Verify all columns have valid grid positions
       Object.values(finalPositions).forEach((pos) => {

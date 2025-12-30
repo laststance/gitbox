@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react'
 import { toast } from 'sonner'
@@ -257,7 +258,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
         setOrganizations(orgsResult.data)
       }
     } catch (error) {
-      console.error('Failed to fetch organizations:', error)
+      Sentry.captureException(error, { tags: { action: 'fetchOrganizations' } })
     } finally {
       setIsLoadingOrgs(false)
     }
@@ -384,7 +385,6 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
       // Show warning if some repositories were duplicates
       if (result.errors && result.errors.length > 0) {
-        console.warn('Duplicate repositories detected:', result.errors)
         toast.warning('Some repositories already exist', {
           description: result.errors.join(', '),
         })

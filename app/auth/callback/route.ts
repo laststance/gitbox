@@ -14,7 +14,10 @@ import { NextResponse } from 'next/server'
 
 import { createFirstBoardIfNeeded } from '@/lib/actions/board'
 import { getGitHubTokenCookieName } from '@/lib/constants/cookies'
+import { createModuleLogger } from '@/lib/logger'
 import { createRouteHandlerClient } from '@/lib/supabase/server'
+
+const log = createModuleLogger('auth-callback')
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -46,7 +49,7 @@ export async function GET(request: Request) {
       const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
       if (error) {
-        console.error('OAuth callback error:', error)
+        log.error({ error }, 'OAuth callback error')
         return NextResponse.redirect(
           `${origin}/login?error=auth_failed&message=${encodeURIComponent(error.message)}`,
         )
@@ -65,7 +68,7 @@ export async function GET(request: Request) {
           path: '/',
         })
       } else {
-        console.warn(
+        log.warn(
           'No provider_token in session - GitHub API access may be limited',
         )
       }
@@ -90,7 +93,7 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}${next}`)
       }
     } catch (error) {
-      console.error('Unexpected error in OAuth callback:', error)
+      log.error({ error }, 'Unexpected error in OAuth callback')
       return NextResponse.redirect(`${origin}/login?error=unexpected_error`)
     }
   }

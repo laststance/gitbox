@@ -11,8 +11,11 @@
 
 import { headers } from 'next/headers'
 
+import { createModuleLogger } from '@/lib/logger'
 import { createClient } from '@/lib/supabase/server'
 import type { AuditLog } from '@/lib/supabase/types'
+
+const log = createModuleLogger('audit-log')
 
 export type AuditAction =
   | 'credential_view'
@@ -64,9 +67,7 @@ export async function logAuditEvent({
     } = await supabase.auth.getUser()
 
     if (!user) {
-      console.warn(
-        '[AuditLog] Attempted to log event without authenticated user',
-      )
+      log.warn('Attempted to log event without authenticated user')
       return
     }
 
@@ -89,11 +90,11 @@ export async function logAuditEvent({
     })
 
     if (error) {
-      console.error('[AuditLog] Failed to insert audit log:', error)
+      log.error({ error }, 'Failed to insert audit log')
     }
   } catch (err) {
     // Don't throw - audit logging should never break the main flow
-    console.error('[AuditLog] Error logging audit event:', err)
+    log.error({ error: err }, 'Error logging audit event')
   }
 }
 
@@ -202,13 +203,13 @@ export async function getRecentAuditLogs(limit = 50): Promise<{
       .limit(limit)
 
     if (error) {
-      console.error('[AuditLog] Failed to fetch audit logs:', error)
+      log.error({ error }, 'Failed to fetch audit logs')
       return { logs: [], error: error.message }
     }
 
     return { logs: data || [], error: null }
   } catch (err) {
-    console.error('[AuditLog] Error fetching audit logs:', err)
+    log.error({ error: err }, 'Error fetching audit logs')
     return { logs: [], error: 'Failed to fetch audit logs' }
   }
 }

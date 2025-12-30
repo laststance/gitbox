@@ -59,6 +59,8 @@ export default defineConfig([
             'Use axios instead of fetch for MSW compatibility. Import from lib/axios.ts.',
         },
       ],
+      // Ban console usage - use logger (server) or Sentry (client) instead
+      'no-console': 'error',
     },
   },
   globalIgnores([
@@ -97,6 +99,8 @@ export default defineConfig([
     'playwright.config.ts',
     // Package examples (have their own ESLint configs)
     '**/packages/**/examples/**',
+    // Package benchmarks use console.log for output
+    '**/packages/**/benchmarks/**',
   ]),
   {
     plugins: {
@@ -145,6 +149,15 @@ export default defineConfig([
     ],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
+      // Allow console in tests for debugging and performance metrics
+      'no-console': 'off',
+    },
+  },
+  {
+    files: ['**/*.stories.tsx', '**/*.stories.ts'],
+    rules: {
+      // Allow console in Storybook stories for demo callbacks
+      'no-console': 'off',
     },
   },
   // Plate UI components from registry - relax rules for auto-generated code
@@ -183,6 +196,16 @@ export default defineConfig([
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/promise-function-async': 'off',
       '@next/next/no-img-element': 'off',
+      // Allow console.warn in Plate editor transforms (external library pattern)
+      'no-console': 'off',
+    },
+  },
+  // Package internal code - allow structured logging for library consumers
+  {
+    files: ['packages/**/src/**/*.ts'],
+    rules: {
+      // Library code uses console.error for consumer-facing error messages
+      'no-console': ['error', { allow: ['error'] }],
     },
   },
 ])

@@ -7,6 +7,7 @@
 
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { Calendar, MoreHorizontal, Pencil, Star, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { memo, useCallback, useState, useTransition } from 'react'
@@ -104,7 +105,11 @@ export const BoardCard = memo(function BoardCard({
         // If failed, revert optimistic update
         if (!result.success) {
           onToggleFavorite?.(board.id, board.is_favorite)
-          console.error('Failed to toggle favorite:', result.error)
+          Sentry.captureMessage('Failed to toggle favorite', {
+            level: 'error',
+            tags: { action: 'toggleFavorite', boardId: board.id },
+            extra: { error: result.error },
+          })
           toast.error('Failed to update favorite', {
             description: result.error,
           })

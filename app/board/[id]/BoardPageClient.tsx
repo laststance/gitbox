@@ -15,6 +15,7 @@
 
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { Plus, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState, useCallback, memo, useEffect } from 'react'
@@ -146,7 +147,7 @@ export const BoardPageClient = memo(function BoardPageClient({
       })
       setIsModalOpen(true)
     } catch (error) {
-      console.error('Failed to load project info:', error)
+      Sentry.captureException(error, { tags: { action: 'loadProjectInfo' } })
       // Open modal with empty state even on error
       setProjectInfo({
         id: cardId,
@@ -189,7 +190,7 @@ export const BoardPageClient = memo(function BoardPageClient({
         // TODO: Update Redux state as well (implement in Phase 6)
         // dispatch(updateProjectInfo({ cardId: selectedCardId, data }));
       } catch (error) {
-        console.error('Failed to save project info:', error)
+        Sentry.captureException(error, { tags: { action: 'saveProjectInfo' } })
 
         // Rollback on error
         try {
@@ -200,7 +201,9 @@ export const BoardPageClient = memo(function BoardPageClient({
             links: rollbackData?.links || [],
           })
         } catch (rollbackError) {
-          console.error('Failed to rollback:', rollbackError)
+          Sentry.captureException(rollbackError, {
+            tags: { action: 'saveProjectInfoRollback' },
+          })
         }
 
         toast.error('Failed to save project info', {
@@ -248,7 +251,9 @@ export const BoardPageClient = memo(function BoardPageClient({
       } catch (error) {
         // Revert on error
         dispatch(setRepoCards(previousCards))
-        console.error('Move to maintenance failed:', error)
+        Sentry.captureException(error, {
+          tags: { action: 'moveToMaintenance' },
+        })
         alert('Failed to move to maintenance. Please try again.')
       }
     },
@@ -272,7 +277,11 @@ export const BoardPageClient = memo(function BoardPageClient({
         const result = await deleteRepoCard(cardId)
         if (!result.success) {
           // Revert on error - refetch data
-          console.error('Delete failed:', result.error)
+          Sentry.captureMessage('Delete repo card failed', {
+            level: 'error',
+            tags: { action: 'deleteRepoCard' },
+            extra: { error: result.error },
+          })
           toast.error('Failed to remove from board', {
             description: result.error,
           })
@@ -284,7 +293,7 @@ export const BoardPageClient = memo(function BoardPageClient({
           })
         }
       } catch (error) {
-        console.error('Remove from board failed:', error)
+        Sentry.captureException(error, { tags: { action: 'removeFromBoard' } })
         toast.error('Failed to remove from board', {
           description: 'Please try again.',
         })
@@ -313,7 +322,7 @@ export const BoardPageClient = memo(function BoardPageClient({
         const data = await getProjectInfo(cardId)
         setInitialNote(data?.quickNote || '')
       } catch (error) {
-        console.error('Failed to load note:', error)
+        Sentry.captureException(error, { tags: { action: 'loadNote' } })
         setInitialNote('')
       }
 
@@ -411,7 +420,7 @@ export const BoardPageClient = memo(function BoardPageClient({
           })
         }
       } catch (error) {
-        console.error('Failed to save status list:', error)
+        Sentry.captureException(error, { tags: { action: 'saveStatusList' } })
         toast.error(
           statusDialogMode === 'create'
             ? 'Failed to create column'
@@ -448,7 +457,7 @@ export const BoardPageClient = memo(function BoardPageClient({
           description: `"${targetStatus.title}" has been deleted.`,
         })
       } catch (error) {
-        console.error('Failed to delete status list:', error)
+        Sentry.captureException(error, { tags: { action: 'deleteStatusList' } })
         toast.error('Failed to delete column', {
           description: 'Please try again.',
         })
@@ -560,8 +569,7 @@ export const BoardPageClient = memo(function BoardPageClient({
                   dispatch(addRepoCards(newCards))
                 }}
                 onQuickNoteFocus={() => {
-                  // TODO: Focus on quick note field
-                  console.log('Focus quick note')
+                  // TODO: Focus on quick note field (not yet implemented)
                 }}
               />
               <Button

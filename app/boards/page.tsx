@@ -10,8 +10,11 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { BoardGrid } from '@/components/Boards'
+import { createModuleLogger } from '@/lib/logger'
 import { createClient } from '@/lib/supabase/server'
 import type { Tables } from '@/lib/supabase/types'
+
+const log = createModuleLogger('boards')
 
 export default async function BoardsPage() {
   const supabase = await createClient()
@@ -36,7 +39,7 @@ export default async function BoardsPage() {
   }
 
   if (error) {
-    console.error('Failed to fetch boards:', error)
+    log.error({ error }, 'Failed to fetch boards')
   }
 
   return (

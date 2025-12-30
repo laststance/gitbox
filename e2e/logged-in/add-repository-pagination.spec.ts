@@ -56,8 +56,6 @@ test.describe('AddRepositoryCombobox - Pagination UI', () => {
 
     // Should have at least one repo available (the mock has 3 repos, with some on board)
     expect(optionCount).toBeGreaterThanOrEqual(0)
-
-    console.log(`✓ Combobox loaded with ${optionCount} repository options`)
   })
 
   /**
@@ -99,9 +97,6 @@ test.describe('AddRepositoryCombobox - Pagination UI', () => {
     const filteredCount = await page.locator('[role="option"]').count()
 
     // Filtering should work (count may be same, less, or more depending on matches)
-    console.log(
-      `✓ Search working: ${initialCount} initial → ${filteredCount} after filter`,
-    )
   })
 
   /**
@@ -134,8 +129,6 @@ test.describe('AddRepositoryCombobox - Pagination UI', () => {
       name: /organization filter/i,
     })
     await expect(orgFilterTrigger).toBeVisible()
-
-    console.log('✓ Organization filter dropdown is present')
   })
 
   /**
@@ -177,10 +170,6 @@ test.describe('AddRepositoryCombobox - Pagination UI', () => {
       // Verify the Add button shows a count
       const addButton = page.getByRole('button', { name: /add \(\d+\)/i })
       await expect(addButton).toBeVisible({ timeout: 5000 })
-
-      console.log('✓ Repository selection working correctly')
-    } else {
-      console.log('ℹ No selectable repos available (all may be on board)')
     }
   })
 
@@ -213,8 +202,6 @@ test.describe('AddRepositoryCombobox - Pagination UI', () => {
 
     // Verify combobox is closed
     await expect(searchInput).not.toBeVisible({ timeout: 5000 })
-
-    console.log('✓ Cancel button closes the combobox')
   })
 
   /**
@@ -247,7 +234,5 @@ test.describe('AddRepositoryCombobox - Pagination UI', () => {
     // Reopen
     await addRepoButton.click()
     await expect(searchInput).toBeVisible({ timeout: 10000 })
-
-    console.log('✓ Combobox can be reopened after closing')
   })
 })

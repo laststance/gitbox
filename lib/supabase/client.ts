@@ -6,6 +6,7 @@
  * and PKCE flow support.
  */
 
+import * as Sentry from '@sentry/nextjs'
 import { createBrowserClient } from '@supabase/ssr'
 import type { Session } from '@supabase/supabase-js'
 
@@ -40,7 +41,7 @@ export const supabase = createBrowserClient<Database>(
 export async function getSession() {
   const { data, error } = await supabase.auth.getSession()
   if (error) {
-    console.error('Failed to get session:', error)
+    Sentry.captureException(error, { tags: { action: 'getSession' } })
     return null
   }
   return data.session
@@ -52,7 +53,7 @@ export async function getSession() {
 export async function getUser() {
   const { data, error } = await supabase.auth.getUser()
   if (error) {
-    console.error('Failed to get user:', error)
+    Sentry.captureException(error, { tags: { action: 'getUser' } })
     return null
   }
   return data.user
@@ -71,7 +72,7 @@ export async function signInWithGitHub(redirectTo?: string) {
   })
 
   if (error) {
-    console.error('Failed to sign in with GitHub:', error)
+    Sentry.captureException(error, { tags: { action: 'signInWithGitHub' } })
     throw error
   }
 
@@ -84,7 +85,7 @@ export async function signInWithGitHub(redirectTo?: string) {
 export async function signOut() {
   const { error } = await supabase.auth.signOut()
   if (error) {
-    console.error('Failed to sign out:', error)
+    Sentry.captureException(error, { tags: { action: 'signOut' } })
     throw error
   }
 }

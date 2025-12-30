@@ -10,8 +10,11 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { BoardGrid } from '@/components/Boards'
+import { createModuleLogger } from '@/lib/logger'
 import { createClient } from '@/lib/supabase/server'
 import type { Tables } from '@/lib/supabase/types'
+
+const log = createModuleLogger('favorites')
 
 export default async function FavoritesPage() {
   const supabase = await createClient()
@@ -37,7 +40,7 @@ export default async function FavoritesPage() {
   }
 
   if (error) {
-    console.error('Failed to fetch favorite boards:', error)
+    log.error({ error }, 'Failed to fetch favorite boards')
   }
 
   return (

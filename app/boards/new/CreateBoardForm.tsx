@@ -8,6 +8,7 @@
 
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { useRouter } from 'next/navigation'
 import {
   useState,
@@ -197,7 +198,7 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
         })
         router.push(`/board/${board.id}`)
       } catch (err) {
-        console.error('Failed to create board:', err)
+        Sentry.captureException(err, { tags: { action: 'createBoard' } })
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to create board'
         setError(errorMessage)

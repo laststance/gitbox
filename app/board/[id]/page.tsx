@@ -53,9 +53,6 @@ export default async function BoardPage(props: BoardPageProps) {
   const params = await props.params
   const supabase = await createClient()
 
-  console.log('[DEBUG] BoardPage params:', params)
-  console.log('[DEBUG] Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
-
   // Fetch board information
   const { data: board, error: boardError } = await supabase
     .from('board')
@@ -63,11 +60,8 @@ export default async function BoardPage(props: BoardPageProps) {
     .eq('id', params.id)
     .single()
 
-  console.log('[DEBUG] Board query result:', { board, boardError })
-
   // Return 404 if board does not exist or user lacks access permission
   if (boardError || !board) {
-    console.error('[DEBUG] Board not found or error:', boardError)
     notFound()
   }
 

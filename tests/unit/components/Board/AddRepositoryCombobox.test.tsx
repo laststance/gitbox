@@ -129,9 +129,6 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
 
       // Performance requirement: within 3 seconds (considering CI environment variability)
       expect(renderTime).toBeLessThan(3000)
-
-      // Log rendering time
-      console.log(`✓ Rendered 150 repositories in ${renderTime.toFixed(2)}ms`)
     })
 
     it('should handle 200 repositories efficiently', async () => {
@@ -158,8 +155,6 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
 
       // Target: within 2 seconds even for 200 items (CI environments need margin)
       expect(renderTime).toBeLessThan(2000)
-
-      console.log(`✓ Rendered 200 repositories in ${renderTime.toFixed(2)}ms`)
     })
   })
 
@@ -199,7 +194,6 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
 
       // After Virtual scrolling implementation, not all items will exist in DOM
       // (Current mock renders all, but after T045 implementation it will be <50 items)
-      console.log(`Rendered options: ${renderedOptions.length}`)
       expect(renderedOptions.length).toBeGreaterThan(0)
     })
   })
@@ -364,9 +358,6 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       // Memory leak verification (performance.memory is Chrome-only)
       if (typeof performance !== 'undefined' && 'memory' in performance) {
         const memoryInfo = (performance as any).memory
-        console.log(
-          `Memory used: ${(memoryInfo.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`,
-        )
 
         // Target: under 100MB
         expect(memoryInfo.usedJSHeapSize).toBeLessThan(100 * 1024 * 1024)
@@ -548,10 +539,6 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
       expect(endTime - startTime).toBeLessThan(50)
       // Should have filtered correctly
       expect(filtered.length).toBe(150)
-
-      console.log(
-        `✓ Filtered 200 repos with 50 existing in ${(endTime - startTime).toFixed(2)}ms`,
-      )
     })
 
     it('should maintain O(1) lookup with large existing card sets', () => {
@@ -573,10 +560,6 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
 
       // 3000 lookups should complete in under 10ms (O(1) per lookup)
       expect(endTime - startTime).toBeLessThan(10)
-
-      console.log(
-        `✓ 3000 Set lookups completed in ${(endTime - startTime).toFixed(2)}ms`,
-      )
     })
   })
 
