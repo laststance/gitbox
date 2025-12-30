@@ -420,7 +420,7 @@ export async function getRepoCards(boardId: string): Promise<RepoCardDomain[]> {
     return {
       id: row.id,
       title: `${row.repo_owner}/${row.repo_name}`,
-      description: row.note || meta.topics?.join(', ') || '',
+      description: meta.description || '',
       statusId: row.status_id,
       boardId: row.board_id,
       repoOwner: row.repo_owner,
@@ -433,6 +433,7 @@ export async function getRepoCards(boardId: string): Promise<RepoCardDomain[]> {
         visibility: meta.visibility,
         language: meta.language,
         topics: meta.topics,
+        description: meta.description,
       },
       createdAt: row.created_at ?? new Date().toISOString(),
       updatedAt: row.updated_at ?? new Date().toISOString(),
