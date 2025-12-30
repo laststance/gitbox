@@ -19,7 +19,6 @@
 'use server'
 
 import * as Sentry from '@sentry/nextjs'
-import { revalidatePath } from 'next/cache'
 
 import { createClient } from '@/lib/supabase/server'
 import type { TablesInsert, Tables, TablesUpdate } from '@/lib/supabase/types'
@@ -447,9 +446,8 @@ export async function upsertProjectInfo(
       }
     }
 
-    // Invalidate cache
-    revalidatePath('/board')
-    revalidatePath(`/board/${repoCardId}`)
+    // Note: No revalidatePath needed - Next.js v16 doesn't cache Supabase requests
+    // Client handles state updates via Redux optimistic updates
   } catch (error) {
     if (error instanceof Error) {
       throw error
@@ -571,8 +569,7 @@ export async function updateComment(
     }
   }
 
-  // Invalidate cache
-  revalidatePath('/board')
+  // Note: No revalidatePath needed - client handles state via Redux
 }
 
 /**
@@ -603,7 +600,5 @@ export async function deleteProjectInfo(repoCardId: string): Promise<void> {
     throw new Error('Failed to delete project information')
   }
 
-  // Invalidate cache
-  revalidatePath('/board')
-  revalidatePath(`/board/${repoCardId}`)
+  // Note: No revalidatePath needed - client handles state via Redux
 }

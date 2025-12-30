@@ -10,8 +10,6 @@
 
 'use server'
 
-import { revalidatePath } from 'next/cache'
-
 import type { GitHubRepository } from '@/lib/actions/github'
 import { createModuleLogger } from '@/lib/logger'
 import { createClient } from '@/lib/supabase/server'
@@ -527,9 +525,6 @@ export async function restoreToBoard(
       return { success: false, error: 'Failed to remove from maintenance' }
     }
 
-    revalidatePath('/maintenance')
-    revalidatePath(`/board/${boardId}`)
-
     return { success: true, cardId: newCard.id }
   } catch (error) {
     log.error({ error }, 'Restore to board error')
@@ -717,10 +712,6 @@ export async function moveToMaintenance(
       log.error({ error: deleteError }, 'RepoCard delete error')
       return { success: false, error: 'Failed to remove card from board' }
     }
-
-    // Revalidate affected paths
-    revalidatePath('/maintenance')
-    revalidatePath(`/board/${card.board_id}`)
 
     return { success: true, maintenanceId: maintEntry.id }
   } catch (error) {

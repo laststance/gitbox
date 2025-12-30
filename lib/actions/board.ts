@@ -8,7 +8,6 @@
 'use server'
 
 import * as Sentry from '@sentry/nextjs'
-import { revalidatePath } from 'next/cache'
 
 import { VALID_THEME_IDS } from '@/lib/constants/themes'
 import type {
@@ -130,8 +129,6 @@ export async function createDefaultStatusLists(
     throw new Error('Failed to create default status lists')
   }
 
-  revalidatePath(`/board/${boardId}`)
-
   return (data || []).map((row: StatusListRow) => ({
     id: row.id,
     title: row.name,
@@ -185,8 +182,6 @@ export async function createStatusList(
     })
     throw new Error('Failed to create status list')
   }
-
-  revalidatePath(`/board/${boardId}`)
 
   return {
     id: data.id,
@@ -246,8 +241,6 @@ export async function deleteStatusList(
     })
     throw new Error('Failed to delete status list')
   }
-
-  revalidatePath(`/board/${boardId}`)
 }
 
 /**
@@ -578,8 +571,6 @@ export async function createBoard(
   // Log audit event
   await logBoardCreate(data.id)
 
-  revalidatePath('/boards')
-
   return { id: data.id, name: data.name }
 }
 
@@ -597,8 +588,6 @@ export async function deleteBoard(boardId: string): Promise<void> {
     })
     throw new Error('Failed to delete board')
   }
-
-  revalidatePath('/boards')
 }
 
 /**
@@ -621,9 +610,6 @@ export async function updateBoard(
     })
     throw new Error('Failed to update board')
   }
-
-  revalidatePath(`/board/${boardId}`)
-  revalidatePath('/boards')
 }
 
 // ========================================
@@ -837,9 +823,6 @@ export async function toggleBoardFavorite(
   if (updateError) {
     return { success: false, error: 'Failed to update favorite' }
   }
-
-  revalidatePath('/boards')
-  revalidatePath('/boards/favorites')
 
   return { success: true, isFavorite: newStatus }
 }
@@ -1089,8 +1072,6 @@ export async function updateBoardSettingsAction(
     })
     return { error: 'Failed to update board settings' }
   }
-
-  revalidatePath(`/board/${boardId}`)
 
   return { success: true }
 }

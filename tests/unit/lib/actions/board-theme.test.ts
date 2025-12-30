@@ -35,11 +35,6 @@ vi.mock('@/lib/supabase/server', () => ({
   })),
 }))
 
-// Mock revalidatePath
-vi.mock('next/cache', () => ({
-  revalidatePath: vi.fn(),
-}))
-
 describe('updateBoardThemeAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()

@@ -295,10 +295,18 @@ test.describe('Board Favorites Feature', () => {
 
       // Board should disappear from the page
       if (boardName) {
-        // Either the board is gone, or we see the empty state
-        const boardExists = await page.getByText(boardName).isVisible()
+        // Wait for toast to dismiss before checking
+        await page.waitForTimeout(300)
+
+        // Check if the board card is still visible (use heading to avoid matching toast)
+        const boardHeading = page.getByRole('heading', {
+          name: boardName,
+          level: 3,
+        })
+        const boardExists = (await boardHeading.count()) > 0
+
         if (!boardExists) {
-          // Check if empty state appears
+          // Board is gone - check if empty state appears
           const emptyState = await page
             .getByText(/no favorite boards yet/i)
             .isVisible()

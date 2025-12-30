@@ -63,6 +63,9 @@ export const BoardCard = memo(function BoardCard({
   const [isRenameOpen, setIsRenameOpen] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
+  // Local state for immediate optimistic visual feedback
+  // Initialized from board prop, no sync needed since we removed revalidatePath
+  const [localIsFavorite, setLocalIsFavorite] = useState(board.is_favorite)
 
   const handleRenameSuccess = useCallback(
     (newName: string) => {
@@ -96,15 +99,19 @@ export const BoardCard = memo(function BoardCard({
       e.preventDefault()
       e.stopPropagation()
 
-      const newFavoriteStatus = !board.is_favorite
-      // Optimistic update
+      const newFavoriteStatus = !localIsFavorite
+
+      // Immediate local optimistic update for visual feedback
+      setLocalIsFavorite(newFavoriteStatus)
+      // Also notify parent for global state sync
       onToggleFavorite?.(board.id, newFavoriteStatus)
 
       startTransition(async () => {
         const result = await toggleBoardFavorite(board.id)
         // If failed, revert optimistic update
         if (!result.success) {
-          onToggleFavorite?.(board.id, board.is_favorite)
+          setLocalIsFavorite(!newFavoriteStatus)
+          onToggleFavorite?.(board.id, !newFavoriteStatus)
           Sentry.captureMessage('Failed to toggle favorite', {
             level: 'error',
             tags: { action: 'toggleFavorite', boardId: board.id },
@@ -123,7 +130,7 @@ export const BoardCard = memo(function BoardCard({
         }
       })
     },
-    [board.id, board.is_favorite, board.name, onToggleFavorite],
+    [board.id, localIsFavorite, board.name, onToggleFavorite],
   )
 
   return (
@@ -146,12 +153,12 @@ export const BoardCard = memo(function BoardCard({
             variant="ghost"
             size="icon"
             className={`h-8 w-8 transition-all ${
-              board.is_favorite
+              localIsFavorite
                 ? 'text-amber-500 hover:text-amber-600 opacity-100'
                 : 'text-gray-400 hover:text-amber-500 opacity-70 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100'
             }`}
             aria-label={
-              board.is_favorite
+              localIsFavorite
                 ? `Remove ${board.name} from favorites`
                 : `Add ${board.name} to favorites`
             }
@@ -160,7 +167,7 @@ export const BoardCard = memo(function BoardCard({
           >
             <Star
               className={`h-4 w-4 transition-transform ${isPending ? 'animate-pulse' : ''} ${
-                board.is_favorite ? 'fill-current' : ''
+                localIsFavorite ? 'fill-current' : ''
               }`}
             />
           </Button>
