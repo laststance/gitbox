@@ -54,6 +54,11 @@ import {
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { Board } from '@/lib/supabase/types'
 import { applyTheme } from '@/lib/theme'
+import type { CardDisplaySettings } from '@/lib/types/board-settings'
+import {
+  parseBoardSettings,
+  DEFAULT_CARD_DISPLAY_SETTINGS,
+} from '@/lib/types/board-settings'
 
 interface BoardPageClientProps {
   /** Full board object from Supabase */
@@ -79,6 +84,12 @@ export const BoardPageClient = memo(function BoardPageClient({
   const [currentTheme, setCurrentTheme] = useState<string | null>(
     boardTheme ?? null,
   )
+  // Card display settings (parsed from board.settings JSON)
+  const [cardDisplaySettings, setCardDisplaySettings] =
+    useState<CardDisplaySettings>(() => {
+      const parsed = parseBoardSettings(board.settings)
+      return parsed.cardDisplay ?? DEFAULT_CARD_DISPLAY_SETTINGS
+    })
 
   // Set activeBoard in Redux on mount
   // This enables other components to know which board is currently being viewed
@@ -142,7 +153,8 @@ export const BoardPageClient = memo(function BoardPageClient({
       const data = await getProjectInfo(cardId)
       setProjectInfo({
         id: cardId,
-        quickNote: data?.quickNote || '',
+        note: data?.note || '',
+        comment: data?.comment || '',
         links: data?.links || [],
       })
       setIsModalOpen(true)
@@ -151,7 +163,8 @@ export const BoardPageClient = memo(function BoardPageClient({
       // Open modal with empty state even on error
       setProjectInfo({
         id: cardId,
-        quickNote: '',
+        note: '',
+        comment: '',
         links: [],
       })
       setIsModalOpen(true)
@@ -174,7 +187,8 @@ export const BoardPageClient = memo(function BoardPageClient({
         prev
           ? {
               ...prev,
-              quickNote: data.quickNote,
+              note: data.note,
+              comment: data.comment,
               links: data.links,
             }
           : null,
@@ -197,7 +211,8 @@ export const BoardPageClient = memo(function BoardPageClient({
           const rollbackData = await getProjectInfo(selectedCardId)
           setProjectInfo({
             id: selectedCardId,
-            quickNote: rollbackData?.quickNote || '',
+            note: rollbackData?.note || '',
+            comment: rollbackData?.comment || '',
             links: rollbackData?.links || [],
           })
         } catch (rollbackError) {
@@ -320,7 +335,7 @@ export const BoardPageClient = memo(function BoardPageClient({
 
       try {
         const data = await getProjectInfo(cardId)
-        setInitialNote(data?.quickNote || '')
+        setInitialNote(data?.note || '')
       } catch (error) {
         Sentry.captureException(error, { tags: { action: 'loadNote' } })
         setInitialNote('')
@@ -340,7 +355,8 @@ export const BoardPageClient = memo(function BoardPageClient({
       if (!noteCardId) return
 
       await upsertProjectInfo(noteCardId, {
-        quickNote: note,
+        note: note,
+        comment: '',
         links: [],
         credentials: [],
       })
@@ -527,6 +543,16 @@ export const BoardPageClient = memo(function BoardPageClient({
     router.push('/boards')
   }, [router])
 
+  /**
+   * Handle card display settings change (optimistic update)
+   */
+  const handleCardDisplayChange = useCallback(
+    (newSettings: CardDisplaySettings) => {
+      setCardDisplaySettings(newSettings)
+    },
+    [],
+  )
+
   return (
     <>
       <main className="flex h-screen flex-col">
@@ -559,7 +585,6 @@ export const BoardPageClient = memo(function BoardPageClient({
                       boardId: card.boardId,
                       repoOwner: card.repoOwner,
                       repoName: card.repoName,
-                      note: card.note,
                       order: card.order,
                       meta: card.meta,
                       createdAt: card.createdAt,
@@ -598,6 +623,7 @@ export const BoardPageClient = memo(function BoardPageClient({
         <div className="flex-1 overflow-x-auto overflow-y-auto bg-gray-100 dark:bg-gray-900">
           <KanbanBoard
             boardId={boardId}
+            cardDisplaySettings={cardDisplaySettings}
             onEditProjectInfo={handleEditProjectInfo}
             onMoveToMaintenance={handleMoveToMaintenance}
             onNote={handleOpenNote}
@@ -647,8 +673,10 @@ export const BoardPageClient = memo(function BoardPageClient({
         boardId={boardId}
         boardName={displayName}
         currentTheme={currentTheme}
+        boardSettings={parseBoardSettings(board.settings)}
         onRenameSuccess={handleRenameSuccess}
         onThemeChange={handleThemeChange}
+        onCardDisplayChange={handleCardDisplayChange}
         onDeleteSuccess={handleDeleteSuccess}
       />
     </>

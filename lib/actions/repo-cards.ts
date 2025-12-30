@@ -47,7 +47,6 @@ export interface CreatedRepoCard {
   statusId: string
   repoOwner: string
   repoName: string
-  note: string
   order: number
   meta: {
     stars?: number
@@ -157,7 +156,6 @@ export async function addRepositoriesToBoard(
       status_id: statusId,
       repo_owner: repo.owner.login,
       repo_name: repo.name,
-      note: '',
       order: nextOrder++,
       meta: {
         stars: repo.stargazers_count,
@@ -173,7 +171,7 @@ export async function addRepositoriesToBoard(
       .from('repocard')
       .insert(cardsToInsert)
       .select(
-        'id, board_id, status_id, repo_owner, repo_name, note, order, meta, created_at, updated_at',
+        'id, board_id, status_id, repo_owner, repo_name, order, meta, created_at, updated_at',
       )
 
     if (insertError) {
@@ -189,7 +187,6 @@ export async function addRepositoriesToBoard(
         statusId: card.status_id,
         repoOwner: card.repo_owner,
         repoName: card.repo_name,
-        note: card.note || '',
         order: card.order,
         meta: card.meta as CreatedRepoCard['meta'],
         createdAt: card.created_at ?? new Date().toISOString(),
@@ -257,60 +254,21 @@ export async function checkDuplicateRepository(
 }
 
 /**
- * Update RepoCard quick note
+ * @deprecated Note field has been moved to projectinfo table.
+ * Use upsertProjectInfo from project-info.ts instead.
  *
- * @param cardId - Card ID
- * @param note - New note (max 300 characters)
- * @returns Update success flag
+ * This function is kept temporarily for backwards compatibility
+ * but will be removed in a future release.
  */
 export async function updateRepoCardNote(
-  cardId: string,
-  note: string,
+  _cardId: string,
+  _note: string,
 ): Promise<{ success: boolean; error?: string }> {
-  try {
-    if (note.length > 300) {
-      return {
-        success: false,
-        error: 'Note must be 300 characters or less',
-      }
-    }
-
-    const supabase = await createClient()
-
-    // Get current user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return {
-        success: false,
-        error: 'Authentication required',
-      }
-    }
-
-    // Update card (ownership check is done automatically by RLS policy)
-    const { error: updateError } = await supabase
-      .from('repocard')
-      .update({ note, updated_at: new Date().toISOString() })
-      .eq('id', cardId)
-
-    if (updateError) {
-      log.error({ error: updateError }, 'Update note error')
-      return {
-        success: false,
-        error: 'Failed to update note',
-      }
-    }
-
-    return { success: true }
-  } catch (error) {
-    log.error({ error }, 'Update note error')
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-    }
+  log.warn('updateRepoCardNote is deprecated. Use upsertProjectInfo instead.')
+  return {
+    success: false,
+    error:
+      'This function is deprecated. Note field has been moved to projectinfo table.',
   }
 }
 
@@ -545,7 +503,6 @@ export async function restoreToBoard(
         status_id: statusId,
         repo_owner: maintItem.repo_owner,
         repo_name: maintItem.repo_name,
-        note: maintItem.note || '',
         order: nextOrder,
         meta: {},
       })
@@ -730,13 +687,14 @@ export async function moveToMaintenance(
     }
 
     // Create maintenance entry (without repo_card_id since we'll delete the card)
+    // Note: card.note no longer exists on repocard - notes are in projectinfo
     const { data: maintEntry, error: insertError } = await supabase
       .from('maintenance')
       .insert({
         user_id: user.id,
         repo_owner: card.repo_owner,
         repo_name: card.repo_name,
-        note: card.note || null,
+        note: null, // Notes now stored in projectinfo table
         hidden: false,
       })
       .select('id')

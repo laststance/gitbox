@@ -150,7 +150,6 @@ repocard {
   status_id: uuid,
   repo_owner: string,
   repo_name: string,
-  note: string,
   "order": int,
   meta: jsonb  -- { stars, updated_at, visibility, language, topics[] }
 }
@@ -159,7 +158,8 @@ repocard {
 projectinfo {
   id: uuid,
   repo_card_id: uuid,
-  quick_note: string,
+  note: text,         -- Rich text notes (max 20,000 chars), edited via NoteModal
+  comment: text,      -- Inline comment (max 2,000 chars), displayed on RepoCard
   links: jsonb,       -- { production[], tracking[], supabase[] }
   credentials: jsonb  -- [{ type, name, reference/encrypted_value/location }]
 }

@@ -35,7 +35,6 @@ const createMockCard = (
   boardId: 'board-1',
   repoOwner: 'test',
   repoName: 'repo',
-  note: null,
   order: 0,
   meta: {},
   createdAt: new Date().toISOString(),
@@ -197,8 +196,8 @@ describe('boardSlice', () => {
   describe('updateRepoCardOptimistic action', () => {
     it('should update a single card by ID', () => {
       const existingCards = [
-        createMockCard({ id: 'card-1', note: 'Original note' }),
-        createMockCard({ id: 'card-2', note: null }),
+        createMockCard({ id: 'card-1', order: 0 }),
+        createMockCard({ id: 'card-2', order: 1 }),
       ]
 
       const initialState = {
@@ -215,12 +214,12 @@ describe('boardSlice', () => {
         initialState,
         updateRepoCardOptimistic({
           cardId: 'card-1',
-          updates: { note: 'Updated note' },
+          updates: { order: 5 },
         }),
       )
 
-      expect(nextState.repoCards[0].note).toBe('Updated note')
-      expect(nextState.repoCards[1].note).toBe(null) // Unchanged
+      expect(nextState.repoCards[0].order).toBe(5)
+      expect(nextState.repoCards[1].order).toBe(1) // Unchanged
     })
 
     it('should not modify state for non-existent card ID', () => {
@@ -240,7 +239,7 @@ describe('boardSlice', () => {
         initialState,
         updateRepoCardOptimistic({
           cardId: 'non-existent',
-          updates: { note: 'Updated' },
+          updates: { order: 5 },
         }),
       )
 

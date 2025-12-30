@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
+import type { CardDisplaySettings } from '@/lib/types/board-settings'
 
 import { RepoCard } from './RepoCard'
 
@@ -27,12 +28,18 @@ export const CARD_DRAG_TYPE = 'card'
 interface StatusColumnProps {
   status: StatusListDomain
   cards: RepoCardForRedux[]
+  /** Map of cardId → comment text from projectinfo.comment */
+  comments?: Record<string, string>
+  /** Card display settings from board.settings */
+  cardDisplaySettings?: CardDisplaySettings
   onEdit?: (id: string) => void
   onMaintenance?: (id: string) => void
   /** Callback when Note button is clicked */
   onNote?: (id: string) => void
   /** Callback when repository is removed from board */
   onRemove?: (id: string) => void
+  /** Callback when comment is updated (for optimistic updates) */
+  onCommentChange?: (cardId: string, newComment: string) => void
   onEditStatus?: (status: StatusListDomain) => void
   onDeleteStatus?: (statusId: string) => void
   onAddCard?: (statusId: string) => void
@@ -55,10 +62,13 @@ export const StatusColumn = memo<StatusColumnProps>(
   ({
     status,
     cards,
+    comments,
+    cardDisplaySettings,
     onEdit,
     onMaintenance,
     onNote,
     onRemove,
+    onCommentChange,
     onEditStatus,
     onDeleteStatus,
     onAddCard,
@@ -148,10 +158,14 @@ export const StatusColumn = memo<StatusColumnProps>(
                 >
                   <RepoCard
                     card={card}
+                    comment={comments?.[card.id]}
+                    showComment={cardDisplaySettings?.showComment}
+                    commentStyle={cardDisplaySettings?.commentStyle}
                     onEdit={onEdit}
                     onMaintenance={onMaintenance}
                     onNote={onNote}
                     onRemove={onRemove}
+                    onCommentChange={onCommentChange}
                   />
                 </motion.div>
               ))}

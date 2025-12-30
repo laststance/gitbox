@@ -11,11 +11,26 @@
 
 'use client'
 
-import { Check, Moon, Palette, Settings, Sun, Trash2 } from 'lucide-react'
+import {
+  Check,
+  CreditCard,
+  Moon,
+  Palette,
+  Settings,
+  Sun,
+  Trash2,
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { memo, useActionState, useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
+import {
+  COMMENT_BORDER_COLORS,
+  COMMENT_BG_COLORS,
+  COMMENT_FONT_SIZES,
+  COMMENT_FONT_WEIGHTS,
+  type CommentStyleSettings,
+} from '@/components/Board/CommentDisplay'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -35,12 +50,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import {
   deleteBoardAction,
   renameBoardAction,
+  updateBoardSettingsAction,
   updateBoardThemeAction,
   type DeleteBoardState,
   type RenameBoardState,
+  type UpdateBoardSettingsState,
   type UpdateBoardThemeState,
 } from '@/lib/actions/board'
 import {
@@ -50,10 +69,15 @@ import {
   THEME_METADATA,
 } from '@/lib/constants/themes'
 import { applyTheme } from '@/lib/theme'
+import {
+  type CardDisplaySettings,
+  DEFAULT_CARD_DISPLAY_SETTINGS,
+  parseBoardSettings,
+} from '@/lib/types/board-settings'
 import { BOARD_NAME_MAX_LENGTH } from '@/lib/validations/board'
 
 /** Tab navigation options */
-type SettingsTab = 'general' | 'theme' | 'danger'
+type SettingsTab = 'general' | 'theme' | 'card-display' | 'danger'
 
 interface BoardSettingsDialogProps {
   /** Whether the dialog is open */
@@ -66,10 +90,14 @@ interface BoardSettingsDialogProps {
   boardName: string
   /** Current board theme (null for app default) */
   currentTheme?: string | null
+  /** Current board settings (from board.settings JSON column) */
+  boardSettings?: unknown
   /** Callback when rename succeeds (for optimistic update) */
   onRenameSuccess: (newName: string) => void
   /** Callback when theme changes (for optimistic update) */
   onThemeChange: (newTheme: string) => void
+  /** Callback when card display settings change */
+  onCardDisplayChange?: (settings: CardDisplaySettings) => void
   /** Callback when delete succeeds (for navigation) */
   onDeleteSuccess: () => void
 }
@@ -94,7 +122,43 @@ const THEME_BUTTON_UNSELECTED =
 
 const initialRenameState: RenameBoardState = {}
 const initialThemeState: UpdateBoardThemeState = {}
+const initialSettingsState: UpdateBoardSettingsState = {}
 const initialDeleteState: DeleteBoardState = {}
+
+/** Border color display names */
+const BORDER_COLOR_LABELS: Record<keyof typeof COMMENT_BORDER_COLORS, string> =
+  {
+    primary: 'Primary',
+    blue: 'Blue',
+    green: 'Green',
+    amber: 'Amber',
+    purple: 'Purple',
+    rose: 'Rose',
+    cyan: 'Cyan',
+    neutral: 'Neutral',
+  }
+
+/** Background color display names */
+const BG_COLOR_LABELS: Record<keyof typeof COMMENT_BG_COLORS, string> = {
+  subtle: 'Subtle',
+  light: 'Light',
+  tinted: 'Tinted',
+  none: 'None',
+}
+
+/** Font size display names */
+const FONT_SIZE_LABELS: Record<keyof typeof COMMENT_FONT_SIZES, string> = {
+  sm: 'Small',
+  base: 'Medium',
+  lg: 'Large',
+}
+
+/** Font weight display names */
+const FONT_WEIGHT_LABELS: Record<keyof typeof COMMENT_FONT_WEIGHTS, string> = {
+  normal: 'Normal',
+  medium: 'Medium',
+  semibold: 'Bold',
+}
 
 /**
  * Board Settings Dialog
@@ -120,8 +184,10 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
   boardId,
   boardName,
   currentTheme,
+  boardSettings,
   onRenameSuccess,
   onThemeChange,
+  onCardDisplayChange,
   onDeleteSuccess,
 }: BoardSettingsDialogProps) {
   const router = useRouter()
@@ -162,6 +228,24 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
     setSelectedTheme(currentTheme || 'default')
   }
 
+  // Card display settings state
+  const [settingsState, settingsFormAction, isSettingsPending] = useActionState(
+    updateBoardSettingsAction,
+    initialSettingsState,
+  )
+  const parsedSettings = parseBoardSettings(boardSettings)
+  const [cardDisplay, setCardDisplay] = useState<CardDisplaySettings>(
+    parsedSettings.cardDisplay ?? DEFAULT_CARD_DISPLAY_SETTINGS,
+  )
+  const [lastBoardSettings, setLastBoardSettings] = useState(boardSettings)
+
+  // Sync card display from props
+  if (boardSettings !== lastBoardSettings) {
+    setLastBoardSettings(boardSettings)
+    const newParsed = parseBoardSettings(boardSettings)
+    setCardDisplay(newParsed.cardDisplay ?? DEFAULT_CARD_DISPLAY_SETTINGS)
+  }
+
   // Delete form state
   const [deleteState, deleteFormAction, isDeletePending] = useActionState(
     deleteBoardAction,
@@ -191,6 +275,23 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
       })
     }
   }, [themeState.success, themeState.newTheme, themeState.error, onThemeChange])
+
+  // Handle card display settings success
+  useEffect(() => {
+    if (settingsState.success) {
+      toast.success('Card display settings updated')
+      onCardDisplayChange?.(cardDisplay)
+    } else if (settingsState.error) {
+      toast.error('Failed to update settings', {
+        description: settingsState.error,
+      })
+    }
+  }, [
+    settingsState.success,
+    settingsState.error,
+    cardDisplay,
+    onCardDisplayChange,
+  ])
 
   // Handle delete success - navigate away
   useEffect(() => {
@@ -230,6 +331,35 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
     setSelectedTheme(theme)
     // Apply theme immediately for visual feedback
     applyTheme(theme as BoardThemeType)
+  }
+
+  /**
+   * Update card display visibility toggle
+   *
+   * @param key - Setting key to update
+   * @param value - New boolean value
+   */
+  function handleVisibilityChange(
+    key: 'showGitHubDescription' | 'showComment',
+    value: boolean,
+  ): void {
+    setCardDisplay((prev) => ({ ...prev, [key]: value }))
+  }
+
+  /**
+   * Update comment style setting
+   *
+   * @param key - Style setting key
+   * @param value - New style value
+   */
+  function handleStyleChange<K extends keyof CommentStyleSettings>(
+    key: K,
+    value: CommentStyleSettings[K],
+  ): void {
+    setCardDisplay((prev) => ({
+      ...prev,
+      commentStyle: { ...prev.commentStyle, [key]: value },
+    }))
   }
 
   /**
@@ -288,6 +418,18 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
             >
               <Palette className="h-4 w-4" />
               Theme
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'card-display'}
+              aria-controls="panel-card-display"
+              onClick={() => setActiveTab('card-display')}
+              className={`${TAB_BASE} ${activeTab === 'card-display' ? TAB_ACTIVE : TAB_INACTIVE}`}
+              data-testid="tab-card-display"
+            >
+              <CreditCard className="h-4 w-4" />
+              Cards
             </button>
             <button
               type="button"
@@ -472,6 +614,239 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
               </div>
             )}
 
+            {/* Card Display Tab: Visibility & Style Settings */}
+            {activeTab === 'card-display' && (
+              <div
+                id="panel-card-display"
+                role="tabpanel"
+                aria-labelledby="tab-card-display"
+                className="space-y-6"
+                data-testid="panel-card-display"
+              >
+                <div>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    Customize how cards appear on this board. Control which
+                    elements are visible and how comments are styled.
+                  </p>
+                </div>
+
+                {/* Visibility Toggles */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-semibold">Card Visibility</h4>
+
+                  {/* Show GitHub Description */}
+                  <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <Label
+                        htmlFor="show-description"
+                        className="text-sm font-medium"
+                      >
+                        GitHub Description
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Display repository description on cards
+                      </p>
+                    </div>
+                    <Switch
+                      id="show-description"
+                      checked={cardDisplay.showGitHubDescription}
+                      onCheckedChange={(checked: boolean) =>
+                        handleVisibilityChange('showGitHubDescription', checked)
+                      }
+                      data-testid="toggle-github-description"
+                    />
+                  </div>
+
+                  {/* Show Comment */}
+                  <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <Label
+                        htmlFor="show-comment"
+                        className="text-sm font-medium"
+                      >
+                        Inline Comment
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Display comment section on cards
+                      </p>
+                    </div>
+                    <Switch
+                      id="show-comment"
+                      checked={cardDisplay.showComment}
+                      onCheckedChange={(checked: boolean) =>
+                        handleVisibilityChange('showComment', checked)
+                      }
+                      data-testid="toggle-comment"
+                    />
+                  </div>
+                </div>
+
+                {/* Comment Style Options (only show when comments are enabled) */}
+                {cardDisplay.showComment && (
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold">Comment Style</h4>
+
+                    {/* Border Color */}
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">
+                        Border Color
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        {(
+                          Object.keys(
+                            COMMENT_BORDER_COLORS,
+                          ) as (keyof typeof COMMENT_BORDER_COLORS)[]
+                        ).map((color) => {
+                          const isSelected =
+                            cardDisplay.commentStyle.borderColor === color
+                          return (
+                            <button
+                              key={color}
+                              type="button"
+                              onClick={() =>
+                                handleStyleChange('borderColor', color)
+                              }
+                              className={`rounded-md border-2 px-3 py-1.5 text-xs font-medium transition-all ${
+                                isSelected
+                                  ? 'border-primary bg-primary/10 text-primary'
+                                  : 'border-border hover:border-primary/50'
+                              }`}
+                              aria-pressed={isSelected}
+                              data-testid={`border-color-${color}`}
+                            >
+                              {BORDER_COLOR_LABELS[color]}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Background Color */}
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">
+                        Background
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        {(
+                          Object.keys(
+                            COMMENT_BG_COLORS,
+                          ) as (keyof typeof COMMENT_BG_COLORS)[]
+                        ).map((bg) => {
+                          const isSelected =
+                            cardDisplay.commentStyle.backgroundColor === bg
+                          return (
+                            <button
+                              key={bg}
+                              type="button"
+                              onClick={() =>
+                                handleStyleChange('backgroundColor', bg)
+                              }
+                              className={`rounded-md border-2 px-3 py-1.5 text-xs font-medium transition-all ${
+                                isSelected
+                                  ? 'border-primary bg-primary/10 text-primary'
+                                  : 'border-border hover:border-primary/50'
+                              }`}
+                              aria-pressed={isSelected}
+                              data-testid={`bg-color-${bg}`}
+                            >
+                              {BG_COLOR_LABELS[bg]}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Font Size */}
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">
+                        Font Size
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        {(
+                          Object.keys(
+                            COMMENT_FONT_SIZES,
+                          ) as (keyof typeof COMMENT_FONT_SIZES)[]
+                        ).map((size) => {
+                          const isSelected =
+                            cardDisplay.commentStyle.fontSize === size
+                          return (
+                            <button
+                              key={size}
+                              type="button"
+                              onClick={() =>
+                                handleStyleChange('fontSize', size)
+                              }
+                              className={`rounded-md border-2 px-3 py-1.5 text-xs font-medium transition-all ${
+                                isSelected
+                                  ? 'border-primary bg-primary/10 text-primary'
+                                  : 'border-border hover:border-primary/50'
+                              }`}
+                              aria-pressed={isSelected}
+                              data-testid={`font-size-${size}`}
+                            >
+                              {FONT_SIZE_LABELS[size]}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Font Weight */}
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">
+                        Font Weight
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        {(
+                          Object.keys(
+                            COMMENT_FONT_WEIGHTS,
+                          ) as (keyof typeof COMMENT_FONT_WEIGHTS)[]
+                        ).map((weight) => {
+                          const isSelected =
+                            cardDisplay.commentStyle.fontWeight === weight
+                          return (
+                            <button
+                              key={weight}
+                              type="button"
+                              onClick={() =>
+                                handleStyleChange('fontWeight', weight)
+                              }
+                              className={`rounded-md border-2 px-3 py-1.5 text-xs font-medium transition-all ${
+                                isSelected
+                                  ? 'border-primary bg-primary/10 text-primary'
+                                  : 'border-border hover:border-primary/50'
+                              }`}
+                              aria-pressed={isSelected}
+                              data-testid={`font-weight-${weight}`}
+                            >
+                              {FONT_WEIGHT_LABELS[weight]}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Save Settings Form */}
+                <form action={settingsFormAction} className="pt-2">
+                  <input type="hidden" name="boardId" value={boardId} />
+                  <input
+                    type="hidden"
+                    name="settings"
+                    value={JSON.stringify({ cardDisplay })}
+                  />
+                  <Button
+                    type="submit"
+                    disabled={isSettingsPending}
+                    data-testid="save-card-display-settings"
+                  >
+                    {isSettingsPending ? 'Saving...' : 'Save Settings'}
+                  </Button>
+                </form>
+              </div>
+            )}
+
             {/* Danger Zone Tab: Delete */}
             {activeTab === 'danger' && (
               <div
@@ -506,7 +881,12 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
               type="button"
               variant="outline"
               onClick={handleClose}
-              disabled={isRenamePending || isThemePending || isDeletePending}
+              disabled={
+                isRenamePending ||
+                isThemePending ||
+                isSettingsPending ||
+                isDeletePending
+              }
             >
               Close
             </Button>

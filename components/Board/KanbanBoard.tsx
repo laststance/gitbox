@@ -37,6 +37,7 @@ import {
   swapStatusListPositions,
   batchUpdateStatusListPositions,
 } from '@/lib/actions/board'
+import { getCommentsForCards, updateComment } from '@/lib/actions/project-info'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import {
   setStatusLists,
@@ -49,6 +50,7 @@ import {
   selectBoardError,
 } from '@/lib/redux/slices/boardSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
+import type { CardDisplaySettings } from '@/lib/types/board-settings'
 
 import { ColumnInsertZone, COLUMN_INSERT_DROP_TYPE } from './ColumnInsertZone'
 import { NewRowDropZone, NEW_ROW_DROP_TYPE } from './NewRowDropZone'
@@ -89,6 +91,8 @@ const forgivingCollisionDetection: CollisionDetection = (args) => {
 
 interface KanbanBoardProps {
   boardId?: string
+  /** Card display settings from board.settings JSON */
+  cardDisplaySettings?: CardDisplaySettings
   onEditProjectInfo?: (cardId: string) => void
   onMoveToMaintenance?: (cardId: string) => void
   /** Callback when Note button is clicked on a card */
@@ -160,6 +164,7 @@ ErrorState.displayName = 'ErrorState'
 export const KanbanBoard = memo<KanbanBoardProps>(
   ({
     boardId = 'default-board',
+    cardDisplaySettings,
     onEditProjectInfo,
     onMoveToMaintenance,
     onNote,
@@ -180,6 +185,8 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     const [activeDragType, setActiveDragType] = useState<DragType>(null)
     // History stack for undo functionality (max 10 entries)
     const [history, setHistory] = useState<RepoCardForRedux[][]>([])
+    // Comments map: cardId → comment text (from projectinfo.comment)
+    const [comments, setComments] = useState<Record<string, string>>({})
 
     // Hydration-safe mounting state: prevents SSR/CSR mismatch for dynamic grid styles
     const [isMounted, setIsMounted] = useState(false)
@@ -276,6 +283,13 @@ export const KanbanBoard = memo<KanbanBoardProps>(
 
           dispatch(setStatusLists(statusLists))
           dispatch(setRepoCards(repoCards))
+
+          // Fetch comments for all cards (Phase 3: Comment Display)
+          if (repoCards.length > 0) {
+            const cardIds = repoCards.map((card) => card.id)
+            const commentsMap = await getCommentsForCards(cardIds)
+            setComments(commentsMap)
+          }
         } catch (err) {
           Sentry.captureException(err, { tags: { action: 'fetchBoardData' } })
           dispatch(setError('Failed to fetch board data. Please try again.'))
@@ -284,8 +298,38 @@ export const KanbanBoard = memo<KanbanBoardProps>(
         }
       }
 
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state -- Comments are fetched async, not derived from other state
       fetchData()
     }, [boardId, dispatch])
+
+    /**
+     * Handle comment change from inline edit
+     * Performs optimistic update and persists to database
+     *
+     * @param cardId - The repo card ID
+     * @param newComment - The new comment text
+     */
+    const handleCommentChange = useCallback(
+      async (cardId: string, newComment: string) => {
+        // Optimistic update: Update local state immediately
+        setComments((prev) => ({
+          ...prev,
+          [cardId]: newComment,
+        }))
+
+        // Persist to database
+        try {
+          await updateComment(cardId, newComment)
+        } catch (error) {
+          // Revert on error
+          Sentry.captureException(error, {
+            extra: { context: 'Update comment', cardId },
+          })
+          // Could implement rollback here if needed
+        }
+      },
+      [],
+    )
 
     /**
      * Undo functionality: Reverts the last drag & drop operation
@@ -711,10 +755,13 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                     key={status.id}
                     status={status}
                     cards={cards.filter((c) => c.statusId === status.id)}
+                    comments={comments}
+                    cardDisplaySettings={cardDisplaySettings}
                     onEdit={onEditProjectInfo}
                     onMaintenance={onMoveToMaintenance}
                     onNote={onNote}
                     onRemove={onRemove}
+                    onCommentChange={handleCommentChange}
                     onEditStatus={onEditStatus}
                     onDeleteStatus={onDeleteStatus}
                     onAddCard={onAddCard}

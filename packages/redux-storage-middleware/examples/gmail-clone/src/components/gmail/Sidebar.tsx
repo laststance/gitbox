@@ -5,6 +5,9 @@
  *
  * Provides navigation between email labels with unread/starred counts.
  * Features a compose button and scrollable label list.
+ *
+ * Layout: Uses flex-based positioning (NOT fixed) to properly integrate
+ * with the main layout flow and avoid overlap issues.
  */
 
 import { memo, useCallback } from 'react'
@@ -59,7 +62,7 @@ function Sidebar() {
   }, [])
 
   return (
-    <aside className="w-64 h-screen border-r bg-background flex flex-col fixed left-0 top-0">
+    <aside className="w-64 shrink-0 border-r bg-background flex flex-col h-full overflow-hidden">
       {/* Compose Button */}
       <div className="p-4">
         <Button

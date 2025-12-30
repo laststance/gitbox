@@ -3,12 +3,14 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Calendar, Paperclip, StickyNote } from 'lucide-react'
-import React, { memo, useState } from 'react'
+import React, { memo, useCallback, useState } from 'react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 
+import { CommentDisplay, type CommentStyleSettings } from './CommentDisplay'
+import { CommentInlineEdit } from './CommentInlineEdit'
 import { OverflowMenu } from './OverflowMenu'
 
 // Types
@@ -24,6 +26,7 @@ interface RepoCardData {
   tags?: string[]
   dueDate?: string
   attachments?: number
+  /** @deprecated Use comment prop instead */
   comments?: number
   statusId: string
   /** GitHub repository owner */
@@ -34,12 +37,22 @@ interface RepoCardData {
 
 interface RepoCardProps {
   card: RepoCardData
+  /** Inline comment text (from projectinfo.comment) */
+  comment?: string
+  /** Comment display style settings */
+  commentStyle?: Partial<CommentStyleSettings>
+  /** Whether to show the comment section */
+  showComment?: boolean
   onEdit?: (id: string) => void
   onMaintenance?: (id: string) => void
   /** Callback when Note button is clicked */
   onNote?: (id: string) => void
   /** Callback when repository is removed from board */
   onRemove?: (id: string) => void
+  /** Callback when comment area is clicked (for editing) - deprecated, editing is now built-in */
+  onCommentClick?: (id: string) => void
+  /** Callback when comment is updated (for optimistic updates in parent) */
+  onCommentChange?: (id: string, newComment: string) => void
 }
 
 /**
@@ -52,7 +65,18 @@ interface RepoCardProps {
  * - Overflow menu for card actions
  */
 export const RepoCard = memo<RepoCardProps>(
-  ({ card, onEdit, onMaintenance, onNote, onRemove }) => {
+  ({
+    card,
+    comment,
+    commentStyle,
+    showComment = true,
+    onEdit,
+    onMaintenance,
+    onNote,
+    onRemove,
+    onCommentClick,
+    onCommentChange,
+  }) => {
     const {
       attributes,
       listeners,
@@ -63,6 +87,7 @@ export const RepoCard = memo<RepoCardProps>(
     } = useSortable({ id: card.id })
 
     const [menuOpen, setMenuOpen] = useState(false)
+    const [isEditingComment, setIsEditingComment] = useState(false)
 
     /**
      * Handle menu open state changes from OverflowMenu dropdown.
@@ -73,6 +98,35 @@ export const RepoCard = memo<RepoCardProps>(
     const handleMenuOpenChange = (open: boolean) => {
       setMenuOpen(open)
     }
+
+    /**
+     * Handle click on comment area to start editing
+     */
+    const handleCommentClick = useCallback(() => {
+      setIsEditingComment(true)
+      onCommentClick?.(card.id)
+    }, [card.id, onCommentClick])
+
+    /**
+     * Handle saving the comment
+     *
+     * @param newComment - The new comment value
+     */
+    const handleCommentSave = useCallback(
+      async (newComment: string) => {
+        // Optimistic update - notify parent immediately
+        onCommentChange?.(card.id, newComment)
+        setIsEditingComment(false)
+      },
+      [card.id, onCommentChange],
+    )
+
+    /**
+     * Handle cancelling comment edit
+     */
+    const handleCommentCancel = useCallback(() => {
+      setIsEditingComment(false)
+    }, [])
 
     const style = {
       transform: CSS.Transform.toString(transform),
@@ -157,6 +211,25 @@ export const RepoCard = memo<RepoCardProps>(
                   ))}
                 </div>
               )}
+
+              {/* Inline Comment (Card-in-Card style) */}
+              {showComment &&
+                (isEditingComment ? (
+                  <CommentInlineEdit
+                    initialValue={comment ?? ''}
+                    onSave={handleCommentSave}
+                    onCancel={handleCommentCancel}
+                    style={commentStyle}
+                    enableAutoSave={true}
+                  />
+                ) : (
+                  <CommentDisplay
+                    comment={comment}
+                    onClick={handleCommentClick}
+                    style={commentStyle}
+                    showEmptyState={true}
+                  />
+                ))}
 
               <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center gap-3 text-muted-foreground">

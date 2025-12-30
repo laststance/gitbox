@@ -15,7 +15,8 @@ test.describe('Board Favorites Feature', () => {
 
   test.beforeEach(async ({ page }) => {
     // Reset MSW mock data to initial state for test isolation
-    await page.request.post('http://localhost:3008/__msw__/reset')
+    // Use relative path - Playwright will prepend the baseURL
+    await page.request.post('/__msw__/reset')
 
     // Navigate to boards page before each test
     await page.goto('/boards')

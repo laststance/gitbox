@@ -5,6 +5,7 @@ import { CSS } from '@dnd-kit/utilities'
 import React, { memo } from 'react'
 
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
+import type { CardDisplaySettings } from '@/lib/types/board-settings'
 
 import { StatusColumn } from './StatusColumn'
 
@@ -17,11 +18,17 @@ export const COLUMN_DRAG_TYPE = 'column'
 interface SortableColumnProps {
   status: StatusListDomain
   cards: RepoCardForRedux[]
+  /** Map of cardId → comment text from projectinfo.comment */
+  comments?: Record<string, string>
+  /** Card display settings from board.settings */
+  cardDisplaySettings?: CardDisplaySettings
   onEdit?: (id: string) => void
   onMaintenance?: (id: string) => void
   onNote?: (id: string) => void
   /** Callback when repository is removed from board */
   onRemove?: (id: string) => void
+  /** Callback when comment is updated (for optimistic updates) */
+  onCommentChange?: (cardId: string, newComment: string) => void
   onEditStatus?: (status: StatusListDomain) => void
   onDeleteStatus?: (statusId: string) => void
   onAddCard?: (statusId: string) => void
@@ -53,10 +60,13 @@ export const SortableColumn = memo<SortableColumnProps>(
   ({
     status,
     cards,
+    comments,
+    cardDisplaySettings,
     onEdit,
     onMaintenance,
     onNote,
     onRemove,
+    onCommentChange,
     onEditStatus,
     onDeleteStatus,
     onAddCard,
@@ -102,10 +112,13 @@ export const SortableColumn = memo<SortableColumnProps>(
           <StatusColumn
             status={status}
             cards={cards}
+            comments={comments}
+            cardDisplaySettings={cardDisplaySettings}
             onEdit={onEdit}
             onMaintenance={onMaintenance}
             onNote={onNote}
             onRemove={onRemove}
+            onCommentChange={onCommentChange}
             onEditStatus={onEditStatus}
             onDeleteStatus={onDeleteStatus}
             onAddCard={onAddCard}
