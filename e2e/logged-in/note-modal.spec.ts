@@ -147,13 +147,16 @@ test.describe('NoteModal (Authenticated)', () => {
     const saveButton = dialog.getByRole('button', { name: /save/i })
     await saveButton.click()
 
+    // Toast appears optimistically (immediately on save click) before dialog closes
+    // Check for it first since it has 4000ms duration and may disappear during high load
+    const toastMessage = page.getByText(/note saved/i)
+    await expect(toastMessage).toBeVisible({ timeout: 5000 })
+
     // Dialog should close (primary assertion - this is what the test name describes)
     await expect(dialog).not.toBeVisible({ timeout: 5000 })
 
-    // Verify toast notification appears using text content search
-    // Sonner v2 renders toasts in a toaster container, look for success message text
-    const toastMessage = page.getByText(/note saved/i)
-    await expect(toastMessage).toBeVisible({ timeout: 5000 })
+    // Wait for network to settle after save action completes in background
+    await page.waitForLoadState('networkidle')
   })
 
   test('should trigger slash command menu on "/" key', async ({ page }) => {
