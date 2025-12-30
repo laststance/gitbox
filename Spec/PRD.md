@@ -128,9 +128,9 @@ color.success / warning / danger
 
 リスト/テーブル/サイドバーUIのHIG（[Apple Developer](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables)）
 
-### 3.4 NoteModal（リッチテキストノート）
+### 3.4 Project Note（リッチテキストノート）
 
-各RepoカードのNoteボタンから起動可能な、フル機能のWYSIWYGエディタ
+各RepoカードのNoteボタンから起動可能な、フル機能のWYSIWYGエディタ（以下「Project Note」または「NoteModal」）
 
 #### 機能仕様
 
@@ -171,7 +171,7 @@ color.success / warning / danger
 
 #### Sections
 
-1. **Quick note**（1〜3行）
+1. **Comment**（インラインコメント、最大300文字。RepoCard上に表示される簡易メモ。詳細は3.6参照）
 
 2. **Links**
    - **Production URL**（複数可）

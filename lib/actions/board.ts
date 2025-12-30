@@ -964,3 +964,133 @@ export async function createFirstBoardIfNeeded(
 
   return { id: data.id, name: data.name }
 }
+
+// ============================================================================
+// Update Board Settings Action (Phase 5: Card Display Settings)
+// ============================================================================
+
+/**
+ * State for updateBoardSettings action
+ */
+export interface UpdateBoardSettingsState {
+  /** Error message if action failed */
+  error?: string
+  /** Success flag */
+  success?: boolean
+}
+
+/**
+ * Update board settings (card display preferences)
+ *
+ * Merges new settings with existing board.settings JSON column.
+ * Supports partial updates - only provided fields are updated.
+ *
+ * @param _prevState - Previous action state (unused, required by useActionState)
+ * @param formData - Form data containing boardId and settings JSON
+ * @returns
+ * - On success: { success: true }
+ * - On error: { error: string }
+ *
+ * @example
+ * // In component with useActionState
+ * const [state, formAction] = useActionState(updateBoardSettingsAction, {})
+ *
+ * <form action={formAction}>
+ *   <input type="hidden" name="boardId" value={boardId} />
+ *   <input type="hidden" name="settings" value={JSON.stringify(settings)} />
+ *   <button type="submit">Save</button>
+ * </form>
+ */
+export async function updateBoardSettingsAction(
+  _prevState: UpdateBoardSettingsState,
+  formData: FormData,
+): Promise<UpdateBoardSettingsState> {
+  const boardId = formData.get('boardId') as string
+  const settingsJson = formData.get('settings') as string
+
+  if (!boardId) {
+    return { error: 'Board ID is required' }
+  }
+
+  if (!settingsJson) {
+    return { error: 'Settings data is required' }
+  }
+
+  let newSettings: Record<string, unknown>
+  try {
+    newSettings = JSON.parse(settingsJson)
+  } catch {
+    return { error: 'Invalid settings format' }
+  }
+
+  const supabase = await createClient()
+
+  // Get current settings
+  const { data: currentBoard, error: fetchError } = await supabase
+    .from('board')
+    .select('settings')
+    .eq('id', boardId)
+    .single()
+
+  if (fetchError) {
+    Sentry.captureException(fetchError, {
+      extra: { context: 'Fetch board settings', boardId },
+    })
+    return { error: 'Failed to fetch board settings' }
+  }
+
+  // Merge existing settings with new settings (deep merge for cardDisplay)
+  type JsonValue =
+    | string
+    | number
+    | boolean
+    | null
+    | { [key: string]: JsonValue }
+    | JsonValue[]
+  const existingSettings =
+    (currentBoard?.settings as Record<string, JsonValue>) || {}
+  const existingCardDisplay = (existingSettings.cardDisplay ?? {}) as Record<
+    string,
+    JsonValue
+  >
+  const newCardDisplay = (newSettings.cardDisplay ?? {}) as Record<
+    string,
+    JsonValue
+  >
+  const existingCommentStyle = (existingCardDisplay.commentStyle ??
+    {}) as Record<string, JsonValue>
+  const newCommentStyle = (newCardDisplay.commentStyle ?? {}) as Record<
+    string,
+    JsonValue
+  >
+
+  const mergedSettings: Record<string, JsonValue> = {
+    ...existingSettings,
+    cardDisplay: {
+      ...existingCardDisplay,
+      ...newCardDisplay,
+      // Deep merge commentStyle if present
+      commentStyle: {
+        ...existingCommentStyle,
+        ...newCommentStyle,
+      },
+    },
+  }
+
+  // Update settings
+  const { error: updateError } = await supabase
+    .from('board')
+    .update({ settings: mergedSettings as unknown as Record<string, never> })
+    .eq('id', boardId)
+
+  if (updateError) {
+    Sentry.captureException(updateError, {
+      extra: { context: 'Update board settings', boardId },
+    })
+    return { error: 'Failed to update board settings' }
+  }
+
+  revalidatePath(`/board/${boardId}`)
+
+  return { success: true }
+}

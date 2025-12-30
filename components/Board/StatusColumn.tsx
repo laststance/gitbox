@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
+import type { CardDisplaySettings } from '@/lib/types/board-settings'
 
 import { RepoCard } from './RepoCard'
 
@@ -29,6 +30,8 @@ interface StatusColumnProps {
   cards: RepoCardForRedux[]
   /** Map of cardId → comment text from projectinfo.comment */
   comments?: Record<string, string>
+  /** Card display settings from board.settings */
+  cardDisplaySettings?: CardDisplaySettings
   onEdit?: (id: string) => void
   onMaintenance?: (id: string) => void
   /** Callback when Note button is clicked */
@@ -60,6 +63,7 @@ export const StatusColumn = memo<StatusColumnProps>(
     status,
     cards,
     comments,
+    cardDisplaySettings,
     onEdit,
     onMaintenance,
     onNote,
@@ -155,6 +159,8 @@ export const StatusColumn = memo<StatusColumnProps>(
                   <RepoCard
                     card={card}
                     comment={comments?.[card.id]}
+                    showComment={cardDisplaySettings?.showComment}
+                    commentStyle={cardDisplaySettings?.commentStyle}
                     onEdit={onEdit}
                     onMaintenance={onMaintenance}
                     onNote={onNote}
