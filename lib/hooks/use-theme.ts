@@ -9,60 +9,22 @@
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 
+import {
+  type ThemeType,
+  ALL_THEMES,
+  LIGHT_THEMES,
+  DARK_THEMES,
+  isDarkTheme,
+} from '@/lib/constants/themes'
+
+// Re-export types and constants for backward compatibility
+export type { ThemeType }
+export { ALL_THEMES, LIGHT_THEMES, DARK_THEMES, isDarkTheme }
+
 // Helper to detect if we're in a browser environment
 const getSnapshot = () => true
 const getServerSnapshot = () => false
 const subscribe = () => () => {}
-
-export type ThemeType =
-  // Light themes
-  | 'default'
-  | 'sunrise'
-  | 'sandstone'
-  | 'mint'
-  | 'sky'
-  | 'lavender'
-  | 'rose'
-  // Dark themes
-  | 'dark'
-  | 'midnight'
-  | 'graphite'
-  | 'forest'
-  | 'ocean'
-  | 'plum'
-  | 'rust'
-  // Default (no custom theme)
-  | 'system'
-
-export const LIGHT_THEMES: ThemeType[] = [
-  'default',
-  'sunrise',
-  'sandstone',
-  'mint',
-  'sky',
-  'lavender',
-  'rose',
-]
-
-export const DARK_THEMES: ThemeType[] = [
-  'dark',
-  'midnight',
-  'graphite',
-  'forest',
-  'ocean',
-  'plum',
-  'rust',
-]
-
-export const ALL_THEMES: ThemeType[] = [
-  ...LIGHT_THEMES,
-  ...DARK_THEMES,
-  'system',
-]
-
-export function isDarkTheme(theme: ThemeType): boolean {
-  return DARK_THEMES.includes(theme)
-}
 
 const THEME_STORAGE_KEY = 'gitbox-theme'
 

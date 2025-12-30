@@ -10,6 +10,7 @@
 import * as Sentry from '@sentry/nextjs'
 import { revalidatePath } from 'next/cache'
 
+import { VALID_THEME_IDS } from '@/lib/constants/themes'
 import type {
   StatusListDomain,
   RepoCardDomain,
@@ -723,26 +724,6 @@ export async function deleteBoardAction(
 // Board Theme Action (useActionState compatible)
 // ========================================
 
-/** Valid theme names for board customization (14 themes: 7 light + 7 dark) */
-const VALID_THEMES = [
-  // Light themes
-  'default',
-  'sunrise',
-  'sandstone',
-  'mint',
-  'sky',
-  'lavender',
-  'rose',
-  // Dark themes
-  'dark',
-  'midnight',
-  'graphite',
-  'forest',
-  'ocean',
-  'plum',
-  'rust',
-] as const
-
 /**
  * State returned from the update board theme action.
  */
@@ -780,7 +761,7 @@ export async function updateBoardThemeAction(
   const theme = formData.get('theme') as string
 
   // Validate theme is in allowed list
-  if (!VALID_THEMES.includes(theme as (typeof VALID_THEMES)[number])) {
+  if (!VALID_THEME_IDS.includes(theme as (typeof VALID_THEME_IDS)[number])) {
     return { error: 'Invalid theme' }
   }
 

@@ -24,71 +24,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createBoard } from '@/lib/actions/board'
-import { DARK_THEMES, type ThemeType } from '@/lib/hooks/use-theme'
-
-// Theme definitions from PRD
-const THEMES = {
-  light: [
-    {
-      id: 'default',
-      name: 'Default',
-      color: '#fafafa',
-      description: 'Clean neutral',
-      /** Special styling for white circle on white background */
-      needsBorder: true,
-    },
-    {
-      id: 'sunrise',
-      name: 'Sunrise',
-      color: '#f59e0b',
-      description: 'Warm amber tones',
-    },
-    {
-      id: 'sandstone',
-      name: 'Sandstone',
-      color: '#a8a29e',
-      description: 'Earthy neutral',
-    },
-    { id: 'mint', name: 'Mint', color: '#10b981', description: 'Fresh green' },
-    { id: 'sky', name: 'Sky', color: '#0ea5e9', description: 'Calm blue' },
-    {
-      id: 'lavender',
-      name: 'Lavender',
-      color: '#a78bfa',
-      description: 'Soft purple',
-    },
-    { id: 'rose', name: 'Rose', color: '#f43f5e', description: 'Vibrant pink' },
-  ],
-  dark: [
-    {
-      id: 'dark',
-      name: 'Dark',
-      color: '#18181b',
-      description: 'Clean dark',
-    },
-    {
-      id: 'midnight',
-      name: 'Midnight',
-      color: '#1e40af',
-      description: 'Deep blue',
-    },
-    {
-      id: 'graphite',
-      name: 'Graphite',
-      color: '#374151',
-      description: 'Dark gray',
-    },
-    {
-      id: 'forest',
-      name: 'Forest',
-      color: '#166534',
-      description: 'Dark green',
-    },
-    { id: 'ocean', name: 'Ocean', color: '#0c4a6e', description: 'Deep teal' },
-    { id: 'plum', name: 'Plum', color: '#7e22ce', description: 'Rich purple' },
-    { id: 'rust', name: 'Rust', color: '#9a3412', description: 'Dark orange' },
-  ],
-}
+import {
+  LIGHT_THEME_IDS,
+  DARK_THEME_IDS,
+  THEME_METADATA,
+  isDarkTheme,
+  type ThemeId,
+} from '@/lib/constants/themes'
 
 /** Theme button base styles */
 const THEME_BUTTON_BASE =
@@ -134,8 +76,7 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
     root.setAttribute('data-theme', theme)
 
     // Handle dark class for dark themes
-    const isDark = DARK_THEMES.includes(theme as ThemeType)
-    if (isDark) {
+    if (isDarkTheme(theme as ThemeId)) {
       root.classList.add('dark')
     } else {
       root.classList.remove('dark')
@@ -159,9 +100,9 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
   /** Memoized classNames for light theme buttons based on current theme selection */
   const lightThemeClassNames = useMemo(
     () =>
-      THEMES.light.map((t) => ({
-        id: t.id,
-        className: getThemeButtonClassName(theme === t.id),
+      LIGHT_THEME_IDS.map((id) => ({
+        id,
+        className: getThemeButtonClassName(theme === id),
       })),
     [theme],
   )
@@ -169,9 +110,9 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
   /** Memoized classNames for dark theme buttons based on current theme selection */
   const darkThemeClassNames = useMemo(
     () =>
-      THEMES.dark.map((t) => ({
-        id: t.id,
-        className: getThemeButtonClassName(theme === t.id),
+      DARK_THEME_IDS.map((id) => ({
+        id,
+        className: getThemeButtonClassName(theme === id),
       })),
     [theme],
   )
@@ -236,23 +177,26 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
         <div className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground">Light</p>
           <div className="grid grid-cols-3 gap-3">
-            {THEMES.light.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setTheme(t.id)}
-                disabled={isPending}
-                className={
-                  lightThemeClassNames.find((c) => c.id === t.id)?.className
-                }
-              >
-                <div
-                  className={`h-8 w-8 rounded-full shadow-inner ${'needsBorder' in t && t.needsBorder ? 'border border-gray-200 shadow-sm' : ''}`}
-                  style={{ backgroundColor: t.color }}
-                />
-                <span className="text-xs font-medium">{t.name}</span>
-              </button>
-            ))}
+            {LIGHT_THEME_IDS.map((id) => {
+              const meta = THEME_METADATA[id]
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setTheme(id)}
+                  disabled={isPending}
+                  className={
+                    lightThemeClassNames.find((c) => c.id === id)?.className
+                  }
+                >
+                  <div
+                    className={`h-8 w-8 rounded-full shadow-inner ${meta.needsBorder ? 'border border-gray-200 shadow-sm' : ''}`}
+                    style={{ backgroundColor: meta.color }}
+                  />
+                  <span className="text-xs font-medium">{meta.name}</span>
+                </button>
+              )
+            })}
           </div>
         </div>
 
@@ -260,23 +204,26 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
         <div className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground">Dark</p>
           <div className="grid grid-cols-3 gap-3">
-            {THEMES.dark.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setTheme(t.id)}
-                disabled={isPending}
-                className={
-                  darkThemeClassNames.find((c) => c.id === t.id)?.className
-                }
-              >
-                <div
-                  className="h-8 w-8 rounded-full shadow-inner"
-                  style={{ backgroundColor: t.color }}
-                />
-                <span className="text-xs font-medium">{t.name}</span>
-              </button>
-            ))}
+            {DARK_THEME_IDS.map((id) => {
+              const meta = THEME_METADATA[id]
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setTheme(id)}
+                  disabled={isPending}
+                  className={
+                    darkThemeClassNames.find((c) => c.id === id)?.className
+                  }
+                >
+                  <div
+                    className="h-8 w-8 rounded-full shadow-inner"
+                    style={{ backgroundColor: meta.color }}
+                  />
+                  <span className="text-xs font-medium">{meta.name}</span>
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>

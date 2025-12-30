@@ -21,8 +21,13 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import type { ThemeType } from '@/lib/hooks/use-theme'
-import { useTheme, LIGHT_THEMES, DARK_THEMES } from '@/lib/hooks/use-theme'
+import {
+  type ThemeType,
+  LIGHT_THEMES,
+  DARK_THEMES,
+  THEME_INFO,
+} from '@/lib/constants/themes'
+import { useTheme } from '@/lib/hooks/use-theme'
 import {
   selectCompactMode,
   selectShowCardMetadata,
@@ -86,44 +91,6 @@ const THEME_BUTTON_SELECTED =
   'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
 const THEME_BUTTON_UNSELECTED =
   'border-border hover:border-primary/50 hover:bg-muted/50'
-
-const THEME_INFO: Record<
-  ThemeType,
-  { name: string; color: string; description: string; needsBorder?: boolean }
-> = {
-  default: {
-    name: 'Default',
-    color: '#fafafa',
-    description: 'Clean neutral',
-    needsBorder: true,
-  },
-  sunrise: {
-    name: 'Sunrise',
-    color: '#f59e0b',
-    description: 'Warm amber tones',
-  },
-  sandstone: {
-    name: 'Sandstone',
-    color: '#a8a29e',
-    description: 'Earthy neutral',
-  },
-  mint: { name: 'Mint', color: '#10b981', description: 'Fresh green' },
-  sky: { name: 'Sky', color: '#0ea5e9', description: 'Calm blue' },
-  lavender: { name: 'Lavender', color: '#a78bfa', description: 'Soft purple' },
-  rose: { name: 'Rose', color: '#f43f5e', description: 'Vibrant pink' },
-  dark: { name: 'Dark', color: '#18181b', description: 'Clean dark' },
-  midnight: { name: 'Midnight', color: '#1e40af', description: 'Deep blue' },
-  graphite: { name: 'Graphite', color: '#374151', description: 'Dark gray' },
-  forest: { name: 'Forest', color: '#166534', description: 'Dark green' },
-  ocean: { name: 'Ocean', color: '#0c4a6e', description: 'Deep teal' },
-  plum: { name: 'Plum', color: '#7e22ce', description: 'Rich purple' },
-  rust: { name: 'Rust', color: '#9a3412', description: 'Dark orange' },
-  system: {
-    name: 'System',
-    color: '#6b7280',
-    description: 'Follow system preference',
-  },
-}
 
 const ThemeButton = memo(function ThemeButton({
   theme,

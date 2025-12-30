@@ -43,8 +43,12 @@ import {
   type RenameBoardState,
   type UpdateBoardThemeState,
 } from '@/lib/actions/board'
-import type { ThemeType } from '@/lib/hooks/use-theme'
-import { DARK_THEMES, LIGHT_THEMES } from '@/lib/hooks/use-theme'
+import {
+  type ThemeType,
+  LIGHT_THEMES,
+  DARK_THEMES,
+  THEME_METADATA,
+} from '@/lib/constants/themes'
 import { applyTheme } from '@/lib/theme'
 import { BOARD_NAME_MAX_LENGTH } from '@/lib/validations/board'
 
@@ -72,36 +76,6 @@ interface BoardSettingsDialogProps {
 
 /** Board theme type (excludes 'system' which is app-level only) */
 type BoardThemeType = Exclude<ThemeType, 'system'>
-
-/** Theme metadata for display */
-const THEME_INFO: Record<
-  BoardThemeType,
-  { name: string; color: string; description: string; needsBorder?: boolean }
-> = {
-  default: {
-    name: 'Default',
-    color: '#fafafa',
-    description: 'Clean neutral',
-    needsBorder: true,
-  },
-  sunrise: { name: 'Sunrise', color: '#f59e0b', description: 'Warm amber' },
-  sandstone: {
-    name: 'Sandstone',
-    color: '#a8a29e',
-    description: 'Earthy neutral',
-  },
-  mint: { name: 'Mint', color: '#10b981', description: 'Fresh green' },
-  sky: { name: 'Sky', color: '#0ea5e9', description: 'Calm blue' },
-  lavender: { name: 'Lavender', color: '#a78bfa', description: 'Soft purple' },
-  rose: { name: 'Rose', color: '#f43f5e', description: 'Vibrant pink' },
-  dark: { name: 'Dark', color: '#18181b', description: 'Clean dark' },
-  midnight: { name: 'Midnight', color: '#1e40af', description: 'Deep blue' },
-  graphite: { name: 'Graphite', color: '#374151', description: 'Dark gray' },
-  forest: { name: 'Forest', color: '#166534', description: 'Dark green' },
-  ocean: { name: 'Ocean', color: '#0c4a6e', description: 'Deep teal' },
-  plum: { name: 'Plum', color: '#7e22ce', description: 'Rich purple' },
-  rust: { name: 'Rust', color: '#9a3412', description: 'Dark orange' },
-}
 
 /** Tab button styles */
 const TAB_BASE =
@@ -208,7 +182,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
   useEffect(() => {
     if (themeState.success && themeState.newTheme) {
       toast.success('Theme updated', {
-        description: `Board theme set to ${THEME_INFO[themeState.newTheme as keyof typeof THEME_INFO]?.name || themeState.newTheme}.`,
+        description: `Board theme set to ${THEME_METADATA[themeState.newTheme as keyof typeof THEME_METADATA]?.name || themeState.newTheme}.`,
       })
       onThemeChange(themeState.newTheme)
     } else if (themeState.error) {
@@ -418,7 +392,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                   </h4>
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                     {(LIGHT_THEMES as BoardThemeType[]).map((theme) => {
-                      const info = THEME_INFO[theme]
+                      const info = THEME_METADATA[theme]
                       const isSelected = selectedTheme === theme
                       return (
                         <button
@@ -455,7 +429,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                   </h4>
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                     {(DARK_THEMES as BoardThemeType[]).map((theme) => {
-                      const info = THEME_INFO[theme]
+                      const info = THEME_METADATA[theme]
                       const isSelected = selectedTheme === theme
                       return (
                         <button
