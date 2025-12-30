@@ -2,7 +2,15 @@
 
 import * as Sentry from '@sentry/nextjs'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react'
+import {
+  useState,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useMemo,
+  memo,
+  useCallback,
+} from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -177,10 +185,12 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   const [isLoadingRepos, setIsLoadingRepos] = useState(false)
   const [reposError, setReposError] = useState<string | null>(null)
 
-  // Repository fetch function
-  const fetchRepositories = useCallback(async () => {
-    if (!isOpen) return
-
+  /**
+   * Fetch repositories from GitHub API
+   * Uses useEffectEvent to avoid circular dependencies with isOpen
+   * The effect that calls this already guards with `if (isOpen)`
+   */
+  const fetchRepositories = useEffectEvent(async () => {
     setIsLoadingRepos(true)
     setReposError(null)
 
@@ -233,14 +243,14 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     } finally {
       setIsLoadingRepos(false)
     }
-  }, [isOpen, organizations])
+  })
 
   /**
    * Fetch current user and organizations for the Organization Filter
+   * Uses useEffectEvent to avoid circular dependencies with isOpen
+   * The effect that calls this already guards with `if (isOpen)`
    */
-  const fetchOrganizations = useCallback(async () => {
-    if (!isOpen) return
-
+  const fetchOrganizations = useEffectEvent(async () => {
     setIsLoadingOrgs(true)
 
     try {
@@ -262,22 +272,24 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     } finally {
       setIsLoadingOrgs(false)
     }
-  }, [isOpen])
+  })
 
   // Fetch organizations when combobox opens
+  // fetchOrganizations is useEffectEvent - no deps needed for event callbacks
   useEffect(() => {
     if (isOpen) {
       fetchOrganizations()
     }
-  }, [isOpen, fetchOrganizations])
+  }, [isOpen])
 
   // Fetch repositories after organizations are loaded (or if no orgs)
   // This ensures org repos are included in the fetch
+  // fetchRepositories is useEffectEvent - no deps needed for event callbacks
   useEffect(() => {
     if (isOpen && !isLoadingOrgs) {
       fetchRepositories()
     }
-  }, [isOpen, isLoadingOrgs, fetchRepositories])
+  }, [isOpen, isLoadingOrgs])
 
   // Debounce search query (300ms)
   useEffect(() => {

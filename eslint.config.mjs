@@ -242,6 +242,7 @@ export default defineConfig([
   },
 
   // Combobox/Dialog patterns - useEffect for data fetching on open is intentional
+  // AddRepositoryCombobox uses useEffectEvent for data fetching separation (Phase 2)
   {
     files: [
       'components/Board/AddRepositoryCombobox.tsx',
@@ -251,6 +252,8 @@ export default defineConfig([
       // Data fetching when dialog opens is a valid pattern
       'react-you-might-not-need-an-effect/no-event-handler': 'off',
       'react-you-might-not-need-an-effect/no-derived-state': 'off',
+      // Chain pattern: fetch orgs first, then repos (intentional dependency)
+      'react-you-might-not-need-an-effect/no-chain-state-updates': 'off',
     },
   },
 
