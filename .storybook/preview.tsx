@@ -5,7 +5,7 @@ import { initialize, mswLoader } from 'msw-storybook-addon'
 
 import { Provider as ReduxStoreProvider } from 'react-redux'
 import { store } from '../lib/redux/store'
-import { handlers } from '../mocks/handlers'
+import { handlers } from '../mocks/handlers/index'
 import '../styles/globals.css'
 
 // Import theme CSS files
