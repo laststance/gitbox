@@ -220,6 +220,67 @@ color.success / warning / danger
 - "Reveal"ボタンで一時表示（**30秒後に自動マスク**）
 - コピー機能使用時は監査ログに記録
 
+### 3.6 Comment on RepoCard（インラインコメント）
+
+RepoカードにフリーテキストのステータスコメントをCard-in-Cardスタイルで表示
+
+#### 機能仕様
+
+- **インライン表示**: RepoCard上に直接コメントを表示（モーダル不要）
+- **Card-in-Card UI**: 左ボーダーアクセント + 背景色で視覚的に区別
+- **フルテキスト表示**: Truncateなし、コンテンツ量に応じてカード高さが拡張
+- **インライン編集**: クリックで直接編集、300文字制限
+- **スタイルカスタマイズ**: フォントサイズ/Bold/ボーダー色/背景色を設定可能
+
+#### UIワイヤーフレーム
+
+```
+┌─────────────────────────────────────────┐
+│ laststance/redux-vanilla            ⋯  │
+│                                         │
+│ [Unmaintained] 🍵 Zero Abstraction...  │  ← GitHub desc (optional)
+│                                         │
+│ ┌─────────────────────────────────────┐ │
+│ │ 💬 npmリリース完了、当分は機能追加   │ │  ← Comment
+│ │    予定なし                         │ │     Card-in-Card
+│ │                            ✏️       │ │
+│ └─────────────────────────────────────┘ │
+│                                         │
+│ 📄 Note                                 │
+└─────────────────────────────────────────┘
+```
+
+#### Board Settings
+
+```typescript
+interface BoardSettings {
+  cardDisplay?: {
+    showGitHubDescription: boolean // default: true
+    showComment: boolean // default: true
+    commentStyle: {
+      fontSize: 'sm' | 'base' | 'lg' // default: 'sm'
+      bold: boolean // default: false
+      borderColor: string // default: 'primary'
+      backgroundColor: string // default: 'muted/30'
+    }
+  }
+}
+```
+
+#### データモデル
+
+| Column                | Type | Limit     | Description        |
+| --------------------- | ---- | --------- | ------------------ |
+| `projectinfo.comment` | TEXT | 300 chars | インラインコメント |
+
+#### 受け入れ基準
+
+- コメントがRepoCard上に表示される
+- 全文表示（truncateなし）
+- Board Settingsで表示/非表示切り替え可能
+- インライン編集で即時保存
+- 空の場合は「+ Add comment」プレースホルダー表示
+
 ---
 
 ## 4) インタラクション仕様
