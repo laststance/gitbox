@@ -110,9 +110,6 @@ jobs:
 
       - name: Merge coverage reports
         run: |
-          # Install nyc for merging coverage
-          pnpm add -D nyc
-
           # Create directory for merged coverage
           mkdir -p coverage-e2e/coverage
 
