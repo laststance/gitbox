@@ -13,7 +13,12 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import React, { useState, useEffect, useMemo } from 'react'
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useSyncExternalStore,
+} from 'react'
 
 /**
  * Utility function to join class names, filtering out falsy values.
@@ -885,14 +890,46 @@ const FEATURE_SUBTITLES = [
   'Build more than ever. Lose track of nothing.',
 ] as const
 
-const FeaturesSection = () => {
-  // SSR-safe: Start with first subtitle, randomize on client
-  const [subtitleIndex, setSubtitleIndex] = useState(0)
+/**
+ * Module-level cache for random subtitle index.
+ * Initialized once on first client render and remains stable.
+ */
+let clientSubtitleIndex: number | null = null
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSubtitleIndex(Math.floor(Math.random() * FEATURE_SUBTITLES.length))
-  }, [])
+/**
+ * Get client snapshot for subtitle index.
+ * Initializes random value on first call, returns cached value on subsequent calls.
+ * @returns Random subtitle index (0 to FEATURE_SUBTITLES.length - 1)
+ */
+const getClientSubtitleSnapshot = () => {
+  if (clientSubtitleIndex === null) {
+    clientSubtitleIndex = Math.floor(Math.random() * FEATURE_SUBTITLES.length)
+  }
+  return clientSubtitleIndex
+}
+
+/**
+ * Server snapshot for subtitle index.
+ * Returns 0 for consistent SSR output.
+ * @returns 0 (first subtitle)
+ */
+const getServerSubtitleSnapshot = () => 0
+
+/**
+ * Empty subscribe function for useSyncExternalStore.
+ * @returns Cleanup function (no-op)
+ */
+const emptySubtitleSubscribe = () => () => {}
+
+const FeaturesSection = () => {
+  // SSR-safe random subtitle using useSyncExternalStore
+  // Server: Returns 0 (first subtitle)
+  // Client: Returns random index (cached after first render)
+  const subtitleIndex = useSyncExternalStore(
+    emptySubtitleSubscribe,
+    getClientSubtitleSnapshot,
+    getServerSubtitleSnapshot,
+  )
 
   const features = [
     {

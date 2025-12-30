@@ -30,6 +30,7 @@ import React, { useState, useEffect, memo, useCallback, useMemo } from 'react'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useMounted } from '@/hooks/use-mounted'
 import {
   getBoardData,
   updateRepoCardPosition,
@@ -189,10 +190,8 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     const [comments, setComments] = useState<Record<string, string>>({})
 
     // Hydration-safe mounting state: prevents SSR/CSR mismatch for dynamic grid styles
-    const [isMounted, setIsMounted] = useState(false)
-    useEffect(() => {
-      setIsMounted(true)
-    }, [])
+    // Uses useSyncExternalStore-based hook for proper SSR support
+    const isMounted = useMounted()
     const [columnHistory, setColumnHistory] = useState<StatusListDomain[][]>([])
     const [undoMessage, setUndoMessage] = useState<string | null>(null)
 

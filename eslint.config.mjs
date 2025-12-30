@@ -214,19 +214,12 @@ export default defineConfig([
     },
   },
 
-  // SSR hydration hooks - useMounted pattern is intentional for SSR safety
-  {
-    files: [
-      'hooks/use-mounted.ts',
-      // KanbanBoard.tsx uses isMounted pattern for SSR-safe grid styles
-      'components/Board/KanbanBoard.tsx',
-      // FeaturesSection uses random subtitle selection that must be client-side only
-      'app/page.tsx',
-    ],
-    rules: {
-      'react-you-might-not-need-an-effect/no-initialize-state': 'off',
-    },
-  },
+  // SSR hydration hooks - PHASE 1 COMPLETE (2025-12-31)
+  // The following files were refactored to use useSyncExternalStore pattern:
+  // - hooks/use-mounted.ts → useSyncExternalStore (server: false, client: true)
+  // - components/Board/KanbanBoard.tsx → uses useMounted() hook
+  // - app/page.tsx FeaturesSection → useSyncExternalStore for random subtitle
+  // The no-initialize-state rule is now ENABLED for these files to enforce the pattern.
 
   // KanbanBoard data fetching pattern - fetch on mount with dispatch is intentional
   {
