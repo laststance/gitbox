@@ -50,6 +50,15 @@ export default defineConfig([
           caughtErrorsIgnorePattern: '^_',
         },
       ],
+      // Ban global fetch - use axios instead for MSW compatibility
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'fetch',
+          message:
+            'Use axios instead of fetch for MSW compatibility. Import from lib/axios.ts.',
+        },
+      ],
     },
   },
   globalIgnores([
