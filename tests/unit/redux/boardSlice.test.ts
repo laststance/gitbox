@@ -15,6 +15,9 @@ import boardSlice, {
   addRepoCards,
   updateRepoCardOptimistic,
   selectRepoCards,
+  setActiveBoard,
+  clearBoard,
+  selectActiveBoard,
 } from '@/lib/redux/slices/boardSlice'
 
 /**
@@ -321,6 +324,198 @@ describe('boardSlice', () => {
       const nextState = boardSlice(initialState, addRepoCards([newCard]))
 
       expect(nextState.repoCards.map((c) => c.order)).toEqual([0, 1, 2])
+    })
+  })
+
+  describe('setActiveBoard action', () => {
+    /**
+     * Helper to create a mock board object
+     */
+    const createMockBoard = (overrides = {}) => ({
+      id: 'board-1',
+      name: 'Test Board',
+      theme: null,
+      settings: null,
+      user_id: 'user-1',
+      is_favorite: false,
+      created_at: '2024-01-01T00:00:00.000Z',
+      updated_at: '2024-01-01T00:00:00.000Z',
+      ...overrides,
+    })
+
+    it('should set activeBoard from null', () => {
+      const initialState = {
+        activeBoard: null,
+        statusLists: [],
+        repoCards: [],
+        loading: false,
+        error: null,
+        lastDragOperation: null,
+        undoHistory: [],
+      }
+
+      const board = createMockBoard()
+      const nextState = boardSlice(initialState, setActiveBoard(board))
+
+      expect(nextState.activeBoard).not.toBeNull()
+      expect(nextState.activeBoard?.id).toBe('board-1')
+      expect(nextState.activeBoard?.name).toBe('Test Board')
+    })
+
+    it('should update activeBoard when already set', () => {
+      const existingBoard = createMockBoard({
+        id: 'old-board',
+        name: 'Old Board',
+      })
+      const initialState = {
+        activeBoard: existingBoard,
+        statusLists: [],
+        repoCards: [],
+        loading: false,
+        error: null,
+        lastDragOperation: null,
+        undoHistory: [],
+      }
+
+      const newBoard = createMockBoard({ id: 'new-board', name: 'New Board' })
+      const nextState = boardSlice(initialState, setActiveBoard(newBoard))
+
+      expect(nextState.activeBoard?.id).toBe('new-board')
+      expect(nextState.activeBoard?.name).toBe('New Board')
+    })
+
+    it('should clear activeBoard when set to null', () => {
+      const existingBoard = createMockBoard()
+      const initialState = {
+        activeBoard: existingBoard,
+        statusLists: [],
+        repoCards: [],
+        loading: false,
+        error: null,
+        lastDragOperation: null,
+        undoHistory: [],
+      }
+
+      const nextState = boardSlice(initialState, setActiveBoard(null))
+
+      expect(nextState.activeBoard).toBeNull()
+    })
+
+    it('should preserve board properties including theme', () => {
+      const initialState = {
+        activeBoard: null,
+        statusLists: [],
+        repoCards: [],
+        loading: false,
+        error: null,
+        lastDragOperation: null,
+        undoHistory: [],
+      }
+
+      const board = createMockBoard({
+        theme: 'dark-green',
+        is_favorite: true,
+      })
+      const nextState = boardSlice(initialState, setActiveBoard(board))
+
+      expect(nextState.activeBoard?.theme).toBe('dark-green')
+      expect(nextState.activeBoard?.is_favorite).toBe(true)
+    })
+  })
+
+  describe('selectActiveBoard selector', () => {
+    it('should return activeBoard from state', () => {
+      const board = {
+        id: 'board-1',
+        name: 'Test Board',
+        theme: null,
+        settings: null,
+        user_id: 'user-1',
+        is_favorite: false,
+        created_at: '2024-01-01T00:00:00.000Z',
+        updated_at: '2024-01-01T00:00:00.000Z',
+      }
+
+      const state = {
+        board: {
+          activeBoard: board,
+          statusLists: [],
+          repoCards: [],
+          loading: false,
+          error: null,
+          lastDragOperation: null,
+          undoHistory: [],
+        },
+      }
+
+      expect(selectActiveBoard(state)).toEqual(board)
+    })
+
+    it('should return null when no activeBoard is set', () => {
+      const state = {
+        board: {
+          activeBoard: null,
+          statusLists: [],
+          repoCards: [],
+          loading: false,
+          error: null,
+          lastDragOperation: null,
+          undoHistory: [],
+        },
+      }
+
+      expect(selectActiveBoard(state)).toBeNull()
+    })
+  })
+
+  describe('clearBoard action', () => {
+    it('should reset all board state to initial values', () => {
+      const initialState = {
+        activeBoard: {
+          id: 'board-1',
+          name: 'Test Board',
+          theme: 'dark',
+          settings: { layout: 'grid' },
+          user_id: 'user-1',
+          is_favorite: true,
+          created_at: '2024-01-01T00:00:00.000Z',
+          updated_at: '2024-01-01T00:00:00.000Z',
+        },
+        statusLists: [
+          {
+            id: 'status-1',
+            title: 'Todo',
+            color: '#fff',
+            gridRow: 0,
+            gridCol: 0,
+            boardId: 'board-1',
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
+        ],
+        repoCards: [createMockCard({ id: 'card-1' })],
+        loading: true,
+        error: 'Some error',
+        lastDragOperation: {
+          cardId: 'card-1',
+          fromStatusId: 'status-1',
+          toStatusId: 'status-2',
+          fromOrder: 0,
+          toOrder: 1,
+          timestamp: Date.now(),
+        },
+        undoHistory: [],
+      }
+
+      const nextState = boardSlice(initialState, clearBoard())
+
+      expect(nextState.activeBoard).toBeNull()
+      expect(nextState.statusLists).toEqual([])
+      expect(nextState.repoCards).toEqual([])
+      expect(nextState.loading).toBe(false)
+      expect(nextState.error).toBeNull()
+      expect(nextState.lastDragOperation).toBeNull()
+      expect(nextState.undoHistory).toEqual([])
     })
   })
 })

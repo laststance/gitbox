@@ -23,16 +23,37 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+/**
+ * Create a mock board object for Storybook
+ */
+const createMockBoard = (
+  overrides?: Partial<{
+    id: string
+    name: string
+    theme: string | null
+  }>,
+) => ({
+  id: overrides?.id ?? 'board-1',
+  name: overrides?.name ?? 'My Kanban Board',
+  theme: overrides?.theme ?? null,
+  settings: null,
+  user_id: 'user-1',
+  is_favorite: false,
+  created_at: '2024-01-01T00:00:00.000Z',
+  updated_at: '2024-01-01T00:00:00.000Z',
+})
+
 export const Default: Story = {
   args: {
-    boardId: 'board-1',
-    boardName: 'My Kanban Board',
+    board: createMockBoard(),
   },
 }
 
 export const WithLongBoardName: Story = {
   args: {
-    boardId: 'board-2',
-    boardName: 'Very Long Board Name That Might Overflow',
+    board: createMockBoard({
+      id: 'board-2',
+      name: 'Very Long Board Name That Might Overflow',
+    }),
   },
 }

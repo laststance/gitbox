@@ -61,12 +61,7 @@ export default async function BoardPage(props: BoardPageProps) {
     .from('board')
     .select('*')
     .eq('id', params.id)
-    .single<{
-      id: string
-      name: string
-      theme: string | null
-      settings: Record<string, unknown> | null
-    }>()
+    .single()
 
   console.log('[DEBUG] Board query result:', { board, boardError })
 
@@ -76,11 +71,5 @@ export default async function BoardPage(props: BoardPageProps) {
     notFound()
   }
 
-  return (
-    <BoardPageClient
-      boardId={board.id}
-      boardName={board.name}
-      boardTheme={board.theme}
-    />
-  )
+  return <BoardPageClient board={board} />
 }

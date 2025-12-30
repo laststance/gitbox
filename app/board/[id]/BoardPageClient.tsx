@@ -44,26 +44,29 @@ import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import {
   setStatusLists,
   setRepoCards,
+  setActiveBoard,
   addRepoCards,
   removeRepoCard,
   selectStatusLists,
   selectRepoCards,
 } from '@/lib/redux/slices/boardSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
+import type { Board } from '@/lib/supabase/types'
 import { applyTheme } from '@/lib/theme'
 
 interface BoardPageClientProps {
-  boardId: string
-  boardName: string
-  /** Board-specific theme (null for app default) */
-  boardTheme?: string | null
+  /** Full board object from Supabase */
+  board: Board
 }
 
 export const BoardPageClient = memo(function BoardPageClient({
-  boardId,
-  boardName,
-  boardTheme,
+  board,
 }: BoardPageClientProps) {
+  // Extract board properties
+  const boardId = board.id
+  const boardName = board.name
+  const boardTheme = board.theme
+
   const router = useRouter()
   const dispatch = useAppDispatch()
   const statusLists = useAppSelector(selectStatusLists)
@@ -75,6 +78,16 @@ export const BoardPageClient = memo(function BoardPageClient({
   const [currentTheme, setCurrentTheme] = useState<string | null>(
     boardTheme ?? null,
   )
+
+  // Set activeBoard in Redux on mount
+  // This enables other components to know which board is currently being viewed
+  useEffect(() => {
+    dispatch(setActiveBoard(board))
+    return () => {
+      // Clear activeBoard when leaving the page
+      dispatch(setActiveBoard(null))
+    }
+  }, [dispatch, board])
 
   // Apply board theme on mount and when it changes
   useEffect(() => {
