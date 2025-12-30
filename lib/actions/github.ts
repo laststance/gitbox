@@ -1,108 +1,17 @@
 /**
  * GitHub API Server Actions
  *
- * Actions to call GitHub REST API on server side
- * Authenticate using provider_token stored in Cookie
+ * Actions to call GitHub REST API on server side.
+ * Uses axios for HTTP requests with automatic auth token injection.
+ *
+ * @see https://docs.github.com/en/rest
  */
 
 'use server'
 
-import { cookies } from 'next/headers'
+import { isAxiosError } from 'axios'
 
-import { getGitHubTokenCookieName } from '@/lib/constants/cookies'
-import { isTestMode } from '@/tests/isTestMode'
-
-const GITHUB_API_BASE_URL = 'https://api.github.com'
-
-/**
- * Mock data for E2E testing
- * Matches the mock data in mocks/handlers.ts
- */
-const MOCK_GITHUB_USER = {
-  id: 12345,
-  login: 'testuser',
-  avatar_url: 'https://avatars.githubusercontent.com/u/12345?v=4',
-  name: 'Test User',
-  type: 'User' as const,
-}
-
-const MOCK_GITHUB_REPOS = [
-  {
-    id: 1,
-    node_id: 'R_kgDOGq0qMQ',
-    name: 'test-repo',
-    full_name: 'testuser/test-repo',
-    owner: {
-      login: 'testuser',
-      avatar_url: 'https://avatars.githubusercontent.com/u/12345?v=4',
-    },
-    description: 'A test repository for GitBox',
-    html_url: 'https://github.com/testuser/test-repo',
-    homepage: 'https://test-repo.dev',
-    stargazers_count: 42,
-    watchers_count: 42,
-    language: 'TypeScript',
-    topics: ['react', 'nextjs'],
-    visibility: 'public' as const,
-    updated_at: '2024-01-15T00:00:00.000Z',
-    created_at: '2023-01-01T00:00:00.000Z',
-  },
-  {
-    id: 2,
-    node_id: 'R_kgDOGq0qMg',
-    name: 'another-repo',
-    full_name: 'testuser/another-repo',
-    owner: {
-      login: 'testuser',
-      avatar_url: 'https://avatars.githubusercontent.com/u/12345?v=4',
-    },
-    description: 'Another test repository',
-    html_url: 'https://github.com/testuser/another-repo',
-    homepage: null,
-    stargazers_count: 128,
-    watchers_count: 128,
-    language: 'JavaScript',
-    topics: ['nodejs', 'api'],
-    visibility: 'public' as const,
-    updated_at: '2024-01-10T00:00:00.000Z',
-    created_at: '2023-06-01T00:00:00.000Z',
-  },
-  {
-    id: 3,
-    node_id: 'R_kgDOGq0qMz',
-    name: 'private-project',
-    full_name: 'testuser/private-project',
-    owner: {
-      login: 'testuser',
-      avatar_url: 'https://avatars.githubusercontent.com/u/12345?v=4',
-    },
-    description: 'A private project',
-    html_url: 'https://github.com/testuser/private-project',
-    homepage: null,
-    stargazers_count: 0,
-    watchers_count: 1,
-    language: 'Python',
-    topics: ['private', 'internal'],
-    visibility: 'private' as const,
-    updated_at: '2024-01-20T00:00:00.000Z',
-    created_at: '2024-01-01T00:00:00.000Z',
-  },
-]
-
-const MOCK_GITHUB_ORGS = [
-  {
-    id: 100,
-    login: 'laststance',
-    avatar_url: 'https://avatars.githubusercontent.com/u/100?v=4',
-    description: 'Laststance.io organization',
-  },
-  {
-    id: 101,
-    login: 'test-org',
-    avatar_url: 'https://avatars.githubusercontent.com/u/101?v=4',
-    description: 'Test organization for development',
-  },
-]
+import { createGitHubAxios, hasGitHubToken } from '@/lib/axios-github'
 
 export interface GitHubRepository {
   id: number
@@ -126,12 +35,55 @@ export interface GitHubRepository {
 }
 
 /**
- * Get provider_token from Cookie
+ * GitHub User type
  */
-async function getGitHubToken(): Promise<string | null> {
-  const cookieStore = await cookies()
-  const cookieName = getGitHubTokenCookieName()
-  return cookieStore.get(cookieName)?.value ?? null
+export interface GitHubUser {
+  id: number
+  login: string
+  avatar_url: string
+  name: string | null
+  type: 'User' | 'Organization'
+}
+
+/**
+ * GitHub Organization type
+ */
+export interface GitHubOrganization {
+  id: number
+  login: string
+  avatar_url: string
+  description: string | null
+}
+
+/**
+ * Handle axios errors and return standardized error response.
+ *
+ * @param error - The caught error
+ * @param context - Context for error logging (e.g., 'fetch repositories')
+ * @returns Standardized error message
+ *
+ * @example
+ * catch (error) {
+ *   return { data: null, error: handleGitHubError(error, 'fetch repositories') }
+ * }
+ */
+function handleGitHubError(error: unknown, context: string): string {
+  if (isAxiosError(error)) {
+    if (error.response?.status === 401) {
+      return 'GitHub token expired. Please sign in again.'
+    }
+    if (error.response?.status === 404) {
+      return 'Resource not found.'
+    }
+    const message = error.response?.data?.message
+    if (message) {
+      return message
+    }
+    return `GitHub API error: ${error.response?.status ?? 'unknown'}`
+  }
+
+  console.error(`Failed to ${context}:`, error)
+  return error instanceof Error ? error.message : `Failed to ${context}`
 }
 
 /**
@@ -159,19 +111,14 @@ export async function getAuthenticatedUserRepositories(params?: {
   page?: number
   fetchAll?: boolean
 }): Promise<{ data: GitHubRepository[] | null; error: string | null }> {
-  // E2E test mode: return mock data
-  if (isTestMode()) {
-    return { data: MOCK_GITHUB_REPOS, error: null }
-  }
-
-  const token = await getGitHubToken()
-
-  if (!token) {
+  if (!(await hasGitHubToken())) {
     return {
       data: null,
       error: 'GitHub token not found. Please sign in again.',
     }
   }
+
+  const api = createGitHubAxios()
 
   try {
     const perPage = params?.per_page ?? 100
@@ -189,34 +136,10 @@ export async function getAuthenticatedUserRepositories(params?: {
         searchParams.set('per_page', perPage.toString())
         searchParams.set('page', page.toString())
 
-        const url = `${GITHUB_API_BASE_URL}/user/repos?${searchParams.toString()}`
+        const { data } = await api.get<GitHubRepository[]>(
+          `/user/repos?${searchParams.toString()}`,
+        )
 
-        const response = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/vnd.github.v3+json',
-            'User-Agent': 'GitBox-App',
-          },
-          next: {
-            revalidate: 60, // Cache for 1 minute
-          },
-        } as RequestInit)
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            return {
-              data: null,
-              error: 'GitHub token expired. Please sign in again.',
-            }
-          }
-          const errorData = await response.json().catch(() => ({}))
-          return {
-            data: null,
-            error: errorData.message || `GitHub API error: ${response.status}`,
-          }
-        }
-
-        const data: GitHubRepository[] = await response.json()
         allRepos.push(...data)
 
         // If we got fewer repos than requested, we've reached the last page
@@ -236,47 +159,32 @@ export async function getAuthenticatedUserRepositories(params?: {
     searchParams.set('per_page', perPage.toString())
     if (params?.page) searchParams.set('page', params.page.toString())
 
-    const url = `${GITHUB_API_BASE_URL}/user/repos?${searchParams.toString()}`
+    const { data } = await api.get<GitHubRepository[]>(
+      `/user/repos?${searchParams.toString()}`,
+    )
 
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'User-Agent': 'GitBox-App',
-      },
-      next: {
-        revalidate: 60, // Cache for 1 minute
-      },
-    } as RequestInit)
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        return {
-          data: null,
-          error: 'GitHub token expired. Please sign in again.',
-        }
-      }
-      const errorData = await response.json().catch(() => ({}))
-      return {
-        data: null,
-        error: errorData.message || `GitHub API error: ${response.status}`,
-      }
-    }
-
-    const data = await response.json()
     return { data, error: null }
   } catch (error) {
-    console.error('Failed to fetch repositories:', error)
     return {
       data: null,
-      error:
-        error instanceof Error ? error.message : 'Failed to fetch repositories',
+      error: handleGitHubError(error, 'fetch repositories'),
     }
   }
 }
 
 /**
  * Search repositories
+ *
+ * @param params.q - Search query
+ * @param params.sort - Sort order (stars, forks, updated)
+ * @param params.order - Sort direction (asc, desc)
+ * @param params.per_page - Results per page
+ * @param params.page - Page number
+ * @returns Search results with total count and repository items
+ *
+ * @example
+ * const { data } = await searchRepositories({ q: 'react' })
+ * console.log(data?.total_count) // => 12345
  */
 export async function searchRepositories(params: {
   q: string
@@ -288,28 +196,14 @@ export async function searchRepositories(params: {
   data: { total_count: number; items: GitHubRepository[] } | null
   error: string | null
 }> {
-  // E2E test mode: return filtered mock data
-  if (isTestMode()) {
-    const query = params.q.toLowerCase()
-    const filtered = MOCK_GITHUB_REPOS.filter(
-      (repo) =>
-        repo.name.toLowerCase().includes(query) ||
-        (repo.description?.toLowerCase().includes(query) ?? false),
-    )
-    return {
-      data: { total_count: filtered.length, items: filtered },
-      error: null,
-    }
-  }
-
-  const token = await getGitHubToken()
-
-  if (!token) {
+  if (!(await hasGitHubToken())) {
     return {
       data: null,
       error: 'GitHub token not found. Please sign in again.',
     }
   }
+
+  const api = createGitHubAxios()
 
   try {
     const searchParams = new URLSearchParams()
@@ -320,174 +214,84 @@ export async function searchRepositories(params: {
       searchParams.set('per_page', params.per_page.toString())
     if (params.page) searchParams.set('page', params.page.toString())
 
-    const url = `${GITHUB_API_BASE_URL}/search/repositories?${searchParams.toString()}`
+    const { data } = await api.get<{
+      total_count: number
+      items: GitHubRepository[]
+    }>(`/search/repositories?${searchParams.toString()}`)
 
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'User-Agent': 'GitBox-App',
-      },
-      next: {
-        revalidate: 60,
-      },
-    } as RequestInit)
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        return {
-          data: null,
-          error: 'GitHub token expired. Please sign in again.',
-        }
-      }
-      const errorData = await response.json().catch(() => ({}))
-      return {
-        data: null,
-        error: errorData.message || `GitHub API error: ${response.status}`,
-      }
-    }
-
-    const data = await response.json()
     return { data, error: null }
   } catch (error) {
-    console.error('Failed to search repositories:', error)
     return {
       data: null,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Failed to search repositories',
+      error: handleGitHubError(error, 'search repositories'),
     }
   }
 }
 
 /**
  * Get specific repository
+ *
+ * @param owner - Repository owner username
+ * @param repo - Repository name
+ * @returns Repository data or error
+ *
+ * @example
+ * const { data } = await getRepository('laststance', 'gitbox')
  */
 export async function getRepository(
   owner: string,
   repo: string,
 ): Promise<{ data: GitHubRepository | null; error: string | null }> {
-  // E2E test mode: return mock data
-  if (isTestMode()) {
-    const fullName = `${owner}/${repo}`
-    const found = MOCK_GITHUB_REPOS.find((r) => r.full_name === fullName)
-    return found
-      ? { data: found, error: null }
-      : { data: null, error: 'Repository not found.' }
-  }
-
-  const token = await getGitHubToken()
-
-  if (!token) {
+  if (!(await hasGitHubToken())) {
     return {
       data: null,
       error: 'GitHub token not found. Please sign in again.',
     }
   }
 
+  const api = createGitHubAxios()
+
   try {
-    const url = `${GITHUB_API_BASE_URL}/repos/${owner}/${repo}`
-
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'User-Agent': 'GitBox-App',
-      },
-      next: {
-        revalidate: 60,
-      },
-    } as RequestInit)
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        return {
-          data: null,
-          error: 'GitHub token expired. Please sign in again.',
-        }
-      }
-      if (response.status === 404) {
-        return {
-          data: null,
-          error: 'Repository not found.',
-        }
-      }
-      const errorData = await response.json().catch(() => ({}))
-      return {
-        data: null,
-        error: errorData.message || `GitHub API error: ${response.status}`,
-      }
-    }
-
-    const data = await response.json()
+    const { data } = await api.get<GitHubRepository>(`/repos/${owner}/${repo}`)
     return { data, error: null }
   } catch (error) {
-    console.error('Failed to fetch repository:', error)
+    if (isAxiosError(error) && error.response?.status === 404) {
+      return { data: null, error: 'Repository not found.' }
+    }
     return {
       data: null,
-      error:
-        error instanceof Error ? error.message : 'Failed to fetch repository',
+      error: handleGitHubError(error, 'fetch repository'),
     }
   }
 }
 
 /**
  * Check if GitHub token is valid
+ *
+ * Makes a lightweight request to verify token validity.
+ *
+ * @returns Object with valid boolean and optional error
+ *
+ * @example
+ * const { valid, error } = await checkGitHubTokenValidity()
+ * if (!valid) console.log('Token invalid:', error)
  */
 export async function checkGitHubTokenValidity(): Promise<{
   valid: boolean
   error: string | null
 }> {
-  // E2E test mode: always valid
-  if (isTestMode()) {
-    return { valid: true, error: null }
-  }
-
-  const token = await getGitHubToken()
-
-  if (!token) {
+  if (!(await hasGitHubToken())) {
     return { valid: false, error: 'No token found' }
   }
 
+  const api = createGitHubAxios()
+
   try {
-    const response = await fetch(`${GITHUB_API_BASE_URL}/user`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'User-Agent': 'GitBox-App',
-      },
-    })
-
-    if (response.ok) {
-      return { valid: true, error: null }
-    } else {
-      return { valid: false, error: 'Token is invalid or expired' }
-    }
-  } catch (_error) {
-    return { valid: false, error: 'Failed to verify token' }
+    await api.get('/user')
+    return { valid: true, error: null }
+  } catch {
+    return { valid: false, error: 'Token is invalid or expired' }
   }
-}
-
-/**
- * GitHub User type
- */
-export interface GitHubUser {
-  id: number
-  login: string
-  avatar_url: string
-  name: string | null
-  type: 'User' | 'Organization'
-}
-
-/**
- * GitHub Organization type
- */
-export interface GitHubOrganization {
-  id: number
-  login: string
-  avatar_url: string
-  description: string | null
 }
 
 /**
@@ -496,6 +300,7 @@ export interface GitHubOrganization {
  * Fetches the current user's GitHub profile information.
  *
  * @returns The user's profile data or an error message
+ *
  * @example
  * const { data, error } = await getAuthenticatedUser()
  * if (data) console.log(data.login) // => "ryota-murakami"
@@ -504,53 +309,22 @@ export async function getAuthenticatedUser(): Promise<{
   data: GitHubUser | null
   error: string | null
 }> {
-  // E2E test mode: return mock user
-  if (isTestMode()) {
-    return { data: MOCK_GITHUB_USER, error: null }
-  }
-
-  const token = await getGitHubToken()
-
-  if (!token) {
+  if (!(await hasGitHubToken())) {
     return {
       data: null,
       error: 'GitHub token not found. Please sign in again.',
     }
   }
 
+  const api = createGitHubAxios()
+
   try {
-    const response = await fetch(`${GITHUB_API_BASE_URL}/user`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'User-Agent': 'GitBox-App',
-      },
-      next: {
-        revalidate: 300, // Cache for 5 minutes
-      },
-    } as RequestInit)
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        return {
-          data: null,
-          error: 'GitHub token expired. Please sign in again.',
-        }
-      }
-      const errorData = await response.json().catch(() => ({}))
-      return {
-        data: null,
-        error: errorData.message || `GitHub API error: ${response.status}`,
-      }
-    }
-
-    const data = await response.json()
+    const { data } = await api.get<GitHubUser>('/user')
     return { data, error: null }
   } catch (error) {
-    console.error('Failed to fetch user:', error)
     return {
       data: null,
-      error: error instanceof Error ? error.message : 'Failed to fetch user',
+      error: handleGitHubError(error, 'fetch user'),
     }
   }
 }
@@ -576,22 +350,14 @@ export async function getOrganizationRepositories(
     fetchAll?: boolean
   },
 ): Promise<{ data: GitHubRepository[] | null; error: string | null }> {
-  // E2E test mode: return mock data filtered by org
-  if (isTestMode()) {
-    const filtered = MOCK_GITHUB_REPOS.filter(
-      (repo) => repo.owner.login.toLowerCase() === org.toLowerCase(),
-    )
-    return { data: filtered, error: null }
-  }
-
-  const token = await getGitHubToken()
-
-  if (!token) {
+  if (!(await hasGitHubToken())) {
     return {
       data: null,
       error: 'GitHub token not found. Please sign in again.',
     }
   }
+
+  const api = createGitHubAxios()
 
   try {
     const perPage = params?.per_page ?? 100
@@ -609,40 +375,10 @@ export async function getOrganizationRepositories(
         searchParams.set('page', page.toString())
         searchParams.set('type', 'all') // Get all repos (public, private, forks)
 
-        const url = `${GITHUB_API_BASE_URL}/orgs/${org}/repos?${searchParams.toString()}`
+        const { data } = await api.get<GitHubRepository[]>(
+          `/orgs/${org}/repos?${searchParams.toString()}`,
+        )
 
-        const response = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/vnd.github.v3+json',
-            'User-Agent': 'GitBox-App',
-          },
-          next: {
-            revalidate: 60,
-          },
-        } as RequestInit)
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            return {
-              data: null,
-              error: 'GitHub token expired. Please sign in again.',
-            }
-          }
-          if (response.status === 404) {
-            return {
-              data: null,
-              error: `Organization '${org}' not found.`,
-            }
-          }
-          const errorData = await response.json().catch(() => ({}))
-          return {
-            data: null,
-            error: errorData.message || `GitHub API error: ${response.status}`,
-          }
-        }
-
-        const data: GitHubRepository[] = await response.json()
         allRepos.push(...data)
 
         if (data.length < perPage) {
@@ -660,49 +396,18 @@ export async function getOrganizationRepositories(
     searchParams.set('per_page', perPage.toString())
     searchParams.set('type', 'all')
 
-    const url = `${GITHUB_API_BASE_URL}/orgs/${org}/repos?${searchParams.toString()}`
+    const { data } = await api.get<GitHubRepository[]>(
+      `/orgs/${org}/repos?${searchParams.toString()}`,
+    )
 
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'User-Agent': 'GitBox-App',
-      },
-      next: {
-        revalidate: 60,
-      },
-    } as RequestInit)
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        return {
-          data: null,
-          error: 'GitHub token expired. Please sign in again.',
-        }
-      }
-      if (response.status === 404) {
-        return {
-          data: null,
-          error: `Organization '${org}' not found.`,
-        }
-      }
-      const errorData = await response.json().catch(() => ({}))
-      return {
-        data: null,
-        error: errorData.message || `GitHub API error: ${response.status}`,
-      }
-    }
-
-    const data = await response.json()
     return { data, error: null }
   } catch (error) {
-    console.error('Failed to fetch organization repositories:', error)
+    if (isAxiosError(error) && error.response?.status === 404) {
+      return { data: null, error: `Organization '${org}' not found.` }
+    }
     return {
       data: null,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Failed to fetch organization repositories',
+      error: handleGitHubError(error, 'fetch organization repositories'),
     }
   }
 }
@@ -714,6 +419,7 @@ export async function getOrganizationRepositories(
  * Used for the Organization Filter in AddRepositoryCombobox.
  *
  * @returns Array of organizations or an error message
+ *
  * @example
  * const { data, error } = await getAuthenticatedUserOrganizations()
  * if (data) data.forEach(org => console.log(org.login))
@@ -722,56 +428,22 @@ export async function getAuthenticatedUserOrganizations(): Promise<{
   data: GitHubOrganization[] | null
   error: string | null
 }> {
-  // E2E test mode: return mock organizations
-  if (isTestMode()) {
-    return { data: MOCK_GITHUB_ORGS, error: null }
-  }
-
-  const token = await getGitHubToken()
-
-  if (!token) {
+  if (!(await hasGitHubToken())) {
     return {
       data: null,
       error: 'GitHub token not found. Please sign in again.',
     }
   }
 
+  const api = createGitHubAxios()
+
   try {
-    const response = await fetch(`${GITHUB_API_BASE_URL}/user/orgs`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'User-Agent': 'GitBox-App',
-      },
-      next: {
-        revalidate: 300, // Cache for 5 minutes
-      },
-    } as RequestInit)
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        return {
-          data: null,
-          error: 'GitHub token expired. Please sign in again.',
-        }
-      }
-      const errorData = await response.json().catch(() => ({}))
-      return {
-        data: null,
-        error: errorData.message || `GitHub API error: ${response.status}`,
-      }
-    }
-
-    const data = await response.json()
+    const { data } = await api.get<GitHubOrganization[]>('/user/orgs')
     return { data, error: null }
   } catch (error) {
-    console.error('Failed to fetch organizations:', error)
     return {
       data: null,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Failed to fetch organizations',
+      error: handleGitHubError(error, 'fetch organizations'),
     }
   }
 }

@@ -226,13 +226,14 @@ export default defineConfig({
      * causing isTestMode() to return false and auth bypass to fail.
      */
     command:
-      'NEXT_PUBLIC_ENABLE_MSW_MOCK=true APP_ENV=test pnpm build && pnpm start',
+      'NEXT_PUBLIC_ENABLE_MSW_MOCK=true APP_ENV=test NEXT_PUBLIC_SUPABASE_URL=https://jqtxjzdxczqwsrvevmyk.supabase.co pnpm build && pnpm start',
     url: 'http://localhost:3008',
     reuseExistingServer: false,
     timeout: 120000,
     env: {
       NEXT_PUBLIC_ENABLE_MSW_MOCK: 'true',
       APP_ENV: 'test',
+      NEXT_PUBLIC_SUPABASE_URL: 'https://jqtxjzdxczqwsrvevmyk.supabase.co',
     },
   },
 })

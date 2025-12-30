@@ -1,0 +1,111 @@
+/**
+ * GitHub API Axios Instance
+ *
+ * Configured axios instance for GitHub REST API calls in Server Actions.
+ * Handles authentication via request interceptor and provides consistent
+ * error handling across all GitHub API operations.
+ *
+ * @see https://docs.github.com/en/rest
+ */
+
+import axios, {
+  type AxiosInstance,
+  type InternalAxiosRequestConfig,
+} from 'axios'
+import { cookies } from 'next/headers'
+
+import { getGitHubTokenCookieName } from '@/lib/constants/cookies'
+
+const GITHUB_API_BASE_URL = 'https://api.github.com'
+
+/**
+ * Creates an axios instance configured for GitHub API requests.
+ *
+ * Features:
+ * - Base URL set to GitHub API
+ * - Common headers for GitHub API v3
+ * - 10s timeout to prevent hanging requests
+ * - Request interceptor for automatic auth token injection
+ * - E2E test mode support with mock token
+ *
+ * @returns Configured AxiosInstance for GitHub API
+ *
+ * @example
+ * const api = createGitHubAxios()
+ * const { data } = await api.get<GitHubUser>('/user')
+ */
+export function createGitHubAxios(): AxiosInstance {
+  const instance = axios.create({
+    baseURL: GITHUB_API_BASE_URL,
+    timeout: 10000,
+    headers: {
+      Accept: 'application/vnd.github.v3+json',
+      'User-Agent': 'GitBox-App',
+    },
+  })
+
+  /**
+   * Request interceptor: Injects GitHub auth token into requests.
+   *
+   * In E2E test mode (MSW enabled), returns a mock token since:
+   * 1. Cookie reading in Server Actions has known issues with Next.js + Playwright
+   * 2. MSW handlers will intercept the actual API calls anyway
+   *
+   * @see https://github.com/mswjs/msw/issues/1644
+   */
+  instance.interceptors.request.use(
+    async (
+      config: InternalAxiosRequestConfig,
+    ): Promise<InternalAxiosRequestConfig> => {
+      // E2E test mode: Use mock token for MSW interception
+      if (
+        process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK === 'true' &&
+        (process.env.APP_ENV === 'test' || process.env.NODE_ENV === 'test')
+      ) {
+        config.headers.Authorization =
+          'Bearer mock-github-provider-token-for-testing'
+        return config
+      }
+
+      // Production: Read token from httpOnly cookie
+      const cookieStore = await cookies()
+      const cookieName = getGitHubTokenCookieName()
+      const token = cookieStore.get(cookieName)?.value
+
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+
+      return config
+    },
+  )
+
+  return instance
+}
+
+/**
+ * Checks if the GitHub auth token is available.
+ *
+ * Used for early validation before making API calls.
+ * In test mode, always returns true since mock token is used.
+ *
+ * @returns true if token is available, false otherwise
+ *
+ * @example
+ * if (!(await hasGitHubToken())) {
+ *   return { data: null, error: 'GitHub token not found' }
+ * }
+ */
+export async function hasGitHubToken(): Promise<boolean> {
+  // E2E test mode: Always has token (mock)
+  if (
+    process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK === 'true' &&
+    (process.env.APP_ENV === 'test' || process.env.NODE_ENV === 'test')
+  ) {
+    return true
+  }
+
+  const cookieStore = await cookies()
+  const cookieName = getGitHubTokenCookieName()
+  return !!cookieStore.get(cookieName)?.value
+}
