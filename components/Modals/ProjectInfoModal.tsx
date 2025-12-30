@@ -33,7 +33,8 @@ const CHAR_COUNT_NORMAL = 'text-muted-foreground'
 
 export interface ProjectInfo {
   id: string
-  quickNote: string
+  note: string
+  comment: string
   links: ProjectLink[]
   credentials?: Credential[]
 }
@@ -42,7 +43,8 @@ interface ProjectInfoModalProps {
   isOpen: boolean
   onClose: () => void
   onSave: (data: {
-    quickNote: string
+    note: string
+    comment: string
     links: ProjectLink[]
     credentials: Credential[]
   }) => void
@@ -75,7 +77,10 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
   onClose,
 }: ProjectInfoFormProps) {
   // State initialized from props - will reset when component remounts via key
-  const [quickNote, setQuickNote] = useState(projectInfo.quickNote)
+  const [note, setNote] = useState(projectInfo.note)
+  // Comment editing UI will be implemented in Phase 2
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [comment, _setComment] = useState(projectInfo.comment)
   const [links, setLinks] = useState<ProjectLink[]>(projectInfo.links)
   const [credentials, setCredentials] = useState<Credential[]>(
     projectInfo.credentials || [],
@@ -107,11 +112,11 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
       const textLength = getSlateTextLength(slateValue)
 
       if (textLength <= NOTE_MAX_LENGTH) {
-        setQuickNote(value)
+        setNote(value)
       }
     } catch {
       // If parsing fails, still allow the change
-      setQuickNote(value)
+      setNote(value)
     }
   }, [])
 
@@ -241,7 +246,8 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
 
   const handleSave = () => {
     onSave({
-      quickNote,
+      note,
+      comment,
       links: links.filter((link) => link.url),
       credentials: credentials.filter((cred) => cred.name),
     })
@@ -279,12 +285,12 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
   // Calculate text length from JSON (Slate format) for character count
   const charCount = useMemo(() => {
     try {
-      const slateValue = parseSlateValue(quickNote)
+      const slateValue = parseSlateValue(note)
       return getSlateTextLength(slateValue)
     } catch {
       return 0
     }
-  }, [quickNote])
+  }, [note])
 
   const isNearLimit = charCount >= NOTE_WARNING_THRESHOLD
 
@@ -329,7 +335,7 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
           <Label htmlFor="note">Note</Label>
           <PlateEditor
             data-testid="note-editor"
-            initialValue={quickNote}
+            initialValue={note}
             onChange={handleNoteChange}
             placeholder="Type / for commands, or start writing..."
             minHeight="300px"

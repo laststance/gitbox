@@ -208,7 +208,8 @@ export type Database = {
           created_at: string | null
           id: string
           links: Json | null
-          quick_note: string | null
+          note: string | null
+          comment: string | null
           repo_card_id: string
           updated_at: string | null
         }
@@ -216,7 +217,8 @@ export type Database = {
           created_at?: string | null
           id?: string
           links?: Json | null
-          quick_note?: string | null
+          note?: string | null
+          comment?: string | null
           repo_card_id: string
           updated_at?: string | null
         }
@@ -224,7 +226,8 @@ export type Database = {
           created_at?: string | null
           id?: string
           links?: Json | null
-          quick_note?: string | null
+          note?: string | null
+          comment?: string | null
           repo_card_id?: string
           updated_at?: string | null
         }
@@ -244,7 +247,6 @@ export type Database = {
           created_at: string | null
           id: string
           meta: Json | null
-          note: string | null
           order: number
           repo_name: string
           repo_owner: string
@@ -256,7 +258,6 @@ export type Database = {
           created_at?: string | null
           id?: string
           meta?: Json | null
-          note?: string | null
           order?: number
           repo_name: string
           repo_owner: string
@@ -268,7 +269,6 @@ export type Database = {
           created_at?: string | null
           id?: string
           meta?: Json | null
-          note?: string | null
           order?: number
           repo_name?: string
           repo_owner?: string

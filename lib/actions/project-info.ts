@@ -49,18 +49,22 @@ export interface Credential {
 }
 
 export interface ProjectInfoData {
-  quickNote: string
+  note: string
+  comment: string
   links: ProjectLink[]
   credentials?: Credential[]
 }
 
-/** Maximum character limit for notes */
+/** Maximum character limit for notes (rich text) */
 const NOTE_MAX_LENGTH = 20000
 
+/** Maximum character limit for comments (inline, Card-in-Card) */
+const COMMENT_MAX_LENGTH = 2000
+
 /**
- * Validate note content
+ * Validate note content (rich text)
  *
- * Note: quickNote is now stored as JSON (Slate format).
+ * Note: note is stored as JSON (Slate format).
  * We validate the actual text length, not the JSON string length.
  *
  * @param note - The note content to validate (JSON string)
@@ -82,6 +86,20 @@ function validateNote(note: string): boolean {
     if (note.length > NOTE_MAX_LENGTH) {
       throw new Error(`Note must be ${NOTE_MAX_LENGTH} characters or less`)
     }
+  }
+  return true
+}
+
+/**
+ * Validate comment content (inline, Card-in-Card)
+ *
+ * @param comment - The comment content to validate (plain text)
+ * @returns true if valid
+ * @throws Error if content exceeds character limit
+ */
+function validateComment(comment: string): boolean {
+  if (comment.length > COMMENT_MAX_LENGTH) {
+    throw new Error(`Comment must be ${COMMENT_MAX_LENGTH} characters or less`)
   }
   return true
 }
@@ -175,7 +193,7 @@ export async function getProjectInfo(
   if (infoError) {
     if (infoError.code === 'PGRST116') {
       // Return empty state if data doesn't exist
-      return { quickNote: '', links: [], credentials: [] }
+      return { note: '', comment: '', links: [], credentials: [] }
     }
     Sentry.captureException(infoError, {
       extra: { context: 'Fetch project info', repoCardId },
@@ -239,7 +257,8 @@ export async function getProjectInfo(
   )
 
   return {
-    quickNote: projectInfo.quick_note || '',
+    note: projectInfo.note || '',
+    comment: projectInfo.comment || '',
     links: linksArray,
     credentials: credentialsArray,
   }
@@ -255,7 +274,8 @@ export async function upsertProjectInfo(
   const supabase = await createClient()
 
   // Validation
-  validateNote(data.quickNote)
+  validateNote(data.note)
+  validateComment(data.comment)
   data.links.forEach((link) => {
     if (link.url) {
       validateUrl(link.url)
@@ -269,10 +289,11 @@ export async function upsertProjectInfo(
     })
   }
 
-  // Note: quickNote is now stored as JSON (Slate format).
+  // Note: note is stored as JSON (Slate format) for rich text.
   // JSON is inherently safe when stored as a string and parsed client-side.
   // No HTML escaping needed for the note content.
   // XSS is prevented because the Plate editor renders content safely.
+  // Comment is plain text for inline Card-in-Card display.
 
   // Convert links to match type
   const linksJson = {
@@ -297,7 +318,8 @@ export async function upsertProjectInfo(
       // Update
       projectInfoId = existingInfo.id
       const updateData: ProjectInfoUpdate = {
-        quick_note: data.quickNote,
+        note: data.note,
+        comment: data.comment,
         links: linksJson,
         updated_at: new Date().toISOString(),
       }
@@ -317,7 +339,8 @@ export async function upsertProjectInfo(
       // Create new
       const insertData: ProjectInfoInsert = {
         repo_card_id: repoCardId,
-        quick_note: data.quickNote,
+        note: data.note,
+        comment: data.comment,
         links: linksJson,
       }
 

@@ -426,7 +426,6 @@ export async function getRepoCards(boardId: string): Promise<RepoCardDomain[]> {
       boardId: row.board_id,
       repoOwner: row.repo_owner,
       repoName: row.repo_name,
-      note: row.note,
       order: row.order,
       meta: {
         stars: meta.stars,

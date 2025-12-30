@@ -60,7 +60,8 @@ describe('ProjectInfoModal', () => {
     onSave: mockOnSave,
     projectInfo: {
       id: 'test-repo-1',
-      quickNote: '',
+      note: '',
+      comment: '',
       links: [],
     },
   }
@@ -266,7 +267,8 @@ describe('ProjectInfoModal', () => {
 
       await waitFor(() => {
         expect(mockOnSave).toHaveBeenCalledWith({
-          quickNote: 'Test note',
+          note: 'Test note',
+          comment: '',
           links: [],
           credentials: [],
         })

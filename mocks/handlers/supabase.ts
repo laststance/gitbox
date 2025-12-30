@@ -347,7 +347,6 @@ export const supabaseDbHandlers: HttpHandler[] = [
       status_id: item.status_id || MOCK_STATUS_IDS.backlog,
       repo_owner: item.repo_owner || 'unknown',
       repo_name: item.repo_name || 'unknown-repo',
-      note: item.note || '',
       order: item.order ?? index,
       meta: item.meta || {},
       created_at: new Date().toISOString(),
@@ -411,7 +410,8 @@ export const supabaseDbHandlers: HttpHandler[] = [
       {
         id: 'projinfo-1',
         repo_card_id: MOCK_CARD_ID,
-        quick_note: 'Important project notes here',
+        note: 'Important project notes here',
+        comment: 'Inline comment for Card-in-Card display',
         links: [
           { title: 'Documentation', url: 'https://docs.example.com' },
           { title: 'Staging', url: 'https://staging.example.com' },
@@ -434,7 +434,8 @@ export const supabaseDbHandlers: HttpHandler[] = [
     const newProjectInfo = {
       id: `projinfo-${Date.now()}`,
       repo_card_id: body.repo_card_id || MOCK_CARD_ID,
-      quick_note: body.quick_note || '',
+      note: body.note || '',
+      comment: body.comment || '',
       links: body.links || [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -457,7 +458,8 @@ export const supabaseDbHandlers: HttpHandler[] = [
     const updated = {
       id: 'projinfo-1',
       repo_card_id: MOCK_CARD_ID,
-      quick_note: body.quick_note || 'Updated notes',
+      note: body.note || 'Updated notes',
+      comment: body.comment || 'Updated comment',
       links: body.links || [],
       created_at: '2024-01-01T00:00:00.000Z',
       updated_at: new Date().toISOString(),

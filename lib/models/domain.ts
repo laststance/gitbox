@@ -45,12 +45,15 @@ export interface StatusListDomain {
 /**
  * Domain model for GitHub repository cards
  * Shared across UI layer and Redux layer
+ *
+ * Note: Rich text notes and inline comments are stored in projectinfo table,
+ * not directly on the RepoCard.
  */
 export interface RepoCardDomain {
   id: string
   /** Card display title (GitHub repo name) */
   title: string
-  /** Repository description (note or GitHub description) */
+  /** Repository description (from GitHub metadata) */
   description?: string
   /** Status ID this card belongs to */
   statusId: string
@@ -60,8 +63,6 @@ export interface RepoCardDomain {
   repoOwner: string
   /** GitHub repository name */
   repoName: string
-  /** User note */
-  note: string | null
   /** Card display order */
   order: number
   /** GitHub metadata (stars, language, etc.) */
@@ -80,7 +81,8 @@ export interface RepoCardDomain {
   tags?: string[]
   dueDate?: string
   attachments?: number
-  comments?: number
+  /** Number of inline comments on this card */
+  commentsCount?: number
 }
 
 /**

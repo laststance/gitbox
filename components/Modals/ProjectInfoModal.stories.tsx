@@ -26,7 +26,8 @@ type Story = StoryObj<typeof meta>
 
 const mockProjectInfo = {
   id: 'project-1',
-  quickNote: 'This is a quick note about the project',
+  note: 'This is a rich text note about the project',
+  comment: 'Quick inline comment',
   links: [
     {
       type: 'production' as const,
@@ -67,7 +68,8 @@ export const Empty: Story = {
     },
     projectInfo: {
       id: 'project-2',
-      quickNote: '',
+      note: '',
+      comment: '',
       links: [],
       credentials: [],
     },
@@ -143,7 +145,7 @@ export const WithExternalCredentials: Story = {
   },
 }
 
-export const WithLongQuickNote: Story = {
+export const WithLongNote: Story = {
   args: {
     isOpen: true,
     onClose: () => console.log('Modal closed'),
@@ -152,10 +154,9 @@ export const WithLongQuickNote: Story = {
     },
     projectInfo: {
       ...mockProjectInfo,
-      quickNote:
-        'This is a very long quick note that approaches the 300 character limit. '.repeat(
-          4,
-        ),
+      note: 'This is a very long note that demonstrates the rich text capability. '.repeat(
+        100,
+      ),
     },
   },
 }

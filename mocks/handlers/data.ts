@@ -237,7 +237,6 @@ export const mockRepoCards = [
     status_id: MOCK_STATUS_IDS.todo,
     repo_owner: 'testuser',
     repo_name: 'test-repo',
-    note: 'Main project repository',
     order: 0,
     meta: {
       stars: 42,
@@ -256,7 +255,6 @@ export const mockRepoCards = [
     status_id: MOCK_STATUS_IDS.inProgress,
     repo_owner: 'testuser',
     repo_name: 'another-repo',
-    note: 'Work in progress',
     order: 0,
     meta: {
       stars: 128,
@@ -275,7 +273,6 @@ export const mockRepoCards = [
     status_id: MOCK_STATUS_IDS.backlog,
     repo_owner: 'laststance',
     repo_name: 'create-react-app-vite',
-    note: '',
     order: 0,
     meta: {
       stars: 500,
@@ -295,7 +292,6 @@ export const mockRepoCards = [
     status_id: MOCK_STATUS_IDS.todo,
     repo_owner: 'laststance',
     repo_name: 'nsx',
-    note: 'Monorepo CLI tool',
     order: 1,
     meta: {
       stars: 85,
@@ -314,7 +310,6 @@ export const mockRepoCards = [
     status_id: MOCK_STATUS_IDS.todo,
     repo_owner: 'laststance',
     repo_name: 'use-app-state',
-    note: 'State management hook',
     order: 2,
     meta: {
       stars: 120,

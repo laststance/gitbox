@@ -142,7 +142,8 @@ export const BoardPageClient = memo(function BoardPageClient({
       const data = await getProjectInfo(cardId)
       setProjectInfo({
         id: cardId,
-        quickNote: data?.quickNote || '',
+        note: data?.note || '',
+        comment: data?.comment || '',
         links: data?.links || [],
       })
       setIsModalOpen(true)
@@ -151,7 +152,8 @@ export const BoardPageClient = memo(function BoardPageClient({
       // Open modal with empty state even on error
       setProjectInfo({
         id: cardId,
-        quickNote: '',
+        note: '',
+        comment: '',
         links: [],
       })
       setIsModalOpen(true)
@@ -174,7 +176,8 @@ export const BoardPageClient = memo(function BoardPageClient({
         prev
           ? {
               ...prev,
-              quickNote: data.quickNote,
+              note: data.note,
+              comment: data.comment,
               links: data.links,
             }
           : null,
@@ -197,7 +200,8 @@ export const BoardPageClient = memo(function BoardPageClient({
           const rollbackData = await getProjectInfo(selectedCardId)
           setProjectInfo({
             id: selectedCardId,
-            quickNote: rollbackData?.quickNote || '',
+            note: rollbackData?.note || '',
+            comment: rollbackData?.comment || '',
             links: rollbackData?.links || [],
           })
         } catch (rollbackError) {
@@ -320,7 +324,7 @@ export const BoardPageClient = memo(function BoardPageClient({
 
       try {
         const data = await getProjectInfo(cardId)
-        setInitialNote(data?.quickNote || '')
+        setInitialNote(data?.note || '')
       } catch (error) {
         Sentry.captureException(error, { tags: { action: 'loadNote' } })
         setInitialNote('')
@@ -340,7 +344,8 @@ export const BoardPageClient = memo(function BoardPageClient({
       if (!noteCardId) return
 
       await upsertProjectInfo(noteCardId, {
-        quickNote: note,
+        note: note,
+        comment: '',
         links: [],
         credentials: [],
       })
@@ -559,7 +564,6 @@ export const BoardPageClient = memo(function BoardPageClient({
                       boardId: card.boardId,
                       repoOwner: card.repoOwner,
                       repoName: card.repoName,
-                      note: card.note,
                       order: card.order,
                       meta: card.meta,
                       createdAt: card.createdAt,

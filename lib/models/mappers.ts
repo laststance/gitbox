@@ -44,6 +44,9 @@ export function dbStatusListToDomain(db: DbStatusList): StatusListDomain {
  *
  * Converts database layer type to domain layer type
  * Transforms GitHub repository information into UI display fields
+ *
+ * Note: The note field has been moved to projectinfo table.
+ * Description now comes from meta.description (GitHub repo description).
  */
 export function dbRepoCardToDomain(db: DbRepoCard): RepoCardDomain {
   // Type-safe meta extraction
@@ -52,12 +55,11 @@ export function dbRepoCardToDomain(db: DbRepoCard): RepoCardDomain {
   return {
     id: db.id,
     title: db.repo_name, // repo_name → title
-    description: db.note ?? undefined, // note → description
+    description: meta.description ?? undefined, // from GitHub metadata
     statusId: db.status_id,
     boardId: db.board_id,
     repoOwner: db.repo_owner,
     repoName: db.repo_name,
-    note: db.note,
     order: db.order,
     meta,
     createdAt: db.created_at ?? new Date().toISOString(),
