@@ -2,10 +2,16 @@
 
 /**
  * Main Gmail Layout Component
+ *
+ * Architecture:
+ * - Fixed header at top
+ * - Flex-based sidebar + main content area
+ * - App launcher grid popup for navigation to other Google services
  */
 
-import { memo, useCallback, useEffect, useState } from 'react'
+import { memo, useCallback, useEffect, useState, useRef } from 'react'
 import { Menu, Settings, HelpCircle, Grid3X3 } from 'lucide-react'
+import Link from 'next/link'
 
 import { Button } from '@/components/ui/button'
 import { useAppDispatch, useAppSelector } from '@/lib/hooks'
@@ -21,12 +27,15 @@ import StatsBar from './StatsBar'
 import Sidebar from './Sidebar'
 import EmailList from './EmailList'
 import EmailViewer from './EmailViewer'
+import AppLauncher from './AppLauncher'
 
 function GmailLayout() {
   const dispatch = useAppDispatch()
   const emailCount = useAppSelector((state) => state.emails.emails.length)
   const selectedId = useAppSelector((state) => state.emails.selectedId)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [isAppLauncherOpen, setIsAppLauncherOpen] = useState(false)
+  const appLauncherRef = useRef<HTMLDivElement>(null)
 
   // Check if hydration is complete
   useEffect(() => {
@@ -37,6 +46,22 @@ function GmailLayout() {
     }
     checkHydration()
   }, [])
+
+  // Close app launcher when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        appLauncherRef.current &&
+        !appLauncherRef.current.contains(event.target as Node)
+      ) {
+        setIsAppLauncherOpen(false)
+      }
+    }
+    if (isAppLauncherOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isAppLauncherOpen])
 
   // Generate mock emails (for demo purposes)
   const handleGenerateEmails = useCallback(
@@ -61,15 +86,22 @@ function GmailLayout() {
     console.log('[Gmail Clone] Cleared all emails and storage')
   }, [dispatch])
 
+  const toggleAppLauncher = useCallback(() => {
+    setIsAppLauncherOpen((prev) => !prev)
+  }, [])
+
   return (
     <div className="h-screen flex flex-col bg-white">
       {/* Header */}
-      <header className="flex items-center gap-4 px-4 py-2 border-b">
+      <header className="flex items-center gap-4 px-4 py-2 border-b shrink-0">
         <Button variant="ghost" size="icon">
           <Menu className="h-5 w-5" />
         </Button>
 
-        <div className="flex items-center gap-2">
+        <Link
+          href="/"
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+        >
           <svg className="h-8 w-8" viewBox="0 0 24 24">
             <path
               fill="#EA4335"
@@ -81,7 +113,7 @@ function GmailLayout() {
             />
           </svg>
           <span className="text-xl font-medium text-gray-600">Gmail Clone</span>
-        </div>
+        </Link>
 
         <SearchBar />
 
@@ -125,18 +157,33 @@ function GmailLayout() {
           <Button variant="ghost" size="icon">
             <Settings className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon">
-            <Grid3X3 className="h-5 w-5" />
-          </Button>
+
+          {/* App Launcher Button */}
+          <div className="relative" ref={appLauncherRef}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleAppLauncher}
+              className={isAppLauncherOpen ? 'bg-accent' : ''}
+              aria-label="Google apps"
+              data-testid="app-launcher-button"
+            >
+              <Grid3X3 className="h-5 w-5" />
+            </Button>
+
+            {isAppLauncherOpen && (
+              <AppLauncher onClose={() => setIsAppLauncherOpen(false)} />
+            )}
+          </div>
         </div>
       </header>
 
       {/* Stats Bar */}
       <StatsBar />
 
-      {/* Main Content */}
+      {/* Main Content - Flex layout with sidebar */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
+        {/* Sidebar - now properly in flex flow */}
         <Sidebar />
 
         {/* Email List */}
@@ -158,7 +205,7 @@ function GmailLayout() {
 
       {/* Footer with performance info */}
       {isInitialized && (
-        <footer className="px-4 py-1 bg-slate-100 border-t text-xs text-muted-foreground flex items-center gap-4">
+        <footer className="px-4 py-1 bg-slate-100 border-t text-xs text-muted-foreground flex items-center gap-4 shrink-0">
           <span>
             redux-storage-middleware demo | {emailCount.toLocaleString()} emails
             persisted to localStorage
