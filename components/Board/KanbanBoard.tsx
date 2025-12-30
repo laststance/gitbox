@@ -50,6 +50,7 @@ import {
   selectBoardError,
 } from '@/lib/redux/slices/boardSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
+import type { CardDisplaySettings } from '@/lib/types/board-settings'
 
 import { ColumnInsertZone, COLUMN_INSERT_DROP_TYPE } from './ColumnInsertZone'
 import { NewRowDropZone, NEW_ROW_DROP_TYPE } from './NewRowDropZone'
@@ -90,6 +91,8 @@ const forgivingCollisionDetection: CollisionDetection = (args) => {
 
 interface KanbanBoardProps {
   boardId?: string
+  /** Card display settings from board.settings JSON */
+  cardDisplaySettings?: CardDisplaySettings
   onEditProjectInfo?: (cardId: string) => void
   onMoveToMaintenance?: (cardId: string) => void
   /** Callback when Note button is clicked on a card */
@@ -161,6 +164,7 @@ ErrorState.displayName = 'ErrorState'
 export const KanbanBoard = memo<KanbanBoardProps>(
   ({
     boardId = 'default-board',
+    cardDisplaySettings,
     onEditProjectInfo,
     onMoveToMaintenance,
     onNote,
@@ -752,6 +756,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                     status={status}
                     cards={cards.filter((c) => c.statusId === status.id)}
                     comments={comments}
+                    cardDisplaySettings={cardDisplaySettings}
                     onEdit={onEditProjectInfo}
                     onMaintenance={onMoveToMaintenance}
                     onNote={onNote}

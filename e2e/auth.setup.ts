@@ -59,7 +59,9 @@ function createMockSupabaseSession(): string {
  * The storage state is saved to AUTH_FILE for reuse by dependent test projects.
  */
 setup('inject auth cookies', async ({ page }) => {
-  const baseURL = 'http://localhost:3008'
+  // Use configured baseURL, with fallback for direct execution
+  const baseURL =
+    process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3008'
 
   // Navigate to the app first to establish the domain context
   await page.goto(baseURL)

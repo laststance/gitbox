@@ -24,6 +24,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/lib/actions/board', () => ({
   renameBoardAction: vi.fn(),
   updateBoardThemeAction: vi.fn(),
+  updateBoardSettingsAction: vi.fn(),
   deleteBoardAction: vi.fn(),
 }))
 
@@ -477,7 +478,8 @@ describe('BoardSettingsDialog', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const tabs = screen.getAllByRole('tab')
-      expect(tabs).toHaveLength(3)
+      // 4 tabs: General, Theme, Cards, Danger Zone
+      expect(tabs).toHaveLength(4)
     })
 
     it('should have tabpanel role for content', () => {
