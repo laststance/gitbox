@@ -25,7 +25,6 @@ import {
   useCallback,
   memo,
   useMemo,
-  useEffect,
   useRef,
   useTransition,
 } from 'react'
@@ -91,21 +90,23 @@ export const MaintenanceClient = memo(function MaintenanceClient({
   const hasFetchedBoards = useRef(false)
   const [isLoadingBoards, startLoadingBoards] = useTransition()
 
-  // Fetch boards when dialog opens (only once per session)
-  useEffect(() => {
-    if (restoreDialogOpen && !hasFetchedBoards.current) {
-      hasFetchedBoards.current = true
-      startLoadingBoards(async () => {
-        const result = await getUserBoardsWithStatusLists()
-        if (result.success && result.boards) {
-          setBoards(result.boards)
-          setBoardsError(null)
-        } else {
-          setBoardsError(result.error || 'Failed to load boards')
-        }
-      })
-    }
-  }, [restoreDialogOpen])
+  /**
+   * Fetch boards for restore dialog (event-driven, only once per session)
+   * Moved from useEffect to event handler for proper separation of concerns
+   */
+  const fetchBoardsOnce = useCallback(() => {
+    if (hasFetchedBoards.current) return
+    hasFetchedBoards.current = true
+    startLoadingBoards(async () => {
+      const result = await getUserBoardsWithStatusLists()
+      if (result.success && result.boards) {
+        setBoards(result.boards)
+        setBoardsError(null)
+      } else {
+        setBoardsError(result.error || 'Failed to load boards')
+      }
+    })
+  }, [])
 
   // Filter repos based on search
   const filteredRepos = repos.filter(
@@ -146,11 +147,16 @@ export const MaintenanceClient = memo(function MaintenanceClient({
 
   /**
    * Open restore dialog for a specific maintenance item
+   * Fetches boards on first open (event-driven, no useEffect needed)
    */
-  const handleRestore = useCallback((repo: MaintenanceRepo) => {
-    setSelectedRepo(repo)
-    setRestoreDialogOpen(true)
-  }, [])
+  const handleRestore = useCallback(
+    (repo: MaintenanceRepo) => {
+      setSelectedRepo(repo)
+      setRestoreDialogOpen(true)
+      fetchBoardsOnce() // Fetch boards when dialog opens
+    },
+    [fetchBoardsOnce],
+  )
 
   /**
    * Handle successful restore by removing item from local state

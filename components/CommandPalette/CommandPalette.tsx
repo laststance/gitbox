@@ -13,7 +13,14 @@ import {
   Keyboard,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import React, { useEffect, useMemo, useRef, useState, memo } from 'react'
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  memo,
+} from 'react'
 
 import { signOut } from '@/lib/actions/auth'
 
@@ -224,12 +231,8 @@ export const CommandPalette = memo(function CommandPalette() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  // Focus input when opened
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus()
-    }
-  }, [isOpen])
+  // Focus is handled by autoFocus on the input element
+  // No useEffect needed - autoFocus is the appropriate pattern for initial focus
 
   /**
    * Handles keyboard navigation within the command palette.
@@ -254,8 +257,9 @@ export const CommandPalette = memo(function CommandPalette() {
     }
   }
 
-  // Scroll selected item into view
-  useEffect(() => {
+  // Scroll selected item into view synchronously before paint
+  // useLayoutEffect ensures scroll happens before browser paint
+  useLayoutEffect(() => {
     if (listRef.current) {
       const selectedElement = listRef.current.querySelector(
         `[data-index="${selectedIndex}"]`,
@@ -303,6 +307,7 @@ export const CommandPalette = memo(function CommandPalette() {
                 onKeyDown={handleInputKeyDown}
                 placeholder="Search commands..."
                 className="h-14 flex-1 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none"
+                autoFocus
               />
               <kbd className="hidden rounded bg-muted px-2 py-1 text-xs text-muted-foreground sm:inline-block">
                 ESC

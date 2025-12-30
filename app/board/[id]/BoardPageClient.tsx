@@ -18,7 +18,14 @@
 import * as Sentry from '@sentry/nextjs'
 import { Plus, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState, useCallback, memo, useEffect } from 'react'
+import {
+  useState,
+  useCallback,
+  memo,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+} from 'react'
 import { toast } from 'sonner'
 
 import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox'
@@ -101,8 +108,9 @@ export const BoardPageClient = memo(function BoardPageClient({
     }
   }, [dispatch, board])
 
-  // Apply board theme on mount and when it changes
-  useEffect(() => {
+  // Apply board theme synchronously before paint
+  // useLayoutEffect prevents flash of unstyled content on initial render
+  useLayoutEffect(() => {
     if (currentTheme) {
       applyTheme(currentTheme as Parameters<typeof applyTheme>[0])
     }
@@ -130,15 +138,19 @@ export const BoardPageClient = memo(function BoardPageClient({
   const [initialNote, setInitialNote] = useState('')
 
   // AddRepositoryCombobox controlled state
-  const [addRepoStatusId, setAddRepoStatusId] = useState<string>('')
+  // User-selected status ID (null = use default first column)
+  const [userSelectedStatusId, setUserSelectedStatusId] = useState<
+    string | null
+  >(null)
   const [isAddRepoComboboxOpen, setIsAddRepoComboboxOpen] = useState(false)
 
-  // Initialize addRepoStatusId when statusLists loads
-  useEffect(() => {
-    if (statusLists.length > 0 && !addRepoStatusId) {
-      setAddRepoStatusId(statusLists[0].id)
-    }
-  }, [statusLists, addRepoStatusId])
+  // Derived: user selection or first available column
+  // No useEffect needed - computed directly from state
+  const addRepoStatusId = useMemo(() => {
+    if (userSelectedStatusId) return userSelectedStatusId
+    if (statusLists.length > 0) return statusLists[0].id
+    return ''
+  }, [userSelectedStatusId, statusLists])
 
   /**
    * Open Project Info modal
@@ -491,24 +503,21 @@ export const BoardPageClient = memo(function BoardPageClient({
    * handleAddCard("status-123") // Opens combobox targeting that column
    */
   const handleAddCard = useCallback((statusId: string) => {
-    setAddRepoStatusId(statusId)
+    setUserSelectedStatusId(statusId)
     setIsAddRepoComboboxOpen(true)
   }, [])
 
   /**
    * Handles AddRepositoryCombobox open state changes
-   * Resets to first column when closing
+   * Resets to default (first column) when closing
    */
-  const handleAddRepoOpenChange = useCallback(
-    (open: boolean) => {
-      setIsAddRepoComboboxOpen(open)
-      if (!open && statusLists.length > 0) {
-        // Reset to first column when closing
-        setAddRepoStatusId(statusLists[0].id)
-      }
-    },
-    [statusLists],
-  )
+  const handleAddRepoOpenChange = useCallback((open: boolean) => {
+    setIsAddRepoComboboxOpen(open)
+    if (!open) {
+      // Reset to default (null = useMemo computes first column)
+      setUserSelectedStatusId(null)
+    }
+  }, [])
 
   // ========================================
   // Board Settings Dialog handlers

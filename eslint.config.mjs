@@ -230,26 +230,27 @@ export default defineConfig([
     },
   },
 
-  // BoardPageClient - theme application and state initialization patterns
+  // BoardPageClient - PHASE 3 COMPLETE (2025-12-31)
+  // Refactored: useLayoutEffect for theme, useMemo for derived addRepoStatusId
+  // Remaining exception: theme application on change is still a side effect
   {
     files: ['**/app/board/*/BoardPageClient.tsx'],
     rules: {
-      // Theme application on mount/change is an intentional side effect
-      // State initialization when data loads is also intentional
       'react-you-might-not-need-an-effect/no-event-handler': 'off',
       'react-you-might-not-need-an-effect/no-chain-state-updates': 'off',
     },
   },
 
-  // Combobox/Dialog patterns - useEffect for data fetching on open is intentional
-  // AddRepositoryCombobox uses useEffectEvent for data fetching separation (Phase 2)
+  // Combobox/Dialog patterns - PHASE 2 & 3 COMPLETE (2025-12-31)
+  // AddRepositoryCombobox: useEffectEvent for data fetching separation (Phase 2)
+  // MaintenanceClient: event-driven data fetching in handleRestore (Phase 3)
   {
     files: [
       'components/Board/AddRepositoryCombobox.tsx',
       'app/maintenance/MaintenanceClient.tsx',
     ],
     rules: {
-      // Data fetching when dialog opens is a valid pattern
+      // AddRepositoryCombobox: useEffect for isOpen triggers data fetching
       'react-you-might-not-need-an-effect/no-event-handler': 'off',
       'react-you-might-not-need-an-effect/no-derived-state': 'off',
       // Chain pattern: fetch orgs first, then repos (intentional dependency)
@@ -257,7 +258,9 @@ export default defineConfig([
     },
   },
 
-  // Command palette - keyboard focus and scroll-into-view are intentional
+  // Command palette - PHASE 3 COMPLETE (2025-12-31)
+  // Refactored: autoFocus replaces focus useEffect, useLayoutEffect for scroll-into-view
+  // Remaining exception: global ⌘K keyboard handler useEffect is intentional
   {
     files: ['components/CommandPalette/CommandPalette.tsx'],
     rules: {
