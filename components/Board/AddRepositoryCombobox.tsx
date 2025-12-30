@@ -15,6 +15,7 @@ import {
   getAuthenticatedUserRepositories,
   getAuthenticatedUser,
   getAuthenticatedUserOrganizations,
+  getOrganizationRepositories,
   type GitHubRepository,
   type GitHubUser,
   type GitHubOrganization,
@@ -183,17 +184,46 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     setReposError(null)
 
     try {
+      // Fetch ALL repos with pagination to ensure all repos are available
+      // This fixes the bug where repos beyond the first 100 were not visible
       const result = await getAuthenticatedUserRepositories({
         sort: 'updated',
         per_page: 100,
+        fetchAll: true, // Enable pagination to fetch all repos
       })
 
       if (result.error) {
         setReposError(result.error)
         setUserRepos([])
-      } else if (result.data) {
-        setUserRepos(result.data)
+        return
       }
+
+      const allRepos = result.data || []
+
+      // Additionally fetch organization repos to ensure org repos are visible
+      // The /user/repos API may not return all org repos, so we need to supplement
+      // with /orgs/{org}/repos for each organization the user belongs to
+      if (organizations.length > 0) {
+        const orgRepoPromises = organizations.map(async (org) =>
+          getOrganizationRepositories(org.login, { fetchAll: true }),
+        )
+        const orgResults = await Promise.all(orgRepoPromises)
+
+        // Merge org repos with user repos, deduplicating by repo id
+        const existingIds = new Set(allRepos.map((repo) => repo.id))
+        for (const orgResult of orgResults) {
+          if (orgResult.data) {
+            for (const repo of orgResult.data) {
+              if (!existingIds.has(repo.id)) {
+                allRepos.push(repo)
+                existingIds.add(repo.id)
+              }
+            }
+          }
+        }
+      }
+
+      setUserRepos(allRepos)
     } catch (error) {
       setReposError(
         error instanceof Error ? error.message : 'Failed to fetch repositories',
@@ -202,7 +232,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     } finally {
       setIsLoadingRepos(false)
     }
-  }, [isOpen])
+  }, [isOpen, organizations])
 
   /**
    * Fetch current user and organizations for the Organization Filter
@@ -233,13 +263,20 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     }
   }, [isOpen])
 
-  // Fetch repositories and organizations when combobox opens
+  // Fetch organizations when combobox opens
   useEffect(() => {
     if (isOpen) {
-      fetchRepositories()
       fetchOrganizations()
     }
-  }, [isOpen, fetchRepositories, fetchOrganizations])
+  }, [isOpen, fetchOrganizations])
+
+  // Fetch repositories after organizations are loaded (or if no orgs)
+  // This ensures org repos are included in the fetch
+  useEffect(() => {
+    if (isOpen && !isLoadingOrgs) {
+      fetchRepositories()
+    }
+  }, [isOpen, isLoadingOrgs, fetchRepositories])
 
   // Debounce search query (300ms)
   useEffect(() => {

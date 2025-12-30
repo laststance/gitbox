@@ -136,11 +136,28 @@ async function getGitHubToken(): Promise<string | null> {
 
 /**
  * Get authenticated user's repository list
+ *
+ * Fetches repositories from GitHub API with optional pagination support.
+ * When `fetchAll: true`, iterates through all pages to get complete list.
+ *
+ * @param params.sort - Sort order for repositories
+ * @param params.per_page - Number of repos per page (max 100)
+ * @param params.page - Specific page to fetch (ignored when fetchAll is true)
+ * @param params.fetchAll - Fetch all pages instead of just one (default: false)
+ * @returns Array of repositories or error message
+ *
+ * @example
+ * // Fetch all repos (paginated)
+ * const { data } = await getAuthenticatedUserRepositories({ fetchAll: true })
+ *
+ * // Fetch single page
+ * const { data } = await getAuthenticatedUserRepositories({ per_page: 100, page: 1 })
  */
 export async function getAuthenticatedUserRepositories(params?: {
   sort?: 'created' | 'updated' | 'pushed' | 'full_name'
   per_page?: number
   page?: number
+  fetchAll?: boolean
 }): Promise<{ data: GitHubRepository[] | null; error: string | null }> {
   // E2E test mode: return mock data
   if (isTestMode()) {
@@ -157,10 +174,66 @@ export async function getAuthenticatedUserRepositories(params?: {
   }
 
   try {
+    const perPage = params?.per_page ?? 100
+    const fetchAll = params?.fetchAll ?? false
+
+    // If fetchAll is true, paginate through all pages
+    if (fetchAll) {
+      const allRepos: GitHubRepository[] = []
+      let page = 1
+      const maxPages = 10 // Safety limit to prevent infinite loops (1000 repos max)
+
+      while (page <= maxPages) {
+        const searchParams = new URLSearchParams()
+        if (params?.sort) searchParams.set('sort', params.sort)
+        searchParams.set('per_page', perPage.toString())
+        searchParams.set('page', page.toString())
+
+        const url = `${GITHUB_API_BASE_URL}/user/repos?${searchParams.toString()}`
+
+        const response = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github.v3+json',
+            'User-Agent': 'GitBox-App',
+          },
+          next: {
+            revalidate: 60, // Cache for 1 minute
+          },
+        } as RequestInit)
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            return {
+              data: null,
+              error: 'GitHub token expired. Please sign in again.',
+            }
+          }
+          const errorData = await response.json().catch(() => ({}))
+          return {
+            data: null,
+            error: errorData.message || `GitHub API error: ${response.status}`,
+          }
+        }
+
+        const data: GitHubRepository[] = await response.json()
+        allRepos.push(...data)
+
+        // If we got fewer repos than requested, we've reached the last page
+        if (data.length < perPage) {
+          break
+        }
+
+        page++
+      }
+
+      return { data: allRepos, error: null }
+    }
+
+    // Single page fetch (original behavior)
     const searchParams = new URLSearchParams()
     if (params?.sort) searchParams.set('sort', params.sort)
-    if (params?.per_page)
-      searchParams.set('per_page', params.per_page.toString())
+    searchParams.set('per_page', perPage.toString())
     if (params?.page) searchParams.set('page', params.page.toString())
 
     const url = `${GITHUB_API_BASE_URL}/user/repos?${searchParams.toString()}`
@@ -478,6 +551,158 @@ export async function getAuthenticatedUser(): Promise<{
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Failed to fetch user',
+    }
+  }
+}
+
+/**
+ * Get organization's repositories
+ *
+ * Fetches repositories from a specific GitHub organization.
+ * Used when organization filter is selected to ensure all org repos are visible.
+ *
+ * @param org - Organization login name
+ * @param params.per_page - Number of repos per page (max 100)
+ * @param params.fetchAll - Fetch all pages instead of just one
+ * @returns Array of repositories or error message
+ *
+ * @example
+ * const { data } = await getOrganizationRepositories('laststance', { fetchAll: true })
+ */
+export async function getOrganizationRepositories(
+  org: string,
+  params?: {
+    per_page?: number
+    fetchAll?: boolean
+  },
+): Promise<{ data: GitHubRepository[] | null; error: string | null }> {
+  // E2E test mode: return mock data filtered by org
+  if (isTestMode()) {
+    const filtered = MOCK_GITHUB_REPOS.filter(
+      (repo) => repo.owner.login.toLowerCase() === org.toLowerCase(),
+    )
+    return { data: filtered, error: null }
+  }
+
+  const token = await getGitHubToken()
+
+  if (!token) {
+    return {
+      data: null,
+      error: 'GitHub token not found. Please sign in again.',
+    }
+  }
+
+  try {
+    const perPage = params?.per_page ?? 100
+    const fetchAll = params?.fetchAll ?? false
+
+    // If fetchAll is true, paginate through all pages
+    if (fetchAll) {
+      const allRepos: GitHubRepository[] = []
+      let page = 1
+      const maxPages = 10 // Safety limit (1000 repos max)
+
+      while (page <= maxPages) {
+        const searchParams = new URLSearchParams()
+        searchParams.set('per_page', perPage.toString())
+        searchParams.set('page', page.toString())
+        searchParams.set('type', 'all') // Get all repos (public, private, forks)
+
+        const url = `${GITHUB_API_BASE_URL}/orgs/${org}/repos?${searchParams.toString()}`
+
+        const response = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github.v3+json',
+            'User-Agent': 'GitBox-App',
+          },
+          next: {
+            revalidate: 60,
+          },
+        } as RequestInit)
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            return {
+              data: null,
+              error: 'GitHub token expired. Please sign in again.',
+            }
+          }
+          if (response.status === 404) {
+            return {
+              data: null,
+              error: `Organization '${org}' not found.`,
+            }
+          }
+          const errorData = await response.json().catch(() => ({}))
+          return {
+            data: null,
+            error: errorData.message || `GitHub API error: ${response.status}`,
+          }
+        }
+
+        const data: GitHubRepository[] = await response.json()
+        allRepos.push(...data)
+
+        if (data.length < perPage) {
+          break
+        }
+
+        page++
+      }
+
+      return { data: allRepos, error: null }
+    }
+
+    // Single page fetch
+    const searchParams = new URLSearchParams()
+    searchParams.set('per_page', perPage.toString())
+    searchParams.set('type', 'all')
+
+    const url = `${GITHUB_API_BASE_URL}/orgs/${org}/repos?${searchParams.toString()}`
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github.v3+json',
+        'User-Agent': 'GitBox-App',
+      },
+      next: {
+        revalidate: 60,
+      },
+    } as RequestInit)
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        return {
+          data: null,
+          error: 'GitHub token expired. Please sign in again.',
+        }
+      }
+      if (response.status === 404) {
+        return {
+          data: null,
+          error: `Organization '${org}' not found.`,
+        }
+      }
+      const errorData = await response.json().catch(() => ({}))
+      return {
+        data: null,
+        error: errorData.message || `GitHub API error: ${response.status}`,
+      }
+    }
+
+    const data = await response.json()
+    return { data, error: null }
+  } catch (error) {
+    console.error('Failed to fetch organization repositories:', error)
+    return {
+      data: null,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Failed to fetch organization repositories',
     }
   }
 }
