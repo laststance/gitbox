@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-label="GitBox Board View Placeholder">
+  <rect width="1200" height="675" fill="#f5f5f5" />
+  <rect x="40" y="40" width="1120" height="595" rx="24" fill="#ffffff" stroke="#d4d4d4" />
+  <text x="80" y="110" font-family="Arial, sans-serif" font-size="32" fill="#111111">GitBox Board View (Placeholder)</text>
+  <rect x="80" y="150" width="320" height="430" rx="16" fill="#fafafa" stroke="#e5e5e5" />
+  <rect x="440" y="150" width="320" height="430" rx="16" fill="#fafafa" stroke="#e5e5e5" />
+  <rect x="800" y="150" width="320" height="430" rx="16" fill="#fafafa" stroke="#e5e5e5" />
+  <text x="120" y="190" font-family="Arial, sans-serif" font-size="18" fill="#666666">Backlog</text>
+  <text x="480" y="190" font-family="Arial, sans-serif" font-size="18" fill="#666666">In Progress</text>
+  <text x="840" y="190" font-family="Arial, sans-serif" font-size="18" fill="#666666">Done</text>
+  <rect x="120" y="220" width="240" height="64" rx="12" fill="#ffffff" stroke="#e5e5e5" />
+  <rect x="120" y="300" width="240" height="64" rx="12" fill="#ffffff" stroke="#e5e5e5" />
+  <rect x="480" y="220" width="240" height="64" rx="12" fill="#ffffff" stroke="#e5e5e5" />
+  <rect x="840" y="220" width="240" height="64" rx="12" fill="#ffffff" stroke="#e5e5e5" />
+  <text x="80" y="620" font-family="Arial, sans-serif" font-size="16" fill="#888888">Replace with real screenshots for release.</text>
+</svg>

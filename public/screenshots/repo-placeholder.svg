@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-label="GitBox Repository View Placeholder">
+  <rect width="1200" height="675" fill="#f5f5f5" />
+  <rect x="40" y="40" width="1120" height="595" rx="24" fill="#ffffff" stroke="#d4d4d4" />
+  <text x="80" y="110" font-family="Arial, sans-serif" font-size="32" fill="#111111">GitBox Repository View (Placeholder)</text>
+  <rect x="80" y="150" width="1040" height="80" rx="16" fill="#fafafa" stroke="#e5e5e5" />
+  <rect x="80" y="250" width="520" height="330" rx="16" fill="#fafafa" stroke="#e5e5e5" />
+  <rect x="620" y="250" width="500" height="330" rx="16" fill="#fafafa" stroke="#e5e5e5" />
+  <text x="110" y="200" font-family="Arial, sans-serif" font-size="18" fill="#666666">Repository Details</text>
+  <text x="110" y="300" font-family="Arial, sans-serif" font-size="18" fill="#666666">Notes</text>
+  <text x="650" y="300" font-family="Arial, sans-serif" font-size="18" fill="#666666">Activity</text>
+  <text x="80" y="620" font-family="Arial, sans-serif" font-size="16" fill="#888888">Replace with real screenshots for release.</text>
+</svg>
