@@ -84,7 +84,7 @@ describe('createStorageMiddleware', () => {
 
     const { middleware, reducer } = createStorageMiddleware({
       rootReducer,
-      name: 'test-state',
+      key: 'test-state',
       slices: ['test'],
       performance: { debounceMs: 100 },
     })
@@ -124,7 +124,7 @@ describe('createStorageMiddleware', () => {
 
     const { middleware, reducer } = createStorageMiddleware({
       rootReducer,
-      name: 'test-debounce',
+      key: 'test-debounce',
       slices: ['test'],
       performance: { debounceMs: 200 },
     })
@@ -177,7 +177,7 @@ describe('createStorageMiddleware', () => {
 
     const { middleware, reducer } = createStorageMiddleware({
       rootReducer,
-      name: 'test-throttle',
+      key: 'test-throttle',
       slices: ['test'],
       performance: { throttleMs: 200 },
     })
@@ -228,7 +228,7 @@ describe('createStorageMiddleware', () => {
 
     const { middleware, reducer } = createStorageMiddleware({
       rootReducer,
-      name: 'test-auto-hydrate',
+      key: 'test-auto-hydrate',
       onHydrationComplete,
     })
 
@@ -253,7 +253,7 @@ describe('createStorageMiddleware', () => {
 
     const { middleware, reducer } = createStorageMiddleware({
       rootReducer,
-      name: 'test-onsave',
+      key: 'test-onsave',
       slices: ['test'],
       performance: { debounceMs: 100 },
       onSaveComplete,
@@ -301,7 +301,7 @@ describe('Hydration API', () => {
 
     const { middleware, reducer, api } = createStorageMiddleware({
       rootReducer,
-      name: 'test-has-hydrated',
+      key: 'test-has-hydrated',
     })
 
     configureStore({
@@ -326,7 +326,7 @@ describe('Hydration API', () => {
 
     const { middleware, reducer, api } = createStorageMiddleware({
       rootReducer,
-      name: 'test-hydration-state',
+      key: 'test-hydration-state',
     })
 
     configureStore({
@@ -356,7 +356,7 @@ describe('Hydration API', () => {
 
     const { middleware, reducer, api } = createStorageMiddleware({
       rootReducer,
-      name: 'test-clear',
+      key: 'test-clear',
     })
 
     configureStore({
@@ -387,7 +387,7 @@ describe('Hydration API', () => {
 
     const { middleware, reducer, api } = createStorageMiddleware({
       rootReducer,
-      name: 'test-callback',
+      key: 'test-callback',
     })
 
     configureStore({
@@ -423,7 +423,7 @@ describe('Hydration API', () => {
 
     const { middleware, reducer, api } = createStorageMiddleware({
       rootReducer,
-      name: 'test-immediate-callback',
+      key: 'test-immediate-callback',
     })
 
     configureStore({
@@ -523,7 +523,7 @@ describe('Integration Test: Store with Middleware', () => {
     // Create Middleware with new API (rootReducer passed, reducer returned)
     const { middleware, reducer } = createStorageMiddleware({
       rootReducer,
-      name: 'integration-test',
+      key: 'integration-test',
       slices: ['test'],
       performance: { debounceMs: 100 },
     })
@@ -567,21 +567,21 @@ describe('Storage Key Validation', () => {
   })
 
   describe('createStorageMiddleware', () => {
-    it('rejects empty key names', () => {
+    it('rejects empty keys', () => {
       expect(() =>
         createStorageMiddleware({
           rootReducer: validationRootReducer,
-          name: '',
+          key: '',
           slices: ['test'],
         }),
-      ).toThrow('[redux-storage-middleware] Storage key name must not be empty')
+      ).toThrow('[redux-storage-middleware] Storage key must not be empty')
     })
 
-    it('rejects key names with invalid characters', () => {
+    it('rejects keys with invalid characters', () => {
       expect(() =>
         createStorageMiddleware({
           rootReducer: validationRootReducer,
-          name: 'key with spaces',
+          key: 'key with spaces',
           slices: ['test'],
         }),
       ).toThrow('contains invalid characters')
@@ -589,7 +589,7 @@ describe('Storage Key Validation', () => {
       expect(() =>
         createStorageMiddleware({
           rootReducer: validationRootReducer,
-          name: 'key<script>',
+          key: 'key<script>',
           slices: ['test'],
         }),
       ).toThrow('contains invalid characters')
@@ -597,17 +597,17 @@ describe('Storage Key Validation', () => {
       expect(() =>
         createStorageMiddleware({
           rootReducer: validationRootReducer,
-          name: 'key/path',
+          key: 'key/path',
           slices: ['test'],
         }),
       ).toThrow('contains invalid characters')
     })
 
-    it('rejects reserved key names', () => {
+    it('rejects reserved keys', () => {
       expect(() =>
         createStorageMiddleware({
           rootReducer: validationRootReducer,
-          name: '__proto__',
+          key: '__proto__',
           slices: ['test'],
         }),
       ).toThrow('is reserved and cannot be used')
@@ -615,7 +615,7 @@ describe('Storage Key Validation', () => {
       expect(() =>
         createStorageMiddleware({
           rootReducer: validationRootReducer,
-          name: 'prototype',
+          key: 'prototype',
           slices: ['test'],
         }),
       ).toThrow('is reserved and cannot be used')
@@ -623,17 +623,17 @@ describe('Storage Key Validation', () => {
       expect(() =>
         createStorageMiddleware({
           rootReducer: validationRootReducer,
-          name: 'constructor',
+          key: 'constructor',
           slices: ['test'],
         }),
       ).toThrow('is reserved and cannot be used')
     })
 
-    it('accepts valid key names', () => {
+    it('accepts valid keys', () => {
       expect(() =>
         createStorageMiddleware({
           rootReducer: validationRootReducer,
-          name: 'my-app-state',
+          key: 'my-app-state',
           slices: ['test'],
         }),
       ).not.toThrow()
@@ -641,7 +641,7 @@ describe('Storage Key Validation', () => {
       expect(() =>
         createStorageMiddleware({
           rootReducer: validationRootReducer,
-          name: 'app.settings.v2',
+          key: 'app.settings.v2',
           slices: ['test'],
         }),
       ).not.toThrow()
@@ -649,7 +649,7 @@ describe('Storage Key Validation', () => {
       expect(() =>
         createStorageMiddleware({
           rootReducer: validationRootReducer,
-          name: 'user_preferences_123',
+          key: 'user_preferences_123',
           slices: ['test'],
         }),
       ).not.toThrow()
@@ -657,13 +657,13 @@ describe('Storage Key Validation', () => {
   })
 
   describe('loadStateFromStorage', () => {
-    it('rejects empty key names', () => {
+    it('rejects empty keys', () => {
       expect(() => loadStateFromStorage('')).toThrow(
-        '[redux-storage-middleware] Storage key name must not be empty',
+        '[redux-storage-middleware] Storage key must not be empty',
       )
     })
 
-    it('rejects reserved key names', () => {
+    it('rejects reserved keys', () => {
       expect(() => loadStateFromStorage('__proto__')).toThrow(
         'is reserved and cannot be used',
       )
@@ -671,13 +671,13 @@ describe('Storage Key Validation', () => {
   })
 
   describe('clearStorageState', () => {
-    it('rejects empty key names', () => {
+    it('rejects empty keys', () => {
       expect(() => clearStorageState('')).toThrow(
-        '[redux-storage-middleware] Storage key name must not be empty',
+        '[redux-storage-middleware] Storage key must not be empty',
       )
     })
 
-    it('rejects reserved key names', () => {
+    it('rejects reserved keys', () => {
       expect(() => clearStorageState('constructor')).toThrow(
         'is reserved and cannot be used',
       )

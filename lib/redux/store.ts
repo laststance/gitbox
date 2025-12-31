@@ -35,7 +35,7 @@ const rootReducer = combineReducers({
 const { middleware: storageMiddleware, reducer: hydratedReducer } =
   createStorageMiddleware({
     rootReducer, // Required: pass root reducer
-    name: 'gitbox-state',
+    key: 'gitbox-state',
     slices: ['settings', 'board', 'draft'], // Persist these slices to localStorage
   })
 

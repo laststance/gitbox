@@ -28,7 +28,7 @@ const {
   api: storageApi,
 } = createStorageMiddleware<AppState>({
   rootReducer, // Required: pass root reducer
-  name: 'gmail-clone-state',
+  key: 'gmail-clone-state',
   slices: ['emails'],
   performance: {
     debounceMs: 300, // Debounce writes for performance
