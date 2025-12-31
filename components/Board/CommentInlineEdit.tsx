@@ -100,7 +100,7 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
     // Character count helpers
     const charCount = editValue.length
     const isOverLimit = charCount > maxLength
-    const isWarning = charCount > WARNING_THRESHOLD && !isOverLimit
+    const isWarning = charCount >= WARNING_THRESHOLD && !isOverLimit
 
     /**
      * Handle save action
