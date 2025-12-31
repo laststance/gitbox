@@ -168,4 +168,110 @@ test.describe('Comment Display on RepoCard (Authenticated)', () => {
       await expect(emptyState).toBeVisible({ timeout: 5000 })
     }
   })
+
+  test('should allow typing Space key in comment edit without triggering drag', async ({
+    page,
+  }) => {
+    await page.goto(BOARD_URL)
+
+    // Wait for page to stabilize
+    await page.waitForLoadState('networkidle')
+
+    // Wait for kanban board to load
+    await expect(
+      page.locator('[data-testid^="repo-card-"]').first(),
+    ).toBeVisible({
+      timeout: 10000,
+    })
+
+    // Click on the empty state / comment area to enter edit mode
+    // card-3 has empty comment - use it for testing
+    const card3EmptyState = page.locator(
+      '[data-testid="repo-card-card-3"] [data-testid="comment-empty-state"]',
+    )
+    await expect(card3EmptyState).toBeVisible({ timeout: 10000 })
+    await card3EmptyState.click()
+
+    // Wait for inline edit to appear
+    const inlineEdit = page.locator(
+      '[data-testid="repo-card-card-3"] [data-testid="comment-inline-edit"]',
+    )
+    await expect(inlineEdit).toBeVisible({ timeout: 5000 })
+
+    // Get the textarea
+    const textarea = page.locator(
+      '[data-testid="repo-card-card-3"] [data-testid="comment-textarea"]',
+    )
+    await expect(textarea).toBeVisible({ timeout: 5000 })
+    await expect(textarea).toBeFocused()
+
+    // Type text with spaces - this should NOT trigger dnd-kit drag mode
+    const testText = 'Test comment with multiple spaces'
+    await textarea.fill(testText)
+
+    // Verify the text was entered correctly (including spaces)
+    await expect(textarea).toHaveValue(testText)
+
+    // Verify no drag overlay is visible (drag mode was not triggered)
+    const dragOverlay = page.locator('[data-dnd-kit-drag-overlay]')
+    await expect(dragOverlay).not.toBeVisible()
+
+    // Press Escape to cancel without saving
+    await textarea.press('Escape')
+
+    // Inline edit should close
+    await expect(inlineEdit).not.toBeVisible({ timeout: 5000 })
+  })
+
+  test('should save comment with spaces via Enter key', async ({ page }) => {
+    await page.goto(BOARD_URL)
+
+    // Wait for page to stabilize
+    await page.waitForLoadState('networkidle')
+
+    // Wait for kanban board to load
+    await expect(
+      page.locator('[data-testid^="repo-card-"]').first(),
+    ).toBeVisible({
+      timeout: 10000,
+    })
+
+    // Click on existing comment to enter edit mode
+    // card-1 has a comment already
+    const card1CommentDisplay = page.locator(
+      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+    )
+    await expect(card1CommentDisplay).toBeVisible({ timeout: 10000 })
+    await card1CommentDisplay.click()
+
+    // Wait for inline edit to appear
+    const inlineEdit = page.locator(
+      '[data-testid="repo-card-card-1"] [data-testid="comment-inline-edit"]',
+    )
+    await expect(inlineEdit).toBeVisible({ timeout: 5000 })
+
+    // Get the textarea
+    const textarea = page.locator(
+      '[data-testid="repo-card-card-1"] [data-testid="comment-textarea"]',
+    )
+    await expect(textarea).toBeVisible({ timeout: 5000 })
+
+    // Clear and type new text with spaces
+    await textarea.clear()
+    const newComment = 'Updated comment with spaces'
+    await textarea.fill(newComment)
+
+    // Verify the text was entered correctly
+    await expect(textarea).toHaveValue(newComment)
+
+    // Press Enter to save (without Shift)
+    await textarea.press('Enter')
+
+    // Inline edit should close after save
+    await expect(inlineEdit).not.toBeVisible({ timeout: 5000 })
+
+    // Comment display should show the new text
+    await expect(card1CommentDisplay).toBeVisible({ timeout: 5000 })
+    await expect(card1CommentDisplay).toContainText(newComment)
+  })
 })

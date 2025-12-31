@@ -139,9 +139,17 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
      * Handle keyboard shortcuts
      * - Enter (without Shift) = Save
      * - Escape = Cancel
+     *
+     * IMPORTANT: Stops propagation for ALL keys to prevent dnd-kit's
+     * KeyboardSensor from capturing Space/Enter and triggering drag mode.
+     * @see https://github.com/laststance/gitbox/issues/XX
      */
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        // Stop propagation for all keys to prevent dnd-kit from intercepting
+        // This is critical for Space key which dnd-kit uses to start drag
+        e.stopPropagation()
+
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault()
           handleSave()
@@ -193,6 +201,9 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
     return (
       <div
         data-testid="comment-inline-edit"
+        onPointerDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        onKeyUp={(e) => e.stopPropagation()}
         className={cn(
           // Container styles matching CommentDisplay edit mode
           'border-l-4 rounded-r-md p-3 bg-background',
@@ -201,7 +212,7 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
           className,
         )}
       >
-        {/* Textarea */}
+        {/* Textarea - isolated from dnd-kit drag events */}
         <Textarea
           ref={textareaRef}
           value={editValue}
