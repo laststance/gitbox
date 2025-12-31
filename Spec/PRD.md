@@ -178,47 +178,7 @@ color.success / warning / danger
    - **Tracking services**（GA/GTM/Plausible などのダッシュボードURL）
    - **Supabase Dashboard**（プロジェクト/Branch/Pooler等の参照リンク）
 
-3. **Credentials（3つの管理パターン）**
-
-   ##### パターンA: 参照リンク型
-
-   ダッシュボードでいつでも確認可能なサービス（Supabase等）
-   - ダッシュボードへのリンクのみ保存
-   - 実際の値はサービス側で管理
-
-   ##### パターンB: 暗号化保存型
-
-   一度きりのシークレット（OAuth Secret等）
-   - AES-256-GCM で暗号化してDB保存
-   - マスク表示がデフォルト（例: `github_*****xyz789`）
-
-   ##### パターンC: 外部管理型
-
-   1Password/Bitwarden等で管理
-   - 外部ツールでの保管場所のみ記録
-   - チームVaultへの参照を提供
-
-4. **Integrations**（Webhook/CIなどのメタ）
-
-#### セキュリティ要件（強化版）
-
-##### 暗号化仕様
-
-- アルゴリズム: **AES-256-GCM**
-- 鍵管理: **AWS KMS / GCP KMS / Azure Key Vault**
-- 鍵ローテーション: **90日ごと**
-
-##### アクセス制御
-
-- 暗号化された値の復号時は**2FA認証必須**
-- **RBAC**（役割ベースアクセス制御）
-- すべての機密情報アクセスを**監査ログ**に記録
-
-##### 表示制御
-
-- デフォルトは**マスク表示**（`****`）
-- "Reveal"ボタンで一時表示（**30秒後に自動マスク**）
-- コピー機能使用時は監査ログに記録
+3. **Integrations**（Webhook/CIなどのメタ）
 
 ### 3.6 Comment on RepoCard（インラインコメント）
 
@@ -349,7 +309,7 @@ Restore to Board     // Maintenanceのみ表示
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-### 5.3 Project Info（Modal - 強化版）
+### 5.3 Project Info（Modal）
 
 ```
 ┌───────────────────────────────────────────────────┐
@@ -362,23 +322,6 @@ Restore to Board     // Maintenanceのみ表示
 │ • Production URL(s):  https://app.example.com     │
 │ • Tracking:           https://plausible.io/...    │
 │ • Supabase:           https://supabase.com/...    │
-│---------------------------------------------------│
-│ Credentials                                       │
-│                                                   │
-│ 📎 Supabase API Key                              │
-│    Type: Reference                               │
-│    [Open Dashboard →]                            │
-│                                                   │
-│ 🔒 GitHub OAuth Secret                           │
-│    Type: Encrypted (Stored securely)             │
-│    Value: github_*****xyz789                     │
-│    Created: 2025-01-15                          │
-│    [Copy] [Reveal] ← Requires 2FA               │
-│                                                   │
-│ 🔑 Database Password                             │
-│    Type: External (1Password)                    │
-│    Location: Team Vault > Production             │
-│    [Open 1Password →]                           │
 │---------------------------------------------------│
 │ [ Save ] [ Cancel ]                               │
 └───────────────────────────────────────────────────┘
@@ -509,7 +452,7 @@ Floating Toolbar (on text selection):
 
 ---
 
-## 6) データモデル（セキュリティ強化版）
+## 6) データモデル
 
 ```javascript
 Board {
@@ -531,37 +474,11 @@ RepoCard {
 ProjectInfo {
   repoId,
   links{production[], tracking[], supabase[]},
-  credentials: [
-    {
-      id: string,
-      type: "reference" | "encrypted" | "external",
-      name: string,
-
-      // type: "reference"の場合
-      reference?: string, // URLやダッシュボードへのリンク
-
-      // type: "encrypted"の場合
-      encrypted_value?: string, // AES-256-GCM暗号化された値
-      encryption_key_id?: string, // KMS key reference
-      created_at?: timestamp,
-      last_accessed?: timestamp,
-      masked_display?: string, // 例: "sk_live_****1234"
-
-      // type: "external"の場合
-      location?: string, // 外部管理ツールでの場所
-
-      note?: string // 任意のメモ
-    }
-  ]
+  comment: string  // インラインコメント（最大300文字）
 }
 
 Maintenance {
   repoId, hidden?: boolean
-}
-
-AuditLog {
-  id, userId, action, resourceId, resourceType,
-  timestamp, ipAddress, userAgent, success: boolean
 }
 ```
 
@@ -582,12 +499,6 @@ AuditLog {
 - D&D/Undo操作がストレスなく機能
 - Grid/List切替がワンクリックで即座に反映
 
-### 7.3 セキュリティテスト
-
-- 暗号化/復号プロセスの自動テスト
-- 監査ログの完全性確認
-- 鍵ローテーションの動作確認
-
 ---
 
 ## 8) 受け入れ基準（統合版）
@@ -607,15 +518,6 @@ AuditLog {
 
 - 12テーマ全てで、本文テキストの**4.5:1**、UI要素の**3:1**以上を満たす（自動テスト含む）
 
-### セキュリティ（強化版）
-
-- 3つの機密情報管理パターンが正しく機能する
-- 一度きりのシークレットを**AES-256-GCM**で安全に暗号化して保存できる
-- 暗号化された値の復号には**2FA認証**が必要
-- すべての機密情報アクセスが**監査ログ**に記録される
-- 3つの管理パターン（参照/暗号化/外部）をUIで明確に区別表示
-- マスク表示がデフォルトで、必要時のみ値を表示（30秒で自動マスク）
-
 ---
 
 ## 9) 実装フェーズ
@@ -624,18 +526,13 @@ AuditLog {
 
 - Board/Kanbanの基本機能
 - GitHub OAuth & Repository追加
-- 参照リンク型のCredentials管理
+- Project Info（Notes、Links）
 
-### Phase 2: セキュリティ強化
+### Phase 2: 完全版
 
-- 暗号化保存型のCredentials実装
-- 監査ログシステム
-
-### Phase 3: 完全版
-
-- 外部管理型（1Password/Bitwarden連携）
 - Maintenance Mode完全実装
 - 12テーマ対応
+- Comment on RepoCard機能
 
 ---
 
@@ -908,5 +805,4 @@ export async function cdpColumnToInsertZone(page, columnId, row, col, options?)
 - [Apple HIG - Lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables)
 - [GitHub Docs - Projects](https://docs.github.com/en/issues/planning-and-tracking-with-projects/)
 - [Supabase Docs](https://supabase.com/docs/)
-- [OWASP Secrets Management](https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html)
 - [Deque University - Color Contrast](https://dequeuniversity.com/rules/axe/4.8/color-contrast)

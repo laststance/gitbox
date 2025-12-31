@@ -8,12 +8,6 @@
  * - Quick note: 1-3 line memo (300 character limit)
  * - Links: Production URL, Tracking services, Supabase Dashboard
  * - Supabase integration for persistent storage
- *
- * User Story 5:
- * - Credentials: 3 patterns of credential management
- *   - Pattern A: Reference (dashboard URL only)
- *   - Pattern B: Encrypted (AES-256-GCM encryption)
- *   - Pattern C: External (1Password/Bitwarden reference)
  */
 
 'use server'
@@ -27,31 +21,16 @@ import { getSlateTextLength, parseSlateValue } from '@/lib/utils/slate-utils'
 type ProjectInfoRow = Tables<'projectinfo'>
 type ProjectInfoInsert = TablesInsert<'projectinfo'>
 type ProjectInfoUpdate = TablesUpdate<'projectinfo'>
-type CredentialRow = Tables<'credential'>
-type CredentialInsert = TablesInsert<'credential'>
 
 export interface ProjectLink {
   url: string
   type: 'production' | 'tracking' | 'supabase'
 }
 
-export interface Credential {
-  id?: string
-  type: 'reference' | 'encrypted' | 'external'
-  name: string
-  reference?: string
-  encrypted_value?: string
-  encryption_key_id?: string
-  masked_display?: string
-  location?: string
-  note?: string
-}
-
 export interface ProjectInfoData {
   note: string
   comment: string
   links: ProjectLink[]
-  credentials?: Credential[]
 }
 
 /** Maximum character limit for notes (rich text) */
@@ -123,59 +102,6 @@ function validateUrl(url: string): boolean {
 }
 
 /**
- * XSS prevention: HTML escape
- */
-function escapeHtml(unsafe: string): string {
-  return unsafe
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-}
-
-/**
- * Validate credential
- */
-function validateCredential(credential: Credential): boolean {
-  // Name is required
-  if (!credential.name || credential.name.trim().length === 0) {
-    throw new Error('Credential name is required')
-  }
-
-  // Name length limit (100 characters)
-  if (credential.name.length > 100) {
-    throw new Error('Credential name must be 100 characters or less')
-  }
-
-  // Pattern A: Reference - reference field required
-  if (credential.type === 'reference') {
-    if (credential.reference) {
-      validateUrl(credential.reference)
-    }
-  }
-
-  // Pattern B: Encrypted - encrypted_value or masked_display required
-  if (credential.type === 'encrypted') {
-    if (!credential.encrypted_value && !credential.masked_display) {
-      throw new Error(
-        'Encrypted credential must have encrypted_value or masked_display',
-      )
-    }
-  }
-
-  // Pattern C: External - location field recommended (not required)
-  // location can be any string
-
-  // Note is optional, length limit (500 characters)
-  if (credential.note && credential.note.length > 500) {
-    throw new Error('Credential note must be 500 characters or less')
-  }
-
-  return true
-}
-
-/**
  * Get project info
  */
 export async function getProjectInfo(
@@ -192,7 +118,7 @@ export async function getProjectInfo(
   if (infoError) {
     if (infoError.code === 'PGRST116') {
       // Return empty state if data doesn't exist
-      return { note: '', comment: '', links: [], credentials: [] }
+      return { note: '', comment: '', links: [] }
     }
     Sentry.captureException(infoError, {
       extra: { context: 'Fetch project info', repoCardId },
@@ -226,40 +152,10 @@ export async function getProjectInfo(
     })),
   ]
 
-  // Get credentials
-  const { data: credentials, error: credError } = await supabase
-    .from('credential')
-    .select('*')
-    .eq('project_info_id', projectInfo.id)
-
-  if (credError) {
-    Sentry.captureMessage('Failed to fetch credentials (non-critical)', {
-      level: 'warning',
-      extra: { projectInfoId: projectInfo.id, error: credError },
-    })
-    // Credential fetch failure is not critical, return empty array
-  }
-
-  // Convert credentials to interface
-  const credentialsArray: Credential[] = (credentials || []).map(
-    (cred: CredentialRow) => ({
-      id: cred.id,
-      type: cred.type as 'reference' | 'encrypted' | 'external',
-      name: cred.name,
-      reference: cred.reference || undefined,
-      encrypted_value: cred.encrypted_value || undefined,
-      encryption_key_id: cred.encryption_key_id || undefined,
-      masked_display: cred.masked_display || undefined,
-      location: cred.location || undefined,
-      note: cred.note || undefined,
-    }),
-  )
-
   return {
     note: projectInfo.note || '',
     comment: projectInfo.comment || '',
     links: linksArray,
-    credentials: credentialsArray,
   }
 }
 
@@ -280,13 +176,6 @@ export async function upsertProjectInfo(
       validateUrl(link.url)
     }
   })
-
-  // Credentials validation
-  if (data.credentials) {
-    data.credentials.forEach((credential) => {
-      validateCredential(credential)
-    })
-  }
 
   // Note: note is stored as JSON (Slate format) for rich text.
   // JSON is inherently safe when stored as a string and parsed client-side.
@@ -311,11 +200,8 @@ export async function upsertProjectInfo(
       .eq('repo_card_id', repoCardId)
       .single<{ id: string }>()
 
-    let projectInfoId: string
-
     if (existingInfo) {
       // Update
-      projectInfoId = existingInfo.id
       const updateData: ProjectInfoUpdate = {
         note: data.note,
         comment: data.comment,
@@ -343,106 +229,15 @@ export async function upsertProjectInfo(
         links: linksJson,
       }
 
-      const { data: newProjectInfo, error: createError } = await supabase
+      const { error: createError } = await supabase
         .from('projectinfo')
         .insert(insertData)
-        .select('id')
-        .single<{ id: string }>()
 
-      if (createError || !newProjectInfo) {
-        Sentry.captureException(createError ?? new Error('No data returned'), {
+      if (createError) {
+        Sentry.captureException(createError, {
           extra: { context: 'Create project info', repoCardId },
         })
         throw new Error('Failed to create project information')
-      }
-
-      projectInfoId = newProjectInfo.id
-    }
-
-    // Process credentials
-    if (data.credentials) {
-      // Get existing credentials
-      const { data: existingCredentials } = await supabase
-        .from('credential')
-        .select('id')
-        .eq('project_info_id', projectInfoId)
-
-      const existingCredentialIds = new Set(
-        (existingCredentials || []).map((c) => c.id),
-      )
-      const submittedCredentialIds = new Set(
-        data.credentials.filter((c) => c.id).map((c) => c.id!),
-      )
-
-      // Delete: Remove credentials that were not submitted
-      const credentialsToDelete = Array.from(existingCredentialIds).filter(
-        (id) => !submittedCredentialIds.has(id),
-      )
-
-      if (credentialsToDelete.length > 0) {
-        const { error: deleteError } = await supabase
-          .from('credential')
-          .delete()
-          .in('id', credentialsToDelete)
-
-        if (deleteError) {
-          Sentry.captureMessage('Failed to delete credentials (non-critical)', {
-            level: 'warning',
-            extra: { credentialsToDelete, error: deleteError },
-          })
-        }
-      }
-
-      // Update and create
-      for (const credential of data.credentials) {
-        const credentialData = {
-          project_info_id: projectInfoId,
-          type: credential.type,
-          name: escapeHtml(credential.name),
-          reference: credential.reference
-            ? escapeHtml(credential.reference)
-            : null,
-          encrypted_value: credential.encrypted_value || null,
-          encryption_key_id: credential.encryption_key_id || null,
-          masked_display: credential.masked_display || null,
-          location: credential.location
-            ? escapeHtml(credential.location)
-            : null,
-          note: credential.note ? escapeHtml(credential.note) : null,
-        }
-
-        if (credential.id && existingCredentialIds.has(credential.id)) {
-          // Update
-          const { error: updateCredError } = await supabase
-            .from('credential')
-            .update(credentialData)
-            .eq('id', credential.id)
-
-          if (updateCredError) {
-            Sentry.captureException(updateCredError, {
-              extra: {
-                context: 'Update credential',
-                credentialId: credential.id,
-              },
-            })
-            throw new Error(`Failed to update credential: ${credential.name}`)
-          }
-        } else {
-          // Create new
-          const { error: insertCredError } = await supabase
-            .from('credential')
-            .insert(credentialData as CredentialInsert)
-
-          if (insertCredError) {
-            Sentry.captureException(insertCredError, {
-              extra: {
-                context: 'Insert credential',
-                credentialName: credential.name,
-              },
-            })
-            throw new Error(`Failed to create credential: ${credential.name}`)
-          }
-        }
       }
     }
 

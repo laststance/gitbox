@@ -270,7 +270,6 @@ describe('ProjectInfoModal', () => {
           note: 'Test note',
           comment: '',
           links: [],
-          credentials: [],
         })
       })
     })

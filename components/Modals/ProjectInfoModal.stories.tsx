@@ -1,11 +1,9 @@
 /**
  * ProjectInfoModal Component Stories
  *
- * A modal dialog for editing project information including quick notes,
- * links (production, tracking, Supabase), and credentials management.
- * Supports three credential patterns: Reference (URL only), Encrypted (AES-256-GCM),
- * and External (1Password/Bitwarden). Features automatic masking of sensitive data
- * and WCAG AA accessibility compliance.
+ * A modal dialog for editing project information including quick notes
+ * and links (production, tracking, Supabase).
+ * Features WCAG AA accessibility compliance.
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
@@ -38,14 +36,6 @@ const mockProjectInfo = {
       url: 'https://tracking.example.com',
     },
   ],
-  credentials: [
-    {
-      id: 'cred-1',
-      type: 'reference' as const,
-      name: 'Admin Dashboard',
-      reference: 'https://admin.example.com',
-    },
-  ],
 }
 
 export const Default: Story = {
@@ -71,7 +61,6 @@ export const Empty: Story = {
       note: '',
       comment: '',
       links: [],
-      credentials: [],
     },
   },
 }
@@ -97,48 +86,6 @@ export const WithAllLinks: Story = {
         {
           type: 'supabase' as const,
           url: 'https://supabase.example.com',
-        },
-      ],
-    },
-  },
-}
-
-export const WithEncryptedCredentials: Story = {
-  args: {
-    isOpen: true,
-    onClose: () => console.log('Modal closed'),
-    onSave: (data) => {
-      console.log('Saved:', data)
-    },
-    projectInfo: {
-      ...mockProjectInfo,
-      credentials: [
-        {
-          id: 'cred-1',
-          type: 'encrypted' as const,
-          name: 'API Key',
-          encrypted_value: 'encrypted-value-here',
-        },
-      ],
-    },
-  },
-}
-
-export const WithExternalCredentials: Story = {
-  args: {
-    isOpen: true,
-    onClose: () => console.log('Modal closed'),
-    onSave: (data) => {
-      console.log('Saved:', data)
-    },
-    projectInfo: {
-      ...mockProjectInfo,
-      credentials: [
-        {
-          id: 'cred-1',
-          type: 'external' as const,
-          name: 'Database Password',
-          location: '1Password: GitBox/Database',
         },
       ],
     },

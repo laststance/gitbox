@@ -34,42 +34,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      auditlog: {
-        Row: {
-          action: string
-          created_at: string | null
-          id: string
-          ip_address: unknown
-          resource_id: string
-          resource_type: string
-          success: boolean
-          user_agent: string | null
-          user_id: string
-        }
-        Insert: {
-          action: string
-          created_at?: string | null
-          id?: string
-          ip_address?: unknown
-          resource_id: string
-          resource_type?: string
-          success: boolean
-          user_agent?: string | null
-          user_id: string
-        }
-        Update: {
-          action?: string
-          created_at?: string | null
-          id?: string
-          ip_address?: unknown
-          resource_id?: string
-          resource_type?: string
-          success?: boolean
-          user_agent?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       board: {
         Row: {
           created_at: string | null
@@ -102,62 +66,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
-      }
-      credential: {
-        Row: {
-          created_at: string | null
-          encrypted_value: string | null
-          encryption_key_id: string | null
-          id: string
-          last_accessed: string | null
-          location: string | null
-          masked_display: string | null
-          name: string
-          note: string | null
-          project_info_id: string
-          reference: string | null
-          type: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          encrypted_value?: string | null
-          encryption_key_id?: string | null
-          id?: string
-          last_accessed?: string | null
-          location?: string | null
-          masked_display?: string | null
-          name: string
-          note?: string | null
-          project_info_id: string
-          reference?: string | null
-          type: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          encrypted_value?: string | null
-          encryption_key_id?: string | null
-          id?: string
-          last_accessed?: string | null
-          location?: string | null
-          masked_display?: string | null
-          name?: string
-          note?: string | null
-          project_info_id?: string
-          reference?: string | null
-          type?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'credential_project_info_id_fkey'
-            columns: ['project_info_id']
-            isOneToOne: false
-            referencedRelation: 'projectinfo'
-            referencedColumns: ['id']
-          },
-        ]
       }
       maintenance: {
         Row: {
@@ -483,9 +391,7 @@ export type Board = Tables<'board'>
 export type StatusList = Tables<'statuslist'>
 export type RepoCard = Tables<'repocard'>
 export type ProjectInfo = Tables<'projectinfo'>
-export type Credential = Tables<'credential'>
 export type Maintenance = Tables<'maintenance'>
-export type AuditLog = Tables<'auditlog'>
 
 // Theme type (stored as string in board.theme)
 export type Theme =
