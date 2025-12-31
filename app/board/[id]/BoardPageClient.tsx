@@ -542,6 +542,15 @@ export const BoardPageClient = memo(function BoardPageClient({
   }, [])
 
   /**
+   * Close Board Settings dialog
+   * IMPORTANT: Must be stable (useCallback with empty deps) to prevent
+   * infinite loops in BoardSettingsDialog effects that depend on onClose.
+   */
+  const handleCloseBoardSettings = useCallback(() => {
+    setIsBoardSettingsOpen(false)
+  }, [])
+
+  /**
    * Handle board rename success (optimistic update)
    */
   const handleRenameSuccess = useCallback((newName: string) => {
@@ -690,7 +699,7 @@ export const BoardPageClient = memo(function BoardPageClient({
       {/* Board Settings Dialog */}
       <BoardSettingsDialog
         isOpen={isBoardSettingsOpen}
-        onClose={() => setIsBoardSettingsOpen(false)}
+        onClose={handleCloseBoardSettings}
         boardId={boardId}
         boardName={displayName}
         currentTheme={currentTheme}

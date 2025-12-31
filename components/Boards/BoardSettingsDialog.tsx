@@ -21,7 +21,14 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { memo, useActionState, useCallback, useEffect, useState } from 'react'
+import {
+  memo,
+  useActionState,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -252,69 +259,84 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
     initialDeleteState,
   )
 
+  // ========================================
+  // Callback refs for effect stability
+  // These refs store the latest callbacks to avoid including them in effect deps
+  // This prevents infinite loops when parent re-renders with new callback refs
+  // ========================================
+  const onRenameSuccessRef = useRef(onRenameSuccess)
+  const onThemeChangeRef = useRef(onThemeChange)
+  const onCardDisplayChangeRef = useRef(onCardDisplayChange)
+  const onDeleteSuccessRef = useRef(onDeleteSuccess)
+  const onCloseRef = useRef(onClose)
+
+  // Keep refs updated with latest callbacks
+  useEffect(() => {
+    onRenameSuccessRef.current = onRenameSuccess
+    onThemeChangeRef.current = onThemeChange
+    onCardDisplayChangeRef.current = onCardDisplayChange
+    onDeleteSuccessRef.current = onDeleteSuccess
+    onCloseRef.current = onClose
+  })
+
   // Handle rename success
+  // Uses ref to avoid callback in deps (prevents infinite loops)
   useEffect(() => {
     if (renameState.success && renameState.newName) {
       toast.success('Board renamed', {
         description: `Board renamed to "${renameState.newName}".`,
       })
-      onRenameSuccess(renameState.newName)
+      onRenameSuccessRef.current(renameState.newName)
     }
-  }, [renameState.success, renameState.newName, onRenameSuccess])
+  }, [renameState.success, renameState.newName])
 
   // Handle theme success
+  // Uses ref to avoid callback in deps (prevents infinite loops)
   useEffect(() => {
     if (themeState.success && themeState.newTheme) {
       toast.success('Theme updated', {
         description: `Board theme set to ${THEME_METADATA[themeState.newTheme as keyof typeof THEME_METADATA]?.name || themeState.newTheme}.`,
       })
-      onThemeChange(themeState.newTheme)
+      onThemeChangeRef.current(themeState.newTheme)
     } else if (themeState.error) {
       toast.error('Failed to update theme', {
         description: themeState.error,
       })
     }
-  }, [themeState.success, themeState.newTheme, themeState.error, onThemeChange])
+  }, [themeState.success, themeState.newTheme, themeState.error])
 
   // Handle card display settings success
+  // Uses ref to avoid callback in deps (prevents infinite loops)
+  // Note: cardDisplay is also removed from deps since we use the current state via ref
   useEffect(() => {
     if (settingsState.success) {
       toast.success('Card display settings updated')
-      onCardDisplayChange?.(cardDisplay)
+      onCardDisplayChangeRef.current?.(cardDisplay)
     } else if (settingsState.error) {
       toast.error('Failed to update settings', {
         description: settingsState.error,
       })
     }
-  }, [
-    settingsState.success,
-    settingsState.error,
-    cardDisplay,
-    onCardDisplayChange,
-  ])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cardDisplay accessed via closure is intentional
+  }, [settingsState.success, settingsState.error])
 
   // Handle delete success - navigate away
+  // Uses refs to avoid callbacks in deps (prevents infinite loops)
+  // FIX for GITBOX-E: Callbacks in deps caused infinite loop when parent re-rendered
   useEffect(() => {
     if (deleteState.success) {
       toast.success('Board deleted', {
         description: `"${boardName}" has been deleted.`,
       })
-      onDeleteSuccess()
-      onClose()
+      onDeleteSuccessRef.current()
+      onCloseRef.current()
       router.push('/boards')
     } else if (deleteState.error) {
       toast.error('Failed to delete board', {
         description: deleteState.error,
       })
     }
-  }, [
-    deleteState.success,
-    deleteState.error,
-    boardName,
-    onDeleteSuccess,
-    onClose,
-    router,
-  ])
+  }, [deleteState.success, deleteState.error, boardName, router])
 
   // Derive delete confirm dialog state from deleteState
   // When deletion succeeds, we navigate away so the dialog closes naturally
@@ -364,11 +386,12 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
 
   /**
    * Reset tab state when dialog closes
+   * Uses ref to ensure stable callback (prevents unnecessary re-renders)
    */
   const handleClose = useCallback(() => {
     setActiveTab('general')
-    onClose()
-  }, [onClose])
+    onCloseRef.current()
+  }, [])
 
   const charCount = name.length
   const isNearLimit = charCount >= BOARD_NAME_MAX_LENGTH - 10
