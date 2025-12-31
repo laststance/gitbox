@@ -194,7 +194,7 @@ describe('createEnhancedJsonSerializer', () => {
     const deserialized = serializer.deserialize(serialized) as typeof data
 
     // Date is restored - verify with Object.prototype.toString and toISOString
-    // since instanceof may fail in jsdom environment
+    // since instanceof may fail in test environment
     expect(Object.prototype.toString.call(deserialized.date)).toBe(
       '[object Date]',
     )
@@ -221,7 +221,7 @@ describe('Prototype Pollution Protection', () => {
     const maliciousPayload = '{"__proto__": {"polluted": true}}'
 
     // Verify Object.prototype is not polluted before deserialization
-     
+
     expect((Object.prototype as any).polluted).toBeUndefined()
 
     const result = serializer.deserialize(maliciousPayload) as Record<
@@ -230,7 +230,7 @@ describe('Prototype Pollution Protection', () => {
     >
 
     // Verify Object.prototype is not polluted after deserialization
-     
+
     expect((Object.prototype as any).polluted).toBeUndefined()
 
     // Dangerous keys are not added as own properties
@@ -242,7 +242,6 @@ describe('Prototype Pollution Protection', () => {
     const maliciousPayload =
       '{"constructor": {"prototype": {"polluted": true}}}'
 
-     
     expect((Object.prototype as any).polluted).toBeUndefined()
 
     const result = serializer.deserialize(maliciousPayload) as Record<
@@ -250,7 +249,6 @@ describe('Prototype Pollution Protection', () => {
       unknown
     >
 
-     
     expect((Object.prototype as any).polluted).toBeUndefined()
 
     // constructor key is not added as own property
@@ -288,7 +286,7 @@ describe('Prototype Pollution Protection', () => {
     expect(result.num).toBe(42)
     // Dangerous keys are not added as own properties
     expect(Object.hasOwn(result, '__proto__')).toBe(false)
-     
+
     expect((Object.prototype as any).polluted).toBeUndefined()
   })
 
@@ -301,7 +299,6 @@ describe('Prototype Pollution Protection', () => {
       data: { nested: Record<string, unknown> }
     }
 
-     
     expect((Object.prototype as any).polluted).toBeUndefined()
     // Nested __proto__ is also filtered
     expect(Object.hasOwn(result.data.nested, '__proto__')).toBe(false)

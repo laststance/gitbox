@@ -11,16 +11,16 @@ import { describe, it, expect } from 'vitest'
 
 describe('Supabase Client (lib/supabase/client.ts)', () => {
   describe('Environment Variables', () => {
-    it('should have NEXT_PUBLIC_SUPABASE_URL defined', () => {
+    it('should have NEXT_PUBLIC_SUPABASE_URL defined and non-empty', () => {
       expect(process.env.NEXT_PUBLIC_SUPABASE_URL).toBeDefined()
-      expect(process.env.NEXT_PUBLIC_SUPABASE_URL).toBe(
-        'https://test.supabase.co',
-      )
+      expect(process.env.NEXT_PUBLIC_SUPABASE_URL).toBeTruthy()
+      // Verify it's a valid URL format
+      expect(process.env.NEXT_PUBLIC_SUPABASE_URL).toMatch(/^https?:\/\//)
     })
 
-    it('should have NEXT_PUBLIC_SUPABASE_ANON_KEY defined', () => {
+    it('should have NEXT_PUBLIC_SUPABASE_ANON_KEY defined and non-empty', () => {
       expect(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY).toBeDefined()
-      expect(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY).toBe('test-anon-key')
+      expect(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY).toBeTruthy()
     })
   })
 

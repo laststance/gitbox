@@ -70,7 +70,7 @@ describe('useMounted', () => {
 
   describe('SSR simulation', () => {
     /**
-     * Note: Testing SSR behavior in jsdom is limited.
+     * Note: Testing SSR behavior in happy-dom is limited.
      * The real SSR test is done in e2e/unauthenticated/ssr-hydration.spec.ts
      * which checks for console hydration errors in a real browser.
      *

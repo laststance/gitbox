@@ -13,6 +13,7 @@ import path from 'path'
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
 import react from '@vitejs/plugin-react'
 import { playwright } from '@vitest/browser-playwright'
+import { loadEnv } from 'vite'
 import { defineConfig } from 'vitest/config'
 const dirname =
   typeof __dirname !== 'undefined'
@@ -21,13 +22,16 @@ const dirname =
 
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
   // Pre-bundle dependencies to prevent Vite re-optimization during tests
   optimizeDeps: {
     include: ['superjson', 'lz-string'],
   },
   test: {
+    // Load environment variables from .env.test (mode defaults to 'test' in vitest)
+    // Empty prefix '' loads ALL env vars, not just VITE_* prefixed ones
+    env: loadEnv(mode, process.cwd(), ''),
     // Shared configuration
     globals: true,
     coverage: {
@@ -45,14 +49,14 @@ export default defineConfig({
         'lib/supabase/**',
       ],
     },
-    // Two separate test projects: unit tests (jsdom) and Storybook (browser)
+    // Two separate test projects: unit tests (happy-dom) and Storybook (browser)
     projects: [
-      // Unit tests project (jsdom environment)
+      // Unit tests project (happy-dom environment - faster than jsdom)
       {
         extends: true,
         test: {
           name: 'unit',
-          environment: 'jsdom',
+          environment: 'happy-dom',
           include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
           exclude: ['e2e/**/*', 'node_modules/**/*', 'dist/**/*'],
           setupFiles: ['./tests/setup.ts'],
@@ -101,4 +105,4 @@ export default defineConfig({
       ),
     },
   },
-})
+}))
