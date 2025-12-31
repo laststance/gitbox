@@ -221,14 +221,9 @@ export default defineConfig([
   // - app/page.tsx FeaturesSection → useSyncExternalStore for random subtitle
   // The no-initialize-state rule is now ENABLED for these files to enforce the pattern.
 
-  // KanbanBoard data fetching pattern - fetch on mount with dispatch is intentional
-  {
-    files: ['components/Board/KanbanBoard.tsx'],
-    rules: {
-      // Data fetching on mount with dispatch to parent store is the standard Redux pattern
-      'react-you-might-not-need-an-effect/no-pass-data-to-parent': 'off',
-    },
-  },
+  // Phase 4 COMPLETE (2025-12-31): KanbanBoard data fetching exception REMOVED
+  // Data is now fetched in Server Component (BoardPage) and passed to
+  // BoardPageClient via props, eliminating the child-to-parent data flow.
 
   // BoardPageClient - PHASE 3 COMPLETE (2025-12-31)
   // Refactored: useLayoutEffect for theme, useMemo for derived addRepoStatusId

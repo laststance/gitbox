@@ -5,9 +5,13 @@
  * Integrates KanbanBoard, AddRepositoryCombobox, ProjectInfoModal, and StatusListDialog.
  * Handles board data management, card editing, and status column CRUD operations.
  * Uses Redux for state management and server actions for data persistence.
+ *
+ * Phase 4: Added initialData prop for Server Component data passing
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
+
+import type { BoardInitialData } from '@/lib/actions/board-data'
 
 import { BoardPageClient } from './BoardPageClient'
 
@@ -43,9 +47,50 @@ const createMockBoard = (
   updated_at: '2024-01-01T00:00:00.000Z',
 })
 
+/**
+ * Create mock initial data (Phase 4: Server Component data passing)
+ */
+const createMockInitialData = (): BoardInitialData => ({
+  statusLists: [
+    {
+      id: 'status-1',
+      title: 'To Do',
+      color: '#6B7280',
+      gridRow: 0,
+      gridCol: 0,
+      boardId: 'board-1',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+    },
+    {
+      id: 'status-2',
+      title: 'In Progress',
+      color: '#3B82F6',
+      gridRow: 0,
+      gridCol: 1,
+      boardId: 'board-1',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+    },
+    {
+      id: 'status-3',
+      title: 'Done',
+      color: '#22C55E',
+      gridRow: 0,
+      gridCol: 2,
+      boardId: 'board-1',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+    },
+  ],
+  repoCards: [],
+  comments: {},
+})
+
 export const Default: Story = {
   args: {
     board: createMockBoard(),
+    initialData: createMockInitialData(),
   },
 }
 
@@ -55,5 +100,6 @@ export const WithLongBoardName: Story = {
       id: 'board-2',
       name: 'Very Long Board Name That Might Overflow',
     }),
+    initialData: createMockInitialData(),
   },
 }

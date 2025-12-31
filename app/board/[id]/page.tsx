@@ -3,12 +3,19 @@
  *
  * Displays individual Kanban board
  * - Fetches board information from Supabase
- * - Renders KanbanBoard component
+ * - Fetches initial board data (statusLists, repoCards, comments)
+ * - Renders KanbanBoard component with server-fetched data
+ *
+ * Phase 4 Refactoring:
+ * Data is now fetched in this Server Component and passed to
+ * BoardPageClient, eliminating the child-to-parent data flow
+ * anti-pattern in KanbanBoard.
  */
 
 import { type Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { fetchBoardInitialData } from '@/lib/actions/board-data'
 import { createClient } from '@/lib/supabase/server'
 
 import { BoardPageClient } from './BoardPageClient'
@@ -48,6 +55,7 @@ export async function generateMetadata(
  * - Returns 404 if board does not exist
  * - User authentication check (already done in middleware.ts)
  * - Applies theme from board settings
+ * - Fetches initial board data (Phase 4: Server Component pattern)
  */
 export default async function BoardPage(props: BoardPageProps) {
   const params = await props.params
@@ -65,5 +73,9 @@ export default async function BoardPage(props: BoardPageProps) {
     notFound()
   }
 
-  return <BoardPageClient board={board} />
+  // Phase 4: Fetch initial data in Server Component
+  // This eliminates the child-to-parent data flow anti-pattern
+  const initialData = await fetchBoardInitialData(params.id)
+
+  return <BoardPageClient board={board} initialData={initialData} />
 }

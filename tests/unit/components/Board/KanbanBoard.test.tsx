@@ -19,11 +19,8 @@ import { KanbanBoard } from '@/components/Board/KanbanBoard'
 import boardSlice from '@/lib/redux/slices/boardSlice'
 
 // Mock the board actions
+// Phase 4: getBoardData removed - data now fetched by Server Component
 vi.mock('@/lib/actions/board', () => ({
-  getBoardData: vi.fn(async () => ({
-    statusLists: [],
-    repoCards: [],
-  })),
   updateRepoCardPosition: vi.fn(async () => ({})),
   batchUpdateRepoCardOrders: vi.fn(async () => ({})),
   swapStatusListPositions: vi.fn(async () => ({})),
@@ -65,7 +62,7 @@ describe('KanbanBoard Horizontal Scroll Tests', () => {
 
       const { container } = render(
         <Provider store={store}>
-          <KanbanBoard boardId="test-board" />
+          <KanbanBoard boardId="test-board" initialComments={{}} />
         </Provider>,
       )
 
@@ -84,7 +81,7 @@ describe('KanbanBoard Horizontal Scroll Tests', () => {
 
       const { container } = render(
         <Provider store={store}>
-          <KanbanBoard boardId="test-board" />
+          <KanbanBoard boardId="test-board" initialComments={{}} />
         </Provider>,
       )
 
@@ -103,7 +100,7 @@ describe('KanbanBoard Horizontal Scroll Tests', () => {
 
       const { container } = render(
         <Provider store={store}>
-          <KanbanBoard boardId="test-board" />
+          <KanbanBoard boardId="test-board" initialComments={{}} />
         </Provider>,
       )
 
@@ -332,7 +329,7 @@ describe('KanbanBoard Column Auto-Height Tests', () => {
 
       const { container } = render(
         <Provider store={store}>
-          <KanbanBoard boardId="test-board" />
+          <KanbanBoard boardId="test-board" initialComments={{}} />
         </Provider>,
       )
 
@@ -350,7 +347,7 @@ describe('KanbanBoard Column Auto-Height Tests', () => {
 
       const { container } = render(
         <Provider store={store}>
-          <KanbanBoard boardId="test-board" />
+          <KanbanBoard boardId="test-board" initialComments={{}} />
         </Provider>,
       )
 
@@ -368,7 +365,7 @@ describe('KanbanBoard Column Auto-Height Tests', () => {
 
       const { container } = render(
         <Provider store={store}>
-          <KanbanBoard boardId="test-board" />
+          <KanbanBoard boardId="test-board" initialComments={{}} />
         </Provider>,
       )
 

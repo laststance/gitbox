@@ -32,19 +32,16 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useMounted } from '@/hooks/use-mounted'
 import {
-  getBoardData,
   updateRepoCardPosition,
   batchUpdateRepoCardOrders,
   swapStatusListPositions,
   batchUpdateStatusListPositions,
 } from '@/lib/actions/board'
-import { getCommentsForCards, updateComment } from '@/lib/actions/project-info'
+import { updateComment } from '@/lib/actions/project-info'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import {
   setStatusLists,
   setRepoCards,
-  setLoading,
-  setError,
   selectStatusLists,
   selectRepoCards,
   selectBoardLoading,
@@ -92,6 +89,8 @@ const forgivingCollisionDetection: CollisionDetection = (args) => {
 
 interface KanbanBoardProps {
   boardId?: string
+  /** Initial comments fetched by Server Component (Phase 4) */
+  initialComments?: Record<string, string>
   /** Card display settings from board.settings JSON */
   cardDisplaySettings?: CardDisplaySettings
   onEditProjectInfo?: (cardId: string) => void
@@ -164,7 +163,8 @@ ErrorState.displayName = 'ErrorState'
 // Main Kanban Board Component
 export const KanbanBoard = memo<KanbanBoardProps>(
   ({
-    boardId = 'default-board',
+    boardId: _boardId = 'default-board',
+    initialComments,
     cardDisplaySettings,
     onEditProjectInfo,
     onMoveToMaintenance,
@@ -174,6 +174,9 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     onDeleteStatus,
     onAddCard,
   }) => {
+    // Note: _boardId is no longer used for data fetching (Phase 4 refactoring)
+    // Data is now fetched by Server Component and passed via props/Redux
+    // Kept for backwards compatibility and potential future use (e.g., refresh)
     // Redux state (auto-synced to LocalStorage)
     const dispatch = useAppDispatch()
     const statuses = useAppSelector(selectStatusLists)
@@ -187,7 +190,10 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     // History stack for undo functionality (max 10 entries)
     const [history, setHistory] = useState<RepoCardForRedux[][]>([])
     // Comments map: cardId → comment text (from projectinfo.comment)
-    const [comments, setComments] = useState<Record<string, string>>({})
+    // Phase 4: Initialized with server-fetched data (no client-side fetch needed)
+    const [comments, setComments] = useState<Record<string, string>>(
+      initialComments ?? {},
+    )
 
     // Hydration-safe mounting state: prevents SSR/CSR mismatch for dynamic grid styles
     // Uses useSyncExternalStore-based hook for proper SSR support
@@ -265,41 +271,9 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       useSensor(KeyboardSensor),
     )
 
-    // Fetch board data from Supabase
-    useEffect(() => {
-      const fetchData = async () => {
-        if (!boardId || boardId === 'default-board') {
-          dispatch(setError('Valid board ID is required'))
-          return
-        }
-
-        try {
-          dispatch(setLoading(true))
-          dispatch(setError(null))
-
-          // Fetch data from Supabase (getBoardData already includes default StatusList creation)
-          const { statusLists, repoCards } = await getBoardData(boardId)
-
-          dispatch(setStatusLists(statusLists))
-          dispatch(setRepoCards(repoCards))
-
-          // Fetch comments for all cards (Phase 3: Comment Display)
-          if (repoCards.length > 0) {
-            const cardIds = repoCards.map((card) => card.id)
-            const commentsMap = await getCommentsForCards(cardIds)
-            setComments(commentsMap)
-          }
-        } catch (err) {
-          Sentry.captureException(err, { tags: { action: 'fetchBoardData' } })
-          dispatch(setError('Failed to fetch board data. Please try again.'))
-        } finally {
-          dispatch(setLoading(false))
-        }
-      }
-
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state -- Comments are fetched async, not derived from other state
-      fetchData()
-    }, [boardId, dispatch])
+    // Phase 4: Data fetching removed - now handled by Server Component
+    // BoardPage (Server) → fetchBoardInitialData() → BoardPageClient → useLayoutEffect hydrates Redux
+    // Comments are initialized via initialComments prop, no client-side fetch needed
 
     /**
      * Handle comment change from inline edit

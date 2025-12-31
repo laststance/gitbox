@@ -41,6 +41,7 @@ import {
   updateStatusList,
   deleteStatusList,
 } from '@/lib/actions/board'
+import type { BoardInitialData } from '@/lib/actions/board-data'
 import type { ProjectInfoData } from '@/lib/actions/project-info'
 import { getProjectInfo, upsertProjectInfo } from '@/lib/actions/project-info'
 import {
@@ -70,10 +71,13 @@ import {
 interface BoardPageClientProps {
   /** Full board object from Supabase */
   board: Board
+  /** Initial data fetched by Server Component (Phase 4) */
+  initialData: BoardInitialData
 }
 
 export const BoardPageClient = memo(function BoardPageClient({
   board,
+  initialData,
 }: BoardPageClientProps) {
   // Extract board properties
   const boardId = board.id
@@ -84,6 +88,13 @@ export const BoardPageClient = memo(function BoardPageClient({
   const dispatch = useAppDispatch()
   const statusLists = useAppSelector(selectStatusLists)
   const repoCards = useAppSelector(selectRepoCards)
+
+  // Phase 4: Hydrate Redux store with server-fetched data
+  // useLayoutEffect ensures data is available before first paint (no flicker)
+  useLayoutEffect(() => {
+    dispatch(setStatusLists(initialData.statusLists))
+    dispatch(setRepoCards(initialData.repoCards))
+  }, [dispatch, initialData.statusLists, initialData.repoCards])
 
   // Board Settings Dialog state
   const [isBoardSettingsOpen, setIsBoardSettingsOpen] = useState(false)
@@ -632,6 +643,7 @@ export const BoardPageClient = memo(function BoardPageClient({
         <div className="flex-1 overflow-x-auto overflow-y-auto bg-gray-100 dark:bg-gray-900">
           <KanbanBoard
             boardId={boardId}
+            initialComments={initialData.comments}
             cardDisplaySettings={cardDisplaySettings}
             onEditProjectInfo={handleEditProjectInfo}
             onMoveToMaintenance={handleMoveToMaintenance}
