@@ -92,6 +92,8 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
     const [editValue, setEditValue] = useState(initialValue)
     const [isSaving, setIsSaving] = useState(false)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
+    // Track if cancel is in progress to prevent blur from auto-saving
+    const isCancellingRef = useRef(false)
 
     // Merge with default styles
     const mergedStyle = { ...DEFAULT_COMMENT_STYLE, ...style }
@@ -132,9 +134,11 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
 
     /**
      * Handle cancel action
+     * Sets isCancellingRef to prevent blur from auto-saving
      */
     const handleCancel = useCallback(() => {
       if (isSaving) return
+      isCancellingRef.current = true
       onCancel()
     }, [isSaving, onCancel])
 
@@ -176,10 +180,17 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
 
     /**
      * Handle blur event - auto-save when focus is lost
-     * Skips save if focus moves to cancel/save buttons (they handle their own actions)
+     * Skips save if:
+     * - Focus moves to cancel/save buttons (they handle their own actions)
+     * - Cancel is in progress (Escape key was pressed)
      */
     const handleBlur = useCallback(
       (e: React.FocusEvent<HTMLTextAreaElement>) => {
+        // Skip auto-save if cancel is in progress (Escape key race condition)
+        if (isCancellingRef.current) {
+          return
+        }
+
         const relatedTarget = e.relatedTarget as HTMLElement | null
         // Skip auto-save if focus is moving to cancel or save button
         if (
