@@ -192,11 +192,11 @@ export interface StorageMiddlewareConfig<S = unknown> {
   rootReducer: (state: S | undefined, action: Action) => S
 
   /**
-   * Storage key name
+   * Storage key for localStorage
    *
    * @example 'my-app-state'
    */
-  name: string
+  key: string
 
   /**
    * List of slice names to persist

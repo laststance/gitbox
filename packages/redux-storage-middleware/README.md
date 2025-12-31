@@ -80,7 +80,7 @@ const rootReducer = combineReducers({
 // Create middleware, reducer, and API
 const { middleware, reducer, api } = createStorageMiddleware<AppState>({
   rootReducer, // Required: pass your root reducer
-  name: 'my-app-state',
+  key: 'my-app-state',
   slices: ['emails', 'settings'],
 })
 
@@ -109,7 +109,7 @@ Creates the storage middleware and returns both the middleware and a control API
 | Option        | Type                    | Default      | Description                                |
 | ------------- | ----------------------- | ------------ | ------------------------------------------ |
 | `rootReducer` | `Reducer<S, AnyAction>` | **required** | Root reducer to wrap with hydration        |
-| `name`        | `string`                | **required** | localStorage key name                      |
+| `key`         | `string`                | **required** | localStorage key                           |
 | `slices`      | `(keyof S)[]`           | `undefined`  | State slices to persist (all if undefined) |
 
 #### Performance Options
@@ -417,7 +417,7 @@ A production-grade demo showing 5000+ email persistence:
 ```typescript
 const { middleware, reducer, api } = createStorageMiddleware<AppState>({
   rootReducer, // Pass your root reducer
-  name: 'gmail-clone-state',
+  key: 'gmail-clone-state',
   slices: ['emails'],
   performance: {
     debounceMs: 300,
@@ -446,7 +446,7 @@ Full TypeScript support with generic state typing:
 // State type inference
 const { middleware, reducer, api } = createStorageMiddleware<RootState>({
   rootReducer, // Required: pass your root reducer
-  name: 'app',
+  key: 'app',
   slices: ['user', 'settings'], // Type-checked against RootState keys
 })
 

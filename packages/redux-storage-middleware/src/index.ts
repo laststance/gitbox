@@ -16,7 +16,7 @@
  *
  * const { middleware, reducer, api } = createStorageMiddleware({
  *   rootReducer,  // Required: pass your root reducer
- *   name: 'my-app-state',
+ *   key: 'my-app-state',
  *   slices: ['settings'],
  *   version: 1,
  * })

@@ -60,46 +60,44 @@ const RESERVED_STORAGE_KEYS = new Set(['__proto__', 'prototype', 'constructor'])
 // =============================================================================
 
 /**
- * Validates storage key name
+ * Validates storage key
  *
- * @param name - The key name to validate
- * @throws Error if the key name is invalid
+ * @param key - The storage key to validate
+ * @throws Error if the key is invalid
  *
  * @example
  * ```ts
- * validateStorageKeyName('my-app-state')  // OK
- * validateStorageKeyName('app.settings')  // OK
- * validateStorageKeyName('')              // Error: empty key
- * validateStorageKeyName('__proto__')     // Error: reserved word
- * validateStorageKeyName('key with spaces') // Error: invalid characters
+ * validateStorageKey('my-app-state')  // OK
+ * validateStorageKey('app.settings')  // OK
+ * validateStorageKey('')              // Error: empty key
+ * validateStorageKey('__proto__')     // Error: reserved word
+ * validateStorageKey('key with spaces') // Error: invalid characters
  * ```
  */
-function validateStorageKeyName(name: string): void {
+function validateStorageKey(key: string): void {
   // Length check
-  if (name.length < MIN_STORAGE_KEY_LENGTH) {
-    throw new Error(
-      `[redux-storage-middleware] Storage key name must not be empty`,
-    )
+  if (key.length < MIN_STORAGE_KEY_LENGTH) {
+    throw new Error(`[redux-storage-middleware] Storage key must not be empty`)
   }
 
-  if (name.length > MAX_STORAGE_KEY_LENGTH) {
+  if (key.length > MAX_STORAGE_KEY_LENGTH) {
     throw new Error(
-      `[redux-storage-middleware] Storage key name must not exceed ${MAX_STORAGE_KEY_LENGTH} characters`,
+      `[redux-storage-middleware] Storage key must not exceed ${MAX_STORAGE_KEY_LENGTH} characters`,
     )
   }
 
   // Pattern check
-  if (!VALID_STORAGE_KEY_PATTERN.test(name)) {
+  if (!VALID_STORAGE_KEY_PATTERN.test(key)) {
     throw new Error(
-      `[redux-storage-middleware] Storage key name "${name}" contains invalid characters. ` +
+      `[redux-storage-middleware] Storage key "${key}" contains invalid characters. ` +
         `Only alphanumeric characters, dots, underscores, and hyphens are allowed.`,
     )
   }
 
   // Reserved word check
-  if (RESERVED_STORAGE_KEYS.has(name)) {
+  if (RESERVED_STORAGE_KEYS.has(key)) {
     throw new Error(
-      `[redux-storage-middleware] Storage key name "${name}" is reserved and cannot be used.`,
+      `[redux-storage-middleware] Storage key "${key}" is reserved and cannot be used.`,
     )
   }
 }
@@ -173,7 +171,7 @@ function deepMerge<T extends object>(
  *
  * const { middleware, reducer, api } = createStorageMiddleware({
  *   rootReducer,  // Required: pass your root reducer
- *   name: 'my-app-state',
+ *   key: 'my-app-state',
  *   slices: ['settings'],
  *   version: 1,
  * })
@@ -197,7 +195,7 @@ export function createStorageMiddleware<
 
   const {
     rootReducer,
-    name,
+    key,
     slices,
     performance: perfConfig,
     onHydrationComplete,
@@ -213,8 +211,8 @@ export function createStorageMiddleware<
     )
   }
 
-  // Validate storage key name (security measure)
-  validateStorageKeyName(name)
+  // Validate storage key (security measure)
+  validateStorageKey(key)
 
   // Create hydration-wrapped reducer
   const hydratedReducer = withHydration(rootReducer) as Reducer<S>
@@ -284,7 +282,7 @@ export function createStorageMiddleware<
       }
 
       const serialized = defaultJsonSerializer.serialize(persistedState)
-      storage.setItem(name, serialized)
+      storage.setItem(key, serialized)
 
       onSaveComplete?.(state)
     } catch (error) {
@@ -303,7 +301,7 @@ export function createStorageMiddleware<
 
     try {
       const storage = getStorage()
-      const serialized = storage.getItem(name)
+      const serialized = storage.getItem(key)
 
       if (serialized === null) {
         return null
@@ -417,7 +415,7 @@ export function createStorageMiddleware<
 
       try {
         const storage = getStorage()
-        storage.removeItem(name)
+        storage.removeItem(key)
       } catch (error) {
         console.error(
           '[redux-storage-middleware] Failed to clear storage:',
@@ -520,8 +518,8 @@ export function createStorageMiddleware<
 export function loadStateFromStorage<S = unknown>(
   storageKey: string,
 ): PersistedState<S> | null {
-  // Validate storage key name
-  validateStorageKeyName(storageKey)
+  // Validate storage key
+  validateStorageKey(storageKey)
 
   if (isServer() || !isStorageAvailable()) {
     return null
@@ -548,8 +546,8 @@ export function loadStateFromStorage<S = unknown>(
  * @param storageKey - LocalStorage key
  */
 export function clearStorageState(storageKey: string): void {
-  // Validate storage key name
-  validateStorageKeyName(storageKey)
+  // Validate storage key
+  validateStorageKey(storageKey)
 
   if (isServer() || !isStorageAvailable()) {
     return
