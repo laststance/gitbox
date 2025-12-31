@@ -38,19 +38,19 @@ const DEFAULT_DEBOUNCE_MS = 300
 const INTERNAL_VERSION = 0 // Reserved for future migration support
 
 /**
- * Minimum and maximum length for storage key names
+ * Minimum and maximum length for storage keys
  */
 const MIN_STORAGE_KEY_LENGTH = 1
 const MAX_STORAGE_KEY_LENGTH = 255
 
 /**
- * Valid storage key name pattern
+ * Valid storage key pattern
  * Only alphanumeric characters, dots, underscores, and hyphens are allowed
  */
 const VALID_STORAGE_KEY_PATTERN = /^[a-zA-Z0-9._-]+$/
 
 /**
- * Reserved key names prohibited for security reasons
+ * Reserved keys prohibited for security reasons
  * Prevents prototype pollution attacks
  */
 const RESERVED_STORAGE_KEYS = new Set(['__proto__', 'prototype', 'constructor'])

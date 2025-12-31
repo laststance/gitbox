@@ -12,20 +12,22 @@ import type { Action, Middleware, Reducer } from '@reduxjs/toolkit'
 
 /**
  * Synchronous storage interface
+ * Compatible with Web Storage API (localStorage/sessionStorage)
  */
 export interface SyncStorage {
-  getItem: (name: string) => string | null
-  setItem: (name: string, value: string) => void
-  removeItem: (name: string) => void
+  getItem: (key: string) => string | null
+  setItem: (key: string, value: string) => void
+  removeItem: (key: string) => void
 }
 
 /**
  * Asynchronous storage interface
+ * Compatible with async storage backends
  */
 export interface AsyncStorage {
-  getItem: (name: string) => Promise<string | null>
-  setItem: (name: string, value: string) => Promise<void>
-  removeItem: (name: string) => Promise<void>
+  getItem: (key: string) => Promise<string | null>
+  setItem: (key: string, value: string) => Promise<void>
+  removeItem: (key: string) => Promise<void>
 }
 
 /**

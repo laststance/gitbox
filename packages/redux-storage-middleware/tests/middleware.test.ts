@@ -567,7 +567,7 @@ describe('Storage Key Validation', () => {
   })
 
   describe('createStorageMiddleware', () => {
-    it('rejects empty key names', () => {
+    it('rejects empty keys', () => {
       expect(() =>
         createStorageMiddleware({
           rootReducer: validationRootReducer,
@@ -577,7 +577,7 @@ describe('Storage Key Validation', () => {
       ).toThrow('[redux-storage-middleware] Storage key must not be empty')
     })
 
-    it('rejects key names with invalid characters', () => {
+    it('rejects keys with invalid characters', () => {
       expect(() =>
         createStorageMiddleware({
           rootReducer: validationRootReducer,
@@ -603,7 +603,7 @@ describe('Storage Key Validation', () => {
       ).toThrow('contains invalid characters')
     })
 
-    it('rejects reserved key names', () => {
+    it('rejects reserved keys', () => {
       expect(() =>
         createStorageMiddleware({
           rootReducer: validationRootReducer,
@@ -629,7 +629,7 @@ describe('Storage Key Validation', () => {
       ).toThrow('is reserved and cannot be used')
     })
 
-    it('accepts valid key names', () => {
+    it('accepts valid keys', () => {
       expect(() =>
         createStorageMiddleware({
           rootReducer: validationRootReducer,
@@ -657,13 +657,13 @@ describe('Storage Key Validation', () => {
   })
 
   describe('loadStateFromStorage', () => {
-    it('rejects empty key names', () => {
+    it('rejects empty keys', () => {
       expect(() => loadStateFromStorage('')).toThrow(
         '[redux-storage-middleware] Storage key must not be empty',
       )
     })
 
-    it('rejects reserved key names', () => {
+    it('rejects reserved keys', () => {
       expect(() => loadStateFromStorage('__proto__')).toThrow(
         'is reserved and cannot be used',
       )
@@ -671,13 +671,13 @@ describe('Storage Key Validation', () => {
   })
 
   describe('clearStorageState', () => {
-    it('rejects empty key names', () => {
+    it('rejects empty keys', () => {
       expect(() => clearStorageState('')).toThrow(
         '[redux-storage-middleware] Storage key must not be empty',
       )
     })
 
-    it('rejects reserved key names', () => {
+    it('rejects reserved keys', () => {
       expect(() => clearStorageState('constructor')).toThrow(
         'is reserved and cannot be used',
       )
