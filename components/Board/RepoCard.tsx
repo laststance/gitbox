@@ -3,14 +3,14 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Calendar, Paperclip, StickyNote } from 'lucide-react'
-import React, { memo, useCallback, useState } from 'react'
+import React, { Activity, memo, useCallback, useState } from 'react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 
 import { CommentDisplay, type CommentStyleSettings } from './CommentDisplay'
-import { CommentInlineEdit } from './CommentInlineEdit'
+import { CommentInlineEdit, type CommentSaveOptions } from './CommentInlineEdit'
 import { OverflowMenu } from './OverflowMenu'
 
 // Types
@@ -111,12 +111,17 @@ export const RepoCard = memo<RepoCardProps>(
      * Handle saving the comment
      *
      * @param newComment - The new comment value
+     * @param options - Save options including whether to close edit mode
      */
     const handleCommentSave = useCallback(
-      async (newComment: string) => {
+      async (newComment: string, options: CommentSaveOptions) => {
         // Optimistic update - notify parent immediately
         onCommentChange?.(card.id, newComment)
-        setIsEditingComment(false)
+        // Only close edit mode if explicitly requested (manual save)
+        // Auto-save keeps edit mode open so user can continue typing
+        if (options.closeOnSave) {
+          setIsEditingComment(false)
+        }
       },
       [card.id, onCommentChange],
     )
@@ -213,23 +218,29 @@ export const RepoCard = memo<RepoCardProps>(
               )}
 
               {/* Inline Comment (Card-in-Card style) */}
-              {showComment &&
-                (isEditingComment ? (
-                  <CommentInlineEdit
-                    initialValue={comment ?? ''}
-                    onSave={handleCommentSave}
-                    onCancel={handleCommentCancel}
-                    style={commentStyle}
-                    enableAutoSave={true}
-                  />
-                ) : (
-                  <CommentDisplay
-                    comment={comment}
-                    onClick={handleCommentClick}
-                    style={commentStyle}
-                    showEmptyState={true}
-                  />
-                ))}
+              {/* Using React 19 <Activity /> to preserve CommentInlineEdit state */}
+              {/* When parent re-renders, conditional rendering would unmount/remount */}
+              {/* <Activity mode="hidden"> keeps DOM but hides, preserving state */}
+              {showComment && (
+                <>
+                  <Activity mode={isEditingComment ? 'visible' : 'hidden'}>
+                    <CommentInlineEdit
+                      initialValue={comment ?? ''}
+                      onSave={handleCommentSave}
+                      onCancel={handleCommentCancel}
+                      style={commentStyle}
+                    />
+                  </Activity>
+                  <Activity mode={isEditingComment ? 'hidden' : 'visible'}>
+                    <CommentDisplay
+                      comment={comment}
+                      onClick={handleCommentClick}
+                      style={commentStyle}
+                      showEmptyState={true}
+                    />
+                  </Activity>
+                </>
+              )}
 
               <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center gap-3 text-muted-foreground">

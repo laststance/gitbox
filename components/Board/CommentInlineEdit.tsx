@@ -1,7 +1,7 @@
 /**
  * CommentInlineEdit Component
  *
- * Inline editor for RepoCard comments with auto-save capability.
+ * Inline editor for RepoCard comments with onBlur auto-save.
  * Phase 4: Inline Edit implementation
  *
  * Features:
@@ -9,7 +9,7 @@
  * - Character counter with warning color
  * - Save/Cancel buttons
  * - Keyboard shortcuts (Enter=save, Esc=cancel)
- * - Auto-save with debounce (1 second)
+ * - Auto-save on blur (when focus is lost)
  *
  * @see https://github.com/laststance/gitbox/issues/20
  */
@@ -21,7 +21,6 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { useDebounce } from '@/hooks/use-debounce'
 import { cn } from '@/lib/utils'
 
 import {
@@ -36,14 +35,17 @@ const MAX_LENGTH = 300
 /** Warning threshold (show orange counter) */
 const WARNING_THRESHOLD = 270
 
-/** Auto-save debounce delay in ms */
-const AUTO_SAVE_DELAY = 1000
+/** Options for save callback */
+export interface CommentSaveOptions {
+  /** Whether to close edit mode after saving (false for auto-save) */
+  closeOnSave: boolean
+}
 
 interface CommentInlineEditProps {
   /** Initial comment value */
   initialValue: string
   /** Callback when comment is saved */
-  onSave: (value: string) => Promise<void>
+  onSave: (value: string, options: CommentSaveOptions) => Promise<void>
   /** Callback when editing is cancelled */
   onCancel: () => void
   /** Maximum character limit */
@@ -54,14 +56,13 @@ interface CommentInlineEditProps {
   className?: string
   /** Whether to auto-focus the textarea */
   autoFocus?: boolean
-  /** Enable auto-save with debounce */
-  enableAutoSave?: boolean
 }
 
 /**
  * CommentInlineEdit Component
  *
  * Renders an inline editor for comments with save/cancel functionality.
+ * Saves automatically on blur (when focus is lost).
  *
  * @param initialValue - The starting comment value
  * @param onSave - Async callback to save the comment
@@ -69,7 +70,6 @@ interface CommentInlineEditProps {
  * @param maxLength - Character limit (default: 300)
  * @param style - Styling configuration
  * @param autoFocus - Auto-focus textarea on mount (default: true)
- * @param enableAutoSave - Enable auto-save after typing pause (default: true)
  * @returns Inline edit UI with textarea and controls
  *
  * @example
@@ -88,19 +88,14 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
     style = {},
     className,
     autoFocus = true,
-    enableAutoSave = true,
   }) => {
     const [editValue, setEditValue] = useState(initialValue)
     const [isSaving, setIsSaving] = useState(false)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
-    const hasChangedRef = useRef(false)
 
     // Merge with default styles
     const mergedStyle = { ...DEFAULT_COMMENT_STYLE, ...style }
     const borderColorClass = COMMENT_BORDER_COLORS[mergedStyle.borderColor]
-
-    // Debounced value for auto-save
-    const debouncedValue = useDebounce(editValue, AUTO_SAVE_DELAY)
 
     // Character count helpers
     const charCount = editValue.length
@@ -109,23 +104,31 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
 
     /**
      * Handle save action
+     *
+     * @param closeOnSave - Whether to close edit mode after saving
+     * @returns Promise that resolves when save is complete
      */
-    const handleSave = useCallback(async () => {
-      if (isSaving || isOverLimit) return
+    const handleSave = useCallback(
+      async (closeOnSave: boolean) => {
+        if (isSaving || isOverLimit) return
 
-      // Don't save if value hasn't changed
-      if (editValue === initialValue) {
-        onCancel()
-        return
-      }
+        // Don't save if value hasn't changed
+        if (editValue === initialValue) {
+          if (closeOnSave) {
+            onCancel()
+          }
+          return
+        }
 
-      setIsSaving(true)
-      try {
-        await onSave(editValue)
-      } finally {
-        setIsSaving(false)
-      }
-    }, [editValue, initialValue, isSaving, isOverLimit, onSave, onCancel])
+        setIsSaving(true)
+        try {
+          await onSave(editValue, { closeOnSave })
+        } finally {
+          setIsSaving(false)
+        }
+      },
+      [editValue, initialValue, isSaving, isOverLimit, onSave, onCancel],
+    )
 
     /**
      * Handle cancel action
@@ -137,7 +140,7 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
 
     /**
      * Handle keyboard shortcuts
-     * - Enter (without Shift) = Save
+     * - Enter (without Shift) = Save and close
      * - Escape = Cancel
      *
      * IMPORTANT: Stops propagation for ALL keys to prevent dnd-kit's
@@ -152,7 +155,7 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
 
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault()
-          handleSave()
+          handleSave(true) // closeOnSave: true
         } else if (e.key === 'Escape') {
           e.preventDefault()
           handleCancel()
@@ -167,9 +170,28 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
     const handleChange = useCallback(
       (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setEditValue(e.target.value)
-        hasChangedRef.current = true
       },
       [],
+    )
+
+    /**
+     * Handle blur event - auto-save when focus is lost
+     * Skips save if focus moves to cancel/save buttons (they handle their own actions)
+     */
+    const handleBlur = useCallback(
+      (e: React.FocusEvent<HTMLTextAreaElement>) => {
+        const relatedTarget = e.relatedTarget as HTMLElement | null
+        // Skip auto-save if focus is moving to cancel or save button
+        if (
+          relatedTarget?.closest('[data-testid="comment-cancel-btn"]') ||
+          relatedTarget?.closest('[data-testid="comment-save-btn"]')
+        ) {
+          return
+        }
+        // Auto-save on blur (don't close edit mode)
+        handleSave(false)
+      },
+      [handleSave],
     )
 
     // Auto-focus on mount
@@ -181,22 +203,6 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
         textareaRef.current.selectionEnd = textareaRef.current.value.length
       }
     }, [autoFocus])
-
-    // Auto-save when debounced value changes
-    // Note: This effect is intentionally used for debounced auto-save,
-    // which is a valid pattern for user input with delayed persistence.
-    /* eslint-disable react-you-might-not-need-an-effect/no-event-handler, react-you-might-not-need-an-effect/no-pass-live-state-to-parent, react-you-might-not-need-an-effect/no-derived-state */
-    useEffect(() => {
-      if (!enableAutoSave) return
-      if (!hasChangedRef.current) return
-      if (debouncedValue === initialValue) return
-      if (isSaving) return
-
-      // Trigger save
-      handleSave()
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedValue, enableAutoSave])
-    /* eslint-enable react-you-might-not-need-an-effect/no-event-handler, react-you-might-not-need-an-effect/no-pass-live-state-to-parent, react-you-might-not-need-an-effect/no-derived-state */
 
     return (
       <div
@@ -218,6 +224,7 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
           value={editValue}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
           placeholder="Add a comment..."
           maxLength={maxLength + 50} // Allow slight overflow for better UX
           disabled={isSaving}
@@ -263,7 +270,7 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
               type="button"
               size="sm"
               variant="ghost"
-              onClick={handleSave}
+              onClick={async () => handleSave(true)}
               disabled={isSaving || isOverLimit}
               data-testid="comment-save-btn"
               className="h-7 px-2 text-primary hover:text-primary hover:bg-primary/10"
