@@ -19,8 +19,6 @@ import { createClient } from '@/lib/supabase/server'
 import type { Tables, TablesInsert } from '@/lib/supabase/types'
 import { boardNameSchema } from '@/lib/validations/board'
 
-import { logBoardCreate } from './audit-log'
-
 type StatusListRow = Tables<'statuslist'>
 type RepoCardRow = Tables<'repocard'>
 
@@ -568,9 +566,6 @@ export async function createBoard(
   // Create default status lists for the new board
   await createDefaultStatusLists(data.id)
 
-  // Log audit event
-  await logBoardCreate(data.id)
-
   return { id: data.id, name: data.name }
 }
 
@@ -933,16 +928,6 @@ export async function createFirstBoardIfNeeded(
       },
     })
     // Board exists but without status lists - they'll be created on first access
-  }
-
-  // Log audit event
-  try {
-    await logBoardCreate(data.id)
-  } catch (auditError) {
-    Sentry.captureException(auditError, {
-      extra: { context: 'Log board creation audit', boardId: data.id },
-    })
-    // Non-critical - don't block
   }
 
   return { id: data.id, name: data.name }

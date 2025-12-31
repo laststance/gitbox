@@ -482,31 +482,6 @@ export const supabaseDbHandlers: HttpHandler[] = [
   http.delete(`${SUPABASE_URL}/rest/v1/projectinfo`, () => {
     return new HttpResponse(null, { status: 204 })
   }),
-
-  // --------------------------------------------------------------------------
-  // AuditLog table handlers (insert-only)
-  // --------------------------------------------------------------------------
-
-  /**
-   * POST /rest/v1/auditlog - Create audit log entry
-   */
-  http.post(`${SUPABASE_URL}/rest/v1/auditlog`, async ({ request }) => {
-    const body = (await request.json()) as Record<string, unknown>
-
-    const newLog = {
-      id: `audit-${Date.now()}`,
-      user_id: body.user_id || MOCK_USER_ID,
-      action: body.action || 'unknown_action',
-      resource_type: body.resource_type || 'board',
-      resource_id: body.resource_id || MOCK_BOARD_ID,
-      success: body.success ?? true,
-      ip_address: body.ip_address || '127.0.0.1',
-      user_agent: body.user_agent || 'MSW Mock',
-      created_at: new Date().toISOString(),
-    }
-
-    return HttpResponse.json([newLog], { status: 201 })
-  }),
 ]
 
 // ============================================================================

@@ -163,15 +163,13 @@ app/
 └── settings/                # Theme settings
 ```
 
-### Database Schema (7 tables with RLS)
+### Database Schema (5 tables with RLS)
 
 - **board** - Kanban boards per user
 - **statuslist** - Columns (with WIP limits)
 - **repocard** - GitHub repos as cards
 - **projectinfo** - Extended card data (notes, links)
-- **credential** - Encrypted secrets
 - **maintenance** - Archived repos
-- **auditlog** - Security events (immutable)
 
 ### Server Actions
 
@@ -179,10 +177,9 @@ app/
 lib/actions/
 ├── board.ts, board-data.ts   # Board CRUD
 ├── repo-cards.ts             # RepoCard CRUD + D&D
-├── project-info.ts           # Notes, links, credentials
+├── project-info.ts           # Notes, links
 ├── auth.ts                   # Session management
-├── github.ts                 # GitHub API (uses provider_token cookie)
-└── audit-log.ts              # Security logging
+└── github.ts                 # GitHub API (uses provider_token cookie)
 ```
 
 ---
@@ -199,10 +196,6 @@ lib/actions/
 ### GitHub OAuth Token
 
 Stored in httpOnly cookie `github_provider_token` (set in `app/auth/callback/route.ts`).
-
-### Encryption
-
-`lib/encryption.ts` - AES-256-GCM for credential storage.
 
 ---
 

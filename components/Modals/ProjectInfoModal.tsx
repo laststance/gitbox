@@ -1,7 +1,7 @@
 'use client'
 
-import { Plus, X, Eye, EyeOff } from 'lucide-react'
-import { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react'
+import { Plus, X } from 'lucide-react'
+import { useState, useEffect, useCallback, memo, useMemo } from 'react'
 
 import { PlateEditor } from '@/components/editor/PlateEditor'
 import { Button } from '@/components/ui/button'
@@ -22,8 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { Credential, ProjectLink } from '@/lib/actions/project-info'
-import { generateMaskedDisplay } from '@/lib/encryption'
+import type { ProjectLink } from '@/lib/actions/project-info'
 import { getSlateTextLength, parseSlateValue } from '@/lib/utils/slate-utils'
 
 /** Base styles for character count */
@@ -36,7 +35,6 @@ export interface ProjectInfo {
   note: string
   comment: string
   links: ProjectLink[]
-  credentials?: Credential[]
 }
 
 interface ProjectInfoModalProps {
@@ -46,7 +44,6 @@ interface ProjectInfoModalProps {
     note: string
     comment: string
     links: ProjectLink[]
-    credentials: Credential[]
   }) => void
   projectInfo: ProjectInfo
 }
@@ -82,23 +79,7 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [comment, _setComment] = useState(projectInfo.comment)
   const [links, setLinks] = useState<ProjectLink[]>(projectInfo.links)
-  const [credentials, setCredentials] = useState<Credential[]>(
-    projectInfo.credentials || [],
-  )
   const [urlErrors, setUrlErrors] = useState<Map<number, string>>(new Map())
-  const [revealedCredentials, setRevealedCredentials] = useState<Set<number>>(
-    new Set(),
-  )
-  // Use ref to track timers to avoid dependency issues in useEffect
-  const revealTimersRef = useRef<Map<number, NodeJS.Timeout>>(new Map())
-
-  // Cleanup timers on unmount
-  useEffect(() => {
-    const timersRef = revealTimersRef
-    return () => {
-      timersRef.current.forEach((timer) => clearTimeout(timer))
-    }
-  }, [])
 
   /**
    * Handles note changes from PlateEditor.
@@ -152,113 +133,16 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
     setLinks(newLinks)
   }
 
-  // Credentials handlers
-  const handleAddCredential = () => {
-    setCredentials([
-      ...credentials,
-      { type: 'reference', name: '', reference: '' },
-    ])
-  }
-
-  const handleRemoveCredential = (index: number) => {
-    setCredentials(credentials.filter((_, i) => i !== index))
-  }
-
-  const handleCredentialChange = (
-    index: number,
-    field: keyof Credential,
-    value: string,
-  ) => {
-    const newCredentials = [...credentials]
-    newCredentials[index] = { ...newCredentials[index], [field]: value }
-
-    // Auto-generate masked display when encrypted_value changes
-    if (field === 'encrypted_value' && value) {
-      newCredentials[index].masked_display = generateMaskedDisplay(value)
-    }
-
-    setCredentials(newCredentials)
-  }
-
-  const toggleRevealCredential = (index: number) => {
-    setRevealedCredentials((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(index)) {
-        // Hiding: clear the timer
-        newSet.delete(index)
-        const timer = revealTimersRef.current.get(index)
-        if (timer) {
-          clearTimeout(timer)
-          revealTimersRef.current.delete(index)
-        }
-      } else {
-        // Revealing: add to set and start 30-second timer
-        newSet.add(index)
-
-        // Clear existing timer if any
-        const existingTimer = revealTimersRef.current.get(index)
-        if (existingTimer) {
-          clearTimeout(existingTimer)
-        }
-
-        // Start new 30-second auto-hide timer
-        const timer = setTimeout(() => {
-          setRevealedCredentials((current) => {
-            const updated = new Set(current)
-            updated.delete(index)
-            return updated
-          })
-          revealTimersRef.current.delete(index)
-        }, 30000) // 30 seconds
-
-        revealTimersRef.current.set(index, timer)
-      }
-      return newSet
-    })
-  }
-
-  const handleCredentialTypeChange = (
-    index: number,
-    type: Credential['type'],
-  ) => {
-    const newCredentials = [...credentials]
-    // Reset type-specific fields when changing type
-    const baseCredential = {
-      type,
-      name: newCredentials[index].name,
-      note: newCredentials[index].note,
-    }
-
-    if (type === 'reference') {
-      newCredentials[index] = { ...baseCredential, reference: '' }
-    } else if (type === 'encrypted') {
-      newCredentials[index] = {
-        ...baseCredential,
-        encrypted_value: '',
-        masked_display: '',
-      }
-    } else if (type === 'external') {
-      newCredentials[index] = { ...baseCredential, location: '' }
-    }
-
-    setCredentials(newCredentials)
-  }
-
   const handleSave = () => {
     onSave({
       note,
       comment,
       links: links.filter((link) => link.url),
-      credentials: credentials.filter((cred) => cred.name),
     })
     onClose()
   }
 
   const handleCancel = useCallback(() => {
-    // Clear all timers before closing
-    revealTimersRef.current.forEach((timer) => clearTimeout(timer))
-    revealTimersRef.current = new Map()
-
     // State will reset automatically when modal reopens (via key pattern)
     onClose()
   }, [onClose])
@@ -440,171 +324,6 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
             </ul>
           )}
         </div>
-
-        {/* Credentials Section (US5) */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label>Credentials</Label>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddCredential}
-              data-testid="add-credential-button"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Credential
-            </Button>
-          </div>
-
-          {credentials.length > 0 && (
-            <ul className="space-y-3" data-testid="credential-list">
-              {credentials.map((credential, index) => (
-                <li key={index} className="space-y-2 p-4 border rounded-lg">
-                  <div className="flex gap-2">
-                    <Select
-                      value={credential.type}
-                      onValueChange={(value) =>
-                        handleCredentialTypeChange(
-                          index,
-                          value as Credential['type'],
-                        )
-                      }
-                    >
-                      <SelectTrigger
-                        className="w-[180px]"
-                        data-testid={`credential-type-select-${index}`}
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="reference">Reference</SelectItem>
-                        <SelectItem value="encrypted">Encrypted</SelectItem>
-                        <SelectItem value="external">External</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    <Input
-                      type="text"
-                      placeholder="Credential name"
-                      value={credential.name}
-                      onChange={(e) =>
-                        handleCredentialChange(index, 'name', e.target.value)
-                      }
-                      data-testid={`credential-name-${index}`}
-                    />
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveCredential(index)}
-                      data-testid={`remove-credential-${index}`}
-                      aria-label={`Delete credential ${index + 1}`}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  {/* Pattern A: Reference */}
-                  {credential.type === 'reference' && (
-                    <Input
-                      type="url"
-                      placeholder="Dashboard URL (e.g., https://dashboard.stripe.com)"
-                      value={credential.reference || ''}
-                      onChange={(e) =>
-                        handleCredentialChange(
-                          index,
-                          'reference',
-                          e.target.value,
-                        )
-                      }
-                      data-testid={`credential-reference-${index}`}
-                    />
-                  )}
-
-                  {/* Pattern B: Encrypted */}
-                  {credential.type === 'encrypted' && (
-                    <div className="relative">
-                      <Input
-                        type={
-                          revealedCredentials.has(index) ? 'text' : 'password'
-                        }
-                        placeholder="Secret value (will be encrypted)"
-                        value={
-                          revealedCredentials.has(index)
-                            ? credential.encrypted_value || ''
-                            : credential.masked_display ||
-                              credential.encrypted_value ||
-                              ''
-                        }
-                        onChange={(e) =>
-                          handleCredentialChange(
-                            index,
-                            'encrypted_value',
-                            e.target.value,
-                          )
-                        }
-                        data-testid={`credential-encrypted-${index}`}
-                        className="pr-10"
-                      />
-                      {credential.encrypted_value && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => toggleRevealCredential(index)}
-                          data-testid={`toggle-reveal-${index}`}
-                          aria-label={
-                            revealedCredentials.has(index)
-                              ? 'Hide value'
-                              : 'Reveal value'
-                          }
-                          className="absolute right-0 top-0 h-full"
-                        >
-                          {revealedCredentials.has(index) ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </Button>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Pattern C: External */}
-                  {credential.type === 'external' && (
-                    <Input
-                      type="text"
-                      placeholder="Location (e.g., 1Password > Team Vault > Production)"
-                      value={credential.location || ''}
-                      onChange={(e) =>
-                        handleCredentialChange(
-                          index,
-                          'location',
-                          e.target.value,
-                        )
-                      }
-                      data-testid={`credential-location-${index}`}
-                    />
-                  )}
-
-                  {/* Optional Note */}
-                  <Input
-                    type="text"
-                    placeholder="Note (optional)"
-                    value={credential.note || ''}
-                    onChange={(e) =>
-                      handleCredentialChange(index, 'note', e.target.value)
-                    }
-                    data-testid={`credential-note-${index}`}
-                    className="text-sm"
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
       </div>
 
       <DialogFooter>
@@ -635,10 +354,6 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
  * A modal dialog for editing project information.
  * - Note (max 20,000 characters)
  * - Links (Production URL, Tracking services, Supabase Dashboard)
- * - Credentials management with three patterns:
- *   - Reference: Dashboard URL only
- *   - Encrypted: AES-256-GCM encryption
- *   - External: 1Password/Bitwarden location
  * - WCAG AA accessibility compliance
  */
 export const ProjectInfoModal = memo(function ProjectInfoModal({

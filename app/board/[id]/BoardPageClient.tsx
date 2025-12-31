@@ -381,7 +381,6 @@ export const BoardPageClient = memo(function BoardPageClient({
         note: note,
         comment: '',
         links: [],
-        credentials: [],
       })
     },
     [noteCardId],
