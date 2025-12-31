@@ -262,23 +262,6 @@ pnpm e2e
 pnpm e2e --headed
 ```
 
-### Fast Local E2E with Sharding
-
-For faster local E2E execution, use parallel sharding (runs tests in separate processes):
-
-```bash
-# 2 shards in parallel (~60s vs ~160s normal)
-(pnpm exec playwright test --shard=1/2 &); (pnpm exec playwright test --shard=2/2 &); wait
-
-# 4 shards in parallel (~58s, diminishing returns beyond 2)
-(pnpm exec playwright test --shard=1/4 &); \
-(pnpm exec playwright test --shard=2/4 &); \
-(pnpm exec playwright test --shard=3/4 &); \
-(pnpm exec playwright test --shard=4/4 &); wait
-```
-
-**Note:** Sharding runs each shard in a separate process, avoiding MSW state conflicts that occur with `fullyParallel: true`.
-
 ### Test Configuration
 
 - **Auth State:** `tests/e2e/.auth/user.json` (gitignored)
