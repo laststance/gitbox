@@ -209,7 +209,7 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
       <DialogHeader>
         <DialogTitle id="project-info-title">Project Info</DialogTitle>
         <DialogDescription id="project-info-description">
-          Save quick notes and related links for your project
+          Save notes and related links for your project
         </DialogDescription>
       </DialogHeader>
 
@@ -223,6 +223,7 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
             onChange={handleNoteChange}
             placeholder="Type / for commands, or start writing..."
             minHeight="300px"
+            autoFocus
           />
           <div
             id="char-count"
@@ -261,7 +262,7 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
                       }
                     >
                       <SelectTrigger
-                        className="w-[180px]"
+                        className="w-45"
                         data-testid="url-type-select"
                       >
                         <SelectValue />
