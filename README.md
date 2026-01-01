@@ -5,6 +5,7 @@
 [![E2E Tests](https://github.com/laststance/gitbox/actions/workflows/e2e.yml/badge.svg)](https://github.com/laststance/gitbox/actions/workflows/e2e.yml)
 [![Build](https://github.com/laststance/gitbox/actions/workflows/build.yml/badge.svg)](https://github.com/laststance/gitbox/actions/workflows/build.yml)
 [![Test](https://github.com/laststance/gitbox/actions/workflows/test.yml/badge.svg)](https://github.com/laststance/gitbox/actions/workflows/test.yml)
+[![Lint](https://github.com/laststance/gitbox/actions/workflows/lint.yml/badge.svg)](https://github.com/laststance/gitbox/actions/workflows/lint.yml)
 
 GitBox is a wep app for managing GitHub repositories in a Kanban-style board.
 
