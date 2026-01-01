@@ -10,7 +10,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
-import { expect, waitFor, within } from 'storybook/test'
+import { expect, screen, waitFor } from 'storybook/test'
 
 import { ProjectInfoModal } from './ProjectInfoModal'
 
@@ -134,15 +134,14 @@ export const TestAutoFocus: Story = {
       links: [],
     },
   },
-  play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement)
-
+  play: async ({ step }) => {
+    // Dialog content renders via portal, so use screen instead of within(canvasElement)
     await step(
       'Wait for modal to render and editor to initialize',
       async () => {
         await waitFor(
           () => {
-            const editor = canvas.getByTestId('note-editor')
+            const editor = screen.getByTestId('note-editor')
             expect(editor).toBeInTheDocument()
           },
           { timeout: 2000 },
@@ -154,7 +153,7 @@ export const TestAutoFocus: Story = {
       await waitFor(
         () => {
           // PlateEditor uses contenteditable, so check if focus is within the editor container
-          const editor = canvas.getByTestId('note-editor')
+          const editor = screen.getByTestId('note-editor')
           const activeElement = document.activeElement
           // Active element should be inside the editor (contenteditable div)
           expect(editor.contains(activeElement)).toBe(true)
