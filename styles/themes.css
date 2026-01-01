@@ -33,6 +33,9 @@
   --border: oklch(0.86 0.018 80);
   --input: oklch(0.88 0.015 80);
   --ring: oklch(0.6 0.02 75);
+  --header: #ffffff;
+  --header-foreground: oklch(0.18 0.01 70);
+  --header-border: oklch(0.86 0.018 80);
   --theme-accent: #f5f0e8;
 }
 
