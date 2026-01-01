@@ -7,17 +7,17 @@
 [![Test](https://github.com/laststance/gitbox/actions/workflows/test.yml/badge.svg)](https://github.com/laststance/gitbox/actions/workflows/test.yml)
 [![Lint](https://github.com/laststance/gitbox/actions/workflows/lint.yml/badge.svg)](https://github.com/laststance/gitbox/actions/workflows/lint.yml)
 
-GitBox is a wep app for managing GitHub repositories in a Kanban-style board.
+GitBox is a web app for organizing your scattered GitHub repositories in Kanban-style boards—perfect for managing the chaos of Vibe Coding projects and beyond.
 
 - Live app: https://gitbox-laststance.vercel.app
-- Repository: https://github.com/laststance/gitbox
-- Issues: https://github.com/laststance/gitbox/issues
 
-## Brand Image
+![GitBox App Screenshot](./public/screenshots/app-screenshot.png)
 
-![GitBox metallic hero image](./public/screenshots/hero-metallic.svg)
+## Why?
 
-> The image above is a brand-focused concept image, not an in-app screenshot.
+Because let's be honest—GitHub's repository list is kind of a mess 😅
+
+When you have dozens (or hundreds) of repos from side projects, experiments, and Vibe Coding sessions, finding what you need becomes a treasure hunt. GitBox lets you visually organize everything in customizable Kanban boards, so you can finally bring order to the chaos.
 
 ## Features
 
