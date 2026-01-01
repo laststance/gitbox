@@ -32,9 +32,6 @@ const getSnapshot = () => true
 const getServerSnapshot = () => false
 const subscribe = () => () => {}
 
-// Legacy localStorage key for migration
-const LEGACY_THEME_STORAGE_KEY = 'gitbox-theme'
-
 /**
  * Theme management hook using Redux
  * @returns Theme state and setter with DOM application
@@ -52,25 +49,6 @@ export function useTheme() {
 
   const dispatch = useAppDispatch()
   const theme = useAppSelector(selectTheme)
-
-  // Migrate legacy localStorage theme to Redux (one-time migration)
-  useEffect(() => {
-    if (!isClient) return
-
-    const legacyTheme = localStorage.getItem(
-      LEGACY_THEME_STORAGE_KEY,
-    ) as ThemeType | null
-
-    if (legacyTheme && ALL_THEMES.includes(legacyTheme)) {
-      // Only migrate if current Redux state is still default 'system'
-      // This prevents overwriting a theme that was already set via Redux
-      if (theme === 'system') {
-        dispatch(setThemeAction(legacyTheme))
-      }
-      // Remove legacy key regardless (cleanup)
-      localStorage.removeItem(LEGACY_THEME_STORAGE_KEY)
-    }
-  }, [isClient, theme, dispatch])
 
   // Apply theme to document
   useEffect(() => {
