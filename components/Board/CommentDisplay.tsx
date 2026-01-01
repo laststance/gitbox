@@ -16,8 +16,8 @@
 
 'use client'
 
-import { Pencil, Plus } from 'lucide-react'
-import { memo } from 'react'
+import { Plus } from 'lucide-react'
+import { memo, type ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
 
@@ -94,6 +94,8 @@ interface CommentDisplayProps {
   showEmptyState?: boolean
   /** Custom class name */
   className?: string
+  /** Render function for action buttons (e.g., CommentActionsMenu) */
+  renderActions?: () => ReactNode
 }
 
 /**
@@ -128,7 +130,14 @@ interface CommentDisplayProps {
  * />
  */
 export const CommentDisplay = memo<CommentDisplayProps>(
-  ({ comment, onClick, style = {}, showEmptyState = true, className }) => {
+  ({
+    comment,
+    onClick,
+    style = {},
+    showEmptyState = true,
+    className,
+    renderActions,
+  }) => {
     const mergedStyle = { ...DEFAULT_COMMENT_STYLE, ...style }
 
     const borderColorClass = COMMENT_BORDER_COLORS[mergedStyle.borderColor]
@@ -207,11 +216,10 @@ export const CommentDisplay = memo<CommentDisplayProps>(
           {comment}
         </p>
 
-        {/* Edit icon (appears on hover) */}
-        <Pencil
-          className="absolute bottom-2 right-2 w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-          aria-hidden="true"
-        />
+        {/* Action buttons (appears on hover) */}
+        {renderActions && (
+          <div className="absolute bottom-2 right-2">{renderActions()}</div>
+        )}
       </div>
     )
   },

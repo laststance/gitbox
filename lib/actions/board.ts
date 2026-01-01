@@ -1025,9 +1025,11 @@ export async function updateBoardSettingsAction(
     string,
     JsonValue
   >
-  const existingCommentStyle = (existingCardDisplay.commentStyle ??
-    {}) as Record<string, JsonValue>
-  const newCommentStyle = (newCardDisplay.commentStyle ?? {}) as Record<
+  const existingCommentText = (existingCardDisplay.commentText ?? {}) as Record<
+    string,
+    JsonValue
+  >
+  const newCommentText = (newCardDisplay.commentText ?? {}) as Record<
     string,
     JsonValue
   >
@@ -1037,10 +1039,10 @@ export async function updateBoardSettingsAction(
     cardDisplay: {
       ...existingCardDisplay,
       ...newCardDisplay,
-      // Deep merge commentStyle if present
-      commentStyle: {
-        ...existingCommentStyle,
-        ...newCommentStyle,
+      // Deep merge commentText if present
+      commentText: {
+        ...existingCommentText,
+        ...newCommentText,
       },
     },
   }

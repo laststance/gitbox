@@ -13,7 +13,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import type { CommentData } from '@/lib/actions/project-info'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
+import type { CommentColor } from '@/lib/supabase/types'
 import type { CardDisplaySettings } from '@/lib/types/board-settings'
 
 import { RepoCard } from './RepoCard'
@@ -28,8 +30,8 @@ export const CARD_DRAG_TYPE = 'card'
 interface StatusColumnProps {
   status: StatusListDomain
   cards: RepoCardForRedux[]
-  /** Map of cardId → comment text from projectinfo.comment */
-  comments?: Record<string, string>
+  /** Map of cardId → comment data (text + color) from projectinfo */
+  comments?: Record<string, CommentData>
   /** Card display settings from board.settings */
   cardDisplaySettings?: CardDisplaySettings
   onEdit?: (id: string) => void
@@ -40,6 +42,10 @@ interface StatusColumnProps {
   onRemove?: (id: string) => void
   /** Callback when comment is updated (for optimistic updates) */
   onCommentChange?: (cardId: string, newComment: string) => void
+  /** Callback when comment color is changed */
+  onCommentColorChange?: (cardId: string, color: CommentColor) => void
+  /** Callback when comment is deleted */
+  onCommentDelete?: (cardId: string) => void
   onEditStatus?: (status: StatusListDomain) => void
   onDeleteStatus?: (statusId: string) => void
   onAddCard?: (statusId: string) => void
@@ -69,6 +75,8 @@ export const StatusColumn = memo<StatusColumnProps>(
     onNote,
     onRemove,
     onCommentChange,
+    onCommentColorChange,
+    onCommentDelete,
     onEditStatus,
     onDeleteStatus,
     onAddCard,
@@ -158,14 +166,16 @@ export const StatusColumn = memo<StatusColumnProps>(
                 >
                   <RepoCard
                     card={card}
-                    comment={comments?.[card.id]}
+                    commentData={comments?.[card.id]}
                     showComment={cardDisplaySettings?.showComment}
-                    commentStyle={cardDisplaySettings?.commentStyle}
+                    commentText={cardDisplaySettings?.commentText}
                     onEdit={onEdit}
                     onMaintenance={onMaintenance}
                     onNote={onNote}
                     onRemove={onRemove}
                     onCommentChange={onCommentChange}
+                    onCommentColorChange={onCommentColorChange}
+                    onCommentDelete={onCommentDelete}
                   />
                 </motion.div>
               ))}

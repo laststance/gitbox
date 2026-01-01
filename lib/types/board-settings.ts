@@ -7,7 +7,21 @@
  * @see https://github.com/laststance/gitbox/issues/20 (Phase 5)
  */
 
-import type { CommentStyleSettings } from '@/components/Board/CommentDisplay'
+import type {
+  COMMENT_FONT_SIZES,
+  COMMENT_FONT_WEIGHTS,
+} from '@/components/Board/CommentDisplay'
+
+/**
+ * Comment text settings (font size and weight only)
+ * Border color is now per-comment, not board-wide.
+ */
+export interface CommentTextSettings {
+  /** Font size for comment text */
+  fontSize: keyof typeof COMMENT_FONT_SIZES
+  /** Font weight for comment text */
+  fontWeight: keyof typeof COMMENT_FONT_WEIGHTS
+}
 
 /**
  * Card display settings for RepoCards on the board
@@ -17,8 +31,8 @@ export interface CardDisplaySettings {
   showGitHubDescription: boolean
   /** Show inline comment on cards */
   showComment: boolean
-  /** Style settings for comment display */
-  commentStyle: CommentStyleSettings
+  /** Text style settings for comment display (font size/weight) */
+  commentText: CommentTextSettings
 }
 
 /**
@@ -30,17 +44,20 @@ export interface BoardSettings {
 }
 
 /**
+ * Default comment text settings
+ */
+export const DEFAULT_COMMENT_TEXT_SETTINGS: CommentTextSettings = {
+  fontSize: 'sm',
+  fontWeight: 'normal',
+}
+
+/**
  * Default card display settings
  */
 export const DEFAULT_CARD_DISPLAY_SETTINGS: CardDisplaySettings = {
   showGitHubDescription: true,
   showComment: true,
-  commentStyle: {
-    borderColor: 'primary',
-    backgroundColor: 'subtle',
-    fontSize: 'sm',
-    fontWeight: 'normal',
-  },
+  commentText: DEFAULT_COMMENT_TEXT_SETTINGS,
 }
 
 /**
@@ -70,6 +87,8 @@ export function parseBoardSettings(json: unknown): BoardSettings {
     | Partial<CardDisplaySettings>
     | undefined
 
+  const commentText = cardDisplay?.commentText
+
   return {
     cardDisplay: {
       showGitHubDescription:
@@ -77,19 +96,13 @@ export function parseBoardSettings(json: unknown): BoardSettings {
         DEFAULT_CARD_DISPLAY_SETTINGS.showGitHubDescription,
       showComment:
         cardDisplay?.showComment ?? DEFAULT_CARD_DISPLAY_SETTINGS.showComment,
-      commentStyle: {
-        borderColor:
-          cardDisplay?.commentStyle?.borderColor ??
-          DEFAULT_CARD_DISPLAY_SETTINGS.commentStyle.borderColor,
-        backgroundColor:
-          cardDisplay?.commentStyle?.backgroundColor ??
-          DEFAULT_CARD_DISPLAY_SETTINGS.commentStyle.backgroundColor,
+      commentText: {
         fontSize:
-          cardDisplay?.commentStyle?.fontSize ??
-          DEFAULT_CARD_DISPLAY_SETTINGS.commentStyle.fontSize,
+          commentText?.fontSize ??
+          DEFAULT_CARD_DISPLAY_SETTINGS.commentText.fontSize,
         fontWeight:
-          cardDisplay?.commentStyle?.fontWeight ??
-          DEFAULT_CARD_DISPLAY_SETTINGS.commentStyle.fontWeight,
+          commentText?.fontWeight ??
+          DEFAULT_CARD_DISPLAY_SETTINGS.commentText.fontWeight,
       },
     },
   }

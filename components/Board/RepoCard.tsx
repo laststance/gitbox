@@ -8,8 +8,12 @@ import React, { Activity, memo, useCallback, useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import type { CommentData } from '@/lib/actions/project-info'
+import type { CommentColor } from '@/lib/supabase/types'
+import type { CommentTextSettings } from '@/lib/types/board-settings'
 
-import { CommentDisplay, type CommentStyleSettings } from './CommentDisplay'
+import { CommentActionsMenu } from './CommentActionsMenu'
+import { CommentDisplay } from './CommentDisplay'
 import { CommentInlineEdit, type CommentSaveOptions } from './CommentInlineEdit'
 import { OverflowMenu } from './OverflowMenu'
 
@@ -37,10 +41,10 @@ interface RepoCardData {
 
 interface RepoCardProps {
   card: RepoCardData
-  /** Inline comment text (from projectinfo.comment) */
-  comment?: string
-  /** Comment display style settings */
-  commentStyle?: Partial<CommentStyleSettings>
+  /** Comment data (text + border color) from projectinfo */
+  commentData?: CommentData
+  /** Text style settings for comment display (font size/weight from board settings) */
+  commentText?: CommentTextSettings
   /** Whether to show the comment section */
   showComment?: boolean
   onEdit?: (id: string) => void
@@ -53,6 +57,10 @@ interface RepoCardProps {
   onCommentClick?: (id: string) => void
   /** Callback when comment is updated (for optimistic updates in parent) */
   onCommentChange?: (id: string, newComment: string) => void
+  /** Callback when comment color is changed */
+  onCommentColorChange?: (id: string, color: CommentColor) => void
+  /** Callback when comment is deleted */
+  onCommentDelete?: (id: string) => void
 }
 
 /**
@@ -67,8 +75,8 @@ interface RepoCardProps {
 export const RepoCard = memo<RepoCardProps>(
   ({
     card,
-    comment,
-    commentStyle,
+    commentData,
+    commentText,
     showComment = true,
     onEdit,
     onMaintenance,
@@ -76,6 +84,8 @@ export const RepoCard = memo<RepoCardProps>(
     onRemove,
     onCommentClick,
     onCommentChange,
+    onCommentColorChange,
+    onCommentDelete,
   }) => {
     const {
       attributes,
@@ -132,6 +142,23 @@ export const RepoCard = memo<RepoCardProps>(
     const handleCommentCancel = useCallback(() => {
       setIsEditingComment(false)
     }, [])
+
+    /**
+     * Handle color change from CommentActionsMenu
+     */
+    const handleColorChange = useCallback(
+      (color: CommentColor) => {
+        onCommentColorChange?.(card.id, color)
+      },
+      [card.id, onCommentColorChange],
+    )
+
+    /**
+     * Handle delete from CommentActionsMenu (clears comment text only)
+     */
+    const handleCommentDelete = useCallback(() => {
+      onCommentDelete?.(card.id)
+    }, [card.id, onCommentDelete])
 
     const style = {
       transform: CSS.Transform.toString(transform),
@@ -225,18 +252,36 @@ export const RepoCard = memo<RepoCardProps>(
                 <>
                   <Activity mode={isEditingComment ? 'visible' : 'hidden'}>
                     <CommentInlineEdit
-                      initialValue={comment ?? ''}
+                      initialValue={commentData?.comment ?? ''}
                       onSave={handleCommentSave}
                       onCancel={handleCommentCancel}
-                      style={commentStyle}
+                      style={{
+                        borderColor: commentData?.color ?? 'primary',
+                        ...commentText,
+                      }}
                     />
                   </Activity>
                   <Activity mode={isEditingComment ? 'hidden' : 'visible'}>
                     <CommentDisplay
-                      comment={comment}
+                      comment={commentData?.comment}
                       onClick={handleCommentClick}
-                      style={commentStyle}
+                      style={{
+                        borderColor: commentData?.color ?? 'primary',
+                        ...commentText,
+                      }}
                       showEmptyState={true}
+                      renderActions={
+                        commentData?.comment
+                          ? () => (
+                              <CommentActionsMenu
+                                onEdit={handleCommentClick}
+                                onColorChange={handleColorChange}
+                                onDelete={handleCommentDelete}
+                                currentColor={commentData?.color ?? 'primary'}
+                              />
+                            )
+                          : undefined
+                      }
                     />
                   </Activity>
                 </>

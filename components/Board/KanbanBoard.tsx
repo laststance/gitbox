@@ -37,7 +37,12 @@ import {
   swapStatusListPositions,
   batchUpdateStatusListPositions,
 } from '@/lib/actions/board'
-import { updateComment } from '@/lib/actions/project-info'
+import {
+  updateComment,
+  updateCommentColor,
+  deleteComment,
+  type CommentData,
+} from '@/lib/actions/project-info'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import {
   setStatusLists,
@@ -48,6 +53,7 @@ import {
   selectBoardError,
 } from '@/lib/redux/slices/boardSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
+import type { CommentColor } from '@/lib/supabase/types'
 import type { CardDisplaySettings } from '@/lib/types/board-settings'
 
 import { ColumnInsertZone, COLUMN_INSERT_DROP_TYPE } from './ColumnInsertZone'
@@ -90,7 +96,7 @@ const forgivingCollisionDetection: CollisionDetection = (args) => {
 interface KanbanBoardProps {
   boardId?: string
   /** Initial comments fetched by Server Component (Phase 4) */
-  initialComments?: Record<string, string>
+  initialComments?: Record<string, CommentData>
   /** Card display settings from board.settings JSON */
   cardDisplaySettings?: CardDisplaySettings
   onEditProjectInfo?: (cardId: string) => void
@@ -189,9 +195,9 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     const [activeDragType, setActiveDragType] = useState<DragType>(null)
     // History stack for undo functionality (max 10 entries)
     const [history, setHistory] = useState<RepoCardForRedux[][]>([])
-    // Comments map: cardId → comment text (from projectinfo.comment)
+    // Comments map: cardId → comment data (text + color) from projectinfo
     // Phase 4: Initialized with server-fetched data (no client-side fetch needed)
-    const [comments, setComments] = useState<Record<string, string>>(
+    const [comments, setComments] = useState<Record<string, CommentData>>(
       initialComments ?? {},
     )
 
@@ -284,10 +290,13 @@ export const KanbanBoard = memo<KanbanBoardProps>(
      */
     const handleCommentChange = useCallback(
       async (cardId: string, newComment: string) => {
-        // Optimistic update: Update local state immediately
+        // Optimistic update: Update local state immediately (preserve color)
         setComments((prev) => ({
           ...prev,
-          [cardId]: newComment,
+          [cardId]: {
+            comment: newComment,
+            color: prev[cardId]?.color ?? 'primary',
+          },
         }))
 
         // Persist to database
@@ -303,6 +312,61 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       },
       [],
     )
+
+    /**
+     * Handle comment color change from CommentActionsMenu
+     *
+     * @param cardId - The card ID to update
+     * @param color - The new color value
+     */
+    const handleCommentColorChange = useCallback(
+      async (cardId: string, color: CommentColor) => {
+        // Optimistic update: Update local state immediately
+        setComments((prev) => ({
+          ...prev,
+          [cardId]: {
+            comment: prev[cardId]?.comment ?? '',
+            color,
+          },
+        }))
+
+        // Persist to database
+        try {
+          await updateCommentColor(cardId, color)
+        } catch (error) {
+          Sentry.captureException(error, {
+            extra: { context: 'Update comment color', cardId, color },
+          })
+        }
+      },
+      [],
+    )
+
+    /**
+     * Handle comment delete from CommentActionsMenu
+     * Clears the comment text only, card remains
+     *
+     * @param cardId - The card ID to delete comment from
+     */
+    const handleCommentDelete = useCallback(async (cardId: string) => {
+      // Optimistic update: Clear comment text, reset color to default
+      setComments((prev) => ({
+        ...prev,
+        [cardId]: {
+          comment: '',
+          color: 'primary',
+        },
+      }))
+
+      // Persist to database
+      try {
+        await deleteComment(cardId)
+      } catch (error) {
+        Sentry.captureException(error, {
+          extra: { context: 'Delete comment', cardId },
+        })
+      }
+    }, [])
 
     /**
      * Undo functionality: Reverts the last drag & drop operation
@@ -735,6 +799,8 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                     onNote={onNote}
                     onRemove={onRemove}
                     onCommentChange={handleCommentChange}
+                    onCommentColorChange={handleCommentColorChange}
+                    onCommentDelete={handleCommentDelete}
                     onEditStatus={onEditStatus}
                     onDeleteStatus={onDeleteStatus}
                     onAddCard={onAddCard}

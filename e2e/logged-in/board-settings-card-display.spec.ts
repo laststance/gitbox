@@ -2,7 +2,7 @@
  * Board Settings Card Display E2E Tests
  *
  * Tests for Phase 5: Card Display Settings in Board Settings Dialog
- * Verifies visibility toggles, style options, and persistence.
+ * Verifies visibility toggles, text style options, and persistence.
  *
  * @see https://github.com/laststance/gitbox/issues/20
  *
@@ -10,9 +10,12 @@
  * These tests verify:
  * - Card Display tab appears in Board Settings dialog
  * - Visibility toggles (GitHub Description, Inline Comment) work
- * - Style options (Border Color, Background, Font Size, Font Weight) work
+ * - Text style options (Font Size, Font Weight) work
  * - Settings persist when saved
- * - Comment Style section hides when Inline Comment is disabled
+ * - Comment Text section hides when Inline Comment is disabled
+ *
+ * Note: Border Color and Background Color have been removed from BoardSettings
+ * and are now per-comment settings via CommentActionsMenu.
  */
 
 import { test, expect } from '../fixtures/coverage'
@@ -95,7 +98,7 @@ test.describe('Board Settings Card Display (Authenticated)', () => {
     expect(newState).not.toBe(initialState)
   })
 
-  test('should show Comment Style options when Inline Comment is enabled', async ({
+  test('should show Comment Text options when Inline Comment is enabled', async ({
     page,
   }) => {
     // Open Board Settings dialog
@@ -117,21 +120,18 @@ test.describe('Board Settings Card Display (Authenticated)', () => {
       await commentToggle.click()
     }
 
-    // Comment Style section should be visible
-    await expect(panel.getByText('Comment Style')).toBeVisible()
+    // Comment Text section should be visible (renamed from Comment Style)
+    await expect(panel.getByText('Comment Text')).toBeVisible()
 
-    // Should have style options
-    await expect(
-      panel.locator('[data-testid="border-color-primary"]'),
-    ).toBeVisible()
-    await expect(panel.locator('[data-testid="bg-color-subtle"]')).toBeVisible()
+    // Should have text style options (font size and weight only)
+    // Note: Border Color and Background Color are now per-comment settings
     await expect(panel.locator('[data-testid="font-size-sm"]')).toBeVisible()
     await expect(
       panel.locator('[data-testid="font-weight-normal"]'),
     ).toBeVisible()
   })
 
-  test('should hide Comment Style options when Inline Comment is disabled', async ({
+  test('should hide Comment Text options when Inline Comment is disabled', async ({
     page,
   }) => {
     // Open Board Settings dialog
@@ -153,65 +153,12 @@ test.describe('Board Settings Card Display (Authenticated)', () => {
       await commentToggle.click()
     }
 
-    // Comment Style section should be hidden
-    await expect(panel.getByText('Comment Style')).not.toBeVisible()
+    // Comment Text section should be hidden
+    await expect(panel.getByText('Comment Text')).not.toBeVisible()
   })
 
-  test('should select border color option', async ({ page }) => {
-    // Open Board Settings dialog
-    const settingsButton = page.getByRole('button', { name: /board settings/i })
-    await expect(settingsButton).toBeVisible({ timeout: 10000 })
-    await settingsButton.click()
-
-    const dialog = page.getByRole('dialog')
-    await expect(dialog).toBeVisible({ timeout: 10000 })
-    await dialog.getByRole('tab', { name: /cards/i }).click()
-
-    const panel = dialog.locator('[data-testid="panel-card-display"]')
-    await expect(panel).toBeVisible({ timeout: 5000 })
-
-    // Ensure Comment Style is visible
-    const commentToggle = panel.locator('[data-testid="toggle-comment"]')
-    const state = await commentToggle.getAttribute('data-state')
-    if (state !== 'checked') {
-      await commentToggle.click()
-    }
-
-    // Click Blue border color
-    const blueButton = panel.locator('[data-testid="border-color-blue"]')
-    await blueButton.click()
-
-    // Should be selected (aria-pressed="true")
-    await expect(blueButton).toHaveAttribute('aria-pressed', 'true')
-  })
-
-  test('should select background color option', async ({ page }) => {
-    // Open Board Settings dialog
-    const settingsButton = page.getByRole('button', { name: /board settings/i })
-    await expect(settingsButton).toBeVisible({ timeout: 10000 })
-    await settingsButton.click()
-
-    const dialog = page.getByRole('dialog')
-    await expect(dialog).toBeVisible({ timeout: 10000 })
-    await dialog.getByRole('tab', { name: /cards/i }).click()
-
-    const panel = dialog.locator('[data-testid="panel-card-display"]')
-    await expect(panel).toBeVisible({ timeout: 5000 })
-
-    // Ensure Comment Style is visible
-    const commentToggle = panel.locator('[data-testid="toggle-comment"]')
-    const state = await commentToggle.getAttribute('data-state')
-    if (state !== 'checked') {
-      await commentToggle.click()
-    }
-
-    // Click Light background
-    const lightButton = panel.locator('[data-testid="bg-color-light"]')
-    await lightButton.click()
-
-    // Should be selected
-    await expect(lightButton).toHaveAttribute('aria-pressed', 'true')
-  })
+  // Note: Border color and background color tests have been removed
+  // These settings are now per-comment via CommentActionsMenu
 
   test('should select font size option', async ({ page }) => {
     // Open Board Settings dialog
@@ -226,7 +173,7 @@ test.describe('Board Settings Card Display (Authenticated)', () => {
     const panel = dialog.locator('[data-testid="panel-card-display"]')
     await expect(panel).toBeVisible({ timeout: 5000 })
 
-    // Ensure Comment Style is visible
+    // Ensure Comment Text section is visible
     const commentToggle = panel.locator('[data-testid="toggle-comment"]')
     const state = await commentToggle.getAttribute('data-state')
     if (state !== 'checked') {
@@ -254,7 +201,7 @@ test.describe('Board Settings Card Display (Authenticated)', () => {
     const panel = dialog.locator('[data-testid="panel-card-display"]')
     await expect(panel).toBeVisible({ timeout: 5000 })
 
-    // Ensure Comment Style is visible
+    // Ensure Comment Text section is visible
     const commentToggle = panel.locator('[data-testid="toggle-comment"]')
     const state = await commentToggle.getAttribute('data-state')
     if (state !== 'checked') {
@@ -289,8 +236,8 @@ test.describe('Board Settings Card Display (Authenticated)', () => {
       await commentToggle.click()
     }
 
-    // Select Blue border
-    await panel.locator('[data-testid="border-color-blue"]').click()
+    // Select Large font size (instead of border color which was removed)
+    await panel.locator('[data-testid="font-size-lg"]').click()
 
     // Save settings
     const saveButton = panel.locator(

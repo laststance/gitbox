@@ -118,6 +118,7 @@ export type Database = {
           links: Json | null
           note: string | null
           comment: string | null
+          comment_color: string | null
           repo_card_id: string
           updated_at: string | null
         }
@@ -127,6 +128,7 @@ export type Database = {
           links?: Json | null
           note?: string | null
           comment?: string | null
+          comment_color?: string | null
           repo_card_id: string
           updated_at?: string | null
         }
@@ -136,6 +138,7 @@ export type Database = {
           links?: Json | null
           note?: string | null
           comment?: string | null
+          comment_color?: string | null
           repo_card_id?: string
           updated_at?: string | null
         }
@@ -410,3 +413,15 @@ export type Theme =
   | 'plum'
   | 'rust'
   | 'system'
+
+// Comment color type (stored as string in projectinfo.comment_color)
+// Matches COMMENT_BORDER_COLORS keys in CommentDisplay.tsx
+export type CommentColor =
+  | 'primary'
+  | 'blue'
+  | 'green'
+  | 'amber'
+  | 'purple'
+  | 'rose'
+  | 'cyan'
+  | 'neutral'

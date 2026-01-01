@@ -114,7 +114,10 @@ export const WithAllMetadata: Story = {
 export const WithComment: Story = {
   args: {
     card: mockCard,
-    comment: 'npmリリース完了、当分は機能追加予定なし',
+    commentData: {
+      comment: 'npmリリース完了、当分は機能追加予定なし',
+      color: 'primary',
+    },
   },
 }
 
@@ -124,8 +127,11 @@ export const WithComment: Story = {
 export const WithLongComment: Story = {
   args: {
     card: mockCard,
-    comment:
-      'プロトタイプ作ったけど微妙、差分表示エディタで苦戦中。リファクタリング予定あり。チームでレビュー待ち。',
+    commentData: {
+      comment:
+        'プロトタイプ作ったけど微妙、差分表示エディタで苦戦中。リファクタリング予定あり。チームでレビュー待ち。',
+      color: 'primary',
+    },
   },
 }
 
@@ -135,7 +141,7 @@ export const WithLongComment: Story = {
 export const WithEmptyComment: Story = {
   args: {
     card: mockCard,
-    comment: '',
+    commentData: { comment: '', color: 'primary' },
     showComment: true,
   },
 }
@@ -146,21 +152,22 @@ export const WithEmptyComment: Story = {
 export const CommentHidden: Story = {
   args: {
     card: mockCard,
-    comment: 'This comment should not be visible',
+    commentData: {
+      comment: 'This comment should not be visible',
+      color: 'primary',
+    },
     showComment: false,
   },
 }
 
 /**
- * With custom comment style
+ * With custom comment color (per-comment color feature)
  */
-export const WithStyledComment: Story = {
+export const WithColoredComment: Story = {
   args: {
     card: mockCard,
-    comment: '重要：来週リリース予定',
-    commentStyle: {
-      borderColor: 'blue',
-      backgroundColor: 'tinted',
+    commentData: { comment: '重要：来週リリース予定', color: 'blue' },
+    commentText: {
       fontSize: 'base',
       fontWeight: 'semibold',
     },
@@ -174,7 +181,7 @@ export const WithStyledComment: Story = {
 export const WithCommentEdit: Story = {
   args: {
     card: mockCard,
-    comment: 'Click me to edit this comment',
+    commentData: { comment: 'Click me to edit this comment', color: 'primary' },
     onCommentChange: (id, newComment) => {
       console.log(`Card ${id} comment changed to: ${newComment}`)
     },

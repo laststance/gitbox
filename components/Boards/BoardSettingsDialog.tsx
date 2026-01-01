@@ -32,11 +32,8 @@ import {
 import { toast } from 'sonner'
 
 import {
-  COMMENT_BORDER_COLORS,
-  COMMENT_BG_COLORS,
   COMMENT_FONT_SIZES,
   COMMENT_FONT_WEIGHTS,
-  type CommentStyleSettings,
 } from '@/components/Board/CommentDisplay'
 import {
   AlertDialog,
@@ -78,6 +75,7 @@ import {
 import { applyTheme } from '@/lib/theme'
 import {
   type CardDisplaySettings,
+  type CommentTextSettings,
   DEFAULT_CARD_DISPLAY_SETTINGS,
   parseBoardSettings,
 } from '@/lib/types/board-settings'
@@ -131,27 +129,6 @@ const initialRenameState: RenameBoardState = {}
 const initialThemeState: UpdateBoardThemeState = {}
 const initialSettingsState: UpdateBoardSettingsState = {}
 const initialDeleteState: DeleteBoardState = {}
-
-/** Border color display names */
-const BORDER_COLOR_LABELS: Record<keyof typeof COMMENT_BORDER_COLORS, string> =
-  {
-    primary: 'Primary',
-    blue: 'Blue',
-    green: 'Green',
-    amber: 'Amber',
-    purple: 'Purple',
-    rose: 'Rose',
-    cyan: 'Cyan',
-    neutral: 'Neutral',
-  }
-
-/** Background color display names */
-const BG_COLOR_LABELS: Record<keyof typeof COMMENT_BG_COLORS, string> = {
-  subtle: 'Subtle',
-  light: 'Light',
-  tinted: 'Tinted',
-  none: 'None',
-}
 
 /** Font size display names */
 const FONT_SIZE_LABELS: Record<keyof typeof COMMENT_FONT_SIZES, string> = {
@@ -369,18 +346,18 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
   }
 
   /**
-   * Update comment style setting
+   * Update comment text setting
    *
-   * @param key - Style setting key
-   * @param value - New style value
+   * @param key - Text setting key (fontSize or fontWeight)
+   * @param value - New setting value
    */
-  function handleStyleChange<K extends keyof CommentStyleSettings>(
+  function handleTextChange<K extends keyof CommentTextSettings>(
     key: K,
-    value: CommentStyleSettings[K],
+    value: CommentTextSettings[K],
   ): void {
     setCardDisplay((prev) => ({
       ...prev,
-      commentStyle: { ...prev.commentStyle, [key]: value },
+      commentText: { ...prev.commentText, [key]: value },
     }))
   }
 
@@ -704,80 +681,10 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                   </div>
                 </div>
 
-                {/* Comment Style Options (only show when comments are enabled) */}
+                {/* Comment Text Options (only show when comments are enabled) */}
                 {cardDisplay.showComment && (
                   <div className="space-y-4">
-                    <h4 className="text-sm font-semibold">Comment Style</h4>
-
-                    {/* Border Color */}
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">
-                        Border Color
-                      </Label>
-                      <div className="flex flex-wrap gap-2">
-                        {(
-                          Object.keys(
-                            COMMENT_BORDER_COLORS,
-                          ) as (keyof typeof COMMENT_BORDER_COLORS)[]
-                        ).map((color) => {
-                          const isSelected =
-                            cardDisplay.commentStyle.borderColor === color
-                          return (
-                            <button
-                              key={color}
-                              type="button"
-                              onClick={() =>
-                                handleStyleChange('borderColor', color)
-                              }
-                              className={`rounded-md border-2 px-3 py-1.5 text-xs font-medium transition-all ${
-                                isSelected
-                                  ? 'border-primary bg-primary/10 text-primary'
-                                  : 'border-border hover:border-primary/50'
-                              }`}
-                              aria-pressed={isSelected}
-                              data-testid={`border-color-${color}`}
-                            >
-                              {BORDER_COLOR_LABELS[color]}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Background Color */}
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">
-                        Background
-                      </Label>
-                      <div className="flex flex-wrap gap-2">
-                        {(
-                          Object.keys(
-                            COMMENT_BG_COLORS,
-                          ) as (keyof typeof COMMENT_BG_COLORS)[]
-                        ).map((bg) => {
-                          const isSelected =
-                            cardDisplay.commentStyle.backgroundColor === bg
-                          return (
-                            <button
-                              key={bg}
-                              type="button"
-                              onClick={() =>
-                                handleStyleChange('backgroundColor', bg)
-                              }
-                              className={`rounded-md border-2 px-3 py-1.5 text-xs font-medium transition-all ${
-                                isSelected
-                                  ? 'border-primary bg-primary/10 text-primary'
-                                  : 'border-border hover:border-primary/50'
-                              }`}
-                              aria-pressed={isSelected}
-                              data-testid={`bg-color-${bg}`}
-                            >
-                              {BG_COLOR_LABELS[bg]}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
+                    <h4 className="text-sm font-semibold">Comment Text</h4>
 
                     {/* Font Size */}
                     <div className="space-y-2">
@@ -791,14 +698,12 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                           ) as (keyof typeof COMMENT_FONT_SIZES)[]
                         ).map((size) => {
                           const isSelected =
-                            cardDisplay.commentStyle.fontSize === size
+                            cardDisplay.commentText.fontSize === size
                           return (
                             <button
                               key={size}
                               type="button"
-                              onClick={() =>
-                                handleStyleChange('fontSize', size)
-                              }
+                              onClick={() => handleTextChange('fontSize', size)}
                               className={`rounded-md border-2 px-3 py-1.5 text-xs font-medium transition-all ${
                                 isSelected
                                   ? 'border-primary bg-primary/10 text-primary'
@@ -826,13 +731,13 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                           ) as (keyof typeof COMMENT_FONT_WEIGHTS)[]
                         ).map((weight) => {
                           const isSelected =
-                            cardDisplay.commentStyle.fontWeight === weight
+                            cardDisplay.commentText.fontWeight === weight
                           return (
                             <button
                               key={weight}
                               type="button"
                               onClick={() =>
-                                handleStyleChange('fontWeight', weight)
+                                handleTextChange('fontWeight', weight)
                               }
                               className={`rounded-md border-2 px-3 py-1.5 text-xs font-medium transition-all ${
                                 isSelected

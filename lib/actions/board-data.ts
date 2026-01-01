@@ -21,7 +21,7 @@
 import type { StatusListDomain, RepoCardDomain } from '@/lib/models/domain'
 
 import { getBoardData } from './board'
-import { getCommentsForCards } from './project-info'
+import { getCommentsForCards, type CommentData } from './project-info'
 
 /**
  * Complete initial data for a board
@@ -34,8 +34,8 @@ export interface BoardInitialData {
   statusLists: StatusListDomain[]
   /** Repository cards on the board */
   repoCards: RepoCardDomain[]
-  /** Map of cardId → comment text (from projectinfo.comment) */
-  comments: Record<string, string>
+  /** Map of cardId → comment data (text + color) from projectinfo */
+  comments: Record<string, CommentData>
 }
 
 /**

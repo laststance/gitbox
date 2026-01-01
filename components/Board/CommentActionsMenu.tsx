@@ -1,0 +1,134 @@
+'use client'
+
+import { Check, ChevronRight, Palette, Pencil, Trash2 } from 'lucide-react'
+import { memo } from 'react'
+
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import type { CommentColor } from '@/lib/supabase/types'
+
+/**
+ * Color options with display names and visual indicators
+ */
+const COLOR_OPTIONS: {
+  value: CommentColor
+  label: string
+  dotClass: string
+}[] = [
+  { value: 'primary', label: 'Primary', dotClass: 'bg-primary' },
+  { value: 'blue', label: 'Blue', dotClass: 'bg-blue-500' },
+  { value: 'green', label: 'Green', dotClass: 'bg-green-500' },
+  { value: 'amber', label: 'Amber', dotClass: 'bg-amber-500' },
+  { value: 'purple', label: 'Purple', dotClass: 'bg-purple-500' },
+  { value: 'rose', label: 'Rose', dotClass: 'bg-rose-500' },
+  { value: 'cyan', label: 'Cyan', dotClass: 'bg-cyan-500' },
+  { value: 'neutral', label: 'Neutral', dotClass: 'bg-muted-foreground' },
+]
+
+interface CommentActionsMenuProps {
+  /** Callback when Edit is selected */
+  onEdit: () => void
+  /** Callback when color is changed */
+  onColorChange: (color: CommentColor) => void
+  /** Callback when Delete is selected */
+  onDelete: () => void
+  /** Currently selected color */
+  currentColor: CommentColor
+  /** Whether the menu trigger is disabled */
+  disabled?: boolean
+}
+
+/**
+ * CommentActionsMenu Component
+ *
+ * A dropdown menu for comment actions with:
+ * - Edit action
+ * - Color picker submenu with 8 color options
+ * - Delete action (destructive)
+ *
+ * The color submenu expands on hover, showing color options
+ * with visual dots and checkmarks for the selected color.
+ *
+ * @example
+ * <CommentActionsMenu
+ *   onEdit={() => setIsEditing(true)}
+ *   onColorChange={(color) => updateColor(color)}
+ *   onDelete={() => clearComment()}
+ *   currentColor="primary"
+ * />
+ */
+export const CommentActionsMenu = memo<CommentActionsMenuProps>(
+  ({ onEdit, onColorChange, onDelete, currentColor, disabled = false }) => {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+            disabled={disabled}
+            aria-label="Comment actions"
+            data-testid="comment-actions-trigger"
+          >
+            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-36">
+          <DropdownMenuItem onClick={onEdit} data-testid="comment-action-edit">
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit
+          </DropdownMenuItem>
+
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger data-testid="comment-action-color">
+              <Palette className="mr-2 h-4 w-4" />
+              Color
+              <ChevronRight className="ml-auto h-4 w-4" />
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="w-32">
+              {COLOR_OPTIONS.map((option) => (
+                <DropdownMenuItem
+                  key={option.value}
+                  onClick={() => onColorChange(option.value)}
+                  data-testid={`comment-color-${option.value}`}
+                >
+                  <span
+                    className={`mr-2 h-3 w-3 rounded-full ${option.dotClass}`}
+                  />
+                  <span className="flex-1">{option.label}</span>
+                  {currentColor === option.value && (
+                    <Check className="ml-2 h-4 w-4 text-primary" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+
+          <DropdownMenuSeparator />
+
+          <DropdownMenuItem
+            onClick={onDelete}
+            className="text-destructive focus:text-destructive"
+            data-testid="comment-action-delete"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
+  },
+)
+
+CommentActionsMenu.displayName = 'CommentActionsMenu'
+
+export default CommentActionsMenu

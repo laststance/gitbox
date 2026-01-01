@@ -15,7 +15,12 @@
 import * as Sentry from '@sentry/nextjs'
 
 import { createClient } from '@/lib/supabase/server'
-import type { TablesInsert, Tables, TablesUpdate } from '@/lib/supabase/types'
+import type {
+  TablesInsert,
+  Tables,
+  TablesUpdate,
+  CommentColor,
+} from '@/lib/supabase/types'
 import { getSlateTextLength, parseSlateValue } from '@/lib/utils/slate-utils'
 
 type ProjectInfoRow = Tables<'projectinfo'>
@@ -32,6 +37,29 @@ export interface ProjectInfoData {
   comment: string
   links: ProjectLink[]
 }
+
+/**
+ * Comment data returned by getCommentsForCards
+ */
+export interface CommentData {
+  comment: string
+  color: CommentColor
+}
+
+/** Valid comment colors (matches DB CHECK constraint) */
+const VALID_COMMENT_COLORS: CommentColor[] = [
+  'primary',
+  'blue',
+  'green',
+  'amber',
+  'purple',
+  'rose',
+  'cyan',
+  'neutral',
+]
+
+/** Default comment color */
+const DEFAULT_COMMENT_COLOR: CommentColor = 'primary'
 
 /** Maximum character limit for notes (rich text) */
 const NOTE_MAX_LENGTH = 20000
@@ -78,6 +106,20 @@ function validateNote(note: string): boolean {
 function validateComment(comment: string): boolean {
   if (comment.length > COMMENT_MAX_LENGTH) {
     throw new Error(`Comment must be ${COMMENT_MAX_LENGTH} characters or less`)
+  }
+  return true
+}
+
+/**
+ * Validate comment color
+ *
+ * @param color - The color to validate
+ * @returns true if valid
+ * @throws Error if color is not in valid list
+ */
+function validateCommentColor(color: string): color is CommentColor {
+  if (!VALID_COMMENT_COLORS.includes(color as CommentColor)) {
+    throw new Error(`Invalid comment color: ${color}`)
   }
   return true
 }
@@ -254,19 +296,24 @@ export async function upsertProjectInfo(
 /**
  * Get comments for multiple repo cards (batch fetch)
  *
- * Efficiently fetches comment field for multiple cards in a single query.
+ * Efficiently fetches comment and color fields for multiple cards in a single query.
  * Used when loading a board to display inline comments on RepoCards.
  *
  * @param repoCardIds - Array of repo card IDs to fetch comments for
- * @returns Map of repo card ID to comment string
+ * @returns Map of repo card ID to CommentData (comment text + color)
  *
  * @example
  * const comments = await getCommentsForCards(['card-1', 'card-2'])
- * // Returns: { 'card-1': 'Some comment', 'card-2': '' }
+ * // Returns: { 'card-1': { comment: 'Some comment', color: 'primary' }, ... }
  */
 export async function getCommentsForCards(
   repoCardIds: string[],
-): Promise<Record<string, string>> {
+): Promise<Record<string, CommentData>> {
+  const emptyComment: CommentData = {
+    comment: '',
+    color: DEFAULT_COMMENT_COLOR,
+  }
+
   if (repoCardIds.length === 0) {
     return {}
   }
@@ -275,7 +322,7 @@ export async function getCommentsForCards(
 
   const { data, error } = await supabase
     .from('projectinfo')
-    .select('repo_card_id, comment')
+    .select('repo_card_id, comment, comment_color')
     .in('repo_card_id', repoCardIds)
 
   if (error) {
@@ -287,15 +334,18 @@ export async function getCommentsForCards(
   }
 
   // Convert to map
-  const commentsMap: Record<string, string> = {}
+  const commentsMap: Record<string, CommentData> = {}
   for (const row of data || []) {
-    commentsMap[row.repo_card_id] = row.comment || ''
+    commentsMap[row.repo_card_id] = {
+      comment: row.comment || '',
+      color: (row.comment_color as CommentColor) || DEFAULT_COMMENT_COLOR,
+    }
   }
 
-  // Fill missing cards with empty string
+  // Fill missing cards with empty comment data
   for (const cardId of repoCardIds) {
     if (!(cardId in commentsMap)) {
-      commentsMap[cardId] = ''
+      commentsMap[cardId] = emptyComment
     }
   }
 
@@ -310,19 +360,25 @@ export async function getCommentsForCards(
  *
  * @param repoCardId - The repo card ID
  * @param comment - The new comment text (max 2000 chars)
- * @throws Error if comment exceeds character limit
+ * @param color - Optional color for the comment (defaults to 'primary' on new)
+ * @throws Error if comment exceeds character limit or color is invalid
  *
  * @example
  * await updateComment('card-1', 'Updated comment text')
+ * await updateComment('card-1', 'With color', 'blue')
  */
 export async function updateComment(
   repoCardId: string,
   comment: string,
+  color?: CommentColor,
 ): Promise<void> {
   const supabase = await createClient()
 
   // Validate
   validateComment(comment)
+  if (color) {
+    validateCommentColor(color)
+  }
 
   // Check if projectinfo exists
   const { data: existingInfo } = await supabase
@@ -333,12 +389,18 @@ export async function updateComment(
 
   if (existingInfo) {
     // Update existing
+    const updateData: ProjectInfoUpdate = {
+      comment,
+      updated_at: new Date().toISOString(),
+    }
+    // Only update color if provided
+    if (color) {
+      updateData.comment_color = color
+    }
+
     const { error } = await supabase
       .from('projectinfo')
-      .update({
-        comment,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', existingInfo.id)
 
     if (error) {
@@ -352,6 +414,7 @@ export async function updateComment(
     const { error } = await supabase.from('projectinfo').insert({
       repo_card_id: repoCardId,
       comment,
+      comment_color: color || DEFAULT_COMMENT_COLOR,
       note: '',
       links: { production: [], tracking: [], supabase: [] },
     })
@@ -362,6 +425,118 @@ export async function updateComment(
       })
       throw new Error('Failed to save comment')
     }
+  }
+
+  // Note: No revalidatePath needed - client handles state via Redux
+}
+
+/**
+ * Update comment color for a single repo card
+ *
+ * Updates only the color field, preserving the existing comment text.
+ * Used when user selects a new color from the CommentActionsMenu.
+ *
+ * @param repoCardId - The repo card ID
+ * @param color - The new color to set
+ * @throws Error if color is invalid
+ *
+ * @example
+ * await updateCommentColor('card-1', 'blue')
+ */
+export async function updateCommentColor(
+  repoCardId: string,
+  color: CommentColor,
+): Promise<void> {
+  const supabase = await createClient()
+
+  // Validate
+  validateCommentColor(color)
+
+  // Check if projectinfo exists
+  const { data: existingInfo } = await supabase
+    .from('projectinfo')
+    .select('id')
+    .eq('repo_card_id', repoCardId)
+    .single<{ id: string }>()
+
+  if (existingInfo) {
+    // Update existing
+    const { error } = await supabase
+      .from('projectinfo')
+      .update({
+        comment_color: color,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existingInfo.id)
+
+    if (error) {
+      Sentry.captureException(error, {
+        extra: { context: 'Update comment color', repoCardId, color },
+      })
+      throw new Error('Failed to update comment color')
+    }
+  } else {
+    // Create new projectinfo with just the color (no comment text)
+    const { error } = await supabase.from('projectinfo').insert({
+      repo_card_id: repoCardId,
+      comment: null,
+      comment_color: color,
+      note: '',
+      links: { production: [], tracking: [], supabase: [] },
+    })
+
+    if (error) {
+      Sentry.captureException(error, {
+        extra: { context: 'Create projectinfo for color', repoCardId, color },
+      })
+      throw new Error('Failed to save comment color')
+    }
+  }
+
+  // Note: No revalidatePath needed - client handles state via Redux
+}
+
+/**
+ * Delete comment for a single repo card
+ *
+ * Clears the comment text and resets color to default.
+ * Does NOT delete the projectinfo row (preserves note, links).
+ *
+ * @param repoCardId - The repo card ID
+ *
+ * @example
+ * await deleteComment('card-1')
+ */
+export async function deleteComment(repoCardId: string): Promise<void> {
+  const supabase = await createClient()
+
+  // Check if projectinfo exists
+  const { data: existingInfo } = await supabase
+    .from('projectinfo')
+    .select('id')
+    .eq('repo_card_id', repoCardId)
+    .single<{ id: string }>()
+
+  if (!existingInfo) {
+    // Nothing to delete
+    return
+  }
+
+  // Clear comment and reset color to default
+  const { error } = await supabase
+    .from('projectinfo')
+    .update({
+      comment: null,
+      comment_color: DEFAULT_COMMENT_COLOR,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', existingInfo.id)
+
+  if (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'Delete comment', repoCardId },
+    })
+    throw new Error('Failed to delete comment')
   }
 
   // Note: No revalidatePath needed - client handles state via Redux

@@ -4,7 +4,9 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import React, { memo } from 'react'
 
+import type { CommentData } from '@/lib/actions/project-info'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
+import type { CommentColor } from '@/lib/supabase/types'
 import type { CardDisplaySettings } from '@/lib/types/board-settings'
 
 import { StatusColumn } from './StatusColumn'
@@ -18,8 +20,8 @@ export const COLUMN_DRAG_TYPE = 'column'
 interface SortableColumnProps {
   status: StatusListDomain
   cards: RepoCardForRedux[]
-  /** Map of cardId → comment text from projectinfo.comment */
-  comments?: Record<string, string>
+  /** Map of cardId → comment data (text + color) from projectinfo */
+  comments?: Record<string, CommentData>
   /** Card display settings from board.settings */
   cardDisplaySettings?: CardDisplaySettings
   onEdit?: (id: string) => void
@@ -29,6 +31,10 @@ interface SortableColumnProps {
   onRemove?: (id: string) => void
   /** Callback when comment is updated (for optimistic updates) */
   onCommentChange?: (cardId: string, newComment: string) => void
+  /** Callback when comment color is changed */
+  onCommentColorChange?: (cardId: string, color: CommentColor) => void
+  /** Callback when comment is deleted */
+  onCommentDelete?: (cardId: string) => void
   onEditStatus?: (status: StatusListDomain) => void
   onDeleteStatus?: (statusId: string) => void
   onAddCard?: (statusId: string) => void
@@ -67,6 +73,8 @@ export const SortableColumn = memo<SortableColumnProps>(
     onNote,
     onRemove,
     onCommentChange,
+    onCommentColorChange,
+    onCommentDelete,
     onEditStatus,
     onDeleteStatus,
     onAddCard,
@@ -119,6 +127,8 @@ export const SortableColumn = memo<SortableColumnProps>(
             onNote={onNote}
             onRemove={onRemove}
             onCommentChange={onCommentChange}
+            onCommentColorChange={onCommentColorChange}
+            onCommentDelete={onCommentDelete}
             onEditStatus={onEditStatus}
             onDeleteStatus={onDeleteStatus}
             onAddCard={onAddCard}
