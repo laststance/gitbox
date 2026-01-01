@@ -27,6 +27,11 @@ const COLOR_OPTIONS: {
   dotClass: string
 }[] = [
   {
+    value: 'neutral',
+    label: 'Neutral',
+    dotClass: 'bg-muted/50 border border-muted-foreground/70',
+  },
+  {
     value: 'primary',
     label: 'Primary',
     dotClass: 'bg-primary/50 border border-primary/70',
@@ -60,11 +65,6 @@ const COLOR_OPTIONS: {
     value: 'cyan',
     label: 'Cyan',
     dotClass: 'bg-cyan-500/50 border border-cyan-500/70',
-  },
-  {
-    value: 'neutral',
-    label: 'Neutral',
-    dotClass: 'bg-muted/50 border border-muted-foreground/70',
   },
 ]
 
