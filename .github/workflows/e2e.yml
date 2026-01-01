@@ -44,6 +44,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: mock-anon-key
           NEXT_PUBLIC_ENABLE_MSW_MOCK: 'true'
           APP_ENV: test
+          SUPABASE_SERVICE_ROLE_KEY: mock-service-role-key
 
       - name: Run E2E tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
         run: pnpm exec playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
@@ -53,6 +54,7 @@ jobs:
           NEXT_PUBLIC_ENABLE_MSW_MOCK: 'true'
           APP_ENV: test
           SHARD_INDEX: ${{ matrix.shardIndex }}
+          SUPABASE_SERVICE_ROLE_KEY: mock-service-role-key
 
       - name: Upload blob report
         if: ${{ !cancelled() }}

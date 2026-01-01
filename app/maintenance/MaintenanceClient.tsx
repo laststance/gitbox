@@ -75,7 +75,6 @@ export interface MaintenanceRepo {
   id: string
   repo_owner: string
   repo_name: string
-  note: string | null
   meta: {
     stars?: number
     language?: string
@@ -150,13 +149,11 @@ export const MaintenanceClient = memo(function MaintenanceClient({
     })
   }, [])
 
-  // Filter repos based on search
-  const filteredRepos = repos.filter(
-    (repo) =>
-      `${repo.repo_owner}/${repo.repo_name}`
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      repo.note?.toLowerCase().includes(search.toLowerCase()),
+  // Filter repos based on search (searches owner/name only - notes are in projectinfo)
+  const filteredRepos = repos.filter((repo) =>
+    `${repo.repo_owner}/${repo.repo_name}`
+      .toLowerCase()
+      .includes(search.toLowerCase()),
   )
 
   // Sort repos

@@ -33,7 +33,6 @@ export default async function MaintenancePage() {
     .from('maintenance')
     .select('*')
     .eq('user_id', user.id)
-    .eq('hidden', false)
     .order('updated_at', { ascending: false })
 
   if (error) {
@@ -45,7 +44,6 @@ export default async function MaintenancePage() {
     id: item.id,
     repo_owner: item.repo_owner,
     repo_name: item.repo_name,
-    note: item.note,
     meta: null, // Maintenance table doesn't have meta
     created_at: item.created_at,
     updated_at: item.updated_at,

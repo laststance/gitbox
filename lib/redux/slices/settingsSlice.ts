@@ -22,7 +22,6 @@ interface SettingsState {
   compactMode: boolean
   /** Display stars, language, and last updated on cards */
   showCardMetadata: boolean
-  showArchived: boolean
   /** Organization filter for AddRepositoryCombobox ('all' or organization login name) */
   organizationFilter: string
 }
@@ -35,7 +34,6 @@ const initialState: SettingsState = {
   },
   compactMode: false,
   showCardMetadata: true,
-  showArchived: false,
   organizationFilter: 'all',
 }
 
@@ -55,9 +53,6 @@ export const settingsSlice = createSlice({
     setShowCardMetadata: (state, action: PayloadAction<boolean>) => {
       state.showCardMetadata = action.payload
     },
-    setShowArchived: (state, action: PayloadAction<boolean>) => {
-      state.showArchived = action.payload
-    },
     setOrganizationFilter: (state, action: PayloadAction<string>) => {
       state.organizationFilter = action.payload
     },
@@ -70,7 +65,6 @@ export const {
   setTypography,
   setCompactMode,
   setShowCardMetadata,
-  setShowArchived,
   setOrganizationFilter,
   resetSettings,
 } = settingsSlice.actions
@@ -86,8 +80,6 @@ export const selectCompactMode = (state: { settings: SettingsState }) =>
   state.settings.compactMode
 export const selectShowCardMetadata = (state: { settings: SettingsState }) =>
   state.settings.showCardMetadata
-export const selectShowArchived = (state: { settings: SettingsState }) =>
-  state.settings.showArchived
 /**
  * Selector for organization filter with safe default
  * @param state - Redux state with settings slice

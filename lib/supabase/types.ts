@@ -75,10 +75,7 @@ export type Database = {
       maintenance: {
         Row: {
           created_at: string | null
-          hidden: boolean | null
           id: string
-          note: string | null
-          repo_card_id: string | null
           repo_name: string
           repo_owner: string
           updated_at: string | null
@@ -86,10 +83,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          hidden?: boolean | null
           id?: string
-          note?: string | null
-          repo_card_id?: string | null
           repo_name: string
           repo_owner: string
           updated_at?: string | null
@@ -97,24 +91,13 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          hidden?: boolean | null
           id?: string
-          note?: string | null
-          repo_card_id?: string | null
           repo_name?: string
           repo_owner?: string
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: 'maintenance_repo_card_id_fkey'
-            columns: ['repo_card_id']
-            isOneToOne: true
-            referencedRelation: 'repocard'
-            referencedColumns: ['id']
-          },
-        ]
+        Relationships: []
       }
       projectinfo: {
         Row: {

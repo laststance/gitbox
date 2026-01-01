@@ -711,8 +711,6 @@ export async function moveToMaintenance(
         user_id: user.id,
         repo_owner: card.repo_owner,
         repo_name: card.repo_name,
-        note: null, // Notes now stored in projectinfo table
-        hidden: false,
       })
       .select('id')
       .single()

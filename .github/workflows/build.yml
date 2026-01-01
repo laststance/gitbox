@@ -18,6 +18,7 @@ jobs:
       # Dummy values for build (not used at runtime)
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key-for-build
+      SUPABASE_SERVICE_ROLE_KEY: dummy-service-role-key-for-build
     steps:
       - uses: actions/checkout@v4
 
