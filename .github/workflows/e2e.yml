@@ -102,7 +102,11 @@ jobs:
         with:
           path: all-coverage-reports
           pattern: coverage-report-*
-          merge-multiple: true
+          # NOTE: Do NOT use merge-multiple: true here.
+          # Each shard produces coverage/coverage-summary.json at the same relative path.
+          # merge-multiple would overwrite all files, leaving only the last shard's data.
+          # Without it, each artifact is downloaded to its own subdirectory:
+          # all-coverage-reports/coverage-report-{N}/coverage/coverage-summary.json
 
       - name: Merge Playwright reports
         run: |
