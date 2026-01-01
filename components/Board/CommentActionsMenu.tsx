@@ -18,20 +18,54 @@ import type { CommentColor } from '@/lib/supabase/types'
 
 /**
  * Color options with display names and visual indicators
+ * The dotClass matches the actual applied colors (bg + border at 20%/30% opacity)
+ * to provide accurate visual preview in the color picker
  */
 const COLOR_OPTIONS: {
   value: CommentColor
   label: string
   dotClass: string
 }[] = [
-  { value: 'primary', label: 'Primary', dotClass: 'bg-primary' },
-  { value: 'blue', label: 'Blue', dotClass: 'bg-blue-500' },
-  { value: 'green', label: 'Green', dotClass: 'bg-green-500' },
-  { value: 'amber', label: 'Amber', dotClass: 'bg-amber-500' },
-  { value: 'purple', label: 'Purple', dotClass: 'bg-purple-500' },
-  { value: 'rose', label: 'Rose', dotClass: 'bg-rose-500' },
-  { value: 'cyan', label: 'Cyan', dotClass: 'bg-cyan-500' },
-  { value: 'neutral', label: 'Neutral', dotClass: 'bg-muted-foreground' },
+  {
+    value: 'primary',
+    label: 'Primary',
+    dotClass: 'bg-primary/50 border border-primary/70',
+  },
+  {
+    value: 'blue',
+    label: 'Blue',
+    dotClass: 'bg-blue-500/50 border border-blue-500/70',
+  },
+  {
+    value: 'green',
+    label: 'Green',
+    dotClass: 'bg-green-500/50 border border-green-500/70',
+  },
+  {
+    value: 'amber',
+    label: 'Amber',
+    dotClass: 'bg-amber-500/50 border border-amber-500/70',
+  },
+  {
+    value: 'purple',
+    label: 'Purple',
+    dotClass: 'bg-purple-500/50 border border-purple-500/70',
+  },
+  {
+    value: 'rose',
+    label: 'Rose',
+    dotClass: 'bg-rose-500/50 border border-rose-500/70',
+  },
+  {
+    value: 'cyan',
+    label: 'Cyan',
+    dotClass: 'bg-cyan-500/50 border border-cyan-500/70',
+  },
+  {
+    value: 'neutral',
+    label: 'Neutral',
+    dotClass: 'bg-muted/50 border border-muted-foreground/70',
+  },
 ]
 
 interface CommentActionsMenuProps {

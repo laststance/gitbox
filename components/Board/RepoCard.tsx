@@ -256,7 +256,7 @@ export const RepoCard = memo<RepoCardProps>(
                       onSave={handleCommentSave}
                       onCancel={handleCommentCancel}
                       style={{
-                        borderColor: commentData?.color ?? 'primary',
+                        borderColor: commentData?.color ?? 'neutral',
                         ...commentText,
                       }}
                     />
@@ -266,7 +266,7 @@ export const RepoCard = memo<RepoCardProps>(
                       comment={commentData?.comment}
                       onClick={handleCommentClick}
                       style={{
-                        borderColor: commentData?.color ?? 'primary',
+                        borderColor: commentData?.color ?? 'neutral',
                         ...commentText,
                       }}
                       showEmptyState={true}
@@ -277,7 +277,7 @@ export const RepoCard = memo<RepoCardProps>(
                                 onEdit={handleCommentClick}
                                 onColorChange={handleColorChange}
                                 onDelete={handleCommentDelete}
-                                currentColor={commentData?.color ?? 'primary'}
+                                currentColor={commentData?.color ?? 'neutral'}
                               />
                             )
                           : undefined

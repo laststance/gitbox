@@ -44,12 +44,25 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 /**
- * Default state with a comment
+ * Default state with a comment (uses neutral color by default)
+ * This ensures comments are theme-independent
  */
 export const Default: Story = {
   args: {
     comment: 'npmリリース完了、当分は機能追加予定なし',
     onClick: () => console.log('Comment clicked'),
+  },
+}
+
+/**
+ * Default neutral color - verifies theme-independent styling
+ * The neutral color remains consistent regardless of board theme
+ */
+export const DefaultNeutralColor: Story = {
+  args: {
+    comment: 'Default uses neutral color (theme-independent)',
+    onClick: () => console.log('Comment clicked'),
+    // No style prop means DEFAULT_COMMENT_STYLE.borderColor = 'neutral'
   },
 }
 

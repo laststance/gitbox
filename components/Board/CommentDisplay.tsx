@@ -85,7 +85,7 @@ export interface CommentStyleSettings {
  * Default style settings
  */
 export const DEFAULT_COMMENT_STYLE: CommentStyleSettings = {
-  borderColor: 'primary',
+  borderColor: 'neutral',
   fontSize: 'sm',
   fontWeight: 'normal',
 }
