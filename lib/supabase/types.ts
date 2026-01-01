@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: '13.0.5'
+  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -113,36 +118,46 @@ export type Database = {
       }
       projectinfo: {
         Row: {
+          comment: string | null
+          comment_color: string | null
           created_at: string | null
           id: string
           links: Json | null
+          maintenance_id: string | null
           note: string | null
-          comment: string | null
-          comment_color: string | null
-          repo_card_id: string
+          repo_card_id: string | null
           updated_at: string | null
         }
         Insert: {
+          comment?: string | null
+          comment_color?: string | null
           created_at?: string | null
           id?: string
           links?: Json | null
+          maintenance_id?: string | null
           note?: string | null
-          comment?: string | null
-          comment_color?: string | null
-          repo_card_id: string
+          repo_card_id?: string | null
           updated_at?: string | null
         }
         Update: {
+          comment?: string | null
+          comment_color?: string | null
           created_at?: string | null
           id?: string
           links?: Json | null
+          maintenance_id?: string | null
           note?: string | null
-          comment?: string | null
-          comment_color?: string | null
-          repo_card_id?: string
+          repo_card_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: 'projectinfo_maintenance_id_fkey'
+            columns: ['maintenance_id']
+            isOneToOne: false
+            referencedRelation: 'maintenance'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'projectinfo_repo_card_id_fkey'
             columns: ['repo_card_id']
@@ -208,33 +223,33 @@ export type Database = {
           board_id: string
           color: string | null
           created_at: string | null
+          grid_col: number
+          grid_row: number
           id: string
           name: string
           order: number
-          grid_row: number
-          grid_col: number
           updated_at: string | null
         }
         Insert: {
           board_id: string
           color?: string | null
           created_at?: string | null
+          grid_col?: number
+          grid_row?: number
           id?: string
           name: string
           order?: number
-          grid_row?: number
-          grid_col?: number
           updated_at?: string | null
         }
         Update: {
           board_id?: string
           color?: string | null
           created_at?: string | null
+          grid_col?: number
+          grid_row?: number
           id?: string
           name?: string
           order?: number
-          grid_row?: number
-          grid_col?: number
           updated_at?: string | null
         }
         Relationships: [
@@ -249,31 +264,31 @@ export type Database = {
       }
       user_link_presets: {
         Row: {
+          created_at: string | null
+          icon: string | null
           id: string
+          label: string
+          updated_at: string | null
           user_id: string
           value: string
-          label: string
-          icon: string | null
-          created_at: string | null
-          updated_at: string | null
         }
         Insert: {
+          created_at?: string | null
+          icon?: string | null
           id?: string
+          label: string
+          updated_at?: string | null
           user_id: string
           value: string
-          label: string
-          icon?: string | null
-          created_at?: string | null
-          updated_at?: string | null
         }
         Update: {
+          created_at?: string | null
+          icon?: string | null
           id?: string
+          label?: string
+          updated_at?: string | null
           user_id?: string
           value?: string
-          label?: string
-          icon?: string | null
-          created_at?: string | null
-          updated_at?: string | null
         }
         Relationships: []
       }

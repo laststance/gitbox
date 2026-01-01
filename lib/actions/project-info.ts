@@ -353,9 +353,11 @@ export async function getCommentsForCards(
   // Convert to map
   const commentsMap: Record<string, CommentData> = {}
   for (const row of data || []) {
-    commentsMap[row.repo_card_id] = {
-      comment: row.comment || '',
-      color: (row.comment_color as CommentColor) || DEFAULT_COMMENT_COLOR,
+    if (row.repo_card_id) {
+      commentsMap[row.repo_card_id] = {
+        comment: row.comment || '',
+        color: (row.comment_color as CommentColor) || DEFAULT_COMMENT_COLOR,
+      }
     }
   }
 

@@ -519,6 +519,55 @@ export const mockProjectInfo = [
   // card-5 has no projectinfo - testing when projectinfo doesn't exist
 ]
 
+/**
+ * Mock maintenance items (archived repositories)
+ * Used for Maintenance page ProjectInfo E2E tests
+ */
+export const MOCK_MAINTENANCE_ID = 'maintenance-1'
+
+export const mockMaintenance = [
+  {
+    id: MOCK_MAINTENANCE_ID,
+    user_id: MOCK_USER_ID,
+    repo_owner: 'laststance',
+    repo_name: 'claude-plugin-dashboard',
+    repo_card_id: null,
+    note: 'Archived for maintenance',
+    hidden: false,
+    created_at: '2024-12-31T00:00:00.000Z',
+    updated_at: '2024-12-31T00:00:00.000Z',
+  },
+  {
+    id: 'maintenance-2',
+    user_id: MOCK_USER_ID,
+    repo_owner: 'laststance',
+    repo_name: 'old-project',
+    repo_card_id: null,
+    note: 'Legacy project',
+    hidden: false,
+    created_at: '2024-11-01T00:00:00.000Z',
+    updated_at: '2024-11-01T00:00:00.000Z',
+  },
+]
+
+/**
+ * Mock project info for maintenance items
+ * Links maintenance_id instead of repo_card_id
+ */
+export const mockMaintenanceProjectInfo = [
+  {
+    id: 'projinfo-maint-1',
+    repo_card_id: null,
+    maintenance_id: MOCK_MAINTENANCE_ID,
+    note: 'Maintenance notes for dashboard project',
+    comment: 'Archived - no active development',
+    comment_color: 'neutral',
+    links: [],
+    created_at: '2024-12-31T00:00:00.000Z',
+    updated_at: '2024-12-31T00:00:00.000Z',
+  },
+]
+
 export const mockData = {
   user: mockUser,
   session: mockSession,
@@ -526,6 +575,8 @@ export const mockData = {
   statusLists: mockStatusLists,
   repoCards: mockRepoCards,
   projectInfo: mockProjectInfo,
+  maintenance: mockMaintenance,
+  maintenanceProjectInfo: mockMaintenanceProjectInfo,
   gitHubUser: mockGitHubUser,
   gitHubRepos: mockGitHubRepos,
   gitHubOrgs: mockGitHubOrgs,
@@ -534,5 +585,6 @@ export const mockData = {
     boardId: MOCK_BOARD_ID,
     statusIds: MOCK_STATUS_IDS,
     cardId: MOCK_CARD_ID,
+    maintenanceId: MOCK_MAINTENANCE_ID,
   },
 } as const

@@ -513,6 +513,24 @@ export async function restoreToBoard(
       return { success: false, error: 'Failed to restore repository' }
     }
 
+    // Transfer projectinfo from maintenance to repocard
+    // This preserves notes, comments, and links during the restore
+    const { error: projectInfoError } = await supabase
+      .from('projectinfo')
+      .update({
+        repo_card_id: newCard.id,
+        maintenance_id: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('maintenance_id', maintenanceId)
+
+    if (projectInfoError) {
+      // Rollback: delete the card we just created
+      await supabase.from('repocard').delete().eq('id', newCard.id)
+      log.error({ error: projectInfoError }, 'ProjectInfo transfer error')
+      return { success: false, error: 'Failed to transfer project info' }
+    }
+
     // Delete from maintenance
     const { error: deleteError } = await supabase
       .from('maintenance')
@@ -520,7 +538,11 @@ export async function restoreToBoard(
       .eq('id', maintenanceId)
 
     if (deleteError) {
-      // Rollback: delete the card we just created
+      // Rollback: revert projectinfo and delete the card
+      await supabase
+        .from('projectinfo')
+        .update({ maintenance_id: maintenanceId, repo_card_id: null })
+        .eq('repo_card_id', newCard.id)
       await supabase.from('repocard').delete().eq('id', newCard.id)
       log.error({ error: deleteError }, 'Maintenance delete error')
       return { success: false, error: 'Failed to remove from maintenance' }
@@ -682,8 +704,7 @@ export async function moveToMaintenance(
       return { success: false, error: 'Repository already in maintenance' }
     }
 
-    // Create maintenance entry (without repo_card_id since we'll delete the card)
-    // Note: card.note no longer exists on repocard - notes are in projectinfo
+    // Create maintenance entry
     const { data: maintEntry, error: insertError } = await supabase
       .from('maintenance')
       .insert({
@@ -701,6 +722,24 @@ export async function moveToMaintenance(
       return { success: false, error: 'Failed to move to maintenance' }
     }
 
+    // Transfer projectinfo from repocard to maintenance
+    // This preserves notes, comments, and links during the move
+    const { error: projectInfoError } = await supabase
+      .from('projectinfo')
+      .update({
+        maintenance_id: maintEntry.id,
+        repo_card_id: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('repo_card_id', cardId)
+
+    if (projectInfoError) {
+      // Rollback: delete the maintenance entry we just created
+      await supabase.from('maintenance').delete().eq('id', maintEntry.id)
+      log.error({ error: projectInfoError }, 'ProjectInfo transfer error')
+      return { success: false, error: 'Failed to transfer project info' }
+    }
+
     // Delete the repocard from the board
     const { error: deleteError } = await supabase
       .from('repocard')
@@ -708,7 +747,11 @@ export async function moveToMaintenance(
       .eq('id', cardId)
 
     if (deleteError) {
-      // Rollback: delete the maintenance entry we just created
+      // Rollback: revert projectinfo and delete maintenance entry
+      await supabase
+        .from('projectinfo')
+        .update({ maintenance_id: null, repo_card_id: cardId })
+        .eq('maintenance_id', maintEntry.id)
       await supabase.from('maintenance').delete().eq('id', maintEntry.id)
       log.error({ error: deleteError }, 'RepoCard delete error')
       return { success: false, error: 'Failed to remove card from board' }

@@ -21,6 +21,8 @@ import {
   mockStatusLists,
   mockRepoCards,
   mockProjectInfo,
+  mockMaintenance,
+  mockMaintenanceProjectInfo,
   getSearchParams,
   filterByParams,
   updateMockBoard,
@@ -406,6 +408,7 @@ export const supabaseDbHandlers: HttpHandler[] = [
    *
    * Supports filtering by repo_card_id for batch comment fetching.
    * Also supports Supabase "in" filter for multiple IDs.
+   * Supports filtering by maintenance_id for maintenance page.
    */
   http.get(`${SUPABASE_URL}/rest/v1/projectinfo`, ({ request }) => {
     const params = getSearchParams(request)
@@ -421,6 +424,22 @@ export const supabaseDbHandlers: HttpHandler[] = [
         )
         return HttpResponse.json(filtered)
       }
+    }
+
+    // Handle maintenance_id filter for maintenance page
+    const maintenanceIdParam = params.get('maintenance_id')
+    if (maintenanceIdParam?.startsWith('eq.')) {
+      const maintenanceId = maintenanceIdParam.slice(3)
+      const filtered = mockMaintenanceProjectInfo.filter(
+        (p) => p.maintenance_id === maintenanceId,
+      )
+
+      // Check if .single() was requested
+      const acceptHeader = request.headers.get('Accept') || ''
+      if (acceptHeader.includes('application/vnd.pgrst.object+json')) {
+        return HttpResponse.json(filtered[0] || null)
+      }
+      return HttpResponse.json(filtered)
     }
 
     // Standard PostgREST filter
@@ -480,6 +499,103 @@ export const supabaseDbHandlers: HttpHandler[] = [
    * DELETE /rest/v1/projectinfo - Delete project info
    */
   http.delete(`${SUPABASE_URL}/rest/v1/projectinfo`, () => {
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // --------------------------------------------------------------------------
+  // Maintenance table handlers
+  // --------------------------------------------------------------------------
+
+  /**
+   * GET /rest/v1/maintenance - List maintenance items
+   */
+  http.get(`${SUPABASE_URL}/rest/v1/maintenance`, ({ request }) => {
+    const params = getSearchParams(request)
+    const filtered = filterByParams(mockMaintenance, params)
+
+    // Handle ordering
+    const orderParam = params.get('order')
+    if (orderParam) {
+      const orders = orderParam.split(',')
+      filtered.sort((a, b) => {
+        for (const order of orders) {
+          const [field, direction] = order.split('.')
+          const aVal = a[field as keyof typeof a]
+          const bVal = b[field as keyof typeof b]
+          if (aVal !== bVal) {
+            const cmp = (aVal as string) < (bVal as string) ? -1 : 1
+            return direction === 'desc' ? -cmp : cmp
+          }
+        }
+        return 0
+      })
+    }
+
+    // Check if .single() was requested
+    const acceptHeader = request.headers.get('Accept') || ''
+    if (acceptHeader.includes('application/vnd.pgrst.object+json')) {
+      return HttpResponse.json(filtered[0] || null)
+    }
+
+    return HttpResponse.json(filtered)
+  }),
+
+  /**
+   * POST /rest/v1/maintenance - Create maintenance item
+   */
+  http.post(`${SUPABASE_URL}/rest/v1/maintenance`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>
+
+    const newMaintenance = {
+      id: `maintenance-${Date.now()}`,
+      user_id: body.user_id || MOCK_USER_ID,
+      repo_owner: body.repo_owner || 'unknown',
+      repo_name: body.repo_name || 'unknown-repo',
+      repo_card_id: body.repo_card_id || null,
+      note: body.note || '',
+      hidden: body.hidden ?? false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+
+    const preferHeader = request.headers.get('Prefer')
+    if (preferHeader?.includes('return=representation')) {
+      return HttpResponse.json(newMaintenance, { status: 201 })
+    }
+
+    return HttpResponse.json([newMaintenance], { status: 201 })
+  }),
+
+  /**
+   * PATCH /rest/v1/maintenance - Update maintenance item
+   */
+  http.patch(`${SUPABASE_URL}/rest/v1/maintenance`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>
+    const params = getSearchParams(request)
+
+    const filtered = filterByParams(mockMaintenance, params)
+    if (filtered.length === 0) {
+      return HttpResponse.json({ message: 'No rows found' }, { status: 404 })
+    }
+
+    const updated = {
+      ...filtered[0],
+      ...body,
+      updated_at: new Date().toISOString(),
+    }
+
+    const preferHeader = request.headers.get('Prefer')
+    if (preferHeader?.includes('return=representation')) {
+      return HttpResponse.json(updated)
+    }
+
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  /**
+   * DELETE /rest/v1/maintenance - Delete maintenance item
+   */
+  http.delete(`${SUPABASE_URL}/rest/v1/maintenance`, () => {
     return new HttpResponse(null, { status: 204 })
   }),
 ]
