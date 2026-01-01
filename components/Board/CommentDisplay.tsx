@@ -16,7 +16,7 @@
 
 'use client'
 
-import { MessageSquare, Pencil, Plus } from 'lucide-react'
+import { Pencil, Plus } from 'lucide-react'
 import { memo } from 'react'
 
 import { cn } from '@/lib/utils'
@@ -195,16 +195,10 @@ export const CommentDisplay = memo<CommentDisplayProps>(
           className,
         )}
       >
-        {/* Comment icon */}
-        <MessageSquare
-          className="absolute top-3 left-3 w-4 h-4 text-muted-foreground/50"
-          aria-hidden="true"
-        />
-
         {/* Text content */}
         <p
           className={cn(
-            'pl-6 leading-relaxed text-foreground/90',
+            'leading-relaxed text-foreground/90',
             fontSizeClass,
             fontWeightClass,
           )}

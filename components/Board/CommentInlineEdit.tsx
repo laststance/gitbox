@@ -157,7 +157,7 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
         // This is critical for Space key which dnd-kit uses to start drag
         e.stopPropagation()
 
-        if (e.key === 'Enter' && !e.shiftKey) {
+        if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
           e.preventDefault()
           handleSave(true) // closeOnSave: true
         } else if (e.key === 'Escape') {
