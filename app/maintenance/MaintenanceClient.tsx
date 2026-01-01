@@ -16,10 +16,12 @@ import {
   MoreVertical,
   Archive,
   ArrowUpDown,
+  ArrowLeft,
   Calendar,
   Star,
   StickyNote,
 } from 'lucide-react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   useState,
@@ -123,6 +125,21 @@ export const MaintenanceClient = memo(function MaintenanceClient({
   const [currentProjectInfo, setCurrentProjectInfo] =
     useState<ProjectInfo | null>(null)
   const [, startLoadingProjectInfo] = useTransition()
+
+  // Last visited board for navigation - lazy initialization from localStorage
+  const [lastVisitedBoard] = useState<{
+    id: string
+    name: string
+  } | null>(() => {
+    if (typeof window === 'undefined') return null
+    const stored = localStorage.getItem('gitbox:lastVisitedBoard')
+    if (!stored) return null
+    try {
+      return JSON.parse(stored) as { id: string; name: string }
+    } catch {
+      return null
+    }
+  })
 
   // Load comments on mount
   useEffect(() => {
@@ -339,13 +356,28 @@ export const MaintenanceClient = memo(function MaintenanceClient({
       {/* Header */}
       <header className="border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              Maintenance Mode
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Archived and maintenance projects • {repos.length} items
-            </p>
+          <div className="flex items-center gap-4">
+            {/* Back to Board link - shows only if user has visited a board */}
+            {lastVisitedBoard && (
+              <Link
+                href={`/board/${lastVisitedBoard.id}`}
+                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">
+                  Back to {lastVisitedBoard.name}
+                </span>
+                <span className="sm:hidden">Back</span>
+              </Link>
+            )}
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">
+                Maintenance Mode
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Archived and maintenance projects • {repos.length} items
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
