@@ -10,6 +10,8 @@
 
 'use server'
 
+import * as Sentry from '@sentry/nextjs'
+
 import type { GitHubRepository } from '@/lib/actions/github'
 import { createModuleLogger } from '@/lib/logger'
 import { createClient } from '@/lib/supabase/server'
@@ -174,6 +176,9 @@ export async function addRepositoriesToBoard(
 
     if (insertError) {
       log.error({ error: insertError }, 'RepoCard insert error')
+      Sentry.captureException(insertError, {
+        extra: { context: 'RepoCard insert', boardId },
+      })
       throw new Error('Failed to add cards: ' + insertError.message)
     }
 
@@ -205,6 +210,9 @@ export async function addRepositoriesToBoard(
     }
   } catch (error) {
     log.error({ error }, 'Add repositories error')
+    Sentry.captureException(error, {
+      extra: { context: 'Add repositories', boardId },
+    })
     return {
       success: false,
       addedCount: 0,
@@ -252,25 +260,6 @@ export async function checkDuplicateRepository(
 }
 
 /**
- * @deprecated Note field has been moved to projectinfo table.
- * Use upsertProjectInfo from project-info.ts instead.
- *
- * This function is kept temporarily for backwards compatibility
- * but will be removed in a future release.
- */
-export async function updateRepoCardNote(
-  _cardId: string,
-  _note: string,
-): Promise<{ success: boolean; error?: string }> {
-  log.warn('updateRepoCardNote is deprecated. Use upsertProjectInfo instead.')
-  return {
-    success: false,
-    error:
-      'This function is deprecated. Note field has been moved to projectinfo table.',
-  }
-}
-
-/**
  * Delete RepoCard
  *
  * @param cardId - Card ID
@@ -303,6 +292,9 @@ export async function deleteRepoCard(
 
     if (deleteError) {
       log.error({ error: deleteError }, 'Delete card error')
+      Sentry.captureException(deleteError, {
+        extra: { context: 'Delete card', cardId },
+      })
       return {
         success: false,
         error: 'Failed to delete card',
@@ -312,6 +304,9 @@ export async function deleteRepoCard(
     return { success: true }
   } catch (error) {
     log.error({ error }, 'Delete card error')
+    Sentry.captureException(error, {
+      extra: { context: 'Delete card', cardId },
+    })
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -360,6 +355,9 @@ export async function updateRepoCardOrder(
 
     if (updateError) {
       log.error({ error: updateError }, 'Update order error')
+      Sentry.captureException(updateError, {
+        extra: { context: 'Update card order', cardId, statusId, newOrder },
+      })
       return {
         success: false,
         error: 'Failed to move card',
@@ -369,6 +367,9 @@ export async function updateRepoCardOrder(
     return { success: true }
   } catch (error) {
     log.error({ error }, 'Update order error')
+    Sentry.captureException(error, {
+      extra: { context: 'Update card order', cardId },
+    })
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',

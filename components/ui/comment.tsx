@@ -40,6 +40,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 import { Editor, EditorContainer } from './editor'
 
@@ -306,8 +307,12 @@ function CommentMoreDropdown(props: {
   const selectedEditCommentRef = React.useRef<boolean>(false)
 
   const onDeleteComment = React.useCallback(() => {
-    if (!comment.id)
-      return alert('You are operating too quickly, please try again later.')
+    if (!comment.id) {
+      toast.warning('Rate limit exceeded', {
+        description: 'You are operating too quickly, please try again later.',
+      })
+      return
+    }
 
     // Find and update the discussion
     const updatedDiscussions = editor
@@ -341,8 +346,12 @@ function CommentMoreDropdown(props: {
   const onEditComment = React.useCallback(() => {
     selectedEditCommentRef.current = true
 
-    if (!comment.id)
-      return alert('You are operating too quickly, please try again later.')
+    if (!comment.id) {
+      toast.warning('Rate limit exceeded', {
+        description: 'You are operating too quickly, please try again later.',
+      })
+      return
+    }
 
     setEditingId(comment.id)
   }, [comment.id, setEditingId])

@@ -9,6 +9,7 @@
 
 'use server'
 
+import * as Sentry from '@sentry/nextjs'
 import { isAxiosError } from 'axios'
 
 import { createGitHubAxios, hasGitHubToken } from '@/lib/axios-github'
@@ -86,6 +87,9 @@ function handleGitHubError(error: unknown, context: string): string {
   }
 
   log.error({ error }, `Failed to ${context}`)
+  Sentry.captureException(error, {
+    extra: { context: `GitHub API: ${context}` },
+  })
   return error instanceof Error ? error.message : `Failed to ${context}`
 }
 

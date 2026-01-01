@@ -21,6 +21,7 @@ import React, {
   useState,
   memo,
 } from 'react'
+import { toast } from 'sonner'
 
 import { signOut } from '@/lib/actions/auth'
 
@@ -116,10 +117,11 @@ export const CommandPalette = memo(function CommandPalette() {
         shortcut: '?',
         action: () => {
           setIsOpen(false)
-          // Show shortcuts modal (to be implemented)
-          alert(
-            'Keyboard Shortcuts:\n\n⌘K - Command Palette\n? - Shortcuts Help\nG B - Go to Boards\nG M - Go to Maintenance\nG S - Go to Settings\nN - New Board\nZ - Undo\n. - Card Menu',
-          )
+          toast.info('Keyboard Shortcuts', {
+            description:
+              '⌘K - Command Palette | ? - Shortcuts Help | G B - Go to Boards | G M - Go to Maintenance | G S - Go to Settings | N - New Board | Z - Undo | . - Card Menu',
+            duration: 8000,
+          })
         },
         category: 'settings',
       },
