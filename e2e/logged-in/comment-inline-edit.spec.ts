@@ -163,7 +163,9 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
     await expect(textarea).toHaveValue('')
   })
 
-  test('should show Cancel and Save buttons in edit mode', async ({ page }) => {
+  test('should show Save button in edit mode (no cancel button)', async ({
+    page,
+  }) => {
     // card-1 has comment
     const card1CommentDisplay = page.locator(
       '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
@@ -176,18 +178,18 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
     )
     await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
-    // Should have Cancel button
+    // Should have Save button (checkmark only)
+    const saveButton = inlineEdit.locator('[data-testid="comment-save-btn"]')
+    await expect(saveButton).toBeVisible()
+
+    // Should NOT have Cancel button (removed for cleaner UX)
     const cancelButton = inlineEdit.locator(
       '[data-testid="comment-cancel-btn"]',
     )
-    await expect(cancelButton).toBeVisible()
-
-    // Should have Save button
-    const saveButton = inlineEdit.locator('[data-testid="comment-save-btn"]')
-    await expect(saveButton).toBeVisible()
+    await expect(cancelButton).not.toBeVisible()
   })
 
-  test('should cancel edit when clicking Cancel button', async ({ page }) => {
+  test('should cancel edit when pressing Escape key', async ({ page }) => {
     // card-1 has comment
     const card1CommentDisplay = page.locator(
       '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
@@ -204,11 +206,8 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
     const textarea = inlineEdit.locator('textarea')
     await textarea.fill('This should be cancelled')
 
-    // Click Cancel button
-    const cancelButton = inlineEdit.locator(
-      '[data-testid="comment-cancel-btn"]',
-    )
-    await cancelButton.click()
+    // Press Escape to cancel (no cancel button in new design)
+    await textarea.press('Escape')
 
     // Should return to display mode with original comment
     await expect(inlineEdit).not.toBeVisible({ timeout: 5000 })

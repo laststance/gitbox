@@ -526,36 +526,6 @@ export const TestOverLimitDisabled: Story = {
 }
 
 /**
- * Test: Cancel button closes edit mode
- *
- * Verifies that clicking the X button triggers onCancel.
- */
-export const TestCancelButton: Story = {
-  args: {
-    initialValue: 'Test comment',
-    onSave: fn(),
-    onCancel: fn(),
-  },
-  play: async ({ canvasElement, args, step }) => {
-    const canvas = within(canvasElement)
-
-    await step('Click cancel button', async () => {
-      const cancelButton = canvas.getByTestId('comment-cancel-btn')
-      await userEvent.click(cancelButton)
-    })
-
-    await step('Verify onCancel was called', async () => {
-      expect(args.onCancel).toHaveBeenCalled()
-    })
-
-    await step('Verify onSave was NOT called', async () => {
-      // Cancel button should skip onBlur save due to relatedTarget check
-      expect(args.onSave).not.toHaveBeenCalled()
-    })
-  },
-}
-
-/**
  * Test: Save button triggers manual save
  *
  * Verifies that clicking the checkmark button triggers onSave
@@ -661,4 +631,80 @@ export const TestJapaneseInput: Story = {
       expect(counter).toHaveTextContent('12/300')
     })
   },
+}
+
+/**
+ * Test: No X cancel button exists (only checkmark save button)
+ *
+ * Verifies that the cancel button was removed and only
+ * the save (checkmark) button remains. Cancel is done via Escape key.
+ */
+export const TestNoCancelButton: Story = {
+  args: {
+    initialValue: 'Test comment',
+    onSave: fn(),
+    onCancel: fn(),
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement)
+
+    await step('Verify save button exists', async () => {
+      const saveButton = canvas.getByTestId('comment-save-btn')
+      expect(saveButton).toBeInTheDocument()
+    })
+
+    await step('Verify cancel button does NOT exist', async () => {
+      const cancelButton = canvas.queryByTestId('comment-cancel-btn')
+      expect(cancelButton).not.toBeInTheDocument()
+    })
+
+    await step('Verify Escape key still works for cancel', async () => {
+      const textarea = canvas.getByTestId('comment-textarea')
+      await userEvent.click(textarea)
+      await userEvent.keyboard('{Escape}')
+    })
+  },
+}
+
+// ============================================================================
+// Card Color Style Tests
+// ============================================================================
+
+/**
+ * Test: New full-fill card color style with all 8 colors
+ *
+ * Demonstrates the new card styling: bg fill + darker border
+ * Pattern: bg-{color}/20 border-{color}/30 hover:bg-{color}/25
+ */
+export const AllCardColorStyles: Story = {
+  args: {
+    initialValue: 'Test',
+    onSave: async (_value, _options) => {},
+    onCancel: () => {},
+  },
+  render: () => (
+    <div className="space-y-3">
+      {(
+        [
+          'primary',
+          'blue',
+          'green',
+          'amber',
+          'purple',
+          'rose',
+          'cyan',
+          'neutral',
+        ] as const
+      ).map((color) => (
+        <CommentInlineEdit
+          key={color}
+          initialValue={`Card style: ${color}`}
+          style={{ borderColor: color }}
+          onSave={async () => {}}
+          onCancel={() => {}}
+          autoFocus={false}
+        />
+      ))}
+    </div>
+  ),
 }

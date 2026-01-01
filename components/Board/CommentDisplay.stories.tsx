@@ -14,8 +14,7 @@ import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 
 import {
   CommentDisplay,
-  COMMENT_BORDER_COLORS,
-  COMMENT_BG_COLORS,
+  COMMENT_CARD_COLORS,
   COMMENT_FONT_SIZES,
   COMMENT_FONT_WEIGHTS,
 } from './CommentDisplay'
@@ -289,47 +288,25 @@ export const WarningStyle: Story = {
 // ============================================================================
 
 /**
- * Showcase all available border colors
+ * Showcase all available card colors (full fill + border)
+ * New style: bg-{color}/20 border-{color}/30 hover:bg-{color}/25
  */
-export const AllBorderColors: Story = {
+export const AllCardColors: Story = {
   args: {
     comment: 'Showcase',
   },
   render: () => (
     <div className="space-y-3">
       {(
-        Object.keys(COMMENT_BORDER_COLORS) as Array<
-          keyof typeof COMMENT_BORDER_COLORS
+        Object.keys(COMMENT_CARD_COLORS) as Array<
+          keyof typeof COMMENT_CARD_COLORS
         >
       ).map((color) => (
         <CommentDisplay
           key={color}
-          comment={`Border: ${color}`}
+          comment={`Card color: ${color}`}
           style={{ borderColor: color }}
           onClick={() => console.log(`Clicked: ${color}`)}
-        />
-      ))}
-    </div>
-  ),
-}
-
-/**
- * Showcase all available background colors
- */
-export const AllBackgroundColors: Story = {
-  args: {
-    comment: 'Showcase',
-  },
-  render: () => (
-    <div className="space-y-3">
-      {(
-        Object.keys(COMMENT_BG_COLORS) as Array<keyof typeof COMMENT_BG_COLORS>
-      ).map((bg) => (
-        <CommentDisplay
-          key={bg}
-          comment={`Background: ${bg}`}
-          style={{ backgroundColor: bg }}
-          onClick={() => console.log(`Clicked: ${bg}`)}
         />
       ))}
     </div>

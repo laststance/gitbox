@@ -16,7 +16,7 @@
 
 'use client'
 
-import { Check, X } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -24,7 +24,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 
 import {
-  COMMENT_BORDER_COLORS,
+  COMMENT_CARD_COLORS,
   type CommentStyleSettings,
   DEFAULT_COMMENT_STYLE,
 } from './CommentDisplay'
@@ -97,7 +97,7 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
 
     // Merge with default styles
     const mergedStyle = { ...DEFAULT_COMMENT_STYLE, ...style }
-    const borderColorClass = COMMENT_BORDER_COLORS[mergedStyle.borderColor]
+    const cardColorClass = COMMENT_CARD_COLORS[mergedStyle.borderColor]
 
     // Character count helpers
     const charCount = editValue.length
@@ -192,11 +192,8 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
         }
 
         const relatedTarget = e.relatedTarget as HTMLElement | null
-        // Skip auto-save if focus is moving to cancel or save button
-        if (
-          relatedTarget?.closest('[data-testid="comment-cancel-btn"]') ||
-          relatedTarget?.closest('[data-testid="comment-save-btn"]')
-        ) {
+        // Skip auto-save if focus is moving to the save button
+        if (relatedTarget?.closest('[data-testid="comment-save-btn"]')) {
           return
         }
         // Auto-save on blur (don't close edit mode)
@@ -222,10 +219,10 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
         onKeyDown={(e) => e.stopPropagation()}
         onKeyUp={(e) => e.stopPropagation()}
         className={cn(
-          // Container styles matching CommentDisplay edit mode
-          'border-l-4 rounded-r-md p-3 bg-background',
-          // Use only the static border color (no hover variant)
-          borderColorClass.split(' ')[0],
+          // Container styles matching CommentDisplay - full rounded card
+          'rounded-md p-3',
+          // Card color from COMMENT_CARD_COLORS (bg + border)
+          cardColorClass,
           className,
         )}
       >
@@ -263,33 +260,19 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
             {charCount}/{maxLength}
           </span>
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-1">
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={handleCancel}
-              disabled={isSaving}
-              data-testid="comment-cancel-btn"
-              className="h-7 px-2 hover:bg-muted"
-              aria-label="Cancel editing"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={async () => handleSave(true)}
-              disabled={isSaving || isOverLimit}
-              data-testid="comment-save-btn"
-              className="h-7 px-2 text-primary hover:text-primary hover:bg-primary/10"
-              aria-label="Save comment"
-            >
-              <Check className="w-4 h-4" />
-            </Button>
-          </div>
+          {/* Save button */}
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={async () => handleSave(true)}
+            disabled={isSaving || isOverLimit}
+            data-testid="comment-save-btn"
+            className="h-7 px-2 text-primary hover:text-primary hover:bg-primary/10"
+            aria-label="Save comment"
+          >
+            <Check className="w-4 h-4" />
+          </Button>
         </div>
       </div>
     )

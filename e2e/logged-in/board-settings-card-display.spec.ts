@@ -407,7 +407,7 @@ test.describe('RepoCard Display Settings Reflection (Authenticated)', () => {
     )
   })
 
-  test('should apply default comment style (primary border)', async ({
+  test('should apply default comment style (full fill with border)', async ({
     page,
   }) => {
     // Wait for board to load
@@ -421,11 +421,12 @@ test.describe('RepoCard Display Settings Reflection (Authenticated)', () => {
 
     const commentDisplay = card1.locator('[data-testid="comment-display"]')
 
-    // If comment is displayed, verify it has styling classes
+    // If comment is displayed, verify it has new styling classes
     if (await commentDisplay.isVisible()) {
-      // Comment display should have border styling (primary by default)
-      // Border class like 'border-l-primary' or 'border-l-blue-500'
-      await expect(commentDisplay).toHaveClass(/border-l/)
+      // Comment display should have full fill background + border styling
+      // New style uses bg-{color}/20 border-{color}/30 with rounded corners
+      await expect(commentDisplay).toHaveClass(/rounded-md/)
+      await expect(commentDisplay).toHaveClass(/border/)
     }
   })
 })

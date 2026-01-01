@@ -86,14 +86,16 @@ test.describe('Comment Display on RepoCard (Authenticated)', () => {
       timeout: 10000,
     })
 
-    // Check that comment display has Card-in-Card styling (left border)
+    // Check that comment display has Card-in-Card styling (full fill + border)
     const commentDisplay = page.locator(
       '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
     )
     await expect(commentDisplay).toBeVisible({ timeout: 10000 })
 
-    // Verify styling: should have border-l-4 class (left border accent)
-    await expect(commentDisplay).toHaveClass(/border-l-4/)
+    // Verify styling: should have rounded-md class and border styling
+    // New style uses full background fill (bg-{color}/20) + border (border-{color}/30)
+    await expect(commentDisplay).toHaveClass(/rounded-md/)
+    await expect(commentDisplay).toHaveClass(/border/)
   })
 
   test('should show message icon in comment display', async ({ page }) => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, ChevronRight, Palette, Pencil, Trash2 } from 'lucide-react'
+import { Check, Palette, Pencil, Trash2 } from 'lucide-react'
 import { memo } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -92,13 +92,15 @@ export const CommentActionsMenu = memo<CommentActionsMenuProps>(
             <DropdownMenuSubTrigger data-testid="comment-action-color">
               <Palette className="mr-2 h-4 w-4" />
               Color
-              <ChevronRight className="ml-auto h-4 w-4" />
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="w-32">
               {COLOR_OPTIONS.map((option) => (
                 <DropdownMenuItem
                   key={option.value}
-                  onClick={() => onColorChange(option.value)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onColorChange(option.value)
+                  }}
                   data-testid={`comment-color-${option.value}`}
                 >
                   <span

@@ -22,27 +22,34 @@ import { memo, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
 /**
- * Border color presets for comment styling
+ * Combined card colors with background fill and border
+ * Each color uses 20% bg opacity and 30% border opacity
+ * for a cohesive, filled card appearance
  */
-export const COMMENT_BORDER_COLORS = {
-  primary: 'border-primary/40 hover:border-primary/60',
-  blue: 'border-blue-400/40 hover:border-blue-400/60',
-  green: 'border-green-400/40 hover:border-green-400/60',
-  amber: 'border-amber-400/40 hover:border-amber-400/60',
-  purple: 'border-purple-400/40 hover:border-purple-400/60',
-  rose: 'border-rose-400/40 hover:border-rose-400/60',
-  cyan: 'border-cyan-400/40 hover:border-cyan-400/60',
-  neutral: 'border-muted-foreground/30 hover:border-muted-foreground/50',
+export const COMMENT_CARD_COLORS = {
+  primary: 'bg-primary/20 border border-primary/30 hover:bg-primary/25',
+  blue: 'bg-blue-500/20 border border-blue-500/30 hover:bg-blue-500/25',
+  green: 'bg-green-500/20 border border-green-500/30 hover:bg-green-500/25',
+  amber: 'bg-amber-500/20 border border-amber-500/30 hover:bg-amber-500/25',
+  purple: 'bg-purple-500/20 border border-purple-500/30 hover:bg-purple-500/25',
+  rose: 'bg-rose-500/20 border border-rose-500/30 hover:bg-rose-500/25',
+  cyan: 'bg-cyan-500/20 border border-cyan-500/30 hover:bg-cyan-500/25',
+  neutral: 'bg-muted/20 border border-muted-foreground/30 hover:bg-muted/25',
 } as const
 
 /**
- * Background color presets for comment styling
+ * @deprecated Use COMMENT_CARD_COLORS instead. Kept for backward compatibility.
+ */
+export const COMMENT_BORDER_COLORS = COMMENT_CARD_COLORS
+
+/**
+ * @deprecated Background is now part of COMMENT_CARD_COLORS. Kept for backward compatibility.
  */
 export const COMMENT_BG_COLORS = {
-  subtle: 'bg-muted/20 hover:bg-muted/30',
-  light: 'bg-muted/40 hover:bg-muted/50',
-  tinted: 'bg-primary/5 hover:bg-primary/10',
-  none: 'bg-transparent hover:bg-muted/10',
+  subtle: '',
+  light: '',
+  tinted: '',
+  none: '',
 } as const
 
 /**
@@ -67,8 +74,9 @@ export const COMMENT_FONT_WEIGHTS = {
  * Comment style configuration
  */
 export interface CommentStyleSettings {
-  borderColor: keyof typeof COMMENT_BORDER_COLORS
-  backgroundColor: keyof typeof COMMENT_BG_COLORS
+  borderColor: keyof typeof COMMENT_CARD_COLORS
+  /** @deprecated Background is now part of COMMENT_CARD_COLORS */
+  backgroundColor?: keyof typeof COMMENT_BG_COLORS
   fontSize: keyof typeof COMMENT_FONT_SIZES
   fontWeight: keyof typeof COMMENT_FONT_WEIGHTS
 }
@@ -78,7 +86,6 @@ export interface CommentStyleSettings {
  */
 export const DEFAULT_COMMENT_STYLE: CommentStyleSettings = {
   borderColor: 'primary',
-  backgroundColor: 'subtle',
   fontSize: 'sm',
   fontWeight: 'normal',
 }
@@ -140,8 +147,7 @@ export const CommentDisplay = memo<CommentDisplayProps>(
   }) => {
     const mergedStyle = { ...DEFAULT_COMMENT_STYLE, ...style }
 
-    const borderColorClass = COMMENT_BORDER_COLORS[mergedStyle.borderColor]
-    const bgColorClass = COMMENT_BG_COLORS[mergedStyle.backgroundColor]
+    const cardColorClass = COMMENT_CARD_COLORS[mergedStyle.borderColor]
     const fontSizeClass = COMMENT_FONT_SIZES[mergedStyle.fontSize]
     const fontWeightClass = COMMENT_FONT_WEIGHTS[mergedStyle.fontWeight]
 
@@ -193,12 +199,10 @@ export const CommentDisplay = memo<CommentDisplayProps>(
         tabIndex={0}
         data-testid="comment-display"
         className={cn(
-          // Base styles
-          'relative border-l-4 rounded-r-md p-3 transition-all duration-200 cursor-pointer group',
-          // Border color
-          borderColorClass,
-          // Background color
-          bgColorClass,
+          // Base styles - full rounded card with background fill
+          'relative rounded-md p-3 transition-all duration-200 cursor-pointer group',
+          // Combined card color (bg + border from COMMENT_CARD_COLORS)
+          cardColorClass,
           // Focus styles
           'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
           className,
