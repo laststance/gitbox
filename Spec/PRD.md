@@ -1,4 +1,4 @@
-# GitBox — PRD v0.3 (Unified Edition with Enhanced Security)
+# GitBox — PRD v0.4 (Implementation Aligned Edition)
 
 ## 1) プロダクト概要と情報設計（IA）
 
@@ -14,8 +14,9 @@
 
 - **Maintenance Mode**（完了・保守中のプロジェクト保管庫。Sidebarリンクで遷移、Explorer UI）
 - **Command Palette (⌘K)**
-- **Settings**（Theme/Type/Display）
+- **Settings**（Theme/Display/Typography）
 - **Shortcuts (?)**
+- **Account**（プロフィール、統計、アカウント削除）
 
 ---
 
@@ -94,25 +95,31 @@ color.success / warning / danger
 
 - Combobox検索（owner/repo, topics, visibility）
 - 複数一括追加/重複検知
+- **Organization Filter**: ユーザー/Org単位でリポジトリをフィルタリング（設定永続化）
+- **First Board自動作成**: 新規ユーザー初回ログイン時に"My First Board"を自動作成
 
 #### 受け入れ基準
 
 - 100+ repos でも候補表示が遅延しない
 - D&D/Undoがストレスなく機能
+- Organization選択がセッション間で維持される
 
 ### 3.2 Board（Kanban）
 
 #### 機能仕様
 
 - **列=Status**（例：Suspend / Spec designing / Active / Completed）
-- 列CRUD操作
+- 列CRUD操作（2Dグリッド配置対応: gridRow, gridCol）
 - **カード**：repo名、一言メモ、任意メタ（Stars/Updated/Visibility/Language/Topics等）
 - **⋯（Overflow menu）**：**Project Info**モーダル起動
+- **Favorites**: ボードをお気に入りに追加（星マーク、サイドバーに優先表示）
+- **Board Settings**: ボード名変更、テーマ上書き（ボード固有テーマ）、カード表示設定
 
 #### 受け入れ基準
 
 - Board=Statusフィールド基準
 - D&D操作の定石に準拠（[GitHub Docs](https://docs.github.com/en/issues/planning-and-tracking-with-projects/)）
+- Favorites切り替えが即座に反映
 
 ### 3.3 Maintenance Mode
 
@@ -140,7 +147,7 @@ color.success / warning / danger
 - **Slash Commands**: `/`入力でコマンドメニュー表示（/h1, /code, /table等）
 - **Markdown Autoformat**: `# `→H1, `* `→箇条書き, `1. `→番号付きリスト, `> `→引用
 - **文字数カウント**: 最大20,000文字、リアルタイム表示
-- **自動下書き保存**: 編集中は自動でドラフト保存
+- **自動下書き保存**: 編集中は自動でドラフト保存（Redux + localStorage永続化）
 
 #### 対応フォーマット
 
@@ -171,14 +178,21 @@ color.success / warning / danger
 
 #### Sections
 
-1. **Comment**（インラインコメント、最大300文字。RepoCard上に表示される簡易メモ。詳細は3.6参照）
+1. **Comment**（インラインコメント、最大2,000文字。RepoCard上に表示される簡易メモ。詳細は3.6参照）
 
-2. **Links**
-   - **Production URL**（複数可）
-   - **Tracking services**（GA/GTM/Plausible などのダッシュボードURL）
-   - **Supabase Dashboard**（プロジェクト/Branch/Pooler等の参照リンク）
+2. **Links**（55種類の組み込みリンクタイプ + カスタムプリセット）
+   - **Built-in Types**: 12カテゴリに分類された55種類のリンクタイプ
+     - Development (GitHub, GitLab, Bitbucket, etc.)
+     - Deployment (Vercel, Netlify, AWS, etc.)
+     - Database (Supabase, MongoDB, Firebase, etc.)
+     - Monitoring (Sentry, DataDog, etc.)
+     - Documentation (Notion, Confluence, etc.)
+     - Analytics (Google Analytics, Mixpanel, etc.)
+     - Communication (Slack, Discord, etc.)
+     - その他
+   - **Custom Presets**: ユーザー定義のリンクタイプ（Lucide iconから選択）
 
-3. **Integrations**（Webhook/CIなどのメタ）
+3. **Note**（リッチテキスト、最大20,000文字。Plate Editorで編集）
 
 ### 3.6 Comment on RepoCard（インラインコメント）
 
@@ -189,8 +203,8 @@ RepoカードにフリーテキストのステータスコメントをCard-in-Ca
 - **インライン表示**: RepoCard上に直接コメントを表示（モーダル不要）
 - **Card-in-Card UI**: 左ボーダーアクセント + 背景色で視覚的に区別
 - **フルテキスト表示**: Truncateなし、コンテンツ量に応じてカード高さが拡張
-- **インライン編集**: クリックで直接編集、300文字制限
-- **スタイルカスタマイズ**: フォントサイズ/Bold/ボーダー色/背景色を設定可能
+- **インライン編集**: クリックで直接編集、2,000文字制限
+- **カラーカスタマイズ**: 8色から選択可能（primary/red/orange/yellow/green/blue/purple/pink）
 
 #### UIワイヤーフレーム
 
@@ -229,9 +243,10 @@ interface BoardSettings {
 
 #### データモデル
 
-| Column                | Type | Limit     | Description        |
-| --------------------- | ---- | --------- | ------------------ |
-| `projectinfo.comment` | TEXT | 300 chars | インラインコメント |
+| Column                      | Type | Limit       | Description        |
+| --------------------------- | ---- | ----------- | ------------------ |
+| `projectinfo.comment`       | TEXT | 2,000 chars | インラインコメント |
+| `projectinfo.comment_color` | TEXT | -           | 8色から選択        |
 
 #### 受け入れ基準
 
@@ -240,6 +255,20 @@ interface BoardSettings {
 - Board Settingsで表示/非表示切り替え可能
 - インライン編集で即時保存
 - 空の場合は「+ Add comment」プレースホルダー表示
+
+### 3.7 Account（アカウント管理）
+
+#### 機能仕様
+
+- **プロフィール表示**: GitHub avatar、ユーザー名、メールアドレス
+- **統計表示**: ボード数、カード数、Maintenance数
+- **アカウント削除**: "DELETE"入力による確認フローでアカウントを完全削除
+
+#### 受け入れ基準
+
+- プロフィール情報がGitHub認証から正しく取得される
+- アカウント削除時に関連する全データが削除される
+- 削除確認は"DELETE"の完全一致を要求
 
 ---
 
@@ -265,8 +294,10 @@ Restore to Board     // Maintenanceのみ表示
 
 - `.` … フォーカス中カードの Overflow menu
 - `Enter` … 既定アクション（Board=Open card、Maintenance=Open on GitHub）
-- `⌘K` … Command Palette
-- `Z` … Undo last move（1手）
+- `⌘K` / `Ctrl+K` … Command Palette
+- `Z` … Undo last D&D move（最大10手履歴、Redux管理）
+- `Tab` … フォーカス移動
+- `Escape` … メニュー/ダイアログを閉じる
 - `?` … Shortcuts help
 
 ---
@@ -281,15 +312,17 @@ Restore to Board     // Maintenanceのみ表示
 ┌───────────────────────────────┐
 │ GitBox                         │
 │ ───────────────────────────── │
-│ Boards                         │
+│ Boards                    [▼]  │  ← 折りたたみ可能
 │  • All Boards                  │
 │  • Favorites                   │
+│  • New Board (+)               │
 │ ───────────────────────────── │
 │ Maintenance Mode               │  ← completed / maintenance projects
 │ ───────────────────────────── │
 │ Settings                       │
 │ Shortcuts                      │
-│ Profile & Sign out             │
+│ Account                        │  ← プロフィール、統計、削除
+│ Sign out                       │
 └───────────────────────────────┘
 ```
 
@@ -360,19 +393,29 @@ core-cli          "Security"           2025-07-01      87     [⋯]
 ```
 ┌───────────────────────────────────────────────┐
 │ Settings                                      │
-│ Theme (14)                                    │
-│  Light: Light / Sunrise / Sandstone / Mint /  │
+│-----------------------------------------------│
+│ Theme (14 + System)                           │
+│  ○ System (OS preference)                     │
+│  Light: default / Sunrise / Sandstone / Mint /│
 │         Sky / Lavender / Rose                 │
-│  Dark : Dark / Midnight / Graphite / Forest / │
+│  Dark : dark / Midnight / Graphite / Forest / │
 │         Ocean / Plum / Rust                   │
-│  [ Preview ] [ Apply ]                        │
+│-----------------------------------------------│
+│ Display                                       │
+│  ☑ Compact Mode                               │
+│  ☑ Show Card Metadata (stars, language, date) │
 │-----------------------------------------------│
 │ Typography                                    │
-│  Base size: [16px ▾]  Step: [1px]            │
-│  Scale preview: 12 13 14 15 16 18 20 22 24 28 │
-│  (target: AA contrast on each theme)          │
+│  Base size: [16px] (12-20px range)            │
 └───────────────────────────────────────────────┘
 ```
+
+**Display Settings**:
+
+- **Compact Mode**: カード/列の余白を縮小して情報密度を向上
+- **Show Card Metadata**: スター数、言語、更新日時の表示/非表示
+
+**永続化**: Redux + localStorage (`redux-storage-middleware`)
 
 ### 5.6 NoteModal（リッチテキストエディタ）
 
@@ -454,31 +497,113 @@ Floating Toolbar (on text selection):
 
 ## 6) データモデル
 
-```javascript
+### 6.1 Database Tables (Supabase)
+
+```sql
+-- Board: Kanban Board
 Board {
-  id, name, lists[StatusList], theme, settings{compact}
+  id uuid PRIMARY KEY,
+  user_id uuid REFERENCES auth.users,
+  name text NOT NULL,
+  description text,
+  is_favorite boolean DEFAULT false,  -- お気に入りボード
+  created_at, updated_at
 }
 
+-- StatusList: Kanban Column (Grid配置対応)
 StatusList {
-  id, name, color, order
+  id uuid PRIMARY KEY,
+  board_id uuid REFERENCES Board,
+  name text NOT NULL,
+  color text,
+  order integer,
+  grid_row integer DEFAULT 0,  -- 2Dグリッド行位置
+  grid_col integer DEFAULT 0,  -- 2Dグリッド列位置
+  created_at, updated_at
 }
 
+-- RepoCard: GitHub Repository Card
 RepoCard {
-  id, repoOwner, repoName, statusId, order,
-  note: JSON,  // Slate format - リッチテキスト（Plate Editor）
-                // 例: [{"type":"p","children":[{"text":"..."}]}]
-                // レガシー: プレーンテキストは自動マイグレーション
-  meta{stars, updatedAt, visibility, language, topics[]}
+  id uuid PRIMARY KEY,
+  board_id uuid REFERENCES Board,
+  status_list_id uuid REFERENCES StatusList,
+  repo_name text NOT NULL,
+  repo_owner text NOT NULL,
+  order integer,
+  created_at, updated_at
+  -- note は ProjectInfo に移動済み
 }
 
+-- ProjectInfo: Extended Project Details
 ProjectInfo {
-  repoId,
-  links{production[], tracking[], supabase[]},
-  comment: string  // インラインコメント（最大300文字）
+  id uuid PRIMARY KEY,
+  repo_card_id uuid REFERENCES RepoCard,
+  maintenance_id uuid REFERENCES Maintenance,  -- Maintenance連携
+  links jsonb,  -- {type, url, icon}[] - 55種類の組み込みタイプ
+  note text,  -- リッチテキスト（Plate Editor, max 20,000文字）
+  comment text,  -- インラインコメント（max 2,000文字）
+  comment_color text DEFAULT 'primary',  -- 8色: primary/red/orange/yellow/green/blue/purple/pink
+  created_at, updated_at
 }
 
+-- UserLinkPresets: User-defined Link Types
+UserLinkPresets {
+  id uuid PRIMARY KEY,
+  user_id uuid REFERENCES auth.users,
+  name text NOT NULL,
+  icon text NOT NULL,  -- Lucide icon name
+  created_at, updated_at
+}
+
+-- Maintenance: Archived Repositories
 Maintenance {
-  repoId, hidden?: boolean
+  id uuid PRIMARY KEY,
+  user_id uuid REFERENCES auth.users,
+  repo_owner text NOT NULL,
+  repo_name text NOT NULL,
+  created_at, updated_at
+  -- note, hidden, repo_card_id は削除済み
+}
+```
+
+### 6.2 Frontend State (Redux + localStorage)
+
+```typescript
+// Settings Slice (永続化: localStorage)
+Settings {
+  theme: ThemeName,           // 14テーマ + system
+  typography: { baseFontSize: number },
+  compactMode: boolean,
+  showCardMetadata: boolean,
+}
+
+// Board Slice (永続化: localStorage)
+Board {
+  lastOrganizationFilter: string | null,
+  boardSettings: Record<boardId, { theme?: ThemeName }>,
+}
+
+// Draft Slice (永続化: localStorage)
+Draft {
+  [repoCardId]: { note: JSON, comment: string },  // 自動保存
+}
+
+// Auth Slice (セッション)
+Auth {
+  isAuthenticated: boolean,
+}
+```
+
+### 6.3 RepoCard Meta (GitHub API)
+
+```typescript
+// GitHub APIから取得、DB非保存
+RepoCardMeta {
+  stars: number,
+  updatedAt: string,
+  visibility: 'public' | 'private',
+  language: string | null,
+  topics: string[],
 }
 ```
 
@@ -488,7 +613,7 @@ Maintenance {
 
 ### 7.1 Accessibility & Visual Tests（自動検証）
 
-- 12テーマ × 代表画面（Board/Maintenance/Modal）で**コントラスト測定**
+- 14テーマ × 代表画面（Board/Maintenance/Modal）で**コントラスト測定**
 - 基準：小テキスト4.5:1、UI 3:1
 - **未達はビルド失敗**にする（axeルールにも合致）
 - 参照：[Deque University](https://dequeuniversity.com/rules/axe/4.8/color-contrast)
@@ -516,7 +641,7 @@ Maintenance {
 
 ### アクセシビリティ
 
-- 12テーマ全てで、本文テキストの**4.5:1**、UI要素の**3:1**以上を満たす（自動テスト含む）
+- 14テーマ全てで、本文テキストの**4.5:1**、UI要素の**3:1**以上を満たす（自動テスト含む）
 
 ---
 
@@ -531,8 +656,10 @@ Maintenance {
 ### Phase 2: 完全版
 
 - Maintenance Mode完全実装
-- 12テーマ対応
+- 14テーマ対応（Light 7 + Dark 7）
 - Comment on RepoCard機能
+- Account管理（プロフィール、統計、削除）
+- Favorites機能
 
 ---
 
