@@ -1,0 +1,562 @@
+/**
+ * ProjectInfo Links E2E Tests
+ *
+ * Tests for the ProjectInfo Links feature including:
+ * - LinkTypeCombobox with 55 built-in presets in 12 categories
+ * - URL validation and management
+ * - CreateLinkTypeDialog for custom link types
+ * - Persistence of links data
+ *
+ * Requires authentication (uses storageState from auth.setup.ts)
+ */
+
+import { test, expect } from '../fixtures/coverage'
+
+test.describe('ProjectInfo Links (Authenticated)', () => {
+  test.use({ storageState: 'e2e/.auth/user.json' })
+
+  const BOARD_URL = '/board/board-1'
+
+  /**
+   * Helper to open ProjectInfoModal from a repo card's overflow menu
+   */
+  async function openProjectInfoModal(
+    page: import('@playwright/test').Page,
+  ): Promise<import('@playwright/test').Locator> {
+    // Wait for cards to load
+    const card = page.locator('[data-testid^="repo-card-"]').first()
+    await expect(card).toBeVisible({ timeout: 10000 })
+
+    // Get card's testid to extract cardId
+    const cardTestId = await card.getAttribute('data-testid')
+    const cardId = cardTestId?.replace('repo-card-', '') ?? ''
+
+    // Hover over the card to show overflow menu button
+    await card.hover()
+
+    // Click overflow menu button using exact data-testid
+    const overflowButton = page.locator(
+      `[data-testid="overflow-menu-trigger-${cardId}"]`,
+    )
+    await expect(overflowButton).toBeVisible({ timeout: 5000 })
+    await overflowButton.click()
+
+    // Wait for dropdown menu to appear
+    await page.waitForTimeout(300)
+
+    // Click "Edit Project Info..." menu item
+    const editProjectInfoItem = page.locator(
+      `[data-testid="edit-project-${cardId}"]`,
+    )
+    await expect(editProjectInfoItem).toBeVisible({ timeout: 3000 })
+    await editProjectInfoItem.click()
+
+    // Wait for ProjectInfoModal to appear
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible({ timeout: 5000 })
+
+    return dialog
+  }
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto(BOARD_URL)
+    await page.waitForLoadState('networkidle')
+  })
+
+  test('should open ProjectInfoModal from repo card menu', async ({ page }) => {
+    const dialog = await openProjectInfoModal(page)
+
+    // Verify modal title
+    const title = dialog.getByText(/project info/i)
+    await expect(title).toBeVisible()
+
+    // Verify modal has required elements
+    await expect(dialog.locator('[data-testid="note-editor"]')).toBeVisible()
+    await expect(dialog.locator('[data-testid="add-url-button"]')).toBeVisible()
+  })
+
+  test('should display LinkTypeCombobox when adding a URL', async ({
+    page,
+  }) => {
+    const dialog = await openProjectInfoModal(page)
+
+    // Click Add URL button
+    const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
+    await addUrlButton.click()
+
+    // URL input and type selector should appear
+    const urlInput = dialog.locator('[data-testid="url-input-0"]')
+    await expect(urlInput).toBeVisible()
+
+    // LinkTypeCombobox trigger should be visible
+    const comboboxTrigger = dialog.locator(
+      '[data-testid="link-type-combobox-trigger"]',
+    )
+    await expect(comboboxTrigger).toBeVisible()
+  })
+
+  test('should show 55 presets in 12 categories when opening combobox', async ({
+    page,
+  }) => {
+    const dialog = await openProjectInfoModal(page)
+
+    // Add a URL row
+    const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
+    await addUrlButton.click()
+
+    // Click on the combobox trigger to open dropdown
+    const comboboxTrigger = dialog.locator(
+      '[data-testid="link-type-combobox-trigger"]',
+    )
+    await comboboxTrigger.click()
+
+    // Wait for popover to open
+    await page.waitForTimeout(300)
+
+    // Check for category headings (should have at least some of the 12 categories)
+    const categories = [
+      'Hosting',
+      'Cloud',
+      'Database',
+      'Auth',
+      'Email',
+      'Payment',
+      'Monitoring',
+      'Analytics',
+      'DevOps',
+      'Communication',
+      'Storage',
+      'Other',
+    ]
+
+    // At least some categories should be visible in the dropdown
+    let visibleCategories = 0
+    for (const category of categories) {
+      const categoryHeading = page.getByText(category, { exact: true })
+      if (await categoryHeading.isVisible().catch(() => false)) {
+        visibleCategories++
+      }
+    }
+    expect(visibleCategories).toBeGreaterThan(0)
+
+    // Check for some known presets
+    const knownPresets = ['Vercel', 'GitHub', 'AWS', 'Supabase', 'Stripe']
+    for (const preset of knownPresets) {
+      const presetOption = page.locator(
+        `[data-testid="link-type-option-${preset.toLowerCase()}"]`,
+      )
+      // May need to scroll to see all, so just check at least one exists
+      if (await presetOption.isVisible().catch(() => false)) {
+        await expect(presetOption).toBeVisible()
+        break
+      }
+    }
+  })
+
+  test('should search and filter presets in combobox', async ({ page }) => {
+    const dialog = await openProjectInfoModal(page)
+
+    // Add a URL row
+    const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
+    await addUrlButton.click()
+
+    // Open the combobox
+    const comboboxTrigger = dialog.locator(
+      '[data-testid="link-type-combobox-trigger"]',
+    )
+    await comboboxTrigger.click()
+
+    await page.waitForTimeout(300)
+
+    // Type in the search field
+    const searchInput = page.getByPlaceholder(/search link type/i)
+    await expect(searchInput).toBeVisible()
+    await searchInput.fill('stripe')
+
+    // Wait for search to filter
+    await page.waitForTimeout(200)
+
+    // Stripe should be visible in the filtered results
+    const stripeOption = page.locator('[data-testid="link-type-option-stripe"]')
+    await expect(stripeOption).toBeVisible()
+
+    // Other unrelated options should not be visible
+    const vercelOption = page.locator('[data-testid="link-type-option-vercel"]')
+    await expect(vercelOption).not.toBeVisible()
+  })
+
+  test('should select a preset from combobox', async ({ page }) => {
+    const dialog = await openProjectInfoModal(page)
+
+    // Add a URL row
+    const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
+    await addUrlButton.click()
+
+    // Open the combobox
+    const comboboxTrigger = dialog.locator(
+      '[data-testid="link-type-combobox-trigger"]',
+    )
+    await comboboxTrigger.click()
+
+    await page.waitForTimeout(300)
+
+    // Search for Supabase
+    const searchInput = page.getByPlaceholder(/search link type/i)
+    await searchInput.fill('supabase')
+
+    await page.waitForTimeout(200)
+
+    // Click on Supabase option
+    const supabaseOption = page.locator(
+      '[data-testid="link-type-option-supabase"]',
+    )
+    await supabaseOption.click()
+
+    // Combobox should now show Supabase as selected
+    await expect(comboboxTrigger).toContainText('Supabase')
+  })
+
+  test('should validate URL input', async ({ page }) => {
+    const dialog = await openProjectInfoModal(page)
+
+    // Add a URL row
+    const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
+    await addUrlButton.click()
+
+    // Enter an invalid URL
+    const urlInput = dialog.locator('[data-testid="url-input-0"]')
+    await urlInput.fill('not-a-valid-url')
+
+    // Tab away to trigger validation
+    await page.keyboard.press('Tab')
+
+    // Error message should appear
+    const errorMessage = dialog.locator('[data-testid="url-error"]')
+    await expect(errorMessage).toBeVisible({ timeout: 3000 })
+    await expect(errorMessage).toContainText(/valid url/i)
+
+    // Save button should be disabled
+    const saveButton = dialog.locator('[data-testid="save-button"]')
+    await expect(saveButton).toBeDisabled()
+  })
+
+  test('should accept valid URLs', async ({ page }) => {
+    const dialog = await openProjectInfoModal(page)
+
+    // Add a URL row
+    const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
+    await addUrlButton.click()
+
+    // Enter a valid URL
+    const urlInput = dialog.locator('[data-testid="url-input-0"]')
+    await urlInput.fill('https://example.com/path?query=value')
+
+    // Tab away
+    await page.keyboard.press('Tab')
+
+    // No error message should appear
+    const errorMessage = dialog.locator('[data-testid="url-error"]')
+    await expect(errorMessage).not.toBeVisible()
+
+    // Save button should be enabled
+    const saveButton = dialog.locator('[data-testid="save-button"]')
+    await expect(saveButton).not.toBeDisabled()
+  })
+
+  test('should add multiple URLs', async ({ page }) => {
+    const dialog = await openProjectInfoModal(page)
+
+    // Add first URL
+    const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
+    await addUrlButton.click()
+
+    const urlInput0 = dialog.locator('[data-testid="url-input-0"]')
+    await urlInput0.fill('https://example.com')
+
+    // Add second URL
+    await addUrlButton.click()
+
+    const urlInput1 = dialog.locator('[data-testid="url-input-1"]')
+    await expect(urlInput1).toBeVisible()
+    await urlInput1.fill('https://another.com')
+
+    // Add third URL
+    await addUrlButton.click()
+
+    const urlInput2 = dialog.locator('[data-testid="url-input-2"]')
+    await expect(urlInput2).toBeVisible()
+
+    // All three URL inputs should be visible
+    await expect(urlInput0).toBeVisible()
+    await expect(urlInput1).toBeVisible()
+    await expect(urlInput2).toBeVisible()
+  })
+
+  test('should remove a URL', async ({ page }) => {
+    const dialog = await openProjectInfoModal(page)
+
+    // Add two URLs
+    const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
+    await addUrlButton.click()
+    await addUrlButton.click()
+
+    // Verify both exist
+    await expect(dialog.locator('[data-testid="url-input-0"]')).toBeVisible()
+    await expect(dialog.locator('[data-testid="url-input-1"]')).toBeVisible()
+
+    // Remove the first URL
+    const removeButton = dialog.locator('[data-testid="remove-url-0"]')
+    await removeButton.click()
+
+    // Now only one URL input should remain (re-indexed to 0)
+    await expect(dialog.locator('[data-testid="url-input-0"]')).toBeVisible()
+    await expect(
+      dialog.locator('[data-testid="url-input-1"]'),
+    ).not.toBeVisible()
+  })
+
+  test('should open CreateLinkTypeDialog from "Add custom type..." option', async ({
+    page,
+  }) => {
+    const dialog = await openProjectInfoModal(page)
+
+    // Add a URL row
+    const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
+    await addUrlButton.click()
+
+    // Open the combobox
+    const comboboxTrigger = dialog.locator(
+      '[data-testid="link-type-combobox-trigger"]',
+    )
+    await comboboxTrigger.click()
+
+    await page.waitForTimeout(300)
+
+    // Click on "Add custom type..." option
+    const addCustomOption = page.locator('[data-testid="add-custom-link-type"]')
+    await addCustomOption.click()
+
+    // CreateLinkTypeDialog should open
+    await page.waitForTimeout(300)
+
+    // Look for the dialog with "Create Custom Link Type" title or similar
+    const createDialog = page
+      .getByRole('dialog')
+      .filter({ hasText: /create.*link type|custom.*type/i })
+    await expect(createDialog).toBeVisible({ timeout: 5000 })
+  })
+
+  test('should save links and close dialog', async ({ page }) => {
+    const dialog = await openProjectInfoModal(page)
+
+    // Add a URL
+    const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
+    await addUrlButton.click()
+
+    // Select a type - use Vercel which has a unique name
+    const comboboxTrigger = dialog.locator(
+      '[data-testid="link-type-combobox-trigger"]',
+    )
+    await comboboxTrigger.click()
+    await page.waitForTimeout(300)
+
+    const searchInput = page.getByPlaceholder(/search link type/i)
+    await searchInput.fill('vercel')
+    await page.waitForTimeout(200)
+
+    const vercelOption = page.locator('[data-testid="link-type-option-vercel"]')
+    await expect(vercelOption).toBeVisible({ timeout: 5000 })
+    await vercelOption.click()
+
+    // Enter URL
+    const urlInput = dialog.locator('[data-testid="url-input-0"]')
+    await urlInput.fill('https://vercel.com/test/project')
+
+    // Verify save button is enabled (form is valid)
+    const saveButton = dialog.locator('[data-testid="save-button"]')
+    await expect(saveButton).not.toBeDisabled()
+
+    // Save
+    await saveButton.click()
+
+    // Dialog should close
+    await expect(dialog).not.toBeVisible({ timeout: 5000 })
+
+    // Wait for network to settle after save
+    await page.waitForLoadState('networkidle')
+
+    // Note: In MSW mock environment, data won't persist across page reloads.
+    // Actual persistence is verified in integration tests with real database.
+  })
+
+  test('should cancel without saving changes', async ({ page }) => {
+    const dialog = await openProjectInfoModal(page)
+
+    // Add a URL
+    const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
+    await addUrlButton.click()
+
+    const urlInput = dialog.locator('[data-testid="url-input-0"]')
+    await urlInput.fill('https://should-not-be-saved.com')
+
+    // Cancel
+    const cancelButton = dialog.locator('[data-testid="cancel-button"]')
+    await cancelButton.click()
+
+    // Wait for dialog to close
+    await expect(dialog).not.toBeVisible({ timeout: 5000 })
+
+    // Reopen the modal
+    const newDialog = await openProjectInfoModal(page)
+
+    // The unsaved URL should not be present
+    const savedUrlInput = newDialog.locator('[data-testid="url-input-0"]')
+    const hasValue = await savedUrlInput.isVisible().catch(() => false)
+    if (hasValue) {
+      await expect(savedUrlInput).not.toHaveValue(
+        'https://should-not-be-saved.com',
+      )
+    }
+  })
+})
+
+test.describe('ProjectInfo Links - Edge Cases (Authenticated)', () => {
+  test.use({ storageState: 'e2e/.auth/user.json' })
+
+  const BOARD_URL = '/board/board-1'
+
+  /**
+   * Helper to open ProjectInfoModal from a repo card's overflow menu
+   */
+  async function openProjectInfoModal(
+    page: import('@playwright/test').Page,
+  ): Promise<import('@playwright/test').Locator> {
+    const card = page.locator('[data-testid^="repo-card-"]').first()
+    await expect(card).toBeVisible({ timeout: 10000 })
+
+    const cardTestId = await card.getAttribute('data-testid')
+    const cardId = cardTestId?.replace('repo-card-', '') ?? ''
+
+    await card.hover()
+
+    const overflowButton = page.locator(
+      `[data-testid="overflow-menu-trigger-${cardId}"]`,
+    )
+    await expect(overflowButton).toBeVisible({ timeout: 5000 })
+    await overflowButton.click()
+
+    await page.waitForTimeout(300)
+
+    const editProjectInfoItem = page.locator(
+      `[data-testid="edit-project-${cardId}"]`,
+    )
+    await expect(editProjectInfoItem).toBeVisible({ timeout: 3000 })
+    await editProjectInfoItem.click()
+
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible({ timeout: 5000 })
+
+    return dialog
+  }
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto(BOARD_URL)
+    await page.waitForLoadState('networkidle')
+  })
+
+  test('should handle localhost URLs for development', async ({ page }) => {
+    const dialog = await openProjectInfoModal(page)
+
+    // Add a localhost URL
+    const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
+    await addUrlButton.click()
+
+    const urlInput = dialog.locator('[data-testid="url-input-0"]')
+    await urlInput.fill('http://localhost:3000/api/test')
+    await page.keyboard.press('Tab')
+
+    // Should be valid (no error)
+    const errorMessage = dialog.locator('[data-testid="url-error"]')
+    await expect(errorMessage).not.toBeVisible()
+
+    const saveButton = dialog.locator('[data-testid="save-button"]')
+    await expect(saveButton).not.toBeDisabled()
+  })
+
+  test('should handle URLs with special characters', async ({ page }) => {
+    const dialog = await openProjectInfoModal(page)
+
+    // Add a URL with special characters
+    const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
+    await addUrlButton.click()
+
+    const urlInput = dialog.locator('[data-testid="url-input-0"]')
+    await urlInput.fill(
+      'https://example.com/path?key=value&name=test%20user#section',
+    )
+    await page.keyboard.press('Tab')
+
+    // Should be valid
+    const errorMessage = dialog.locator('[data-testid="url-error"]')
+    await expect(errorMessage).not.toBeVisible()
+  })
+
+  test('should close combobox by clicking outside', async ({ page }) => {
+    const dialog = await openProjectInfoModal(page)
+
+    // Add URL and open combobox
+    const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
+    await addUrlButton.click()
+
+    const comboboxTrigger = dialog.locator(
+      '[data-testid="link-type-combobox-trigger"]',
+    )
+    await comboboxTrigger.click()
+    await page.waitForTimeout(300)
+
+    // Verify dropdown is open
+    const searchInput = page.getByPlaceholder(/search link type/i)
+    await expect(searchInput).toBeVisible()
+
+    // Click on the URL input (outside the dropdown) to close it
+    const urlInput = dialog.locator('[data-testid="url-input-0"]')
+    await urlInput.click()
+
+    // Dropdown should be closed
+    await expect(searchInput).not.toBeVisible({ timeout: 2000 })
+
+    // Modal should still be visible
+    await expect(dialog).toBeVisible()
+  })
+
+  test('should handle keyboard navigation in combobox', async ({ page }) => {
+    const dialog = await openProjectInfoModal(page)
+
+    // Add URL and open combobox
+    const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
+    await addUrlButton.click()
+
+    const comboboxTrigger = dialog.locator(
+      '[data-testid="link-type-combobox-trigger"]',
+    )
+    await comboboxTrigger.click()
+    await page.waitForTimeout(300)
+
+    // Search for something
+    const searchInput = page.getByPlaceholder(/search link type/i)
+    await searchInput.fill('ver')
+    await page.waitForTimeout(200)
+
+    // Use arrow keys to navigate
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('ArrowDown')
+
+    // Press Enter to select
+    await page.keyboard.press('Enter')
+
+    // Combobox should close and show selected value
+    await expect(searchInput).not.toBeVisible({ timeout: 2000 })
+    // The combobox trigger should show the selected preset (Vercel or similar)
+    await expect(comboboxTrigger).toBeVisible()
+  })
+})

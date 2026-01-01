@@ -9,7 +9,6 @@
 
 import * as Sentry from '@sentry/nextjs'
 
-import { VALID_THEME_IDS } from '@/lib/constants/themes'
 import type {
   StatusListDomain,
   RepoCardDomain,
@@ -17,7 +16,12 @@ import type {
 } from '@/lib/models/domain'
 import { createClient } from '@/lib/supabase/server'
 import type { Tables, TablesInsert } from '@/lib/supabase/types'
-import { boardNameSchema } from '@/lib/validations/board'
+import {
+  boardNameSchema,
+  boardIdSchema,
+  themeSchema,
+  boardSettingsSchema,
+} from '@/lib/validations/board'
 
 type StatusListRow = Tables<'statuslist'>
 type RepoCardRow = Tables<'repocard'>
@@ -657,7 +661,7 @@ export async function renameBoardAction(
 
   const result = boardNameSchema.safeParse(name)
   if (!result.success) {
-    return { errors: { name: result.error.flatten().formErrors } }
+    return { errors: { name: result.error.issues.map((i) => i.message) } }
   }
 
   try {
@@ -692,8 +696,14 @@ export async function deleteBoardAction(
 ): Promise<DeleteBoardState> {
   const boardId = formData.get('boardId') as string
 
+  // Validate board ID format
+  const idResult = boardIdSchema.safeParse(boardId)
+  if (!idResult.success) {
+    return { error: 'Invalid board ID' }
+  }
+
   try {
-    await deleteBoard(boardId)
+    await deleteBoard(idResult.data)
     return { success: true }
   } catch {
     return { error: 'Failed to delete board' }
@@ -740,14 +750,21 @@ export async function updateBoardThemeAction(
   const boardId = formData.get('boardId') as string
   const theme = formData.get('theme') as string
 
-  // Validate theme is in allowed list
-  if (!VALID_THEME_IDS.includes(theme as (typeof VALID_THEME_IDS)[number])) {
+  // Validate board ID format
+  const idResult = boardIdSchema.safeParse(boardId)
+  if (!idResult.success) {
+    return { error: 'Invalid board ID' }
+  }
+
+  // Validate theme is in allowed list using Zod schema
+  const themeResult = themeSchema.safeParse(theme)
+  if (!themeResult.success) {
     return { error: 'Invalid theme' }
   }
 
   try {
-    await updateBoard(boardId, { theme })
-    return { success: true, newTheme: theme }
+    await updateBoard(idResult.data, { theme: themeResult.data })
+    return { success: true, newTheme: themeResult.data }
   } catch {
     return { error: 'Failed to update theme' }
   }
@@ -976,17 +993,27 @@ export async function updateBoardSettingsAction(
   const boardId = formData.get('boardId') as string
   const settingsJson = formData.get('settings') as string
 
-  if (!boardId) {
-    return { error: 'Board ID is required' }
+  // Validate board ID format
+  const idResult = boardIdSchema.safeParse(boardId)
+  if (!idResult.success) {
+    return { error: 'Invalid board ID' }
   }
 
   if (!settingsJson) {
     return { error: 'Settings data is required' }
   }
 
+  // Parse and validate settings using Zod schema
   let newSettings: Record<string, unknown>
   try {
-    newSettings = JSON.parse(settingsJson)
+    const parsed = JSON.parse(settingsJson)
+    const settingsResult = boardSettingsSchema.safeParse(parsed)
+    if (!settingsResult.success) {
+      return {
+        error: settingsResult.error.issues.map((i) => i.message).join(', '),
+      }
+    }
+    newSettings = settingsResult.data as Record<string, unknown>
   } catch {
     return { error: 'Invalid settings format' }
   }
@@ -997,12 +1024,12 @@ export async function updateBoardSettingsAction(
   const { data: currentBoard, error: fetchError } = await supabase
     .from('board')
     .select('settings')
-    .eq('id', boardId)
+    .eq('id', idResult.data)
     .single()
 
   if (fetchError) {
     Sentry.captureException(fetchError, {
-      extra: { context: 'Fetch board settings', boardId },
+      extra: { context: 'Fetch board settings', boardId: idResult.data },
     })
     return { error: 'Failed to fetch board settings' }
   }
@@ -1051,11 +1078,11 @@ export async function updateBoardSettingsAction(
   const { error: updateError } = await supabase
     .from('board')
     .update({ settings: mergedSettings as unknown as Record<string, never> })
-    .eq('id', boardId)
+    .eq('id', idResult.data)
 
   if (updateError) {
     Sentry.captureException(updateError, {
-      extra: { context: 'Update board settings', boardId },
+      extra: { context: 'Update board settings', boardId: idResult.data },
     })
     return { error: 'Failed to update board settings' }
   }

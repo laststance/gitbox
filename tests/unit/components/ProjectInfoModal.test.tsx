@@ -50,6 +50,15 @@ vi.mock('@/components/editor/PlateEditor', () => ({
   ),
 }))
 
+/**
+ * Mock user-presets server action to avoid server-side cookie access in unit tests.
+ * The actual server action is tested in E2E tests.
+ */
+vi.mock('@/lib/actions/user-presets', () => ({
+  getUserPresets: vi.fn().mockResolvedValue([]),
+  createUserPreset: vi.fn(),
+}))
+
 describe('ProjectInfoModal', () => {
   const mockOnSave = vi.fn()
   const mockOnClose = vi.fn()

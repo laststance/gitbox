@@ -31,6 +31,7 @@ import {
   isDarkTheme,
   type ThemeId,
 } from '@/lib/constants/themes'
+import { boardNameSchema } from '@/lib/validations/board'
 
 /** Theme button base styles */
 const THEME_BUTTON_BASE =
@@ -121,21 +122,20 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
     e.preventDefault()
     setError(null)
 
-    if (!name.trim()) {
-      setError('Board name is required')
+    // Validate using Zod schema (same as server-side)
+    const result = boardNameSchema.safeParse(name)
+    if (!result.success) {
+      setError(result.error.issues[0]?.message || 'Invalid board name')
       return
     }
 
-    if (name.trim().length > 50) {
-      setError('Board name must be 50 characters or less')
-      return
-    }
+    const validatedName = result.data
 
     startTransition(async () => {
       try {
-        const board = await createBoard(name.trim(), theme)
+        const board = await createBoard(validatedName, theme)
         toast.success('Board created', {
-          description: `"${name.trim()}" has been created.`,
+          description: `"${validatedName}" has been created.`,
         })
         router.push(`/board/${board.id}`)
       } catch (err) {

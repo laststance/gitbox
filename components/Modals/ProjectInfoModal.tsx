@@ -4,6 +4,7 @@ import { Plus, X } from 'lucide-react'
 import { useState, useEffect, useCallback, memo, useMemo } from 'react'
 
 import { PlateEditor } from '@/components/editor/PlateEditor'
+import { CreateLinkTypeDialog } from '@/components/Modals/CreateLinkTypeDialog'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -16,13 +17,11 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  LinkTypeCombobox,
+  type UserPresetOption,
+} from '@/components/ui/link-type-combobox'
 import type { ProjectLink } from '@/lib/actions/project-info'
+import { getUserPresets, type UserPreset } from '@/lib/actions/user-presets'
 import { getSlateTextLength, parseSlateValue } from '@/lib/utils/slate-utils'
 
 /** Base styles for character count */
@@ -81,6 +80,27 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
   const [links, setLinks] = useState<ProjectLink[]>(projectInfo.links)
   const [urlErrors, setUrlErrors] = useState<Map<number, string>>(new Map())
 
+  // User custom presets
+  const [userPresets, setUserPresets] = useState<UserPresetOption[]>([])
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+
+  // Load user presets on mount
+  useEffect(() => {
+    let mounted = true
+    getUserPresets()
+      .then((presets) => {
+        if (mounted) {
+          setUserPresets(presets)
+        }
+      })
+      .catch(() => {
+        // Silently fail - user can still use built-in presets
+      })
+    return () => {
+      mounted = false
+    }
+  }, [])
+
   /**
    * Handles note changes from PlateEditor.
    * Enforces maximum length constraint based on text content (not JSON size).
@@ -102,8 +122,15 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
   }, [])
 
   const handleAddUrl = () => {
-    setLinks([...links, { url: '', type: 'production' }])
+    setLinks([...links, { url: '', type: 'vercel' }])
   }
+
+  /**
+   * Handler for when a new custom preset is created
+   */
+  const handlePresetCreated = useCallback((preset: UserPreset) => {
+    setUserPresets((prev) => [...prev, preset])
+  }, [])
 
   const handleRemoveUrl = (index: number) => {
     setLinks(links.filter((_, i) => i !== index))
@@ -127,7 +154,7 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
     setUrlErrors(newErrors)
   }
 
-  const handleUrlTypeChange = (index: number, type: ProjectLink['type']) => {
+  const handleUrlTypeChange = (index: number, type: string) => {
     const newLinks = [...links]
     newLinks[index] = { ...newLinks[index], type }
     setLinks(newLinks)
@@ -255,24 +282,15 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
               {links.map((link, index) => (
                 <li key={index} className="space-y-2">
                   <div className="flex gap-2">
-                    <Select
+                    <LinkTypeCombobox
                       value={link.type}
                       onValueChange={(value) =>
-                        handleUrlTypeChange(index, value as ProjectLink['type'])
+                        handleUrlTypeChange(index, value)
                       }
-                    >
-                      <SelectTrigger
-                        className="w-45"
-                        data-testid="url-type-select"
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="production">Production</SelectItem>
-                        <SelectItem value="tracking">Tracking</SelectItem>
-                        <SelectItem value="supabase">Supabase</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      userPresets={userPresets}
+                      onAddCustomClick={() => setShowCreateDialog(true)}
+                      data-testid="url-type-select"
+                    />
 
                     <Input
                       type="url"
@@ -345,6 +363,13 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
           Save
         </Button>
       </DialogFooter>
+
+      {/* Create Custom Link Type Dialog */}
+      <CreateLinkTypeDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onCreated={handlePresetCreated}
+      />
     </DialogContent>
   )
 })
@@ -353,9 +378,12 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
  * Project Info Modal Component
  *
  * A modal dialog for editing project information.
- * - Note (max 20,000 characters)
- * - Links (Production URL, Tracking services, Supabase Dashboard)
+ * - Note (max 20,000 characters) with rich text editor
+ * - Links (55 built-in presets + user-defined custom presets)
  * - WCAG AA accessibility compliance
+ *
+ * @see lib/constants/link-presets.ts for available presets
+ * @see lib/actions/user-presets.ts for custom preset management
  */
 export const ProjectInfoModal = memo(function ProjectInfoModal({
   isOpen,

@@ -5,8 +5,11 @@
  * - Principle V: Security first (input validation, XSS prevention)
  *
  * User Story 4:
- * - Quick note: 1-3 line memo (300 character limit)
- * - Links: Production URL, Tracking services, Supabase Dashboard
+ * - Quick note: Rich text memo (20000 character limit)
+ * - Links: 55 built-in presets + user-defined custom presets
+ *   @see lib/constants/link-presets.ts for available presets
+ *   @see lib/actions/user-presets.ts for custom preset CRUD
+ * - Comment: Inline text displayed on Card (2000 character limit)
  * - Supabase integration for persistent storage
  */
 
@@ -21,15 +24,103 @@ import type {
   TablesUpdate,
   CommentColor,
 } from '@/lib/supabase/types'
-import { getSlateTextLength, parseSlateValue } from '@/lib/utils/slate-utils'
+import {
+  noteSchema,
+  commentSchema,
+  commentColorSchema,
+  projectLinkUrlSchema,
+  DEFAULT_COMMENT_COLOR,
+} from '@/lib/validations/project-info'
 
 type ProjectInfoRow = Tables<'projectinfo'>
 type ProjectInfoInsert = TablesInsert<'projectinfo'>
 type ProjectInfoUpdate = TablesUpdate<'projectinfo'>
 
+/**
+ * Project link with flexible type
+ *
+ * The `type` field can be:
+ * - A built-in preset value (e.g., 'vercel', 'sentry', 'notion')
+ * - A user-defined custom preset value (e.g., 'my-service')
+ * - Legacy values from old format ('production', 'tracking', 'supabase')
+ */
 export interface ProjectLink {
   url: string
-  type: 'production' | 'tracking' | 'supabase'
+  type: string
+}
+
+/**
+ * Old links format (for backward compatibility)
+ * Used before the 55-preset system was implemented
+ */
+interface LegacyLinksJson {
+  production?: string[]
+  tracking?: string[]
+  supabase?: string[]
+}
+
+/**
+ * Normalize links from DB to array format
+ *
+ * Handles both old format (categorized object) and new format (array of objects).
+ * This ensures backward compatibility during the transition period.
+ *
+ * @param links - Links data from database (could be old or new format)
+ * @returns Normalized array of ProjectLink objects
+ *
+ * @example
+ * // Old format input:
+ * normalizeLinks({ production: ['url1'], tracking: ['url2'] })
+ * // Returns: [{ type: 'production', url: 'url1' }, { type: 'tracking', url: 'url2' }]
+ *
+ * // New format input:
+ * normalizeLinks([{ type: 'vercel', url: 'url1' }])
+ * // Returns: [{ type: 'vercel', url: 'url1' }]
+ */
+function normalizeLinks(links: unknown): ProjectLink[] {
+  // Handle null/undefined
+  if (!links) {
+    return []
+  }
+
+  // New format: array of objects
+  if (Array.isArray(links)) {
+    return links
+      .filter(
+        (link): link is { type: string; url: string } =>
+          typeof link === 'object' &&
+          link !== null &&
+          typeof link.type === 'string' &&
+          typeof link.url === 'string',
+      )
+      .map((link) => ({ type: link.type, url: link.url }))
+  }
+
+  // Old format: categorized object { production: [...], tracking: [...], supabase: [...] }
+  if (typeof links === 'object' && links !== null) {
+    const oldFormat = links as LegacyLinksJson
+    const result: ProjectLink[] = []
+
+    if (oldFormat.production) {
+      for (const url of oldFormat.production) {
+        result.push({ type: 'production', url })
+      }
+    }
+    if (oldFormat.tracking) {
+      for (const url of oldFormat.tracking) {
+        result.push({ type: 'tracking', url })
+      }
+    }
+    if (oldFormat.supabase) {
+      for (const url of oldFormat.supabase) {
+        result.push({ type: 'supabase', url })
+      }
+    }
+
+    return result
+  }
+
+  return []
 }
 
 export interface ProjectInfoData {
@@ -46,101 +137,56 @@ export interface CommentData {
   color: CommentColor
 }
 
-/** Valid comment colors (matches DB CHECK constraint) */
-const VALID_COMMENT_COLORS: CommentColor[] = [
-  'primary',
-  'blue',
-  'green',
-  'amber',
-  'purple',
-  'rose',
-  'cyan',
-  'neutral',
-]
-
-/** Default comment color */
-const DEFAULT_COMMENT_COLOR: CommentColor = 'primary'
-
-/** Maximum character limit for notes (rich text) */
-const NOTE_MAX_LENGTH = 20000
-
-/** Maximum character limit for comments (inline, Card-in-Card) */
-const COMMENT_MAX_LENGTH = 2000
+// ========================================
+// Zod-based Validation Wrappers (throw on error for backward compatibility)
+// ========================================
 
 /**
- * Validate note content (rich text)
- *
- * Note: note is stored as JSON (Slate format).
- * We validate the actual text length, not the JSON string length.
- *
- * @param note - The note content to validate (JSON string)
- * @returns true if valid
- * @throws Error if text content exceeds character limit
+ * Validate note content using Zod schema.
+ * @throws Error if validation fails
  */
 function validateNote(note: string): boolean {
-  try {
-    // Parse JSON to get actual text length
-    const slateValue = parseSlateValue(note)
-    const textLength = getSlateTextLength(slateValue)
-
-    if (textLength > NOTE_MAX_LENGTH) {
-      throw new Error(`Note must be ${NOTE_MAX_LENGTH} characters or less`)
-    }
-  } catch {
-    // If parsing fails, fall back to raw length check
-    // This handles legacy plain text notes
-    if (note.length > NOTE_MAX_LENGTH) {
-      throw new Error(`Note must be ${NOTE_MAX_LENGTH} characters or less`)
-    }
+  const result = noteSchema.safeParse(note)
+  if (!result.success) {
+    throw new Error(result.error.issues[0]?.message || 'Invalid note')
   }
   return true
 }
 
 /**
- * Validate comment content (inline, Card-in-Card)
- *
- * @param comment - The comment content to validate (plain text)
- * @returns true if valid
- * @throws Error if content exceeds character limit
+ * Validate comment content using Zod schema.
+ * @throws Error if validation fails
  */
 function validateComment(comment: string): boolean {
-  if (comment.length > COMMENT_MAX_LENGTH) {
-    throw new Error(`Comment must be ${COMMENT_MAX_LENGTH} characters or less`)
+  const result = commentSchema.safeParse(comment)
+  if (!result.success) {
+    throw new Error(result.error.issues[0]?.message || 'Invalid comment')
   }
   return true
 }
 
 /**
- * Validate comment color
- *
- * @param color - The color to validate
- * @returns true if valid
- * @throws Error if color is not in valid list
+ * Validate comment color using Zod schema.
+ * @throws Error if validation fails
  */
 function validateCommentColor(color: string): color is CommentColor {
-  if (!VALID_COMMENT_COLORS.includes(color as CommentColor)) {
+  const result = commentColorSchema.safeParse(color)
+  if (!result.success) {
     throw new Error(`Invalid comment color: ${color}`)
   }
   return true
 }
 
 /**
- * Validate URL
+ * Validate URL using Zod schema.
+ * @throws Error if validation fails
  */
 function validateUrl(url: string): boolean {
-  if (!url) return true // Allow empty URLs (will be filtered out)
-
-  const urlRegex = /^https?:\/\/.+/
-  if (!urlRegex.test(url)) {
-    throw new Error('URL must start with http:// or https://')
+  const result = projectLinkUrlSchema.safeParse(url)
+  if (!result.success) {
+    throw new Error(result.error.issues[0]?.message || 'Invalid URL')
   }
-
-  try {
-    new URL(url)
-    return true
-  } catch {
-    throw new Error('Invalid URL format')
-  }
+  return true
 }
 
 /**
@@ -168,36 +214,10 @@ export async function getProjectInfo(
     throw new Error('Failed to fetch project information')
   }
 
-  // Convert links from Json to array
-  type LinksJson = {
-    production?: string[]
-    tracking?: string[]
-    supabase?: string[]
-  }
-  const linksData = (projectInfo.links as LinksJson | null) || {
-    production: [],
-    tracking: [],
-    supabase: [],
-  }
-  const linksArray: ProjectInfoData['links'] = [
-    ...(linksData.production || []).map((url: string) => ({
-      url,
-      type: 'production' as const,
-    })),
-    ...(linksData.tracking || []).map((url: string) => ({
-      url,
-      type: 'tracking' as const,
-    })),
-    ...(linksData.supabase || []).map((url: string) => ({
-      url,
-      type: 'supabase' as const,
-    })),
-  ]
-
   return {
     note: projectInfo.note || '',
     comment: projectInfo.comment || '',
-    links: linksArray,
+    links: normalizeLinks(projectInfo.links),
   }
 }
 
@@ -225,14 +245,11 @@ export async function upsertProjectInfo(
   // XSS is prevented because the Plate editor renders content safely.
   // Comment is plain text for inline Card-in-Card display.
 
-  // Convert links to match type
-  const linksJson = {
-    production: data.links
-      .filter((l) => l.type === 'production')
-      .map((l) => l.url),
-    tracking: data.links.filter((l) => l.type === 'tracking').map((l) => l.url),
-    supabase: data.links.filter((l) => l.type === 'supabase').map((l) => l.url),
-  }
+  // Store links as array of objects (new format)
+  // Filter out empty URLs and ensure valid structure
+  const linksArray = data.links
+    .filter((link) => link.url && link.url.trim() !== '')
+    .map((link) => ({ type: link.type, url: link.url }))
 
   try {
     // project_info upsert
@@ -247,7 +264,7 @@ export async function upsertProjectInfo(
       const updateData: ProjectInfoUpdate = {
         note: data.note,
         comment: data.comment,
-        links: linksJson,
+        links: linksArray,
         updated_at: new Date().toISOString(),
       }
 
@@ -268,7 +285,7 @@ export async function upsertProjectInfo(
         repo_card_id: repoCardId,
         note: data.note,
         comment: data.comment,
-        links: linksJson,
+        links: linksArray,
       }
 
       const { error: createError } = await supabase
@@ -416,7 +433,7 @@ export async function updateComment(
       comment,
       comment_color: color || DEFAULT_COMMENT_COLOR,
       note: '',
-      links: { production: [], tracking: [], supabase: [] },
+      links: [],
     })
 
     if (error) {
@@ -482,7 +499,7 @@ export async function updateCommentColor(
       comment: null,
       comment_color: color,
       note: '',
-      links: { production: [], tracking: [], supabase: [] },
+      links: [],
     })
 
     if (error) {

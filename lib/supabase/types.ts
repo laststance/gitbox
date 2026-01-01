@@ -247,6 +247,36 @@ export type Database = {
           },
         ]
       }
+      user_link_presets: {
+        Row: {
+          id: string
+          user_id: string
+          value: string
+          label: string
+          icon: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          value: string
+          label: string
+          icon?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          value?: string
+          label?: string
+          icon?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -395,6 +425,7 @@ export type StatusList = Tables<'statuslist'>
 export type RepoCard = Tables<'repocard'>
 export type ProjectInfo = Tables<'projectinfo'>
 export type Maintenance = Tables<'maintenance'>
+export type UserLinkPreset = Tables<'user_link_presets'>
 
 // Theme type (stored as string in board.theme)
 export type Theme =
