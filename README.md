@@ -1,5 +1,6 @@
 # GitBox
 
+[![codecov](https://codecov.io/gh/laststance/gitbox/graph/badge.svg?token=4TKHCRY6A0)](https://codecov.io/gh/laststance/gitbox)
 [![E2E Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/ryota-murakami/7782ae901e4ba955b064eadeeac72c45/raw/gitbox-e2e-coverage.json)](https://github.com/laststance/gitbox/actions/workflows/e2e.yml)
 [![E2E Tests](https://github.com/laststance/gitbox/actions/workflows/e2e.yml/badge.svg)](https://github.com/laststance/gitbox/actions/workflows/e2e.yml)
 [![Build](https://github.com/laststance/gitbox/actions/workflows/build.yml/badge.svg)](https://github.com/laststance/gitbox/actions/workflows/build.yml)

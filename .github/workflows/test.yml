@@ -23,5 +23,14 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Run Tests
-        run: pnpm test run
+      - name: Run Tests with Coverage
+        run: pnpm test run --coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: laststance/gitbox
+          files: ./coverage/coverage-final.json
+          fail_ci_if_error: false
+          verbose: true
