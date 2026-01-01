@@ -29,6 +29,9 @@ export const env = createEnv({
       .enum(['development', 'test', 'production'])
       .optional()
       .default('development'),
+    // Service role key for admin operations (e.g., user deletion)
+    // This bypasses RLS and should only be used for privileged operations
+    SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   },
 
   /**
@@ -55,6 +58,7 @@ export const env = createEnv({
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
     APP_ENV: process.env.APP_ENV,
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,

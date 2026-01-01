@@ -14,7 +14,10 @@ import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 import { getGitHubTokenCookieName } from '@/lib/constants/cookies'
-import { createServerActionClient } from '@/lib/supabase/server'
+import {
+  createServerActionClient,
+  createAdminClient,
+} from '@/lib/supabase/server'
 
 /**
  * Sign in with GitHub OAuth
@@ -120,4 +123,52 @@ export async function getUser() {
   }
 
   return user
+}
+
+/**
+ * Delete user account permanently
+ *
+ * Deletes the user from Supabase Auth using admin privileges.
+ * All related data (boards, cards, etc.) is automatically deleted
+ * via ON DELETE CASCADE constraints in the database.
+ *
+ * @throws Error if user is not authenticated
+ * @throws Error if deletion fails
+ */
+export async function deleteAccount() {
+  const supabase = await createServerActionClient()
+  const cookieStore = await cookies()
+
+  // Get current user
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    Sentry.captureException(userError ?? new Error('User not found'), {
+      extra: { context: 'Delete account - get user' },
+    })
+    throw new Error('Not authenticated')
+  }
+
+  // Use admin client to delete user (bypasses RLS)
+  const adminClient = createAdminClient()
+  const { error: deleteError } = await adminClient.auth.admin.deleteUser(
+    user.id,
+  )
+
+  if (deleteError) {
+    Sentry.captureException(deleteError, {
+      extra: { context: 'Delete account', userId: user.id },
+    })
+    throw new Error('Failed to delete account')
+  }
+
+  // Delete GitHub provider token cookie
+  const githubTokenCookieName = getGitHubTokenCookieName()
+  cookieStore.delete(githubTokenCookieName)
+
+  // Redirect to landing page
+  redirect('/')
 }

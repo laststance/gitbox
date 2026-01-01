@@ -164,7 +164,10 @@ export const Sidebar = memo(function Sidebar({
 
       {/* Profile & Sign out */}
       <div className="border-t border-sidebar-border px-3 py-4">
-        <div className="flex items-center gap-3 rounded-lg px-3 py-2">
+        <Link
+          href="/account"
+          className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-sidebar-accent"
+        >
           {userAvatar ? (
             <Image
               src={userAvatar}
@@ -181,7 +184,7 @@ export const Sidebar = memo(function Sidebar({
           <div className="flex-1 truncate">
             <p className="truncate text-sm font-medium">{userName}</p>
           </div>
-        </div>
+        </Link>
 
         <Button
           variant="ghost"

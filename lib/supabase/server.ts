@@ -6,6 +6,7 @@
  */
 
 import { createServerClient } from '@supabase/ssr'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
 import { createModuleLogger } from '@/lib/logger'
@@ -292,4 +293,41 @@ export async function getSession() {
   }
 
   return session
+}
+
+/**
+ * Create Supabase Admin Client with Service Role Key
+ *
+ * This client bypasses Row Level Security (RLS) and should only be used
+ * for administrative operations like user deletion.
+ *
+ * @warning NEVER use this client for regular operations - only for admin tasks
+ * @returns Supabase client with admin privileges
+ *
+ * @example
+ * ```tsx
+ * import { createAdminClient } from '@/lib/supabase/server'
+ *
+ * async function deleteUser(userId: string) {
+ *   const adminClient = createAdminClient()
+ *   await adminClient.auth.admin.deleteUser(userId)
+ * }
+ * ```
+ */
+export function createAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error(
+      'Missing SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL',
+    )
+  }
+
+  return createSupabaseClient<Database>(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
 }
