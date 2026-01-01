@@ -227,9 +227,9 @@ export const BoardPageClient = memo(function BoardPageClient({
     <>
       <main className="flex h-screen flex-col">
         {/* Header */}
-        <header className="border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-700 dark:bg-gray-800">
+        <header className="border-b border-header-border bg-header px-6 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            <h1 className="text-2xl font-bold text-header-foreground">
               {boardSettings.displayName}
             </h1>
 
