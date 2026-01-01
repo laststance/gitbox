@@ -40,14 +40,17 @@ describe('updateBoardThemeAction', () => {
     vi.clearAllMocks()
   })
 
+  /** Valid UUID for testing */
+  const VALID_BOARD_ID = '550e8400-e29b-41d4-a716-446655440000'
+
   /**
    * Helper to create FormData with theme and boardId
    *
    * @param theme - Theme name to test
-   * @param boardId - Board ID (defaults to 'board-123')
+   * @param boardId - Board ID (defaults to valid UUID)
    * @returns FormData object
    */
-  function createFormData(theme: string, boardId = 'board-123'): FormData {
+  function createFormData(theme: string, boardId = VALID_BOARD_ID): FormData {
     const formData = new FormData()
     formData.set('theme', theme)
     formData.set('boardId', boardId)
