@@ -34,10 +34,10 @@ test.describe('Create Board Page (Authenticated)', () => {
     })
 
     test('should display theme selection section', async ({ page }) => {
-      // Theme label text (Label component, not associated with input)
-      await expect(page.getByText('Theme', { exact: true })).toBeVisible({
-        timeout: 10000,
-      })
+      // Theme label in main content area (not sidebar)
+      await expect(
+        page.getByRole('main').getByText('Theme', { exact: true }),
+      ).toBeVisible({ timeout: 10000 })
       // Light and Dark sections - use paragraph selector for specificity
       await expect(page.locator('p:has-text("Light")')).toBeVisible()
       await expect(page.locator('p:has-text("Dark")')).toBeVisible()

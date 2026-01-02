@@ -78,7 +78,6 @@ export const BoardPageClient = memo(function BoardPageClient({
   // Extract board properties
   const boardId = board.id
   const boardName = board.name
-  const boardTheme = board.theme
 
   const router = useRouter()
   const dispatch = useAppDispatch()
@@ -96,10 +95,9 @@ export const BoardPageClient = memo(function BoardPageClient({
   // Custom Hooks for State Management
   // ========================================
 
-  // Board Settings Dialog (4 states extracted)
+  // Board Settings Dialog (3 states extracted)
   const boardSettings = useBoardSettings({
     boardName,
-    boardTheme,
     boardSettings: board.settings,
   })
 
@@ -353,10 +351,8 @@ export const BoardPageClient = memo(function BoardPageClient({
         onClose={boardSettings.close}
         boardId={boardId}
         boardName={boardSettings.displayName}
-        currentTheme={boardSettings.currentTheme}
         boardSettings={parseBoardSettings(board.settings)}
         onRenameSuccess={boardSettings.handleRenameSuccess}
-        onThemeChange={boardSettings.handleThemeChange}
         onCardDisplayChange={boardSettings.handleCardDisplayChange}
         onDeleteSuccess={handleDeleteSuccess}
       />

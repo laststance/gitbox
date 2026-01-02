@@ -3,8 +3,10 @@
  *
  * A tabbed dialog for managing board settings including:
  * - General: Rename board functionality
- * - Theme: Board-specific theme picker (overrides app theme)
+ * - Cards: Card display settings
  * - Danger Zone: Delete board with confirmation
+ *
+ * Note: Theme is now managed globally via Sidebar ThemeToggle.
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
@@ -26,11 +28,10 @@ const meta = {
     isOpen: true,
     onClose: fn(),
     onRenameSuccess: fn(),
-    onThemeChange: fn(),
+    onCardDisplayChange: fn(),
     onDeleteSuccess: fn(),
     boardId: 'board-123',
     boardName: 'My Project Board',
-    currentTheme: 'sunrise',
   },
 } satisfies Meta<typeof BoardSettingsDialog>
 
@@ -42,35 +43,6 @@ type Story = StoryObj<typeof meta>
  * Shows the rename board form with current name pre-filled.
  */
 export const Default: Story = {}
-
-/**
- * Dialog with no current theme set.
- * Board uses the app-level theme.
- */
-export const NoTheme: Story = {
-  args: {
-    currentTheme: null,
-  },
-}
-
-/**
- * Dialog with dark theme (midnight).
- * Shows a dark theme selected in the theme picker.
- */
-export const DarkTheme: Story = {
-  args: {
-    currentTheme: 'midnight',
-  },
-}
-
-/**
- * Dialog with forest theme.
- */
-export const ForestTheme: Story = {
-  args: {
-    currentTheme: 'forest',
-  },
-}
 
 /**
  * Dialog with long board name.
@@ -108,25 +80,5 @@ export const Closed: Story = {
 export const SpecialCharacters: Story = {
   args: {
     boardName: 'Project <Alpha> & "Beta"',
-  },
-}
-
-/**
- * Dialog with lavender theme.
- * A light purple theme.
- */
-export const LavenderTheme: Story = {
-  args: {
-    currentTheme: 'lavender',
-  },
-}
-
-/**
- * Dialog with ocean theme.
- * A deep teal dark theme.
- */
-export const OceanTheme: Story = {
-  args: {
-    currentTheme: 'ocean',
   },
 }

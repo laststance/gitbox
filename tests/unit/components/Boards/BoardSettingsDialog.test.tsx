@@ -2,11 +2,13 @@
  * Unit Test: BoardSettingsDialog Component
  *
  * Test targets:
- * - Tab navigation (General, Theme, Danger Zone)
+ * - Tab navigation (General, Cards, Danger Zone)
  * - Board rename validation and submission
- * - Theme selection (14 themes: 7 light + 7 dark)
+ * - Card display settings
  * - Delete confirmation flow
  * - Accessibility (ARIA roles, keyboard support)
+ *
+ * Note: Theme is now managed globally via Sidebar ThemeToggle.
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
@@ -23,7 +25,6 @@ vi.mock('next/navigation', () => ({
 // Mock server actions
 vi.mock('@/lib/actions/board', () => ({
   renameBoardAction: vi.fn(),
-  updateBoardThemeAction: vi.fn(),
   updateBoardSettingsAction: vi.fn(),
   deleteBoardAction: vi.fn(),
 }))
@@ -36,15 +37,10 @@ vi.mock('sonner', () => ({
   },
 }))
 
-// Mock theme utilities
-vi.mock('@/lib/theme', () => ({
-  applyTheme: vi.fn(),
-}))
-
 describe('BoardSettingsDialog', () => {
   const mockOnClose = vi.fn()
   const mockOnRenameSuccess = vi.fn()
-  const mockOnThemeChange = vi.fn()
+  const mockOnCardDisplayChange = vi.fn()
   const mockOnDeleteSuccess = vi.fn()
 
   const defaultProps = {
@@ -52,9 +48,8 @@ describe('BoardSettingsDialog', () => {
     onClose: mockOnClose,
     boardId: 'board-123',
     boardName: 'Test Board',
-    currentTheme: 'sunrise',
     onRenameSuccess: mockOnRenameSuccess,
-    onThemeChange: mockOnThemeChange,
+    onCardDisplayChange: mockOnCardDisplayChange,
     onDeleteSuccess: mockOnDeleteSuccess,
   }
 
@@ -98,7 +93,7 @@ describe('BoardSettingsDialog', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       expect(screen.getByRole('tab', { name: /general/i })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: /theme/i })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: /cards/i })).toBeInTheDocument()
       expect(
         screen.getByRole('tab', { name: /danger zone/i }),
       ).toBeInTheDocument()
@@ -111,13 +106,13 @@ describe('BoardSettingsDialog', () => {
       expect(generalTab).toHaveAttribute('aria-selected', 'true')
     })
 
-    it('should switch to Theme tab when clicked', () => {
+    it('should switch to Cards tab when clicked', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
-      const themeTab = screen.getByRole('tab', { name: /theme/i })
-      fireEvent.click(themeTab)
+      const cardsTab = screen.getByRole('tab', { name: /cards/i })
+      fireEvent.click(cardsTab)
 
-      expect(themeTab).toHaveAttribute('aria-selected', 'true')
+      expect(cardsTab).toHaveAttribute('aria-selected', 'true')
       expect(screen.getByRole('tab', { name: /general/i })).toHaveAttribute(
         'aria-selected',
         'false',
@@ -143,10 +138,9 @@ describe('BoardSettingsDialog', () => {
       // General tab content
       expect(screen.getByText('Rename Board')).toBeInTheDocument()
 
-      // Switch to Theme tab
-      fireEvent.click(screen.getByRole('tab', { name: /theme/i }))
-      expect(screen.getByText('Light Themes')).toBeInTheDocument()
-      expect(screen.getByText('Dark Themes')).toBeInTheDocument()
+      // Switch to Cards tab
+      fireEvent.click(screen.getByRole('tab', { name: /cards/i }))
+      expect(screen.getByText('Card Visibility')).toBeInTheDocument()
 
       // Switch to Danger Zone tab
       fireEvent.click(screen.getByRole('tab', { name: /danger zone/i }))
@@ -240,130 +234,6 @@ describe('BoardSettingsDialog', () => {
     })
   })
 
-  describe('Theme Tab', () => {
-    it('should display 14 theme options', () => {
-      render(<BoardSettingsDialog {...defaultProps} />)
-
-      fireEvent.click(screen.getByRole('tab', { name: /theme/i }))
-
-      // Light themes (7)
-      expect(
-        screen.getByRole('button', { name: /select default theme/i }),
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', { name: /select sunrise theme/i }),
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', { name: /select sandstone theme/i }),
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', { name: /select mint theme/i }),
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', { name: /select sky theme/i }),
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', { name: /select lavender theme/i }),
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', { name: /select rose theme/i }),
-      ).toBeInTheDocument()
-
-      // Dark themes (7)
-      expect(
-        screen.getByRole('button', { name: /select dark theme/i }),
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', { name: /select midnight theme/i }),
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', { name: /select graphite theme/i }),
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', { name: /select forest theme/i }),
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', { name: /select ocean theme/i }),
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', { name: /select plum theme/i }),
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', { name: /select rust theme/i }),
-      ).toBeInTheDocument()
-    })
-
-    it('should display light and dark theme sections', () => {
-      render(<BoardSettingsDialog {...defaultProps} />)
-
-      fireEvent.click(screen.getByRole('tab', { name: /theme/i }))
-
-      expect(screen.getByText('Light Themes')).toBeInTheDocument()
-      expect(screen.getByText('Dark Themes')).toBeInTheDocument()
-    })
-
-    it('should show current theme as selected', () => {
-      render(<BoardSettingsDialog {...defaultProps} currentTheme="sunrise" />)
-
-      fireEvent.click(screen.getByRole('tab', { name: /theme/i }))
-
-      const sunriseButton = screen.getByRole('button', {
-        name: /select sunrise theme/i,
-      })
-      expect(sunriseButton).toHaveAttribute('aria-pressed', 'true')
-    })
-
-    it('should update selected theme when clicked', () => {
-      render(<BoardSettingsDialog {...defaultProps} />)
-
-      fireEvent.click(screen.getByRole('tab', { name: /theme/i }))
-
-      const midnightButton = screen.getByRole('button', {
-        name: /select midnight theme/i,
-      })
-      fireEvent.click(midnightButton)
-
-      expect(midnightButton).toHaveAttribute('aria-pressed', 'true')
-    })
-
-    it('should disable Save Theme button when theme unchanged', () => {
-      render(<BoardSettingsDialog {...defaultProps} currentTheme="sunrise" />)
-
-      fireEvent.click(screen.getByRole('tab', { name: /theme/i }))
-
-      const saveButton = screen.getByRole('button', { name: /save theme/i })
-      expect(saveButton).toBeDisabled()
-    })
-
-    it('should enable Save Theme button when theme is changed', () => {
-      render(<BoardSettingsDialog {...defaultProps} currentTheme="sunrise" />)
-
-      fireEvent.click(screen.getByRole('tab', { name: /theme/i }))
-
-      // Select different theme
-      const midnightButton = screen.getByRole('button', {
-        name: /select midnight theme/i,
-      })
-      fireEvent.click(midnightButton)
-
-      const saveButton = screen.getByRole('button', { name: /save theme/i })
-      expect(saveButton).not.toBeDisabled()
-    })
-
-    it('should display theme description text', () => {
-      render(<BoardSettingsDialog {...defaultProps} />)
-
-      fireEvent.click(screen.getByRole('tab', { name: /theme/i }))
-
-      expect(
-        screen.getByText(/Select a theme for this board/),
-      ).toBeInTheDocument()
-      expect(
-        screen.getByText(/The board theme overrides your app theme/),
-      ).toBeInTheDocument()
-    })
-  })
-
   describe('Danger Zone Tab - Delete', () => {
     it('should display delete warning', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
@@ -450,9 +320,9 @@ describe('BoardSettingsDialog', () => {
     it('should reset tab to General when dialog is closed', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
-      // Switch to Theme tab
-      fireEvent.click(screen.getByRole('tab', { name: /theme/i }))
-      expect(screen.getByRole('tab', { name: /theme/i })).toHaveAttribute(
+      // Switch to Cards tab
+      fireEvent.click(screen.getByRole('tab', { name: /cards/i }))
+      expect(screen.getByRole('tab', { name: /cards/i })).toHaveAttribute(
         'aria-selected',
         'true',
       )
@@ -478,8 +348,8 @@ describe('BoardSettingsDialog', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const tabs = screen.getAllByRole('tab')
-      // 4 tabs: General, Theme, Cards, Danger Zone
-      expect(tabs).toHaveLength(4)
+      // 3 tabs: General, Cards, Danger Zone
+      expect(tabs).toHaveLength(3)
     })
 
     it('should have tabpanel role for content', () => {
@@ -495,8 +365,8 @@ describe('BoardSettingsDialog', () => {
       const generalTab = screen.getByRole('tab', { name: /general/i })
       expect(generalTab).toHaveAttribute('aria-controls', 'panel-general')
 
-      const themeTab = screen.getByRole('tab', { name: /theme/i })
-      expect(themeTab).toHaveAttribute('aria-controls', 'panel-theme')
+      const cardsTab = screen.getByRole('tab', { name: /cards/i })
+      expect(cardsTab).toHaveAttribute('aria-controls', 'panel-card-display')
 
       const dangerTab = screen.getByRole('tab', { name: /danger zone/i })
       expect(dangerTab).toHaveAttribute('aria-controls', 'panel-danger')
@@ -506,26 +376,10 @@ describe('BoardSettingsDialog', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const generalTab = screen.getByRole('tab', { name: /general/i })
-      const themeTab = screen.getByRole('tab', { name: /theme/i })
+      const cardsTab = screen.getByRole('tab', { name: /cards/i })
 
       expect(generalTab).toHaveAttribute('aria-selected', 'true')
-      expect(themeTab).toHaveAttribute('aria-selected', 'false')
-    })
-
-    it('should have aria-pressed on theme buttons', () => {
-      render(<BoardSettingsDialog {...defaultProps} currentTheme="sunrise" />)
-
-      fireEvent.click(screen.getByRole('tab', { name: /theme/i }))
-
-      const sunriseButton = screen.getByRole('button', {
-        name: /select sunrise theme/i,
-      })
-      expect(sunriseButton).toHaveAttribute('aria-pressed', 'true')
-
-      const midnightButton = screen.getByRole('button', {
-        name: /select midnight theme/i,
-      })
-      expect(midnightButton).toHaveAttribute('aria-pressed', 'false')
+      expect(cardsTab).toHaveAttribute('aria-selected', 'false')
     })
 
     it('should have aria-invalid on name input when empty', () => {
@@ -552,51 +406,9 @@ describe('BoardSettingsDialog', () => {
 
       expect(screen.getByRole('textbox')).toHaveValue('Updated Board')
     })
-
-    it('should sync theme when currentTheme prop changes', () => {
-      const { rerender } = render(
-        <BoardSettingsDialog {...defaultProps} currentTheme="sunrise" />,
-      )
-
-      fireEvent.click(screen.getByRole('tab', { name: /theme/i }))
-
-      expect(
-        screen.getByRole('button', { name: /select sunrise theme/i }),
-      ).toHaveAttribute('aria-pressed', 'true')
-
-      rerender(
-        <BoardSettingsDialog {...defaultProps} currentTheme="midnight" />,
-      )
-
-      expect(
-        screen.getByRole('button', { name: /select midnight theme/i }),
-      ).toHaveAttribute('aria-pressed', 'true')
-    })
   })
 
   describe('Edge Cases', () => {
-    it('should handle null currentTheme (defaults to default)', () => {
-      render(<BoardSettingsDialog {...defaultProps} currentTheme={null} />)
-
-      fireEvent.click(screen.getByRole('tab', { name: /theme/i }))
-
-      const defaultButton = screen.getByRole('button', {
-        name: /select default theme/i,
-      })
-      expect(defaultButton).toHaveAttribute('aria-pressed', 'true')
-    })
-
-    it('should handle undefined currentTheme (defaults to default)', () => {
-      render(<BoardSettingsDialog {...defaultProps} currentTheme={undefined} />)
-
-      fireEvent.click(screen.getByRole('tab', { name: /theme/i }))
-
-      const defaultButton = screen.getByRole('button', {
-        name: /select default theme/i,
-      })
-      expect(defaultButton).toHaveAttribute('aria-pressed', 'true')
-    })
-
     it('should handle special characters in board name', () => {
       render(
         <BoardSettingsDialog

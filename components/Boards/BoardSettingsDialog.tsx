@@ -3,23 +3,17 @@
  *
  * A tabbed dialog for managing board settings including:
  * - General: Rename board functionality
- * - Theme: Board-specific theme picker (overrides app theme)
+ * - Cards: Card display settings
  * - Danger Zone: Delete board with confirmation
+ *
+ * Note: Theme is now managed globally via Sidebar ThemeToggle.
  *
  * Uses useActionState for form handling with server-side validation.
  */
 
 'use client'
 
-import {
-  Check,
-  CreditCard,
-  Moon,
-  Palette,
-  Settings,
-  Sun,
-  Trash2,
-} from 'lucide-react'
+import { CreditCard, Settings, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import {
   memo,
@@ -60,19 +54,10 @@ import {
   deleteBoardAction,
   renameBoardAction,
   updateBoardSettingsAction,
-  updateBoardThemeAction,
   type DeleteBoardState,
   type RenameBoardState,
   type UpdateBoardSettingsState,
-  type UpdateBoardThemeState,
 } from '@/lib/actions/board'
-import {
-  type ThemeType,
-  LIGHT_THEMES,
-  DARK_THEMES,
-  THEME_METADATA,
-} from '@/lib/constants/themes'
-import { applyTheme } from '@/lib/theme'
 import {
   type CardDisplaySettings,
   type CommentTextSettings,
@@ -82,7 +67,7 @@ import {
 import { BOARD_NAME_MAX_LENGTH } from '@/lib/validations/board'
 
 /** Tab navigation options */
-type SettingsTab = 'general' | 'theme' | 'card-display' | 'danger'
+type SettingsTab = 'general' | 'card-display' | 'danger'
 
 interface BoardSettingsDialogProps {
   /** Whether the dialog is open */
@@ -93,22 +78,15 @@ interface BoardSettingsDialogProps {
   boardId: string
   /** Current board name */
   boardName: string
-  /** Current board theme (null for app default) */
-  currentTheme?: string | null
   /** Current board settings (from board.settings JSON column) */
   boardSettings?: unknown
   /** Callback when rename succeeds (for optimistic update) */
   onRenameSuccess: (newName: string) => void
-  /** Callback when theme changes (for optimistic update) */
-  onThemeChange: (newTheme: string) => void
   /** Callback when card display settings change */
   onCardDisplayChange?: (settings: CardDisplaySettings) => void
   /** Callback when delete succeeds (for navigation) */
   onDeleteSuccess: () => void
 }
-
-/** Board theme type (excludes 'system' which is app-level only) */
-type BoardThemeType = Exclude<ThemeType, 'system'>
 
 /** Tab button styles */
 const TAB_BASE =
@@ -117,16 +95,7 @@ const TAB_ACTIVE = 'bg-primary text-primary-foreground shadow-sm'
 const TAB_INACTIVE =
   'text-muted-foreground hover:text-foreground hover:bg-muted'
 
-/** Theme button styles */
-const THEME_BUTTON_BASE =
-  'relative flex flex-col items-center gap-1.5 rounded-lg border-2 p-3 transition-all'
-const THEME_BUTTON_SELECTED =
-  'border-primary bg-primary/10 ring-2 ring-primary ring-offset-2'
-const THEME_BUTTON_UNSELECTED =
-  'border-border hover:border-primary/50 hover:bg-muted/50'
-
 const initialRenameState: RenameBoardState = {}
-const initialThemeState: UpdateBoardThemeState = {}
 const initialSettingsState: UpdateBoardSettingsState = {}
 const initialDeleteState: DeleteBoardState = {}
 
@@ -148,7 +117,7 @@ const FONT_WEIGHT_LABELS: Record<keyof typeof COMMENT_FONT_WEIGHTS, string> = {
  * Board Settings Dialog
  *
  * Displays a tabbed settings interface for board configuration.
- * Includes General (rename), Theme (picker), and Danger Zone (delete) tabs.
+ * Includes General (rename), Cards, and Danger Zone (delete) tabs.
  *
  * @example
  * <BoardSettingsDialog
@@ -156,9 +125,8 @@ const FONT_WEIGHT_LABELS: Record<keyof typeof COMMENT_FONT_WEIGHTS, string> = {
  *   onClose={() => setIsSettingsOpen(false)}
  *   boardId="board-123"
  *   boardName="My Board"
- *   currentTheme="sunrise"
  *   onRenameSuccess={(name) => setBoardName(name)}
- *   onThemeChange={(theme) => applyBoardTheme(theme)}
+ *   onCardDisplayChange={(settings) => updateCardSettings(settings)}
  *   onDeleteSuccess={() => router.push('/boards')}
  * />
  */
@@ -167,10 +135,8 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
   onClose,
   boardId,
   boardName,
-  currentTheme,
   boardSettings,
   onRenameSuccess,
-  onThemeChange,
   onCardDisplayChange,
   onDeleteSuccess,
 }: BoardSettingsDialogProps) {
@@ -194,22 +160,6 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
   if (boardName !== lastBoardName) {
     setLastBoardName(boardName)
     setName(boardName)
-  }
-
-  // Theme form state
-  const [themeState, themeFormAction, isThemePending] = useActionState(
-    updateBoardThemeAction,
-    initialThemeState,
-  )
-  const [selectedTheme, setSelectedTheme] = useState<string>(
-    currentTheme || 'default',
-  )
-  const [lastCurrentTheme, setLastCurrentTheme] = useState(currentTheme)
-
-  // Sync theme from props
-  if (currentTheme !== lastCurrentTheme) {
-    setLastCurrentTheme(currentTheme)
-    setSelectedTheme(currentTheme || 'default')
   }
 
   // Card display settings state
@@ -242,7 +192,6 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
   // This prevents infinite loops when parent re-renders with new callback refs
   // ========================================
   const onRenameSuccessRef = useRef(onRenameSuccess)
-  const onThemeChangeRef = useRef(onThemeChange)
   const onCardDisplayChangeRef = useRef(onCardDisplayChange)
   const onDeleteSuccessRef = useRef(onDeleteSuccess)
   const onCloseRef = useRef(onClose)
@@ -250,7 +199,6 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
   // Keep refs updated with latest callbacks
   useEffect(() => {
     onRenameSuccessRef.current = onRenameSuccess
-    onThemeChangeRef.current = onThemeChange
     onCardDisplayChangeRef.current = onCardDisplayChange
     onDeleteSuccessRef.current = onDeleteSuccess
     onCloseRef.current = onClose
@@ -266,21 +214,6 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
       onRenameSuccessRef.current(renameState.newName)
     }
   }, [renameState.success, renameState.newName])
-
-  // Handle theme success
-  // Uses ref to avoid callback in deps (prevents infinite loops)
-  useEffect(() => {
-    if (themeState.success && themeState.newTheme) {
-      toast.success('Theme updated', {
-        description: `Board theme set to ${THEME_METADATA[themeState.newTheme as keyof typeof THEME_METADATA]?.name || themeState.newTheme}.`,
-      })
-      onThemeChangeRef.current(themeState.newTheme)
-    } else if (themeState.error) {
-      toast.error('Failed to update theme', {
-        description: themeState.error,
-      })
-    }
-  }, [themeState.success, themeState.newTheme, themeState.error])
 
   // Handle card display settings success
   // Uses ref to avoid callback in deps (prevents infinite loops)
@@ -319,18 +252,6 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
   // When deletion succeeds, we navigate away so the dialog closes naturally
   // This avoids calling setState in an effect
   const shouldShowDeleteConfirm = isDeleteConfirmOpen && !deleteState.success
-
-  /**
-   * Apply theme preview immediately on selection
-   * Persists to server via form submission
-   *
-   * @param theme - Theme name to select and preview
-   */
-  function handleThemeSelect(theme: string): void {
-    setSelectedTheme(theme)
-    // Apply theme immediately for visual feedback
-    applyTheme(theme as BoardThemeType)
-  }
 
   /**
    * Update card display visibility toggle
@@ -407,17 +328,6 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
             >
               <Settings className="h-4 w-4" />
               General
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'theme'}
-              aria-controls="panel-theme"
-              onClick={() => setActiveTab('theme')}
-              className={`${TAB_BASE} ${activeTab === 'theme' ? TAB_ACTIVE : TAB_INACTIVE}`}
-            >
-              <Palette className="h-4 w-4" />
-              Theme
             </button>
             <button
               type="button"
@@ -506,109 +416,6 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                     aria-label={`Rename board to ${name}`}
                   >
                     {isRenamePending ? 'Renaming...' : 'Rename'}
-                  </Button>
-                </form>
-              </div>
-            )}
-
-            {/* Theme Tab: Theme Picker */}
-            {activeTab === 'theme' && (
-              <div
-                id="panel-theme"
-                role="tabpanel"
-                aria-labelledby="tab-theme"
-                className="space-y-5"
-              >
-                <div>
-                  <p className="mb-4 text-sm text-muted-foreground">
-                    Select a theme for this board. The board theme overrides
-                    your app theme when viewing this board.
-                  </p>
-                </div>
-
-                {/* Light Themes */}
-                <div>
-                  <h4 className="mb-3 flex items-center gap-2 text-sm font-medium">
-                    <Sun className="h-4 w-4" />
-                    Light Themes
-                  </h4>
-                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-                    {(LIGHT_THEMES as BoardThemeType[]).map((theme) => {
-                      const info = THEME_METADATA[theme]
-                      const isSelected = selectedTheme === theme
-                      return (
-                        <button
-                          key={theme}
-                          type="button"
-                          onClick={() => handleThemeSelect(theme)}
-                          className={`${THEME_BUTTON_BASE} ${isSelected ? THEME_BUTTON_SELECTED : THEME_BUTTON_UNSELECTED}`}
-                          aria-label={`Select ${info.name} theme`}
-                          aria-pressed={isSelected}
-                        >
-                          <div
-                            className={`h-8 w-8 rounded-full shadow-sm ${info.needsBorder ? 'border border-gray-200' : ''}`}
-                            style={{ backgroundColor: info.color }}
-                          />
-                          <span className="text-xs font-medium">
-                            {info.name}
-                          </span>
-                          {isSelected && (
-                            <div className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary">
-                              <Check className="h-2.5 w-2.5 text-primary-foreground" />
-                            </div>
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Dark Themes */}
-                <div>
-                  <h4 className="mb-3 flex items-center gap-2 text-sm font-medium">
-                    <Moon className="h-4 w-4" />
-                    Dark Themes
-                  </h4>
-                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-                    {(DARK_THEMES as BoardThemeType[]).map((theme) => {
-                      const info = THEME_METADATA[theme]
-                      const isSelected = selectedTheme === theme
-                      return (
-                        <button
-                          key={theme}
-                          type="button"
-                          onClick={() => handleThemeSelect(theme)}
-                          className={`${THEME_BUTTON_BASE} ${isSelected ? THEME_BUTTON_SELECTED : THEME_BUTTON_UNSELECTED}`}
-                          aria-label={`Select ${info.name} theme`}
-                          aria-pressed={isSelected}
-                        >
-                          <div
-                            className="h-8 w-8 rounded-full shadow-sm"
-                            style={{ backgroundColor: info.color }}
-                          />
-                          <span className="text-xs font-medium">
-                            {info.name}
-                          </span>
-                          {isSelected && (
-                            <div className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary">
-                              <Check className="h-2.5 w-2.5 text-primary-foreground" />
-                            </div>
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Save Theme Form */}
-                <form action={themeFormAction} className="pt-2">
-                  <input type="hidden" name="boardId" value={boardId} />
-                  <input type="hidden" name="theme" value={selectedTheme} />
-                  <Button
-                    type="submit"
-                    disabled={isThemePending || selectedTheme === currentTheme}
-                  >
-                    {isThemePending ? 'Saving...' : 'Save Theme'}
                   </Button>
                 </form>
               </div>
@@ -809,12 +616,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
               type="button"
               variant="outline"
               onClick={handleClose}
-              disabled={
-                isRenamePending ||
-                isThemePending ||
-                isSettingsPending ||
-                isDeletePending
-              }
+              disabled={isRenamePending || isSettingsPending || isDeletePending}
             >
               Close
             </Button>
