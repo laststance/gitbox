@@ -117,8 +117,6 @@ export default defineConfig([
       ],
       '@laststance/react-next/no-deopt-use-callback': 'error',
       '@laststance/react-next/prefer-stable-context-value': 'error',
-      // Disable no-unstable-classname-prop - cn() is necessary for shadcn/ui patterns
-      '@laststance/react-next/no-unstable-classname-prop': 'off',
       // Turn Off eslint-config-next/typescript defaults
       'import/no-anonymous-default-export': 'off',
       // Temporarily allow unescaped entities for i18n strings
@@ -126,9 +124,9 @@ export default defineConfig([
     },
   },
 
-  // Page/Layout components don't need memo
+  // Page components don't need memo
   {
-    files: ['**/app/**/page.tsx', '**/app/**/layout.tsx'],
+    files: ['**/app/**/page.tsx'],
     rules: {
       '@laststance/react-next/all-memo': 'off',
     },
@@ -153,8 +151,6 @@ export default defineConfig([
     ],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
-      // Allow console in tests for debugging and performance metrics
-      'no-console': 'off',
     },
   },
 
