@@ -6,10 +6,13 @@
  *
  * Features tested:
  * - Dialog open/close behavior
- * - Tab navigation (General, Theme, Danger Zone)
+ * - Tab navigation (General, Card Display, Danger Zone)
  * - Board rename functionality
- * - Theme selection
+ * - Card display settings
  * - Delete confirmation flow
+ *
+ * Note: Theme selection moved to global sidebar ThemeToggle
+ * (see sidebar-theme-toggle.spec.ts)
  */
 
 import { test, expect } from '../fixtures/coverage'
@@ -106,7 +109,7 @@ test.describe('Board Settings Dialog (Authenticated)', () => {
       await expect(dialog.getByText('Rename Board')).toBeVisible()
     })
 
-    test('should switch to Theme tab', async ({ page }) => {
+    test('should switch to Cards tab', async ({ page }) => {
       // Open dialog
       const settingsButton = page.getByRole('button', {
         name: /board settings/i,
@@ -116,16 +119,15 @@ test.describe('Board Settings Dialog (Authenticated)', () => {
       const dialog = page.getByRole('dialog')
       await expect(dialog).toBeVisible({ timeout: 10000 })
 
-      // Click Theme tab
-      const themeTab = dialog.getByRole('tab', { name: /theme/i })
-      await themeTab.click()
+      // Click Cards tab
+      const cardsTab = dialog.getByRole('tab', { name: /cards/i })
+      await cardsTab.click()
 
-      // Theme tab should be active
-      await expect(themeTab).toHaveAttribute('aria-selected', 'true')
+      // Cards tab should be active
+      await expect(cardsTab).toHaveAttribute('aria-selected', 'true')
 
-      // Should show theme content
-      await expect(dialog.getByText('Light Themes')).toBeVisible()
-      await expect(dialog.getByText('Dark Themes')).toBeVisible()
+      // Should show card settings content
+      await expect(dialog.getByText('Card Visibility')).toBeVisible()
     })
 
     test('should switch to Danger Zone tab', async ({ page }) => {
@@ -229,214 +231,6 @@ test.describe('Board Settings Dialog (Authenticated)', () => {
         .getByRole('button', { name: /rename/i })
         .first()
       await expect(renameButton).toBeDisabled()
-    })
-  })
-
-  test.describe('Theme Tab', () => {
-    test('should display all 14 theme options', async ({ page }) => {
-      // Open dialog
-      const settingsButton = page.getByRole('button', {
-        name: /board settings/i,
-      })
-      await settingsButton.click()
-
-      const dialog = page.getByRole('dialog')
-      await expect(dialog).toBeVisible({ timeout: 10000 })
-
-      // Go to Theme tab
-      const themeTab = dialog.getByRole('tab', { name: /theme/i })
-      await themeTab.click()
-
-      // Check for light themes (7)
-      await expect(
-        dialog.getByRole('button', { name: /select default theme/i }),
-      ).toBeVisible()
-      await expect(
-        dialog.getByRole('button', { name: /select sunrise theme/i }),
-      ).toBeVisible()
-      await expect(
-        dialog.getByRole('button', { name: /select sandstone theme/i }),
-      ).toBeVisible()
-      await expect(
-        dialog.getByRole('button', { name: /select mint theme/i }),
-      ).toBeVisible()
-      await expect(
-        dialog.getByRole('button', { name: /select sky theme/i }),
-      ).toBeVisible()
-      await expect(
-        dialog.getByRole('button', { name: /select lavender theme/i }),
-      ).toBeVisible()
-      await expect(
-        dialog.getByRole('button', { name: /select rose theme/i }),
-      ).toBeVisible()
-
-      // Check for dark themes (7)
-      await expect(
-        dialog.getByRole('button', { name: /select dark theme/i }),
-      ).toBeVisible()
-      await expect(
-        dialog.getByRole('button', { name: /select midnight theme/i }),
-      ).toBeVisible()
-      await expect(
-        dialog.getByRole('button', { name: /select graphite theme/i }),
-      ).toBeVisible()
-      await expect(
-        dialog.getByRole('button', { name: /select forest theme/i }),
-      ).toBeVisible()
-      await expect(
-        dialog.getByRole('button', { name: /select ocean theme/i }),
-      ).toBeVisible()
-      await expect(
-        dialog.getByRole('button', { name: /select plum theme/i }),
-      ).toBeVisible()
-      await expect(
-        dialog.getByRole('button', { name: /select rust theme/i }),
-      ).toBeVisible()
-    })
-
-    test('should allow selecting a theme', async ({ page }) => {
-      // Open dialog
-      const settingsButton = page.getByRole('button', {
-        name: /board settings/i,
-      })
-      await settingsButton.click()
-
-      const dialog = page.getByRole('dialog')
-      await expect(dialog).toBeVisible({ timeout: 10000 })
-
-      // Go to Theme tab
-      const themeTab = dialog.getByRole('tab', { name: /theme/i })
-      await themeTab.click()
-
-      // Select midnight theme
-      const midnightButton = dialog.getByRole('button', {
-        name: /select midnight theme/i,
-      })
-      await midnightButton.click()
-
-      // Should be marked as pressed
-      await expect(midnightButton).toHaveAttribute('aria-pressed', 'true')
-    })
-
-    test('should show Save Theme button', async ({ page }) => {
-      // Open dialog
-      const settingsButton = page.getByRole('button', {
-        name: /board settings/i,
-      })
-      await settingsButton.click()
-
-      const dialog = page.getByRole('dialog')
-      await expect(dialog).toBeVisible({ timeout: 10000 })
-
-      // Go to Theme tab
-      const themeTab = dialog.getByRole('tab', { name: /theme/i })
-      await themeTab.click()
-
-      // Save Theme button should be visible
-      const saveButton = dialog.getByRole('button', { name: /save theme/i })
-      await expect(saveButton).toBeVisible()
-    })
-
-    test('should save "default" theme without error (regression test)', async ({
-      page,
-    }) => {
-      // Open dialog
-      const settingsButton = page.getByRole('button', {
-        name: /board settings/i,
-      })
-      await settingsButton.click()
-
-      const dialog = page.getByRole('dialog')
-      await expect(dialog).toBeVisible({ timeout: 10000 })
-
-      // Go to Theme tab
-      const themeTab = dialog.getByRole('tab', { name: /theme/i })
-      await themeTab.click()
-
-      // Select default theme
-      const defaultButton = dialog.getByRole('button', {
-        name: /select default theme/i,
-      })
-      await defaultButton.click()
-      await expect(defaultButton).toHaveAttribute('aria-pressed', 'true')
-
-      // Save theme
-      const saveButton = dialog.getByRole('button', { name: /save theme/i })
-      await saveButton.click()
-
-      // Wait for action to complete
-      await page.waitForTimeout(1000)
-
-      // The key regression test: should NOT show "Invalid theme" error
-      // This was the bug - 'default' was rejected as invalid
-      await expect(page.getByText(/invalid theme/i)).not.toBeVisible()
-    })
-
-    test('should save "dark" theme without error (regression test)', async ({
-      page,
-    }) => {
-      // Open dialog
-      const settingsButton = page.getByRole('button', {
-        name: /board settings/i,
-      })
-      await settingsButton.click()
-
-      const dialog = page.getByRole('dialog')
-      await expect(dialog).toBeVisible({ timeout: 10000 })
-
-      // Go to Theme tab
-      const themeTab = dialog.getByRole('tab', { name: /theme/i })
-      await themeTab.click()
-
-      // Select dark theme
-      const darkButton = dialog.getByRole('button', {
-        name: /select dark theme/i,
-      })
-      await darkButton.click()
-      await expect(darkButton).toHaveAttribute('aria-pressed', 'true')
-
-      // Save theme
-      const saveButton = dialog.getByRole('button', { name: /save theme/i })
-      await saveButton.click()
-
-      // Wait for action to complete
-      await page.waitForTimeout(1000)
-
-      // The key regression test: should NOT show "Invalid theme" error
-      // This was the bug - 'dark' was rejected as invalid
-      await expect(page.getByText(/invalid theme/i)).not.toBeVisible()
-    })
-
-    test('should save "midnight" theme without error', async ({ page }) => {
-      // Open dialog
-      const settingsButton = page.getByRole('button', {
-        name: /board settings/i,
-      })
-      await settingsButton.click()
-
-      const dialog = page.getByRole('dialog')
-      await expect(dialog).toBeVisible({ timeout: 10000 })
-
-      // Go to Theme tab
-      const themeTab = dialog.getByRole('tab', { name: /theme/i })
-      await themeTab.click()
-
-      // Select midnight theme
-      const midnightButton = dialog.getByRole('button', {
-        name: /select midnight theme/i,
-      })
-      await midnightButton.click()
-      await expect(midnightButton).toHaveAttribute('aria-pressed', 'true')
-
-      // Save theme
-      const saveButton = dialog.getByRole('button', { name: /save theme/i })
-      await saveButton.click()
-
-      // Wait for action to complete
-      await page.waitForTimeout(1000)
-
-      // Should NOT show error toast
-      await expect(page.getByText(/invalid theme/i)).not.toBeVisible()
     })
   })
 
@@ -546,12 +340,12 @@ test.describe('Board Settings Dialog (Authenticated)', () => {
       // General should be selected
       await expect(generalTab).toHaveAttribute('aria-selected', 'true')
 
-      // Click on Theme tab
-      const themeTab = dialog.getByRole('tab', { name: /theme/i })
-      await themeTab.click()
+      // Click on Danger Zone tab
+      const dangerTab = dialog.getByRole('tab', { name: /danger zone/i })
+      await dangerTab.click()
 
-      // Theme should now be selected
-      await expect(themeTab).toHaveAttribute('aria-selected', 'true')
+      // Danger Zone should now be selected
+      await expect(dangerTab).toHaveAttribute('aria-selected', 'true')
     })
   })
 })

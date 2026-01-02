@@ -17,6 +17,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import React, { useState, memo, useMemo } from 'react'
 
+import { ThemeToggle } from '@/components/ThemeToggle'
 import { Button } from '@/components/ui/button'
 import { signOut } from '@/lib/actions/auth'
 import { openShortcutsHelp } from '@/lib/events'
@@ -160,6 +161,9 @@ export const Sidebar = memo(function Sidebar({
           <Keyboard className="h-4 w-4" />
           <span>Shortcuts</span>
         </button>
+
+        {/* Theme Toggle */}
+        <ThemeToggle />
       </nav>
 
       {/* Profile & Sign out */}
