@@ -35,7 +35,10 @@ export default defineConfig(({ mode }) => ({
     // Shared configuration
     globals: true,
     coverage: {
-      provider: 'istanbul', // Istanbul supports browser mode (Storybook tests)
+      // V8 is stable for CI, Istanbul supports browser mode (Storybook) but has CI issues
+      // Use VITEST_COVERAGE_PROVIDER=istanbul locally to include Storybook coverage
+      provider:
+        (process.env.VITEST_COVERAGE_PROVIDER as 'v8' | 'istanbul') || 'v8',
       reporter: ['text', 'json', 'lcov', 'html'],
       exclude: [
         'node_modules/',
