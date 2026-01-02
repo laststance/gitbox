@@ -271,11 +271,9 @@ pnpm e2e --headed
 - `no-use-reducer` - Use Redux instead
 - `no-set-state-prop-drilling` - Avoid passing setState as props
 
-### Monorepo
+### Redux Storage Middleware
 
-```
-packages/redux-storage-middleware/  # Local package
-```
+Uses `@laststance/redux-storage-middleware` (npm) for localStorage persistence of Redux state.
 
 ### 14 Theme System
 
