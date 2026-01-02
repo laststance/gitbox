@@ -222,6 +222,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
     if (settingsState.success) {
       toast.success('Card display settings updated')
       onCardDisplayChangeRef.current?.(cardDisplay)
+      onCloseRef.current() // Close modal after successful save
     } else if (settingsState.error) {
       toast.error('Failed to update settings', {
         description: settingsState.error,
