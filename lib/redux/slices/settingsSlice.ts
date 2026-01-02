@@ -9,7 +9,7 @@
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice } from '@reduxjs/toolkit'
 
-import type { Theme } from '@/lib/supabase/types'
+import type { ThemeType } from '@/lib/constants/themes'
 
 interface TypographySettings {
   baseSize: number // 14-18px
@@ -17,7 +17,7 @@ interface TypographySettings {
 }
 
 interface SettingsState {
-  theme: Theme
+  theme: ThemeType
   typography: TypographySettings
   compactMode: boolean
   /** Display stars, language, and last updated on cards */
@@ -27,7 +27,7 @@ interface SettingsState {
 }
 
 const initialState: SettingsState = {
-  theme: 'sunrise',
+  theme: 'system',
   typography: {
     baseSize: 16,
     scale: 1.25,
@@ -41,7 +41,7 @@ export const settingsSlice = createSlice({
   name: 'settings',
   initialState,
   reducers: {
-    setTheme: (state, action: PayloadAction<Theme>) => {
+    setTheme: (state, action: PayloadAction<ThemeType>) => {
       state.theme = action.payload
     },
     setTypography: (state, action: PayloadAction<TypographySettings>) => {
@@ -72,8 +72,13 @@ export const {
 export default settingsSlice.reducer
 
 // Selectors
-export const selectTheme = (state: { settings: SettingsState }) =>
-  state.settings.theme
+/**
+ * Selector for theme with safe default during hydration
+ * @param state - Redux state with settings slice
+ * @returns Theme value, defaults to 'system' if state is hydrating
+ */
+export const selectTheme = (state: { settings?: SettingsState }) =>
+  state.settings?.theme ?? 'system'
 export const selectTypography = (state: { settings: SettingsState }) =>
   state.settings.typography
 export const selectCompactMode = (state: { settings: SettingsState }) =>

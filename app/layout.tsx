@@ -30,6 +30,7 @@ import { Toaster } from 'sonner'
 
 import { CommandPalette } from '@/components/CommandPalette/CommandPalette'
 import { ShortcutsHelp } from '@/components/ShortcutsHelp'
+import { ThemeApplicator } from '@/components/ThemeApplicator'
 import { Providers } from '@/lib/redux/providers'
 import { isMSWEnabled } from '@/lib/utils/isMSWEnabled'
 
@@ -61,6 +62,7 @@ export default function RootLayout({
       </head>
       <body>
         <Providers>
+          <ThemeApplicator />
           <MSWProvider>
             {children}
             <ShortcutsHelp />
