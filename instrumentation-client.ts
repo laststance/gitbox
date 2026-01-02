@@ -66,6 +66,12 @@ Sentry.init({
   // Enable sending user PII (Personally Identifiable Information)
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
   sendDefaultPii: true,
+  ignoreErrors: [
+    'Hydration failed',
+    /server rendered HTML didn't match/,
+    /Text content does not match/,
+    /There was an error while hydrating/,
+  ],
 })
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart
