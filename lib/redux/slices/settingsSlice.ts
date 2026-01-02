@@ -24,6 +24,8 @@ interface SettingsState {
   showCardMetadata: boolean
   /** Organization filter for AddRepositoryCombobox ('all' or organization login name) */
   organizationFilter: string
+  /** Whether the sidebar is collapsed to icon-only view */
+  sidebarCollapsed: boolean
 }
 
 const initialState: SettingsState = {
@@ -35,6 +37,7 @@ const initialState: SettingsState = {
   compactMode: false,
   showCardMetadata: true,
   organizationFilter: 'all',
+  sidebarCollapsed: false,
 }
 
 export const settingsSlice = createSlice({
@@ -56,6 +59,12 @@ export const settingsSlice = createSlice({
     setOrganizationFilter: (state, action: PayloadAction<string>) => {
       state.organizationFilter = action.payload
     },
+    setSidebarCollapsed: (state, action: PayloadAction<boolean>) => {
+      state.sidebarCollapsed = action.payload
+    },
+    toggleSidebarCollapsed: (state) => {
+      state.sidebarCollapsed = !state.sidebarCollapsed
+    },
     resetSettings: () => initialState,
   },
 })
@@ -66,6 +75,8 @@ export const {
   setCompactMode,
   setShowCardMetadata,
   setOrganizationFilter,
+  setSidebarCollapsed,
+  toggleSidebarCollapsed,
   resetSettings,
 } = settingsSlice.actions
 
@@ -92,3 +103,11 @@ export const selectShowCardMetadata = (state: { settings: SettingsState }) =>
  */
 export const selectOrganizationFilter = (state: { settings?: SettingsState }) =>
   state.settings?.organizationFilter ?? 'all'
+
+/**
+ * Selector for sidebar collapsed state with safe default
+ * @param state - Redux state with settings slice
+ * @returns Sidebar collapsed value, defaults to false (expanded) if state is hydrating
+ */
+export const selectSidebarCollapsed = (state: { settings?: SettingsState }) =>
+  state.settings?.sidebarCollapsed ?? false
