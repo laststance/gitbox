@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => ({
     // Shared configuration
     globals: true,
     coverage: {
-      provider: 'v8',
+      provider: 'istanbul', // Istanbul supports browser mode (Storybook tests)
       reporter: ['text', 'json', 'lcov', 'html'],
       exclude: [
         'node_modules/',
