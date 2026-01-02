@@ -3,9 +3,11 @@
  *
  * Application-wide root layout
  * - Redux Provider
- * - Theme application
  * - Global keyboard shortcuts (ShortcutsHelp)
  * - MSW initialization (server-side for SSR, client-side via MSWProvider)
+ *
+ * Note: Theme is applied in authenticated route layouts only.
+ * Landing page uses default shadcn/ui light theme.
  */
 
 import '@/styles/globals.css'
@@ -30,7 +32,6 @@ import { Toaster } from 'sonner'
 
 import { CommandPalette } from '@/components/CommandPalette/CommandPalette'
 import { ShortcutsHelp } from '@/components/ShortcutsHelp'
-import { ThemeApplicator } from '@/components/ThemeApplicator'
 import { Providers } from '@/lib/redux/providers'
 import { isMSWEnabled } from '@/lib/utils/isMSWEnabled'
 
@@ -62,7 +63,6 @@ export default function RootLayout({
       </head>
       <body>
         <Providers>
-          <ThemeApplicator />
           <MSWProvider>
             {children}
             <ShortcutsHelp />

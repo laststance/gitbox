@@ -2,6 +2,7 @@
  * Board Layout Client Component
  *
  * Client wrapper for Sidebar and content
+ * Applies theme for authenticated users
  */
 
 'use client'
@@ -9,6 +10,7 @@
 import React, { memo } from 'react'
 
 import { Sidebar } from '@/components/Sidebar'
+import { ThemeApplicator } from '@/components/ThemeApplicator'
 
 interface BoardLayoutClientProps {
   children: React.ReactNode
@@ -22,13 +24,16 @@ export const BoardLayoutClient = memo(function BoardLayoutClient({
   userAvatar,
 }: BoardLayoutClientProps) {
   return (
-    <div className="flex h-screen">
-      {/* Sidebar */}
-      <Sidebar userName={userName} userAvatar={userAvatar} />
+    <>
+      <ThemeApplicator />
+      <div className="flex h-screen">
+        {/* Sidebar */}
+        <Sidebar userName={userName} userAvatar={userAvatar} />
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto">{children}</main>
-    </div>
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto">{children}</main>
+      </div>
+    </>
   )
 })
 
