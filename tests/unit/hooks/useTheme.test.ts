@@ -53,11 +53,19 @@ const createWrapper = (store: ReturnType<typeof createTestStore>) => {
   }
 }
 
+// Store original matchMedia to restore later
+let originalMatchMedia: typeof window.matchMedia | undefined
+
 describe('useTheme', () => {
   beforeEach(() => {
-    // Mock matchMedia for system theme detection
+    // Guard against non-browser environment
+    if (typeof window === 'undefined') return
+
+    // Store original and mock matchMedia for system theme detection
+    originalMatchMedia = window.matchMedia
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
+      configurable: true,
       value: vi.fn().mockImplementation((query: string) => ({
         matches: query.includes('dark'),
         media: query,
@@ -76,6 +84,18 @@ describe('useTheme', () => {
   })
 
   afterEach(() => {
+    // Guard against non-browser environment
+    if (typeof window === 'undefined') return
+
+    // Restore original matchMedia
+    if (originalMatchMedia) {
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        configurable: true,
+        value: originalMatchMedia,
+      })
+    }
+
     // Restore document state
     document.documentElement.removeAttribute('data-theme')
     document.documentElement.classList.remove('dark')
@@ -204,6 +224,7 @@ describe('useTheme', () => {
       // Mock system dark preference
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
+        configurable: true,
         value: vi.fn().mockImplementation((query: string) => ({
           matches: query.includes('dark'),
           media: query,
@@ -226,6 +247,7 @@ describe('useTheme', () => {
       // Mock system light preference
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
+        configurable: true,
         value: vi.fn().mockImplementation(() => ({
           matches: false,
           media: '',
