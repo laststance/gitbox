@@ -113,7 +113,7 @@ color.success / warning / danger
 - **カード**：repo名、一言メモ、任意メタ（Stars/Updated/Visibility/Language/Topics等）
 - **⋯（Overflow menu）**：**Project Info**モーダル起動
 - **Favorites**: ボードをお気に入りに追加（星マーク、サイドバーに優先表示）
-- **Board Settings**: ボード名変更、テーマ上書き（ボード固有テーマ）、カード表示設定
+- **Board Settings**: ボード名変更、カード表示設定（テーマはアプリ全体で管理）
 
 #### 受け入れ基準
 
@@ -321,6 +321,8 @@ Restore to Board     // Maintenanceのみ表示
 │ ───────────────────────────── │
 │ Settings                       │
 │ Shortcuts                      │
+│ Theme: [Sunrise ▾]             │  ← グローバルテーマ選択（14テーマ + System）
+│ ───────────────────────────── │
 │ Account                        │  ← プロフィール、統計、削除
 │ Sign out                       │
 └───────────────────────────────┘
@@ -409,6 +411,12 @@ core-cli          "Security"           2025-07-01      87     [⋯]
 │  Base size: [16px] (12-20px range)            │
 └───────────────────────────────────────────────┘
 ```
+
+**Theme**:
+
+- **アクセス方法**: Settings画面またはSidebarのThemeドロップダウンから変更可能
+- **スコープ**: アプリ全体に適用（ボード固有設定はなし）
+- **14テーマ + System**: Light 7種 + Dark 7種 + OS設定追従
 
 **Display Settings**:
 
@@ -571,16 +579,22 @@ Maintenance {
 ```typescript
 // Settings Slice (永続化: localStorage)
 Settings {
-  theme: ThemeName,           // 14テーマ + system
-  typography: { baseFontSize: number },
+  theme: ThemeName,              // 14テーマ + system（グローバル設定）
+  typography: { baseSize, scale },
   compactMode: boolean,
   showCardMetadata: boolean,
+  organizationFilter: string,    // AddRepositoryCombobox のフィルター
 }
 
-// Board Slice (永続化: localStorage)
+// Board Slice (セッション)
 Board {
-  lastOrganizationFilter: string | null,
-  boardSettings: Record<boardId, { theme?: ThemeName }>,
+  activeBoard: Board | null,
+  statusLists: StatusListDomain[],
+  repoCards: RepoCardForRedux[],
+  loading: boolean,
+  error: string | null,
+  lastDragOperation: DragOperation | null,  // Undo用
+  undoHistory: DragOperation[],             // 最大10件
 }
 
 // Draft Slice (永続化: localStorage)
