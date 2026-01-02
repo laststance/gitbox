@@ -1,7 +1,3 @@
-packages:
-  - packages/*
-  - packages/*/examples/*
-
 onlyBuiltDependencies:
   - '@sentry/cli'
   - esbuild

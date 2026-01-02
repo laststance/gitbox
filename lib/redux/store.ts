@@ -16,7 +16,7 @@ import { combineReducers, configureStore } from '@reduxjs/toolkit'
 import type { TypedUseSelectorHook } from 'react-redux'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { createStorageMiddleware } from '@gitbox/redux-storage-middleware'
+import { createStorageMiddleware } from '@laststance/redux-storage-middleware'
 import authReducer from './slices/authSlice'
 import boardReducer from './slices/boardSlice'
 import draftReducer from './slices/draftSlice'
