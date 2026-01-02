@@ -4,3 +4,6 @@ onlyBuiltDependencies:
   - msw
   - sharp
   - unrs-resolver
+
+patchedDependencies:
+  '@laststance/redux-storage-middleware@0.2.0': patches/@laststance__redux-storage-middleware@0.2.0.patch

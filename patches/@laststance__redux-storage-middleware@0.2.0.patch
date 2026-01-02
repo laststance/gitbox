@@ -1,0 +1,118 @@
+diff --git a/dist/index.js b/dist/index.js
+index 4debb66ac34dd0fef8a0405dc02b3f8a130ccfa5..320b5fa5a6727b14ed81cce55dd522472bcabfd8 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -34,17 +34,17 @@
+ // =============================================================================
+ // Core
+ // =============================================================================
+-export { createStorageMiddleware, loadStateFromStorage, clearStorageState, shallowMerge, deepMerge, ACTION_HYDRATE_START, ACTION_HYDRATE_COMPLETE, ACTION_HYDRATE_ERROR, } from './storageMiddleware';
++export { createStorageMiddleware, loadStateFromStorage, clearStorageState, shallowMerge, deepMerge, ACTION_HYDRATE_START, ACTION_HYDRATE_COMPLETE, ACTION_HYDRATE_ERROR, } from './storageMiddleware.js';
+ // =============================================================================
+ // Storage
+ // =============================================================================
+-export { createSafeLocalStorage, createSafeSessionStorage, createNoopStorage, createMemoryStorage, toAsyncStorage, isValidStorage, getStorageSize, getRemainingStorageQuota, } from './storage';
++export { createSafeLocalStorage, createSafeSessionStorage, createNoopStorage, createMemoryStorage, toAsyncStorage, isValidStorage, getStorageSize, getRemainingStorageQuota, } from './storage.js';
+ // =============================================================================
+ // Serializers
+ // =============================================================================
+-export { createJsonSerializer, createEnhancedJsonSerializer, defaultJsonSerializer, dateReplacer, dateReviver, collectionReplacer, collectionReviver, createSuperJsonSerializer, initSuperJsonSerializer, isSuperJsonLoaded, createCompressedSerializer, initCompressedSerializer, isLZStringLoaded, getCompressionRatio, } from './serializers';
++export { createJsonSerializer, createEnhancedJsonSerializer, defaultJsonSerializer, dateReplacer, dateReviver, collectionReplacer, collectionReviver, createSuperJsonSerializer, initSuperJsonSerializer, isSuperJsonLoaded, createCompressedSerializer, initCompressedSerializer, isLZStringLoaded, getCompressionRatio, } from './serializers/index.js';
+ // =============================================================================
+ // Utilities
+ // =============================================================================
+-export { isServer, isBrowser, isStorageAvailable, isSessionStorageAvailable, debounce, debounceLeading, throttle, scheduleIdleCallback, } from './utils';
++export { isServer, isBrowser, isStorageAvailable, isSessionStorageAvailable, debounce, debounceLeading, throttle, scheduleIdleCallback, } from './utils/index.js';
+ //# sourceMappingURL=index.js.map
+\ No newline at end of file
+diff --git a/dist/serializers/compressed.js b/dist/serializers/compressed.js
+index 73785bff230c2527d6095316a9f709f9a8417b38..57eb8147865de588df1253b4598a125d08bd04c6 100644
+--- a/dist/serializers/compressed.js
++++ b/dist/serializers/compressed.js
+@@ -7,7 +7,7 @@
+  * Note: This serializer requires the lz-string package
+  * pnpm add lz-string
+  */
+-import { createModuleLoader } from '../utils/moduleLoader';
++import { createModuleLoader } from '../utils/moduleLoader.js';
+ /**
+  * LZ-String module loader
+  */
+diff --git a/dist/serializers/index.js b/dist/serializers/index.js
+index ef7ed2d8e50304de290eda3f69dba6c2b4094aed..9cb2f0477c63eb7386c2cef1d7e09087b6d5fe50 100644
+--- a/dist/serializers/index.js
++++ b/dist/serializers/index.js
+@@ -3,7 +3,7 @@
+  *
+  * Available serializers for redux-storage-middleware
+  */
+-export { createJsonSerializer, createEnhancedJsonSerializer, defaultJsonSerializer, dateReplacer, dateReviver, collectionReplacer, collectionReviver, } from './json';
+-export { createSuperJsonSerializer, initSuperJsonSerializer, isSuperJsonLoaded, } from './superjson';
+-export { createCompressedSerializer, initCompressedSerializer, isLZStringLoaded, getCompressionRatio, } from './compressed';
++export { createJsonSerializer, createEnhancedJsonSerializer, defaultJsonSerializer, dateReplacer, dateReviver, collectionReplacer, collectionReviver, } from './json.js';
++export { createSuperJsonSerializer, initSuperJsonSerializer, isSuperJsonLoaded, } from './superjson.js';
++export { createCompressedSerializer, initCompressedSerializer, isLZStringLoaded, getCompressionRatio, } from './compressed.js';
+ //# sourceMappingURL=index.js.map
+\ No newline at end of file
+diff --git a/dist/serializers/superjson.js b/dist/serializers/superjson.js
+index 6111ab53b89f14b7211ddb75d3f897a48e754e41..fc3bcb84053f1a680cef9e703d501120dd7bf5a5 100644
+--- a/dist/serializers/superjson.js
++++ b/dist/serializers/superjson.js
+@@ -7,7 +7,7 @@
+  * Note: This serializer requires the superjson package
+  * pnpm add superjson
+  */
+-import { createModuleLoader } from '../utils/moduleLoader';
++import { createModuleLoader } from '../utils/moduleLoader.js';
+ /**
+  * SuperJSON module loader
+  */
+diff --git a/dist/storage.js b/dist/storage.js
+index b4b825c3926e072b5c74092c3f95f4202970c5af..9958954ce77e3bb0a075b4eda9ac4221fae51451 100644
+--- a/dist/storage.js
++++ b/dist/storage.js
+@@ -4,7 +4,7 @@
+  * Storage layer providing safe access to localStorage
+  * Prevents crashes in SSR environments and supports custom storage backends
+  */
+-import { isStorageAvailable, isSessionStorageAvailable } from './utils/isServer';
++import { isStorageAvailable, isSessionStorageAvailable } from './utils/isServer.js';
+ // =============================================================================
+ // Constants
+ // =============================================================================
+diff --git a/dist/storageMiddleware.js b/dist/storageMiddleware.js
+index c42a9c585b9427ccd2e353bfe526f69d46f0e984..658721cc9fd909ecbec5bd53a9e4eef34f6567f1 100644
+--- a/dist/storageMiddleware.js
++++ b/dist/storageMiddleware.js
+@@ -4,11 +4,11 @@
+  * Custom middleware for synchronizing Redux state with LocalStorage
+  * SSR-safe and robust implementation based on patterns from jotai/zustand
+  */
+-import { defaultJsonSerializer } from './serializers/json';
+-import { createSafeLocalStorage } from './storage';
+-import { debounce } from './utils/debounce';
+-import { isServer, isStorageAvailable } from './utils/isServer';
+-import { throttle, scheduleIdleCallback } from './utils/throttle';
++import { defaultJsonSerializer } from './serializers/json.js';
++import { createSafeLocalStorage } from './storage.js';
++import { debounce } from './utils/debounce.js';
++import { isServer, isStorageAvailable } from './utils/isServer.js';
++import { throttle, scheduleIdleCallback } from './utils/throttle.js';
+ // =============================================================================
+ // Constants
+ // =============================================================================
+diff --git a/dist/utils/index.js b/dist/utils/index.js
+index 00aaa2ebe7a501f32685b4240ab959e7ab48fcb4..5015ac2fae984ebab50d44694a4854b66d727f6e 100644
+--- a/dist/utils/index.js
++++ b/dist/utils/index.js
+@@ -3,7 +3,7 @@
+  *
+  * Export utility functions used by redux-storage-middleware
+  */
+-export { isServer, isBrowser, isStorageAvailable, isSessionStorageAvailable, } from './isServer';
+-export { debounce, debounceLeading } from './debounce';
+-export { throttle, scheduleIdleCallback } from './throttle';
++export { isServer, isBrowser, isStorageAvailable, isSessionStorageAvailable, } from './isServer.js';
++export { debounce, debounceLeading } from './debounce.js';
++export { throttle, scheduleIdleCallback } from './throttle.js';
+ //# sourceMappingURL=index.js.map

@@ -23,10 +23,7 @@
       "@/components/*": ["./components/*"],
       "@/lib/*": ["./lib/*"],
       "@/styles/*": ["./styles/*"],
-      "@/app/*": ["./app/*"],
-      "@gitbox/redux-storage-middleware": [
-        "./packages/redux-storage-middleware/src"
-      ]
+      "@/app/*": ["./app/*"]
     }
   },
   "include": [
@@ -36,9 +33,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "e2e",
-    "packages/redux-storage-middleware/examples/**"
-  ]
+  "exclude": ["node_modules", "e2e"]
 }

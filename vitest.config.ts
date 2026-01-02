@@ -98,11 +98,6 @@ export default defineConfig(({ mode }) => ({
       '@/components': path.resolve(__dirname, './components'),
       '@/app': path.resolve(__dirname, './app'),
       '@/styles': path.resolve(__dirname, './styles'),
-      // Monorepo package alias - point to source for CI compatibility
-      '@gitbox/redux-storage-middleware': path.resolve(
-        __dirname,
-        './packages/redux-storage-middleware/src/index.ts',
-      ),
     },
   },
 }))

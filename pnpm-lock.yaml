@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@laststance/redux-storage-middleware@0.2.0':
+    hash: 3e61789ae441e77a6bb58ada872728aa23873cccc1eee4bab289921f9b819c62
+    path: patches/@laststance__redux-storage-middleware@0.2.0.patch
+
 importers:
 
   .:
@@ -31,7 +36,7 @@ importers:
         version: 5.2.2(react-hook-form@7.69.0(react@19.2.3))
       '@laststance/redux-storage-middleware':
         specifier: ^0.2.0
-        version: 0.2.0(@reduxjs/toolkit@2.11.2(react-redux@9.2.0(@types/react@19.2.7)(react@19.2.3)(redux@5.0.1))(react@19.2.3))(react-redux@9.2.0(@types/react@19.2.7)(react@19.2.3)(redux@5.0.1))
+        version: 0.2.0(patch_hash=3e61789ae441e77a6bb58ada872728aa23873cccc1eee4bab289921f9b819c62)(@reduxjs/toolkit@2.11.2(react-redux@9.2.0(@types/react@19.2.7)(react@19.2.3)(redux@5.0.1))(react@19.2.3))(react-redux@9.2.0(@types/react@19.2.7)(react@19.2.3)(redux@5.0.1))
       '@platejs/ai':
         specifier: ^52.0.16
         version: 52.0.16(platejs@52.0.15(@types/react@19.2.7)(immer@11.1.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(scheduler@0.27.0)(use-sync-external-store@1.6.0(react@19.2.3)))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
@@ -7670,7 +7675,7 @@ snapshots:
     dependencies:
       eslint: 9.39.2(jiti@2.6.1)
 
-  '@laststance/redux-storage-middleware@0.2.0(@reduxjs/toolkit@2.11.2(react-redux@9.2.0(@types/react@19.2.7)(react@19.2.3)(redux@5.0.1))(react@19.2.3))(react-redux@9.2.0(@types/react@19.2.7)(react@19.2.3)(redux@5.0.1))':
+  '@laststance/redux-storage-middleware@0.2.0(patch_hash=3e61789ae441e77a6bb58ada872728aa23873cccc1eee4bab289921f9b819c62)(@reduxjs/toolkit@2.11.2(react-redux@9.2.0(@types/react@19.2.7)(react@19.2.3)(redux@5.0.1))(react@19.2.3))(react-redux@9.2.0(@types/react@19.2.7)(react@19.2.3)(redux@5.0.1))':
     dependencies:
       '@reduxjs/toolkit': 2.11.2(react-redux@9.2.0(@types/react@19.2.7)(react@19.2.3)(redux@5.0.1))(react@19.2.3)
       react-redux: 9.2.0(@types/react@19.2.7)(react@19.2.3)(redux@5.0.1)
