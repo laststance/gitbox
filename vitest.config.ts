@@ -50,6 +50,22 @@ export default defineConfig(({ mode }) => ({
         // Supabase-related files (DB communication - tested via integration tests)
         'lib/actions/**',
         'lib/supabase/**',
+        // CSS files (not testable via code coverage)
+        'styles/**',
+        // MSW mock handlers (test utilities, not production code)
+        'mocks/**',
+        // SVG icon definitions (no logic to test)
+        'components/ui/table-icons.tsx',
+        // App router pages (Server Components - tested via E2E)
+        'app/**/page.tsx',
+        'app/**/layout.tsx',
+        'app/**/route.ts',
+        'app/**/error.tsx',
+        'app/**/loading.tsx',
+        // MSW provider (test utility)
+        'app/msw-provider.tsx',
+        // Next.js proxy/middleware (tested via E2E)
+        'proxy.ts',
       ],
     },
     // Two separate test projects: unit tests (happy-dom) and Storybook (browser)
