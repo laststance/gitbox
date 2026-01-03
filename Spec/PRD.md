@@ -256,7 +256,32 @@ interface BoardSettings {
 - インライン編集で即時保存
 - 空の場合は「+ Add comment」プレースホルダー表示
 
-### 3.7 Account（アカウント管理）
+### 3.7 Sidebar Collapse（サイドバー折りたたみ）
+
+#### 機能仕様
+
+- **Toggle Button**: サイドバー下部のボタンで展開/折りたたみを切り替え
+- **Expanded State**: 幅256px（w-64）、フルテキスト表示
+- **Collapsed State**: 幅64px（w-16）、アイコンのみ表示
+- **Transition Animation**: 300ms ease-out でスムーズな幅変化
+- **Tooltips**: 折りたたみ時、各ナビゲーション項目にホバーでTooltip表示（side="right"）
+- **State Persistence**: Redux Storage Middleware経由でlocalStorageに永続化
+
+#### 技術仕様
+
+- **useSidebar Hook**: hydration safetyのためmounted state管理
+- **CSS**: `transition-[width] duration-300 ease-out`
+- **Responsive**: デスクトップ専用（モバイルは別レイアウト）
+
+#### 受け入れ基準
+
+- トグルボタンクリックで即座に状態変化
+- アニメーションがスムーズ（60fps）
+- 折りたたみ時もすべてのナビゲーションが機能
+- ページリロード後も状態が維持
+- 折りたたみ時のTooltipが正しく表示
+
+### 3.8 Account（アカウント管理）
 
 #### 機能仕様
 
@@ -306,7 +331,9 @@ Restore to Board     // Maintenanceのみ表示
 
 **重要** UIは全て以下のワイヤーフレームから[Magic MCP](https://github.com/21st-dev/magic-mcp)で生成する
 
-### 5.1 Sidebar（全画面共通）
+### 5.1 Sidebar（全画面共通・折りたたみ対応）
+
+#### Expanded State（展開時: 256px / w-64）
 
 ```
 ┌───────────────────────────────┐
@@ -325,8 +352,49 @@ Restore to Board     // Maintenanceのみ表示
 │ ───────────────────────────── │
 │ Account                        │  ← プロフィール、統計、削除
 │ Sign out                       │
+│ ───────────────────────────── │
+│ [« Collapse]                   │  ← 折りたたみトグルボタン
 └───────────────────────────────┘
 ```
+
+#### Collapsed State（折りたたみ時: 64px / w-16）
+
+```
+┌────────┐
+│ [Logo] │
+│ ────── │
+│  [📋]  │  ← Boards（Tooltip: "Boards"）
+│  [⭐]  │  ← Favorites（Tooltip: "Favorites"）
+│  [+]   │  ← New Board（Tooltip: "New Board"）
+│ ────── │
+│  [📦]  │  ← Maintenance（Tooltip: "Maintenance Mode"）
+│ ────── │
+│  [⚙️]  │  ← Settings（Tooltip: "Settings"）
+│  [⌨️]  │  ← Shortcuts（Tooltip: "Shortcuts"）
+│  [🎨]  │  ← Theme（Tooltip: "Theme"）
+│ ────── │
+│  [👤]  │  ← Account（Tooltip: "Account"）
+│  [🚪]  │  ← Sign out（Tooltip: "Sign out"）
+│ ────── │
+│  [»]   │  ← 展開トグルボタン
+└────────┘
+```
+
+#### 仕様詳細
+
+| 項目         | 展開時           | 折りたたみ時       |
+| ------------ | ---------------- | ------------------ |
+| 幅           | 256px (w-64)     | 64px (w-16)        |
+| テキスト     | フル表示         | 非表示             |
+| アイコン     | テキスト左に配置 | 中央配置           |
+| Tooltip      | なし             | ホバー時に右側表示 |
+| トグルボタン | 「« Collapse」   | 「»」アイコン      |
+
+#### アニメーション
+
+- **Transition**: `transition-[width] duration-300 ease-out`
+- **Content**: テキストはopacityフェードで切り替え
+- **Icons**: 位置のスムーズな移動
 
 ### 5.2 Board（Kanban with overflow menus）
 
@@ -584,6 +652,7 @@ Settings {
   compactMode: boolean,
   showCardMetadata: boolean,
   organizationFilter: string,    // AddRepositoryCombobox のフィルター
+  sidebarCollapsed: boolean,     // Sidebar折りたたみ状態（デフォルト: false）
 }
 
 // Board Slice (セッション)
