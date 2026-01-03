@@ -3,23 +3,16 @@
  *
  * Tests for draft notes state management including:
  * - updateDraftNote action
- * - setEditingCardId action
  * - deleteDraftNote action
- * - clearAllDrafts action
- * - All selectors
+ * - selectDraftNote selector
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 import draftSlice, {
   updateDraftNote,
-  setEditingCardId,
   deleteDraftNote,
-  clearAllDrafts,
-  selectDraftNotes,
   selectDraftNote,
-  selectEditingCardId,
-  selectHasDraft,
 } from '@/lib/redux/slices/draftSlice'
 
 describe('draftSlice', () => {
@@ -44,12 +37,10 @@ describe('draftSlice', () => {
 
   interface DraftState {
     notes: Record<string, DraftNote>
-    editingCardId: string | null
   }
 
   const initialState: DraftState = {
     notes: {},
-    editingCardId: null,
   }
 
   describe('updateDraftNote action', () => {
@@ -137,42 +128,6 @@ describe('draftSlice', () => {
     })
   })
 
-  describe('setEditingCardId action', () => {
-    it('should set editing card ID', () => {
-      const action = setEditingCardId('card-123')
-
-      const nextState = draftSlice(initialState, action)
-
-      expect(nextState.editingCardId).toBe('card-123')
-    })
-
-    it('should clear editing card ID with null', () => {
-      const stateWithEditing = {
-        ...initialState,
-        editingCardId: 'card-123',
-      }
-
-      const action = setEditingCardId(null)
-
-      const nextState = draftSlice(stateWithEditing, action)
-
-      expect(nextState.editingCardId).toBeNull()
-    })
-
-    it('should change from one card to another', () => {
-      const stateWithEditing = {
-        ...initialState,
-        editingCardId: 'card-123',
-      }
-
-      const action = setEditingCardId('card-456')
-
-      const nextState = draftSlice(stateWithEditing, action)
-
-      expect(nextState.editingCardId).toBe('card-456')
-    })
-  })
-
   describe('deleteDraftNote action', () => {
     it('should delete a draft note', () => {
       const stateWithDraft = {
@@ -227,71 +182,7 @@ describe('draftSlice', () => {
     })
   })
 
-  describe('clearAllDrafts action', () => {
-    it('should clear all drafts and reset state', () => {
-      const stateWithData = {
-        notes: {
-          'card-1': {
-            cardId: 'card-1',
-            content: 'Content 1',
-            lastModified: mockNow,
-          },
-          'card-2': {
-            cardId: 'card-2',
-            content: 'Content 2',
-            lastModified: mockNow,
-          },
-        },
-        editingCardId: 'card-1',
-      }
-
-      const action = clearAllDrafts()
-
-      const nextState = draftSlice(stateWithData, action)
-
-      expect(nextState.notes).toEqual({})
-      expect(nextState.editingCardId).toBeNull()
-    })
-
-    it('should handle already empty state', () => {
-      const action = clearAllDrafts()
-
-      const nextState = draftSlice(initialState, action)
-
-      expect(nextState).toEqual(initialState)
-    })
-  })
-
   describe('Selectors', () => {
-    describe('selectDraftNotes', () => {
-      it('should return all draft notes', () => {
-        const rootState = {
-          draft: {
-            notes: {
-              'card-1': {
-                cardId: 'card-1',
-                content: 'Content 1',
-                lastModified: mockNow,
-              },
-            },
-            editingCardId: null,
-          },
-        }
-
-        const result = selectDraftNotes(rootState)
-
-        expect(result).toEqual(rootState.draft.notes)
-      })
-
-      it('should return empty object when no drafts', () => {
-        const rootState = { draft: initialState }
-
-        const result = selectDraftNotes(rootState)
-
-        expect(result).toEqual({})
-      })
-    })
-
     describe('selectDraftNote', () => {
       it('should return draft for specific card', () => {
         const draftNote = {
@@ -302,7 +193,6 @@ describe('draftSlice', () => {
         const rootState = {
           draft: {
             notes: { 'card-123': draftNote },
-            editingCardId: null,
           },
         }
 
@@ -319,60 +209,6 @@ describe('draftSlice', () => {
         const result = selector(rootState)
 
         expect(result).toBeNull()
-      })
-    })
-
-    describe('selectEditingCardId', () => {
-      it('should return editing card ID', () => {
-        const rootState = {
-          draft: {
-            notes: {},
-            editingCardId: 'card-123',
-          },
-        }
-
-        const result = selectEditingCardId(rootState)
-
-        expect(result).toBe('card-123')
-      })
-
-      it('should return null when not editing', () => {
-        const rootState = { draft: initialState }
-
-        const result = selectEditingCardId(rootState)
-
-        expect(result).toBeNull()
-      })
-    })
-
-    describe('selectHasDraft', () => {
-      it('should return true when card has draft', () => {
-        const rootState = {
-          draft: {
-            notes: {
-              'card-123': {
-                cardId: 'card-123',
-                content: 'Content',
-                lastModified: mockNow,
-              },
-            },
-            editingCardId: null,
-          },
-        }
-
-        const selector = selectHasDraft('card-123')
-        const result = selector(rootState)
-
-        expect(result).toBe(true)
-      })
-
-      it('should return false when card has no draft', () => {
-        const rootState = { draft: initialState }
-
-        const selector = selectHasDraft('card-123')
-        const result = selector(rootState)
-
-        expect(result).toBe(false)
       })
     })
   })

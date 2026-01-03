@@ -3,13 +3,11 @@
  *
  * Tests for user settings state management including:
  * - setTheme action
- * - setTypography action
  * - setCompactMode action
  * - setShowCardMetadata action
  * - setOrganizationFilter action
  * - setSidebarCollapsed action
  * - toggleSidebarCollapsed action
- * - resetSettings action
  * - All selectors with hydration safety
  */
 
@@ -18,15 +16,12 @@ import { describe, it, expect } from 'vitest'
 import type { ThemeType } from '@/lib/constants/themes'
 import settingsSlice, {
   setTheme,
-  setTypography,
   setCompactMode,
   setShowCardMetadata,
   setOrganizationFilter,
   setSidebarCollapsed,
   toggleSidebarCollapsed,
-  resetSettings,
   selectTheme,
-  selectTypography,
   selectCompactMode,
   selectShowCardMetadata,
   selectOrganizationFilter,
@@ -37,7 +32,6 @@ describe('settingsSlice', () => {
   // Type for settings slice state (matches the slice's internal state)
   interface SettingsState {
     theme: ThemeType
-    typography: { baseSize: number; scale: number }
     compactMode: boolean
     showCardMetadata: boolean
     organizationFilter: string
@@ -46,10 +40,6 @@ describe('settingsSlice', () => {
 
   const initialState: SettingsState = {
     theme: 'system',
-    typography: {
-      baseSize: 16,
-      scale: 1.25,
-    },
     compactMode: false,
     showCardMetadata: true,
     organizationFilter: 'all',
@@ -102,35 +92,6 @@ describe('settingsSlice', () => {
       expect(nextState.theme).toBe('ocean')
       expect(nextState.compactMode).toBe(true)
       expect(nextState.sidebarCollapsed).toBe(true)
-    })
-  })
-
-  describe('setTypography action', () => {
-    it('should set typography settings', () => {
-      const newTypography = { baseSize: 18, scale: 1.3 }
-      const action = setTypography(newTypography)
-
-      const nextState = settingsSlice(initialState, action)
-
-      expect(nextState.typography).toEqual(newTypography)
-    })
-
-    it('should handle minimum values', () => {
-      const minTypography = { baseSize: 14, scale: 1.2 }
-      const action = setTypography(minTypography)
-
-      const nextState = settingsSlice(initialState, action)
-
-      expect(nextState.typography).toEqual(minTypography)
-    })
-
-    it('should handle maximum values', () => {
-      const maxTypography = { baseSize: 18, scale: 1.4 }
-      const action = setTypography(maxTypography)
-
-      const nextState = settingsSlice(initialState, action)
-
-      expect(nextState.typography).toEqual(maxTypography)
     })
   })
 
@@ -253,33 +214,6 @@ describe('settingsSlice', () => {
     })
   })
 
-  describe('resetSettings action', () => {
-    it('should reset all settings to initial values', () => {
-      const modifiedState = {
-        theme: 'midnight' as const,
-        typography: { baseSize: 18, scale: 1.4 },
-        compactMode: true,
-        showCardMetadata: false,
-        organizationFilter: 'laststance',
-        sidebarCollapsed: true,
-      }
-
-      const action = resetSettings()
-
-      const nextState = settingsSlice(modifiedState, action)
-
-      expect(nextState).toEqual(initialState)
-    })
-
-    it('should be idempotent on initial state', () => {
-      const action = resetSettings()
-
-      const nextState = settingsSlice(initialState, action)
-
-      expect(nextState).toEqual(initialState)
-    })
-  })
-
   describe('Selectors', () => {
     describe('selectTheme', () => {
       it('should return theme value', () => {
@@ -299,16 +233,6 @@ describe('settingsSlice', () => {
         const result = selectTheme(rootState)
 
         expect(result).toBe('system')
-      })
-    })
-
-    describe('selectTypography', () => {
-      it('should return typography settings', () => {
-        const rootState = { settings: initialState }
-
-        const result = selectTypography(rootState)
-
-        expect(result).toEqual({ baseSize: 16, scale: 1.25 })
       })
     })
 

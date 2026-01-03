@@ -37,13 +37,10 @@ interface DraftNote {
 interface DraftState {
   /** Map of cardId -> DraftNote */
   notes: Record<string, DraftNote>
-  /** Currently editing card ID (for modal state) */
-  editingCardId: string | null
 }
 
 const initialState: DraftState = {
   notes: {},
-  editingCardId: null,
 }
 
 export const draftSlice = createSlice({
@@ -69,16 +66,6 @@ export const draftSlice = createSlice({
     },
 
     /**
-     * Set the currently editing card ID
-     *
-     * @param state - Current state
-     * @param action - Card ID or null to close
-     */
-    setEditingCardId: (state, action: PayloadAction<string | null>) => {
-      state.editingCardId = action.payload
-    },
-
-    /**
      * Delete a draft note (typically after successful save)
      *
      * @param state - Current state
@@ -87,22 +74,10 @@ export const draftSlice = createSlice({
     deleteDraftNote: (state, action: PayloadAction<string>) => {
       delete state.notes[action.payload]
     },
-
-    /**
-     * Clear all drafts (typically on logout)
-     *
-     * @returns Initial state
-     */
-    clearAllDrafts: () => initialState,
   },
 })
 
-export const {
-  updateDraftNote,
-  setEditingCardId,
-  deleteDraftNote,
-  clearAllDrafts,
-} = draftSlice.actions
+export const { updateDraftNote, deleteDraftNote } = draftSlice.actions
 
 export default draftSlice.reducer
 
@@ -111,14 +86,6 @@ export default draftSlice.reducer
 // ============================================================================
 
 type DraftRootState = { draft: DraftState }
-
-/**
- * Select all draft notes
- *
- * @param state - Root state
- * @returns Record of all drafts
- */
-export const selectDraftNotes = (state: DraftRootState) => state.draft.notes
 
 /**
  * Select draft note for a specific card
@@ -130,21 +97,3 @@ export const selectDraftNotes = (state: DraftRootState) => state.draft.notes
  */
 export const selectDraftNote = (cardId: string) => (state: DraftRootState) =>
   state.draft.notes[cardId] ?? null
-
-/**
- * Select currently editing card ID
- *
- * @param state - Root state
- * @returns Card ID or null
- */
-export const selectEditingCardId = (state: DraftRootState) =>
-  state.draft.editingCardId
-
-/**
- * Check if a card has unsaved draft changes
- *
- * @param cardId - The card ID to check
- * @returns Selector function returning boolean
- */
-export const selectHasDraft = (cardId: string) => (state: DraftRootState) =>
-  cardId in state.draft.notes

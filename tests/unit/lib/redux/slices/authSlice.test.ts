@@ -4,7 +4,6 @@
  * T028.4 (Part 1/3): Unit test for authSlice
  * - Actions tests
  * - Reducers tests
- * - Selectors tests
  */
 
 import type { User, Session } from '@supabase/supabase-js'
@@ -14,13 +13,6 @@ import authReducer, {
   setUser,
   setSession,
   setLoading,
-  setError,
-  clearAuth,
-  selectUser,
-  selectSession,
-  selectAuthLoading,
-  selectAuthError,
-  selectIsAuthenticated,
 } from '@/lib/redux/slices/authSlice'
 
 const mockUser: User = {
@@ -89,78 +81,6 @@ describe('Auth Slice (lib/redux/slices/authSlice.ts)', () => {
 
       expect(state.loading).toBe(false)
     })
-
-    it('should handle setError', () => {
-      const errorMessage = 'Authentication failed'
-      const state = authReducer(initialState, setError(errorMessage))
-
-      expect(state.error).toBe(errorMessage)
-      expect(state.loading).toBe(false)
-    })
-
-    it('should handle clearAuth', () => {
-      const authenticatedState = {
-        user: mockUser,
-        session: mockSession,
-        loading: false,
-        error: 'Some error',
-      }
-
-      const state = authReducer(authenticatedState, clearAuth())
-
-      // clearAuth sets loading to false, not true
-      expect(state.user).toBeNull()
-      expect(state.session).toBeNull()
-      expect(state.loading).toBe(false)
-      expect(state.error).toBeNull()
-    })
-  })
-
-  describe('Selectors', () => {
-    const mockState = {
-      auth: {
-        user: mockUser,
-        session: mockSession,
-        loading: false,
-        error: null,
-      },
-    }
-
-    it('selectUser should return user', () => {
-      expect(selectUser(mockState)).toEqual(mockUser)
-    })
-
-    it('selectSession should return session', () => {
-      expect(selectSession(mockState)).toEqual(mockSession)
-    })
-
-    it('selectAuthLoading should return loading state', () => {
-      expect(selectAuthLoading(mockState)).toBe(false)
-    })
-
-    it('selectAuthError should return error', () => {
-      expect(selectAuthError(mockState)).toBeNull()
-    })
-
-    it('selectIsAuthenticated should return true when authenticated', () => {
-      expect(selectIsAuthenticated(mockState)).toBe(true)
-    })
-
-    it('selectIsAuthenticated should return false when user is null', () => {
-      const unauthenticatedState = {
-        auth: { ...mockState.auth, user: null },
-      }
-
-      expect(selectIsAuthenticated(unauthenticatedState)).toBe(false)
-    })
-
-    it('selectIsAuthenticated should return false when session is null', () => {
-      const unauthenticatedState = {
-        auth: { ...mockState.auth, session: null },
-      }
-
-      expect(selectIsAuthenticated(unauthenticatedState)).toBe(false)
-    })
   })
 
   describe('Action Creators', () => {
@@ -183,20 +103,6 @@ describe('Auth Slice (lib/redux/slices/authSlice.ts)', () => {
 
       expect(action.type).toBe('auth/setLoading')
       expect(action.payload).toBe(true)
-    })
-
-    it('setError should create action with error message', () => {
-      const action = setError('Error message')
-
-      expect(action.type).toBe('auth/setError')
-      expect(action.payload).toBe('Error message')
-    })
-
-    it('clearAuth should create action with no payload', () => {
-      const action = clearAuth()
-
-      expect(action.type).toBe('auth/clearAuth')
-      expect(action.payload).toBeUndefined()
     })
   })
 })

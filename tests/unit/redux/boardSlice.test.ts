@@ -2,9 +2,12 @@
  * Unit Tests: boardSlice Redux Actions
  *
  * Tests for board state management including:
- * - addRepoCards action (optimistic updates)
+ * - setActiveBoard action
+ * - setStatusLists action
  * - setRepoCards action
- * - updateRepoCardOptimistic action
+ * - addRepoCards action (optimistic updates)
+ * - removeRepoCard action
+ * - selectStatusLists, selectRepoCards, selectBoardLoading, selectBoardError selectors
  */
 
 import { describe, it, expect } from 'vitest'
@@ -13,24 +16,13 @@ import type { RepoCardForRedux, StatusListDomain } from '@/lib/models/domain'
 import boardSlice, {
   setRepoCards,
   addRepoCards,
-  updateRepoCardOptimistic,
   selectRepoCards,
   setActiveBoard,
-  clearBoard,
-  selectActiveBoard,
   setStatusLists,
-  setLoading,
-  setError,
-  recordDragOperation,
-  clearLastDragOperation,
   removeRepoCard,
   selectStatusLists,
   selectBoardLoading,
   selectBoardError,
-  selectLastDragOperation,
-  selectCanUndo,
-  selectGridDimensions,
-  selectStatusesByRow,
 } from '@/lib/redux/slices/boardSlice'
 
 /**
@@ -50,6 +42,23 @@ const createMockCard = (
   repoName: 'repo',
   order: 0,
   meta: {},
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  ...overrides,
+})
+
+/**
+ * Helper to create a mock StatusListDomain object
+ */
+const createMockStatus = (
+  overrides: Partial<StatusListDomain> = {},
+): StatusListDomain => ({
+  id: `status-${Math.random().toString(36).substring(2, 11)}`,
+  title: 'Test Status',
+  color: '#3b82f6',
+  gridRow: 1,
+  gridCol: 1,
+  boardId: 'board-1',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   ...overrides,
@@ -203,60 +212,6 @@ describe('boardSlice', () => {
       const nextState = boardSlice(initialState, setRepoCards([]))
 
       expect(nextState.repoCards).toHaveLength(0)
-    })
-  })
-
-  describe('updateRepoCardOptimistic action', () => {
-    it('should update a single card by ID', () => {
-      const existingCards = [
-        createMockCard({ id: 'card-1', order: 0 }),
-        createMockCard({ id: 'card-2', order: 1 }),
-      ]
-
-      const initialState = {
-        activeBoard: null,
-        statusLists: [],
-        repoCards: existingCards,
-        loading: false,
-        error: null,
-        lastDragOperation: null,
-        undoHistory: [],
-      }
-
-      const nextState = boardSlice(
-        initialState,
-        updateRepoCardOptimistic({
-          cardId: 'card-1',
-          updates: { order: 5 },
-        }),
-      )
-
-      expect(nextState.repoCards[0].order).toBe(5)
-      expect(nextState.repoCards[1].order).toBe(1) // Unchanged
-    })
-
-    it('should not modify state for non-existent card ID', () => {
-      const existingCards = [createMockCard({ id: 'card-1' })]
-
-      const initialState = {
-        activeBoard: null,
-        statusLists: [],
-        repoCards: existingCards,
-        loading: false,
-        error: null,
-        lastDragOperation: null,
-        undoHistory: [],
-      }
-
-      const nextState = boardSlice(
-        initialState,
-        updateRepoCardOptimistic({
-          cardId: 'non-existent',
-          updates: { order: 5 },
-        }),
-      )
-
-      expect(nextState.repoCards).toEqual(existingCards)
     })
   })
 
@@ -435,119 +390,6 @@ describe('boardSlice', () => {
     })
   })
 
-  describe('selectActiveBoard selector', () => {
-    it('should return activeBoard from state', () => {
-      const board = {
-        id: 'board-1',
-        name: 'Test Board',
-        theme: null,
-        settings: null,
-        user_id: 'user-1',
-        is_favorite: false,
-        created_at: '2024-01-01T00:00:00.000Z',
-        updated_at: '2024-01-01T00:00:00.000Z',
-      }
-
-      const state = {
-        board: {
-          activeBoard: board,
-          statusLists: [],
-          repoCards: [],
-          loading: false,
-          error: null,
-          lastDragOperation: null,
-          undoHistory: [],
-        },
-      }
-
-      expect(selectActiveBoard(state)).toEqual(board)
-    })
-
-    it('should return null when no activeBoard is set', () => {
-      const state = {
-        board: {
-          activeBoard: null,
-          statusLists: [],
-          repoCards: [],
-          loading: false,
-          error: null,
-          lastDragOperation: null,
-          undoHistory: [],
-        },
-      }
-
-      expect(selectActiveBoard(state)).toBeNull()
-    })
-  })
-
-  describe('clearBoard action', () => {
-    it('should reset all board state to initial values', () => {
-      const initialState = {
-        activeBoard: {
-          id: 'board-1',
-          name: 'Test Board',
-          theme: 'dark',
-          settings: { layout: 'grid' },
-          user_id: 'user-1',
-          is_favorite: true,
-          created_at: '2024-01-01T00:00:00.000Z',
-          updated_at: '2024-01-01T00:00:00.000Z',
-        },
-        statusLists: [
-          {
-            id: 'status-1',
-            title: 'Todo',
-            color: '#fff',
-            gridRow: 0,
-            gridCol: 0,
-            boardId: 'board-1',
-            createdAt: '2024-01-01T00:00:00.000Z',
-            updatedAt: '2024-01-01T00:00:00.000Z',
-          },
-        ],
-        repoCards: [createMockCard({ id: 'card-1' })],
-        loading: true,
-        error: 'Some error',
-        lastDragOperation: {
-          cardId: 'card-1',
-          fromStatusId: 'status-1',
-          toStatusId: 'status-2',
-          fromOrder: 0,
-          toOrder: 1,
-          timestamp: Date.now(),
-        },
-        undoHistory: [],
-      }
-
-      const nextState = boardSlice(initialState, clearBoard())
-
-      expect(nextState.activeBoard).toBeNull()
-      expect(nextState.statusLists).toEqual([])
-      expect(nextState.repoCards).toEqual([])
-      expect(nextState.loading).toBe(false)
-      expect(nextState.error).toBeNull()
-      expect(nextState.lastDragOperation).toBeNull()
-      expect(nextState.undoHistory).toEqual([])
-    })
-  })
-
-  /**
-   * Helper to create a mock StatusListDomain object
-   */
-  const createMockStatus = (
-    overrides: Partial<StatusListDomain> = {},
-  ): StatusListDomain => ({
-    id: `status-${Math.random().toString(36).substring(2, 11)}`,
-    title: 'Test Status',
-    color: '#3b82f6',
-    gridRow: 1,
-    gridCol: 1,
-    boardId: 'board-1',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    ...overrides,
-  })
-
   describe('setStatusLists action', () => {
     it('should set status lists from empty state', () => {
       const initialState = {
@@ -589,168 +431,6 @@ describe('boardSlice', () => {
 
       expect(nextState.statusLists).toHaveLength(1)
       expect(nextState.statusLists[0].title).toBe('New')
-    })
-  })
-
-  describe('setLoading action', () => {
-    it('should set loading to true', () => {
-      const initialState = {
-        activeBoard: null,
-        statusLists: [],
-        repoCards: [],
-        loading: false,
-        error: null,
-        lastDragOperation: null,
-        undoHistory: [],
-      }
-
-      const nextState = boardSlice(initialState, setLoading(true))
-
-      expect(nextState.loading).toBe(true)
-    })
-
-    it('should set loading to false', () => {
-      const initialState = {
-        activeBoard: null,
-        statusLists: [],
-        repoCards: [],
-        loading: true,
-        error: null,
-        lastDragOperation: null,
-        undoHistory: [],
-      }
-
-      const nextState = boardSlice(initialState, setLoading(false))
-
-      expect(nextState.loading).toBe(false)
-    })
-  })
-
-  describe('setError action', () => {
-    it('should set error message', () => {
-      const initialState = {
-        activeBoard: null,
-        statusLists: [],
-        repoCards: [],
-        loading: false,
-        error: null,
-        lastDragOperation: null,
-        undoHistory: [],
-      }
-
-      const nextState = boardSlice(
-        initialState,
-        setError('Something went wrong'),
-      )
-
-      expect(nextState.error).toBe('Something went wrong')
-    })
-
-    it('should clear error when set to null', () => {
-      const initialState = {
-        activeBoard: null,
-        statusLists: [],
-        repoCards: [],
-        loading: false,
-        error: 'Previous error',
-        lastDragOperation: null,
-        undoHistory: [],
-      }
-
-      const nextState = boardSlice(initialState, setError(null))
-
-      expect(nextState.error).toBeNull()
-    })
-  })
-
-  describe('recordDragOperation action', () => {
-    it('should record a drag operation', () => {
-      const initialState = {
-        activeBoard: null,
-        statusLists: [],
-        repoCards: [],
-        loading: false,
-        error: null,
-        lastDragOperation: null,
-        undoHistory: [],
-      }
-
-      const dragOp = {
-        cardId: 'card-1',
-        fromStatusId: 'status-1',
-        toStatusId: 'status-2',
-        fromOrder: 0,
-        toOrder: 1,
-        timestamp: 1234567890,
-      }
-
-      const nextState = boardSlice(initialState, recordDragOperation(dragOp))
-
-      expect(nextState.lastDragOperation).toEqual(dragOp)
-      expect(nextState.undoHistory).toHaveLength(1)
-      expect(nextState.undoHistory[0]).toEqual(dragOp)
-    })
-
-    it('should keep maximum 10 history entries', () => {
-      const initialState = {
-        activeBoard: null,
-        statusLists: [],
-        repoCards: [],
-        loading: false,
-        error: null,
-        lastDragOperation: null,
-        undoHistory: Array.from({ length: 10 }, (_, i) => ({
-          cardId: `card-${i}`,
-          fromStatusId: 'status-1',
-          toStatusId: 'status-2',
-          fromOrder: 0,
-          toOrder: 1,
-          timestamp: i,
-        })),
-      }
-
-      const newDragOp = {
-        cardId: 'card-new',
-        fromStatusId: 'status-1',
-        toStatusId: 'status-2',
-        fromOrder: 0,
-        toOrder: 1,
-        timestamp: 999,
-      }
-
-      const nextState = boardSlice(initialState, recordDragOperation(newDragOp))
-
-      expect(nextState.undoHistory).toHaveLength(10)
-      expect(nextState.undoHistory[0].cardId).toBe('card-new')
-      // The oldest entry (card-9) should be removed (slice keeps first 10)
-      expect(
-        nextState.undoHistory.find((op) => op.cardId === 'card-9'),
-      ).toBeUndefined()
-    })
-  })
-
-  describe('clearLastDragOperation action', () => {
-    it('should clear the last drag operation', () => {
-      const initialState = {
-        activeBoard: null,
-        statusLists: [],
-        repoCards: [],
-        loading: false,
-        error: null,
-        lastDragOperation: {
-          cardId: 'card-1',
-          fromStatusId: 'status-1',
-          toStatusId: 'status-2',
-          fromOrder: 0,
-          toOrder: 1,
-          timestamp: 1234567890,
-        },
-        undoHistory: [],
-      }
-
-      const nextState = boardSlice(initialState, clearLastDragOperation())
-
-      expect(nextState.lastDragOperation).toBeNull()
     })
   })
 
@@ -853,193 +533,6 @@ describe('boardSlice', () => {
       }
 
       expect(selectBoardError(state)).toBe('Test error')
-    })
-  })
-
-  describe('selectLastDragOperation selector', () => {
-    it('should return last drag operation', () => {
-      const dragOp = {
-        cardId: 'card-1',
-        fromStatusId: 'status-1',
-        toStatusId: 'status-2',
-        fromOrder: 0,
-        toOrder: 1,
-        timestamp: 1234567890,
-      }
-      const state = {
-        board: {
-          activeBoard: null,
-          statusLists: [],
-          repoCards: [],
-          loading: false,
-          error: null,
-          lastDragOperation: dragOp,
-          undoHistory: [],
-        },
-      }
-
-      expect(selectLastDragOperation(state)).toEqual(dragOp)
-    })
-  })
-
-  describe('selectCanUndo selector', () => {
-    it('should return true when there is a last drag operation', () => {
-      const state = {
-        board: {
-          activeBoard: null,
-          statusLists: [],
-          repoCards: [],
-          loading: false,
-          error: null,
-          lastDragOperation: {
-            cardId: 'card-1',
-            fromStatusId: 'status-1',
-            toStatusId: 'status-2',
-            fromOrder: 0,
-            toOrder: 1,
-            timestamp: 1234567890,
-          },
-          undoHistory: [],
-        },
-      }
-
-      expect(selectCanUndo(state)).toBe(true)
-    })
-
-    it('should return false when there is no last drag operation', () => {
-      const state = {
-        board: {
-          activeBoard: null,
-          statusLists: [],
-          repoCards: [],
-          loading: false,
-          error: null,
-          lastDragOperation: null,
-          undoHistory: [],
-        },
-      }
-
-      expect(selectCanUndo(state)).toBe(false)
-    })
-  })
-
-  describe('selectGridDimensions selector', () => {
-    it('should return max row and col from status lists', () => {
-      const statuses = [
-        createMockStatus({ id: 's1', gridRow: 1, gridCol: 1 }),
-        createMockStatus({ id: 's2', gridRow: 1, gridCol: 2 }),
-        createMockStatus({ id: 's3', gridRow: 2, gridCol: 1 }),
-        createMockStatus({ id: 's4', gridRow: 3, gridCol: 3 }),
-      ]
-      const state = {
-        board: {
-          activeBoard: null,
-          statusLists: statuses,
-          repoCards: [],
-          loading: false,
-          error: null,
-          lastDragOperation: null,
-          undoHistory: [],
-        },
-      }
-
-      const result = selectGridDimensions(state)
-
-      expect(result.maxRow).toBe(3)
-      expect(result.maxCol).toBe(3)
-    })
-
-    it('should return 0,0 for empty status lists', () => {
-      const state = {
-        board: {
-          activeBoard: null,
-          statusLists: [],
-          repoCards: [],
-          loading: false,
-          error: null,
-          lastDragOperation: null,
-          undoHistory: [],
-        },
-      }
-
-      const result = selectGridDimensions(state)
-
-      expect(result.maxRow).toBe(0)
-      expect(result.maxCol).toBe(0)
-    })
-  })
-
-  describe('selectStatusesByRow selector', () => {
-    it('should group statuses by row and sort by column', () => {
-      const statuses = [
-        createMockStatus({
-          id: 's1',
-          title: 'Row1-Col2',
-          gridRow: 1,
-          gridCol: 2,
-        }),
-        createMockStatus({
-          id: 's2',
-          title: 'Row1-Col1',
-          gridRow: 1,
-          gridCol: 1,
-        }),
-        createMockStatus({
-          id: 's3',
-          title: 'Row2-Col1',
-          gridRow: 2,
-          gridCol: 1,
-        }),
-        createMockStatus({
-          id: 's4',
-          title: 'Row1-Col3',
-          gridRow: 1,
-          gridCol: 3,
-        }),
-      ]
-      const state = {
-        board: {
-          activeBoard: null,
-          statusLists: statuses,
-          repoCards: [],
-          loading: false,
-          error: null,
-          lastDragOperation: null,
-          undoHistory: [],
-        },
-      }
-
-      const result = selectStatusesByRow(state)
-
-      // Row 1 should have 3 statuses sorted by column
-      const row1 = result.get(1)
-      expect(row1).toHaveLength(3)
-      expect(row1![0].title).toBe('Row1-Col1')
-      expect(row1![1].title).toBe('Row1-Col2')
-      expect(row1![2].title).toBe('Row1-Col3')
-
-      // Row 2 should have 1 status
-      const row2 = result.get(2)
-      expect(row2).toHaveLength(1)
-      expect(row2![0].title).toBe('Row2-Col1')
-    })
-
-    it('should return empty map for empty status lists', () => {
-      const state = {
-        board: {
-          activeBoard: null,
-          statusLists: [],
-          repoCards: [],
-          loading: false,
-          error: null,
-          lastDragOperation: null,
-          undoHistory: [],
-        },
-      }
-
-      const result = selectStatusesByRow(state)
-
-      expect(result.size).toBe(0)
     })
   })
 })

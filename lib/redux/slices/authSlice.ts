@@ -42,29 +42,9 @@ export const authSlice = createSlice({
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload
     },
-    setError: (state, action: PayloadAction<string>) => {
-      state.error = action.payload
-      state.loading = false
-    },
-    clearAuth: (state) => {
-      state.user = null
-      state.session = null
-      state.loading = false
-      state.error = null
-    },
   },
 })
 
-export const { setUser, setSession, setLoading, setError, clearAuth } =
-  authSlice.actions
+export const { setUser, setSession, setLoading } = authSlice.actions
 
 export default authSlice.reducer
-
-// Selectors
-export const selectUser = (state: { auth: AuthState }) => state.auth.user
-export const selectSession = (state: { auth: AuthState }) => state.auth.session
-export const selectAuthLoading = (state: { auth: AuthState }) =>
-  state.auth.loading
-export const selectAuthError = (state: { auth: AuthState }) => state.auth.error
-export const selectIsAuthenticated = (state: { auth: AuthState }) =>
-  !!state.auth.user && !!state.auth.session

@@ -3,8 +3,6 @@
  *
  * Board state management
  * - Active board
- * - Drag & drop state
- * - Undo/Redo history
  */
 
 import type { PayloadAction } from '@reduxjs/toolkit'
@@ -12,15 +10,6 @@ import { createSlice } from '@reduxjs/toolkit'
 
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import type { Board } from '@/lib/supabase/types'
-
-interface DragOperation {
-  cardId: string
-  fromStatusId: string
-  toStatusId: string
-  fromOrder: number
-  toOrder: number
-  timestamp: number
-}
 
 // Convert recursive Json type to unknown to avoid Immer type inference issues
 type SimplifiedBoard = Omit<Board, 'settings'> & { settings: unknown }
@@ -31,9 +20,6 @@ interface BoardState {
   repoCards: RepoCardForRedux[]
   loading: boolean
   error: string | null
-  // Undo/Redo
-  lastDragOperation: DragOperation | null
-  undoHistory: DragOperation[]
 }
 
 const initialState: BoardState = {
@@ -42,8 +28,6 @@ const initialState: BoardState = {
   repoCards: [],
   loading: false,
   error: null,
-  lastDragOperation: null,
-  undoHistory: [],
 }
 
 export const boardSlice = createSlice({
@@ -58,39 +42,6 @@ export const boardSlice = createSlice({
     },
     setRepoCards: (state, action: PayloadAction<RepoCardForRedux[]>) => {
       state.repoCards = action.payload
-    },
-    setLoading: (state, action: PayloadAction<boolean>) => {
-      state.loading = action.payload
-    },
-    setError: (state, action: PayloadAction<string | null>) => {
-      state.error = action.payload
-    },
-    // Record drag operation
-    recordDragOperation: (state, action: PayloadAction<DragOperation>) => {
-      state.lastDragOperation = action.payload
-      // Keep maximum 10 history entries
-      state.undoHistory = [action.payload, ...state.undoHistory].slice(0, 10)
-    },
-    // Undo operation
-    clearLastDragOperation: (state) => {
-      state.lastDragOperation = null
-    },
-    // Optimistic card update
-    updateRepoCardOptimistic: (
-      state,
-      action: PayloadAction<{
-        cardId: string
-        updates: Partial<RepoCardForRedux>
-      }>,
-    ) => {
-      const { cardId, updates } = action.payload
-      const cardIndex = state.repoCards.findIndex((card) => card.id === cardId)
-      if (cardIndex !== -1) {
-        state.repoCards[cardIndex] = {
-          ...state.repoCards[cardIndex],
-          ...updates,
-        }
-      }
     },
     /**
      * Add new repo cards to the state (for optimistic updates)
@@ -108,16 +59,6 @@ export const boardSlice = createSlice({
         (card) => card.id !== action.payload,
       )
     },
-    // Reset board state
-    clearBoard: (state) => {
-      state.activeBoard = null
-      state.statusLists = []
-      state.repoCards = []
-      state.loading = false
-      state.error = null
-      state.lastDragOperation = null
-      state.undoHistory = []
-    },
   },
 })
 
@@ -125,21 +66,13 @@ export const {
   setActiveBoard,
   setStatusLists,
   setRepoCards,
-  setLoading,
-  setError,
-  recordDragOperation,
-  clearLastDragOperation,
-  updateRepoCardOptimistic,
   addRepoCards,
   removeRepoCard,
-  clearBoard,
 } = boardSlice.actions
 
 export default boardSlice.reducer
 
 // Selectors
-export const selectActiveBoard = (state: { board: BoardState }) =>
-  state.board.activeBoard
 export const selectStatusLists = (state: { board: BoardState }) =>
   state.board.statusLists
 export const selectRepoCards = (state: { board: BoardState }) =>
@@ -148,44 +81,3 @@ export const selectBoardLoading = (state: { board: BoardState }) =>
   state.board.loading
 export const selectBoardError = (state: { board: BoardState }) =>
   state.board.error
-export const selectLastDragOperation = (state: { board: BoardState }) =>
-  state.board.lastDragOperation
-export const selectCanUndo = (state: { board: BoardState }) =>
-  state.board.lastDragOperation !== null
-
-/**
- * Get grid dimensions from status lists
- * @returns { maxRow, maxCol } - Maximum row and column indices
- */
-export const selectGridDimensions = (state: { board: BoardState }) => {
-  const statuses = state.board.statusLists
-  if (statuses.length === 0) return { maxRow: 0, maxCol: 0 }
-
-  const maxRow = Math.max(...statuses.map((s) => s.gridRow))
-  const maxCol = Math.max(...statuses.map((s) => s.gridCol))
-  return { maxRow, maxCol }
-}
-
-/**
- * Get status lists grouped by row for 2D rendering
- * @returns Map<rowIndex, StatusListDomain[]>
- */
-export const selectStatusesByRow = (state: { board: BoardState }) => {
-  const statuses = state.board.statusLists
-  const byRow = new Map<number, StatusListDomain[]>()
-
-  for (const status of statuses) {
-    const row = status.gridRow
-    if (!byRow.has(row)) {
-      byRow.set(row, [])
-    }
-    byRow.get(row)!.push(status)
-  }
-
-  // Sort each row by column
-  for (const [, rowStatuses] of byRow) {
-    rowStatuses.sort((a, b) => a.gridCol - b.gridCol)
-  }
-
-  return byRow
-}

@@ -3,7 +3,10 @@
  *
  * User settings management (synchronized with LocalStorage)
  * - Theme
- * - Typography
+ * - Compact Mode
+ * - Card Metadata visibility
+ * - Organization Filter
+ * - Sidebar collapsed state
  */
 
 import type { PayloadAction } from '@reduxjs/toolkit'
@@ -11,14 +14,8 @@ import { createSlice } from '@reduxjs/toolkit'
 
 import type { ThemeType } from '@/lib/constants/themes'
 
-interface TypographySettings {
-  baseSize: number // 14-18px
-  scale: number // 1.2-1.4
-}
-
 interface SettingsState {
   theme: ThemeType
-  typography: TypographySettings
   compactMode: boolean
   /** Display stars, language, and last updated on cards */
   showCardMetadata: boolean
@@ -30,10 +27,6 @@ interface SettingsState {
 
 const initialState: SettingsState = {
   theme: 'system',
-  typography: {
-    baseSize: 16,
-    scale: 1.25,
-  },
   compactMode: false,
   showCardMetadata: true,
   organizationFilter: 'all',
@@ -46,9 +39,6 @@ export const settingsSlice = createSlice({
   reducers: {
     setTheme: (state, action: PayloadAction<ThemeType>) => {
       state.theme = action.payload
-    },
-    setTypography: (state, action: PayloadAction<TypographySettings>) => {
-      state.typography = action.payload
     },
     setCompactMode: (state, action: PayloadAction<boolean>) => {
       state.compactMode = action.payload
@@ -65,19 +55,16 @@ export const settingsSlice = createSlice({
     toggleSidebarCollapsed: (state) => {
       state.sidebarCollapsed = !state.sidebarCollapsed
     },
-    resetSettings: () => initialState,
   },
 })
 
 export const {
   setTheme,
-  setTypography,
   setCompactMode,
   setShowCardMetadata,
   setOrganizationFilter,
   setSidebarCollapsed,
   toggleSidebarCollapsed,
-  resetSettings,
 } = settingsSlice.actions
 
 export default settingsSlice.reducer
@@ -90,8 +77,6 @@ export default settingsSlice.reducer
  */
 export const selectTheme = (state: { settings?: SettingsState }) =>
   state.settings?.theme ?? 'system'
-export const selectTypography = (state: { settings: SettingsState }) =>
-  state.settings.typography
 export const selectCompactMode = (state: { settings: SettingsState }) =>
   state.settings.compactMode
 export const selectShowCardMetadata = (state: { settings: SettingsState }) =>
