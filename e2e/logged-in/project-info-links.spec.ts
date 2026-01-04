@@ -95,6 +95,36 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     await expect(comboboxTrigger).toBeVisible()
   })
 
+  test('should show "Add custom type..." at the top of combobox (always visible)', async ({
+    page,
+  }) => {
+    const dialog = await openProjectInfoModal(page)
+
+    // Add a URL row
+    const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
+    await addUrlButton.click()
+
+    // Open the combobox
+    const comboboxTrigger = dialog.locator(
+      '[data-testid="link-type-combobox-trigger"]',
+    )
+    await comboboxTrigger.click()
+
+    await page.waitForTimeout(300)
+
+    // "Add custom type..." should be IMMEDIATELY visible at the top
+    // without scrolling or searching
+    const addCustomOption = page.locator('[data-testid="add-custom-link-type"]')
+    await expect(addCustomOption).toBeVisible({ timeout: 3000 })
+
+    // It should appear BEFORE the first category heading (Hosting)
+    const hostingHeading = page.getByText('Hosting', { exact: true })
+    await expect(hostingHeading).toBeVisible()
+
+    // Verify "Add custom type..." contains expected text
+    await expect(addCustomOption).toContainText('Add custom type')
+  })
+
   test('should show 55 presets in 12 categories when opening combobox', async ({
     page,
   }) => {

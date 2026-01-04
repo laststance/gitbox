@@ -193,11 +193,6 @@ export const LinkTypeCombobox = memo(function LinkTypeCombobox({
     [onValueChange],
   )
 
-  const handleAddCustom = useCallback(() => {
-    setOpen(false)
-    onAddCustomClick?.()
-  }, [onAddCustomClick])
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -220,7 +215,24 @@ export const LinkTypeCombobox = memo(function LinkTypeCombobox({
       <PopoverContent className="w-[280px] p-0" align="start">
         <Command>
           <CommandInput placeholder="Search link types..." />
-          <CommandList>
+
+          {/* Fixed Header: Add Custom Type (always visible) */}
+          {onAddCustomClick && (
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 border-b px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none"
+              onClick={() => {
+                setOpen(false)
+                onAddCustomClick()
+              }}
+              data-testid="add-custom-link-type"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add custom type...</span>
+            </button>
+          )}
+
+          <CommandList className="max-h-[300px]">
             <CommandEmpty>No link type found.</CommandEmpty>
 
             {/* User Custom Presets (if any) */}
@@ -277,22 +289,6 @@ export const LinkTypeCombobox = memo(function LinkTypeCombobox({
                   </CommandGroup>
                 )
               },
-            )}
-
-            {/* Add Custom Option */}
-            {onAddCustomClick && (
-              <>
-                <CommandSeparator />
-                <CommandGroup>
-                  <CommandItem
-                    onSelect={handleAddCustom}
-                    data-testid="add-custom-link-type"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    <span>Add custom type...</span>
-                  </CommandItem>
-                </CommandGroup>
-              </>
             )}
           </CommandList>
         </Command>
