@@ -51,6 +51,34 @@ describe('noteSchema', () => {
     const result = noteSchema.safeParse(maxNote)
     expect(result.success).toBe(true)
   })
+
+  test('rejects note exceeding max length (Slate JSON format)', () => {
+    // Create a Slate value with too much text
+    const longText = 'x'.repeat(NOTE_MAX_LENGTH + 1)
+    const slateJson = JSON.stringify([
+      { type: 'p', children: [{ text: longText }] },
+    ])
+    const result = noteSchema.safeParse(slateJson)
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0]?.message).toContain('20000')
+  })
+
+  test('handles invalid JSON array (converted to plain text by parseSlateValue)', () => {
+    // String that starts with [ but is invalid JSON
+    // parseSlateValue handles this internally by converting to plain text
+    const invalidJson = '[invalid json'
+    const result = noteSchema.safeParse(invalidJson)
+    expect(result.success).toBe(true) // Valid because it's converted to a paragraph
+  })
+
+  test('accepts plain text that exceeds max length after paragraph conversion', () => {
+    // Plain text gets converted to paragraphs by parseSlateValue
+    // Length is calculated from actual text content
+    const plainTextTooLong = 'a'.repeat(NOTE_MAX_LENGTH + 1)
+    const result = noteSchema.safeParse(plainTextTooLong)
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0]?.message).toContain('20000')
+  })
 })
 
 describe('commentSchema', () => {
@@ -111,6 +139,13 @@ describe('projectLinkUrlSchema', () => {
   test('rejects malformed URL', () => {
     const result = projectLinkUrlSchema.safeParse('https://')
     expect(result.success).toBe(false)
+  })
+
+  test('rejects URL with valid protocol but invalid format', () => {
+    // URL has http:// but the rest is malformed enough to fail URL constructor
+    const result = projectLinkUrlSchema.safeParse('https://[invalid')
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0]?.message).toContain('Invalid URL')
   })
 })
 

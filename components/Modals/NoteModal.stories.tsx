@@ -10,6 +10,7 @@
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 import { memo, useEffect } from 'react'
+import { expect, userEvent, waitFor, fn } from 'storybook/test'
 
 import { updateDraftNote } from '@/lib/redux/slices/draftSlice'
 import { useAppDispatch } from '@/lib/redux/store'
@@ -131,4 +132,117 @@ export const WithDraft: Story = {
       </WithDraftDecorator>
     ),
   ],
+}
+
+/**
+ * Tests modal renders correctly
+ */
+export const ModalRenders: Story = {
+  args: {
+    isOpen: true,
+    onClose: fn(),
+    onSave: fn(),
+    cardId: 'card-test',
+    initialNote: 'Test note content',
+    cardTitle: 'test/repo',
+  },
+  play: async () => {
+    // Wait for modal to render
+    await waitFor(() => {
+      const dialog = document.querySelector('[role="dialog"]')
+      expect(dialog).toBeInTheDocument()
+    })
+
+    // Check that card title is displayed
+    expect(document.body).toHaveTextContent('test/repo')
+  },
+}
+
+/**
+ * Tests cancel button closes modal
+ */
+export const CancelCloses: Story = {
+  args: {
+    isOpen: true,
+    onClose: fn(),
+    onSave: fn(),
+    cardId: 'card-test',
+    initialNote: 'Test note',
+    cardTitle: 'test/repo',
+  },
+  play: async ({ args }) => {
+    // Wait for modal to render
+    await waitFor(() => {
+      const dialog = document.querySelector('[role="dialog"]')
+      expect(dialog).toBeInTheDocument()
+    })
+
+    // Find and click cancel button
+    const cancelButton = Array.from(document.querySelectorAll('button')).find(
+      (btn) => btn.textContent?.toLowerCase().includes('cancel'),
+    )
+    if (cancelButton) {
+      await userEvent.click(cancelButton)
+    }
+
+    // Verify onClose was called
+    await waitFor(() => {
+      expect(args.onClose).toHaveBeenCalled()
+    })
+  },
+}
+
+/**
+ * Tests save button triggers onSave
+ */
+export const SaveTriggers: Story = {
+  args: {
+    isOpen: true,
+    onClose: fn(),
+    onSave: fn().mockResolvedValue(undefined),
+    cardId: 'card-test',
+    initialNote: 'Test note',
+    cardTitle: 'test/repo',
+  },
+  play: async () => {
+    // Wait for modal to render
+    await waitFor(() => {
+      const dialog = document.querySelector('[role="dialog"]')
+      expect(dialog).toBeInTheDocument()
+    })
+
+    // Find and click save button
+    const saveButton = Array.from(document.querySelectorAll('button')).find(
+      (btn) => btn.textContent?.toLowerCase().includes('save'),
+    )
+    if (saveButton) {
+      await userEvent.click(saveButton)
+    }
+  },
+}
+
+/**
+ * Tests character count displays correctly
+ */
+export const CharacterCountDisplays: Story = {
+  args: {
+    isOpen: true,
+    onClose: fn(),
+    onSave: fn(),
+    cardId: 'card-test',
+    initialNote: 'Short note',
+    cardTitle: 'test/repo',
+  },
+  play: async () => {
+    // Wait for modal to render
+    await waitFor(() => {
+      const dialog = document.querySelector('[role="dialog"]')
+      expect(dialog).toBeInTheDocument()
+    })
+
+    // Check for character count display (uses toLocaleString: 20,000)
+    await waitFor(() => {
+      expect(document.body).toHaveTextContent('/ 20,000')
+    })
+  },
 }

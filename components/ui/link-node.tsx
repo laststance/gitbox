@@ -10,9 +10,8 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 
 export function LinkElement(props: PlateElementProps<TLinkElement>) {
-  const suggestionData = props.editor
-    .getApi(SuggestionPlugin)
-    .suggestion.suggestionData(props.element) as
+  const suggestionApi = props.editor.getApi(SuggestionPlugin)?.suggestion
+  const suggestionData = suggestionApi?.suggestionData?.(props.element) as
     | TInlineSuggestionData
     | undefined
 

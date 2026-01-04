@@ -8,6 +8,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
+import { expect, userEvent, waitFor } from 'storybook/test'
 
 import { CommandPalette } from './CommandPalette'
 
@@ -27,10 +28,138 @@ export const Default: Story = {
   render: () => <CommandPalette />,
 }
 
-export const Opened: Story = {
-  render: () => {
-    // Note: In Storybook, the CommandPalette will be controlled by keyboard shortcuts
-    // This story demonstrates the component structure
-    return <CommandPalette />
+/**
+ * Tests opening command palette with keyboard shortcut
+ */
+export const OpenWithKeyboard: Story = {
+  render: () => <CommandPalette />,
+  play: async () => {
+    // Trigger Cmd+K to open the palette
+    await userEvent.keyboard('{Control>}k{/Control}')
+
+    // Wait for palette to appear
+    await waitFor(() => {
+      const input = document.querySelector(
+        'input[placeholder="Search commands..."]',
+      )
+      expect(input).toBeInTheDocument()
+    })
+  },
+}
+
+/**
+ * Tests search functionality in command palette
+ */
+export const SearchCommands: Story = {
+  render: () => <CommandPalette />,
+  play: async () => {
+    // Open palette
+    await userEvent.keyboard('{Control>}k{/Control}')
+
+    // Wait for palette to open
+    await waitFor(() => {
+      const input = document.querySelector(
+        'input[placeholder="Search commands..."]',
+      )
+      expect(input).toBeInTheDocument()
+    })
+
+    // Type in search
+    const input = document.querySelector(
+      'input[placeholder="Search commands..."]',
+    ) as HTMLInputElement
+    await userEvent.type(input, 'board')
+
+    // Should filter to show only board-related commands
+    await waitFor(() => {
+      expect(document.body).toHaveTextContent('Go to Boards')
+      expect(document.body).toHaveTextContent('Create New Board')
+    })
+  },
+}
+
+/**
+ * Tests keyboard navigation in command palette
+ */
+export const KeyboardNavigation: Story = {
+  render: () => <CommandPalette />,
+  play: async () => {
+    // Open palette
+    await userEvent.keyboard('{Control>}k{/Control}')
+
+    // Wait for palette to open
+    await waitFor(() => {
+      const input = document.querySelector(
+        'input[placeholder="Search commands..."]',
+      )
+      expect(input).toBeInTheDocument()
+    })
+
+    // Navigate down
+    await userEvent.keyboard('{ArrowDown}')
+    await userEvent.keyboard('{ArrowDown}')
+
+    // Navigate up
+    await userEvent.keyboard('{ArrowUp}')
+  },
+}
+
+/**
+ * Tests closing command palette with Escape
+ */
+export const CloseWithEscape: Story = {
+  render: () => <CommandPalette />,
+  play: async () => {
+    // Open palette
+    await userEvent.keyboard('{Control>}k{/Control}')
+
+    // Wait for palette to open
+    await waitFor(() => {
+      const input = document.querySelector(
+        'input[placeholder="Search commands..."]',
+      )
+      expect(input).toBeInTheDocument()
+    })
+
+    // Close with Escape
+    await userEvent.keyboard('{Escape}')
+
+    // Wait for palette to close
+    await waitFor(() => {
+      const input = document.querySelector(
+        'input[placeholder="Search commands..."]',
+      )
+      expect(input).not.toBeInTheDocument()
+    })
+  },
+}
+
+/**
+ * Tests no results state
+ */
+export const NoResults: Story = {
+  render: () => <CommandPalette />,
+  play: async () => {
+    // Open palette
+    await userEvent.keyboard('{Control>}k{/Control}')
+
+    // Wait for palette to open
+    await waitFor(() => {
+      const input = document.querySelector(
+        'input[placeholder="Search commands..."]',
+      )
+      expect(input).toBeInTheDocument()
+    })
+
+    // Type non-matching search
+    const input = document.querySelector(
+      'input[placeholder="Search commands..."]',
+    ) as HTMLInputElement
+    await userEvent.type(input, 'xyznonexistent')
+
+    // Should show no results message
+    await waitFor(() => {
+      expect(document.body).toHaveTextContent('No commands found')
+    })
   },
 }

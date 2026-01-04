@@ -51,6 +51,28 @@ describe('toFieldErrors', () => {
     const result = schema.safeParse({ name: 'valid' })
     expect(result.success).toBe(true)
   })
+
+  test('handles root-level errors with _root key', () => {
+    // Root-level refine errors have empty path array
+    const schema = z
+      .object({
+        password: z.string(),
+        confirmPassword: z.string(),
+      })
+      .refine((data) => data.password === data.confirmPassword, {
+        message: 'Passwords must match',
+      })
+
+    const result = schema.safeParse({
+      password: 'abc',
+      confirmPassword: 'xyz',
+    })
+    if (!result.success) {
+      const fieldErrors = toFieldErrors(result.error)
+      expect(fieldErrors).toHaveProperty('_root')
+      expect(fieldErrors['_root']).toContain('Passwords must match')
+    }
+  })
 })
 
 describe('getRootErrors', () => {

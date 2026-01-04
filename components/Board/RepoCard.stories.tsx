@@ -9,6 +9,7 @@
 
 import { DndContext } from '@dnd-kit/core'
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
+import { expect, userEvent, waitFor, fn, within } from 'storybook/test'
 
 import { RepoCard } from './RepoCard'
 
@@ -185,5 +186,99 @@ export const WithCommentEdit: Story = {
     onCommentChange: (id, newComment) => {
       console.log(`Card ${id} comment changed to: ${newComment}`)
     },
+  },
+}
+
+/**
+ * Tests card renders with title
+ */
+export const CardRendersTitle: Story = {
+  args: {
+    card: mockCard,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await waitFor(() => {
+      expect(canvas.getByText('example-repo')).toBeInTheDocument()
+    })
+  },
+}
+
+/**
+ * Tests card renders with description
+ */
+export const CardRendersDescription: Story = {
+  args: {
+    card: mockCard,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await waitFor(() => {
+      expect(
+        canvas.getByText('An example repository for testing purposes'),
+      ).toBeInTheDocument()
+    })
+  },
+}
+
+/**
+ * Tests context menu opens
+ */
+export const ContextMenuOpens: Story = {
+  args: {
+    card: mockCard,
+    onEdit: fn(),
+    onMaintenance: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Wait for card to render
+    await waitFor(() => {
+      expect(canvas.getByText('example-repo')).toBeInTheDocument()
+    })
+
+    // Find and click the overflow menu button
+    const menuButton = canvasElement.querySelector(
+      'button[aria-haspopup="menu"]',
+    )
+    if (menuButton) {
+      await userEvent.click(menuButton)
+    }
+
+    // Wait for menu to appear
+    await waitFor(
+      () => {
+        const menu = document.querySelector('[role="menu"]')
+        expect(menu).toBeInTheDocument()
+      },
+      { timeout: 2000 },
+    )
+  },
+}
+
+/**
+ * Tests comment click triggers callback
+ */
+export const CommentClickable: Story = {
+  args: {
+    card: mockCard,
+    commentData: { comment: 'Clickable comment', color: 'primary' },
+    onCommentClick: fn(),
+    showComment: true,
+  },
+  play: async ({ canvasElement }) => {
+    // Wait for card to render with comment
+    await waitFor(() => {
+      expect(canvasElement).toHaveTextContent('Clickable comment')
+    })
+
+    // Find and click the comment element
+    const commentElement = canvasElement.querySelector(
+      '[data-testid="comment-display"]',
+    )
+    if (commentElement) {
+      await userEvent.click(commentElement)
+    }
   },
 }

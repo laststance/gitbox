@@ -10,9 +10,9 @@
  * - Event propagation prevention for DnD isolation
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { CommentInlineEdit } from '@/components/Board/CommentInlineEdit'
 
@@ -40,7 +40,16 @@ describe('CommentInlineEdit', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
     mockOnSave.mockResolvedValue(undefined)
+  })
+
+  afterEach(async () => {
+    // Flush pending promises and timers
+    await act(async () => {
+      vi.runAllTimers()
+    })
+    vi.useRealTimers()
   })
 
   const defaultProps = {

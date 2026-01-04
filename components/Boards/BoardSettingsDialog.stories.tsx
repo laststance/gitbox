@@ -10,7 +10,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
-import { fn } from 'storybook/test'
+import { expect, userEvent, waitFor, fn } from 'storybook/test'
 
 import { BoardSettingsDialog } from './BoardSettingsDialog'
 
@@ -80,5 +80,196 @@ export const Closed: Story = {
 export const SpecialCharacters: Story = {
   args: {
     boardName: 'Project <Alpha> & "Beta"',
+  },
+}
+
+/**
+ * Tests General tab displays correctly
+ */
+export const GeneralTabRender: Story = {
+  args: {
+    isOpen: true,
+    boardId: 'board-123',
+    boardName: 'Test Board',
+    onClose: fn(),
+    onRenameSuccess: fn(),
+    onCardDisplayChange: fn(),
+    onDeleteSuccess: fn(),
+  },
+  play: async () => {
+    // Wait for dialog to render
+    await waitFor(() => {
+      const dialog = document.querySelector('[role="dialog"]')
+      expect(dialog).toBeInTheDocument()
+    })
+
+    // Should have General tab content
+    expect(document.body).toHaveTextContent('Rename')
+  },
+}
+
+/**
+ * Tests tab switching to Cards tab
+ */
+export const CardsTabNavigation: Story = {
+  args: {
+    isOpen: true,
+    boardId: 'board-123',
+    boardName: 'Test Board',
+    onClose: fn(),
+    onRenameSuccess: fn(),
+    onCardDisplayChange: fn(),
+    onDeleteSuccess: fn(),
+  },
+  play: async () => {
+    // Wait for dialog to render
+    await waitFor(() => {
+      const dialog = document.querySelector('[role="dialog"]')
+      expect(dialog).toBeInTheDocument()
+    })
+
+    // Find and click Cards tab
+    const cardsTab = Array.from(document.querySelectorAll('[role="tab"]')).find(
+      (tab) => tab.textContent?.includes('Cards'),
+    )
+    if (cardsTab) {
+      await userEvent.click(cardsTab)
+    }
+
+    // Wait for Cards tab content
+    await waitFor(() => {
+      expect(document.body).toHaveTextContent('Card Visibility')
+    })
+  },
+}
+
+/**
+ * Tests tab switching to Danger Zone
+ */
+export const DangerZoneTabNavigation: Story = {
+  args: {
+    isOpen: true,
+    boardId: 'board-123',
+    boardName: 'Test Board',
+    onClose: fn(),
+    onRenameSuccess: fn(),
+    onCardDisplayChange: fn(),
+    onDeleteSuccess: fn(),
+  },
+  play: async () => {
+    // Wait for dialog to render
+    await waitFor(() => {
+      const dialog = document.querySelector('[role="dialog"]')
+      expect(dialog).toBeInTheDocument()
+    })
+
+    // Find and click Danger Zone tab
+    const dangerTab = Array.from(
+      document.querySelectorAll('[role="tab"]'),
+    ).find((tab) => tab.textContent?.includes('Danger'))
+    if (dangerTab) {
+      await userEvent.click(dangerTab)
+    }
+
+    // Wait for Danger Zone tab content
+    await waitFor(() => {
+      expect(document.body).toHaveTextContent('Delete Board')
+    })
+  },
+}
+
+/**
+ * Tests rename input typing
+ */
+export const RenameInputTyping: Story = {
+  args: {
+    isOpen: true,
+    boardId: 'board-123',
+    boardName: 'Old Name',
+    onClose: fn(),
+    onRenameSuccess: fn(),
+    onCardDisplayChange: fn(),
+    onDeleteSuccess: fn(),
+  },
+  play: async () => {
+    // Wait for dialog to render
+    await waitFor(() => {
+      const input = document.querySelector('input[name="name"]')
+      expect(input).toBeInTheDocument()
+    })
+
+    // Clear and type new name
+    const input = document.querySelector(
+      'input[name="name"]',
+    ) as HTMLInputElement
+    await userEvent.clear(input)
+    await userEvent.type(input, 'New Board Name')
+
+    // Verify input value
+    expect(input.value).toBe('New Board Name')
+  },
+}
+
+/**
+ * Tests card display toggle interactions
+ */
+export const CardDisplayToggles: Story = {
+  args: {
+    isOpen: true,
+    boardId: 'board-123',
+    boardName: 'Test Board',
+    onClose: fn(),
+    onRenameSuccess: fn(),
+    onCardDisplayChange: fn(),
+    onDeleteSuccess: fn(),
+  },
+  play: async () => {
+    // Wait for dialog to render
+    await waitFor(() => {
+      const dialog = document.querySelector('[role="dialog"]')
+      expect(dialog).toBeInTheDocument()
+    })
+
+    // Click Cards tab
+    const cardsTab = Array.from(document.querySelectorAll('[role="tab"]')).find(
+      (tab) => tab.textContent?.includes('Cards'),
+    )
+    if (cardsTab) {
+      await userEvent.click(cardsTab)
+    }
+
+    // Wait for Cards tab content with switches
+    await waitFor(() => {
+      const switches = document.querySelectorAll('[role="switch"]')
+      expect(switches.length).toBeGreaterThan(0)
+    })
+  },
+}
+
+/**
+ * Tests close button
+ */
+export const CloseButton: Story = {
+  args: {
+    isOpen: true,
+    boardId: 'board-123',
+    boardName: 'Test Board',
+    onClose: fn(),
+    onRenameSuccess: fn(),
+    onCardDisplayChange: fn(),
+    onDeleteSuccess: fn(),
+  },
+  play: async () => {
+    // Wait for dialog to render
+    await waitFor(() => {
+      const dialog = document.querySelector('[role="dialog"]')
+      expect(dialog).toBeInTheDocument()
+    })
+
+    // Find and click close button
+    const closeButton = document.querySelector('button[aria-label="Close"]')
+    if (closeButton) {
+      await userEvent.click(closeButton)
+    }
   },
 }

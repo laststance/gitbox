@@ -11,6 +11,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
+import { expect, userEvent, waitFor, fn } from 'storybook/test'
 
 import {
   CommentDisplay,
@@ -374,4 +375,86 @@ export const AllFontWeights: Story = {
       ))}
     </div>
   ),
+}
+
+// ============================================================================
+// Play Function Tests
+// ============================================================================
+
+/**
+ * Tests comment text renders correctly
+ */
+export const TestTextRenders: Story = {
+  args: {
+    comment: 'Test comment text',
+    onClick: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    await waitFor(() => {
+      expect(canvasElement).toHaveTextContent('Test comment text')
+    })
+  },
+}
+
+/**
+ * Tests click handler is called
+ */
+export const TestClickHandler: Story = {
+  args: {
+    comment: 'Clickable comment',
+    onClick: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    await waitFor(() => {
+      expect(canvasElement).toHaveTextContent('Clickable comment')
+    })
+
+    // Find and click the comment element
+    const commentElement = canvasElement.querySelector(
+      '[data-testid="comment-display"]',
+    )
+    if (commentElement) {
+      await userEvent.click(commentElement)
+
+      await waitFor(() => {
+        expect(args.onClick).toHaveBeenCalled()
+      })
+    }
+  },
+}
+
+/**
+ * Tests empty state placeholder renders
+ */
+export const TestEmptyStatePlaceholder: Story = {
+  args: {
+    comment: '',
+    showEmptyState: true,
+    onClick: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    await waitFor(() => {
+      expect(canvasElement).toHaveTextContent('Add comment')
+    })
+  },
+}
+
+/**
+ * Tests empty state without placeholder
+ */
+export const TestEmptyStateHidden: Story = {
+  args: {
+    comment: '',
+    showEmptyState: false,
+    onClick: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    // Should not render anything visible
+    await waitFor(() => {
+      const commentDisplay = canvasElement.querySelector(
+        '[data-testid="comment-display"]',
+      )
+      expect(commentDisplay).not.toBeInTheDocument()
+    })
+  },
 }

@@ -14,6 +14,7 @@ import {
   SelectGroup,
   SelectItem,
   SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from './select'
@@ -87,6 +88,33 @@ export const Disabled: Story = {
       <SelectContent>
         <SelectItem value="option1">Option 1</SelectItem>
         <SelectItem value="option2">Option 2</SelectItem>
+      </SelectContent>
+    </Select>
+  ),
+}
+
+/**
+ * With separator between groups
+ */
+export const WithSeparator: Story = {
+  render: () => (
+    <Select defaultValue="react">
+      <SelectTrigger className="w-[200px]">
+        <SelectValue placeholder="Select framework" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectGroup>
+          <SelectLabel>Frontend</SelectLabel>
+          <SelectItem value="react">React</SelectItem>
+          <SelectItem value="vue">Vue</SelectItem>
+          <SelectItem value="angular">Angular</SelectItem>
+        </SelectGroup>
+        <SelectSeparator />
+        <SelectGroup>
+          <SelectLabel>Backend</SelectLabel>
+          <SelectItem value="express">Express</SelectItem>
+          <SelectItem value="fastify">Fastify</SelectItem>
+        </SelectGroup>
       </SelectContent>
     </Select>
   ),

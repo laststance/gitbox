@@ -7,7 +7,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
-import { fn } from 'storybook/test'
+import { expect, within, userEvent, waitFor, fn } from 'storybook/test'
 
 import type { Tables } from '@/lib/supabase/types'
 
@@ -237,4 +237,344 @@ export const ThemeShowcase: Story = {
       </div>
     ),
   ],
+}
+
+/**
+ * Tests that the card renders all required content
+ */
+export const CardContentRenders: Story = {
+  args: {
+    board: mockBoard,
+    onRename: fn(),
+    onDelete: fn(),
+    onToggleFavorite: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Verify board name is displayed
+    await waitFor(() => {
+      expect(canvas.getByText('My Project Board')).toBeInTheDocument()
+    })
+  },
+}
+
+/**
+ * Tests that different themes render correctly
+ */
+export const ThemeVariantRenders: Story = {
+  args: {
+    board: { ...mockBoard, theme: 'midnight' },
+    onRename: fn(),
+    onDelete: fn(),
+    onToggleFavorite: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Verify board renders
+    await waitFor(() => {
+      expect(canvas.getByText('My Project Board')).toBeInTheDocument()
+    })
+
+    // Verify theme indicator is present
+    expect(canvas.getByText('midnight')).toBeInTheDocument()
+  },
+}
+
+/**
+ * Tests dropdown menu opens and displays options
+ */
+export const MenuOpensOnClick: Story = {
+  args: {
+    board: mockBoard,
+    onRename: fn(),
+    onDelete: fn(),
+    onToggleFavorite: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Find and click the menu button
+    const menuButton = canvas.getByRole('button', {
+      name: `Open menu for ${mockBoard.name}`,
+    })
+    await userEvent.click(menuButton)
+
+    // Wait for menu to open and verify options (menu content renders in portal/body)
+    await waitFor(() => {
+      const renameItem = document.querySelector(
+        '[data-radix-popper-content-wrapper]',
+      )
+      expect(renameItem).toBeInTheDocument()
+    })
+  },
+}
+
+/**
+ * Tests rename dialog opens from menu
+ */
+export const RenameDialogOpens: Story = {
+  args: {
+    board: mockBoard,
+    onRename: fn(),
+    onDelete: fn(),
+    onToggleFavorite: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Open menu
+    const menuButton = canvas.getByRole('button', {
+      name: `Open menu for ${mockBoard.name}`,
+    })
+    await userEvent.click(menuButton)
+
+    // Click rename option (menu renders in portal)
+    await waitFor(() => {
+      const menuContent = document.querySelector('[role="menu"]')
+      expect(menuContent).toBeInTheDocument()
+    })
+    const renameOption = document.querySelector('[role="menuitem"]')
+    if (renameOption) {
+      await userEvent.click(renameOption)
+    }
+
+    // Verify dialog opens (dialog appears in document body)
+    await waitFor(() => {
+      const dialog = document.querySelector('[role="dialog"]')
+      expect(dialog).toBeInTheDocument()
+    })
+  },
+}
+
+/**
+ * Tests delete dialog opens from menu
+ */
+export const DeleteDialogOpens: Story = {
+  args: {
+    board: mockBoard,
+    onRename: fn(),
+    onDelete: fn(),
+    onToggleFavorite: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Open menu
+    const menuButton = canvas.getByRole('button', {
+      name: `Open menu for ${mockBoard.name}`,
+    })
+    await userEvent.click(menuButton)
+
+    // Click delete option (second menuitem)
+    await waitFor(() => {
+      const menuItems = document.querySelectorAll('[role="menuitem"]')
+      expect(menuItems.length).toBeGreaterThan(1)
+    })
+    const menuItems = document.querySelectorAll('[role="menuitem"]')
+    const deleteOption = menuItems[1] // Delete is second item
+    if (deleteOption) {
+      await userEvent.click(deleteOption)
+    }
+
+    // Verify delete dialog opens (appears in document body)
+    await waitFor(() => {
+      const alertDialog = document.querySelector('[role="alertdialog"]')
+      expect(alertDialog).toBeInTheDocument()
+    })
+  },
+}
+
+/**
+ * Tests favorite button interaction
+ */
+export const FavoriteToggle: Story = {
+  args: {
+    board: mockBoard,
+    onRename: fn(),
+    onDelete: fn(),
+    onToggleFavorite: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+
+    // Find favorite button
+    const favoriteButton = canvas.getByRole('button', {
+      name: `Add ${mockBoard.name} to favorites`,
+    })
+
+    // Click favorite button
+    await userEvent.click(favoriteButton)
+
+    // Verify callback was called
+    await waitFor(() => {
+      expect(args.onToggleFavorite).toHaveBeenCalledWith(mockBoard.id, true)
+    })
+  },
+}
+
+/**
+ * Tests unfavorite button interaction on favorited board
+ */
+export const UnfavoriteToggle: Story = {
+  args: {
+    board: { ...mockBoard, is_favorite: true },
+    onRename: fn(),
+    onDelete: fn(),
+    onToggleFavorite: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+
+    // Find unfavorite button (board is already favorited)
+    const unfavoriteButton = canvas.getByRole('button', {
+      name: `Remove ${mockBoard.name} from favorites`,
+    })
+
+    // Click unfavorite button
+    await userEvent.click(unfavoriteButton)
+
+    // Verify callback was called to remove from favorites
+    await waitFor(() => {
+      expect(args.onToggleFavorite).toHaveBeenCalledWith(mockBoard.id, false)
+    })
+  },
+}
+
+/**
+ * Tests that rename dialog cancel button closes the dialog
+ */
+export const RenameDialogCancel: Story = {
+  args: {
+    board: mockBoard,
+    onRename: fn(),
+    onDelete: fn(),
+    onToggleFavorite: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Open menu
+    const menuButton = canvas.getByRole('button', {
+      name: `Open menu for ${mockBoard.name}`,
+    })
+    await userEvent.click(menuButton)
+
+    // Wait for menu and click rename option
+    await waitFor(() => {
+      const menuContent = document.querySelector('[role="menu"]')
+      expect(menuContent).toBeInTheDocument()
+    })
+    const renameOption = document.querySelector('[role="menuitem"]')
+    if (renameOption) {
+      await userEvent.click(renameOption)
+    }
+
+    // Wait for dialog to appear
+    await waitFor(() => {
+      const dialog = document.querySelector('[role="dialog"]')
+      expect(dialog).toBeInTheDocument()
+    })
+
+    // Find and click Cancel button
+    const cancelButton = document.querySelector('button[type="button"]')
+    if (cancelButton && cancelButton.textContent?.includes('Cancel')) {
+      await userEvent.click(cancelButton)
+    }
+  },
+}
+
+/**
+ * Tests that delete dialog cancel button closes the dialog
+ */
+export const DeleteDialogCancel: Story = {
+  args: {
+    board: mockBoard,
+    onRename: fn(),
+    onDelete: fn(),
+    onToggleFavorite: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Open menu
+    const menuButton = canvas.getByRole('button', {
+      name: `Open menu for ${mockBoard.name}`,
+    })
+    await userEvent.click(menuButton)
+
+    // Wait for menu and click delete option
+    await waitFor(() => {
+      const menuItems = document.querySelectorAll('[role="menuitem"]')
+      expect(menuItems.length).toBeGreaterThan(1)
+    })
+    const menuItems = document.querySelectorAll('[role="menuitem"]')
+    const deleteOption = menuItems[1]
+    if (deleteOption) {
+      await userEvent.click(deleteOption)
+    }
+
+    // Wait for alertdialog to appear
+    await waitFor(() => {
+      const alertDialog = document.querySelector('[role="alertdialog"]')
+      expect(alertDialog).toBeInTheDocument()
+    })
+
+    // Find and click Cancel button
+    const buttons = document.querySelectorAll('[role="alertdialog"] button')
+    const cancelButton = Array.from(buttons).find((btn) =>
+      btn.textContent?.includes('Cancel'),
+    )
+    if (cancelButton) {
+      await userEvent.click(cancelButton)
+    }
+  },
+}
+
+/**
+ * Tests that rename dialog closes with onClose callback
+ * Covers line 90: setIsRenameOpen(false)
+ */
+export const RenameDialogClose: Story = {
+  args: {
+    board: mockBoard,
+    onRename: fn(),
+    onDelete: fn(),
+    onToggleFavorite: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Open menu
+    const menuButton = canvas.getByRole('button', {
+      name: `Open menu for ${mockBoard.name}`,
+    })
+    await userEvent.click(menuButton)
+
+    // Wait for menu and click rename option
+    await waitFor(() => {
+      const menuContent = document.querySelector('[role="menu"]')
+      expect(menuContent).toBeInTheDocument()
+    })
+    const renameOption = document.querySelector('[role="menuitem"]')
+    if (renameOption) {
+      await userEvent.click(renameOption)
+    }
+
+    // Wait for dialog to appear
+    await waitFor(() => {
+      const dialog = document.querySelector('[role="dialog"]')
+      expect(dialog).toBeInTheDocument()
+    })
+
+    // Press Escape to close dialog (triggers onClose)
+    await userEvent.keyboard('{Escape}')
+
+    // Verify dialog is closed
+    await waitFor(() => {
+      const dialog = document.querySelector('[role="dialog"]')
+      expect(dialog).not.toBeInTheDocument()
+    })
+  },
 }

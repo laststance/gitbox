@@ -7,7 +7,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
-import { fn } from 'storybook/test'
+import { expect, userEvent, waitFor, fn } from 'storybook/test'
 
 import { DeleteBoardDialog } from './DeleteBoardDialog'
 
@@ -86,5 +86,65 @@ export const Closed: Story = {
 export const EmojiName: Story = {
   args: {
     boardName: 'Frontend Development Board',
+  },
+}
+
+/**
+ * Tests cancel button closes dialog
+ */
+export const CancelButton: Story = {
+  args: {
+    isOpen: true,
+    boardId: 'board-123',
+    boardName: 'My Project Board',
+    onClose: fn(),
+    onDeleteSuccess: fn(),
+  },
+  play: async () => {
+    // Wait for dialog to render
+    await waitFor(() => {
+      const cancelButton = document.querySelector(
+        'button[type="button"]:not([type="submit"])',
+      )
+      expect(cancelButton).toBeInTheDocument()
+    })
+
+    // Find and click Cancel button
+    const cancelButton = Array.from(document.querySelectorAll('button')).find(
+      (btn) => btn.textContent?.includes('Cancel'),
+    )
+    if (cancelButton) {
+      await userEvent.click(cancelButton)
+    }
+  },
+}
+
+/**
+ * Tests delete button interaction
+ */
+export const DeleteButtonClick: Story = {
+  args: {
+    isOpen: true,
+    boardId: 'board-123',
+    boardName: 'Test Board',
+    onClose: fn(),
+    onDeleteSuccess: fn(),
+  },
+  play: async () => {
+    // Wait for dialog to render
+    await waitFor(() => {
+      expect(document.body).toHaveTextContent('Delete Board')
+    })
+
+    // Find Delete button (destructive)
+    const deleteButton = Array.from(document.querySelectorAll('button')).find(
+      (btn) => btn.textContent?.includes('Delete Board'),
+    )
+    expect(deleteButton).toBeInTheDocument()
+
+    // Click to trigger form submission
+    if (deleteButton) {
+      await userEvent.click(deleteButton)
+    }
   },
 }

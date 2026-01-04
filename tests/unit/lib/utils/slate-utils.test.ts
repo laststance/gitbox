@@ -383,6 +383,15 @@ describe('slate-utils', () => {
 
       expect(result).toBe('Item 1Item 2')
     })
+
+    it('should handle element without children array', () => {
+      // Edge case: element without children property
+      const value = [{ type: 'hr' }] as any
+
+      const result = extractAllText(value)
+
+      expect(result).toBe('')
+    })
   })
 
   describe('getSlateTextLength', () => {

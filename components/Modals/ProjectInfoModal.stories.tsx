@@ -163,3 +163,77 @@ export const TestAutoFocus: Story = {
     })
   },
 }
+
+/**
+ * Test: Modal renders with dialog role
+ */
+export const TestDialogRender: Story = {
+  args: {
+    isOpen: true,
+    onClose: () => {},
+    onSave: () => {},
+    projectInfo: mockProjectInfo,
+  },
+  play: async () => {
+    await waitFor(
+      () => {
+        const dialog = document.querySelector('[role="dialog"]')
+        expect(dialog).toBeInTheDocument()
+      },
+      { timeout: 2000 },
+    )
+  },
+}
+
+/**
+ * Test: Modal shows existing links
+ */
+export const TestLinksDisplay: Story = {
+  args: {
+    isOpen: true,
+    onClose: () => {},
+    onSave: () => {},
+    projectInfo: {
+      id: 'test-links',
+      note: '',
+      comment: '',
+      links: [{ type: 'production' as const, url: 'https://example.com' }],
+    },
+  },
+  play: async () => {
+    await waitFor(
+      () => {
+        const dialog = document.querySelector('[role="dialog"]')
+        expect(dialog).toBeInTheDocument()
+      },
+      { timeout: 2000 },
+    )
+
+    // Check that links section is visible
+    await waitFor(
+      () => {
+        expect(document.body).toHaveTextContent('Links')
+      },
+      { timeout: 2000 },
+    )
+  },
+}
+
+/**
+ * Test: Modal closed state
+ */
+export const TestClosedState: Story = {
+  args: {
+    isOpen: false,
+    onClose: () => {},
+    onSave: () => {},
+    projectInfo: mockProjectInfo,
+  },
+  play: async () => {
+    // Modal should not be visible when closed
+    await waitFor(() => {
+      const dialog = document.querySelector('[role="dialog"]')
+      expect(dialog).not.toBeInTheDocument()
+    })
+  },
+}

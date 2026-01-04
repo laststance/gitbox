@@ -6,6 +6,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
+import { expect, within, userEvent, waitFor } from 'storybook/test'
 
 import type { Tables } from '@/lib/supabase/types'
 
@@ -180,5 +181,129 @@ export const DarkThemes: Story = {
       createMockBoard({ id: '5', name: 'Plum Theme', theme: 'plum' }),
       createMockBoard({ id: '6', name: 'Rust Theme', theme: 'rust' }),
     ],
+  },
+}
+
+/**
+ * Tests grid renders with all board cards
+ */
+export const GridRendersCards: Story = {
+  args: {
+    initialBoards: mockBoards,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Wait for all boards to render
+    await waitFor(() => {
+      expect(canvas.getByText('Frontend Development')).toBeInTheDocument()
+      expect(canvas.getByText('Backend API')).toBeInTheDocument()
+      expect(canvas.getByText('Design System')).toBeInTheDocument()
+    })
+  },
+}
+
+/**
+ * Tests multiple boards render correctly
+ */
+export const MultipleBoardsRender: Story = {
+  args: {
+    initialBoards: mockBoards.slice(0, 4),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Wait for all boards to render
+    await waitFor(() => {
+      expect(canvas.getByText('Frontend Development')).toBeInTheDocument()
+      expect(canvas.getByText('Backend API')).toBeInTheDocument()
+      expect(canvas.getByText('Design System')).toBeInTheDocument()
+      expect(canvas.getByText('DevOps Pipeline')).toBeInTheDocument()
+    })
+  },
+}
+
+/**
+ * Tests empty state displays correctly
+ */
+export const EmptyStateInteraction: Story = {
+  args: {
+    initialBoards: [],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Wait for empty state message
+    await waitFor(() => {
+      expect(canvas.getByText('No boards yet')).toBeInTheDocument()
+    })
+
+    // Should have a create board button/link
+    const createButton = canvas.getByRole('link', { name: /create.*board/i })
+    expect(createButton).toBeInTheDocument()
+  },
+}
+
+/**
+ * Tests optimistic rename update
+ */
+export const OptimisticRename: Story = {
+  args: {
+    initialBoards: [mockBoards[0]],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Wait for board to render
+    await waitFor(() => {
+      expect(canvas.getByText('Frontend Development')).toBeInTheDocument()
+    })
+
+    // Open menu
+    const menuButton = canvas.getByRole('button', {
+      name: /open menu/i,
+    })
+    await userEvent.click(menuButton)
+
+    // Click rename (triggers optimistic update flow)
+    await waitFor(() => {
+      const menuContent = document.querySelector('[role="menu"]')
+      expect(menuContent).toBeInTheDocument()
+    })
+    const renameOption = document.querySelector('[role="menuitem"]')
+    if (renameOption) {
+      await userEvent.click(renameOption)
+    }
+  },
+}
+
+/**
+ * Tests optimistic favorite toggle update
+ */
+export const OptimisticFavoriteToggle: Story = {
+  args: {
+    initialBoards: [mockBoards[0]],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Wait for board to render
+    await waitFor(() => {
+      expect(canvas.getByText('Frontend Development')).toBeInTheDocument()
+    })
+
+    // Find and click favorite button (triggers optimistic update)
+    const favoriteButton = canvas.getByRole('button', {
+      name: /add.*favorites/i,
+    })
+    await userEvent.click(favoriteButton)
+
+    // After click, button should change to "remove from favorites"
+    await waitFor(() => {
+      const updatedButton = canvas.getByRole('button', {
+        name: /remove.*favorites/i,
+      })
+      expect(updatedButton).toBeInTheDocument()
+    })
   },
 }

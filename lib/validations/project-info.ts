@@ -72,25 +72,16 @@ export const commentColorSchema = z.enum(VALID_COMMENT_COLORS, {
  * // => { success: false, error: 'Note must be 20000 characters or less' }
  */
 export const noteSchema = z.string().superRefine((val, ctx) => {
-  try {
-    // Parse JSON to get actual text length
-    const slateValue = parseSlateValue(val)
-    const textLength = getSlateTextLength(slateValue)
+  // parseSlateValue handles both JSON and plain text internally (never throws)
+  // It converts legacy plain text to Slate paragraphs automatically
+  const slateValue = parseSlateValue(val)
+  const textLength = getSlateTextLength(slateValue)
 
-    if (textLength > NOTE_MAX_LENGTH) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `Note must be ${NOTE_MAX_LENGTH} characters or less`,
-      })
-    }
-  } catch {
-    // If parsing fails, fall back to raw length check (legacy plain text)
-    if (val.length > NOTE_MAX_LENGTH) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `Note must be ${NOTE_MAX_LENGTH} characters or less`,
-      })
-    }
+  if (textLength > NOTE_MAX_LENGTH) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `Note must be ${NOTE_MAX_LENGTH} characters or less`,
+    })
   }
 })
 

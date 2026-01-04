@@ -10,6 +10,7 @@
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 import { memo, useState } from 'react'
+import { expect, userEvent, waitFor } from 'storybook/test'
 
 import { LinkTypeCombobox, type UserPresetOption } from './link-type-combobox'
 
@@ -183,4 +184,154 @@ const UnknownValueStory = memo(function UnknownValueStory() {
 
 export const UnknownValue: Story = {
   render: () => <UnknownValueStory />,
+}
+
+// Additional test stories for coverage
+
+/**
+ * Tests combobox trigger renders correctly
+ */
+export const TriggerRendersCorrectly: Story = {
+  render: () => <LinkTypeCombobox value="vercel" onValueChange={() => {}} />,
+  play: async () => {
+    await waitFor(() => {
+      const trigger = document.querySelector('[role="combobox"]')
+      expect(trigger).toBeInTheDocument()
+    })
+
+    // Check trigger displays Vercel
+    await waitFor(() => {
+      const triggerText =
+        document.querySelector('[role="combobox"]')?.textContent
+      expect(triggerText).toContain('Vercel')
+    })
+  },
+}
+
+/**
+ * Tests combobox opens on click
+ */
+export const OpensOnClick: Story = {
+  render: () => <LinkTypeCombobox value="vercel" onValueChange={() => {}} />,
+  play: async () => {
+    await waitFor(() => {
+      const trigger = document.querySelector('[role="combobox"]')
+      expect(trigger).toBeInTheDocument()
+    })
+
+    // Click to open
+    const trigger = document.querySelector('[role="combobox"]')
+    if (trigger) {
+      await userEvent.click(trigger)
+    }
+
+    // Wait for popover to open (popover content appears)
+    await waitFor(
+      () => {
+        // Check that aria-expanded is true or content is visible
+        const expandedTrigger = document.querySelector(
+          '[role="combobox"][aria-expanded="true"]',
+        )
+        expect(expandedTrigger).toBeInTheDocument()
+      },
+      { timeout: 2000 },
+    )
+  },
+}
+
+/**
+ * Tests disabled state
+ */
+export const DisabledState: Story = {
+  render: () => (
+    <LinkTypeCombobox value="vercel" onValueChange={() => {}} disabled />
+  ),
+  play: async () => {
+    await waitFor(() => {
+      const trigger = document.querySelector('[role="combobox"]')
+      expect(trigger).toBeInTheDocument()
+    })
+
+    // Button should be disabled
+    const button = document.querySelector('button[disabled]')
+    expect(button).toBeInTheDocument()
+  },
+}
+
+/**
+ * Tests with user presets renders correctly
+ */
+const WithUserPresetsRenderStory = memo(function WithUserPresetsRenderStory() {
+  const [value] = useState('my-custom')
+  const userPresets: UserPresetOption[] = [
+    { id: '1', value: 'my-custom', label: 'My Custom', icon: 'Star' },
+  ]
+  return (
+    <LinkTypeCombobox
+      value={value}
+      onValueChange={() => {}}
+      userPresets={userPresets}
+    />
+  )
+})
+
+export const UserPresetsRender: Story = {
+  render: () => <WithUserPresetsRenderStory />,
+  play: async () => {
+    await waitFor(() => {
+      const trigger = document.querySelector('[role="combobox"]')
+      expect(trigger).toBeInTheDocument()
+    })
+
+    // Custom preset label should be shown
+    await waitFor(() => {
+      const triggerText =
+        document.querySelector('[role="combobox"]')?.textContent
+      expect(triggerText).toContain('My Custom')
+    })
+  },
+}
+
+/**
+ * Tests dropdown menu renders with CommandSeparator
+ * CommandSeparator is rendered when userPresets are provided
+ * Covers command.tsx line 103
+ */
+const DropdownMenuStory = memo(function DropdownMenuStory() {
+  const [value, setValue] = useState('my-custom')
+  const userPresets: UserPresetOption[] = [
+    { id: '1', value: 'my-custom', label: 'My Custom Preset', icon: 'Star' },
+  ]
+  return (
+    <LinkTypeCombobox
+      value={value}
+      onValueChange={setValue}
+      userPresets={userPresets}
+    />
+  )
+})
+
+export const DropdownMenuWithSeparator: Story = {
+  render: () => <DropdownMenuStory />,
+  play: async () => {
+    await waitFor(() => {
+      const trigger = document.querySelector('[role="combobox"]')
+      expect(trigger).toBeInTheDocument()
+    })
+
+    // Click to open dropdown
+    const trigger = document.querySelector('[role="combobox"]')
+    if (trigger) {
+      await userEvent.click(trigger)
+    }
+
+    // Wait for dropdown to open - listbox content appears with CommandSeparator
+    await waitFor(
+      () => {
+        const listbox = document.querySelector('[role="listbox"]')
+        expect(listbox).toBeInTheDocument()
+      },
+      { timeout: 2000 },
+    )
+  },
 }

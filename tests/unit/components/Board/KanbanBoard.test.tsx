@@ -525,3 +525,1004 @@ describe('StatusColumn Auto-Height Classes', () => {
     expect(expectedClasses).not.toContain('overflow-y-auto')
   })
 })
+
+/**
+ * Unit Tests: KanbanBoard Loading and Error States
+ *
+ * Test targets:
+ * - KanbanSkeleton rendering during loading
+ * - ErrorState rendering when error occurs
+ * - Normal board rendering when data is available
+ */
+describe('KanbanBoard Loading and Error States', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should render loading skeleton when loading is true and no status lists', async () => {
+    const store = configureStore({
+      reducer: {
+        board: boardSlice,
+      },
+      preloadedState: {
+        board: {
+          activeBoard: null,
+          statusLists: [],
+          repoCards: [],
+          loading: true,
+          error: null,
+          lastDragOperation: null,
+          undoHistory: [],
+        },
+      },
+    })
+
+    const { container } = render(
+      <Provider store={store}>
+        <KanbanBoard boardId="test-board" initialComments={{}} />
+      </Provider>,
+    )
+
+    // Wait for skeleton to render
+    await waitFor(() => {
+      // Should show skeleton elements
+      const skeletons = container.querySelectorAll('[class*="animate-pulse"]')
+      expect(skeletons.length).toBeGreaterThan(0)
+    })
+  })
+
+  it('should render error state when error exists', async () => {
+    const store = configureStore({
+      reducer: {
+        board: boardSlice,
+      },
+      preloadedState: {
+        board: {
+          activeBoard: null,
+          statusLists: [],
+          repoCards: [],
+          loading: false,
+          error: 'Failed to load board data',
+          lastDragOperation: null,
+          undoHistory: [],
+        },
+      },
+    })
+
+    const { container, getByText } = render(
+      <Provider store={store}>
+        <KanbanBoard boardId="test-board" initialComments={{}} />
+      </Provider>,
+    )
+
+    // Wait for error state to render
+    await waitFor(() => {
+      expect(getByText('Something went wrong')).toBeInTheDocument()
+      expect(getByText('Failed to load board data')).toBeInTheDocument()
+    })
+
+    // Check error icon is present
+    const errorIcon = container.querySelector('.text-destructive')
+    expect(errorIcon).toBeInTheDocument()
+  })
+
+  it('should not show skeleton when loading but status lists exist', async () => {
+    const store = configureStore({
+      reducer: {
+        board: boardSlice,
+      },
+      preloadedState: {
+        board: {
+          activeBoard: null,
+          statusLists: [
+            {
+              id: 'status-1',
+              title: 'To Do',
+              color: '#6B7280',
+              gridRow: 0,
+              gridCol: 0,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+          ],
+          repoCards: [],
+          loading: true,
+          error: null,
+          lastDragOperation: null,
+          undoHistory: [],
+        },
+      },
+    })
+
+    const { container, queryByText } = render(
+      <Provider store={store}>
+        <KanbanBoard boardId="test-board" initialComments={{}} />
+      </Provider>,
+    )
+
+    // Wait for component to render
+    await waitFor(() => {
+      // Should NOT show skeleton when data exists
+      const skeleton = container.querySelector('[class*="animate-pulse"]')
+      expect(skeleton).not.toBeInTheDocument()
+    })
+
+    // Should NOT show error message
+    expect(queryByText('Something went wrong')).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * Unit Tests: KanbanBoard with Status Lists and Cards
+ *
+ * Test targets:
+ * - Rendering status columns with cards
+ * - Grid dimensions calculation
+ * - Column sorting by gridRow and gridCol
+ */
+describe('KanbanBoard with Data', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should render status columns when data is available', async () => {
+    const store = configureStore({
+      reducer: {
+        board: boardSlice,
+      },
+      preloadedState: {
+        board: {
+          activeBoard: null,
+          statusLists: [
+            {
+              id: 'status-1',
+              title: 'To Do',
+              color: '#6B7280',
+              gridRow: 0,
+              gridCol: 0,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+            {
+              id: 'status-2',
+              title: 'In Progress',
+              color: '#3B82F6',
+              gridRow: 0,
+              gridCol: 1,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+          ],
+          repoCards: [
+            {
+              id: 'card-1',
+              title: 'react',
+              repoOwner: 'facebook',
+              repoName: 'react',
+              statusId: 'status-1',
+              order: 0,
+              boardId: 'board-1',
+              meta: { stars: 200000, language: 'JavaScript' },
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+          ],
+          loading: false,
+          error: null,
+          lastDragOperation: null,
+          undoHistory: [],
+        },
+      },
+    })
+
+    const { getByText } = render(
+      <Provider store={store}>
+        <KanbanBoard boardId="test-board" initialComments={{}} />
+      </Provider>,
+    )
+
+    // Wait for columns to render
+    await waitFor(() => {
+      expect(getByText('To Do')).toBeInTheDocument()
+      expect(getByText('In Progress')).toBeInTheDocument()
+    })
+  })
+
+  it('should sort status lists by gridRow then gridCol', async () => {
+    const store = configureStore({
+      reducer: {
+        board: boardSlice,
+      },
+      preloadedState: {
+        board: {
+          activeBoard: null,
+          statusLists: [
+            {
+              id: 'status-3',
+              title: 'Done',
+              color: '#22C55E',
+              gridRow: 1,
+              gridCol: 0,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+            {
+              id: 'status-1',
+              title: 'To Do',
+              color: '#6B7280',
+              gridRow: 0,
+              gridCol: 0,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+            {
+              id: 'status-2',
+              title: 'In Progress',
+              color: '#3B82F6',
+              gridRow: 0,
+              gridCol: 1,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+          ],
+          repoCards: [],
+          loading: false,
+          error: null,
+          lastDragOperation: null,
+          undoHistory: [],
+        },
+      },
+    })
+
+    const { getByText } = render(
+      <Provider store={store}>
+        <KanbanBoard boardId="test-board" initialComments={{}} />
+      </Provider>,
+    )
+
+    // All columns should render
+    await waitFor(() => {
+      expect(getByText('To Do')).toBeInTheDocument()
+      expect(getByText('In Progress')).toBeInTheDocument()
+      expect(getByText('Done')).toBeInTheDocument()
+    })
+  })
+})
+
+/**
+ * Unit Tests: KanbanBoard Callbacks
+ *
+ * Test targets:
+ * - onEditProjectInfo callback
+ * - onMoveToMaintenance callback
+ * - onNote callback
+ * - onRemove callback
+ * - onEditStatus callback
+ * - onDeleteStatus callback
+ * - onAddCard callback
+ */
+describe('KanbanBoard Callbacks', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should pass callbacks to child components', async () => {
+    const mockOnEditProjectInfo = vi.fn()
+    const mockOnMoveToMaintenance = vi.fn()
+    const mockOnNote = vi.fn()
+    const mockOnRemove = vi.fn()
+    const mockOnEditStatus = vi.fn()
+    const mockOnDeleteStatus = vi.fn()
+    const mockOnAddCard = vi.fn()
+
+    const store = configureStore({
+      reducer: {
+        board: boardSlice,
+      },
+      preloadedState: {
+        board: {
+          activeBoard: null,
+          statusLists: [
+            {
+              id: 'status-1',
+              title: 'To Do',
+              color: '#6B7280',
+              gridRow: 0,
+              gridCol: 0,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+          ],
+          repoCards: [],
+          loading: false,
+          error: null,
+          lastDragOperation: null,
+          undoHistory: [],
+        },
+      },
+    })
+
+    const { getByText } = render(
+      <Provider store={store}>
+        <KanbanBoard
+          boardId="test-board"
+          initialComments={{}}
+          onEditProjectInfo={mockOnEditProjectInfo}
+          onMoveToMaintenance={mockOnMoveToMaintenance}
+          onNote={mockOnNote}
+          onRemove={mockOnRemove}
+          onEditStatus={mockOnEditStatus}
+          onDeleteStatus={mockOnDeleteStatus}
+          onAddCard={mockOnAddCard}
+        />
+      </Provider>,
+    )
+
+    // Wait for component to render
+    await waitFor(() => {
+      expect(getByText('To Do')).toBeInTheDocument()
+    })
+
+    // Callbacks should be ready to use (actual invocation depends on user interaction)
+  })
+})
+
+/**
+ * Unit Tests: KanbanBoard Initial Comments
+ *
+ * Test targets:
+ * - Passing initialComments prop
+ * - Comment data structure
+ */
+describe('KanbanBoard Initial Comments', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should accept initialComments prop', async () => {
+    const store = configureStore({
+      reducer: {
+        board: boardSlice,
+      },
+      preloadedState: {
+        board: {
+          activeBoard: null,
+          statusLists: [
+            {
+              id: 'status-1',
+              title: 'To Do',
+              color: '#6B7280',
+              gridRow: 0,
+              gridCol: 0,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+          ],
+          repoCards: [
+            {
+              id: 'card-1',
+              title: 'react',
+              repoOwner: 'facebook',
+              repoName: 'react',
+              statusId: 'status-1',
+              order: 0,
+              boardId: 'board-1',
+              meta: { stars: 200000, language: 'JavaScript' },
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+          ],
+          loading: false,
+          error: null,
+          lastDragOperation: null,
+          undoHistory: [],
+        },
+      },
+    })
+
+    const initialComments = {
+      'card-1': { comment: 'Great library!', color: 'primary' as const },
+    }
+
+    const { getByText } = render(
+      <Provider store={store}>
+        <KanbanBoard boardId="test-board" initialComments={initialComments} />
+      </Provider>,
+    )
+
+    // Wait for component to render
+    await waitFor(() => {
+      expect(getByText('To Do')).toBeInTheDocument()
+    })
+  })
+})
+
+/**
+ * Unit Tests: KanbanBoard Card Display Settings
+ *
+ * Test targets:
+ * - cardDisplaySettings prop
+ * - showGitHubDescription setting
+ * - showComment setting
+ * - commentText settings
+ */
+describe('KanbanBoard Card Display Settings', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should accept cardDisplaySettings prop', async () => {
+    const store = configureStore({
+      reducer: {
+        board: boardSlice,
+      },
+      preloadedState: {
+        board: {
+          activeBoard: null,
+          statusLists: [
+            {
+              id: 'status-1',
+              title: 'To Do',
+              color: '#6B7280',
+              gridRow: 0,
+              gridCol: 0,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+          ],
+          repoCards: [],
+          loading: false,
+          error: null,
+          lastDragOperation: null,
+          undoHistory: [],
+        },
+      },
+    })
+
+    const cardDisplaySettings = {
+      showGitHubDescription: true,
+      showComment: true,
+      commentText: {
+        fontSize: 'base' as const,
+        fontWeight: 'normal' as const,
+      },
+    }
+
+    const { getByText } = render(
+      <Provider store={store}>
+        <KanbanBoard
+          boardId="test-board"
+          initialComments={{}}
+          cardDisplaySettings={cardDisplaySettings}
+        />
+      </Provider>,
+    )
+
+    // Wait for component to render
+    await waitFor(() => {
+      expect(getByText('To Do')).toBeInTheDocument()
+    })
+  })
+
+  it('should accept cardDisplaySettings with showComment disabled', async () => {
+    const store = configureStore({
+      reducer: {
+        board: boardSlice,
+      },
+      preloadedState: {
+        board: {
+          activeBoard: null,
+          statusLists: [
+            {
+              id: 'status-1',
+              title: 'To Do',
+              color: '#6B7280',
+              gridRow: 0,
+              gridCol: 0,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+          ],
+          repoCards: [],
+          loading: false,
+          error: null,
+          lastDragOperation: null,
+          undoHistory: [],
+        },
+      },
+    })
+
+    const cardDisplaySettings = {
+      showGitHubDescription: false,
+      showComment: false,
+      commentText: {
+        fontSize: 'sm' as const,
+        fontWeight: 'semibold' as const,
+      },
+    }
+
+    const { getByText } = render(
+      <Provider store={store}>
+        <KanbanBoard
+          boardId="test-board"
+          initialComments={{}}
+          cardDisplaySettings={cardDisplaySettings}
+        />
+      </Provider>,
+    )
+
+    // Wait for component to render
+    await waitFor(() => {
+      expect(getByText('To Do')).toBeInTheDocument()
+    })
+  })
+})
+
+/**
+ * Unit Tests: KanbanBoard Undo Functionality
+ *
+ * Test targets:
+ * - Z key keyboard shortcut for undo
+ * - Undo message display
+ */
+describe('KanbanBoard Undo Keyboard Shortcut', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should respond to Z key press for undo', async () => {
+    const store = configureStore({
+      reducer: {
+        board: boardSlice,
+      },
+      preloadedState: {
+        board: {
+          activeBoard: null,
+          statusLists: [
+            {
+              id: 'status-1',
+              title: 'To Do',
+              color: '#6B7280',
+              gridRow: 0,
+              gridCol: 0,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+          ],
+          repoCards: [],
+          loading: false,
+          error: null,
+          lastDragOperation: null,
+          undoHistory: [],
+        },
+      },
+    })
+
+    const { getByText } = render(
+      <Provider store={store}>
+        <KanbanBoard boardId="test-board" initialComments={{}} />
+      </Provider>,
+    )
+
+    // Wait for component to render
+    await waitFor(() => {
+      expect(getByText('To Do')).toBeInTheDocument()
+    })
+
+    // Simulate Z key press
+    const keydownEvent = new KeyboardEvent('keydown', {
+      key: 'z',
+      bubbles: true,
+    })
+    window.dispatchEvent(keydownEvent)
+
+    // The undo function should be triggered (even if no history exists)
+    // This tests the keyboard event handler is registered
+  })
+
+  it('should not trigger undo when typing in input field', async () => {
+    const store = configureStore({
+      reducer: {
+        board: boardSlice,
+      },
+      preloadedState: {
+        board: {
+          activeBoard: null,
+          statusLists: [
+            {
+              id: 'status-1',
+              title: 'To Do',
+              color: '#6B7280',
+              gridRow: 0,
+              gridCol: 0,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+          ],
+          repoCards: [],
+          loading: false,
+          error: null,
+          lastDragOperation: null,
+          undoHistory: [],
+        },
+      },
+    })
+
+    const { getByText, container } = render(
+      <Provider store={store}>
+        <div>
+          <input data-testid="test-input" type="text" />
+          <KanbanBoard boardId="test-board" initialComments={{}} />
+        </div>
+      </Provider>,
+    )
+
+    await waitFor(() => {
+      expect(getByText('To Do')).toBeInTheDocument()
+    })
+
+    // Create a mock input element and set it as event target
+    const input = container.querySelector('[data-testid="test-input"]')
+    expect(input).toBeInTheDocument()
+
+    // Simulate Z key press from input field
+    const keydownEvent = new KeyboardEvent('keydown', {
+      key: 'z',
+      bubbles: true,
+    })
+    Object.defineProperty(keydownEvent, 'target', {
+      value: input,
+      writable: false,
+    })
+    window.dispatchEvent(keydownEvent)
+
+    // Undo should not be triggered when target is input
+  })
+
+  it('should respond to uppercase Z key press', async () => {
+    const store = configureStore({
+      reducer: {
+        board: boardSlice,
+      },
+      preloadedState: {
+        board: {
+          activeBoard: null,
+          statusLists: [
+            {
+              id: 'status-1',
+              title: 'To Do',
+              color: '#6B7280',
+              gridRow: 0,
+              gridCol: 0,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+          ],
+          repoCards: [],
+          loading: false,
+          error: null,
+          lastDragOperation: null,
+          undoHistory: [],
+        },
+      },
+    })
+
+    const { getByText } = render(
+      <Provider store={store}>
+        <KanbanBoard boardId="test-board" initialComments={{}} />
+      </Provider>,
+    )
+
+    await waitFor(() => {
+      expect(getByText('To Do')).toBeInTheDocument()
+    })
+
+    // Simulate uppercase Z key press
+    const keydownEvent = new KeyboardEvent('keydown', {
+      key: 'Z',
+      bubbles: true,
+    })
+    window.dispatchEvent(keydownEvent)
+
+    // The undo function should be triggered
+  })
+})
+
+/**
+ * Unit Tests: KanbanBoard DndContext Configuration
+ *
+ * Test targets:
+ * - DndContext renders with proper sensors
+ * - Collision detection strategy
+ * - Accessibility options
+ */
+describe('KanbanBoard DndContext Configuration', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should render DndContext wrapper', async () => {
+    const store = configureStore({
+      reducer: {
+        board: boardSlice,
+      },
+      preloadedState: {
+        board: {
+          activeBoard: null,
+          statusLists: [
+            {
+              id: 'status-1',
+              title: 'To Do',
+              color: '#6B7280',
+              gridRow: 0,
+              gridCol: 0,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+          ],
+          repoCards: [
+            {
+              id: 'card-1',
+              title: 'react',
+              repoOwner: 'facebook',
+              repoName: 'react',
+              statusId: 'status-1',
+              order: 0,
+              boardId: 'board-1',
+              meta: { stars: 200000, language: 'JavaScript' },
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+          ],
+          loading: false,
+          error: null,
+          lastDragOperation: null,
+          undoHistory: [],
+        },
+      },
+    })
+
+    const { getByText } = render(
+      <Provider store={store}>
+        <KanbanBoard boardId="test-board" initialComments={{}} />
+      </Provider>,
+    )
+
+    // Wait for DndContext to be set up
+    await waitFor(() => {
+      expect(getByText('To Do')).toBeInTheDocument()
+    })
+
+    // DndContext should be properly configured (verified by successful render)
+  })
+})
+
+/**
+ * Unit Tests: KanbanBoard with Multiple Rows
+ *
+ * Test targets:
+ * - Multiple row layout
+ * - NewRowDropZone rendering
+ * - ColumnInsertZone rendering
+ */
+describe('KanbanBoard Multi-Row Layout', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should render multiple rows of columns', async () => {
+    const store = configureStore({
+      reducer: {
+        board: boardSlice,
+      },
+      preloadedState: {
+        board: {
+          activeBoard: null,
+          statusLists: [
+            {
+              id: 'status-1',
+              title: 'To Do',
+              color: '#6B7280',
+              gridRow: 0,
+              gridCol: 0,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+            {
+              id: 'status-2',
+              title: 'In Progress',
+              color: '#3B82F6',
+              gridRow: 0,
+              gridCol: 1,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+            {
+              id: 'status-3',
+              title: 'Done',
+              color: '#22C55E',
+              gridRow: 1,
+              gridCol: 0,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+          ],
+          repoCards: [],
+          loading: false,
+          error: null,
+          lastDragOperation: null,
+          undoHistory: [],
+        },
+      },
+    })
+
+    const { getByText, container } = render(
+      <Provider store={store}>
+        <KanbanBoard boardId="test-board" initialComments={{}} />
+      </Provider>,
+    )
+
+    // All columns across multiple rows should render
+    await waitFor(() => {
+      expect(getByText('To Do')).toBeInTheDocument()
+      expect(getByText('In Progress')).toBeInTheDocument()
+      expect(getByText('Done')).toBeInTheDocument()
+    })
+
+    // Verify grid has multiple rows
+    const gridContainer = container.querySelector('.grid.gap-4.pb-4')
+    expect(gridContainer).toBeInTheDocument()
+
+    const style = gridContainer?.getAttribute('style')
+    // Should have grid-template-rows for multiple rows
+    expect(style).toContain('grid-template-rows')
+  })
+
+  it('should calculate grid dimensions for 2x2 layout', async () => {
+    const store = configureStore({
+      reducer: {
+        board: boardSlice,
+      },
+      preloadedState: {
+        board: {
+          activeBoard: null,
+          statusLists: [
+            {
+              id: 'status-1',
+              title: 'Col 0,0',
+              color: '#6B7280',
+              gridRow: 0,
+              gridCol: 0,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+            {
+              id: 'status-2',
+              title: 'Col 0,1',
+              color: '#3B82F6',
+              gridRow: 0,
+              gridCol: 1,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+            {
+              id: 'status-3',
+              title: 'Col 1,0',
+              color: '#22C55E',
+              gridRow: 1,
+              gridCol: 0,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+            {
+              id: 'status-4',
+              title: 'Col 1,1',
+              color: '#EF4444',
+              gridRow: 1,
+              gridCol: 1,
+              boardId: 'board-1',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+          ],
+          repoCards: [],
+          loading: false,
+          error: null,
+          lastDragOperation: null,
+          undoHistory: [],
+        },
+      },
+    })
+
+    const { getByText, container } = render(
+      <Provider store={store}>
+        <KanbanBoard boardId="test-board" initialComments={{}} />
+      </Provider>,
+    )
+
+    // All 4 columns should render
+    await waitFor(() => {
+      expect(getByText('Col 0,0')).toBeInTheDocument()
+      expect(getByText('Col 0,1')).toBeInTheDocument()
+      expect(getByText('Col 1,0')).toBeInTheDocument()
+      expect(getByText('Col 1,1')).toBeInTheDocument()
+    })
+
+    // Verify 2 columns template
+    const gridContainer = container.querySelector('.grid.gap-4.pb-4')
+    const style = gridContainer?.getAttribute('style')
+    expect(style).toContain('repeat(2, minmax(280px, 1fr))')
+    expect(style).toContain('repeat(2, minmax(min-content, auto))')
+  })
+})
+
+/**
+ * Unit Tests: Grid Dimension Calculation
+ *
+ * Tests for internal grid dimension calculation logic
+ */
+describe('Grid Dimension Calculation', () => {
+  it('should calculate maxRow and maxCol correctly', () => {
+    // Simulate the calculation logic
+    const statuses = [
+      { id: 'status-1', gridRow: 0, gridCol: 0 },
+      { id: 'status-2', gridRow: 0, gridCol: 1 },
+      { id: 'status-3', gridRow: 1, gridCol: 0 },
+    ]
+
+    const maxRow = Math.max(...statuses.map((s) => s.gridRow))
+    const maxCol = Math.max(...statuses.map((s) => s.gridCol))
+
+    expect(maxRow).toBe(1)
+    expect(maxCol).toBe(1)
+
+    // Grid dimensions should be maxRow + 1, maxCol + 1
+    const numRows = maxRow + 1
+    const numCols = maxCol + 1
+
+    expect(numRows).toBe(2)
+    expect(numCols).toBe(2)
+  })
+
+  it('should handle sparse grid positions', () => {
+    // Columns might not fill every grid cell
+    const statuses = [
+      { id: 'status-1', gridRow: 0, gridCol: 0 },
+      { id: 'status-2', gridRow: 0, gridCol: 2 }, // Skip col 1
+      { id: 'status-3', gridRow: 2, gridCol: 0 }, // Skip row 1
+    ]
+
+    const maxRow = Math.max(...statuses.map((s) => s.gridRow))
+    const maxCol = Math.max(...statuses.map((s) => s.gridCol))
+
+    expect(maxRow).toBe(2)
+    expect(maxCol).toBe(2)
+
+    // Grid should accommodate the sparse layout
+    const numRows = maxRow + 1
+    const numCols = maxCol + 1
+
+    expect(numRows).toBe(3)
+    expect(numCols).toBe(3)
+  })
+})

@@ -33,7 +33,10 @@ export default defineConfig(({ mode }) => ({
     // Fixes: @laststance/redux-storage-middleware dist/index.js uses './storageMiddleware' without .js
     server: {
       deps: {
-        inline: ['@laststance/redux-storage-middleware'],
+        // Process these packages through Vite for ESM/CSS compatibility
+        // - @laststance/redux-storage-middleware: uses extensionless imports
+        // - @platejs/math: imports katex CSS that needs Vite's CSS handling
+        inline: ['@laststance/redux-storage-middleware', '@platejs/math'],
       },
     },
     // Load environment variables from .env.test (mode defaults to 'test' in vitest)
@@ -73,6 +76,10 @@ export default defineConfig(({ mode }) => ({
         'app/msw-provider.tsx',
         // Next.js proxy/middleware (tested via E2E)
         'proxy.ts',
+        // Barrel files (only re-exports, no logic to test)
+        '**/index.ts',
+        // Type definition files
+        '**/*.d.ts',
       ],
     },
     // Two separate test projects: unit tests (happy-dom) and Storybook (browser)

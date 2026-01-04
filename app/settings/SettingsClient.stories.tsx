@@ -23,6 +23,9 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+/**
+ * Default settings page showing theme selection and display preferences
+ */
 export const Default: Story = {
   render: () => <SettingsClient />,
 }

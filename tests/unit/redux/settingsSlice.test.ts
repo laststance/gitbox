@@ -234,6 +234,15 @@ describe('settingsSlice', () => {
 
         expect(result).toBe('system')
       })
+
+      it('should return system when settings exists but theme is undefined', () => {
+        // Edge case: settings object exists but theme property is undefined
+        const rootState = { settings: { theme: undefined } } as any
+
+        const result = selectTheme(rootState)
+
+        expect(result).toBe('system')
+      })
     })
 
     describe('selectCompactMode', () => {
@@ -276,6 +285,14 @@ describe('settingsSlice', () => {
 
         expect(result).toBe('all')
       })
+
+      it('should return all when settings exists but organizationFilter is undefined', () => {
+        const rootState = { settings: { organizationFilter: undefined } } as any
+
+        const result = selectOrganizationFilter(rootState)
+
+        expect(result).toBe('all')
+      })
     })
 
     describe('selectSidebarCollapsed', () => {
@@ -291,6 +308,14 @@ describe('settingsSlice', () => {
 
       it('should return false as default during hydration', () => {
         const rootState = { settings: undefined } as any
+
+        const result = selectSidebarCollapsed(rootState)
+
+        expect(result).toBe(false)
+      })
+
+      it('should return false when settings exists but sidebarCollapsed is undefined', () => {
+        const rootState = { settings: { sidebarCollapsed: undefined } } as any
 
         const result = selectSidebarCollapsed(rootState)
 

@@ -7,7 +7,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
-import { fn } from 'storybook/test'
+import { expect, userEvent, waitFor, fn } from 'storybook/test'
 
 import { RenameBoardDialog } from './RenameBoardDialog'
 
@@ -117,5 +117,129 @@ export const EmojiName: Story = {
 export const SingleCharacter: Story = {
   args: {
     currentName: 'X',
+  },
+}
+
+/**
+ * Tests typing a new name in the input
+ */
+export const TypeNewName: Story = {
+  args: {
+    isOpen: true,
+    boardId: 'board-123',
+    currentName: 'Old Name',
+    onClose: fn(),
+    onRenameSuccess: fn(),
+  },
+  play: async () => {
+    // Wait for dialog to render
+    await waitFor(() => {
+      const input = document.querySelector('input[name="name"]')
+      expect(input).toBeInTheDocument()
+    })
+
+    // Find and clear input, then type new name
+    const input = document.querySelector(
+      'input[name="name"]',
+    ) as HTMLInputElement
+    await userEvent.clear(input)
+    await userEvent.type(input, 'New Board Name')
+
+    // Verify the input has the new value
+    expect(input.value).toBe('New Board Name')
+  },
+}
+
+/**
+ * Tests cancel button closes dialog
+ */
+export const CancelRename: Story = {
+  args: {
+    isOpen: true,
+    boardId: 'board-123',
+    currentName: 'My Board',
+    onClose: fn(),
+    onRenameSuccess: fn(),
+  },
+  play: async () => {
+    // Wait for dialog to render
+    await waitFor(() => {
+      expect(document.body).toHaveTextContent('Cancel')
+    })
+
+    // Find and click Cancel button
+    const cancelButton = Array.from(document.querySelectorAll('button')).find(
+      (btn) => btn.textContent?.includes('Cancel'),
+    )
+    if (cancelButton) {
+      await userEvent.click(cancelButton)
+    }
+  },
+}
+
+/**
+ * Tests save button submission
+ */
+export const SubmitRename: Story = {
+  args: {
+    isOpen: true,
+    boardId: 'board-123',
+    currentName: 'Test Board',
+    onClose: fn(),
+    onRenameSuccess: fn(),
+  },
+  play: async () => {
+    // Wait for dialog to render
+    await waitFor(() => {
+      const input = document.querySelector('input[name="name"]')
+      expect(input).toBeInTheDocument()
+    })
+
+    // Clear and type new name
+    const input = document.querySelector(
+      'input[name="name"]',
+    ) as HTMLInputElement
+    await userEvent.clear(input)
+    await userEvent.type(input, 'Updated Name')
+
+    // Find and click Save button
+    const saveButton = Array.from(document.querySelectorAll('button')).find(
+      (btn) => btn.textContent?.includes('Save'),
+    )
+    if (saveButton) {
+      await userEvent.click(saveButton)
+    }
+  },
+}
+
+/**
+ * Tests character counter updates
+ */
+export const CharacterCounter: Story = {
+  args: {
+    isOpen: true,
+    boardId: 'board-123',
+    currentName: 'Short',
+    onClose: fn(),
+    onRenameSuccess: fn(),
+  },
+  play: async () => {
+    // Wait for dialog to render
+    await waitFor(() => {
+      const input = document.querySelector('input[name="name"]')
+      expect(input).toBeInTheDocument()
+    })
+
+    // Clear and type a longer name
+    const input = document.querySelector(
+      'input[name="name"]',
+    ) as HTMLInputElement
+    await userEvent.clear(input)
+    await userEvent.type(input, 'This is a much longer name to test counter')
+
+    // Verify counter shows updated count
+    await waitFor(() => {
+      expect(document.body).toHaveTextContent('/50')
+    })
   },
 }

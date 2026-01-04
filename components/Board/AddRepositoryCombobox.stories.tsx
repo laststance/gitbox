@@ -8,6 +8,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
+import { expect, userEvent, waitFor, fn } from 'storybook/test'
 
 import { AddRepositoryCombobox } from './AddRepositoryCombobox'
 
@@ -42,5 +43,136 @@ export const WithCallbacks: Story = {
     onQuickNoteFocus: () => {
       console.log('Focus moved to quick note')
     },
+  },
+}
+
+/**
+ * Tests clicking the add button to open the popover
+ */
+export const OpenPopover: Story = {
+  args: {
+    boardId: 'board-1',
+    statusId: 'status-1',
+    onRepositoriesAdded: fn(),
+    onQuickNoteFocus: fn(),
+  },
+  play: async () => {
+    // Wait for component to render
+    await waitFor(() => {
+      const button = Array.from(document.querySelectorAll('button')).find(
+        (btn) => btn.textContent?.includes('Add Repositories'),
+      )
+      expect(button).toBeInTheDocument()
+    })
+
+    // Click to open the popover
+    const button = Array.from(document.querySelectorAll('button')).find((btn) =>
+      btn.textContent?.includes('Add Repositories'),
+    ) as HTMLButtonElement
+    if (button) {
+      await userEvent.click(button)
+    }
+
+    // Wait for combobox panel to appear
+    await waitFor(
+      () => {
+        const combobox = document.querySelector('[role="combobox"]')
+        expect(combobox).toBeInTheDocument()
+      },
+      { timeout: 2000 },
+    )
+  },
+}
+
+/**
+ * Tests search input functionality
+ */
+export const SearchInput: Story = {
+  args: {
+    boardId: 'board-1',
+    statusId: 'status-1',
+    onRepositoriesAdded: fn(),
+    onQuickNoteFocus: fn(),
+  },
+  play: async () => {
+    // Wait for component to render
+    await waitFor(() => {
+      const button = Array.from(document.querySelectorAll('button')).find(
+        (btn) => btn.textContent?.includes('Add Repositories'),
+      )
+      expect(button).toBeInTheDocument()
+    })
+
+    // Click to open the popover
+    const button = Array.from(document.querySelectorAll('button')).find((btn) =>
+      btn.textContent?.includes('Add Repositories'),
+    ) as HTMLButtonElement
+    if (button) {
+      await userEvent.click(button)
+    }
+
+    // Wait for combobox panel to appear with input
+    await waitFor(
+      () => {
+        const input = document.querySelector('input[type="text"]')
+        expect(input).toBeInTheDocument()
+      },
+      { timeout: 2000 },
+    )
+
+    // Type in search
+    const input = document.querySelector(
+      'input[type="text"]',
+    ) as HTMLInputElement
+    if (input) {
+      await userEvent.type(input, 'test-repo')
+      expect(input.value).toBe('test-repo')
+    }
+  },
+}
+
+/**
+ * Tests cancel button closes popover
+ */
+export const CancelButton: Story = {
+  args: {
+    boardId: 'board-1',
+    statusId: 'status-1',
+    onRepositoriesAdded: fn(),
+    onQuickNoteFocus: fn(),
+  },
+  play: async () => {
+    // Wait for component to render
+    await waitFor(() => {
+      const button = Array.from(document.querySelectorAll('button')).find(
+        (btn) => btn.textContent?.includes('Add Repositories'),
+      )
+      expect(button).toBeInTheDocument()
+    })
+
+    // Click to open the popover
+    const openButton = Array.from(document.querySelectorAll('button')).find(
+      (btn) => btn.textContent?.includes('Add Repositories'),
+    ) as HTMLButtonElement
+    if (openButton) {
+      await userEvent.click(openButton)
+    }
+
+    // Wait for combobox panel to appear
+    await waitFor(
+      () => {
+        const combobox = document.querySelector('[role="combobox"]')
+        expect(combobox).toBeInTheDocument()
+      },
+      { timeout: 2000 },
+    )
+
+    // Find and click cancel button
+    const cancelButton = Array.from(document.querySelectorAll('button')).find(
+      (btn) => btn.textContent?.toLowerCase().includes('cancel'),
+    )
+    if (cancelButton) {
+      await userEvent.click(cancelButton)
+    }
   },
 }

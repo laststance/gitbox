@@ -13,6 +13,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
+import { expect, userEvent, waitFor } from 'storybook/test'
 
 import { setSidebarCollapsed } from '@/lib/redux/slices/settingsSlice'
 import { store } from '@/lib/redux/store'
@@ -115,4 +116,103 @@ export const CollapsedWithoutAvatar: Story = {
       return <Story />
     },
   ],
+}
+
+/**
+ * Tests sidebar renders with navigation links
+ */
+export const NavigationLinksRender: Story = {
+  args: {
+    userName: 'Test User',
+    userAvatar: 'https://avatars.githubusercontent.com/u/1?v=4',
+  },
+  decorators: [
+    (Story) => {
+      store.dispatch(setSidebarCollapsed(false))
+      return <Story />
+    },
+  ],
+  play: async ({ canvasElement }) => {
+    // Wait for sidebar to render
+    await waitFor(() => {
+      expect(canvasElement).toHaveTextContent('Boards')
+    })
+
+    // Check navigation links exist
+    expect(canvasElement).toHaveTextContent('Favorites')
+    expect(canvasElement).toHaveTextContent('Maintenance')
+    expect(canvasElement).toHaveTextContent('Settings')
+  },
+}
+
+/**
+ * Tests sidebar toggle button
+ */
+export const ToggleSidebar: Story = {
+  args: {
+    userName: 'Test User',
+    userAvatar: 'https://avatars.githubusercontent.com/u/1?v=4',
+  },
+  decorators: [
+    (Story) => {
+      store.dispatch(setSidebarCollapsed(false))
+      return <Story />
+    },
+  ],
+  play: async ({ canvasElement }) => {
+    // Wait for sidebar to render
+    await waitFor(() => {
+      const toggleButton = canvasElement.querySelector(
+        'button[aria-label*="Collapse"]',
+      )
+      expect(toggleButton).toBeInTheDocument()
+    })
+
+    // Click the toggle button
+    const toggleButton = canvasElement.querySelector(
+      'button[aria-label*="Collapse"]',
+    ) as HTMLButtonElement
+    if (toggleButton) {
+      await userEvent.click(toggleButton)
+    }
+  },
+}
+
+/**
+ * Tests user menu opens
+ */
+export const UserMenuOpens: Story = {
+  args: {
+    userName: 'Test User',
+    userAvatar: 'https://avatars.githubusercontent.com/u/1?v=4',
+  },
+  decorators: [
+    (Story) => {
+      store.dispatch(setSidebarCollapsed(false))
+      return <Story />
+    },
+  ],
+  play: async ({ canvasElement }) => {
+    // Wait for sidebar to render
+    await waitFor(() => {
+      expect(canvasElement).toHaveTextContent('Test User')
+    })
+
+    // Find and click user menu button
+    const userButton = canvasElement.querySelector(
+      'button[aria-haspopup="menu"]',
+    )
+    if (userButton) {
+      await userEvent.click(userButton)
+    }
+
+    // Wait for dropdown to appear
+    await waitFor(
+      () => {
+        const dropdown = document.querySelector('[role="menu"]')
+        expect(dropdown).toBeInTheDocument()
+      },
+      { timeout: 2000 },
+    )
+  },
 }

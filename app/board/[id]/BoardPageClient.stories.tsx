@@ -103,3 +103,74 @@ export const WithLongBoardName: Story = {
     initialData: createMockInitialData(),
   },
 }
+
+/**
+ * Board with custom theme
+ */
+export const WithTheme: Story = {
+  args: {
+    board: createMockBoard({
+      id: 'board-3',
+      name: 'Themed Board',
+      theme: 'ocean',
+    }),
+    initialData: createMockInitialData(),
+  },
+}
+
+/**
+ * Board with repo cards in status columns
+ */
+export const WithRepoCards: Story = {
+  args: {
+    board: createMockBoard(),
+    initialData: {
+      ...createMockInitialData(),
+      repoCards: [
+        {
+          id: 'card-1',
+          title: 'react',
+          repoOwner: 'facebook',
+          repoName: 'react',
+          statusId: 'status-1',
+          order: 0,
+          boardId: 'board-1',
+          meta: { stars: 200000, language: 'JavaScript' },
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        },
+        {
+          id: 'card-2',
+          title: 'next.js',
+          repoOwner: 'vercel',
+          repoName: 'next.js',
+          statusId: 'status-2',
+          order: 0,
+          boardId: 'board-1',
+          meta: { stars: 100000, language: 'TypeScript' },
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        },
+      ],
+      comments: {
+        'card-1': { comment: 'Initial setup', color: 'neutral' },
+      },
+    },
+  },
+}
+
+/**
+ * Empty board with no status columns
+ */
+export const EmptyBoard: Story = {
+  args: {
+    board: createMockBoard({
+      name: 'Empty Board',
+    }),
+    initialData: {
+      statusLists: [],
+      repoCards: [],
+      comments: {},
+    },
+  },
+}

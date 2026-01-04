@@ -216,8 +216,6 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
       <div
         data-testid="comment-inline-edit"
         onPointerDown={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
-        onKeyUp={(e) => e.stopPropagation()}
         className={cn(
           // Container styles matching CommentDisplay - full rounded card
           'rounded-md p-3',

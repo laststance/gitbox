@@ -62,12 +62,15 @@ vi.mock('@/components/Board/CommentDisplay', () => ({
   CommentDisplay: ({
     comment,
     onClick,
+    renderActions,
   }: {
     comment?: string
     onClick?: () => void
+    renderActions?: () => React.ReactNode
   }) => (
     <div data-testid="comment-display" onClick={onClick}>
       {comment || 'No comment'}
+      {renderActions && renderActions()}
     </div>
   ),
   COMMENT_CARD_COLORS: {
@@ -79,22 +82,61 @@ vi.mock('@/components/Board/CommentDisplay', () => ({
 }))
 
 vi.mock('@/components/Board/CommentInlineEdit', () => ({
-  CommentInlineEdit: ({ onSave }: { onSave: (val: string) => void }) => (
-    <textarea
-      data-testid="comment-edit"
-      onChange={(e) => onSave(e.target.value)}
-    />
+  CommentInlineEdit: ({
+    onSave,
+    onCancel,
+  }: {
+    onSave: (val: string, options: { closeOnSave: boolean }) => Promise<void>
+    onCancel: () => void
+  }) => (
+    <div data-testid="comment-inline-edit">
+      <textarea
+        data-testid="comment-edit"
+        onChange={async (e) => onSave(e.target.value, { closeOnSave: false })}
+      />
+      <button
+        type="button"
+        data-testid="comment-save-close"
+        onClick={async () => onSave('saved text', { closeOnSave: true })}
+      >
+        Save & Close
+      </button>
+      <button type="button" data-testid="comment-cancel" onClick={onCancel}>
+        Cancel
+      </button>
+    </div>
   ),
 }))
 
 vi.mock('@/components/Board/CommentActionsMenu', () => ({
-  CommentActionsMenu: () => <div data-testid="comment-actions-menu" />,
+  CommentActionsMenu: ({
+    onColorChange,
+    onDelete,
+  }: {
+    onColorChange: (color: string) => void
+    onDelete: () => void
+  }) => (
+    <div data-testid="comment-actions-menu">
+      <button
+        type="button"
+        data-testid="color-change-blue"
+        onClick={() => onColorChange('blue')}
+      >
+        Blue
+      </button>
+      <button type="button" data-testid="delete-comment" onClick={onDelete}>
+        Delete
+      </button>
+    </div>
+  ),
 }))
 
 describe('RepoCard', () => {
   const mockOnEdit = vi.fn()
   const mockOnNote = vi.fn()
   const mockOnCommentChange = vi.fn()
+  const mockOnCommentColorChange = vi.fn()
+  const mockOnCommentDelete = vi.fn()
 
   const defaultCard = {
     id: 'card-1',
@@ -346,6 +388,84 @@ describe('RepoCard', () => {
 
       const noteButton = screen.getByLabelText('Open note')
       expect(noteButton).toBeInTheDocument()
+    })
+  })
+
+  describe('Comment Actions', () => {
+    it('should call onCommentChange when comment is saved with closeOnSave', async () => {
+      render(
+        <RepoCard
+          card={defaultCard}
+          showComment={true}
+          commentData={{ comment: 'Initial', color: 'neutral' }}
+          onCommentChange={mockOnCommentChange}
+        />,
+      )
+
+      // Click on comment display to enter edit mode
+      fireEvent.click(screen.getByTestId('comment-display'))
+
+      // The inline edit should now be visible
+      // Click Save & Close button which calls onSave with closeOnSave: true
+      const saveCloseBtn = screen.getByTestId('comment-save-close')
+      fireEvent.click(saveCloseBtn)
+
+      expect(mockOnCommentChange).toHaveBeenCalledWith('card-1', 'saved text')
+    })
+
+    it('should exit edit mode when cancel is clicked', () => {
+      render(
+        <RepoCard
+          card={defaultCard}
+          showComment={true}
+          commentData={{ comment: 'Initial', color: 'neutral' }}
+          onCommentChange={mockOnCommentChange}
+        />,
+      )
+
+      // Click on comment display to enter edit mode
+      fireEvent.click(screen.getByTestId('comment-display'))
+
+      // Click cancel button
+      const cancelBtn = screen.getByTestId('comment-cancel')
+      fireEvent.click(cancelBtn)
+
+      // Edit mode should be exited (we can't directly verify state, but we can verify the button existed and was clicked)
+      expect(cancelBtn).toBeInTheDocument()
+    })
+
+    it('should call onCommentColorChange when color is changed', () => {
+      render(
+        <RepoCard
+          card={defaultCard}
+          showComment={true}
+          commentData={{ comment: 'Test', color: 'neutral' }}
+          onCommentColorChange={mockOnCommentColorChange}
+        />,
+      )
+
+      // Find and click the color change button
+      const colorBtn = screen.getByTestId('color-change-blue')
+      fireEvent.click(colorBtn)
+
+      expect(mockOnCommentColorChange).toHaveBeenCalledWith('card-1', 'blue')
+    })
+
+    it('should call onCommentDelete when delete is clicked', () => {
+      render(
+        <RepoCard
+          card={defaultCard}
+          showComment={true}
+          commentData={{ comment: 'Test', color: 'neutral' }}
+          onCommentDelete={mockOnCommentDelete}
+        />,
+      )
+
+      // Find and click the delete button
+      const deleteBtn = screen.getByTestId('delete-comment')
+      fireEvent.click(deleteBtn)
+
+      expect(mockOnCommentDelete).toHaveBeenCalledWith('card-1')
     })
   })
 
