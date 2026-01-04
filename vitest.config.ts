@@ -29,6 +29,13 @@ export default defineConfig(({ mode }) => ({
     include: ['superjson', 'lz-string'],
   },
   test: {
+    // Transform ESM packages with extensionless imports through Vite's module runner
+    // Fixes: @laststance/redux-storage-middleware dist/index.js uses './storageMiddleware' without .js
+    server: {
+      deps: {
+        inline: ['@laststance/redux-storage-middleware'],
+      },
+    },
     // Load environment variables from .env.test (mode defaults to 'test' in vitest)
     // Empty prefix '' loads ALL env vars, not just VITE_* prefixed ones
     env: loadEnv(mode, process.cwd(), ''),
