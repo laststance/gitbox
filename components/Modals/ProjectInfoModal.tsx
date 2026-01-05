@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus, X } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useState, useEffect, useCallback, memo, useMemo } from 'react'
 
 import { PlateEditor } from '@/components/editor/PlateEditor'
@@ -14,15 +14,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
-  LinkTypeCombobox,
-  type UserPresetOption,
-} from '@/components/ui/link-type-combobox'
-import type { ProjectLink } from '@/lib/actions/project-info'
+  EditableUrlItem,
+  type ProjectLink,
+} from '@/components/ui/editable-url-item'
+import { Label } from '@/components/ui/label'
+import { type UserPresetOption } from '@/components/ui/link-type-combobox'
 import { getUserPresets, type UserPreset } from '@/lib/actions/user-presets'
 import { getSlateTextLength, parseSlateValue } from '@/lib/utils/slate-utils'
+import { isValidUrl } from '@/lib/validations'
 
 /** Base styles for character count */
 const CHAR_COUNT_BASE = 'text-sm text-right'
@@ -50,12 +50,6 @@ interface ProjectInfoModalProps {
 const NOTE_MAX_LENGTH = 20000
 const NOTE_WARNING_THRESHOLD = 18000
 
-const URL_REGEX = /^https?:\/\/.+/
-
-const validateUrl = (url: string): boolean => {
-  return URL_REGEX.test(url)
-}
-
 /**
  * Internal form component that initializes state from props.
  * Using a separate component with key={projectInfo.id} ensures state resets
@@ -78,7 +72,15 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [comment, _setComment] = useState(projectInfo.comment)
   const [links, setLinks] = useState<ProjectLink[]>(projectInfo.links)
-  const [urlErrors, setUrlErrors] = useState<Map<number, string>>(new Map())
+
+  // Single-edit coordination: only one URL can be edited at a time
+  const [editingUrlIndex, setEditingUrlIndex] = useState<number | null>(null)
+
+  // Undo delete support
+  const [deletedLink, setDeletedLink] = useState<{
+    link: ProjectLink
+    index: number
+  } | null>(null)
 
   // User custom presets
   const [userPresets, setUserPresets] = useState<UserPresetOption[]>([])
@@ -121,9 +123,13 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
     }
   }, [])
 
-  const handleAddUrl = () => {
-    setLinks([...links, { url: '', type: 'vercel' }])
-  }
+  /**
+   * Add a new empty URL entry and auto-enter edit mode
+   */
+  const handleAddUrl = useCallback(() => {
+    setLinks((prev) => [...prev, { url: '', type: 'vercel' }])
+    // Auto-edit the new item (will be handled by autoEdit prop)
+  }, [])
 
   /**
    * Handler for when a new custom preset is created
@@ -132,33 +138,59 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
     setUserPresets((prev) => [...prev, preset])
   }, [])
 
-  const handleRemoveUrl = (index: number) => {
-    setLinks(links.filter((_, i) => i !== index))
-    const newErrors = new Map(urlErrors)
-    newErrors.delete(index)
-    setUrlErrors(newErrors)
-  }
+  /**
+   * Handle URL edit start for single-edit coordination
+   */
+  const handleUrlEditStart = useCallback((index: number) => {
+    setEditingUrlIndex(index)
+  }, [])
 
-  const handleUrlChange = (index: number, url: string) => {
-    const newLinks = [...links]
-    newLinks[index] = { ...newLinks[index], url }
-    setLinks(newLinks)
+  /**
+   * Handle URL change from EditableUrlItem
+   */
+  const handleUrlChange = useCallback((index: number, url: string) => {
+    setLinks((prev) =>
+      prev.map((link, i) => (i === index ? { ...link, url } : link)),
+    )
+  }, [])
 
-    // Validate URL
-    const newErrors = new Map(urlErrors)
-    if (url && !validateUrl(url)) {
-      newErrors.set(index, 'Please enter a valid URL')
-    } else {
-      newErrors.delete(index)
-    }
-    setUrlErrors(newErrors)
-  }
+  /**
+   * Handle URL type change from EditableUrlItem
+   */
+  const handleUrlTypeChange = useCallback((index: number, type: string) => {
+    setLinks((prev) =>
+      prev.map((link, i) => (i === index ? { ...link, type } : link)),
+    )
+  }, [])
 
-  const handleUrlTypeChange = (index: number, type: string) => {
-    const newLinks = [...links]
-    newLinks[index] = { ...newLinks[index], type }
-    setLinks(newLinks)
-  }
+  /**
+   * Handle URL removal with undo support
+   */
+  const handleRemoveUrl = useCallback(
+    (index: number) => {
+      const linkToDelete = links[index]
+      setDeletedLink({ link: linkToDelete, index })
+      setLinks((prev) => prev.filter((_, i) => i !== index))
+      if (editingUrlIndex === index) {
+        setEditingUrlIndex(null)
+      }
+    },
+    [links, editingUrlIndex],
+  )
+
+  /**
+   * Handle undo delete
+   */
+  const handleUndoDelete = useCallback(() => {
+    if (!deletedLink) return
+    const { link, index } = deletedLink
+    setLinks((prev) => {
+      const newLinks = [...prev]
+      newLinks.splice(Math.min(index, prev.length), 0, link)
+      return newLinks
+    })
+    setDeletedLink(null)
+  }, [deletedLink])
 
   const handleSave = () => {
     onSave({
@@ -189,9 +221,10 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [handleKeyDown])
 
-  const isFormValid =
-    urlErrors.size === 0 &&
-    links.every((link) => !link.url || validateUrl(link.url))
+  // Form is valid if all URLs are valid (using the new isValidUrl utility)
+  const isFormValid = links.every(
+    (link) => !link.url || isValidUrl(link.url).valid,
+  )
 
   // Calculate text length from JSON (Slate format) for character count
   const charCount = useMemo(() => {
@@ -210,21 +243,6 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
       `${CHAR_COUNT_BASE} ${isNearLimit ? CHAR_COUNT_WARNING : CHAR_COUNT_NORMAL}`,
     [isNearLimit],
   )
-
-  /**
-   * Memoized classNames for URL input error states.
-   * Only recomputes when urlErrors changes.
-   */
-  const urlInputClassNames = useMemo(() => {
-    const classNames = new Map<number, string | undefined>()
-    links.forEach((_, index) => {
-      classNames.set(
-        index,
-        urlErrors.has(index) ? 'border-destructive' : undefined,
-      )
-    })
-    return classNames
-  }, [links, urlErrors])
 
   return (
     <DialogContent
@@ -261,7 +279,7 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
           </div>
         </div>
 
-        {/* Links Section */}
+        {/* Links Section - Using EditableUrlItem for inline editing */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label>Links</Label>
@@ -280,64 +298,22 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
           {links.length > 0 && (
             <ul className="space-y-3" data-testid="url-list">
               {links.map((link, index) => (
-                <li key={index} className="space-y-2">
-                  <div className="flex gap-2">
-                    <LinkTypeCombobox
-                      value={link.type}
-                      onValueChange={(value) =>
-                        handleUrlTypeChange(index, value)
-                      }
-                      userPresets={userPresets}
-                      onAddCustomClick={() => setShowCreateDialog(true)}
-                      data-testid="url-type-select"
-                    />
-
-                    <Input
-                      type="url"
-                      placeholder="https://example.com"
-                      value={link.url}
-                      onChange={(e) => handleUrlChange(index, e.target.value)}
-                      data-testid={`url-input-${index}`}
-                      className={urlInputClassNames.get(index)}
-                      aria-invalid={urlErrors.has(index)}
-                      aria-describedby={
-                        urlErrors.has(index) ? 'url-error' : undefined
-                      }
-                    />
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveUrl(index)}
-                      data-testid={`remove-url-${index}`}
-                      aria-label={`Delete URL ${index + 1}`}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  {urlErrors.has(index) && (
-                    <p
-                      id="url-error"
-                      data-testid="url-error"
-                      className="text-sm text-destructive"
-                      role="alert"
-                    >
-                      {urlErrors.get(index)}
-                    </p>
-                  )}
-
-                  {link.url && validateUrl(link.url) && (
-                    <a
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline inline-flex items-center"
-                    >
-                      {new URL(link.url).hostname}
-                    </a>
-                  )}
+                <li key={`${link.type}-${index}`}>
+                  <EditableUrlItem
+                    link={link}
+                    index={index}
+                    onUrlChange={(url) => handleUrlChange(index, url)}
+                    onTypeChange={(type) => handleUrlTypeChange(index, type)}
+                    onDelete={() => handleRemoveUrl(index)}
+                    onUndoDelete={handleUndoDelete}
+                    userPresets={userPresets}
+                    onAddCustomClick={() => setShowCreateDialog(true)}
+                    autoEdit={link.url === '' && index === links.length - 1}
+                    onEditStart={() => handleUrlEditStart(index)}
+                    forceExitEdit={
+                      editingUrlIndex !== null && editingUrlIndex !== index
+                    }
+                  />
                 </li>
               ))}
             </ul>

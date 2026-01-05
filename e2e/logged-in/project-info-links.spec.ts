@@ -257,17 +257,17 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     const urlInput = dialog.locator('[data-testid="url-input-0"]')
     await urlInput.fill('not-a-valid-url')
 
-    // Tab away to trigger validation
-    await page.keyboard.press('Tab')
+    // Wait for debounced validation
+    await page.waitForTimeout(400)
 
-    // Error message should appear
-    const errorMessage = dialog.locator('[data-testid="url-error"]')
+    // Error message should appear (using role="alert")
+    const errorMessage = dialog.locator('[role="alert"]')
     await expect(errorMessage).toBeVisible({ timeout: 3000 })
-    await expect(errorMessage).toContainText(/valid url/i)
+    await expect(errorMessage).toContainText(/http:\/\/ or https:\/\//i)
 
-    // Save button should be disabled
-    const saveButton = dialog.locator('[data-testid="save-button"]')
-    await expect(saveButton).toBeDisabled()
+    // Per-item save button should be disabled
+    const itemSaveButton = dialog.locator('[data-testid="url-save-0"]')
+    await expect(itemSaveButton).toBeDisabled()
   })
 
   test('should accept valid URLs', async ({ page }) => {
@@ -281,27 +281,31 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     const urlInput = dialog.locator('[data-testid="url-input-0"]')
     await urlInput.fill('https://example.com/path?query=value')
 
-    // Tab away
-    await page.keyboard.press('Tab')
+    // Wait for debounced validation
+    await page.waitForTimeout(400)
 
     // No error message should appear
-    const errorMessage = dialog.locator('[data-testid="url-error"]')
+    const errorMessage = dialog.locator('[role="alert"]')
     await expect(errorMessage).not.toBeVisible()
 
-    // Save button should be enabled
-    const saveButton = dialog.locator('[data-testid="save-button"]')
-    await expect(saveButton).not.toBeDisabled()
+    // Per-item save button should be enabled
+    const itemSaveButton = dialog.locator('[data-testid="url-save-0"]')
+    await expect(itemSaveButton).not.toBeDisabled()
   })
 
   test('should add multiple URLs', async ({ page }) => {
     const dialog = await openProjectInfoModal(page)
 
-    // Add first URL
+    // Add first URL and save it (Enter exits edit mode)
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
     await addUrlButton.click()
 
     const urlInput0 = dialog.locator('[data-testid="url-input-0"]')
     await urlInput0.fill('https://example.com')
+    await page.keyboard.press('Enter')
+
+    // First URL should now be in display mode (link visible)
+    await expect(dialog.locator('[data-testid="url-link-0"]')).toBeVisible()
 
     // Add second URL
     await addUrlButton.click()
@@ -309,40 +313,50 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     const urlInput1 = dialog.locator('[data-testid="url-input-1"]')
     await expect(urlInput1).toBeVisible()
     await urlInput1.fill('https://another.com')
+    await page.keyboard.press('Enter')
 
-    // Add third URL
+    // Second URL should now be in display mode
+    await expect(dialog.locator('[data-testid="url-link-1"]')).toBeVisible()
+
+    // Add third URL (stays in edit mode since it's empty)
     await addUrlButton.click()
 
     const urlInput2 = dialog.locator('[data-testid="url-input-2"]')
     await expect(urlInput2).toBeVisible()
 
-    // All three URL inputs should be visible
-    await expect(urlInput0).toBeVisible()
-    await expect(urlInput1).toBeVisible()
-    await expect(urlInput2).toBeVisible()
+    // All three URL items should exist
+    await expect(dialog.locator('[data-testid="url-link-0"]')).toBeVisible()
+    await expect(dialog.locator('[data-testid="url-link-1"]')).toBeVisible()
+    await expect(urlInput2).toBeVisible() // Third is still in edit mode
   })
 
   test('should remove a URL', async ({ page }) => {
     const dialog = await openProjectInfoModal(page)
 
-    // Add two URLs
+    // Add first URL and save it
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
     await addUrlButton.click()
+    const urlInput0 = dialog.locator('[data-testid="url-input-0"]')
+    await urlInput0.fill('https://first.com')
+    await page.keyboard.press('Enter')
+
+    // Add second URL and save it
     await addUrlButton.click()
+    const urlInput1 = dialog.locator('[data-testid="url-input-1"]')
+    await urlInput1.fill('https://second.com')
+    await page.keyboard.press('Enter')
 
-    // Verify both exist
-    await expect(dialog.locator('[data-testid="url-input-0"]')).toBeVisible()
-    await expect(dialog.locator('[data-testid="url-input-1"]')).toBeVisible()
+    // Verify both exist in display mode
+    await expect(dialog.locator('[data-testid="url-link-0"]')).toBeVisible()
+    await expect(dialog.locator('[data-testid="url-link-1"]')).toBeVisible()
 
-    // Remove the first URL
-    const removeButton = dialog.locator('[data-testid="remove-url-0"]')
-    await removeButton.click()
+    // Remove the first URL (use new test ID: url-delete-0)
+    const deleteButton = dialog.locator('[data-testid="url-delete-0"]')
+    await deleteButton.click()
 
-    // Now only one URL input should remain (re-indexed to 0)
-    await expect(dialog.locator('[data-testid="url-input-0"]')).toBeVisible()
-    await expect(
-      dialog.locator('[data-testid="url-input-1"]'),
-    ).not.toBeVisible()
+    // Now only one URL should remain (re-indexed to 0)
+    await expect(dialog.locator('[data-testid="url-link-0"]')).toBeVisible()
+    await expect(dialog.locator('[data-testid="url-link-1"]')).not.toBeVisible()
   })
 
   test('should open CreateLinkTypeDialog from "Add custom type..." option', async ({
