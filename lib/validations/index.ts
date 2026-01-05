@@ -82,3 +82,6 @@ export {
   type CreatePresetInput,
   type UpdatePresetInput,
 } from './user-presets'
+
+// URL validation utility (for EditableUrlItem)
+export { MAX_URL_LENGTH, isValidUrl } from './url'

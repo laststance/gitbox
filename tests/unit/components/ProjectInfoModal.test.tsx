@@ -91,8 +91,13 @@ describe('ProjectInfoModal', () => {
         target: { value: 'http://example.com' },
       })
 
-      const errorMessage = screen.queryByTestId('url-error')
-      expect(errorMessage).not.toBeInTheDocument()
+      // Wait for debounced validation
+      await waitFor(
+        () => {
+          expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+        },
+        { timeout: 500 },
+      )
 
       const saveButton = screen.getByTestId('save-button')
       expect(saveButton).not.toBeDisabled()
@@ -109,8 +114,13 @@ describe('ProjectInfoModal', () => {
         target: { value: 'https://example.com' },
       })
 
-      const errorMessage = screen.queryByTestId('url-error')
-      expect(errorMessage).not.toBeInTheDocument()
+      // Wait for debounced validation
+      await waitFor(
+        () => {
+          expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+        },
+        { timeout: 500 },
+      )
     })
 
     it('should reject invalid URLs', async () => {
@@ -124,14 +134,21 @@ describe('ProjectInfoModal', () => {
         target: { value: 'not-a-valid-url' },
       })
 
-      await waitFor(() => {
-        const errorMessage = screen.getByTestId('url-error')
-        expect(errorMessage).toBeInTheDocument()
-        expect(errorMessage).toHaveTextContent('Please enter a valid URL')
-      })
+      // Wait for debounced validation
+      await waitFor(
+        () => {
+          const errorMessage = screen.getByRole('alert')
+          expect(errorMessage).toBeInTheDocument()
+          expect(errorMessage).toHaveTextContent(
+            'URL must start with http:// or https://',
+          )
+        },
+        { timeout: 500 },
+      )
 
-      const saveButton = screen.getByTestId('save-button')
-      expect(saveButton).toBeDisabled()
+      // Per-item save button should be disabled
+      const itemSaveButton = screen.getByTestId('url-save-0')
+      expect(itemSaveButton).toBeDisabled()
     })
 
     it('should reject URLs without protocol', async () => {
@@ -145,10 +162,17 @@ describe('ProjectInfoModal', () => {
         target: { value: 'example.com' },
       })
 
-      await waitFor(() => {
-        const errorMessage = screen.getByTestId('url-error')
-        expect(errorMessage).toBeInTheDocument()
-      })
+      // Wait for debounced validation
+      await waitFor(
+        () => {
+          const errorMessage = screen.getByRole('alert')
+          expect(errorMessage).toBeInTheDocument()
+          expect(errorMessage).toHaveTextContent(
+            'URL must start with http:// or https://',
+          )
+        },
+        { timeout: 500 },
+      )
     })
 
     it('should accept URLs with paths and query parameters', async () => {
@@ -164,8 +188,13 @@ describe('ProjectInfoModal', () => {
         },
       })
 
-      const errorMessage = screen.queryByTestId('url-error')
-      expect(errorMessage).not.toBeInTheDocument()
+      // Wait for debounced validation
+      await waitFor(
+        () => {
+          expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+        },
+        { timeout: 500 },
+      )
     })
 
     it('should accept localhost URLs for development', async () => {
@@ -179,8 +208,13 @@ describe('ProjectInfoModal', () => {
         target: { value: 'http://localhost:3000' },
       })
 
-      const errorMessage = screen.queryByTestId('url-error')
-      expect(errorMessage).not.toBeInTheDocument()
+      // Wait for debounced validation
+      await waitFor(
+        () => {
+          expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+        },
+        { timeout: 500 },
+      )
     })
   })
 
@@ -246,7 +280,8 @@ describe('ProjectInfoModal', () => {
       expect(saveButton).not.toBeDisabled()
     })
 
-    it('should disable save button when URL is invalid', async () => {
+    it('should disable item save button when URL is invalid', async () => {
+      // With EditableUrlItem, validation is per-item, not at modal level
       render(<ProjectInfoModal {...defaultProps} />)
 
       const addButton = screen.getByTestId('add-url-button')
@@ -254,13 +289,22 @@ describe('ProjectInfoModal', () => {
 
       const urlInput = screen.getByTestId('url-input-0')
       fireEvent.change(urlInput, {
-        target: { value: 'invalid' },
+        target: { value: 'invalid-url' },
       })
 
-      await waitFor(() => {
-        const saveButton = screen.getByTestId('save-button')
-        expect(saveButton).toBeDisabled()
-      })
+      // Wait for debounced validation and verify error message appears
+      await waitFor(
+        () => {
+          expect(
+            screen.getByText('URL must start with http:// or https://'),
+          ).toBeInTheDocument()
+        },
+        { timeout: 500 },
+      )
+
+      // The per-item save button should be disabled when there's a validation error
+      const itemSaveButton = screen.getByTestId('url-save-0')
+      expect(itemSaveButton).toBeDisabled()
     })
 
     it('should call onSave with form data when saved', async () => {
@@ -314,17 +358,34 @@ describe('ProjectInfoModal', () => {
   })
 
   describe('Multiple URLs Management', () => {
-    it('should allow adding multiple URLs', () => {
+    it('should allow adding multiple URLs', async () => {
       render(<ProjectInfoModal {...defaultProps} />)
 
       const addButton = screen.getByTestId('add-url-button')
 
+      // Add first URL and enter a value to complete edit
       fireEvent.click(addButton)
-      fireEvent.click(addButton)
-      fireEvent.click(addButton)
+      const urlInput0 = screen.getByTestId('url-input-0')
+      fireEvent.change(urlInput0, { target: { value: 'https://first.com' } })
+      fireEvent.keyDown(urlInput0, { key: 'Enter' })
 
-      const urlInputs = screen.getAllByTestId(/^url-input-/)
-      expect(urlInputs).toHaveLength(3)
+      await waitFor(() => {
+        expect(screen.getByTestId('url-link-0')).toBeInTheDocument()
+      })
+
+      // Add second URL
+      fireEvent.click(addButton)
+      const urlInput1 = screen.getByTestId('url-input-1')
+      fireEvent.change(urlInput1, { target: { value: 'https://second.com' } })
+      fireEvent.keyDown(urlInput1, { key: 'Enter' })
+
+      await waitFor(() => {
+        expect(screen.getByTestId('url-link-1')).toBeInTheDocument()
+      })
+
+      // Verify 2 URL items exist
+      const urlList = screen.getByTestId('url-list')
+      expect(urlList.querySelectorAll('li')).toHaveLength(2)
     })
 
     it('should allow removing URLs', async () => {
@@ -332,38 +393,53 @@ describe('ProjectInfoModal', () => {
 
       const addButton = screen.getByTestId('add-url-button')
       fireEvent.click(addButton)
-      fireEvent.click(addButton)
-
-      const removeButton = screen.getAllByTestId(/^remove-url-/)[0]
-      fireEvent.click(removeButton)
+      const urlInput0 = screen.getByTestId('url-input-0')
+      fireEvent.change(urlInput0, {
+        target: { value: 'https://delete-me.com' },
+      })
+      fireEvent.keyDown(urlInput0, { key: 'Enter' })
 
       await waitFor(() => {
-        const urlInputs = screen.getAllByTestId(/^url-input-/)
-        expect(urlInputs).toHaveLength(1)
+        expect(screen.getByTestId('url-link-0')).toBeInTheDocument()
+      })
+
+      // Use new test ID: url-delete-${index}
+      const deleteButton = screen.getByTestId('url-delete-0')
+      fireEvent.click(deleteButton)
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('url-link-0')).not.toBeInTheDocument()
       })
     })
 
-    it('should validate all URLs before saving', async () => {
+    it('should show validation error for invalid URL protocol', async () => {
       render(<ProjectInfoModal {...defaultProps} />)
 
       const addButton = screen.getByTestId('add-url-button')
       fireEvent.click(addButton)
-      fireEvent.click(addButton)
 
-      const urlInput1 = screen.getByTestId('url-input-0')
-      const urlInput2 = screen.getByTestId('url-input-1')
+      // Enter an invalid URL (wrong protocol)
+      const urlInput = screen.getByTestId('url-input-0')
+      fireEvent.change(urlInput, { target: { value: 'ftp://invalid.com' } })
 
-      fireEvent.change(urlInput1, {
-        target: { value: 'https://example.com' },
-      })
-      fireEvent.change(urlInput2, {
-        target: { value: 'invalid-url' },
-      })
+      // Wait for debounced validation
+      await waitFor(
+        () => {
+          expect(
+            screen.getByText('URL must start with http:// or https://'),
+          ).toBeInTheDocument()
+        },
+        { timeout: 500 },
+      )
 
-      await waitFor(() => {
-        const saveButton = screen.getByTestId('save-button')
-        expect(saveButton).toBeDisabled()
-      })
+      // Item-level save button should be disabled
+      const itemSaveButton = screen.getByTestId('url-save-0')
+      expect(itemSaveButton).toBeDisabled()
+
+      // Enter key should not save the invalid URL
+      fireEvent.keyDown(urlInput, { key: 'Enter' })
+      // Still in edit mode (input still present)
+      expect(screen.getByTestId('url-input-0')).toBeInTheDocument()
     })
   })
 
