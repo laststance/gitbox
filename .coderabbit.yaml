@@ -1,0 +1,173 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit Configuration for GitBox
+#
+# Purpose: Configure AI code review to respect project patterns and React best practices
+# Created: 2026-01-05 after receiving Rules of Hooks violation suggestion
+
+# =============================================================================
+# GLOBAL SETTINGS
+# =============================================================================
+
+language: 'en-US'
+
+# Tone: Focus on critical issues, avoid excessive nitpicking
+tone_instructions: |
+  Be concise and focus on critical issues.
+  Respect project conventions defined in CLAUDE.md and .claude/rules/.
+  Do not suggest patterns that violate React Rules of Hooks.
+
+# =============================================================================
+# REVIEWS
+# =============================================================================
+
+reviews:
+  # "chill" profile reduces nitpicky feedback
+  profile: 'chill'
+
+  # Enable helpful summaries
+  high_level_summary: true
+  sequence_diagrams: true
+  estimate_code_review_effort: true
+
+  # Auto-review configuration
+  auto_review:
+    enabled: true
+    drafts: false
+    ignore_title_keywords:
+      - 'wip'
+      - 'draft'
+      - 'do not merge'
+
+  # Exclude generated/dependency files
+  path_filters:
+    - '!node_modules/**'
+    - '!.next/**'
+    - '!dist/**'
+    - '!build/**'
+    - '!coverage/**'
+    - '!.vercel/**'
+    - '!pnpm-lock.yaml'
+    - '!*.min.js'
+    - '!*.min.css'
+
+  # ==========================================================================
+  # PATH-SPECIFIC INSTRUCTIONS
+  # ==========================================================================
+
+  path_instructions:
+    # -------------------------------------------------------------------------
+    # React/TypeScript Components
+    # -------------------------------------------------------------------------
+    - path: '**/*.{ts,tsx}'
+      instructions: |
+        ## React Rules of Hooks (CRITICAL)
+
+        NEVER suggest using React hooks inside:
+        - `.map()`, `.forEach()`, `.filter()` or any loop
+        - Conditional statements (if/else, ternary inside component body)
+        - Nested functions or callbacks
+
+        If you see an inline callback like `onFoo={(x) => handler(index, x)}` in a .map(),
+        do NOT suggest wrapping it in useCallback inside the map. This violates Rules of Hooks.
+
+        Acceptable alternatives (if performance is actually measured as a problem):
+        1. Pass index to child, let child call parent with both args
+        2. Create a wrapper component that uses useCallback
+        3. Accept the inline function (YAGNI - only optimize when measured)
+
+        ## React 19+ Patterns (Preferred)
+
+        - Prefer `Suspense + use()` over `useState + useEffect` for data fetching
+        - Prefer `useOptimistic + startTransition` for optimistic UI
+        - Prefer `<Activity mode={...}>` over conditional rendering for state preservation
+        - `forwardRef` is no longer needed in React 19 (use `ref` prop directly)
+
+        ## Project-Specific Rules
+
+        - Do NOT suggest `useReducer` - this project uses Redux Toolkit
+        - Do NOT suggest passing setState as props (prop drilling) - extract to custom hooks
+        - Components should be wrapped in `memo()` (enforced by ESLint)
+
+        ## TypeScript
+
+        - Prefer reusing existing types over creating new ones
+        - Use Indexed Access Types to reuse API response types
+        - Include JSDoc with @param, @returns, and @example for public functions
+
+    # -------------------------------------------------------------------------
+    # Test Files
+    # -------------------------------------------------------------------------
+    - path: 'tests/**/*.{ts,tsx}'
+      instructions: |
+        ## Testing Stack
+
+        - Unit tests: Vitest + React Testing Library
+        - E2E tests: Playwright
+        - Mocking: MSW (Mock Service Worker)
+
+        ## Best Practices
+
+        - Use `screen.getByTestId()` or semantic queries
+        - Prefer `waitFor()` for async assertions
+        - Mock external APIs with MSW handlers, not jest.mock()
+
+    - path: 'e2e/**/*.{ts,tsx}'
+      instructions: |
+        ## Playwright E2E Tests
+
+        - Use `networkidle` wait strategy for page loads
+        - Use CDP for drag-and-drop testing (@dnd-kit requires trusted events)
+        - Auth state is stored in `tests/e2e/.auth/user.json`
+
+    # -------------------------------------------------------------------------
+    # Server Actions
+    # -------------------------------------------------------------------------
+    - path: 'lib/actions/**/*.ts'
+      instructions: |
+        ## Next.js Server Actions (App Router)
+
+        - Return data for client-side state updates
+        - Do NOT use `revalidatePath` with Supabase (no Next.js cache)
+        - Use lowercase table names for Supabase queries
+
+    # -------------------------------------------------------------------------
+    # Storybook Stories
+    # -------------------------------------------------------------------------
+    - path: '**/*.stories.tsx'
+      instructions: |
+        ## Storybook Best Practices
+
+        - Include play functions for interaction testing
+        - Test accessibility with a11y addon
+        - Cover all component states (loading, error, empty, populated)
+
+  # ==========================================================================
+  # TOOLS
+  # ==========================================================================
+
+  tools:
+    # Use project's ESLint configuration
+    eslint:
+      enabled: true
+
+    # Security scanning
+    gitleaks:
+      enabled: true
+
+# =============================================================================
+# KNOWLEDGE BASE
+# =============================================================================
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - 'CLAUDE.md'
+      - '.claude/rules/*.md'
+
+# =============================================================================
+# CHAT
+# =============================================================================
+
+chat:
+  auto_reply: true
