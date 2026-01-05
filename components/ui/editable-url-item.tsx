@@ -498,7 +498,7 @@ export const EditableUrlItem = memo(function EditableUrlItem({
                     target="_blank"
                     rel="noopener noreferrer"
                     className={cn(
-                      'min-w-0 flex-1 truncate text-sm text-primary hover:underline',
+                      'min-w-0 flex-1 truncate text-base text-primary hover:underline',
                       'max-w-[300px] sm:max-w-[400px] lg:max-w-none',
                       showSaveSuccess && 'animate-pulse text-success',
                     )}

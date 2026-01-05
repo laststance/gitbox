@@ -21,7 +21,14 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import * as icons from 'lucide-react'
-import { memo, useState, useMemo, useCallback, createElement } from 'react'
+import {
+  memo,
+  useState,
+  useMemo,
+  useCallback,
+  createElement,
+  useRef,
+} from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -193,6 +200,21 @@ export const LinkTypeCombobox = memo(function LinkTypeCombobox({
     [onValueChange],
   )
 
+  // Ref for CommandList to enable manual scroll
+  const listRef = useRef<HTMLDivElement>(null)
+
+  /**
+   * Handle wheel events on CommandList
+   *
+   * cmdk library prevents default wheel events for keyboard navigation.
+   * This handler manually scrolls the list to restore mouse/trackpad scrolling.
+   */
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    if (listRef.current) {
+      listRef.current.scrollBy(0, e.deltaY)
+    }
+  }, [])
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -232,7 +254,11 @@ export const LinkTypeCombobox = memo(function LinkTypeCombobox({
             </button>
           )}
 
-          <CommandList className="max-h-[300px]">
+          <CommandList
+            ref={listRef}
+            onWheel={handleWheel}
+            className="max-h-[300px]"
+          >
             <CommandEmpty>No link type found.</CommandEmpty>
 
             {/* User Custom Presets (if any) */}
