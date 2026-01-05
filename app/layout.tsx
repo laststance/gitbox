@@ -10,8 +10,15 @@
  * Landing page uses default shadcn/ui light theme.
  */
 
-import '@/styles/globals.css'
+import { Analytics } from '@vercel/analytics/next'
+import type { Metadata } from 'next'
+import { Toaster } from 'sonner'
 
+import { CommandPalette } from '@/components/CommandPalette/CommandPalette'
+import { ShortcutsHelp } from '@/components/ShortcutsHelp'
+import { Providers } from '@/lib/redux/providers'
+import { isMSWEnabled } from '@/lib/utils/isMSWEnabled'
+import '@/styles/globals.css'
 // Theme file imports - Light themes
 import '@/styles/themes/light/sunrise.css'
 import '@/styles/themes/light/sandstone.css'
@@ -27,15 +34,52 @@ import '@/styles/themes/dark/ocean.css'
 import '@/styles/themes/dark/plum.css'
 import '@/styles/themes/dark/rust.css'
 
-import { Analytics } from '@vercel/analytics/next'
-import { Toaster } from 'sonner'
-
-import { CommandPalette } from '@/components/CommandPalette/CommandPalette'
-import { ShortcutsHelp } from '@/components/ShortcutsHelp'
-import { Providers } from '@/lib/redux/providers'
-import { isMSWEnabled } from '@/lib/utils/isMSWEnabled'
-
 import { MSWProvider } from './msw-provider'
+
+/**
+ * Metadata Configuration
+ *
+ * Defines SEO, Open Graph, and Twitter Card metadata.
+ * Icons (favicon, apple-icon) and OG images are handled by
+ * convention-based files: icon.svg, apple-icon.tsx, opengraph-image.tsx
+ */
+export const metadata: Metadata = {
+  title: {
+    default: 'GitBox - GitHub Repository Manager',
+    template: '%s | GitBox',
+  },
+  description: 'Manage GitHub repositories in Kanban board format',
+  applicationName: 'GitBox',
+  authors: [{ name: 'Laststance.io', url: 'https://github.com/laststance' }],
+  creator: 'Laststance.io',
+  publisher: 'Laststance.io',
+  keywords: [
+    'GitHub',
+    'Kanban',
+    'Repository',
+    'Project Management',
+    'Developer Tools',
+  ],
+  metadataBase: new URL('https://gitbox-laststance.vercel.app'),
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    siteName: 'GitBox',
+    title: 'GitBox - GitHub Repository Manager',
+    description: 'Manage GitHub repositories in Kanban board format',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'GitBox - GitHub Repository Manager',
+    description: 'Manage GitHub repositories in Kanban board format',
+    creator: '@because0and1',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  manifest: '/manifest.json',
+}
 
 // Server-side MSW initialization (runs at module load time)
 // Uses require() to avoid bundling issues with Next.js SSR
@@ -51,16 +95,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ja" suppressHydrationWarning>
-      <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta
-          name="description"
-          content="Manage GitHub repositories in Kanban board format"
-        />
-        <title>GitBox - GitHub Repository Manager</title>
-      </head>
+    <html lang="en" suppressHydrationWarning>
       <body>
         <Providers>
           <MSWProvider>

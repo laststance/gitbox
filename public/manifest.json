@@ -1,0 +1,21 @@
+{
+  "name": "GitBox - GitHub Repository Manager",
+  "short_name": "GitBox",
+  "description": "Manage GitHub repositories in Kanban board format",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1f2328",
+  "theme_color": "#1f2328",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/apple-icon",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
