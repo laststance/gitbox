@@ -12,6 +12,7 @@
 
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import { Toaster } from 'sonner'
 
 import { CommandPalette } from '@/components/CommandPalette/CommandPalette'
@@ -96,6 +97,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {process.env.NODE_ENV === 'development' && (
+          <Script
+            src="//unpkg.com/react-grab/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
+      </head>
       <body>
         <Providers>
           <MSWProvider>
