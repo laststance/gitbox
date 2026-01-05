@@ -29,14 +29,12 @@ export default defineConfig(({ mode }) => ({
     include: ['superjson', 'lz-string'],
   },
   test: {
-    // Transform ESM packages with extensionless imports through Vite's module runner
-    // Fixes: @laststance/redux-storage-middleware dist/index.js uses './storageMiddleware' without .js
+    // Transform packages through Vite's module runner for compatibility
     server: {
       deps: {
-        // Process these packages through Vite for ESM/CSS compatibility
-        // - @laststance/redux-storage-middleware: uses extensionless imports
+        // Process these packages through Vite for CSS compatibility
         // - @platejs/math: imports katex CSS that needs Vite's CSS handling
-        inline: ['@laststance/redux-storage-middleware', '@platejs/math'],
+        inline: ['@platejs/math'],
       },
     },
     // Load environment variables from .env.test (mode defaults to 'test' in vitest)
