@@ -272,6 +272,7 @@ export const EditableUrlItem = memo(function EditableUrlItem({
   // ----------------------------------------
   // Force exit effect (for single-edit coordination)
   // This effect responds to prop changes for coordinating multiple editors
+  // Uses try/finally pattern consistent with handleSave for ref cleanup
   // ----------------------------------------
   useEffect(() => {
     // eslint-disable-next-line react-you-might-not-need-an-effect/no-event-handler -- Prop-driven coordination requires effect
@@ -283,10 +284,16 @@ export const EditableUrlItem = memo(function EditableUrlItem({
     if (trimmedEdit !== trimmedLink && !error && !isSavingRef.current) {
       isSavingRef.current = true
       debouncedValidate.cancel()
-      onUrlChange(trimmedEdit)
-      setIsEditing(false)
-      setAnnouncement('URL saved')
-      isSavingRef.current = false
+      try {
+        onUrlChange(trimmedEdit)
+        if (!isMountedRef.current) return
+        setIsEditing(false)
+        setAnnouncement('URL saved')
+      } finally {
+        if (isMountedRef.current) {
+          isSavingRef.current = false
+        }
+      }
     } else {
       setEditValue(link.url)
       setError(null)
