@@ -112,12 +112,19 @@ export const CommentActionsMenu = memo<CommentActionsMenuProps>(
             disabled={disabled}
             aria-label="Comment actions"
             data-testid="comment-actions-trigger"
+            onClick={(e) => e.stopPropagation()}
           >
             <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-36">
-          <DropdownMenuItem onClick={onEdit} data-testid="comment-action-edit">
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit()
+            }}
+            data-testid="comment-action-edit"
+          >
             <Pencil className="mr-2 h-4 w-4" />
             Edit
           </DropdownMenuItem>
@@ -152,7 +159,10 @@ export const CommentActionsMenu = memo<CommentActionsMenuProps>(
           <DropdownMenuSeparator />
 
           <DropdownMenuItem
-            onClick={onDelete}
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete()
+            }}
             className="text-destructive focus:text-destructive"
             data-testid="comment-action-delete"
           >
