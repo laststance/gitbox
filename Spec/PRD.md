@@ -17,6 +17,8 @@
 - **Settings**（Theme/Display/Typography）
 - **Shortcuts (?)**
 - **Account**（プロフィール、統計、アカウント削除）
+- **Privacy Policy** (`/privacy`) - GDPR対応プライバシーポリシー
+- **Terms of Use** (`/terms`) - 利用規約
 
 ---
 

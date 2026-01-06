@@ -7,6 +7,8 @@
  * - Accessibility support (keyboard navigation)
  */
 
+import Link from 'next/link'
+
 import { signInWithGitHub } from '@/lib/actions/auth'
 
 export default function LoginPage() {
@@ -49,7 +51,20 @@ export default function LoginPage() {
 
           {/* Additional Info */}
           <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
-            By signing in, you agree to our terms and privacy policy
+            By signing in, you agree to our{' '}
+            <Link
+              href="/terms"
+              className="text-blue-600 hover:underline dark:text-blue-400"
+            >
+              Terms of Use
+            </Link>{' '}
+            and{' '}
+            <Link
+              href="/privacy"
+              className="text-blue-600 hover:underline dark:text-blue-400"
+            >
+              Privacy Policy
+            </Link>
           </p>
         </div>
       </div>
