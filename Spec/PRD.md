@@ -1,4 +1,4 @@
-# GitBox — PRD v0.4 (Implementation Aligned Edition)
+# GitBox — PRD v0.5 (2026-01-07 Update)
 
 ## 1) プロダクト概要と情報設計（IA）
 
@@ -191,6 +191,12 @@ color.success / warning / danger
      - Communication (Slack, Discord, etc.)
      - その他
    - **Custom Presets**: ユーザー定義のリンクタイプ（Lucide iconから選択）
+   - **EditableUrlItem UI**: インライン編集コンポーネント
+     - **Single-Edit Coordination**: 1つのURLのみ同時編集可能（他は自動保存）
+     - **URL Validation**: 最大2083文字、http/https プロトコルのみ許可
+     - **Debounced Validation**: 300ms遅延で入力検証
+     - **Delete with Undo**: 削除後5秒間Undo可能（Sonner toast）
+     - **Blur Handler**: Combobox/Dropdownクリック時の誤保存防止
 
 3. **Note**（リッチテキスト、最大20,000文字。Plate Editorで編集）
 
@@ -746,9 +752,52 @@ RepoCardMeta {
 
 ---
 
-## 10) Drag & Drop Specification
+## 10) PWA & Meta 仕様
 
-### 10.1 技術的制約
+### 10.1 Open Graph / Twitter Card
+
+ソーシャルメディア共有時のプレビュー画像とメタデータを提供。
+
+| 項目             | ファイル                  | サイズ   |
+| ---------------- | ------------------------- | -------- |
+| OG Image         | `app/opengraph-image.tsx` | 1200×630 |
+| Twitter Card     | `app/twitter-image.tsx`   | 1200×600 |
+| Favicon          | `app/icon.svg`            | SVG      |
+| Apple Touch Icon | `app/apple-icon.tsx`      | 180×180  |
+
+#### メタデータ設定
+
+```typescript
+// app/layout.tsx
+export const metadata: Metadata = {
+  title: 'GitBox - Organize Your GitHub Repositories',
+  description: 'PWA for managing GitHub repositories in Kanban format',
+  keywords: ['GitHub', 'Repository Manager', 'Kanban', 'PWA'],
+  openGraph: { ... },
+  twitter: { card: 'summary_large_image', ... },
+}
+```
+
+### 10.2 PWA Manifest
+
+`public/manifest.json` でPWAとしてインストール可能。
+
+```json
+{
+  "name": "GitBox",
+  "short_name": "GitBox",
+  "display": "standalone",
+  "start_url": "/",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}
+```
+
+---
+
+## 11) Drag & Drop Specification
+
+### 11.1 技術的制約
 
 #### @dnd-kit isTrusted 要件
 
@@ -764,9 +813,9 @@ RepoCardMeta {
 
 **E2Eテスト**: Playwright CDPヘルパー (`e2e/helpers/cdp-drag.ts`) を使用必須
 
-### 10.2 Card Drag & Drop
+### 11.2 Card Drag & Drop
 
-#### 10.2.1 同一カラム内カード内並び替え
+#### 11.2.1 同一カラム内カード内並び替え
 
 ```
 ┌──────────────┐         ┌──────────────┐
@@ -788,7 +837,7 @@ RepoCardMeta {
 | Server Action | `batchUpdateRepoCardOrders()`                              |
 | CDP Helper    | `cdpCardDragAndDrop()`                                     |
 
-#### 10.2.2 カラム間移動
+#### 11.2.2 カラム間移動
 
 ```
 ┌──────────────┐  ┌──────────────┐         ┌──────────────┐  ┌──────────────┐
@@ -806,9 +855,9 @@ RepoCardMeta {
 | Server Action | `updateRepoCardPosition()`                              |
 | CDP Helper    | `cdpCardToColumnDragAndDrop()`                          |
 
-### 10.3 Column Drag & Drop
+### 11.3 Column Drag & Drop
 
-#### 10.3.1 カラムSwap（位置入れ替え）
+#### 11.3.1 カラムSwap（位置入れ替え）
 
 ```
 Row 0: [ A ] [ B ] [ C ]    →    Row 0: [ B ] [ A ] [ C ]
@@ -824,7 +873,7 @@ Row 0: [ A ] [ B ] [ C ]    →    Row 0: [ B ] [ A ] [ C ]
 | CDP Helper    | `cdpColumnDragAndDrop()`                            |
 | 注意          | DropZoneがシビア - ターゲットの中心を超える必要あり |
 
-#### 10.3.2 NewRowDropZone（新Row作成）
+#### 11.3.2 NewRowDropZone（新Row作成）
 
 ```
 Row 0: [ A ] [ B ] [ C ] [ D ]
@@ -844,7 +893,7 @@ Row 1: [ C ]                           ← 新Row作成
 | Server Action | `updateStatusListPosition()`     |
 | CDP Helper    | `cdpColumnToNewRowDragAndDrop()` |
 
-#### 10.3.3 ColumnInsertZone（空スロット挿入）
+#### 11.3.3 ColumnInsertZone（空スロット挿入）
 
 ```
 Row 0: [ A ] [   ] [ B ] [ C ]
@@ -861,11 +910,11 @@ Row 0: [   ] [ A ] [ B ] [ C ]    (後続カラムは右シフト)
 | Server Action | `batchUpdateStatusListPositions()` |
 | CDP Helper    | `cdpColumnToInsertZone()`          |
 
-#### 10.3.4 同一Row内横移動
+#### 11.3.4 同一Row内横移動
 
 ColumnInsertZone または Column Swap で実現
 
-#### 10.3.5 縦方向Column Swap（Row間位置入れ替え）
+#### 11.3.5 縦方向Column Swap（Row間位置入れ替え）
 
 ```
 Row 0: [ A ] [   ] [   ]         Row 0: [ B ] [   ] [   ]
@@ -890,7 +939,7 @@ Row 1: [ B ] [   ] [   ]   →     Row 1: [ A ] [   ] [   ]
 2. A と B の gridRow を完全交換
 3. A が Row 1 へ移動、B が Row 0 へ移動
 
-#### 10.3.6 斜め方向Column Swap（対角線位置入れ替え）
+#### 11.3.6 斜め方向Column Swap（対角線位置入れ替え）
 
 ```
 Row 0: [ A ] [   ] [   ]         Row 0: [   ] [   ] [ B ]
@@ -920,9 +969,9 @@ Row 1: [   ] [   ] [ B ]   →     Row 1: [ A ] [   ] [   ]
 - `handleDragEnd` in `components/Board/KanbanBoard.tsx` (lines 460-501)
 - Column Swap のロジックは gridRow と gridCol の両方を交換するため、横/縦/斜めの全方向でSwapが動作
 
-### 10.4 未実装機能
+### 11.4 未実装機能
 
-#### 10.4.1 カラムAuto-Height（高さ自動拡張）
+#### 11.4.1 カラムAuto-Height（高さ自動拡張）
 
 **問題**: カラムに多数のカードがある場合、heightが固定で一部のカードしか表示されない
 
@@ -959,7 +1008,7 @@ Row 1: [   ] [   ] [ B ]   →     Row 1: [ A ] [   ] [   ]
 4. `StatusColumn.tsx`: `h-full min-h-0` と `overflow-y-auto` を除去
 5. `cdp-drag.ts`: グリッドセレクターを `.w-fit.min-w-full.p-6` に更新
 
-### 10.5 E2Eテストカバレッジ要件
+### 11.5 E2Eテストカバレッジ要件
 
 | テスト名                     | ステータス                                                         |
 | ---------------------------- | ------------------------------------------------------------------ |
@@ -969,13 +1018,13 @@ Row 1: [   ] [   ] [ B ]   →     Row 1: [ A ] [   ] [   ]
 | Card: statusId更新確認       | ✅ 上記テストで検証                                                |
 | Column: グリッド位置検証     | ✅ 追加済み（`should have correct initial column grid positions`） |
 | Column: Swap操作実行         | ✅ 追加済み（`should execute column drag operation successfully`） |
-| Column: 縦方向Swap           | ✅ 追加済み（10.3.5 - 2テスト in `column-dnd.spec.ts`）            |
-| Column: 斜め方向Swap         | ✅ 追加済み（10.3.6 - 3テスト in `column-dnd.spec.ts`）            |
+| Column: 縦方向Swap           | ✅ 追加済み（11.3.5 - 2テスト in `column-dnd.spec.ts`）            |
+| Column: 斜め方向Swap         | ✅ 追加済み（11.3.6 - 3テスト in `column-dnd.spec.ts`）            |
 | Column: NewRowDropZone       | ✅ 追加済み（6テストケース in `column-dnd.spec.ts`）               |
 | Column: ColumnInsertZone挿入 | ✅ 追加済み（5テストケース in `column-dnd.spec.ts`）               |
 | Column: Auto-Height拡張      | ✅ 追加済み（`e2e/kanban.spec.ts` - 6テスト）                      |
 
-### 10.6 CDP Drag Helper一覧
+### 11.6 CDP Drag Helper一覧
 
 ```typescript
 // e2e/helpers/cdp-drag.ts
