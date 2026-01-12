@@ -30,8 +30,15 @@ const config: KnipConfig = {
     'lib/supabase/database.types.ts',
   ],
 
-  // Dynamic dependencies - msw is now properly detected via mocks/server.ts entry
-  ignoreDependencies: [],
+  // Dynamic dependencies (CSS-only - not detectable by Knip)
+  // - tw-animate-css: @import 'tw-animate-css' in globals.css
+  // - tailwindcss-animate: @plugin "tailwindcss-animate" in globals.css
+  // - tailwind-scrollbar-hide: @plugin "tailwind-scrollbar-hide" in globals.css
+  ignoreDependencies: [
+    'tw-animate-css',
+    'tailwindcss-animate',
+    'tailwind-scrollbar-hide',
+  ],
 
   // Plugin configurations (plugins auto-detect their dependencies)
   next: {
