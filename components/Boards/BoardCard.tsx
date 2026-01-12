@@ -247,8 +247,6 @@ export const BoardCard = memo(function BoardCard({
   )
 })
 
-export default BoardCard
-
 // ========================================
 // Helper Functions
 // ========================================

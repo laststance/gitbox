@@ -560,34 +560,3 @@ export async function deleteComment(repoCardId: string): Promise<void> {
 
   // Note: No revalidatePath needed - client handles state via Redux
 }
-
-/**
- * Delete project info
- */
-export async function deleteProjectInfo(repoCardId: string): Promise<void> {
-  const supabase = await createClient()
-
-  const { data: projectInfo } = await supabase
-    .from('projectinfo')
-    .select('id')
-    .eq('repo_card_id', repoCardId)
-    .single<{ id: string }>()
-
-  if (!projectInfo) {
-    return // Do nothing if data doesn't exist
-  }
-
-  const { error } = await supabase
-    .from('projectinfo')
-    .delete()
-    .eq('id', projectInfo.id)
-
-  if (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'Delete project info', repoCardId },
-    })
-    throw new Error('Failed to delete project information')
-  }
-
-  // Note: No revalidatePath needed - client handles state via Redux
-}

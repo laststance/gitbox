@@ -374,7 +374,7 @@ export type TablesUpdate<
       : never
     : never
 
-export type Enums<
+type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema['Enums']
     | { schema: keyof DatabaseWithoutInternals },
@@ -391,7 +391,7 @@ export type Enums<
     ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
     : never
 
-export type CompositeTypes<
+type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema['CompositeTypes']
     | { schema: keyof DatabaseWithoutInternals },
@@ -408,7 +408,7 @@ export type CompositeTypes<
     ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
     : never
 
-export const Constants = {
+const Constants = {
   graphql_public: {
     Enums: {},
   },
@@ -419,14 +419,14 @@ export const Constants = {
 
 // Convenience type aliases for common table types
 export type Board = Tables<'board'>
-export type StatusList = Tables<'statuslist'>
-export type RepoCard = Tables<'repocard'>
-export type ProjectInfo = Tables<'projectinfo'>
-export type Maintenance = Tables<'maintenance'>
-export type UserLinkPreset = Tables<'user_link_presets'>
+type StatusList = Tables<'statuslist'>
+type RepoCard = Tables<'repocard'>
+type ProjectInfo = Tables<'projectinfo'>
+type Maintenance = Tables<'maintenance'>
+type UserLinkPreset = Tables<'user_link_presets'>
 
 // Theme type (stored as string in board.theme)
-export type Theme =
+type Theme =
   | 'default'
   | 'sunrise'
   | 'sandstone'

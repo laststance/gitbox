@@ -567,24 +567,3 @@ export const mockMaintenanceProjectInfo = [
     updated_at: '2024-12-31T00:00:00.000Z',
   },
 ]
-
-export const mockData = {
-  user: mockUser,
-  session: mockSession,
-  boards: mockBoards,
-  statusLists: mockStatusLists,
-  repoCards: mockRepoCards,
-  projectInfo: mockProjectInfo,
-  maintenance: mockMaintenance,
-  maintenanceProjectInfo: mockMaintenanceProjectInfo,
-  gitHubUser: mockGitHubUser,
-  gitHubRepos: mockGitHubRepos,
-  gitHubOrgs: mockGitHubOrgs,
-  ids: {
-    userId: MOCK_USER_ID,
-    boardId: MOCK_BOARD_ID,
-    statusIds: MOCK_STATUS_IDS,
-    cardId: MOCK_CARD_ID,
-    maintenanceId: MOCK_MAINTENANCE_ID,
-  },
-} as const

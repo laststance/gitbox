@@ -36,5 +36,3 @@ export const AccountLayoutClient = memo(function AccountLayoutClient({
     </>
   )
 })
-
-export default AccountLayoutClient

@@ -192,5 +192,3 @@ export const StatusListDialog = memo(function StatusListDialog({
     </Dialog>
   )
 })
-
-export default StatusListDialog

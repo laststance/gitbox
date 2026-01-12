@@ -15,8 +15,6 @@ import { z } from 'zod'
  */
 export const uuidSchema = z.string().uuid('Invalid ID format')
 
-export type UuidInput = z.infer<typeof uuidSchema>
-
 /**
  * URL schema with http/https protocol validation
  *
@@ -33,8 +31,6 @@ export const urlSchema = z
     'URL must start with http:// or https://',
   )
 
-export type UrlInput = z.infer<typeof urlSchema>
-
 /**
  * Optional URL schema that allows empty strings
  *
@@ -49,5 +45,3 @@ export const optionalUrlSchema = z
   .string()
   .transform((val) => (val === '' ? undefined : val))
   .pipe(urlSchema.optional())
-
-export type OptionalUrlInput = z.infer<typeof optionalUrlSchema>

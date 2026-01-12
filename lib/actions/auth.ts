@@ -84,48 +84,6 @@ export async function signOut() {
 }
 
 /**
- * Get current user session
- *
- * @returns Session information (null if not authenticated)
- */
-export async function getSession() {
-  const supabase = await createServerActionClient()
-
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession()
-
-  if (error) {
-    Sentry.captureException(error, { extra: { context: 'Get session' } })
-    return null
-  }
-
-  return session
-}
-
-/**
- * Get current user information
- *
- * @returns User information (null if not authenticated)
- */
-export async function getUser() {
-  const supabase = await createServerActionClient()
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser()
-
-  if (error) {
-    Sentry.captureException(error, { extra: { context: 'Get user' } })
-    return null
-  }
-
-  return user
-}
-
-/**
  * Delete user account permanently
  *
  * Deletes the user from Supabase Auth using admin privileges.

@@ -202,5 +202,3 @@ export const StatusColumn = memo<StatusColumnProps>(
 )
 
 StatusColumn.displayName = 'StatusColumn'
-
-export default StatusColumn

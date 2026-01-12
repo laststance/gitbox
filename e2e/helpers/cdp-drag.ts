@@ -230,7 +230,7 @@ async function getColumnDragHandleCenter(
  * );
  * ```
  */
-export async function cdpDragAndDrop(
+async function cdpDragAndDrop(
   page: Page,
   sourceSelector: string,
   targetSelector: string,
@@ -729,7 +729,7 @@ export async function cdpColumnToInsertZone(
  * await cdpColumnToGridPosition(page, 'status-1', 1, 2);
  * ```
  */
-export async function cdpColumnToGridPosition(
+async function cdpColumnToGridPosition(
   page: Page,
   sourceColumnId: string,
   targetGridRow: number,

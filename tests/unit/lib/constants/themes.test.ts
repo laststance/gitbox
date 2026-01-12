@@ -17,7 +17,6 @@ import {
   LIGHT_THEMES,
   DARK_THEMES,
   ALL_THEMES,
-  VALID_THEME_IDS,
 } from '@/lib/constants/themes'
 
 describe('Theme Constants', () => {
@@ -129,10 +128,6 @@ describe('Theme Constants', () => {
     it('ALL_THEMES should include system', () => {
       expect(ALL_THEMES).toContain('system')
       expect(ALL_THEMES).toHaveLength(15)
-    })
-
-    it('VALID_THEME_IDS should equal ALL_THEME_IDS', () => {
-      expect(VALID_THEME_IDS).toBe(ALL_THEME_IDS)
     })
   })
 })

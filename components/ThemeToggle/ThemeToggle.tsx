@@ -235,5 +235,3 @@ const ThemeMenuItem = memo(function ThemeMenuItem({
     </DropdownMenuItem>
   )
 })
-
-export default ThemeToggle

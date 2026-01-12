@@ -320,5 +320,3 @@ export const RestoreToBoardDialog = memo(function RestoreToBoardDialog({
     </Dialog>
   )
 })
-
-export default RestoreToBoardDialog

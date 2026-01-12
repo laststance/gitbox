@@ -343,5 +343,3 @@ export const RepoCard = memo<RepoCardProps>(
 )
 
 RepoCard.displayName = 'RepoCard'
-
-export default RepoCard

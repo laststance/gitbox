@@ -3,8 +3,9 @@ import type { KnipConfig } from 'knip'
 const config: KnipConfig = {
   // Entry points for the project (beyond what plugins auto-detect)
   entry: [
-    // MSW provider (dynamically imports mocks/)
+    // MSW setup (dynamically required in layout.tsx)
     'app/msw-provider.tsx',
+    'mocks/server.ts',
 
     // Custom hooks
     'hooks/**/*.ts',
@@ -29,11 +30,8 @@ const config: KnipConfig = {
     'lib/supabase/database.types.ts',
   ],
 
-  // Only truly dynamic dependencies that no plugin can detect
-  ignoreDependencies: [
-    // MSW - dynamically imported at runtime
-    'msw',
-  ],
+  // Dynamic dependencies - msw is now properly detected via mocks/server.ts entry
+  ignoreDependencies: [],
 
   // Plugin configurations (plugins auto-detect their dependencies)
   next: {

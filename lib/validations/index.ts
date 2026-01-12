@@ -9,14 +9,7 @@
  */
 
 // Common schemas
-export {
-  uuidSchema,
-  urlSchema,
-  optionalUrlSchema,
-  type UuidInput,
-  type UrlInput,
-  type OptionalUrlInput,
-} from './common'
+export { uuidSchema, urlSchema, optionalUrlSchema } from './common'
 
 // Helper functions
 export {
@@ -37,8 +30,6 @@ export {
   deleteBoardFormSchema,
   updateThemeFormSchema,
   updateSettingsFormSchema,
-  type BoardNameInput,
-  type BoardSettingsInput,
 } from './board'
 
 // Project info schemas
@@ -58,9 +49,6 @@ export {
   validateCommentWithSchema,
   validateCommentColorWithSchema,
   validateUrlWithSchema,
-  type CommentColorType,
-  type NoteInput,
-  type CommentInput,
   type ProjectLinkInput,
 } from './project-info'
 
@@ -76,11 +64,6 @@ export {
   updatePresetSchema,
   validatePresetValueWithSchema,
   validatePresetLabelWithSchema,
-  type PresetValueInput,
-  type PresetLabelInput,
-  type PresetIconInput,
-  type CreatePresetInput,
-  type UpdatePresetInput,
 } from './user-presets'
 
 // URL validation utility (for EditableUrlItem)

@@ -223,5 +223,3 @@ export const NoteModal = memo(function NoteModal({
     </Dialog>
   )
 })
-
-export default NoteModal

@@ -142,5 +142,3 @@ export const SortableColumn = memo<SortableColumnProps>(
 )
 
 SortableColumn.displayName = 'SortableColumn'
-
-export default SortableColumn

@@ -108,8 +108,6 @@ export const BoardGrid = memo(function BoardGrid({
   )
 })
 
-export default BoardGrid
-
 // ========================================
 // Empty State Component
 // ========================================

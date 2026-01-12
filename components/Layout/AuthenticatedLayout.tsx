@@ -32,5 +32,3 @@ export const AuthenticatedLayout = memo(function AuthenticatedLayout({
     </div>
   )
 })
-
-export default AuthenticatedLayout

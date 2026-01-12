@@ -95,5 +95,3 @@ export const logger = createLogger()
 export const createModuleLogger = (module: string): pino.Logger => {
   return logger.child({ module })
 }
-
-export default logger

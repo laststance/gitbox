@@ -11,16 +11,14 @@ import * as Sentry from '@sentry/nextjs'
 
 import { labelToValue } from '@/lib/constants/link-presets'
 import { createClient } from '@/lib/supabase/server'
-import type { TablesInsert, Tables, TablesUpdate } from '@/lib/supabase/types'
+import type { TablesInsert } from '@/lib/supabase/types'
 import {
   presetValueSchema,
   presetLabelSchema,
   MAX_CUSTOM_PRESETS,
 } from '@/lib/validations/user-presets'
 
-type UserLinkPresetRow = Tables<'user_link_presets'>
 type UserLinkPresetInsert = TablesInsert<'user_link_presets'>
-type UserLinkPresetUpdate = TablesUpdate<'user_link_presets'>
 
 /**
  * User preset data returned by getUserPresets
@@ -197,132 +195,5 @@ export async function createUserPreset(
     value: data.value,
     label: data.label,
     icon: data.icon || 'Link',
-  }
-}
-
-/**
- * Update an existing custom preset
- *
- * @param id - The preset ID to update
- * @param updates - Object containing fields to update (label and/or icon)
- * @returns The updated preset
- * @throws Error if preset not found or validation fails
- *
- * @example
- * const preset = await updateUserPreset('preset-id', { label: 'New Name', icon: 'Heart' })
- */
-export async function updateUserPreset(
-  id: string,
-  updates: { label?: string; icon?: string },
-): Promise<UserPreset> {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error('Authentication required')
-  }
-
-  // Get existing preset
-  const { data: existing, error: fetchError } = await supabase
-    .from('user_link_presets')
-    .select('*')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single<UserLinkPresetRow>()
-
-  if (fetchError || !existing) {
-    throw new Error('Preset not found')
-  }
-
-  const updateData: UserLinkPresetUpdate = {
-    updated_at: new Date().toISOString(),
-  }
-
-  if (updates.label !== undefined) {
-    validateLabel(updates.label)
-    updateData.label = updates.label.trim()
-    // Also update value if label changes
-    const newValue = labelToValue(updates.label)
-    validateValue(newValue)
-
-    // Check for duplicate value (excluding current preset)
-    const { data: duplicate } = await supabase
-      .from('user_link_presets')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('value', newValue)
-      .neq('id', id)
-      .single()
-
-    if (duplicate) {
-      throw new Error('A preset with this name already exists')
-    }
-
-    updateData.value = newValue
-  }
-
-  if (updates.icon !== undefined) {
-    updateData.icon = updates.icon
-  }
-
-  const { data, error } = await supabase
-    .from('user_link_presets')
-    .update(updateData)
-    .eq('id', id)
-    .select('id, value, label, icon')
-    .single()
-
-  if (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'Update user preset', userId: user.id, id },
-    })
-    throw new Error('Failed to update custom preset')
-  }
-
-  return {
-    id: data.id,
-    value: data.value,
-    label: data.label,
-    icon: data.icon || 'Link',
-  }
-}
-
-/**
- * Delete a custom preset
- *
- * Note: This does not update existing project links using this preset.
- * Those links will remain but display as "Unknown type" in the UI.
- *
- * @param id - The preset ID to delete
- * @throws Error if preset not found
- *
- * @example
- * await deleteUserPreset('preset-id')
- */
-export async function deleteUserPreset(id: string): Promise<void> {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error('Authentication required')
-  }
-
-  const { error } = await supabase
-    .from('user_link_presets')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', user.id)
-
-  if (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'Delete user preset', userId: user.id, id },
-    })
-    throw new Error('Failed to delete custom preset')
   }
 }

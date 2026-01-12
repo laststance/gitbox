@@ -839,36 +839,6 @@ export async function toggleBoardFavorite(
   return { success: true, isFavorite: newStatus }
 }
 
-/**
- * Get favorite boards for current user.
- *
- * @returns
- * - Array of favorite boards ordered by updated_at descending
- * - Empty array if not authenticated or no favorites
- *
- * @example
- * const favorites = await getFavoriteBoards()
- * console.log(`Found ${favorites.length} favorite boards`)
- */
-export async function getFavoriteBoards(): Promise<Tables<'board'>[]> {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) return []
-
-  const { data } = await supabase
-    .from('board')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('is_favorite', true)
-    .order('updated_at', { ascending: false })
-
-  return data || []
-}
-
 // ========================================
 // First Board Auto-Creation
 // ========================================

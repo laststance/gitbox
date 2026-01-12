@@ -44,8 +44,6 @@ export const presetValueSchema = z
     message: 'Cannot use a built-in preset value',
   })
 
-export type PresetValueInput = z.infer<typeof presetValueSchema>
-
 // ========================================
 // Preset Label Schema
 // ========================================
@@ -64,8 +62,6 @@ export const presetLabelSchema = z
   .min(1, 'Label is required')
   .max(MAX_LABEL_LENGTH, `Label must be ${MAX_LABEL_LENGTH} characters or less`)
 
-export type PresetLabelInput = z.infer<typeof presetLabelSchema>
-
 // ========================================
 // Preset Icon Schema
 // ========================================
@@ -79,8 +75,6 @@ export type PresetLabelInput = z.infer<typeof presetLabelSchema>
  * presetIconSchema.safeParse(undefined)  // => { success: true, data: 'Link' }
  */
 export const presetIconSchema = z.string().optional().default('Link')
-
-export type PresetIconInput = z.infer<typeof presetIconSchema>
 
 // ========================================
 // Complete Preset Schema
@@ -98,8 +92,6 @@ export const createPresetSchema = z.object({
   icon: presetIconSchema,
 })
 
-export type CreatePresetInput = z.infer<typeof createPresetSchema>
-
 /**
  * Schema for updating an existing user preset.
  * All fields are optional.
@@ -112,8 +104,6 @@ export const updatePresetSchema = z.object({
   label: presetLabelSchema.optional(),
   icon: z.string().optional(),
 })
-
-export type UpdatePresetInput = z.infer<typeof updatePresetSchema>
 
 // ========================================
 // Validation Helper Functions (backward compatibility)

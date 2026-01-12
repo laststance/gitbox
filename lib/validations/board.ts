@@ -34,8 +34,6 @@ export const boardNameSchema = z
     `Board name must be ${BOARD_NAME_MAX_LENGTH} characters or less`,
   )
 
-export type BoardNameInput = z.infer<typeof boardNameSchema>
-
 // ========================================
 // Board ID Schema
 // ========================================
@@ -64,8 +62,6 @@ export const boardIdSchema = uuidSchema
 export const themeSchema = z.enum(ALL_THEME_IDS, {
   message: 'Invalid theme',
 })
-
-export type ThemeInput = z.infer<typeof themeSchema>
 
 // ========================================
 // Board Settings Schema
@@ -98,8 +94,6 @@ export const boardSettingsSchema = z
     cardDisplay: cardDisplaySettingsSchema.optional(),
   })
   .passthrough()
-
-export type BoardSettingsInput = z.infer<typeof boardSettingsSchema>
 
 // ========================================
 // Form Schemas for Server Actions

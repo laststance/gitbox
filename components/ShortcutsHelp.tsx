@@ -232,5 +232,3 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
     </Dialog>
   )
 })
-
-export default ShortcutsHelp

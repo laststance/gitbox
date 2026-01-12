@@ -36,5 +36,3 @@ export const BoardsLayoutClient = memo(function BoardsLayoutClient({
     </>
   )
 })
-
-export default BoardsLayoutClient

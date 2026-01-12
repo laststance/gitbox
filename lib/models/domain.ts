@@ -6,12 +6,6 @@
  * providing unified types throughout the application
  */
 
-// Re-export database types for mapper usage
-export type {
-  StatusList as DbStatusList,
-  RepoCard as DbRepoCard,
-} from '@/lib/supabase/types'
-
 // ========================================
 // Status List Domain Model
 // ========================================
@@ -100,12 +94,6 @@ export interface RepoCardMeta {
 // ========================================
 // Simplified Types for Redux (Immer compatibility)
 // ========================================
-
-/**
- * Simplified type for Redux state
- * Converts Json type to unknown to avoid Immer type inference issues
- */
-export type StatusListForRedux = StatusListDomain
 
 /**
  * Simplified type for Redux state

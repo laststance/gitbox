@@ -175,5 +175,3 @@ export const PlateEditor = memo(function PlateEditor({
     </TooltipProvider>
   )
 })
-
-export default PlateEditor

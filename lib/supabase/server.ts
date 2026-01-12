@@ -9,11 +9,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
-import { createModuleLogger } from '@/lib/logger'
-
 import type { Database } from './types'
-
-const log = createModuleLogger('supabase')
 
 /**
  * Check if E2E test mode is enabled
@@ -227,73 +223,6 @@ const MOCK_USER_FOR_E2E = {
   updated_at: new Date().toISOString(),
   is_anonymous: false,
 } as const
-
-/**
- * Get current user (server-side)
- *
- * In E2E test mode (NEXT_PUBLIC_ENABLE_MSW_MOCK=true + APP_ENV=test),
- * returns a mock user to bypass OAuth flow.
- */
-export async function getUser() {
-  // E2E test mode: return mock user to bypass OAuth
-  const isMSWEnabled =
-    process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK === 'true' &&
-    (process.env.APP_ENV === 'test' || process.env.NODE_ENV === 'test')
-
-  if (isMSWEnabled) {
-    return MOCK_USER_FOR_E2E
-  }
-
-  const supabase = await createClient()
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser()
-
-  if (error) {
-    log.error({ error }, 'Failed to get user')
-    return null
-  }
-
-  return user
-}
-
-/**
- * Get current session (server-side)
- *
- * In E2E test mode (NEXT_PUBLIC_ENABLE_MSW_MOCK=true + APP_ENV=test),
- * returns a mock session to bypass OAuth flow.
- */
-export async function getSession() {
-  // E2E test mode: return mock session to bypass OAuth
-  const isMSWEnabled =
-    process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK === 'true' &&
-    (process.env.APP_ENV === 'test' || process.env.NODE_ENV === 'test')
-
-  if (isMSWEnabled) {
-    return {
-      access_token: 'mock-access-token-for-testing',
-      token_type: 'bearer',
-      expires_in: 3600,
-      expires_at: Math.floor(Date.now() / 1000) + 3600,
-      refresh_token: 'mock-refresh-token-for-testing',
-      user: MOCK_USER_FOR_E2E,
-    }
-  }
-
-  const supabase = await createClient()
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession()
-
-  if (error) {
-    log.error({ error }, 'Failed to get session')
-    return null
-  }
-
-  return session
-}
 
 /**
  * Create Supabase Admin Client with Service Role Key

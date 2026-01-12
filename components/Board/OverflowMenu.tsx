@@ -251,5 +251,3 @@ export const OverflowMenu = memo<OverflowMenuProps>(
 )
 
 OverflowMenu.displayName = 'OverflowMenu'
-
-export default OverflowMenu

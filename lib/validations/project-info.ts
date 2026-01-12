@@ -41,8 +41,6 @@ export const DEFAULT_COMMENT_COLOR = 'primary' as const
 // Comment Color Schema
 // ========================================
 
-export type CommentColorType = (typeof VALID_COMMENT_COLORS)[number]
-
 /**
  * Schema for validating comment colors.
  *
@@ -85,8 +83,6 @@ export const noteSchema = z.string().superRefine((val, ctx) => {
   }
 })
 
-export type NoteInput = z.infer<typeof noteSchema>
-
 // ========================================
 // Comment Schema
 // ========================================
@@ -104,8 +100,6 @@ export const commentSchema = z
     COMMENT_MAX_LENGTH,
     `Comment must be ${COMMENT_MAX_LENGTH} characters or less`,
   )
-
-export type CommentInput = z.infer<typeof commentSchema>
 
 // ========================================
 // URL Schema (for project links)

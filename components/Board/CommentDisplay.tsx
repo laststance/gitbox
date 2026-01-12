@@ -38,11 +38,6 @@ export const COMMENT_CARD_COLORS = {
 } as const
 
 /**
- * @deprecated Use COMMENT_CARD_COLORS instead. Kept for backward compatibility.
- */
-export const COMMENT_BORDER_COLORS = COMMENT_CARD_COLORS
-
-/**
  * @deprecated Background is now part of COMMENT_CARD_COLORS. Kept for backward compatibility.
  */
 export const COMMENT_BG_COLORS = {
@@ -230,5 +225,3 @@ export const CommentDisplay = memo<CommentDisplayProps>(
 )
 
 CommentDisplay.displayName = 'CommentDisplay'
-
-export default CommentDisplay

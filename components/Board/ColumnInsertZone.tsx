@@ -88,5 +88,3 @@ export const ColumnInsertZone = memo<ColumnInsertZoneProps>(
 )
 
 ColumnInsertZone.displayName = 'ColumnInsertZone'
-
-export default ColumnInsertZone

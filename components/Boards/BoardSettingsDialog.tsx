@@ -660,5 +660,3 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
     </>
   )
 })
-
-export default BoardSettingsDialog

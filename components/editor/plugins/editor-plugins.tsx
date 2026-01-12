@@ -121,16 +121,3 @@ export const EditorPlugins = [
   // Custom floating toolbar (appears on text selection, no AI)
   ...NoteFloatingToolbarKit,
 ]
-
-/**
- * Minimal editor plugins for readonly or simplified views.
- * Excludes toolbars and interactive features.
- */
-export const ReadonlyEditorPlugins = [
-  ...BasicBlocksKit,
-  ...BasicMarksKit,
-  ...CodeBlockKit,
-  ...LinkKit,
-  ...TableKit,
-  ...ListKit,
-]

@@ -426,5 +426,3 @@ export const Sidebar = memo(function Sidebar({
     </TooltipProvider>
   )
 })
-
-export default Sidebar

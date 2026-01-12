@@ -176,5 +176,3 @@ export const CommentActionsMenu = memo<CommentActionsMenuProps>(
 )
 
 CommentActionsMenu.displayName = 'CommentActionsMenu'
-
-export default CommentActionsMenu

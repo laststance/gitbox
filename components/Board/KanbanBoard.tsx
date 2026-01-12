@@ -861,5 +861,3 @@ export const KanbanBoard = memo<KanbanBoardProps>(
   },
 )
 KanbanBoard.displayName = 'KanbanBoard'
-
-export default KanbanBoard

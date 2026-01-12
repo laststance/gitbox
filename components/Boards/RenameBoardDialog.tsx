@@ -168,5 +168,3 @@ export const RenameBoardDialog = memo(function RenameBoardDialog({
     </Dialog>
   )
 })
-
-export default RenameBoardDialog

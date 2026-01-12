@@ -37,7 +37,6 @@ export const ALL_THEME_IDS = [...LIGHT_THEME_IDS, ...DARK_THEME_IDS] as const
 // Type Definitions
 // ========================================
 
-export type LightThemeId = (typeof LIGHT_THEME_IDS)[number]
 export type DarkThemeId = (typeof DARK_THEME_IDS)[number]
 export type ThemeId = (typeof ALL_THEME_IDS)[number]
 
@@ -141,6 +140,3 @@ export const DARK_THEMES: ThemeType[] = [...DARK_THEME_IDS]
 
 /** @deprecated Use ALL_THEME_IDS instead (note: this includes 'system') */
 export const ALL_THEMES: ThemeType[] = [...ALL_THEME_IDS, 'system']
-
-/** Valid theme IDs for Zod validation schemas */
-export const VALID_THEME_IDS = ALL_THEME_IDS

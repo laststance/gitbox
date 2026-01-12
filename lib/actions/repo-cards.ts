@@ -19,25 +19,6 @@ import { createClient } from '@/lib/supabase/server'
 const log = createModuleLogger('repo-cards')
 
 /**
- * RepoCard addition parameters
- */
-export interface AddRepoCardParams {
-  boardId: string
-  statusId: string
-  repository: {
-    owner: string
-    name: string
-    description?: string | null
-    stars?: number
-    language?: string | null
-    topics?: string[]
-    visibility?: 'public' | 'private'
-    updatedAt?: string
-  }
-  order?: number
-}
-
-/**
  * Created card data returned from addRepositoriesToBoard
  * Used for optimistic UI updates in the client
  */
@@ -224,42 +205,6 @@ export async function addRepositoriesToBoard(
 }
 
 /**
- * Check if repository is already added to board
- *
- * @param boardId - Board ID
- * @param repoOwner - Repository owner
- * @param repoName - Repository name
- * @returns True if duplicate
- */
-export async function checkDuplicateRepository(
-  boardId: string,
-  repoOwner: string,
-  repoName: string,
-): Promise<boolean> {
-  try {
-    const supabase = await createClient()
-
-    const { data, error } = await supabase
-      .from('repocard')
-      .select('id')
-      .eq('board_id', boardId)
-      .eq('repo_owner', repoOwner)
-      .eq('repo_name', repoName)
-      .maybeSingle()
-
-    if (error) {
-      log.error({ error }, 'Check duplicate error')
-      return false
-    }
-
-    return data !== null
-  } catch (error) {
-    log.error({ error }, 'Check duplicate error')
-    return false
-  }
-}
-
-/**
  * Delete RepoCard
  *
  * @param cardId - Card ID
@@ -306,69 +251,6 @@ export async function deleteRepoCard(
     log.error({ error }, 'Delete card error')
     Sentry.captureException(error, {
       extra: { context: 'Delete card', cardId },
-    })
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-    }
-  }
-}
-
-/**
- * Update RepoCard order (sort order)
- *
- * @param cardId - Card ID
- * @param statusId - New status ID (when moving columns)
- * @param newOrder - New order value
- * @returns Update success flag
- */
-export async function updateRepoCardOrder(
-  cardId: string,
-  statusId: string,
-  newOrder: number,
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const supabase = await createClient()
-
-    // Get current user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return {
-        success: false,
-        error: 'Authentication required',
-      }
-    }
-
-    // Update card (ownership check is done automatically by RLS policy)
-    const { error: updateError } = await supabase
-      .from('repocard')
-      .update({
-        status_id: statusId,
-        order: newOrder,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', cardId)
-
-    if (updateError) {
-      log.error({ error: updateError }, 'Update order error')
-      Sentry.captureException(updateError, {
-        extra: { context: 'Update card order', cardId, statusId, newOrder },
-      })
-      return {
-        success: false,
-        error: 'Failed to move card',
-      }
-    }
-
-    return { success: true }
-  } catch (error) {
-    log.error({ error }, 'Update order error')
-    Sentry.captureException(error, {
-      extra: { context: 'Update card order', cardId },
     })
     return {
       success: false,

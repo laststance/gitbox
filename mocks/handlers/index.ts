@@ -11,8 +11,8 @@ import type { HttpHandler } from 'msw'
 import { githubApiHandlers } from './github'
 import { supabaseHandlers } from './supabase'
 
-// Re-export mock data and utilities for tests/stories
-export { mockData, resetMockData } from './data'
+// Re-export mock data utilities for tests/stories
+export { resetMockData } from './data'
 
 // Re-export individual handler groups for selective use
 export { githubApiHandlers } from './github'

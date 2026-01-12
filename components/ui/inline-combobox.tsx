@@ -8,7 +8,6 @@ import {
   ComboboxItem,
   ComboboxPopover,
   ComboboxProvider,
-  ComboboxRow,
   Portal,
   useComboboxContext,
   useComboboxStore,
@@ -369,8 +368,6 @@ const InlineComboboxEmpty = ({
   )
 }
 
-const InlineComboboxRow = ComboboxRow
-
 function InlineComboboxGroup({
   className,
   ...props
@@ -409,5 +406,4 @@ export {
   InlineComboboxGroupLabel,
   InlineComboboxInput,
   InlineComboboxItem,
-  InlineComboboxRow,
 }

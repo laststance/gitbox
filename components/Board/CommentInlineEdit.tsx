@@ -278,5 +278,3 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
 )
 
 CommentInlineEdit.displayName = 'CommentInlineEdit'
-
-export default CommentInlineEdit

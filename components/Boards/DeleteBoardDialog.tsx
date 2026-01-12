@@ -107,5 +107,3 @@ export const DeleteBoardDialog = memo(function DeleteBoardDialog({
     </AlertDialog>
   )
 })
-
-export default DeleteBoardDialog

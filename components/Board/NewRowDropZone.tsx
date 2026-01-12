@@ -70,5 +70,3 @@ export const NewRowDropZone = memo<NewRowDropZoneProps>(
 )
 
 NewRowDropZone.displayName = 'NewRowDropZone'
-
-export default NewRowDropZone
