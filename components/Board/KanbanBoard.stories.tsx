@@ -11,12 +11,76 @@
  * - Columns can be dragged vertically (up/down) and horizontally (left/right)
  * - Uses rectSortingStrategy from @dnd-kit/sortable for full 2D movement
  * - Auto-wrap layout adapts to viewport size
+ *
+ * Note: This component reads data from Redux state (statusLists, repoCards).
+ * In the real app, a Server Component fetches data and hydrates Redux.
+ * For Storybook, we use a decorator to pre-populate Redux with mock data.
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
+import { useLayoutEffect } from 'react'
+import { useDispatch } from 'react-redux'
 import { expect, waitFor } from 'storybook/test'
 
+import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
+import {
+  setStatusLists,
+  setRepoCards,
+  setBoardError,
+} from '@/lib/redux/slices/boardSlice'
+import { mockStatusLists, mockRepoCards } from '@/mocks/handlers/data'
+
 import { KanbanBoard } from './KanbanBoard'
+
+/**
+ * Transform mock database data to domain models for Redux
+ */
+const transformedStatusLists: StatusListDomain[] = mockStatusLists.map((s) => ({
+  id: s.id,
+  title: s.name,
+  color: s.color,
+  gridRow: s.grid_row,
+  gridCol: s.grid_col,
+  boardId: s.board_id,
+  createdAt: s.created_at,
+  updatedAt: s.updated_at,
+}))
+
+const transformedRepoCards: RepoCardForRedux[] = mockRepoCards.map((c) => ({
+  id: c.id,
+  title: c.repo_name,
+  description: c.meta?.description,
+  statusId: c.status_id,
+  boardId: c.board_id,
+  repoOwner: c.repo_owner,
+  repoName: c.repo_name,
+  order: c.order,
+  meta: c.meta,
+  createdAt: c.created_at,
+  updatedAt: c.updated_at,
+}))
+
+/**
+ * Decorator component that hydrates Redux with mock board data
+ * This simulates what the Server Component does in the real app
+ */
+function ReduxHydrator({
+  children,
+}: {
+  children: React.ReactNode
+}): React.ReactNode {
+  const dispatch = useDispatch()
+
+  useLayoutEffect(() => {
+    // Clear any persisted error state from localStorage
+    dispatch(setBoardError(null))
+    // Hydrate Redux with mock board data
+    dispatch(setStatusLists(transformedStatusLists))
+    dispatch(setRepoCards(transformedRepoCards))
+  }, [dispatch])
+
+  return children
+}
 
 const meta = {
   title: 'Board/KanbanBoard',
@@ -25,6 +89,13 @@ const meta = {
     layout: 'fullscreen',
   },
   tags: ['autodocs'],
+  decorators: [
+    (Story) => (
+      <ReduxHydrator>
+        <Story />
+      </ReduxHydrator>
+    ),
+  ],
 } satisfies Meta<typeof KanbanBoard>
 
 export default meta
