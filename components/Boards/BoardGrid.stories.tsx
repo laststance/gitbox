@@ -18,7 +18,7 @@ const createMockBoard = (overrides: Partial<Board> = {}): Board => ({
   id: 'board-1',
   user_id: 'user-1',
   name: 'My Project Board',
-  theme: 'sunrise',
+  theme: 'default',
   settings: null,
   created_at: '2024-12-01T00:00:00Z',
   updated_at: '2024-12-15T00:00:00Z',
@@ -30,7 +30,7 @@ const mockBoards: Board[] = [
   createMockBoard({
     id: 'board-1',
     name: 'Frontend Development',
-    theme: 'sunrise',
+    theme: 'default',
   }),
   createMockBoard({ id: 'board-2', name: 'Backend API', theme: 'midnight' }),
   createMockBoard({ id: 'board-3', name: 'Design System', theme: 'mint' }),

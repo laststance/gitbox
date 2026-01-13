@@ -19,7 +19,7 @@ const mockBoard: Board = {
   id: 'board-1',
   user_id: 'user-1',
   name: 'My Project Board',
-  theme: 'sunrise',
+  theme: 'default',
   settings: null,
   created_at: '2024-12-01T00:00:00Z',
   updated_at: '2024-12-15T00:00:00Z',
