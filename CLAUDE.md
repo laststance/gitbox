@@ -32,13 +32,13 @@ This application requires GitHub authentication to access any functionality beyo
 
 ---
 
-## Documentation & Planning
+## Documentation
 
-| Document | Path          | Description                                                                            |
-| -------- | ------------- | -------------------------------------------------------------------------------------- |
-| **PRD**  | `Spec/PRD.md` | Product Requirements Document with feature specifications, wireframes, and data models |
+| Document | Path      | Description                                                                                           |
+| -------- | --------- | ----------------------------------------------------------------------------------------------------- |
+| **SPEC** | `SPEC.md` | Complete specification: features, UI wireframes, data models, platform requirements (Vercel/Supabase) |
 
-**📋 Feature Tracking:** Unimplemented features from PRD are tracked as [GitHub Issues](https://github.com/laststance/gitbox/issues). Check open issues before implementing new features.
+**📋 Feature Tracking:** Unimplemented features from SPEC are tracked as [GitHub Issues](https://github.com/laststance/gitbox/issues). Check open issues before implementing new features.
 
 ---
 
