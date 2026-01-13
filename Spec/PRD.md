@@ -131,7 +131,7 @@ color.success / warning / danger
 - **Explorer UI**（Grid/List切替、並び替え/検索）
 - **クリック＝GitHub repo へ遷移**
 - カード右上に**⋯メニュー**
-- **復帰（Restore to Board）**や**Hide**操作を提供
+- **復帰（Restore to Board）**操作を提供
 
 #### UI根拠
 
