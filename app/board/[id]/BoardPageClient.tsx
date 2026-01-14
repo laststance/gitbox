@@ -16,7 +16,7 @@
 'use client'
 
 import * as Sentry from '@sentry/nextjs'
-import { Plus, Settings } from 'lucide-react'
+import { Link, Plus, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, memo, useEffect, useLayoutEffect } from 'react'
 import { toast } from 'sonner'
@@ -231,6 +231,27 @@ export const BoardPageClient = memo(function BoardPageClient({
     router.push('/boards')
   }, [router])
 
+  /**
+   * Copy Board Link to Clipboard
+   *
+   * Copies the current board URL to clipboard for easy sharing.
+   * Enables boards to function as "Better GitHub Repository Lists".
+   */
+  const handleCopyBoardLink = useCallback(async () => {
+    try {
+      const url = window.location.href
+      await navigator.clipboard.writeText(url)
+      toast.success('Link copied!', {
+        description: 'Board URL has been copied to clipboard.',
+      })
+    } catch (error) {
+      Sentry.captureException(error, { tags: { action: 'copyBoardLink' } })
+      toast.error('Failed to copy link', {
+        description: 'Please try again.',
+      })
+    }
+  }, [])
+
   return (
     <>
       <main className="flex h-screen flex-col">
@@ -292,6 +313,16 @@ export const BoardPageClient = memo(function BoardPageClient({
               >
                 <Settings className="h-4 w-4" />
                 Board Settings
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopyBoardLink}
+                className="gap-1"
+                title="Copy board link to clipboard"
+              >
+                <Link className="h-4 w-4" />
+                Copy Link
               </Button>
             </div>
           </div>
