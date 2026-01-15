@@ -2,8 +2,7 @@
  * BoardCard Component Stories
  *
  * A card component displaying board information with a dropdown menu
- * for rename and delete actions. Displays board name, creation date,
- * and theme color indicator.
+ * for rename and delete actions. Displays board name and creation date.
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
@@ -54,67 +53,11 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 /**
- * Default board card with sunrise theme.
+ * Default board card.
  */
 export const Default: Story = {
   args: {
     board: mockBoard,
-  },
-}
-
-/**
- * Board with midnight (dark) theme.
- */
-export const MidnightTheme: Story = {
-  args: {
-    board: {
-      ...mockBoard,
-      id: 'board-2',
-      name: 'Midnight Project',
-      theme: 'midnight',
-    },
-  },
-}
-
-/**
- * Board with mint theme.
- */
-export const MintTheme: Story = {
-  args: {
-    board: {
-      ...mockBoard,
-      id: 'board-3',
-      name: 'Mint Fresh Board',
-      theme: 'mint',
-    },
-  },
-}
-
-/**
- * Board with lavender theme.
- */
-export const LavenderTheme: Story = {
-  args: {
-    board: {
-      ...mockBoard,
-      id: 'board-4',
-      name: 'Lavender Dreams',
-      theme: 'lavender',
-    },
-  },
-}
-
-/**
- * Board with rose theme.
- */
-export const RoseTheme: Story = {
-  args: {
-    board: {
-      ...mockBoard,
-      id: 'board-5',
-      name: 'Rose Garden',
-      theme: 'rose',
-    },
   },
 }
 
@@ -127,20 +70,6 @@ export const LongName: Story = {
       ...mockBoard,
       id: 'board-6',
       name: 'This Is A Very Long Board Name That Should Display Properly',
-    },
-  },
-}
-
-/**
- * Board with null theme (fallback to default gray).
- */
-export const NullTheme: Story = {
-  args: {
-    board: {
-      ...mockBoard,
-      id: 'board-7',
-      name: 'No Theme Board',
-      theme: null,
     },
   },
 }
@@ -160,9 +89,6 @@ export const NullDate: Story = {
 }
 
 /**
- * Grid of multiple board cards showing different themes.
- */
-/**
  * Board marked as favorite (filled star shown).
  */
 export const FavoriteBoard: Story = {
@@ -174,69 +100,6 @@ export const FavoriteBoard: Story = {
       is_favorite: true,
     },
   },
-}
-
-export const ThemeShowcase: Story = {
-  args: {
-    board: mockBoard,
-  },
-  decorators: [
-    () => (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 w-[800px]">
-        <BoardCard
-          board={{
-            ...mockBoard,
-            id: '1',
-            name: 'Sunrise Board',
-            theme: 'sunrise',
-          }}
-          onRename={fn()}
-          onDelete={fn()}
-          onToggleFavorite={fn()}
-        />
-        <BoardCard
-          board={{
-            ...mockBoard,
-            id: '2',
-            name: 'Sandstone Board',
-            theme: 'sandstone',
-          }}
-          onRename={fn()}
-          onDelete={fn()}
-          onToggleFavorite={fn()}
-        />
-        <BoardCard
-          board={{ ...mockBoard, id: '3', name: 'Mint Board', theme: 'mint' }}
-          onRename={fn()}
-          onDelete={fn()}
-          onToggleFavorite={fn()}
-        />
-        <BoardCard
-          board={{ ...mockBoard, id: '4', name: 'Sky Board', theme: 'sky' }}
-          onRename={fn()}
-          onDelete={fn()}
-          onToggleFavorite={fn()}
-        />
-        <BoardCard
-          board={{
-            ...mockBoard,
-            id: '5',
-            name: 'Lavender Board',
-            theme: 'lavender',
-          }}
-          onRename={fn()}
-          onDelete={fn()}
-          onToggleFavorite={fn()}
-        />
-        <BoardCard
-          board={{ ...mockBoard, id: '6', name: 'Rose Board', theme: 'rose' }}
-          onRename={fn()}
-          onDelete={fn()}
-          onToggleFavorite={fn()}
-        />
-      </div>
-    ),
-  ],
 }
 
 /**
@@ -256,29 +119,6 @@ export const CardContentRenders: Story = {
     await waitFor(() => {
       expect(canvas.getByText('My Project Board')).toBeInTheDocument()
     })
-  },
-}
-
-/**
- * Tests that different themes render correctly
- */
-export const ThemeVariantRenders: Story = {
-  args: {
-    board: { ...mockBoard, theme: 'midnight' },
-    onRename: fn(),
-    onDelete: fn(),
-    onToggleFavorite: fn(),
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-
-    // Verify board renders
-    await waitFor(() => {
-      expect(canvas.getByText('My Project Board')).toBeInTheDocument()
-    })
-
-    // Verify theme indicator is present
-    expect(canvas.getByText('midnight')).toBeInTheDocument()
   },
 }
 

@@ -207,22 +207,12 @@ export const BoardCard = memo(function BoardCard({
           {board.name}
         </h3>
 
-        <div className="mt-4 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+        <div className="mt-4 flex items-center text-sm text-gray-500 dark:text-gray-400">
           <div className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
             {board.created_at
               ? new Date(board.created_at).toLocaleDateString('en-US')
               : 'N/A'}
-          </div>
-          <div className="flex items-center gap-1">
-            <div
-              className="h-3 w-3 rounded-full"
-              style={{
-                backgroundColor: getThemeColor(board.theme),
-              }}
-              aria-hidden="true"
-            />
-            {board.theme}
           </div>
         </div>
       </div>
@@ -246,44 +236,3 @@ export const BoardCard = memo(function BoardCard({
     </>
   )
 })
-
-// ========================================
-// Helper Functions
-// ========================================
-
-/**
- * Get the display color for a theme.
- *
- * @param theme - Theme name
- * @returns Hex color code for the theme
- */
-function getThemeColor(theme: string | null): string {
-  switch (theme) {
-    case 'sunrise':
-      return '#f59e0b'
-    case 'midnight':
-      return '#1e40af'
-    case 'sandstone':
-      return '#a8a29e'
-    case 'graphite':
-      return '#374151'
-    case 'mint':
-      return '#10b981'
-    case 'forest':
-      return '#065f46'
-    case 'sky':
-      return '#0ea5e9'
-    case 'ocean':
-      return '#0369a1'
-    case 'lavender':
-      return '#8b5cf6'
-    case 'plum':
-      return '#7c3aed'
-    case 'rose':
-      return '#f43f5e'
-    case 'rust':
-      return '#b91c1c'
-    default:
-      return '#6b7280'
-  }
-}
