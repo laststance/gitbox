@@ -40,7 +40,7 @@ export default defineConfig({
    *
    * Performance improvement: 1 worker (2m+) → 4 workers (~45s) = ~60% faster
    */
-  workers: process.env.CI ? 1 : 4,
+  workers: process.env.CI ? 1 : undefined,
 
   /**
    * Don't fail the test run if tests are flaky (passed after retry).

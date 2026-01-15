@@ -4,16 +4,16 @@
  * Terms of use for GitBox personal project
  */
 
+import type { Metadata } from 'next'
 import Link from 'next/link'
-
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Terms of Use - GitBox',
   description: 'Terms of Use for GitBox application',
 }
 
 export default function TermsPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-12 px-4">
+    <main className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-12 px-4">
       <article className="mx-auto max-w-3xl rounded-xl bg-white p-8 shadow-lg dark:bg-gray-800">
         <header className="mb-8">
           <Link
