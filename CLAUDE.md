@@ -55,16 +55,16 @@ This application requires GitHub authentication to access any functionality beyo
 
 **⚠️ WARNING:** Do NOT use `https://vercel.com/ryota-murakamis-projects/gitbox` - this is an incorrect duplicate project.
 **⚠️ WARNING:** `vercel env pull` を実行すると `.env.local` が本番認証情報で上書きされます。
-開発環境では必ず `jqtxjzdxczqwsrvevmyk` の認証情報を使用してください。
+開発環境では Local Supabase (`supabase start`) を使用してください。
 
 ---
 
 ## Supabase Configuration
 
-| Environment                                            | Supabase URL                               | Credentials File  |
-| ------------------------------------------------------ | ------------------------------------------ | ----------------- |
-| Local Development (for http://localhost:3008)          | `https://jqtxjzdxczqwsrvevmyk.supabase.co` | `.env`            |
-| Production (for https://gitbox-laststance.vercel.app/) | `https://mfeesjmtofgayktirswf.supabase.co` | `.env.production` |
+| Environment    | Supabase URL                               | Credentials File  |
+| -------------- | ------------------------------------------ | ----------------- |
+| **Local Dev**  | `http://127.0.0.1:54321` (Docker)          | `.env`            |
+| **Production** | `https://mfeesjmtofgayktirswf.supabase.co` | `.env.production` |
 
 **🔴 CRITICAL:** Use lowercase table names in Server Actions:
 
@@ -73,25 +73,47 @@ await supabase.from('board').select('*') // ✅ Correct
 await supabase.from('Board').select('*') // ❌ Wrong
 ```
 
-### Local Development Migration
+### Local Development Setup (Docker)
 
-**Setup:** Local dev connects to remote Supabase project (not Docker).
+**Prerequisites:** Docker Desktop running
 
 ```bash
-# Link to dev project
-supabase link --project-ref jqtxjzdxczqwsrvevmyk
+# Start local Supabase (applies migrations automatically)
+supabase start
 
+# Check status and get credentials
+supabase status
+
+# Stop when done
+supabase stop
+```
+
+**Local URLs:**
+
+- **Studio:** http://127.0.0.1:54323
+- **API:** http://127.0.0.1:54321
+- **Database:** postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+### Creating New Migrations
+
+```bash
 # Create new migration
 supabase migration new <description>
 
-# Apply to dev project
-supabase db push --linked
+# Edit the SQL file in supabase/migrations/
 
-# Check status
-supabase migration list
+# Reset local DB and re-apply all migrations
+supabase db reset
 ```
 
-**⚠️ Note:** Dev and Production use separate remote Supabase projects. Always test migrations on dev before merging to main.
+### GitHub OAuth Apps
+
+| Environment | OAuth App Name     | Callback URL                                   |
+| ----------- | ------------------ | ---------------------------------------------- |
+| Local Dev   | `GitBox Local Dev` | `http://127.0.0.1:54321/auth/v1/callback`      |
+| Production  | `GitBox`           | `https://mfeesjmtofgayktirswf.supabase.co/...` |
+
+**⚠️ Note:** Local and Production use **different** GitHub OAuth Apps due to different callback URLs.
 
 ### Production Migration Procedure
 

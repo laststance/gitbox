@@ -40,26 +40,15 @@ const isDevelopment = (): boolean => {
  * logger.fatal({ error }, 'Fatal error')     // Level 60
  */
 const createLogger = (): pino.Logger => {
+  // Note: pino-pretty transport doesn't work with Next.js Turbopack
+  // Use JSON format for all environments, pipe to pino-pretty CLI if needed:
+  // `pnpm dev 2>&1 | pnpm exec pino-pretty`
   return pino({
     level: isDevelopment() ? 'debug' : 'info',
-    ...(isDevelopment()
-      ? {
-          transport: {
-            target: 'pino-pretty',
-            options: {
-              colorize: true,
-              translateTime: 'SYS:standard',
-              ignore: 'pid,hostname',
-            },
-          },
-        }
-      : {
-          // Production: JSON format for log aggregation
-          formatters: {
-            level: (label) => ({ level: label }),
-          },
-          timestamp: pino.stdTimeFunctions.isoTime,
-        }),
+    formatters: {
+      level: (label) => ({ level: label }),
+    },
+    timestamp: pino.stdTimeFunctions.isoTime,
   })
 }
 

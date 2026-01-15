@@ -40,7 +40,7 @@ When you have dozens (or hundreds) of repos from side projects, experiments, and
 
 ### Prerequisites
 
-- Node.js 24.12.0 (Volta recommended)
+- Node.js >=24.12.0
 - pnpm 10.26.2
 
 ### Setup

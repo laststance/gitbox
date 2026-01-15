@@ -45,24 +45,23 @@ VALUES (
   NOW()
 );
 
--- 3. Create status lists
-INSERT INTO statuslist (id, board_id, name, color, wip_limit, "order", created_at, updated_at)
+-- 3. Create status lists (wip_limit removed by migration 20251229213244)
+INSERT INTO statuslist (id, board_id, name, color, "order", created_at, updated_at)
 VALUES
-  ('00000000-0000-0000-0000-000000000201'::uuid, '00000000-0000-0000-0000-000000000100'::uuid, 'Backlog', '#8B7355', 10, 0, NOW(), NOW()),
-  ('00000000-0000-0000-0000-000000000202'::uuid, '00000000-0000-0000-0000-000000000100'::uuid, 'Todo', '#6B8E23', 5, 1, NOW(), NOW()),
-  ('00000000-0000-0000-0000-000000000203'::uuid, '00000000-0000-0000-0000-000000000100'::uuid, 'In Progress', '#CD853F', 3, 2, NOW(), NOW()),
-  ('00000000-0000-0000-0000-000000000204'::uuid, '00000000-0000-0000-0000-000000000100'::uuid, 'Review', '#4682B4', 4, 3, NOW(), NOW()),
-  ('00000000-0000-0000-0000-000000000205'::uuid, '00000000-0000-0000-0000-000000000100'::uuid, 'Done', '#556B2F', 20, 4, NOW(), NOW());
+  ('00000000-0000-0000-0000-000000000201'::uuid, '00000000-0000-0000-0000-000000000100'::uuid, 'Backlog', '#8B7355', 0, NOW(), NOW()),
+  ('00000000-0000-0000-0000-000000000202'::uuid, '00000000-0000-0000-0000-000000000100'::uuid, 'Todo', '#6B8E23', 1, NOW(), NOW()),
+  ('00000000-0000-0000-0000-000000000203'::uuid, '00000000-0000-0000-0000-000000000100'::uuid, 'In Progress', '#CD853F', 2, NOW(), NOW()),
+  ('00000000-0000-0000-0000-000000000204'::uuid, '00000000-0000-0000-0000-000000000100'::uuid, 'Review', '#4682B4', 3, NOW(), NOW()),
+  ('00000000-0000-0000-0000-000000000205'::uuid, '00000000-0000-0000-0000-000000000100'::uuid, 'Done', '#556B2F', 4, NOW(), NOW());
 
--- 4. Create test repo card
-INSERT INTO repocard (id, board_id, status_id, repo_owner, repo_name, note, "order", meta, created_at, updated_at)
+-- 4. Create test repo card (note column removed by migration 20251230100003)
+INSERT INTO repocard (id, board_id, status_id, repo_owner, repo_name, "order", meta, created_at, updated_at)
 VALUES (
   '00000000-0000-0000-0000-000000000301'::uuid,
   '00000000-0000-0000-0000-000000000100'::uuid, -- Test board ID
   '00000000-0000-0000-0000-000000000203'::uuid, -- In Progress status
   'ryotamurakami',
   'gitbox',
-  'GitHub Repository Manager',
   0,
   '{"priority": "high", "tags": ["Next.js", "TypeScript"]}'::jsonb,
   NOW(),
