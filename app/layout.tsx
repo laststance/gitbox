@@ -2,6 +2,7 @@
  * Root Layout
  *
  * Application-wide root layout
+ * - Navigation progress bar (NextTopLoader) - Algora-style green bar
  * - Redux Provider
  * - Global keyboard shortcuts (ShortcutsHelp)
  * - MSW initialization (server-side for SSR, client-side via MSWProvider)
@@ -13,6 +14,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata } from 'next'
 import Script from 'next/script'
+import NextTopLoader from 'nextjs-toploader'
 import { Toaster } from 'sonner'
 
 import { CommandPalette } from '@/components/CommandPalette/CommandPalette'
@@ -107,6 +109,15 @@ export default function RootLayout({
         )}
       </head>
       <body>
+        <NextTopLoader
+          color="oklch(0.696 0.17 162.48)"
+          height={3}
+          showSpinner={false}
+          crawl={true}
+          speed={200}
+          shadow="0 0 10px oklch(0.696 0.17 162.48), 0 0 5px oklch(0.696 0.17 162.48)"
+          zIndex={9999}
+        />
         <Providers>
           <MSWProvider>
             {children}
