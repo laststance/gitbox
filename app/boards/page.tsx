@@ -6,6 +6,7 @@
  * - Create new board
  */
 
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
@@ -13,6 +14,11 @@ import { BoardGrid } from '@/components/Boards'
 import { createModuleLogger } from '@/lib/logger'
 import { createClient } from '@/lib/supabase/server'
 import type { Tables } from '@/lib/supabase/types'
+
+export const metadata: Metadata = {
+  title: 'My Boards',
+  description: 'Manage your GitHub repositories in Kanban format',
+}
 
 const log = createModuleLogger('boards')
 

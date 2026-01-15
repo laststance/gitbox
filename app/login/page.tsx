@@ -7,9 +7,15 @@
  * - Accessibility support (keyboard navigation)
  */
 
+import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { signInWithGitHub } from '@/lib/actions/auth'
+
+export const metadata: Metadata = {
+  title: 'Login',
+  description: 'Sign in to GitBox with your GitHub account',
+}
 
 export default function LoginPage() {
   return (

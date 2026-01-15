@@ -7,7 +7,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 export const metadata: Metadata = {
-  title: 'Terms of Use - GitBox',
+  title: 'Terms of Use',
   description: 'Terms of Use for GitBox application',
 }
 

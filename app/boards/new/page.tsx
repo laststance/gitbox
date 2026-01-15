@@ -6,11 +6,17 @@
  * - Theme selection (14 themes)
  */
 
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
 import { createClient } from '@/lib/supabase/server'
 
 import { CreateBoardForm } from './CreateBoardForm'
+
+export const metadata: Metadata = {
+  title: 'Create Board',
+  description: 'Create a new Kanban board for your GitHub repositories',
+}
 
 export default async function NewBoardPage() {
   const supabase = await createClient()

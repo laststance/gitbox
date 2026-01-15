@@ -7,11 +7,17 @@
  * - Danger zone (account deletion)
  */
 
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
 import { createClient } from '@/lib/supabase/server'
 
 import { AccountClient } from './AccountClient'
+
+export const metadata: Metadata = {
+  title: 'Account',
+  description: 'Manage your GitBox account settings',
+}
 
 export interface AccountData {
   boardsCount: number

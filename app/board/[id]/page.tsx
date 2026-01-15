@@ -44,7 +44,7 @@ export async function generateMetadata(
     .single<{ name: string }>()
 
   return {
-    title: board?.name ? `${board.name} | GitBox` : 'Board | GitBox',
+    title: board?.name ?? 'Board',
   }
 }
 

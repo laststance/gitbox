@@ -8,12 +8,18 @@
  * - Restore to Board operation
  */
 
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
 import { createModuleLogger } from '@/lib/logger'
 import { createClient } from '@/lib/supabase/server'
 
 import { MaintenanceClient, type MaintenanceRepo } from './MaintenanceClient'
+
+export const metadata: Metadata = {
+  title: 'Maintenance',
+  description: 'Repository for completed and maintenance projects',
+}
 
 const log = createModuleLogger('maintenance')
 
