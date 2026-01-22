@@ -69,8 +69,10 @@ ENV PORT=3008
 EXPOSE 3008
 
 # Healthcheck using wget (lighter than curl)
+# Note: Uses hardcoded port 3008 because CMD form doesn't expand env vars.
+# docker-compose.e2e.yml overrides healthcheck with service-specific ports.
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT} || exit 1
+  CMD ["wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3008"]
 
 # Start the server
 CMD ["node", "server.js"]
