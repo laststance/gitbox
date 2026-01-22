@@ -164,7 +164,7 @@ export const CommandPalette = memo(function CommandPalette() {
           if (!acc[cmd.category]) {
             acc[cmd.category] = []
           }
-          acc[cmd.category].push(cmd)
+          acc[cmd.category]!.push(cmd)
           return acc
         },
         {} as Record<string, Command[]>,

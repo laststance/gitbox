@@ -10,6 +10,7 @@ import {
   useMemo,
   memo,
   useCallback,
+  useDeferredValue,
 } from 'react'
 import { toast } from 'sonner'
 
@@ -113,7 +114,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   }
 
   const [searchQuery, setSearchQuery] = useState('')
-  const [debouncedQuery, setDebouncedQuery] = useState('')
+  // useDeferredValue replaces manual setTimeout debouncing
+  // React automatically defers the value during heavy renders
+  const deferredSearchQuery = useDeferredValue(searchQuery)
   const [selectedRepos, setSelectedRepos] = useState<GitHubRepository[]>([])
   const [isAdding, setIsAdding] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
@@ -291,15 +294,6 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     }
   }, [isOpen, isLoadingOrgs])
 
-  // Debounce search query (300ms)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(searchQuery)
-    }, 300)
-
-    return () => clearTimeout(timer)
-  }, [searchQuery])
-
   // Filtered repositories (client-side filtering)
   const filteredRepositories = useMemo(() => {
     if (!userRepos) return []
@@ -311,14 +305,16 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       (repo) => !existingRepoIdentifiers.has(repo.full_name.toLowerCase()),
     )
 
-    // Filter by search query
-    if (debouncedQuery) {
+    // Filter by search query (uses deferred value for non-blocking filtering)
+    if (deferredSearchQuery) {
       filtered = filtered.filter(
         (repo) =>
-          repo.full_name.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
+          repo.full_name
+            .toLowerCase()
+            .includes(deferredSearchQuery.toLowerCase()) ||
           repo.description
             ?.toLowerCase()
-            .includes(debouncedQuery.toLowerCase()),
+            .includes(deferredSearchQuery.toLowerCase()),
       )
     }
 
@@ -339,7 +335,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     return filtered
   }, [
     userRepos,
-    debouncedQuery,
+    deferredSearchQuery,
     organizationFilter,
     visibilityFilter,
     existingRepoIdentifiers,
@@ -407,7 +403,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
         `${result.addedCount} ${result.addedCount === 1 ? 'repository' : 'repositories'} added`,
         {
           description:
-            result.addedCount === 1
+            result.addedCount === 1 && selectedRepos[0]
               ? `"${selectedRepos[0].full_name}" has been added to the board.`
               : `${result.addedCount} repositories have been added to the board.`,
         },
@@ -640,6 +636,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                 >
                   {rowVirtualizer.getVirtualItems().map((virtualItem) => {
                     const repo = filteredRepositories[virtualItem.index]
+                    if (!repo) return null
                     const isSelected = selectedRepos.some(
                       (r) => r.id === repo.id,
                     )
@@ -744,10 +741,10 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
           {/* No results */}
           {!isLoading &&
-            debouncedQuery &&
+            deferredSearchQuery &&
             filteredRepositories.length === 0 && (
               <div className="py-8 text-center text-sm text-gray-500">
-                No repositories found matching &quot;{debouncedQuery}&quot;
+                No repositories found matching &quot;{deferredSearchQuery}&quot;
               </div>
             )}
 

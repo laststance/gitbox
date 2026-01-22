@@ -247,10 +247,16 @@ export const MaintenanceClient = memo(function MaintenanceClient({
   const handleCommentSave = useCallback(
     async (repoId: string, newComment: string, options: CommentSaveOptions) => {
       // Optimistic update
-      setComments((prev) => ({
-        ...prev,
-        [repoId]: { ...prev[repoId], comment: newComment },
-      }))
+      setComments((prev) => {
+        const existing = prev[repoId]
+        return {
+          ...prev,
+          [repoId]: {
+            comment: newComment,
+            color: existing?.color ?? 'neutral',
+          },
+        }
+      })
       // Server update
       await updateMaintenanceComment(repoId, newComment)
       if (options.closeOnSave) {
@@ -273,10 +279,13 @@ export const MaintenanceClient = memo(function MaintenanceClient({
   const handleColorChange = useCallback(
     async (repoId: string, color: CommentColor) => {
       // Optimistic update
-      setComments((prev) => ({
-        ...prev,
-        [repoId]: { ...prev[repoId], color },
-      }))
+      setComments((prev) => {
+        const existing = prev[repoId]
+        return {
+          ...prev,
+          [repoId]: { color, comment: existing?.comment ?? '' },
+        }
+      })
       await updateMaintenanceCommentColor(repoId, color)
     },
     [],

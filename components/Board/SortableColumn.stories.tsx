@@ -149,7 +149,7 @@ export const InProgress: Story = {
       color: '#f59e0b',
       gridCol: 1,
     },
-    cards: [mockCards[0]],
+    cards: [mockCards[0]!],
     onEditStatus: (status) => console.log('Edit status:', status),
   },
 }
@@ -205,7 +205,7 @@ export const MultipleColumns: Story = {
           color: '#3b82f6',
           gridCol: 0,
         }}
-        cards={[mockCards[0]]}
+        cards={[mockCards[0]!]}
       />
       <SortableColumn
         status={{
@@ -215,7 +215,7 @@ export const MultipleColumns: Story = {
           color: '#f59e0b',
           gridCol: 1,
         }}
-        cards={[mockCards[1]]}
+        cards={[mockCards[1]!]}
       />
       <SortableColumn
         status={{

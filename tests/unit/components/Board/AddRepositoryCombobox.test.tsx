@@ -257,7 +257,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
 
     it('should allow adding non-duplicate repository', () => {
       const existingRepoIds = ['12345', '67890']
-      const newRepo = generateMockRepositories(1)[0]
+      const newRepo = generateMockRepositories(1)[0]!
       newRepo.id = 99999
 
       const isDuplicate = existingRepoIds.includes(String(newRepo.id))
@@ -333,7 +333,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
         </Provider>,
       )
 
-      const firstOption = screen.getAllByRole('option')[0]
+      const firstOption = screen.getAllByRole('option')[0]!
       await user.click(firstOption)
 
       expect(mockSelect).toHaveBeenCalledTimes(1)
@@ -458,12 +458,12 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
       // Mark repos 0, 5 as already on board
       const existingCards = [
         {
-          repoOwner: allRepos[0].owner.login,
-          repoName: allRepos[0].name,
+          repoOwner: allRepos[0]!.owner.login,
+          repoName: allRepos[0]!.name,
         },
         {
-          repoOwner: allRepos[5].owner.login,
-          repoName: allRepos[5].name,
+          repoOwner: allRepos[5]!.owner.login,
+          repoName: allRepos[5]!.name,
         },
       ]
       const identifiers = createExistingRepoIdentifiers(existingCards)
@@ -473,10 +473,10 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
       // Should have 8 repos (10 - 2 existing)
       expect(filtered.length).toBe(8)
       // Existing repos should not be in filtered list
-      expect(filtered.find((r) => r.id === allRepos[0].id)).toBeUndefined()
-      expect(filtered.find((r) => r.id === allRepos[5].id)).toBeUndefined()
+      expect(filtered.find((r) => r.id === allRepos[0]!.id)).toBeUndefined()
+      expect(filtered.find((r) => r.id === allRepos[5]!.id)).toBeUndefined()
       // Other repos should still be present
-      expect(filtered.find((r) => r.id === allRepos[1].id)).toBeDefined()
+      expect(filtered.find((r) => r.id === allRepos[1]!.id)).toBeDefined()
     })
 
     it('should return all repos when board is empty', () => {
@@ -504,7 +504,7 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
     it('should handle case-insensitive matching correctly', () => {
       const allRepos = [
         {
-          ...generateMockRepositories(1)[0],
+          ...generateMockRepositories(1)[0]!,
           full_name: 'Facebook/React',
           owner: { login: 'Facebook', avatar_url: '' },
           name: 'React',
@@ -566,8 +566,8 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
   describe('Edge Cases', () => {
     it('should handle repos with empty owner', () => {
       const allRepos = generateMockRepositories(1)
-      allRepos[0].full_name = '/repo-name'
-      allRepos[0].owner = { login: '', avatar_url: '' }
+      allRepos[0]!.full_name = '/repo-name'
+      allRepos[0]!.owner = { login: '', avatar_url: '' }
 
       const existingCards = [{ repoOwner: '', repoName: 'repo-name' }]
       const identifiers = createExistingRepoIdentifiers(existingCards)
@@ -579,9 +579,9 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
 
     it('should handle repos with special unicode characters', () => {
       const allRepos = generateMockRepositories(1)
-      allRepos[0].full_name = 'user/日本語-repo'
-      allRepos[0].owner = { login: 'user', avatar_url: '' }
-      allRepos[0].name = '日本語-repo'
+      allRepos[0]!.full_name = 'user/日本語-repo'
+      allRepos[0]!.owner = { login: 'user', avatar_url: '' }
+      allRepos[0]!.name = '日本語-repo'
 
       const existingCards = [{ repoOwner: 'user', repoName: '日本語-repo' }]
       const identifiers = createExistingRepoIdentifiers(existingCards)
@@ -593,9 +593,9 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
 
     it('should not match partial repo names', () => {
       const allRepos = generateMockRepositories(1)
-      allRepos[0].full_name = 'facebook/react'
-      allRepos[0].owner = { login: 'facebook', avatar_url: '' }
-      allRepos[0].name = 'react'
+      allRepos[0]!.full_name = 'facebook/react'
+      allRepos[0]!.owner = { login: 'facebook', avatar_url: '' }
+      allRepos[0]!.name = 'react'
 
       // Existing card has similar but different name
       const existingCards = [
@@ -614,7 +614,7 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
 describe('Duplicate Detection Utility Functions (T043)', () => {
   describe('checkDuplicateRepository', () => {
     it('should return true for duplicate repository', () => {
-      const mockRepo = generateMockRepositories(1)[0]
+      const mockRepo = generateMockRepositories(1)[0]!
       mockRepo.id = 12345
 
       const existingRepoIds = ['12345', '67890', '11111']
@@ -631,7 +631,7 @@ describe('Duplicate Detection Utility Functions (T043)', () => {
     })
 
     it('should return false for non-duplicate repository', () => {
-      const mockRepo = generateMockRepositories(1)[0]
+      const mockRepo = generateMockRepositories(1)[0]!
       mockRepo.id = 99999
 
       const existingRepoIds = ['12345', '67890', '11111']
@@ -651,9 +651,9 @@ describe('Duplicate Detection Utility Functions (T043)', () => {
   describe('filterDuplicates', () => {
     it('should filter out duplicate repositories', () => {
       const mockRepos = generateMockRepositories(5)
-      mockRepos[0].id = 12345
-      mockRepos[2].id = 67890
-      mockRepos[4].id = 11111
+      mockRepos[0]!.id = 12345
+      mockRepos[2]!.id = 67890
+      mockRepos[4]!.id = 11111
 
       const existingRepoIds = ['12345', '67890']
 
@@ -675,8 +675,8 @@ describe('Duplicate Detection Utility Functions (T043)', () => {
   describe('getDuplicateErrorMessage', () => {
     it('should generate Japanese error message', () => {
       const duplicates = generateMockRepositories(2)
-      duplicates[0].full_name = 'facebook/react'
-      duplicates[1].full_name = 'vercel/next.js'
+      duplicates[0]!.full_name = 'facebook/react'
+      duplicates[1]!.full_name = 'vercel/next.js'
 
       const getDuplicateErrorMessage = (
         repos: GitHubRepository[],
@@ -697,7 +697,7 @@ describe('Duplicate Detection Utility Functions (T043)', () => {
 
     it('should generate English error message', () => {
       const duplicates = generateMockRepositories(1)
-      duplicates[0].full_name = 'facebook/react'
+      duplicates[0]!.full_name = 'facebook/react'
 
       const getDuplicateErrorMessage = (
         repos: GitHubRepository[],

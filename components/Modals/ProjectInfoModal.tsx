@@ -169,6 +169,7 @@ const ProjectInfoForm = memo(function ProjectInfoForm({
   const handleRemoveUrl = useCallback(
     (index: number) => {
       const linkToDelete = links[index]
+      if (!linkToDelete) return
       setDeletedLink({ link: linkToDelete, index })
       setLinks((prev) => prev.filter((_, i) => i !== index))
       if (editingUrlIndex === index) {

@@ -221,7 +221,7 @@ describe('useStatusListDialog', () => {
       // Check Redux state
       const state = store.getState()
       expect(state.board.statusLists).toHaveLength(1)
-      expect(state.board.statusLists[0].title).toBe('New Column')
+      expect(state.board.statusLists[0]!.title).toBe('New Column')
     })
 
     it('should handle create error', async () => {
@@ -286,8 +286,8 @@ describe('useStatusListDialog', () => {
 
       // Check Redux state
       const state = store.getState()
-      expect(state.board.statusLists[0].title).toBe('Updated Title')
-      expect(state.board.statusLists[0].color).toBe('#fff')
+      expect(state.board.statusLists[0]!.title).toBe('Updated Title')
+      expect(state.board.statusLists[0]!.color).toBe('#fff')
     })
 
     it('should handle update error', async () => {

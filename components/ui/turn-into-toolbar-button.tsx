@@ -131,7 +131,7 @@ export function TurnIntoToolbarButton(props: DropdownMenuProps) {
   const selectedItem = React.useMemo(
     () =>
       turnIntoItems.find((item) => item.value === (value ?? KEYS.p)) ??
-      turnIntoItems[0],
+      turnIntoItems[0]!,
     [value],
   )
 

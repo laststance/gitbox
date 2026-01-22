@@ -63,7 +63,7 @@ describe('GitHub API Pagination Logic', () => {
 
       // Simulate the pagination loop from getAuthenticatedUserRepositories
       while (pageIndex < allPages.length) {
-        const data = allPages[pageIndex]
+        const data = allPages[pageIndex]!
         allRepos.push(...data)
 
         // If we got fewer repos than requested, we've reached the last page
@@ -74,10 +74,10 @@ describe('GitHub API Pagination Logic', () => {
       }
 
       expect(allRepos.length).toBe(250) // 100 + 100 + 50
-      expect(allRepos[0].id).toBe(1)
-      expect(allRepos[99].id).toBe(100)
-      expect(allRepos[100].id).toBe(101)
-      expect(allRepos[249].id).toBe(250)
+      expect(allRepos[0]!.id).toBe(1)
+      expect(allRepos[99]!.id).toBe(100)
+      expect(allRepos[100]!.id).toBe(101)
+      expect(allRepos[249]!.id).toBe(250)
     })
 
     it('should stop when page returns fewer items than per_page', () => {
@@ -92,7 +92,7 @@ describe('GitHub API Pagination Logic', () => {
       let pagesFetched = 0
 
       while (pageIndex < allPages.length) {
-        const data = allPages[pageIndex]
+        const data = allPages[pageIndex]!
         allRepos.push(...data)
         pagesFetched++
 
@@ -115,7 +115,7 @@ describe('GitHub API Pagination Logic', () => {
       let pageIndex = 0
 
       while (pageIndex < allPages.length) {
-        const data = allPages[pageIndex]
+        const data = allPages[pageIndex]!
         allRepos.push(...data)
 
         if (data.length < perPage) {
@@ -139,7 +139,7 @@ describe('GitHub API Pagination Logic', () => {
       let pageIndex = 0
 
       while (pageIndex < maxPages && pageIndex < pages.length) {
-        const data = pages[pageIndex]
+        const data = pages[pageIndex]!
         allRepos.push(...data)
 
         if (data.length < perPage) {
@@ -161,7 +161,7 @@ describe('GitHub API Pagination Logic', () => {
       let pageIndex = 0
 
       while (pageIndex < pages.length) {
-        const data = pages[pageIndex]
+        const data = pages[pageIndex]!
         allRepos.push(...data)
 
         if (data.length < perPage) {
@@ -319,7 +319,7 @@ describe('Edge cases', () => {
     let pageIndex = 0
 
     while (pageIndex < allPages.length) {
-      const data = allPages[pageIndex]
+      const data = allPages[pageIndex]!
       allRepos.push(...data)
 
       if (data.length < perPage) {
@@ -343,7 +343,7 @@ describe('Edge cases', () => {
     let pageIndex = 0
 
     while (pageIndex < allPages.length) {
-      const data = allPages[pageIndex]
+      const data = allPages[pageIndex]!
       allRepos.push(...data)
 
       if (data.length < perPage) {

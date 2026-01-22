@@ -311,8 +311,8 @@ describe('BoardPageClient Component', () => {
       await waitFor(() => {
         const state = store.getState()
         expect(state.board.statusLists).toHaveLength(2)
-        expect(state.board.statusLists[0].title).toBe('To Do')
-        expect(state.board.statusLists[1].title).toBe('Done')
+        expect(state.board.statusLists[0]?.title).toBe('To Do')
+        expect(state.board.statusLists[1]?.title).toBe('Done')
       })
     })
 
@@ -329,7 +329,7 @@ describe('BoardPageClient Component', () => {
       await waitFor(() => {
         const state = store.getState()
         expect(state.board.repoCards).toHaveLength(1)
-        expect(state.board.repoCards[0].repoName).toBe('repo1')
+        expect(state.board.repoCards[0]?.repoName).toBe('repo1')
       })
     })
 

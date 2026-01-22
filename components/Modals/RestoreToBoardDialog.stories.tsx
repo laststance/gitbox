@@ -126,7 +126,7 @@ export const BoardWithNoColumns: Story = {
  */
 export const SingleBoard: Story = {
   args: {
-    boards: [mockBoards[0]],
+    boards: [mockBoards[0]!],
   },
 }
 

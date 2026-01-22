@@ -66,7 +66,7 @@ export function useAddRepositoryCombobox({
   // No useEffect needed - computed directly from state
   const statusId = useMemo(() => {
     if (userSelectedStatusId) return userSelectedStatusId
-    if (statusLists.length > 0) return statusLists[0].id
+    if (statusLists.length > 0) return statusLists[0]?.id ?? ''
     return ''
   }, [userSelectedStatusId, statusLists])
 

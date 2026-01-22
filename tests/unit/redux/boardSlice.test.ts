@@ -85,8 +85,8 @@ describe('boardSlice', () => {
       const nextState = boardSlice(initialState, addRepoCards(newCards))
 
       expect(nextState.repoCards).toHaveLength(2)
-      expect(nextState.repoCards[0].id).toBe('card-1')
-      expect(nextState.repoCards[1].id).toBe('card-2')
+      expect(nextState.repoCards[0]!.id).toBe('card-1')
+      expect(nextState.repoCards[1]!.id).toBe('card-2')
     })
 
     it('should append cards to existing cards', () => {
@@ -112,9 +112,9 @@ describe('boardSlice', () => {
       const nextState = boardSlice(initialState, addRepoCards(newCards))
 
       expect(nextState.repoCards).toHaveLength(3)
-      expect(nextState.repoCards[0].id).toBe('existing-1')
-      expect(nextState.repoCards[1].id).toBe('new-1')
-      expect(nextState.repoCards[2].id).toBe('new-2')
+      expect(nextState.repoCards[0]!.id).toBe('existing-1')
+      expect(nextState.repoCards[1]!.id).toBe('new-1')
+      expect(nextState.repoCards[2]!.id).toBe('new-2')
     })
 
     it('should handle empty array input', () => {
@@ -133,7 +133,7 @@ describe('boardSlice', () => {
       const nextState = boardSlice(initialState, addRepoCards([]))
 
       expect(nextState.repoCards).toHaveLength(1)
-      expect(nextState.repoCards[0].id).toBe('existing-1')
+      expect(nextState.repoCards[0]!.id).toBe('existing-1')
     })
 
     it('should preserve card metadata', () => {
@@ -160,7 +160,7 @@ describe('boardSlice', () => {
 
       const nextState = boardSlice(initialState, addRepoCards([newCard]))
 
-      expect(nextState.repoCards[0].meta).toEqual({
+      expect(nextState.repoCards[0]!.meta).toEqual({
         stars: 42,
         language: 'TypeScript',
         topics: ['react', 'electron'],
@@ -190,7 +190,7 @@ describe('boardSlice', () => {
       const nextState = boardSlice(initialState, setRepoCards(newCards))
 
       expect(nextState.repoCards).toHaveLength(1)
-      expect(nextState.repoCards[0].id).toBe('new-1')
+      expect(nextState.repoCards[0]!.id).toBe('new-1')
     })
 
     it('should clear cards when set to empty array', () => {
@@ -237,7 +237,7 @@ describe('boardSlice', () => {
       const result = selectRepoCards(state)
 
       expect(result).toHaveLength(2)
-      expect(result[0].id).toBe('card-1')
+      expect(result[0]!.id).toBe('card-1')
     })
   })
 
@@ -268,7 +268,7 @@ describe('boardSlice', () => {
       )
 
       expect(rolledBackState.repoCards).toHaveLength(1)
-      expect(rolledBackState.repoCards[0].id).toBe('existing-1')
+      expect(rolledBackState.repoCards[0]!.id).toBe('existing-1')
     })
 
     it('should maintain order when adding cards', () => {
@@ -410,8 +410,8 @@ describe('boardSlice', () => {
       const nextState = boardSlice(initialState, setStatusLists(newStatuses))
 
       expect(nextState.statusLists).toHaveLength(2)
-      expect(nextState.statusLists[0].title).toBe('Todo')
-      expect(nextState.statusLists[1].title).toBe('In Progress')
+      expect(nextState.statusLists[0]!.title).toBe('Todo')
+      expect(nextState.statusLists[1]!.title).toBe('In Progress')
     })
 
     it('should replace existing status lists', () => {
@@ -430,7 +430,7 @@ describe('boardSlice', () => {
       const nextState = boardSlice(initialState, setStatusLists(newStatuses))
 
       expect(nextState.statusLists).toHaveLength(1)
-      expect(nextState.statusLists[0].title).toBe('New')
+      expect(nextState.statusLists[0]!.title).toBe('New')
     })
   })
 
@@ -496,7 +496,7 @@ describe('boardSlice', () => {
       const result = selectStatusLists(state)
 
       expect(result).toHaveLength(2)
-      expect(result[0].title).toBe('Todo')
+      expect(result[0]!.title).toBe('Todo')
     })
   })
 

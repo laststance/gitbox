@@ -78,8 +78,8 @@ describe('draftSlice', () => {
 
       const nextState = draftSlice(stateWithDraft, action)
 
-      expect(nextState.notes['card-123'].content).toBe('Updated content')
-      expect(nextState.notes['card-123'].lastModified).toBe(mockNow)
+      expect(nextState.notes['card-123']!.content).toBe('Updated content')
+      expect(nextState.notes['card-123']!.lastModified).toBe(mockNow)
     })
 
     it('should handle multiple drafts for different cards', () => {
@@ -99,9 +99,9 @@ describe('draftSlice', () => {
       )
 
       expect(Object.keys(state.notes)).toHaveLength(3)
-      expect(state.notes['card-1'].content).toBe('Content 1')
-      expect(state.notes['card-2'].content).toBe('Content 2')
-      expect(state.notes['card-3'].content).toBe('Content 3')
+      expect(state.notes['card-1']!.content).toBe('Content 1')
+      expect(state.notes['card-2']!.content).toBe('Content 2')
+      expect(state.notes['card-3']!.content).toBe('Content 3')
     })
 
     it('should handle empty content', () => {
@@ -112,7 +112,7 @@ describe('draftSlice', () => {
 
       const nextState = draftSlice(initialState, action)
 
-      expect(nextState.notes['card-123'].content).toBe('')
+      expect(nextState.notes['card-123']!.content).toBe('')
     })
 
     it('should handle very long content', () => {
@@ -124,7 +124,7 @@ describe('draftSlice', () => {
 
       const nextState = draftSlice(initialState, action)
 
-      expect(nextState.notes['card-123'].content).toBe(longContent)
+      expect(nextState.notes['card-123']!.content).toBe(longContent)
     })
   })
 

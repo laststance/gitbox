@@ -177,7 +177,11 @@ export const supabaseDbHandlers: HttpHandler[] = [
     }
 
     // Use helper function to update mock data
-    const updatedBoard = updateMockBoard(filtered[0].id, body)
+    const firstBoard = filtered[0]
+    if (!firstBoard) {
+      return HttpResponse.json({ message: 'No rows found' }, { status: 404 })
+    }
+    const updatedBoard = updateMockBoard(firstBoard.id, body)
     if (!updatedBoard) {
       return HttpResponse.json({ message: 'No rows found' }, { status: 404 })
     }
@@ -417,7 +421,7 @@ export const supabaseDbHandlers: HttpHandler[] = [
     const repoCardIdParam = params.get('repo_card_id')
     if (repoCardIdParam?.startsWith('in.(')) {
       const idsMatch = repoCardIdParam.match(/in\.\((.+)\)/)
-      if (idsMatch) {
+      if (idsMatch?.[1]) {
         const ids = idsMatch[1].split(',')
         const filtered = mockProjectInfo.filter((p) =>
           ids.includes(p.repo_card_id),

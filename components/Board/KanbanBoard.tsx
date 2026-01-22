@@ -377,19 +377,23 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       // Try column undo first, then card undo
       if (columnHistory.length > 0) {
         const previousState = columnHistory[columnHistory.length - 1]
-        dispatch(setStatusLists(previousState))
-        setColumnHistory((prev) => prev.slice(0, -1))
-        setUndoMessage('Column order restored')
-        setTimeout(() => setUndoMessage(null), 2000)
+        if (previousState) {
+          dispatch(setStatusLists(previousState))
+          setColumnHistory((prev) => prev.slice(0, -1))
+          setUndoMessage('Column order restored')
+          setTimeout(() => setUndoMessage(null), 2000)
+        }
         return
       }
 
       if (history.length > 0) {
         const previousState = history[history.length - 1]
-        dispatch(setRepoCards(previousState))
-        setHistory((prev) => prev.slice(0, -1))
-        setUndoMessage('Card operation undone')
-        setTimeout(() => setUndoMessage(null), 2000)
+        if (previousState) {
+          dispatch(setRepoCards(previousState))
+          setHistory((prev) => prev.slice(0, -1))
+          setUndoMessage('Card operation undone')
+          setTimeout(() => setUndoMessage(null), 2000)
+        }
       }
     }, [history, columnHistory, dispatch])
 

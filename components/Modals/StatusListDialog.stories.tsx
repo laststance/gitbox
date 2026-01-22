@@ -178,7 +178,7 @@ export const ColorSelection: Story = {
     // Look for color buttons (usually div/button with background colors)
     const colorButtons = document.querySelectorAll('[data-color]')
     if (colorButtons.length > 0) {
-      await userEvent.click(colorButtons[0])
+      await userEvent.click(colorButtons[0]!)
     }
   },
 }
@@ -382,7 +382,7 @@ export const PresetColorButtons: Story = {
 
     // Click first preset button
     if (presetButtons.length > 0) {
-      await userEvent.click(presetButtons[0])
+      await userEvent.click(presetButtons[0]!)
     }
   },
 }

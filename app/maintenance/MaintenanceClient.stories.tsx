@@ -259,7 +259,7 @@ export const GridCardMenu: Story = {
       const buttons = within(card as HTMLElement).getAllByRole('button')
       // First button is the dropdown trigger
       if (buttons.length > 0) {
-        await userEvent.click(buttons[0])
+        await userEvent.click(buttons[0]!)
       }
     }
 

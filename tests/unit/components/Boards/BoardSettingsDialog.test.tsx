@@ -311,7 +311,7 @@ describe('BoardSettingsDialog', () => {
 
       // Get all Close buttons and click the last one (footer button)
       const closeButtons = screen.getAllByRole('button', { name: /close/i })
-      const footerCloseButton = closeButtons[closeButtons.length - 1]
+      const footerCloseButton = closeButtons[closeButtons.length - 1]!
       fireEvent.click(footerCloseButton)
 
       expect(mockOnClose).toHaveBeenCalled()
@@ -329,7 +329,7 @@ describe('BoardSettingsDialog', () => {
 
       // Close dialog via footer button
       const closeButtons = screen.getAllByRole('button', { name: /close/i })
-      const footerCloseButton = closeButtons[closeButtons.length - 1]
+      const footerCloseButton = closeButtons[closeButtons.length - 1]!
       fireEvent.click(footerCloseButton)
 
       expect(mockOnClose).toHaveBeenCalled()

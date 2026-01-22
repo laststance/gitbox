@@ -141,7 +141,7 @@ export const BoardPageClient = memo(function BoardPageClient({
    * Move to Maintenance Mode
    *
    * Transfers a card from the active board to maintenance archive.
-   * Uses optimistic UI update for immediate feedback.
+   * Uses optimistic UI update via Redux for instant feedback.
    *
    * @param cardId - The card ID to move to maintenance
    */
@@ -151,21 +151,23 @@ export const BoardPageClient = memo(function BoardPageClient({
       const cardToRemove = repoCards.find((c) => c.id === cardId)
       if (!cardToRemove) return
 
-      // Optimistic update: remove from state immediately
+      // Store previous state for potential rollback
       const previousCards = repoCards
-      dispatch(setRepoCards(repoCards.filter((c) => c.id !== cardId)))
+
+      // Optimistic update via Redux (instant UI feedback)
+      dispatch(removeRepoCard(cardId))
 
       try {
         const result = await moveToMaintenance(cardId)
         if (!result.success) {
-          // Revert on error
+          // Revert Redux on error
           dispatch(setRepoCards(previousCards))
           toast.error('Failed to move to maintenance', {
             description: result.error,
           })
         }
       } catch (error) {
-        // Revert on error
+        // Revert Redux on error
         dispatch(setRepoCards(previousCards))
         Sentry.captureException(error, {
           tags: { action: 'moveToMaintenance' },
@@ -182,19 +184,24 @@ export const BoardPageClient = memo(function BoardPageClient({
    * Remove Repository from Board
    *
    * Permanently deletes a card from the board.
-   * Uses optimistic UI update for immediate feedback.
+   * Uses optimistic UI update via Redux for instant feedback.
    *
    * @param cardId - The card ID to remove
    */
   const handleRemoveFromBoard = useCallback(
     async (cardId: string) => {
-      // Optimistic update: remove from state immediately
+      // Store card for potential rollback
+      const cardToRemove = repoCards.find((c) => c.id === cardId)
+      const previousCards = repoCards
+
+      // Optimistic update via Redux (instant UI feedback)
       dispatch(removeRepoCard(cardId))
 
       try {
         const result = await deleteRepoCard(cardId)
         if (!result.success) {
-          // Revert on error - refetch data
+          // Revert Redux on error
+          dispatch(setRepoCards(previousCards))
           Sentry.captureMessage('Delete repo card failed', {
             level: 'error',
             tags: { action: 'deleteRepoCard' },
@@ -203,21 +210,23 @@ export const BoardPageClient = memo(function BoardPageClient({
           toast.error('Failed to remove from board', {
             description: result.error,
           })
-          // Note: We'd need to restore the card here, but since we don't have
-          // a simple way to get it back, we'll just alert the user
         } else {
           toast.success('Repository removed', {
             description: 'The repository has been removed from the board.',
           })
         }
       } catch (error) {
+        // Revert Redux on error if we have the card
+        if (cardToRemove) {
+          dispatch(setRepoCards(previousCards))
+        }
         Sentry.captureException(error, { tags: { action: 'removeFromBoard' } })
         toast.error('Failed to remove from board', {
           description: 'Please try again.',
         })
       }
     },
-    [dispatch],
+    [repoCards, dispatch],
   )
 
   // ========================================

@@ -109,7 +109,7 @@ export const RestoreToBoardDialog = memo(function RestoreToBoardDialog({
     if (selectedBoardId && boards.some((b) => b.id === selectedBoardId)) {
       return selectedBoardId
     }
-    return boards.length > 0 ? boards[0].id : ''
+    return boards[0]?.id ?? ''
   }, [selectedBoardId, boards])
 
   // Get status lists for selected board (memoized to avoid deps changing on every render)
@@ -126,7 +126,7 @@ export const RestoreToBoardDialog = memo(function RestoreToBoardDialog({
     ) {
       return selectedStatusId
     }
-    return statusLists.length > 0 ? statusLists[0].id : ''
+    return statusLists[0]?.id ?? ''
   }, [selectedStatusId, statusLists])
 
   // Handle board selection change

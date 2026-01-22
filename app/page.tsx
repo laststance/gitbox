@@ -509,8 +509,10 @@ const KanbanPreview = () => {
       )
       if (cardIndex === -1) return prevColumns
 
-      const [movedCard] = sourceColumn.cards.splice(cardIndex, 1)
-      targetColumn.cards.push(movedCard)
+      const movedCard = sourceColumn.cards.splice(cardIndex, 1)[0]
+      if (movedCard) {
+        targetColumn.cards.push(movedCard)
+      }
 
       return newColumns
     })
@@ -605,8 +607,10 @@ const KanbanPreview = () => {
 
     setColumns((prevColumns) => {
       const newColumns = [...prevColumns]
-      const [movedColumn] = newColumns.splice(sourceIndex, 1)
-      newColumns.splice(targetIndex, 0, movedColumn)
+      const movedColumn = newColumns.splice(sourceIndex, 1)[0]
+      if (movedColumn) {
+        newColumns.splice(targetIndex, 0, movedColumn)
+      }
       return newColumns
     })
 

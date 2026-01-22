@@ -189,7 +189,7 @@ export const SelectTheme: Story = {
     // Find and click a theme option
     const menuItems = document.querySelectorAll('[role="menuitem"]')
     if (menuItems.length > 0) {
-      await userEvent.click(menuItems[0])
+      await userEvent.click(menuItems[0]!)
     }
   },
 }
@@ -224,7 +224,7 @@ export const SelectDarkTheme: Story = {
     // Structure: System (1), Light themes (7), Dark themes (7)
     // So dark theme starts at index 8
     if (menuItems.length > 8) {
-      await userEvent.click(menuItems[8]) // First dark theme
+      await userEvent.click(menuItems[8]!) // First dark theme
     }
 
     // Verify theme was changed - button should now show Moon icon
@@ -264,7 +264,7 @@ export const SelectLightTheme: Story = {
     // Light themes are after System (index 0) so index 1 is first light theme
     const menuItems = document.querySelectorAll('[role="menuitem"]')
     if (menuItems.length > 1) {
-      await userEvent.click(menuItems[1]) // First light theme
+      await userEvent.click(menuItems[1]!) // First light theme
     }
 
     await waitFor(() => {

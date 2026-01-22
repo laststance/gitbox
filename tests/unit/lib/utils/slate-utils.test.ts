@@ -593,8 +593,8 @@ describe('slate-utils', () => {
       const result = createSlateValueFromText('Line 1\r\nLine 2')
 
       // Note: split('\n') will leave \r at end of first line
-      expect(result[0].children[0].text).toBe('Line 1\r')
-      expect(result[1].children[0].text).toBe('Line 2')
+      expect(result[0]!.children[0]!.text).toBe('Line 1\r')
+      expect(result[1]!.children[0]!.text).toBe('Line 2')
     })
 
     it('should handle unicode characters', () => {

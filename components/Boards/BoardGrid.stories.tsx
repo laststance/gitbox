@@ -75,7 +75,7 @@ export const Default: Story = {
  */
 export const SingleBoard: Story = {
   args: {
-    initialBoards: [mockBoards[0]],
+    initialBoards: [mockBoards[0]!],
   },
 }
 
@@ -249,7 +249,7 @@ export const EmptyStateInteraction: Story = {
  */
 export const OptimisticRename: Story = {
   args: {
-    initialBoards: [mockBoards[0]],
+    initialBoards: [mockBoards[0]!],
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
@@ -282,7 +282,7 @@ export const OptimisticRename: Story = {
  */
 export const OptimisticFavoriteToggle: Story = {
   args: {
-    initialBoards: [mockBoards[0]],
+    initialBoards: [mockBoards[0]!],
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)

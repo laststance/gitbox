@@ -60,12 +60,6 @@ export const boardSlice = createSlice({
       )
     },
     /**
-     * Set loading state
-     */
-    setBoardLoading: (state, action: PayloadAction<boolean>) => {
-      state.loading = action.payload
-    },
-    /**
      * Set error state (null to clear)
      */
     setBoardError: (state, action: PayloadAction<string | null>) => {
@@ -80,7 +74,6 @@ export const {
   setRepoCards,
   addRepoCards,
   removeRepoCard,
-  setBoardLoading,
   setBoardError,
 } = boardSlice.actions
 

@@ -158,12 +158,15 @@ export function updateMockBoard(
   const index = mockBoards.findIndex((b) => b.id === boardId)
   if (index === -1) return null
 
-  mockBoards[index] = {
-    ...mockBoards[index],
+  const existingBoard = mockBoards[index]
+  if (!existingBoard) return null
+  const updatedBoard = {
+    ...existingBoard,
     ...updates,
     updated_at: new Date().toISOString(),
   }
-  return mockBoards[index]
+  mockBoards[index] = updatedBoard
+  return updatedBoard
 }
 
 /**

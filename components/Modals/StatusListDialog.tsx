@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, memo } from 'react'
+import React, { useState, memo } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -29,45 +29,35 @@ const PRESET_COLORS = [
   { name: 'Gray', value: '#6B7280' },
 ]
 
-interface StatusListDialogProps {
-  isOpen: boolean
-  onClose: () => void
-  onSave: (data: { name: string; color: string }) => Promise<void>
-  statusList?: StatusListDomain | null
+const DEFAULT_COLOR = '#6B7280'
+
+interface StatusListFormProps {
   mode: 'create' | 'edit'
+  initialName: string
+  initialColor: string
+  onSave: (data: { name: string; color: string }) => Promise<void>
+  onClose: () => void
 }
 
 /**
- * Status List Dialog Component
+ * Status List Form Component (Internal)
  *
- * A dialog for creating and editing status columns in the Kanban board.
- * - Column name input with validation
- * - Color selection (preset options and custom color picker)
- * - Supports both create and edit modes
+ * Form content for creating/editing status columns.
+ * State is initialized from props - no useEffect needed.
+ * Parent uses `key` prop to reset state when switching modes/items.
  */
-export const StatusListDialog = memo(function StatusListDialog({
-  isOpen,
-  onClose,
-  onSave,
-  statusList,
+const StatusListForm = memo(function StatusListForm({
   mode,
-}: StatusListDialogProps) {
-  const [name, setName] = useState('')
-  const [color, setColor] = useState('#6B7280')
+  initialName,
+  initialColor,
+  onSave,
+  onClose,
+}: StatusListFormProps) {
+  // State initialized directly from props
+  const [name, setName] = useState(initialName)
+  const [color, setColor] = useState(initialColor)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  // Load existing data in edit mode
-  useEffect(() => {
-    if (statusList && mode === 'edit') {
-      setName(statusList.title)
-      setColor(statusList.color)
-    } else {
-      setName('')
-      setColor('#6B7280')
-    }
-    setError(null)
-  }, [statusList, mode, isOpen])
 
   /**
    * Form submission handler
@@ -96,99 +86,146 @@ export const StatusListDialog = memo(function StatusListDialog({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {mode === 'create' ? 'Add Status Column' : 'Edit Status Column'}
-          </DialogTitle>
-          <DialogDescription>
-            {mode === 'create'
-              ? 'Create a new status column for your Kanban board.'
-              : 'Edit the settings for this status column.'}
-          </DialogDescription>
-        </DialogHeader>
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>
+          {mode === 'create' ? 'Add Status Column' : 'Edit Status Column'}
+        </DialogTitle>
+        <DialogDescription>
+          {mode === 'create'
+            ? 'Create a new status column for your Kanban board.'
+            : 'Edit the settings for this status column.'}
+        </DialogDescription>
+      </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name */}
-          <div className="space-y-2">
-            <Label htmlFor="status-name">Name</Label>
-            <Input
-              id="status-name"
-              name="status-column-title"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., In Progress, Review"
-              maxLength={50}
-              autoFocus
-              autoComplete="off"
-              data-1p-ignore
-              data-lpignore="true"
-              data-form-type="other"
-            />
-          </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Name */}
+        <div className="space-y-2">
+          <Label htmlFor="status-name">Name</Label>
+          <Input
+            id="status-name"
+            name="status-column-title"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g., In Progress, Review"
+            maxLength={50}
+            autoFocus
+            autoComplete="off"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
+          />
+        </div>
 
-          {/* Color */}
-          <div className="space-y-2">
-            <Label>Color</Label>
-            <div className="flex flex-wrap gap-2">
-              {PRESET_COLORS.map((preset) => (
-                <button
-                  key={preset.value}
-                  type="button"
-                  onClick={() => setColor(preset.value)}
-                  className={`
-                    w-8 h-8 rounded-full border-2 transition-all
-                    ${color === preset.value ? 'border-foreground scale-110' : 'border-transparent'}
-                  `}
-                  style={{ backgroundColor: preset.value }}
-                  title={preset.name}
-                  aria-label={preset.name}
-                />
-              ))}
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-              <Label
-                htmlFor="custom-color"
-                className="text-xs text-muted-foreground"
-              >
-                Custom:
-              </Label>
-              <Input
-                id="custom-color"
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="w-12 h-8 p-0 border-0 cursor-pointer"
+        {/* Color */}
+        <div className="space-y-2">
+          <Label>Color</Label>
+          <div className="flex flex-wrap gap-2">
+            {PRESET_COLORS.map((preset) => (
+              <button
+                key={preset.value}
+                type="button"
+                onClick={() => setColor(preset.value)}
+                data-color={preset.value}
+                className={`
+                  w-8 h-8 rounded-full border-2 transition-all
+                  ${color === preset.value ? 'border-foreground scale-110' : 'border-transparent'}
+                `}
+                style={{ backgroundColor: preset.value }}
+                title={preset.name}
+                aria-label={preset.name}
               />
-              <span className="text-xs text-muted-foreground font-mono">
-                {color}
-              </span>
-            </div>
+            ))}
           </div>
-
-          {/* Error */}
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isSaving}
+          <div className="flex items-center gap-2 mt-2">
+            <Label
+              htmlFor="custom-color"
+              className="text-xs text-muted-foreground"
             >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSaving}>
-              {isSaving
-                ? 'Saving...'
-                : mode === 'create'
-                  ? 'Add Column'
-                  : 'Save Changes'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+              Custom:
+            </Label>
+            <Input
+              id="custom-color"
+              type="color"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              className="w-12 h-8 p-0 border-0 cursor-pointer"
+            />
+            <span className="text-xs text-muted-foreground font-mono">
+              {color}
+            </span>
+          </div>
+        </div>
+
+        {/* Error */}
+        {error && <p className="text-sm text-destructive">{error}</p>}
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={isSaving}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSaving}>
+            {isSaving
+              ? 'Saving...'
+              : mode === 'create'
+                ? 'Add Column'
+                : 'Save Changes'}
+          </Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
+  )
+})
+
+interface StatusListDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  onSave: (data: { name: string; color: string }) => Promise<void>
+  statusList?: StatusListDomain | null
+  mode: 'create' | 'edit'
+}
+
+/**
+ * Status List Dialog Component
+ *
+ * A dialog for creating and editing status columns in the Kanban board.
+ * - Column name input with validation
+ * - Color selection (preset options and custom color picker)
+ * - Supports both create and edit modes
+ *
+ * Uses the "key pattern" for state reset:
+ * When mode or statusList changes, the form component is re-mounted
+ * with fresh state, eliminating the need for useEffect sync.
+ */
+export const StatusListDialog = memo(function StatusListDialog({
+  isOpen,
+  onClose,
+  onSave,
+  statusList,
+  mode,
+}: StatusListDialogProps) {
+  // Generate unique key for form reset
+  // - In edit mode: use statusList.id (re-mount when editing different item)
+  // - In create mode: use 'create' (same key = same form state persists)
+  const formKey = mode === 'edit' && statusList ? statusList.id : 'create'
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      {isOpen && (
+        <StatusListForm
+          key={formKey}
+          mode={mode}
+          initialName={statusList?.title ?? ''}
+          initialColor={statusList?.color ?? DEFAULT_COLOR}
+          onSave={onSave}
+          onClose={onClose}
+        />
+      )}
     </Dialog>
   )
 })
