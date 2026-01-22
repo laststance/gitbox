@@ -166,7 +166,8 @@ export default defineConfig({
   timeout: 60000,
 
   use: {
-    baseURL: 'http://localhost:3008',
+    // Support external servers (Docker shards) via PLAYWRIGHT_TEST_BASE_URL
+    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3008',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -209,31 +210,38 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    /**
-     * Build and start with test environment variables.
-     *
-     * CRITICAL: NEXT_PUBLIC_* vars must be set at BUILD time because Next.js
-     * inlines them during the build process. Setting them only at runtime
-     * (via env property below) is NOT sufficient.
-     *
-     * The env vars are explicitly set in the command to ensure they're
-     * available during both build and start phases.
-     *
-     * NOTE: reuseExistingServer is set to false to ALWAYS use a fresh server
-     * with correct test environment variables. If set to true and a dev server
-     * (pnpm dev) is already running, it would be reused WITHOUT the test env vars,
-     * causing isTestMode() to return false and auth bypass to fail.
-     */
-    command:
-      'NEXT_PUBLIC_ENABLE_MSW_MOCK=true APP_ENV=test NEXT_PUBLIC_SUPABASE_URL=https://jqtxjzdxczqwsrvevmyk.supabase.co pnpm build && pnpm start',
-    url: 'http://localhost:3008',
-    reuseExistingServer: false,
-    timeout: 120000,
-    env: {
-      NEXT_PUBLIC_ENABLE_MSW_MOCK: 'true',
-      APP_ENV: 'test',
-      NEXT_PUBLIC_SUPABASE_URL: 'https://jqtxjzdxczqwsrvevmyk.supabase.co',
-    },
-  },
+  /**
+   * webServer configuration:
+   * - When PLAYWRIGHT_TEST_BASE_URL is set: Skip webServer (use external Docker containers)
+   * - Otherwise: Build and start a local Next.js server
+   */
+  webServer: process.env.PLAYWRIGHT_TEST_BASE_URL
+    ? undefined
+    : {
+        /**
+         * Build and start with test environment variables.
+         *
+         * CRITICAL: NEXT_PUBLIC_* vars must be set at BUILD time because Next.js
+         * inlines them during the build process. Setting them only at runtime
+         * (via env property below) is NOT sufficient.
+         *
+         * The env vars are explicitly set in the command to ensure they're
+         * available during both build and start phases.
+         *
+         * NOTE: reuseExistingServer is set to false to ALWAYS use a fresh server
+         * with correct test environment variables. If set to true and a dev server
+         * (pnpm dev) is already running, it would be reused WITHOUT the test env vars,
+         * causing isTestMode() to return false and auth bypass to fail.
+         */
+        command:
+          'NEXT_PUBLIC_ENABLE_MSW_MOCK=true APP_ENV=test NEXT_PUBLIC_SUPABASE_URL=https://jqtxjzdxczqwsrvevmyk.supabase.co pnpm build && pnpm start',
+        url: 'http://localhost:3008',
+        reuseExistingServer: false,
+        timeout: 120000,
+        env: {
+          NEXT_PUBLIC_ENABLE_MSW_MOCK: 'true',
+          APP_ENV: 'test',
+          NEXT_PUBLIC_SUPABASE_URL: 'https://jqtxjzdxczqwsrvevmyk.supabase.co',
+        },
+      },
 })
