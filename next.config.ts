@@ -3,6 +3,10 @@ import { withSentryConfig } from '@sentry/nextjs'
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  // Enable standalone output for Docker deployments
+  // Creates a self-contained .next/standalone folder with minimal dependencies
+  output: 'standalone',
+
   turbopack: {
     // temporarily disabled to fix port conflict errors
     // rules: codeInspectorPlugin({
