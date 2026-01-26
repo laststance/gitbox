@@ -117,9 +117,9 @@ export const BoardGrid = memo(function BoardGrid({
  */
 const EmptyState = memo(function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-12 dark:border-gray-700 dark:bg-gray-800">
+    <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted py-12">
       <svg
-        className="h-12 w-12 text-gray-400"
+        className="h-12 w-12 text-muted-foreground"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -132,10 +132,10 @@ const EmptyState = memo(function EmptyState() {
           d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
         />
       </svg>
-      <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
+      <h3 className="mt-4 text-lg font-medium text-foreground">
         No boards yet
       </h3>
-      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      <p className="mt-2 text-sm text-muted-foreground">
         Get started by creating your first board
       </p>
       <Link

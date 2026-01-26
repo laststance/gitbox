@@ -456,7 +456,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       <button
         type="button"
         onClick={handleToggleOpen}
-        className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+        className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
@@ -479,7 +479,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       {/* Combobox panel */}
       {isOpen && (
         <div
-          className="absolute right-0 top-full z-50 mt-2 w-120 rounded-lg border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-800"
+          className="absolute right-0 top-full z-50 mt-2 w-120 rounded-lg border border-border bg-background p-4 shadow-xl"
           role="combobox"
           aria-expanded={isOpen}
           aria-controls="repository-listbox"
@@ -492,7 +492,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search repositories..."
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             aria-label="Search repositories"
             autoFocus
           />
@@ -526,7 +526,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             </Select>
             {/* Loading indicator for organizations */}
             {isLoadingOrgs && (
-              <span className="text-xs text-gray-500 self-center">
+              <span className="text-xs text-muted-foreground self-center">
                 Loading orgs...
               </span>
             )}
@@ -539,7 +539,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                   e.target.value as 'all' | 'public' | 'private',
                 )
               }
-              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+              className="rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
               aria-label="Visibility filter"
             >
               <option value="all">All</option>
@@ -554,13 +554,13 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
               {selectedRepos.map((repo) => (
                 <span
                   key={repo.id}
-                  className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
                 >
                   {repo.full_name}
                   <button
                     type="button"
                     onClick={() => removeSelectedRepo(repo.id)}
-                    className="ml-1 rounded-full p-0.5 hover:bg-blue-200 dark:hover:bg-blue-800"
+                    className="ml-1 rounded-full p-0.5 hover:bg-primary/20"
                     aria-label={`Remove ${repo.full_name}`}
                   >
                     ×
@@ -574,7 +574,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
           {isLoading && (
             <div
               role="status"
-              className="flex items-center justify-center py-8 text-gray-500"
+              className="flex items-center justify-center py-8 text-muted-foreground"
             >
               <svg className="mr-2 h-5 w-5 animate-spin" viewBox="0 0 24 24">
                 <circle
@@ -614,7 +614,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
               role="listbox"
               aria-label="Repository options"
               aria-multiselectable="true"
-              className="mt-3 max-h-75 overflow-y-auto rounded-md border border-gray-200 dark:border-gray-700"
+              className="mt-3 max-h-75 overflow-y-auto rounded-md border border-border"
               data-virtual-scroll={shouldVirtualize}
               style={
                 shouldVirtualize
@@ -648,7 +648,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                         role="option"
                         aria-selected={isSelected}
                         onClick={() => toggleRepoSelection(repo)}
-                        className={`flex cursor-pointer items-center justify-between border-b border-gray-100 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 ${isSelected ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}
+                        className={`flex cursor-pointer items-center justify-between border-b border-border p-3 transition-colors hover:bg-accent ${isSelected ? 'bg-accent' : ''}`}
                         tabIndex={0}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
@@ -665,27 +665,25 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                         }}
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium text-gray-900 dark:text-gray-100">
+                          <p className="truncate font-medium text-foreground">
                             {repo.full_name}
                           </p>
                           {repo.description && (
-                            <p className="mt-0.5 truncate text-sm text-gray-500 dark:text-gray-400">
+                            <p className="mt-0.5 truncate text-sm text-muted-foreground">
                               {repo.description}
                             </p>
                           )}
-                          <div className="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                          <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
                             <span>⭐ {repo.stargazers_count}</span>
                             {repo.language && (
-                              <span className="rounded bg-gray-100 px-1.5 py-0.5 dark:bg-gray-700">
+                              <span className="rounded bg-muted px-1.5 py-0.5">
                                 {repo.language}
                               </span>
                             )}
                           </div>
                         </div>
                         {isSelected && (
-                          <span className="ml-2 text-blue-600 dark:text-blue-400">
-                            ✓
-                          </span>
+                          <span className="ml-2 text-primary">✓</span>
                         )}
                       </div>
                     )
@@ -700,7 +698,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                       role="option"
                       aria-selected={isSelected}
                       onClick={() => toggleRepoSelection(repo)}
-                      className={`flex cursor-pointer items-center justify-between border-b border-gray-100 p-3 transition-colors last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 ${isSelected ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}
+                      className={`flex cursor-pointer items-center justify-between border-b border-border p-3 transition-colors last:border-b-0 hover:bg-accent ${isSelected ? 'bg-accent' : ''}`}
                       tabIndex={0}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
@@ -710,27 +708,25 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                       }}
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-gray-900 dark:text-gray-100">
+                        <p className="truncate font-medium text-foreground">
                           {repo.full_name}
                         </p>
                         {repo.description && (
-                          <p className="mt-0.5 truncate text-sm text-gray-500 dark:text-gray-400">
+                          <p className="mt-0.5 truncate text-sm text-muted-foreground">
                             {repo.description}
                           </p>
                         )}
-                        <div className="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                        <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
                           <span>⭐ {repo.stargazers_count}</span>
                           {repo.language && (
-                            <span className="rounded bg-gray-100 px-1.5 py-0.5 dark:bg-gray-700">
+                            <span className="rounded bg-muted px-1.5 py-0.5">
                               {repo.language}
                             </span>
                           )}
                         </div>
                       </div>
                       {isSelected && (
-                        <span className="ml-2 text-blue-600 dark:text-blue-400">
-                          ✓
-                        </span>
+                        <span className="ml-2 text-primary">✓</span>
                       )}
                     </div>
                   )
@@ -743,7 +739,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
           {!isLoading &&
             deferredSearchQuery &&
             filteredRepositories.length === 0 && (
-              <div className="py-8 text-center text-sm text-gray-500">
+              <div className="py-8 text-center text-sm text-muted-foreground">
                 No repositories found matching &quot;{deferredSearchQuery}&quot;
               </div>
             )}
@@ -753,7 +749,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             <button
               type="button"
               onClick={handleClose}
-              className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+              className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
             >
               Cancel
             </button>

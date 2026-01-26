@@ -53,10 +53,10 @@ export default async function FavoritesPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-3xl font-bold text-foreground">
             Favorite Boards
           </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
+          <p className="mt-2 text-muted-foreground">
             Your starred boards for quick access
           </p>
         </div>
@@ -64,7 +64,7 @@ export default async function FavoritesPage() {
         {/* Back to All Boards */}
         <Link
           href="/boards"
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+          className="inline-flex items-center gap-2 rounded-lg border border-input bg-background px-4 py-2 text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors"
         >
           View All Boards
         </Link>
@@ -85,14 +85,14 @@ export default async function FavoritesPage() {
  */
 function FavoritesEmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-16 dark:border-gray-700 dark:bg-gray-800">
+    <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted py-16">
       <div className="rounded-full bg-amber-100 p-4 dark:bg-amber-900/30">
         <Star className="h-10 w-10 text-amber-500 dark:text-amber-400" />
       </div>
-      <h3 className="mt-6 text-xl font-medium text-gray-900 dark:text-white">
+      <h3 className="mt-6 text-xl font-medium text-foreground">
         No favorite boards yet
       </h3>
-      <p className="mt-2 max-w-md text-center text-gray-500 dark:text-gray-400">
+      <p className="mt-2 max-w-md text-center text-muted-foreground">
         Star boards from the All Boards page to add them here for quick access.
       </p>
       <Link

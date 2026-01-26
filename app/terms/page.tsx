@@ -14,18 +14,18 @@ export const metadata: Metadata = {
 export default function TermsPage() {
   return (
     <main className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-12 px-4">
-      <article className="mx-auto max-w-3xl rounded-xl bg-white p-8 shadow-lg dark:bg-gray-800">
+      <article className="mx-auto max-w-3xl rounded-xl bg-card p-8 shadow-lg">
         <header className="mb-8">
           <Link
             href="/login"
-            className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            className="text-sm text-muted-foreground hover:text-foreground"
           >
             ← Back to Login
           </Link>
-          <h1 className="mt-4 text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="mt-4 text-3xl font-bold text-foreground">
             Terms of Use
           </h1>
-          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-2 text-sm text-muted-foreground">
             Last updated: January 7, 2026
           </p>
         </header>
@@ -176,7 +176,7 @@ export default function TermsPage() {
           </section>
         </div>
 
-        <footer className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+        <footer className="mt-8 pt-8 border-t border-border">
           <Link
             href="/privacy"
             className="text-blue-600 dark:text-blue-400 hover:underline"

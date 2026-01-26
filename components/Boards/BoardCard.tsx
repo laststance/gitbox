@@ -137,7 +137,7 @@ export const BoardCard = memo(function BoardCard({
     <>
       <div
         data-testid="board-card"
-        className="group relative block rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md hover:border-blue-300 transition-all dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600"
+        className="group relative block rounded-lg border border-border bg-card p-6 shadow-sm hover:shadow-md hover:border-primary transition-all"
       >
         {/* Board link - covers the card but not the menu */}
         <Link
@@ -155,7 +155,7 @@ export const BoardCard = memo(function BoardCard({
             className={`h-8 w-8 transition-all ${
               localIsFavorite
                 ? 'text-amber-500 hover:text-amber-600 opacity-100'
-                : 'text-gray-400 hover:text-amber-500 opacity-70 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100'
+                : 'text-muted-foreground hover:text-amber-500 opacity-70 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100'
             }`}
             aria-label={
               localIsFavorite
@@ -203,11 +203,11 @@ export const BoardCard = memo(function BoardCard({
         </div>
 
         {/* Card content */}
-        <h3 className="text-xl font-semibold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400 transition-colors pr-16">
+        <h3 className="text-xl font-semibold text-foreground group-hover:text-primary transition-colors pr-16">
           {board.name}
         </h3>
 
-        <div className="mt-4 flex items-center text-sm text-gray-500 dark:text-gray-400">
+        <div className="mt-4 flex items-center text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
             {board.created_at

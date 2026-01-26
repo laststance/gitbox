@@ -20,13 +20,11 @@ export const metadata: Metadata = {
 export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-8 shadow-lg dark:bg-gray-800">
+      <div className="w-full max-w-md space-y-8 rounded-xl bg-card p-8 shadow-lg">
         {/* Logo / Title */}
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-            GitBox
-          </h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          <h1 className="text-4xl font-bold text-foreground">GitBox</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
             Manage GitHub repositories in Kanban format
           </p>
         </div>
@@ -56,7 +54,7 @@ export default function LoginPage() {
           </form>
 
           {/* Additional Info */}
-          <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
+          <p className="mt-4 text-center text-xs text-muted-foreground">
             By signing in, you agree to our{' '}
             <Link
               href="/terms"

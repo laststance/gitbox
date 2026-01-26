@@ -265,9 +265,9 @@ export const BoardPageClient = memo(function BoardPageClient({
     <>
       <main className="flex h-screen flex-col">
         {/* Header */}
-        <header className="border-b border-header-border bg-header px-6 py-4">
+        <header className="border-b border-border bg-background px-6 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-header-foreground">
+            <h1 className="text-2xl font-bold text-foreground">
               {boardSettings.displayName}
             </h1>
 
@@ -338,7 +338,7 @@ export const BoardPageClient = memo(function BoardPageClient({
         </header>
 
         {/* Kanban Board - horizontal scroll enabled for 6+ columns */}
-        <div className="flex-1 overflow-x-auto overflow-y-auto bg-gray-100 dark:bg-gray-900">
+        <div className="flex-1 overflow-x-auto overflow-y-auto bg-background">
           <KanbanBoard
             boardId={boardId}
             initialComments={initialData.comments}
