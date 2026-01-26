@@ -82,3 +82,6 @@ blob-report/
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Logs
+logs/
