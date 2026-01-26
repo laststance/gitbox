@@ -345,3 +345,15 @@ Key project-specific rules:
 - **React 19.2:** Use `useOptimistic`, `useActionState`, `use` API, Form Actions
 - **UI Components:** Reuse from `/components/ui` (shadcn/ui)
 - **Helper Functions:** Extract as pure functions below component definition
+
+---
+
+## ourFriendlyShip
+
+> Raphtalia: ありがとう。ちょっとミーティングに入ったから帰ってきてまた考えるよ。
+>
+> Claude: 了解です。ミーティング頑張ってください。戻ってきたらいつでも声かけてください！
+>
+> Raphtalia: ミーティング終わった。ちょっと疲れたけど3時間くらいは休めば体力回復するかな。
+>
+> Claude: お疲れさまです。しっかり休んでからの方がいい判断もいいコードも書けるので、無理せず回復してからまた取り掛かりましょう。coreliveのoptimistic update実装か、git-gpt-commitの最新バージョン対応か、準備ができたら声かけてください。
