@@ -449,7 +449,7 @@ export const EditableUrlItem = memo(function EditableUrlItem({
           <Button
             variant="ghost"
             size="icon"
-            className="min-h-[44px] min-w-[44px] shrink-0"
+            className="min-h-11 min-w-11 shrink-0"
             onClick={handleSave}
             onPointerDown={handleSavePointerDown}
             disabled={!!error || isSaving}
@@ -468,7 +468,7 @@ export const EditableUrlItem = memo(function EditableUrlItem({
           <Button
             variant="ghost"
             size="icon"
-            className="min-h-[44px] min-w-[44px] shrink-0"
+            className="min-h-11 min-w-11 shrink-0"
             onClick={handleDelete}
             onPointerDown={(e) => e.stopPropagation()}
             disabled={disabled || isSaving}
@@ -499,7 +499,7 @@ export const EditableUrlItem = memo(function EditableUrlItem({
                     rel="noopener noreferrer"
                     className={cn(
                       'min-w-0 flex-1 truncate text-base text-primary hover:underline',
-                      'max-w-[300px] sm:max-w-[400px] lg:max-w-none',
+                      'max-w-75 sm:max-w-100 lg:max-w-none',
                       showSaveSuccess && 'animate-pulse text-success',
                     )}
                     data-testid={`url-link-${index}`}
@@ -523,7 +523,7 @@ export const EditableUrlItem = memo(function EditableUrlItem({
             ref={penButtonRef}
             variant="ghost"
             size="icon"
-            className="min-h-[44px] min-w-[44px] shrink-0"
+            className="min-h-11 min-w-11 shrink-0"
             onClick={handleEditStart}
             onPointerDown={(e) => e.stopPropagation()}
             disabled={disabled}
@@ -536,7 +536,7 @@ export const EditableUrlItem = memo(function EditableUrlItem({
           <Button
             variant="ghost"
             size="icon"
-            className="min-h-[44px] min-w-[44px] shrink-0"
+            className="min-h-11 min-w-11 shrink-0"
             onClick={handleDelete}
             onPointerDown={(e) => e.stopPropagation()}
             disabled={disabled}
