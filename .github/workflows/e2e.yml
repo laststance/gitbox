@@ -69,7 +69,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report-${{ matrix.shardIndex }}
-          path: coverage-e2e-shard-${{ matrix.shardIndex }}/
+          path: coverage-e2e/
           retention-days: 1
 
   # Merge reports from all shards
@@ -119,6 +119,13 @@ jobs:
           # Create directory for merged coverage
           mkdir -p coverage-e2e/coverage
 
+          # Check if coverage reports were downloaded
+          if [ ! -d "all-coverage-reports" ]; then
+            echo "No coverage reports downloaded - coverage collection may have failed in shards"
+            echo '{"total":{"lines":{"total":0,"covered":0,"pct":0},"statements":{"total":0,"covered":0,"pct":0},"functions":{"total":0,"covered":0,"pct":0},"branches":{"total":0,"covered":0,"pct":0}}}' > coverage-e2e/coverage/coverage-summary.json
+            exit 0
+          fi
+
           # Find and merge all coverage.json files
           find all-coverage-reports -name 'coverage.json' -exec cp {} coverage-e2e/coverage/ \; 2>/dev/null || true
 
@@ -137,6 +144,11 @@ jobs:
           node -e "
             const fs = require('fs');
             const path = require('path');
+
+            if (!fs.existsSync('all-coverage-reports')) {
+              console.log('No coverage reports directory found');
+              process.exit(0);
+            }
 
             const summaryFiles = [];
             const dirs = fs.readdirSync('all-coverage-reports').filter(f =>

@@ -32,6 +32,7 @@ describe('draftSlice', () => {
   interface DraftNote {
     cardId: string
     content: string
+    links: { url: string; type: string }[]
     lastModified: number
   }
 
@@ -48,6 +49,7 @@ describe('draftSlice', () => {
       const action = updateDraftNote({
         cardId: 'card-123',
         content: 'My draft content',
+        links: [],
       })
 
       const nextState = draftSlice(initialState, action)
@@ -55,6 +57,7 @@ describe('draftSlice', () => {
       expect(nextState.notes['card-123']).toEqual({
         cardId: 'card-123',
         content: 'My draft content',
+        links: [],
         lastModified: mockNow,
       })
     })
@@ -66,6 +69,7 @@ describe('draftSlice', () => {
           'card-123': {
             cardId: 'card-123',
             content: 'Old content',
+            links: [],
             lastModified: mockNow - 1000,
           },
         },
@@ -74,11 +78,15 @@ describe('draftSlice', () => {
       const action = updateDraftNote({
         cardId: 'card-123',
         content: 'Updated content',
+        links: [{ url: 'https://example.com', type: 'vercel' }],
       })
 
       const nextState = draftSlice(stateWithDraft, action)
 
       expect(nextState.notes['card-123']!.content).toBe('Updated content')
+      expect(nextState.notes['card-123']!.links).toEqual([
+        { url: 'https://example.com', type: 'vercel' },
+      ])
       expect(nextState.notes['card-123']!.lastModified).toBe(mockNow)
     })
 
@@ -87,15 +95,15 @@ describe('draftSlice', () => {
 
       state = draftSlice(
         state,
-        updateDraftNote({ cardId: 'card-1', content: 'Content 1' }),
+        updateDraftNote({ cardId: 'card-1', content: 'Content 1', links: [] }),
       )
       state = draftSlice(
         state,
-        updateDraftNote({ cardId: 'card-2', content: 'Content 2' }),
+        updateDraftNote({ cardId: 'card-2', content: 'Content 2', links: [] }),
       )
       state = draftSlice(
         state,
-        updateDraftNote({ cardId: 'card-3', content: 'Content 3' }),
+        updateDraftNote({ cardId: 'card-3', content: 'Content 3', links: [] }),
       )
 
       expect(Object.keys(state.notes)).toHaveLength(3)
@@ -108,6 +116,7 @@ describe('draftSlice', () => {
       const action = updateDraftNote({
         cardId: 'card-123',
         content: '',
+        links: [],
       })
 
       const nextState = draftSlice(initialState, action)
@@ -120,6 +129,7 @@ describe('draftSlice', () => {
       const action = updateDraftNote({
         cardId: 'card-123',
         content: longContent,
+        links: [],
       })
 
       const nextState = draftSlice(initialState, action)
@@ -136,6 +146,7 @@ describe('draftSlice', () => {
           'card-123': {
             cardId: 'card-123',
             content: 'Some content',
+            links: [],
             lastModified: mockNow,
           },
         },
@@ -155,11 +166,13 @@ describe('draftSlice', () => {
           'card-1': {
             cardId: 'card-1',
             content: 'Content 1',
+            links: [],
             lastModified: mockNow,
           },
           'card-2': {
             cardId: 'card-2',
             content: 'Content 2',
+            links: [],
             lastModified: mockNow,
           },
         },
@@ -188,6 +201,7 @@ describe('draftSlice', () => {
         const draftNote = {
           cardId: 'card-123',
           content: 'Test content',
+          links: [],
           lastModified: mockNow,
         }
         const rootState = {

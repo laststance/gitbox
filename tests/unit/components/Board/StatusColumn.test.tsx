@@ -55,24 +55,13 @@ vi.mock('framer-motion', () => ({
 vi.mock('@/components/Board/RepoCard', () => ({
   RepoCard: ({
     card,
-    onEdit,
     onNote,
   }: {
     card: { id: string; title: string }
-    onEdit?: (id: string) => void
     onNote?: (id: string) => void
   }) => (
     <div data-testid={`repo-card-${card.id}`}>
       <span>{card.title}</span>
-      {onEdit && (
-        <button
-          type="button"
-          onClick={() => onEdit(card.id)}
-          data-testid={`edit-${card.id}`}
-        >
-          Edit
-        </button>
-      )}
       {onNote && (
         <button
           type="button"
@@ -87,7 +76,6 @@ vi.mock('@/components/Board/RepoCard', () => ({
 }))
 
 describe('StatusColumn', () => {
-  const mockOnEdit = vi.fn()
   const mockOnNote = vi.fn()
   const mockOnEditStatus = vi.fn()
   const mockOnDeleteStatus = vi.fn()
@@ -336,21 +324,6 @@ describe('StatusColumn', () => {
   })
 
   describe('Card Callbacks', () => {
-    it('should pass onEdit to RepoCard', async () => {
-      const user = userEvent.setup()
-      render(
-        <StatusColumn
-          status={defaultStatus}
-          cards={defaultCards}
-          onEdit={mockOnEdit}
-        />,
-      )
-
-      await user.click(screen.getByTestId('edit-card-1'))
-
-      expect(mockOnEdit).toHaveBeenCalledWith('card-1')
-    })
-
     it('should pass onNote to RepoCard', async () => {
       const user = userEvent.setup()
       render(

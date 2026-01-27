@@ -36,13 +36,14 @@ export const Default: Story = {
   args: {
     isOpen: true,
     onClose: () => console.log('Modal closed'),
-    onSave: async (note) => {
-      console.log('Saved note:', note)
+    onSave: async (note, links) => {
+      console.log('Saved note:', note, 'links:', links)
       await new Promise((resolve) => setTimeout(resolve, 500))
     },
     cardId: 'card-123',
     initialNote:
       'This is a sample project note.\n\nIt can contain multiple paragraphs and formatting.',
+    initialLinks: [],
     cardTitle: 'laststance/gitbox',
   },
 }
@@ -54,12 +55,13 @@ export const Empty: Story = {
   args: {
     isOpen: true,
     onClose: () => console.log('Modal closed'),
-    onSave: async (note) => {
-      console.log('Saved note:', note)
+    onSave: async (note, links) => {
+      console.log('Saved note:', note, 'links:', links)
       await new Promise((resolve) => setTimeout(resolve, 500))
     },
     cardId: 'card-empty',
     initialNote: '',
+    initialLinks: [],
     cardTitle: 'facebook/react',
   },
 }
@@ -72,8 +74,8 @@ export const LongNote: Story = {
   args: {
     isOpen: true,
     onClose: () => console.log('Modal closed'),
-    onSave: async (note) => {
-      console.log('Saved note length:', note.length)
+    onSave: async (note, links) => {
+      console.log('Saved note length:', note.length, 'links:', links)
       await new Promise((resolve) => setTimeout(resolve, 500))
     },
     cardId: 'card-long',
@@ -81,6 +83,7 @@ export const LongNote: Story = {
       'This is a very long note that approaches the character limit. '.repeat(
         300,
       ),
+    initialLinks: [],
     cardTitle: 'vercel/next.js',
   },
 }
@@ -102,6 +105,7 @@ const WithDraftDecorator = memo(function WithDraftDecorator({
         cardId: 'card-draft',
         content:
           'This is an unsaved draft that was auto-saved.\n\nThe original note was different.',
+        links: [],
       }),
     )
   }, [dispatch])
@@ -117,12 +121,13 @@ export const WithDraft: Story = {
   args: {
     isOpen: true,
     onClose: () => console.log('Modal closed'),
-    onSave: async (note) => {
-      console.log('Saved note:', note)
+    onSave: async (note, links) => {
+      console.log('Saved note:', note, 'links:', links)
       await new Promise((resolve) => setTimeout(resolve, 500))
     },
     cardId: 'card-draft',
     initialNote: 'Original note content from Supabase.',
+    initialLinks: [],
     cardTitle: 'microsoft/typescript',
   },
   decorators: [
@@ -144,6 +149,7 @@ export const ModalRenders: Story = {
     onSave: fn(),
     cardId: 'card-test',
     initialNote: 'Test note content',
+    initialLinks: [],
     cardTitle: 'test/repo',
   },
   play: async () => {
@@ -168,6 +174,7 @@ export const CancelCloses: Story = {
     onSave: fn(),
     cardId: 'card-test',
     initialNote: 'Test note',
+    initialLinks: [],
     cardTitle: 'test/repo',
   },
   play: async ({ args }) => {
@@ -202,6 +209,7 @@ export const SaveTriggers: Story = {
     onSave: fn().mockResolvedValue(undefined),
     cardId: 'card-test',
     initialNote: 'Test note',
+    initialLinks: [],
     cardTitle: 'test/repo',
   },
   play: async () => {
@@ -231,6 +239,7 @@ export const CharacterCountDisplays: Story = {
     onSave: fn(),
     cardId: 'card-test',
     initialNote: 'Short note',
+    initialLinks: [],
     cardTitle: 'test/repo',
   },
   play: async () => {

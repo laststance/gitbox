@@ -7,6 +7,9 @@
  * - CreateLinkTypeDialog for custom link types
  * - Persistence of links data
  *
+ * Note: After Issue #37, links are now managed via NoteModal (accessed via Note button)
+ * instead of a separate ProjectInfoModal.
+ *
  * Requires authentication (uses storageState from auth.setup.ts)
  */
 
@@ -18,40 +21,22 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
   const BOARD_URL = '/board/board-1'
 
   /**
-   * Helper to open ProjectInfoModal from a repo card's overflow menu
+   * Helper to open NoteModal from a repo card's Note button
+   * (Previously opened ProjectInfoModal via overflow menu, now unified into NoteModal)
    */
-  async function openProjectInfoModal(
+  async function openNoteModal(
     page: import('@playwright/test').Page,
   ): Promise<import('@playwright/test').Locator> {
     // Wait for cards to load
     const card = page.locator('[data-testid^="repo-card-"]').first()
     await expect(card).toBeVisible({ timeout: 10000 })
 
-    // Get card's testid to extract cardId
-    const cardTestId = await card.getAttribute('data-testid')
-    const cardId = cardTestId?.replace('repo-card-', '') ?? ''
+    // Click on the Note button (has aria-label="Open note")
+    const noteButton = card.getByRole('button', { name: 'Open note' })
+    await expect(noteButton).toBeVisible()
+    await noteButton.click()
 
-    // Hover over the card to show overflow menu button
-    await card.hover()
-
-    // Click overflow menu button using exact data-testid
-    const overflowButton = page.locator(
-      `[data-testid="overflow-menu-trigger-${cardId}"]`,
-    )
-    await expect(overflowButton).toBeVisible({ timeout: 5000 })
-    await overflowButton.click()
-
-    // Wait for dropdown menu to appear
-    await page.waitForTimeout(300)
-
-    // Click "Edit Project Info..." menu item
-    const editProjectInfoItem = page.locator(
-      `[data-testid="edit-project-${cardId}"]`,
-    )
-    await expect(editProjectInfoItem).toBeVisible({ timeout: 3000 })
-    await editProjectInfoItem.click()
-
-    // Wait for ProjectInfoModal to appear
+    // Wait for NoteModal to appear
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible({ timeout: 5000 })
 
@@ -63,11 +48,11 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     await page.waitForLoadState('networkidle')
   })
 
-  test('should open ProjectInfoModal from repo card menu', async ({ page }) => {
-    const dialog = await openProjectInfoModal(page)
+  test('should open NoteModal from repo card Note button', async ({ page }) => {
+    const dialog = await openNoteModal(page)
 
-    // Verify modal title
-    const title = dialog.getByText(/project info/i)
+    // Verify modal title (now "Project Note" after Issue #37 consolidation)
+    const title = dialog.getByText(/project note/i)
     await expect(title).toBeVisible()
 
     // Verify modal has required elements
@@ -78,7 +63,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
   test('should display LinkTypeCombobox when adding a URL', async ({
     page,
   }) => {
-    const dialog = await openProjectInfoModal(page)
+    const dialog = await openNoteModal(page)
 
     // Click Add URL button
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
@@ -98,7 +83,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
   test('should show "Add custom type..." at the top of combobox (always visible)', async ({
     page,
   }) => {
-    const dialog = await openProjectInfoModal(page)
+    const dialog = await openNoteModal(page)
 
     // Add a URL row
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
@@ -128,7 +113,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
   test('should show 55 presets in 12 categories when opening combobox', async ({
     page,
   }) => {
-    const dialog = await openProjectInfoModal(page)
+    const dialog = await openNoteModal(page)
 
     // Add a URL row
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
@@ -184,7 +169,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
   })
 
   test('should search and filter presets in combobox', async ({ page }) => {
-    const dialog = await openProjectInfoModal(page)
+    const dialog = await openNoteModal(page)
 
     // Add a URL row
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
@@ -216,7 +201,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
   })
 
   test('should select a preset from combobox', async ({ page }) => {
-    const dialog = await openProjectInfoModal(page)
+    const dialog = await openNoteModal(page)
 
     // Add a URL row
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
@@ -247,7 +232,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
   })
 
   test('should validate URL input', async ({ page }) => {
-    const dialog = await openProjectInfoModal(page)
+    const dialog = await openNoteModal(page)
 
     // Add a URL row
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
@@ -271,7 +256,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
   })
 
   test('should accept valid URLs', async ({ page }) => {
-    const dialog = await openProjectInfoModal(page)
+    const dialog = await openNoteModal(page)
 
     // Add a URL row
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
@@ -294,7 +279,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
   })
 
   test('should add multiple URLs', async ({ page }) => {
-    const dialog = await openProjectInfoModal(page)
+    const dialog = await openNoteModal(page)
 
     // Add first URL and save it (Enter exits edit mode)
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
@@ -331,7 +316,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
   })
 
   test('should remove a URL', async ({ page }) => {
-    const dialog = await openProjectInfoModal(page)
+    const dialog = await openNoteModal(page)
 
     // Add first URL and save it
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
@@ -362,7 +347,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
   test('should open CreateLinkTypeDialog from "Add custom type..." option', async ({
     page,
   }) => {
-    const dialog = await openProjectInfoModal(page)
+    const dialog = await openNoteModal(page)
 
     // Add a URL row
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
@@ -391,7 +376,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
   })
 
   test('should save links and close dialog', async ({ page }) => {
-    const dialog = await openProjectInfoModal(page)
+    const dialog = await openNoteModal(page)
 
     // Add a URL
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
@@ -434,7 +419,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
   })
 
   test('should cancel without saving changes', async ({ page }) => {
-    const dialog = await openProjectInfoModal(page)
+    const dialog = await openNoteModal(page)
 
     // Add a URL
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
@@ -451,7 +436,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     await expect(dialog).not.toBeVisible({ timeout: 5000 })
 
     // Reopen the modal
-    const newDialog = await openProjectInfoModal(page)
+    const newDialog = await openNoteModal(page)
 
     // The unsaved URL should not be present
     const savedUrlInput = newDialog.locator('[data-testid="url-input-0"]')
@@ -470,33 +455,20 @@ test.describe('ProjectInfo Links - Edge Cases (Authenticated)', () => {
   const BOARD_URL = '/board/board-1'
 
   /**
-   * Helper to open ProjectInfoModal from a repo card's overflow menu
+   * Helper to open NoteModal from a repo card's Note button
    */
-  async function openProjectInfoModal(
+  async function openNoteModal(
     page: import('@playwright/test').Page,
   ): Promise<import('@playwright/test').Locator> {
     const card = page.locator('[data-testid^="repo-card-"]').first()
     await expect(card).toBeVisible({ timeout: 10000 })
 
-    const cardTestId = await card.getAttribute('data-testid')
-    const cardId = cardTestId?.replace('repo-card-', '') ?? ''
+    // Click on the Note button (has aria-label="Open note")
+    const noteButton = card.getByRole('button', { name: 'Open note' })
+    await expect(noteButton).toBeVisible()
+    await noteButton.click()
 
-    await card.hover()
-
-    const overflowButton = page.locator(
-      `[data-testid="overflow-menu-trigger-${cardId}"]`,
-    )
-    await expect(overflowButton).toBeVisible({ timeout: 5000 })
-    await overflowButton.click()
-
-    await page.waitForTimeout(300)
-
-    const editProjectInfoItem = page.locator(
-      `[data-testid="edit-project-${cardId}"]`,
-    )
-    await expect(editProjectInfoItem).toBeVisible({ timeout: 3000 })
-    await editProjectInfoItem.click()
-
+    // Wait for NoteModal to appear
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible({ timeout: 5000 })
 
@@ -509,7 +481,7 @@ test.describe('ProjectInfo Links - Edge Cases (Authenticated)', () => {
   })
 
   test('should handle localhost URLs for development', async ({ page }) => {
-    const dialog = await openProjectInfoModal(page)
+    const dialog = await openNoteModal(page)
 
     // Add a localhost URL
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
@@ -528,7 +500,7 @@ test.describe('ProjectInfo Links - Edge Cases (Authenticated)', () => {
   })
 
   test('should handle URLs with special characters', async ({ page }) => {
-    const dialog = await openProjectInfoModal(page)
+    const dialog = await openNoteModal(page)
 
     // Add a URL with special characters
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
@@ -546,7 +518,7 @@ test.describe('ProjectInfo Links - Edge Cases (Authenticated)', () => {
   })
 
   test('should close combobox by clicking outside', async ({ page }) => {
-    const dialog = await openProjectInfoModal(page)
+    const dialog = await openNoteModal(page)
 
     // Add URL and open combobox
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
@@ -574,7 +546,7 @@ test.describe('ProjectInfo Links - Edge Cases (Authenticated)', () => {
   })
 
   test('should handle keyboard navigation in combobox', async ({ page }) => {
-    const dialog = await openProjectInfoModal(page)
+    const dialog = await openNoteModal(page)
 
     // Add URL and open combobox
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')

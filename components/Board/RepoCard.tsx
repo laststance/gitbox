@@ -47,9 +47,8 @@ interface RepoCardProps {
   commentText?: CommentTextSettings
   /** Whether to show the comment section */
   showComment?: boolean
-  onEdit?: (id: string) => void
   onMaintenance?: (id: string) => void
-  /** Callback when Note button is clicked */
+  /** Callback when Note button is clicked (opens unified NoteModal with notes + links) */
   onNote?: (id: string) => void
   /** Callback when repository is removed from board */
   onRemove?: (id: string) => void
@@ -78,7 +77,6 @@ export const RepoCard = memo<RepoCardProps>(
     commentData,
     commentText,
     showComment = true,
-    onEdit,
     onMaintenance,
     onNote,
     onRemove,
@@ -173,10 +171,10 @@ export const RepoCard = memo<RepoCardProps>(
      * @param e - KeyboardEvent
      */
     const handleKeyDown = (e: React.KeyboardEvent) => {
-      // Enter: Default action (open Project Info modal)
-      if (e.key === 'Enter' && onEdit) {
+      // Enter: Open NoteModal (unified notes + links)
+      if (e.key === 'Enter' && onNote) {
         e.preventDefault()
-        onEdit(card.id)
+        onNote(card.id)
       }
 
       // . (period): Toggle overflow menu
@@ -219,7 +217,6 @@ export const RepoCard = memo<RepoCardProps>(
                   cardId={card.id}
                   repoOwner={card.repoOwner}
                   repoName={card.repoName}
-                  onEdit={onEdit}
                   onMoveToMaintenance={onMaintenance}
                   onRemove={onRemove}
                   open={menuOpen}

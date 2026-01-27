@@ -99,9 +99,8 @@ interface KanbanBoardProps {
   initialComments?: Record<string, CommentData>
   /** Card display settings from board.settings JSON */
   cardDisplaySettings?: CardDisplaySettings
-  onEditProjectInfo?: (cardId: string) => void
   onMoveToMaintenance?: (cardId: string) => void
-  /** Callback when Note button is clicked on a card */
+  /** Callback when Note button is clicked (opens unified NoteModal with notes + links) */
   onNote?: (cardId: string) => void
   /** Callback when repository is removed from board */
   onRemove?: (cardId: string) => void
@@ -172,7 +171,6 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     boardId: _boardId = 'default-board',
     initialComments,
     cardDisplaySettings,
-    onEditProjectInfo,
     onMoveToMaintenance,
     onNote,
     onRemove,
@@ -798,7 +796,6 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                     cards={cards.filter((c) => c.statusId === status.id)}
                     comments={comments}
                     cardDisplaySettings={cardDisplaySettings}
-                    onEdit={onEditProjectInfo}
                     onMaintenance={onMoveToMaintenance}
                     onNote={onNote}
                     onRemove={onRemove}

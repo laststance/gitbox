@@ -104,7 +104,7 @@ type Story = StoryObj<typeof meta>
 export const Default: Story = {
   args: {
     boardId: 'board-1',
-    onEditProjectInfo: (id) => console.log('Edit project info:', id),
+    onNote: (id) => console.log('Edit project info:', id),
     onMoveToMaintenance: (id) => console.log('Move to maintenance:', id),
     onEditStatus: (status) => console.log('Edit status:', status),
     onDeleteStatus: (id) => console.log('Delete status:', id),
@@ -115,7 +115,7 @@ export const Default: Story = {
 export const WithCallbacks: Story = {
   args: {
     boardId: 'board-1',
-    onEditProjectInfo: (id) => {
+    onNote: (id) => {
       console.log('Opening project info modal for:', id)
     },
     onMoveToMaintenance: (id) => {
@@ -139,7 +139,7 @@ export const WithCallbacks: Story = {
 export const LoadingState: Story = {
   args: {
     boardId: 'board-1',
-    onEditProjectInfo: () => {},
+    onNote: () => {},
     onMoveToMaintenance: () => {},
     onEditStatus: () => {},
     onDeleteStatus: () => {},
@@ -173,7 +173,7 @@ export const WithCardDisplaySettings: Story = {
         fontWeight: 'normal',
       },
     },
-    onEditProjectInfo: () => {},
+    onNote: () => {},
     onMoveToMaintenance: () => {},
     onEditStatus: () => {},
     onDeleteStatus: () => {},
@@ -201,7 +201,7 @@ export const WithInitialComments: Story = {
       'card-1': { comment: 'Test comment', color: 'primary' },
       'card-2': { comment: 'Another comment', color: 'neutral' },
     },
-    onEditProjectInfo: () => {},
+    onNote: () => {},
     onMoveToMaintenance: () => {},
     onEditStatus: () => {},
     onDeleteStatus: () => {},
@@ -233,7 +233,7 @@ export const WithCommentTextSettings: Story = {
         fontWeight: 'semibold',
       },
     },
-    onEditProjectInfo: () => {},
+    onNote: () => {},
     onMoveToMaintenance: () => {},
     onEditStatus: () => {},
     onDeleteStatus: () => {},
@@ -256,7 +256,7 @@ export const WithCommentTextSettings: Story = {
 export const DndContextActive: Story = {
   args: {
     boardId: 'board-1',
-    onEditProjectInfo: () => {},
+    onNote: () => {},
     onMoveToMaintenance: () => {},
     onEditStatus: () => {},
     onDeleteStatus: () => {},
@@ -289,7 +289,7 @@ export const WithShowComment: Story = {
     initialComments: {
       'card-1': { comment: 'Visible comment', color: 'primary' },
     },
-    onEditProjectInfo: () => {},
+    onNote: () => {},
     onMoveToMaintenance: () => {},
     onEditStatus: () => {},
     onDeleteStatus: () => {},
@@ -320,7 +320,7 @@ export const WithoutShowComment: Story = {
     initialComments: {
       'card-1': { comment: 'Hidden comment', color: 'primary' },
     },
-    onEditProjectInfo: () => {},
+    onNote: () => {},
     onMoveToMaintenance: () => {},
     onEditStatus: () => {},
     onDeleteStatus: () => {},

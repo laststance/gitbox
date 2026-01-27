@@ -4,14 +4,18 @@
  * Manages NoteModal state including:
  * - Modal open/close state
  * - Note card ID and title
- * - Initial note content
- * - Save operation
+ * - Initial note content and links
+ * - Save operation for note and links
  */
 
 import * as Sentry from '@sentry/nextjs'
 import { useState, useCallback } from 'react'
 
-import { getProjectInfo, upsertProjectInfo } from '@/lib/actions/project-info'
+import {
+  getProjectInfo,
+  upsertProjectInfo,
+  type ProjectLink,
+} from '@/lib/actions/project-info'
 import type { RepoCardForRedux } from '@/lib/models/domain'
 
 interface UseNoteModalParams {
@@ -28,12 +32,14 @@ interface UseNoteModalReturn {
   cardTitle: string
   /** Initial note content */
   initialNote: string
+  /** Initial links from database */
+  initialLinks: ProjectLink[]
   /** Open modal for a specific card */
   open: (cardId: string) => Promise<void>
   /** Close modal and reset state */
   close: () => void
-  /** Save note to database */
-  save: (note: string) => Promise<void>
+  /** Save note and links to database */
+  save: (note: string, links: ProjectLink[]) => Promise<void>
 }
 
 /**
@@ -56,6 +62,7 @@ interface UseNoteModalReturn {
  *     onSave={noteModal.save}
  *     cardId={noteModal.cardId}
  *     initialNote={noteModal.initialNote}
+ *     initialLinks={noteModal.initialLinks}
  *     cardTitle={noteModal.cardTitle}
  *   />
  * )}
@@ -67,10 +74,11 @@ export function useNoteModal({
   const [cardId, setCardId] = useState<string | null>(null)
   const [cardTitle, setCardTitle] = useState('')
   const [initialNote, setInitialNote] = useState('')
+  const [initialLinks, setInitialLinks] = useState<ProjectLink[]>([])
 
   /**
    * Open NoteModal for a card
-   * Fetches current note from Supabase
+   * Fetches current note and links from Supabase
    */
   const open = useCallback(
     async (targetCardId: string) => {
@@ -83,9 +91,11 @@ export function useNoteModal({
       try {
         const data = await getProjectInfo(targetCardId)
         setInitialNote(data?.note || '')
+        setInitialLinks(data?.links || [])
       } catch (error) {
-        Sentry.captureException(error, { tags: { action: 'loadNote' } })
+        Sentry.captureException(error, { tags: { action: 'loadProjectInfo' } })
         setInitialNote('')
+        setInitialLinks([])
       }
 
       setIsOpen(true)
@@ -101,20 +111,21 @@ export function useNoteModal({
     setCardId(null)
     setCardTitle('')
     setInitialNote('')
+    setInitialLinks([])
   }, [])
 
   /**
-   * Save note to Supabase
+   * Save note and links to Supabase
    * Called by NoteModal with optimistic update
    */
   const save = useCallback(
-    async (note: string) => {
+    async (note: string, links: ProjectLink[]) => {
       if (!cardId) return
 
       await upsertProjectInfo(cardId, {
-        note: note,
+        note,
         comment: '',
-        links: [],
+        links,
       })
     },
     [cardId],
@@ -125,6 +136,7 @@ export function useNoteModal({
     cardId,
     cardTitle,
     initialNote,
+    initialLinks,
     open,
     close,
     save,

@@ -6,7 +6,6 @@
  */
 
 export { useBoardSettings } from './useBoardSettings'
-export { useProjectInfoModal } from './useProjectInfoModal'
 export { useStatusListDialog } from './useStatusListDialog'
 export { useNoteModal } from './useNoteModal'
 export { useAddRepositoryCombobox } from './useAddRepositoryCombobox'

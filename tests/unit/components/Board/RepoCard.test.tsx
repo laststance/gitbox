@@ -132,7 +132,6 @@ vi.mock('@/components/Board/CommentActionsMenu', () => ({
 }))
 
 describe('RepoCard', () => {
-  const mockOnEdit = vi.fn()
   const mockOnNote = vi.fn()
   const mockOnCommentChange = vi.fn()
   const mockOnCommentColorChange = vi.fn()
@@ -272,8 +271,8 @@ describe('RepoCard', () => {
   })
 
   describe('Keyboard Navigation', () => {
-    it('should call onEdit when Enter is pressed', async () => {
-      render(<RepoCard card={defaultCard} onEdit={mockOnEdit} />)
+    it('should call onNote when Enter is pressed', async () => {
+      render(<RepoCard card={defaultCard} onNote={mockOnNote} />)
 
       // Find the Card element with tabIndex (focusable card content)
       const cardContent = screen
@@ -281,7 +280,7 @@ describe('RepoCard', () => {
         .querySelector('[tabIndex="0"]')!
       fireEvent.keyDown(cardContent, { key: 'Enter' })
 
-      expect(mockOnEdit).toHaveBeenCalledWith('card-1')
+      expect(mockOnNote).toHaveBeenCalledWith('card-1')
     })
 
     it('should toggle overflow menu when period key is pressed', () => {

@@ -32,7 +32,6 @@ export const BoardContext: Story = {
     trackingUrl: 'https://tracking.example.com',
     supabaseUrl: 'https://supabase.example.com',
     context: 'board',
-    onEdit: (id) => console.log('Edit:', id),
     onMoveToMaintenance: (id) => console.log('Move to maintenance:', id),
     onRemove: (id) => console.log('Remove from board:', id),
   },
@@ -44,7 +43,6 @@ export const MaintenanceContext: Story = {
     repoOwner: 'octocat',
     repoName: 'example-repo',
     context: 'maintenance',
-    onEdit: (id) => console.log('Edit:', id),
     onRestoreToBoard: (id) => console.log('Restore to board:', id),
   },
 }
@@ -67,7 +65,6 @@ export const WithAllUrls: Story = {
     trackingUrl: 'https://tracking.example.com',
     supabaseUrl: 'https://supabase.example.com',
     context: 'board',
-    onEdit: (id) => console.log('Edit:', id),
     onMoveToMaintenance: (id) => console.log('Move to maintenance:', id),
     onRemove: (id) => console.log('Remove from board:', id),
   },
@@ -83,7 +80,6 @@ export const WithRemoveAction: Story = {
     repoOwner: 'laststance',
     repoName: 'gitbox',
     context: 'board',
-    onEdit: (id) => console.log('Edit:', id),
     onRemove: (id) => console.log('Remove from board:', id),
   },
 }
