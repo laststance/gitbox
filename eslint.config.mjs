@@ -62,9 +62,9 @@ export default defineConfig([
     './e2e/tablet-landscape/**',
     '.storybook/**',
     '**/.husky/**',
-    'lib/supabase/types.ts',
-    'lib/supabase/database.types.ts',
-    'lib/github/api.ts',
+    'src/lib/supabase/types.ts',
+    'src/lib/supabase/database.types.ts',
+    'src/lib/github/api.ts',
     'e2e/**',
     '**/*.backup/**',
     '**/.backup/**',
@@ -128,7 +128,7 @@ export default defineConfig([
 
   // Page components don't need memo
   {
-    files: ['**/app/**/page.tsx'],
+    files: ['**/src/app/**/page.tsx'],
     rules: {
       '@laststance/react-next/all-memo': 'off',
     },
@@ -168,29 +168,29 @@ export default defineConfig([
   // Plate UI components from registry - relax rules for auto-generated code
   {
     files: [
-      'components/ui/*-node.tsx',
-      'components/ui/*-node-static.tsx',
-      'components/ui/*-toolbar-button.tsx',
-      'components/ui/*-toolbar.tsx',
-      'components/ui/toolbar.tsx',
-      'components/ui/comment.tsx',
-      'components/ui/caption.tsx',
-      'components/ui/calendar.tsx',
-      'components/ui/command.tsx',
-      'components/ui/resize-handle.tsx',
-      'components/ui/inline-combobox.tsx',
-      'components/ui/block-*.tsx',
-      'components/ui/dropdown-menu.tsx',
-      'components/ui/table-icons.tsx',
-      'components/ui/alert-dialog.tsx',
-      'components/ui/suggestion-*.tsx',
-      'components/ui/editor.tsx',
-      'components/ui/editor-static.tsx',
-      'components/ui/media-*.tsx',
-      'components/ui/fixed-toolbar*.tsx',
-      'components/ui/floating-toolbar*.tsx',
-      'components/editor/plugins/*.tsx',
-      'components/editor/transforms.ts',
+      'src/components/ui/*-node.tsx',
+      'src/components/ui/*-node-static.tsx',
+      'src/components/ui/*-toolbar-button.tsx',
+      'src/components/ui/*-toolbar.tsx',
+      'src/components/ui/toolbar.tsx',
+      'src/components/ui/comment.tsx',
+      'src/components/ui/caption.tsx',
+      'src/components/ui/calendar.tsx',
+      'src/components/ui/command.tsx',
+      'src/components/ui/resize-handle.tsx',
+      'src/components/ui/inline-combobox.tsx',
+      'src/components/ui/block-*.tsx',
+      'src/components/ui/dropdown-menu.tsx',
+      'src/components/ui/table-icons.tsx',
+      'src/components/ui/alert-dialog.tsx',
+      'src/components/ui/suggestion-*.tsx',
+      'src/components/ui/editor.tsx',
+      'src/components/ui/editor-static.tsx',
+      'src/components/ui/media-*.tsx',
+      'src/components/ui/fixed-toolbar*.tsx',
+      'src/components/ui/floating-toolbar*.tsx',
+      'src/components/editor/plugins/*.tsx',
+      'src/components/editor/transforms.ts',
     ],
     rules: {
       '@laststance/react-next/all-memo': 'off',
@@ -225,7 +225,7 @@ export default defineConfig([
   // Refactored: useLayoutEffect for theme, useMemo for derived addRepoStatusId
   // Remaining exception: theme application on change is still a side effect
   {
-    files: ['**/app/board/*/BoardPageClient.tsx'],
+    files: ['**/src/app/board/*/BoardPageClient.tsx'],
     rules: {
       'react-you-might-not-need-an-effect/no-event-handler': 'off',
       'react-you-might-not-need-an-effect/no-chain-state-updates': 'off',
@@ -237,8 +237,8 @@ export default defineConfig([
   // MaintenanceClient: event-driven data fetching in handleRestore (Phase 3)
   {
     files: [
-      'components/Board/AddRepositoryCombobox.tsx',
-      'app/maintenance/MaintenanceClient.tsx',
+      'src/components/Board/AddRepositoryCombobox.tsx',
+      'src/app/maintenance/MaintenanceClient.tsx',
     ],
     rules: {
       // AddRepositoryCombobox: useEffect for isOpen triggers data fetching
@@ -253,7 +253,7 @@ export default defineConfig([
   // Refactored: autoFocus replaces focus useEffect, useLayoutEffect for scroll-into-view
   // Remaining exception: global ⌘K keyboard handler useEffect is intentional
   {
-    files: ['components/CommandPalette/CommandPalette.tsx'],
+    files: ['src/components/CommandPalette/CommandPalette.tsx'],
     rules: {
       'react-you-might-not-need-an-effect/no-event-handler': 'off',
     },

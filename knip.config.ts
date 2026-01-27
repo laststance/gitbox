@@ -4,15 +4,15 @@ const config: KnipConfig = {
   // Entry points for the project (beyond what plugins auto-detect)
   entry: [
     // MSW setup (dynamically required in layout.tsx)
-    'app/msw-provider.tsx',
+    'src/app/msw-provider.tsx',
     'mocks/server.ts',
 
     // Custom hooks
-    'hooks/**/*.ts',
+    'src/hooks/**/*.ts',
 
     // Redux store
-    'lib/redux/providers.tsx',
-    'lib/redux/store.ts',
+    'src/lib/redux/providers.tsx',
+    'src/lib/redux/store.ts',
   ],
 
   project: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.mjs'],
@@ -27,7 +27,7 @@ const config: KnipConfig = {
     'blob-report/**',
     'public/mockServiceWorker.js',
     'next-env.d.ts',
-    'lib/supabase/database.types.ts',
+    'src/lib/supabase/database.types.ts',
   ],
 
   // Dynamic dependencies (CSS-only - not detectable by Knip)
@@ -56,7 +56,11 @@ const config: KnipConfig = {
 
   vitest: {
     entry: ['vitest.config.ts'],
-    project: ['tests/**/*.test.ts', 'tests/**/*.test.tsx', 'tests/setup.ts'],
+    project: [
+      'src/tests/**/*.test.ts',
+      'src/tests/**/*.test.tsx',
+      'src/tests/setup.ts',
+    ],
   },
 
   playwright: {

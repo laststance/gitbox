@@ -50,30 +50,30 @@ export default defineConfig(({ mode }) => ({
       reporter: ['text', 'json', 'lcov', 'html'],
       exclude: [
         'node_modules/',
-        'tests/',
+        'src/tests/',
         '*.config.ts',
         '*.config.js',
         '.next/',
         'dist/',
         // Supabase-related files (DB communication - tested via integration tests)
-        'lib/actions/**',
-        'lib/supabase/**',
+        'src/lib/actions/**',
+        'src/lib/supabase/**',
         // CSS files (not testable via code coverage)
-        'styles/**',
+        'src/styles/**',
         // MSW mock handlers (test utilities, not production code)
         'mocks/**',
         // SVG icon definitions (no logic to test)
-        'components/ui/table-icons.tsx',
+        'src/components/ui/table-icons.tsx',
         // App router pages (Server Components - tested via E2E)
-        'app/**/page.tsx',
-        'app/**/layout.tsx',
-        'app/**/route.ts',
-        'app/**/error.tsx',
-        'app/**/loading.tsx',
+        'src/app/**/page.tsx',
+        'src/app/**/layout.tsx',
+        'src/app/**/route.ts',
+        'src/app/**/error.tsx',
+        'src/app/**/loading.tsx',
         // MSW provider (test utility)
-        'app/msw-provider.tsx',
+        'src/app/msw-provider.tsx',
         // Next.js proxy/middleware (tested via E2E)
-        'proxy.ts',
+        'src/proxy.ts',
         // Barrel files (only re-exports, no logic to test)
         '**/index.ts',
         // Type definition files
@@ -88,9 +88,12 @@ export default defineConfig(({ mode }) => ({
         test: {
           name: 'unit',
           environment: 'happy-dom',
-          include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
+          include: [
+            'src/tests/unit/**/*.test.ts',
+            'src/tests/unit/**/*.test.tsx',
+          ],
           exclude: ['e2e/**/*', 'node_modules/**/*', 'dist/**/*'],
-          setupFiles: ['./tests/setup.ts'],
+          setupFiles: ['./src/tests/setup.ts'],
         },
       },
       // Storybook tests project (browser environment with Playwright)
@@ -124,11 +127,12 @@ export default defineConfig(({ mode }) => ({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './'),
-      '@/lib': path.resolve(__dirname, './lib'),
-      '@/components': path.resolve(__dirname, './components'),
-      '@/app': path.resolve(__dirname, './app'),
-      '@/styles': path.resolve(__dirname, './styles'),
+      '@': path.resolve(__dirname, './src'),
+      '@/lib': path.resolve(__dirname, './src/lib'),
+      '@/components': path.resolve(__dirname, './src/components'),
+      '@/app': path.resolve(__dirname, './src/app'),
+      '@/styles': path.resolve(__dirname, './src/styles'),
+      '@/mocks': path.resolve(__dirname, './mocks'),
     },
   },
 }))

@@ -12,7 +12,7 @@
 import { NextResponse } from 'next/server'
 
 import { isMSWEnabled } from '@/lib/utils/isMSWEnabled'
-import { resetMockData } from '@/mocks/handlers/index'
+import { resetMockData } from '@/mocks/handlers'
 
 export async function POST() {
   // Only allow when MSW is enabled (test mode)
