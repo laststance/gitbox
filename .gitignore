@@ -71,6 +71,7 @@ e2e/.auth/*.json
 # E2E Coverage
 coverage-e2e/
 monocart-report/
+blob-report/
 
 *storybook.log
 
