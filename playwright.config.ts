@@ -19,9 +19,6 @@ export default defineConfig({
    * Disable full parallel execution for MSW compatibility.
    * MSW handlers share state within a process, so tests must run
    * sequentially within each worker to avoid state conflicts.
-   *
-   * Note: CI uses sharding (separate processes) for parallelization,
-   * which avoids this issue since each shard has its own MSW instance.
    */
   fullyParallel: false,
 
@@ -49,125 +46,70 @@ export default defineConfig({
   failOnFlakyTests: false,
 
   /**
-   * Reporters:
-   * - CI with sharding: blob (for test merging) + monocart (for coverage)
-   * - Local: list + monocart for immediate feedback
+   * Reporters: list + monocart for coverage
    */
-  reporter: process.env.SHARD_INDEX
-    ? [
-        ['blob', { outputDir: 'blob-report' }],
-        [
-          'monocart-reporter',
-          {
-            name: `GitBox E2E Coverage Report (Shard ${process.env.SHARD_INDEX})`,
-            outputFile: `./coverage-e2e-shard-${process.env.SHARD_INDEX}/index.html`,
-            coverage: {
-              reports: [
-                ['v8'],
-                ['json', { file: 'coverage.json' }],
-                ['json-summary', { file: 'coverage-summary.json' }],
-              ],
-              entryFilter: {
-                '**/node_modules/**': false,
-                '**/_next/static/chunks/webpack*': false,
-                '**/_next/static/chunks/polyfills*': false,
-                '**/_next/static/**': true,
-              },
-              sourceFilter: {
-                '**/lib/actions/**': false,
-                '**/lib/supabase/**': false,
-                '**/app/auth/callback/**': false,
-                '**/instrumentation*.ts': false,
-                '**/sentry.*.config.ts': false,
-                '**/tests/**': false,
-                '**/mocks/**': false,
-                '**/*.spec.ts': false,
-                '**/*.test.ts': false,
-                '**/*.test.tsx': false,
-                '**/*.stories.tsx': false,
-                '**/.storybook/**': false,
-                '**/*.config.ts': false,
-                '**/*.config.js': false,
-                '**/*.config.mjs': false,
-                '**/node_modules/**': false,
-                '**/.next/**': false,
-                '**/app/**': true,
-                '**/components/**': true,
-                '**/lib/**': true,
-                '**/packages/**': true,
-              },
-              sourcePath: (filePath: string) => {
-                return filePath
-                  .replace(/^webpack:\/\/gitbox\//, '')
-                  .replace(/^\.\//g, '')
-              },
-            },
+  reporter: [
+    ['list'],
+    [
+      'monocart-reporter',
+      {
+        name: 'GitBox E2E Coverage Report',
+        outputFile: './coverage-e2e/index.html',
+        coverage: {
+          reports: [
+            ['v8'],
+            ['html', { subdir: 'istanbul' }],
+            ['lcovonly', { file: 'lcov.info' }],
+            ['text-summary'],
+            ['json-summary', { file: 'coverage-summary.json' }],
+          ],
+          entryFilter: {
+            '**/node_modules/**': false,
+            '**/_next/static/chunks/webpack*': false,
+            '**/_next/static/chunks/polyfills*': false,
+            '**/_next/static/**': true,
           },
-        ],
-      ]
-    : [
-        ['list'],
-        [
-          'monocart-reporter',
-          {
-            name: 'GitBox E2E Coverage Report',
-            outputFile: './coverage-e2e/index.html',
-            coverage: {
-              reports: [
-                ['v8'],
-                ['html', { subdir: 'istanbul' }],
-                ['lcovonly', { file: 'lcov.info' }],
-                ['text-summary'],
-                ['json-summary', { file: 'coverage-summary.json' }],
-              ],
-              entryFilter: {
-                '**/node_modules/**': false,
-                '**/_next/static/chunks/webpack*': false,
-                '**/_next/static/chunks/polyfills*': false,
-                '**/_next/static/**': true,
-              },
-              sourceFilter: {
-                // Exclude: Server-side only code (E2E cannot trigger)
-                '**/lib/actions/**': false,
-                '**/lib/supabase/**': false,
-                '**/app/auth/callback/**': false,
-                '**/instrumentation*.ts': false,
-                '**/sentry.*.config.ts': false,
-                // Exclude: Test/dev infrastructure
-                '**/tests/**': false,
-                '**/mocks/**': false,
-                '**/*.spec.ts': false,
-                '**/*.test.ts': false,
-                '**/*.test.tsx': false,
-                '**/*.stories.tsx': false,
-                '**/.storybook/**': false,
-                // Exclude: Config & build
-                '**/*.config.ts': false,
-                '**/*.config.js': false,
-                '**/*.config.mjs': false,
-                '**/node_modules/**': false,
-                '**/.next/**': false,
-                // Include: Client code
-                '**/app/**': true,
-                '**/components/**': true,
-                '**/lib/**': true,
-                '**/packages/**': true,
-              },
-              sourcePath: (filePath: string) => {
-                return filePath
-                  .replace(/^webpack:\/\/gitbox\//, '')
-                  .replace(/^\.\//g, '')
-              },
-            },
+          sourceFilter: {
+            // Exclude: Server-side only code (E2E cannot trigger)
+            '**/lib/actions/**': false,
+            '**/lib/supabase/**': false,
+            '**/app/auth/callback/**': false,
+            '**/instrumentation*.ts': false,
+            '**/sentry.*.config.ts': false,
+            // Exclude: Test/dev infrastructure
+            '**/tests/**': false,
+            '**/mocks/**': false,
+            '**/*.spec.ts': false,
+            '**/*.test.ts': false,
+            '**/*.test.tsx': false,
+            '**/*.stories.tsx': false,
+            '**/.storybook/**': false,
+            // Exclude: Config & build
+            '**/*.config.ts': false,
+            '**/*.config.js': false,
+            '**/*.config.mjs': false,
+            '**/node_modules/**': false,
+            '**/.next/**': false,
+            // Include: Client code
+            '**/app/**': true,
+            '**/components/**': true,
+            '**/lib/**': true,
+            '**/packages/**': true,
           },
-        ],
-      ],
+          sourcePath: (filePath: string) => {
+            return filePath
+              .replace(/^webpack:\/\/gitbox\//, '')
+              .replace(/^\.\//g, '')
+          },
+        },
+      },
+    ],
+  ],
 
   timeout: 60000,
 
   use: {
-    // Support external servers (Docker shards) via PLAYWRIGHT_TEST_BASE_URL
-    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3008',
+    baseURL: 'http://localhost:3008',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -211,37 +153,26 @@ export default defineConfig({
   ],
 
   /**
-   * webServer configuration:
-   * - When PLAYWRIGHT_TEST_BASE_URL is set: Skip webServer (use external Docker containers)
-   * - Otherwise: Build and start a local Next.js server
+   * webServer: Build and start a local Next.js server.
+   *
+   * CRITICAL: NEXT_PUBLIC_* vars must be set at BUILD time because Next.js
+   * inlines them during the build process.
+   *
+   * NOTE: reuseExistingServer is set to false to ALWAYS use a fresh server
+   * with correct test environment variables. If set to true and a dev server
+   * (pnpm dev) is already running, it would be reused WITHOUT the test env vars,
+   * causing isTestMode() to return false and auth bypass to fail.
    */
-  webServer: process.env.PLAYWRIGHT_TEST_BASE_URL
-    ? undefined
-    : {
-        /**
-         * Build and start with test environment variables.
-         *
-         * CRITICAL: NEXT_PUBLIC_* vars must be set at BUILD time because Next.js
-         * inlines them during the build process. Setting them only at runtime
-         * (via env property below) is NOT sufficient.
-         *
-         * The env vars are explicitly set in the command to ensure they're
-         * available during both build and start phases.
-         *
-         * NOTE: reuseExistingServer is set to false to ALWAYS use a fresh server
-         * with correct test environment variables. If set to true and a dev server
-         * (pnpm dev) is already running, it would be reused WITHOUT the test env vars,
-         * causing isTestMode() to return false and auth bypass to fail.
-         */
-        command:
-          'NEXT_PUBLIC_ENABLE_MSW_MOCK=true APP_ENV=test NEXT_PUBLIC_SUPABASE_URL=https://jqtxjzdxczqwsrvevmyk.supabase.co pnpm build && pnpm start',
-        url: 'http://localhost:3008',
-        reuseExistingServer: false,
-        timeout: 120000,
-        env: {
-          NEXT_PUBLIC_ENABLE_MSW_MOCK: 'true',
-          APP_ENV: 'test',
-          NEXT_PUBLIC_SUPABASE_URL: 'https://jqtxjzdxczqwsrvevmyk.supabase.co',
-        },
-      },
+  webServer: {
+    command:
+      'NEXT_PUBLIC_ENABLE_MSW_MOCK=true APP_ENV=test NEXT_PUBLIC_SUPABASE_URL=https://jqtxjzdxczqwsrvevmyk.supabase.co pnpm build && pnpm start',
+    url: 'http://localhost:3008',
+    reuseExistingServer: false,
+    timeout: 120000,
+    env: {
+      NEXT_PUBLIC_ENABLE_MSW_MOCK: 'true',
+      APP_ENV: 'test',
+      NEXT_PUBLIC_SUPABASE_URL: 'https://jqtxjzdxczqwsrvevmyk.supabase.co',
+    },
+  },
 })

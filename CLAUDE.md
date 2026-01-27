@@ -277,27 +277,6 @@ pnpm e2e
 pnpm e2e --headed
 ```
 
-### 8-Shard Parallel E2E (Docker)
-
-Runs 301 tests across 8 Docker containers for ~50% faster execution.
-
-```bash
-# Full run (build + test + cleanup)
-pnpm e2e:local:shard
-
-# Skip Docker rebuild (use after code-only changes)
-pnpm e2e:local:shard:no-build
-
-# Keep containers running for debugging
-pnpm e2e:local:shard:debug
-```
-
-| Port Range | Containers | Duration |
-| ---------- | ---------- | -------- |
-| 3008-3015  | 8 shards   | ~2.5 min |
-
-**Prerequisites:** Docker Desktop running
-
 ### Test Configuration
 
 - **Auth State:** `tests/e2e/.auth/user.json` (gitignored)
