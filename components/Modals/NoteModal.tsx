@@ -1,7 +1,7 @@
 'use client'
 
 import { Plus, StickyNote } from 'lucide-react'
-import { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { PlateEditor } from '@/components/editor/PlateEditor'
@@ -122,14 +122,23 @@ export const NoteModal = memo(function NoteModal({
     }
   }, [])
 
-  // Sync state when modal opens or initial values change
+  // Track initialization to prevent re-init on every draft update
+  const didInitRef = useRef(false)
+
+  // Sync state when modal opens (not on every draft update)
+  // Reset runs only when modal opens or cardId changes
   useEffect(() => {
-    if (isOpen) {
-      setNote(draft?.content ?? initialNote)
-      setLinks(draft?.links ?? initialLinks)
-      setEditingUrlIndex(null)
-      setDeletedLink(null)
+    if (!isOpen) {
+      didInitRef.current = false
+      return
     }
+    // Skip if already initialized for this open session
+    if (didInitRef.current) return
+    didInitRef.current = true
+    setNote(draft?.content ?? initialNote)
+    setLinks(draft?.links ?? initialLinks)
+    setEditingUrlIndex(null)
+    setDeletedLink(null)
   }, [isOpen, initialNote, initialLinks, draft?.content, draft?.links])
 
   /**

@@ -123,6 +123,8 @@ export const MaintenanceClient = memo(function MaintenanceClient({
   const [currentNote, setCurrentNote] = useState<string>('')
   const [currentLinks, setCurrentLinks] = useState<ProjectLink[]>([])
   const [, startLoadingProjectInfo] = useTransition()
+  // Guard for async project info fetch - prevents stale data on repo switch
+  const activeNoteRepoId = useRef<string | null>(null)
 
   // Last visited board for navigation - lazy initialization from localStorage
   const [lastVisitedBoard] = useState<{
@@ -308,15 +310,29 @@ export const MaintenanceClient = memo(function MaintenanceClient({
   /**
    * Open note modal for a specific repo
    * Not wrapped in useCallback - always used with inline handlers passing repo
+   * Uses activeNoteRepoId ref to guard against stale data on repo switch
    */
   const openNoteModal = (repo: MaintenanceRepo) => {
+    activeNoteRepoId.current = repo.id
     setSelectedRepoForNote(repo)
     setNoteModalOpen(true)
-    // Lazy load project info
+    // Reset state before async load to prevent showing stale data
+    setCurrentNote('')
+    setCurrentLinks([])
+    // Lazy load project info with guard
     startLoadingProjectInfo(async () => {
-      const data = await getMaintenanceProjectInfo(repo.id)
-      setCurrentNote(data?.note || '')
-      setCurrentLinks(data?.links || [])
+      try {
+        const data = await getMaintenanceProjectInfo(repo.id)
+        // Guard: only update if this repo is still active
+        if (activeNoteRepoId.current !== repo.id) return
+        setCurrentNote(data?.note || '')
+        setCurrentLinks(data?.links || [])
+      } catch {
+        // Guard: only reset if this repo is still active
+        if (activeNoteRepoId.current !== repo.id) return
+        setCurrentNote('')
+        setCurrentLinks([])
+      }
     })
   }
 
@@ -741,6 +757,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
           onClose={() => {
             setNoteModalOpen(false)
             setSelectedRepoForNote(null)
+            activeNoteRepoId.current = null
             setCurrentNote('')
             setCurrentLinks([])
           }}
