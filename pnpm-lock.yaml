@@ -214,8 +214,8 @@ importers:
         specifier: ^5.0.0
         version: 5.0.0(storybook@10.2.0(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))
       '@laststance/react-next-eslint-plugin':
-        specifier: ^1.2.3
-        version: 1.2.3(eslint@9.39.2(jiti@2.6.1))
+        specifier: ^1.3.0
+        version: 1.3.0(eslint@9.39.2(jiti@2.6.1))
       '@playwright/test':
         specifier: ^1.58.0
         version: 1.58.0
@@ -944,8 +944,8 @@ packages:
   '@juggle/resize-observer@3.4.0':
     resolution: {integrity: sha512-dfLbk+PwWvFzSxwk3n5ySL0hfBog779o8h68wK/7/APo/7cgyWp5jcXockbxdk5kFRkbeXWm4Fbi9FrdN381sA==}
 
-  '@laststance/react-next-eslint-plugin@1.2.3':
-    resolution: {integrity: sha512-89yl/LAPr6F0gJFSMGejebe8TkgMOJLNSFiYRvi7h4Pvr4qdqt558sNjh5+qaoxLvQiPgCKKZGCZMnK4+IkNYQ==}
+  '@laststance/react-next-eslint-plugin@1.3.0':
+    resolution: {integrity: sha512-AwXy28Qw0ensjc4TG/RdAIY486Uq6apghLmKTHxGCR8XPB/SAOmFoZQweifowNdIgpxODXDSWJC0bwy6GfTXCw==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       eslint: '>=9.0.0'
@@ -6715,7 +6715,7 @@ snapshots:
 
   '@juggle/resize-observer@3.4.0': {}
 
-  '@laststance/react-next-eslint-plugin@1.2.3(eslint@9.39.2(jiti@2.6.1))':
+  '@laststance/react-next-eslint-plugin@1.3.0(eslint@9.39.2(jiti@2.6.1))':
     dependencies:
       eslint: 9.39.2(jiti@2.6.1)
 

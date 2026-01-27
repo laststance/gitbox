@@ -119,8 +119,6 @@ export default defineConfig([
       '@laststance/react-next/prefer-stable-context-value': 'error',
       // Turn Off eslint-config-next/typescript defaults
       'import/no-anonymous-default-export': 'off',
-      // Temporarily allow unescaped entities for i18n strings
-      'react/no-unescaped-entities': 'warn',
     },
   },
 

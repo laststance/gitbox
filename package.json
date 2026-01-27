@@ -104,7 +104,7 @@
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.0.0",
-    "@laststance/react-next-eslint-plugin": "^1.2.3",
+    "@laststance/react-next-eslint-plugin": "^1.3.0",
     "@playwright/test": "^1.58.0",
     "@storybook/addon-a11y": "^10.2.0",
     "@storybook/addon-docs": "^10.2.0",

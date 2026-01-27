@@ -13,7 +13,6 @@
 
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata } from 'next'
-import Script from 'next/script'
 import NextTopLoader from 'nextjs-toploader'
 import { Toaster } from 'sonner'
 
@@ -99,15 +98,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        {process.env.NODE_ENV === 'development' && (
-          <Script
-            src="//unpkg.com/react-grab/dist/index.global.js"
-            crossOrigin="anonymous"
-            strategy="beforeInteractive"
-          />
-        )}
-      </head>
+      <head></head>
       <body>
         <NextTopLoader
           color="oklch(0.696 0.17 162.48)"
