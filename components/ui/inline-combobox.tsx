@@ -200,9 +200,9 @@ const InlineCombobox = ({
         }
         store={store}
       >
-        <InlineComboboxContext.Provider value={contextValue}>
+        <InlineComboboxContext value={contextValue}>
           {children}
-        </InlineComboboxContext.Provider>
+        </InlineComboboxContext>
       </ComboboxProvider>
     </span>
   )

@@ -77,19 +77,22 @@ interface ButtonProps
   asChild?: boolean
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, ...props }, ref) => {
-    return (
-      <button
-        type="button"
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
-        {...props}
-      />
-    )
-  },
-)
-Button.displayName = 'Button'
+function Button({
+  className,
+  variant,
+  size,
+  ref,
+  ...props
+}: ButtonProps & { ref?: React.Ref<HTMLButtonElement> }) {
+  return (
+    <button
+      type="button"
+      className={cn(buttonVariants({ variant, size, className }))}
+      ref={ref}
+      {...props}
+    />
+  )
+}
 
 // Glow Component
 const glowVariants = cva('absolute w-full', {
@@ -112,37 +115,39 @@ interface GlowProps
     React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof glowVariants> {}
 
-const Glow = React.forwardRef<HTMLDivElement, GlowProps>(
-  ({ className, variant, ...props }, ref) => {
-    const outerGlowClassName = useMemo(
-      () =>
-        variant === 'center'
-          ? `${GLOW_OUTER_BASE} ${GLOW_CENTER_TRANSLATE}`
-          : GLOW_OUTER_BASE,
-      [variant],
-    )
+function Glow({
+  className,
+  variant,
+  ref,
+  ...props
+}: GlowProps & { ref?: React.Ref<HTMLDivElement> }) {
+  const outerGlowClassName = useMemo(
+    () =>
+      variant === 'center'
+        ? `${GLOW_OUTER_BASE} ${GLOW_CENTER_TRANSLATE}`
+        : GLOW_OUTER_BASE,
+    [variant],
+  )
 
-    const innerGlowClassName = useMemo(
-      () =>
-        variant === 'center'
-          ? `${GLOW_INNER_BASE} ${GLOW_CENTER_TRANSLATE}`
-          : GLOW_INNER_BASE,
-      [variant],
-    )
+  const innerGlowClassName = useMemo(
+    () =>
+      variant === 'center'
+        ? `${GLOW_INNER_BASE} ${GLOW_CENTER_TRANSLATE}`
+        : GLOW_INNER_BASE,
+    [variant],
+  )
 
-    return (
-      <div
-        ref={ref}
-        className={cn(glowVariants({ variant }), className)}
-        {...props}
-      >
-        <div className={outerGlowClassName} />
-        <div className={innerGlowClassName} />
-      </div>
-    )
-  },
-)
-Glow.displayName = 'Glow'
+  return (
+    <div
+      ref={ref}
+      className={cn(glowVariants({ variant }), className)}
+      {...props}
+    >
+      <div className={outerGlowClassName} />
+      <div className={innerGlowClassName} />
+    </div>
+  )
+}
 
 // Navigation Component
 const Navigation = () => {
