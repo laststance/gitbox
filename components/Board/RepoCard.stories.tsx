@@ -227,7 +227,7 @@ export const CardRendersDescription: Story = {
 export const ContextMenuOpens: Story = {
   args: {
     card: mockCard,
-    onEdit: fn(),
+    onNote: fn(),
     onMaintenance: fn(),
   },
   play: async ({ canvasElement }) => {

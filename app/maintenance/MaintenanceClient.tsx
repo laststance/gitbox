@@ -40,10 +40,7 @@ import {
   CommentInlineEdit,
   type CommentSaveOptions,
 } from '@/components/Board/CommentInlineEdit'
-import {
-  ProjectInfoModal,
-  type ProjectInfo,
-} from '@/components/Modals/ProjectInfoModal'
+import { NoteModal } from '@/components/Modals/NoteModal'
 import {
   RestoreToBoardDialog,
   type BoardOption,
@@ -55,6 +52,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { type ProjectLink } from '@/components/ui/editable-url-item'
 import { Input } from '@/components/ui/input'
 import {
   getCommentsForMaintenanceItems,
@@ -122,8 +120,8 @@ export const MaintenanceClient = memo(function MaintenanceClient({
   const [noteModalOpen, setNoteModalOpen] = useState(false)
   const [selectedRepoForNote, setSelectedRepoForNote] =
     useState<MaintenanceRepo | null>(null)
-  const [currentProjectInfo, setCurrentProjectInfo] =
-    useState<ProjectInfo | null>(null)
+  const [currentNote, setCurrentNote] = useState<string>('')
+  const [currentLinks, setCurrentLinks] = useState<ProjectLink[]>([])
   const [, startLoadingProjectInfo] = useTransition()
 
   // Last visited board for navigation - lazy initialization from localStorage
@@ -314,15 +312,11 @@ export const MaintenanceClient = memo(function MaintenanceClient({
   const openNoteModal = (repo: MaintenanceRepo) => {
     setSelectedRepoForNote(repo)
     setNoteModalOpen(true)
-    // Lazy load project info and construct ProjectInfo with id
+    // Lazy load project info
     startLoadingProjectInfo(async () => {
       const data = await getMaintenanceProjectInfo(repo.id)
-      setCurrentProjectInfo({
-        id: repo.id,
-        note: data?.note || '',
-        comment: data?.comment || '',
-        links: data?.links || [],
-      })
+      setCurrentNote(data?.note || '')
+      setCurrentLinks(data?.links || [])
     })
   }
 
@@ -330,22 +324,21 @@ export const MaintenanceClient = memo(function MaintenanceClient({
    * Handle saving project info from modal
    */
   const handleProjectInfoSave = useCallback(
-    async (data: {
-      note: string
-      comment: string
-      links: { url: string; type: string }[]
-    }) => {
+    async (note: string, links: ProjectLink[]) => {
       if (!selectedRepoForNote) return
+      // Get current comment from comments state for this repo
+      const currentComment = comments[selectedRepoForNote.id]?.comment || ''
       await upsertMaintenanceProjectInfo(selectedRepoForNote.id, {
-        note: data.note,
-        comment: data.comment,
-        links: data.links,
+        note,
+        comment: currentComment,
+        links,
       })
       setNoteModalOpen(false)
       setSelectedRepoForNote(null)
-      setCurrentProjectInfo(null)
+      setCurrentNote('')
+      setCurrentLinks([])
     },
-    [selectedRepoForNote],
+    [selectedRepoForNote, comments],
   )
 
   const gridToggleClassName = useMemo(
@@ -741,17 +734,21 @@ export const MaintenanceClient = memo(function MaintenanceClient({
         />
       )}
 
-      {/* Project Info Modal for Note editing */}
-      {currentProjectInfo && (
-        <ProjectInfoModal
+      {/* Note Modal for Note + Links editing */}
+      {selectedRepoForNote && (
+        <NoteModal
           isOpen={noteModalOpen}
           onClose={() => {
             setNoteModalOpen(false)
             setSelectedRepoForNote(null)
-            setCurrentProjectInfo(null)
+            setCurrentNote('')
+            setCurrentLinks([])
           }}
           onSave={handleProjectInfoSave}
-          projectInfo={currentProjectInfo}
+          cardId={selectedRepoForNote.id}
+          initialNote={currentNote}
+          initialLinks={currentLinks}
+          cardTitle={`${selectedRepoForNote.repo_owner}/${selectedRepoForNote.repo_name}`}
         />
       )}
     </div>

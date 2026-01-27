@@ -799,7 +799,6 @@ describe('KanbanBoard with Data', () => {
  * Unit Tests: KanbanBoard Callbacks
  *
  * Test targets:
- * - onEditProjectInfo callback
  * - onMoveToMaintenance callback
  * - onNote callback
  * - onRemove callback
@@ -813,7 +812,6 @@ describe('KanbanBoard Callbacks', () => {
   })
 
   it('should pass callbacks to child components', async () => {
-    const mockOnEditProjectInfo = vi.fn()
     const mockOnMoveToMaintenance = vi.fn()
     const mockOnNote = vi.fn()
     const mockOnRemove = vi.fn()
@@ -854,7 +852,6 @@ describe('KanbanBoard Callbacks', () => {
         <KanbanBoard
           boardId="test-board"
           initialComments={{}}
-          onEditProjectInfo={mockOnEditProjectInfo}
           onMoveToMaintenance={mockOnMoveToMaintenance}
           onNote={mockOnNote}
           onRemove={mockOnRemove}

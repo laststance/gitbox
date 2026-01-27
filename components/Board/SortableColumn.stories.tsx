@@ -101,7 +101,6 @@ export const Default: Story = {
   args: {
     status: mockStatus,
     cards: mockCards,
-    onEdit: (id) => console.log('Edit card:', id),
     onMaintenance: (id) => console.log('Move to maintenance:', id),
     onNote: (id) => console.log('Edit note:', id),
     onEditStatus: (status) => console.log('Edit status:', status),

@@ -17,7 +17,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { OverflowMenu } from '@/components/Board/OverflowMenu'
 
 describe('OverflowMenu', () => {
-  const mockOnEdit = vi.fn()
   const mockOnMoveToMaintenance = vi.fn()
   const mockOnRestoreToBoard = vi.fn()
   const mockOnRemove = vi.fn()
@@ -81,12 +80,6 @@ describe('OverflowMenu', () => {
       )
 
       expect(screen.queryByText('Open on GitHub')).not.toBeInTheDocument()
-    })
-
-    it('should render Edit Project Info when onEdit is provided', () => {
-      render(<OverflowMenu {...defaultProps} open={true} onEdit={mockOnEdit} />)
-
-      expect(screen.getByText('Edit Project Info…')).toBeInTheDocument()
     })
 
     it('should render Move to Maintenance in board context', () => {
@@ -230,15 +223,6 @@ describe('OverflowMenu', () => {
   })
 
   describe('Callback Invocations', () => {
-    it('should call onEdit when Edit Project Info is clicked', async () => {
-      const user = userEvent.setup()
-      render(<OverflowMenu {...defaultProps} open={true} onEdit={mockOnEdit} />)
-
-      await user.click(screen.getByText('Edit Project Info…'))
-
-      expect(mockOnEdit).toHaveBeenCalledWith('card-1')
-    })
-
     it('should call onMoveToMaintenance when clicked', async () => {
       const user = userEvent.setup()
       render(
@@ -395,7 +379,6 @@ describe('OverflowMenu', () => {
         <OverflowMenu
           {...defaultProps}
           open={true}
-          onEdit={mockOnEdit}
           context="board"
           onMoveToMaintenance={mockOnMoveToMaintenance}
           onRemove={mockOnRemove}
@@ -407,7 +390,6 @@ describe('OverflowMenu', () => {
       ).toBeInTheDocument()
       expect(screen.getByTestId('overflow-menu')).toBeInTheDocument()
       expect(screen.getByTestId('open-github-card-1')).toBeInTheDocument()
-      expect(screen.getByTestId('edit-project-card-1')).toBeInTheDocument()
       expect(
         screen.getByTestId('move-to-maintenance-card-1'),
       ).toBeInTheDocument()
@@ -431,27 +413,19 @@ describe('OverflowMenu', () => {
 
   describe('Separator Logic', () => {
     it('should render separator between URL items and actions', () => {
-      render(<OverflowMenu {...defaultProps} open={true} onEdit={mockOnEdit} />)
+      render(
+        <OverflowMenu
+          {...defaultProps}
+          open={true}
+          context="board"
+          onMoveToMaintenance={mockOnMoveToMaintenance}
+        />,
+      )
 
       // Separator should be present (rendered as hr or role separator)
       const menu = screen.getByTestId('overflow-menu')
       const separators = menu.querySelectorAll('[role="separator"]')
       expect(separators.length).toBeGreaterThan(0)
-    })
-
-    it('should not render separator when no URL items', () => {
-      render(
-        <OverflowMenu
-          {...defaultProps}
-          open={true}
-          repoOwner={undefined}
-          repoName={undefined}
-          onEdit={mockOnEdit}
-        />,
-      )
-
-      // Should still render edit item without separator before it
-      expect(screen.getByText('Edit Project Info…')).toBeInTheDocument()
     })
   })
 })

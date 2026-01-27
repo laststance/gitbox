@@ -6,7 +6,6 @@ import {
   ExternalLink,
   BarChart2,
   Database,
-  Edit,
   Archive,
   RotateCcw,
   Trash2,
@@ -38,7 +37,6 @@ interface OverflowMenuProps {
   productionUrl?: string
   trackingUrl?: string
   supabaseUrl?: string
-  onEdit?: (id: string) => void
   onMoveToMaintenance?: (id: string) => void
   onRestoreToBoard?: (id: string) => void
   /** Callback when repository is removed from board */
@@ -58,10 +56,11 @@ interface OverflowMenuProps {
  * - Open Production URL
  * - Open Tracking dashboard
  * - Open Supabase dashboard
- * - Edit Project Info
  * - Move to Maintenance (Board only)
  * - Remove from Board (Board only) - Permanently deletes the card
  * - Restore to Board (Maintenance only)
+ *
+ * Note: "Edit Project Info" was consolidated into NoteModal (Issue #37)
  */
 export const OverflowMenu = memo<OverflowMenuProps>(
   ({
@@ -71,7 +70,6 @@ export const OverflowMenu = memo<OverflowMenuProps>(
     productionUrl,
     trackingUrl,
     supabaseUrl,
-    onEdit,
     onMoveToMaintenance,
     onRestoreToBoard,
     onRemove,
@@ -164,21 +162,9 @@ export const OverflowMenu = memo<OverflowMenuProps>(
 
             {/* Separator before actions */}
             {(githubUrl || productionUrl || trackingUrl || supabaseUrl) &&
-              (onEdit ||
-                onMoveToMaintenance ||
-                onRestoreToBoard ||
-                onRemove) && <DropdownMenuSeparator />}
-
-            {/* Edit Project Info */}
-            {onEdit && (
-              <DropdownMenuItem
-                onClick={() => onEdit(cardId)}
-                data-testid={`edit-project-${cardId}`}
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Project Info…
-              </DropdownMenuItem>
-            )}
+              (onMoveToMaintenance || onRestoreToBoard || onRemove) && (
+                <DropdownMenuSeparator />
+              )}
 
             {/* Move to Maintenance (Board context only) */}
             {context === 'board' && onMoveToMaintenance && (

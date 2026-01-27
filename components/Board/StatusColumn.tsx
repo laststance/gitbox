@@ -34,9 +34,8 @@ interface StatusColumnProps {
   comments?: Record<string, CommentData>
   /** Card display settings from board.settings */
   cardDisplaySettings?: CardDisplaySettings
-  onEdit?: (id: string) => void
   onMaintenance?: (id: string) => void
-  /** Callback when Note button is clicked */
+  /** Callback when Note button is clicked (opens unified NoteModal) */
   onNote?: (id: string) => void
   /** Callback when repository is removed from board */
   onRemove?: (id: string) => void
@@ -70,7 +69,6 @@ export const StatusColumn = memo<StatusColumnProps>(
     cards,
     comments,
     cardDisplaySettings,
-    onEdit,
     onMaintenance,
     onNote,
     onRemove,
@@ -169,7 +167,6 @@ export const StatusColumn = memo<StatusColumnProps>(
                     commentData={comments?.[card.id]}
                     showComment={cardDisplaySettings?.showComment}
                     commentText={cardDisplaySettings?.commentText}
-                    onEdit={onEdit}
                     onMaintenance={onMaintenance}
                     onNote={onNote}
                     onRemove={onRemove}

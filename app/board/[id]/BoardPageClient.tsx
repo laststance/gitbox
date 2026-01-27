@@ -25,7 +25,6 @@ import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox'
 import { KanbanBoard } from '@/components/Board/KanbanBoard'
 import { BoardSettingsDialog } from '@/components/Boards/BoardSettingsDialog'
 import { NoteModal } from '@/components/Modals/NoteModal'
-import { ProjectInfoModal } from '@/components/Modals/ProjectInfoModal'
 import { StatusListDialog } from '@/components/Modals/StatusListDialog'
 import {
   AlertDialog,
@@ -39,7 +38,6 @@ import {
 import { Button } from '@/components/ui/button'
 import {
   useBoardSettings,
-  useProjectInfoModal,
   useStatusListDialog,
   useNoteModal,
   useAddRepositoryCombobox,
@@ -100,9 +98,6 @@ export const BoardPageClient = memo(function BoardPageClient({
     boardName,
     boardSettings: board.settings,
   })
-
-  // Project Info Modal (4 states extracted)
-  const projectInfoModal = useProjectInfoModal()
 
   // StatusList Dialog (5 states extracted: 3 original + 2 delete confirmation)
   const statusListDialog = useStatusListDialog({ boardId })
@@ -343,7 +338,6 @@ export const BoardPageClient = memo(function BoardPageClient({
             boardId={boardId}
             initialComments={initialData.comments}
             cardDisplaySettings={boardSettings.cardDisplaySettings}
-            onEditProjectInfo={projectInfoModal.openModal}
             onMoveToMaintenance={handleMoveToMaintenance}
             onNote={noteModal.open}
             onRemove={handleRemoveFromBoard}
@@ -354,16 +348,6 @@ export const BoardPageClient = memo(function BoardPageClient({
         </div>
       </main>
 
-      {/* Project Info Modal */}
-      {projectInfoModal.projectInfo && (
-        <ProjectInfoModal
-          isOpen={projectInfoModal.isOpen}
-          onClose={projectInfoModal.closeModal}
-          onSave={projectInfoModal.saveProjectInfo}
-          projectInfo={projectInfoModal.projectInfo}
-        />
-      )}
-
       {/* StatusList Dialog */}
       <StatusListDialog
         isOpen={statusListDialog.isOpen}
@@ -373,7 +357,7 @@ export const BoardPageClient = memo(function BoardPageClient({
         mode={statusListDialog.mode}
       />
 
-      {/* NoteModal */}
+      {/* NoteModal - Unified modal for notes + links (Issue #37) */}
       {noteModal.cardId && (
         <NoteModal
           isOpen={noteModal.isOpen}
@@ -381,6 +365,7 @@ export const BoardPageClient = memo(function BoardPageClient({
           onSave={noteModal.save}
           cardId={noteModal.cardId}
           initialNote={noteModal.initialNote}
+          initialLinks={noteModal.initialLinks}
           cardTitle={noteModal.cardTitle}
         />
       )}

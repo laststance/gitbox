@@ -149,7 +149,8 @@ test.describe('NoteModal (Authenticated)', () => {
 
     // Toast appears optimistically (immediately on save click) before dialog closes
     // Check for it first since it has 4000ms duration and may disappear during high load
-    const toastMessage = page.getByText(/note saved/i)
+    // After Issue #37, the toast message is "Project info saved"
+    const toastMessage = page.getByText(/project info saved/i)
     await expect(toastMessage).toBeVisible({ timeout: 5000 })
 
     // Dialog should close (primary assertion - this is what the test name describes)

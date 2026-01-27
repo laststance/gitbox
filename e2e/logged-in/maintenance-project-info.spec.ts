@@ -54,9 +54,7 @@ test.describe('Maintenance ProjectInfo (Authenticated)', () => {
     }
   })
 
-  test('should open ProjectInfoModal when clicking Note button', async ({
-    page,
-  }) => {
+  test('should open NoteModal when clicking Note button', async ({ page }) => {
     // Wait for page to load
     await expect(page.getByText('Maintenance Mode')).toBeVisible({
       timeout: 10000,
@@ -73,8 +71,8 @@ test.describe('Maintenance ProjectInfo (Authenticated)', () => {
       const dialog = page.getByRole('dialog')
       await expect(dialog).toBeVisible({ timeout: 5000 })
 
-      // Should have Project Info title
-      const title = dialog.getByText(/project info/i)
+      // Should have Project Note title (after Issue #37 consolidation)
+      const title = dialog.getByText(/project note/i)
       await expect(title).toBeVisible()
 
       // Should have Note editor
@@ -164,10 +162,10 @@ test.describe('Maintenance ProjectInfo (Authenticated)', () => {
       const dialog = page.getByRole('dialog')
       await expect(dialog).toBeVisible({ timeout: 5000 })
 
-      // Character counter should be visible (format: X / 20000)
+      // Character counter should be visible (format: X / 20,000 with comma formatting)
       const charCounter = dialog.getByTestId('char-count')
       await expect(charCounter).toBeVisible()
-      await expect(charCounter).toContainText('/ 20000')
+      await expect(charCounter).toContainText('/ 20,000')
     }
   })
 })

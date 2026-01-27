@@ -74,15 +74,16 @@ describe('useNoteModal', () => {
       expect(result.current.cardId).toBeNull()
       expect(result.current.cardTitle).toBe('')
       expect(result.current.initialNote).toBe('')
+      expect(result.current.initialLinks).toEqual([])
     })
   })
 
   describe('open()', () => {
-    it('should open modal and fetch note for card', async () => {
+    it('should open modal and fetch note and links for card', async () => {
       mockGetProjectInfo.mockResolvedValueOnce({
         note: 'Existing note content',
         comment: '',
-        links: [],
+        links: [{ url: 'https://vercel.app', type: 'vercel' }],
       })
 
       const { result } = renderHook(() =>
@@ -97,10 +98,13 @@ describe('useNoteModal', () => {
       expect(result.current.cardId).toBe('card-1')
       expect(result.current.cardTitle).toBe('test/repo-1')
       expect(result.current.initialNote).toBe('Existing note content')
+      expect(result.current.initialLinks).toEqual([
+        { url: 'https://vercel.app', type: 'vercel' },
+      ])
       expect(mockGetProjectInfo).toHaveBeenCalledWith('card-1')
     })
 
-    it('should set empty note when no project info exists', async () => {
+    it('should set empty note and links when no project info exists', async () => {
       mockGetProjectInfo.mockResolvedValueOnce(null)
 
       const { result } = renderHook(() =>
@@ -113,6 +117,7 @@ describe('useNoteModal', () => {
 
       expect(result.current.isOpen).toBe(true)
       expect(result.current.initialNote).toBe('')
+      expect(result.current.initialLinks).toEqual([])
     })
 
     it('should handle fetch error gracefully', async () => {
@@ -130,7 +135,7 @@ describe('useNoteModal', () => {
       expect(result.current.isOpen).toBe(true)
       expect(result.current.initialNote).toBe('')
       expect(Sentry.captureException).toHaveBeenCalledWith(error, {
-        tags: { action: 'loadNote' },
+        tags: { action: 'loadProjectInfo' },
       })
     })
 
@@ -176,11 +181,12 @@ describe('useNoteModal', () => {
       expect(result.current.cardId).toBeNull()
       expect(result.current.cardTitle).toBe('')
       expect(result.current.initialNote).toBe('')
+      expect(result.current.initialLinks).toEqual([])
     })
   })
 
   describe('save()', () => {
-    it('should save note to server', async () => {
+    it('should save note and links to server', async () => {
       mockGetProjectInfo.mockResolvedValueOnce({
         note: 'Old note',
         comment: '',
@@ -197,15 +203,16 @@ describe('useNoteModal', () => {
         await result.current.open('card-1')
       })
 
-      // Save note
+      // Save note with links
+      const newLinks = [{ url: 'https://vercel.app', type: 'vercel' }]
       await act(async () => {
-        await result.current.save('New note content')
+        await result.current.save('New note content', newLinks)
       })
 
       expect(mockUpsertProjectInfo).toHaveBeenCalledWith('card-1', {
         note: 'New note content',
         comment: '',
-        links: [],
+        links: newLinks,
       })
     })
 
@@ -215,7 +222,7 @@ describe('useNoteModal', () => {
       )
 
       await act(async () => {
-        await result.current.save('Some note')
+        await result.current.save('Some note', [])
       })
 
       expect(mockUpsertProjectInfo).not.toHaveBeenCalled()
