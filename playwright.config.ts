@@ -46,65 +46,129 @@ export default defineConfig({
   failOnFlakyTests: false,
 
   /**
-   * Reporters: list + monocart for coverage
+   * Reporters:
+   * - CI: blob (for shard merging) + monocart (for coverage)
+   * - Local: list + monocart (for coverage)
+   *
+   * NOTE: blob reporter is required for CI sharding. It generates
+   * `blob-report/` directory with test results that are merged by
+   * `playwright merge-reports` in the merge-reports job.
    */
-  reporter: [
-    ['list'],
-    [
-      'monocart-reporter',
-      {
-        name: 'GitBox E2E Coverage Report',
-        outputFile: './coverage-e2e/index.html',
-        coverage: {
-          reports: [
-            ['v8'],
-            ['html', { subdir: 'istanbul' }],
-            ['lcovonly', { file: 'lcov.info' }],
-            ['text-summary'],
-            ['json-summary', { file: 'coverage-summary.json' }],
-          ],
-          entryFilter: {
-            '**/node_modules/**': false,
-            '**/_next/static/chunks/webpack*': false,
-            '**/_next/static/chunks/polyfills*': false,
-            '**/_next/static/**': true,
+  reporter: process.env.CI
+    ? [
+        ['blob'],
+        [
+          'monocart-reporter',
+          {
+            name: 'GitBox E2E Coverage Report',
+            outputFile: './coverage-e2e/index.html',
+            coverage: {
+              reports: [
+                ['v8'],
+                ['html', { subdir: 'istanbul' }],
+                ['lcovonly', { file: 'lcov.info' }],
+                ['text-summary'],
+                ['json-summary', { file: 'coverage-summary.json' }],
+              ],
+              entryFilter: {
+                '**/node_modules/**': false,
+                '**/_next/static/chunks/webpack*': false,
+                '**/_next/static/chunks/polyfills*': false,
+                '**/_next/static/**': true,
+              },
+              sourceFilter: {
+                // Exclude: Server-side only code (E2E cannot trigger)
+                '**/lib/actions/**': false,
+                '**/lib/supabase/**': false,
+                '**/app/auth/callback/**': false,
+                '**/instrumentation*.ts': false,
+                '**/sentry.*.config.ts': false,
+                // Exclude: Test/dev infrastructure
+                '**/tests/**': false,
+                '**/mocks/**': false,
+                '**/*.spec.ts': false,
+                '**/*.test.ts': false,
+                '**/*.test.tsx': false,
+                '**/*.stories.tsx': false,
+                '**/.storybook/**': false,
+                // Exclude: Config & build
+                '**/*.config.ts': false,
+                '**/*.config.js': false,
+                '**/*.config.mjs': false,
+                '**/node_modules/**': false,
+                '**/.next/**': false,
+                // Include: Client code
+                '**/app/**': true,
+                '**/components/**': true,
+                '**/lib/**': true,
+                '**/packages/**': true,
+              },
+              sourcePath: (filePath: string) => {
+                return filePath
+                  .replace(/^webpack:\/\/gitbox\//, '')
+                  .replace(/^\.\//g, '')
+              },
+            },
           },
-          sourceFilter: {
-            // Exclude: Server-side only code (E2E cannot trigger)
-            '**/lib/actions/**': false,
-            '**/lib/supabase/**': false,
-            '**/app/auth/callback/**': false,
-            '**/instrumentation*.ts': false,
-            '**/sentry.*.config.ts': false,
-            // Exclude: Test/dev infrastructure
-            '**/tests/**': false,
-            '**/mocks/**': false,
-            '**/*.spec.ts': false,
-            '**/*.test.ts': false,
-            '**/*.test.tsx': false,
-            '**/*.stories.tsx': false,
-            '**/.storybook/**': false,
-            // Exclude: Config & build
-            '**/*.config.ts': false,
-            '**/*.config.js': false,
-            '**/*.config.mjs': false,
-            '**/node_modules/**': false,
-            '**/.next/**': false,
-            // Include: Client code
-            '**/app/**': true,
-            '**/components/**': true,
-            '**/lib/**': true,
-            '**/packages/**': true,
+        ],
+      ]
+    : [
+        ['list'],
+        [
+          'monocart-reporter',
+          {
+            name: 'GitBox E2E Coverage Report',
+            outputFile: './coverage-e2e/index.html',
+            coverage: {
+              reports: [
+                ['v8'],
+                ['html', { subdir: 'istanbul' }],
+                ['lcovonly', { file: 'lcov.info' }],
+                ['text-summary'],
+                ['json-summary', { file: 'coverage-summary.json' }],
+              ],
+              entryFilter: {
+                '**/node_modules/**': false,
+                '**/_next/static/chunks/webpack*': false,
+                '**/_next/static/chunks/polyfills*': false,
+                '**/_next/static/**': true,
+              },
+              sourceFilter: {
+                // Exclude: Server-side only code (E2E cannot trigger)
+                '**/lib/actions/**': false,
+                '**/lib/supabase/**': false,
+                '**/app/auth/callback/**': false,
+                '**/instrumentation*.ts': false,
+                '**/sentry.*.config.ts': false,
+                // Exclude: Test/dev infrastructure
+                '**/tests/**': false,
+                '**/mocks/**': false,
+                '**/*.spec.ts': false,
+                '**/*.test.ts': false,
+                '**/*.test.tsx': false,
+                '**/*.stories.tsx': false,
+                '**/.storybook/**': false,
+                // Exclude: Config & build
+                '**/*.config.ts': false,
+                '**/*.config.js': false,
+                '**/*.config.mjs': false,
+                '**/node_modules/**': false,
+                '**/.next/**': false,
+                // Include: Client code
+                '**/app/**': true,
+                '**/components/**': true,
+                '**/lib/**': true,
+                '**/packages/**': true,
+              },
+              sourcePath: (filePath: string) => {
+                return filePath
+                  .replace(/^webpack:\/\/gitbox\//, '')
+                  .replace(/^\.\//g, '')
+              },
+            },
           },
-          sourcePath: (filePath: string) => {
-            return filePath
-              .replace(/^webpack:\/\/gitbox\//, '')
-              .replace(/^\.\//g, '')
-          },
-        },
-      },
-    ],
-  ],
+        ],
+      ],
 
   timeout: 60000,
 
