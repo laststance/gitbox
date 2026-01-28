@@ -87,7 +87,7 @@ export const metadata: Metadata = {
 // Uses require() to avoid bundling issues with Next.js SSR
 if (process.env.NEXT_RUNTIME === 'nodejs' && isMSWEnabled()) {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { server } = require('../mocks/server')
+  const { server } = require('../../mocks/server')
   server.listen({ onUnhandledRequest: 'bypass' })
 }
 

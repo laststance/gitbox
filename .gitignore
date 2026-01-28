@@ -56,8 +56,8 @@ Thumbs.db
 
 # Supabase
 .supabase/
-supabase/.branches/
-supabase/.temp/
+src/supabase/.branches/
+src/supabase/.temp/
 
 # Storybook
 storybook-static/

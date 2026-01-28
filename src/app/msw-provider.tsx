@@ -45,7 +45,7 @@ function MSWProviderComponent({ children }: MSWProviderProps): React.ReactNode {
     }
 
     // Dynamically import browser worker to avoid bundling in production
-    import('../mocks/browser')
+    import('../../mocks/browser')
       .then(async ({ worker }) => {
         try {
           await worker.start({
