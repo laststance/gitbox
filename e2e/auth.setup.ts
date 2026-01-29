@@ -7,20 +7,21 @@ import { test as setup } from './fixtures/coverage'
 export const AUTH_FILE = 'e2e/.auth/user.json'
 
 /**
- * Supabase project reference (extracted from Supabase URL).
- * Used to construct the auth cookie name.
+ * Local Supabase project reference.
+ * For local development, Supabase uses "gitbox" as project_id (from config.toml).
+ * The cookie name format is: sb-{project-id}-auth-token
  */
-const SUPABASE_PROJECT_REF = 'jqtxjzdxczqwsrvevmyk'
+const SUPABASE_PROJECT_REF = 'gitbox'
 
 /**
- * Mock user data for test authentication.
- * Matches the structure expected by Supabase auth.
+ * Test user data matching seed.sql.
+ * Uses UUID format for local Supabase compatibility.
  */
 const MOCK_USER = {
-  id: 'test-user-id-12345',
-  email: 'test@example.com',
+  id: '00000000-0000-0000-0000-000000000001', // UUID from seed.sql
+  email: 'test@gitbox.dev',
   user_metadata: {
-    avatar_url: 'https://avatars.githubusercontent.com/u/12345',
+    avatar_url: 'https://avatars.githubusercontent.com/u/12345?v=4',
     full_name: 'Test User',
     preferred_username: 'testuser',
     user_name: 'testuser',
@@ -57,6 +58,8 @@ function createMockSupabaseSession(): string {
  * 2. GitHub provider token cookie (gh_token_{project-ref-prefix})
  *
  * The storage state is saved to AUTH_FILE for reuse by dependent test projects.
+ *
+ * NOTE: For local Supabase, the project ref is "gitbox" (from config.toml project_id).
  */
 setup('inject auth cookies', async ({ page }) => {
   // Use configured baseURL, with fallback for direct execution

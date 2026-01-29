@@ -28,6 +28,7 @@
     "e2e": "playwright test",
     "prepare": "husky",
     "prettier": "prettier --ignore-unknown --write .",
+    "db:reset": "cd src/supabase && supabase db reset --local",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "knip": "knip",
