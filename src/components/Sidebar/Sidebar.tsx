@@ -194,11 +194,14 @@ export const Sidebar = memo(function Sidebar({
   }
 
   // Determine sidebar width class
-  const sidebarWidth = isCollapsed ? 'w-16' : 'w-64'
+  // SSR: Always render expanded (w-64) for stable hydration
+  // Client: Use persisted collapsed state from Redux/localStorage
+  const sidebarWidth = mounted && isCollapsed ? 'w-16' : 'w-64'
 
   return (
     <TooltipProvider>
       <aside
+        suppressHydrationWarning
         className={cn(
           'flex h-screen flex-col border-r border-border bg-sidebar text-sidebar-foreground',
           'transition-[width] duration-300 ease-out',
@@ -207,23 +210,24 @@ export const Sidebar = memo(function Sidebar({
       >
         {/* Logo + Toggle */}
         <div
+          suppressHydrationWarning
           className={cn(
             'flex items-center border-b border-sidebar-border px-2 py-4',
-            isCollapsed ? 'justify-center' : 'justify-between',
+            mounted && isCollapsed ? 'justify-center' : 'justify-between',
           )}
         >
           <div
             className={cn(
               'flex items-center gap-2',
-              isCollapsed && 'justify-center',
+              mounted && isCollapsed && 'justify-center',
             )}
           >
             <Github className="h-6 w-6 flex-shrink-0 text-sidebar-primary" />
-            {!isCollapsed && (
+            {(!mounted || !isCollapsed) && (
               <span className="text-lg font-semibold">GitBox</span>
             )}
           </div>
-          {!isCollapsed && mounted && (
+          {mounted && !isCollapsed && (
             <SidebarToggleButton isCollapsed={isCollapsed} onToggle={toggle} />
           )}
         </div>
@@ -237,13 +241,15 @@ export const Sidebar = memo(function Sidebar({
 
         {/* Navigation */}
         <nav
+          suppressHydrationWarning
           className={cn(
             'flex-1 overflow-y-auto py-4',
-            isCollapsed ? 'px-2' : 'px-3',
+            mounted && isCollapsed ? 'px-2' : 'px-3',
           )}
         >
           {/* Boards Section - collapsible header only when expanded */}
-          {!isCollapsed && (
+          {/* SSR: Always render expanded content for stable hydration */}
+          {(!mounted || !isCollapsed) && (
             <div className="mb-4">
               <button
                 type="button"
@@ -265,14 +271,14 @@ export const Sidebar = memo(function Sidebar({
                     icon={<LayoutDashboard className="h-4 w-4" />}
                     label="All Boards"
                     isActive={pathname === '/boards'}
-                    isCollapsed={isCollapsed}
+                    isCollapsed={mounted && isCollapsed}
                   />
                   <NavItem
                     href="/boards/favorites"
                     icon={<Star className="h-4 w-4" />}
                     label="Favorites"
                     isActive={pathname === '/boards/favorites'}
-                    isCollapsed={isCollapsed}
+                    isCollapsed={mounted && isCollapsed}
                   />
                 </div>
               )}
@@ -280,21 +286,22 @@ export const Sidebar = memo(function Sidebar({
           )}
 
           {/* Boards Section - flat icons when collapsed */}
-          {isCollapsed && (
+          {/* Only render collapsed content after hydration completes */}
+          {mounted && isCollapsed && (
             <div className="mb-4 space-y-1">
               <NavItem
                 href="/boards"
                 icon={<LayoutDashboard className="h-4 w-4" />}
                 label="All Boards"
                 isActive={pathname === '/boards'}
-                isCollapsed={isCollapsed}
+                isCollapsed={mounted && isCollapsed}
               />
               <NavItem
                 href="/boards/favorites"
                 icon={<Star className="h-4 w-4" />}
                 label="Favorites"
                 isActive={pathname === '/boards/favorites'}
-                isCollapsed={isCollapsed}
+                isCollapsed={mounted && isCollapsed}
               />
             </div>
           )}
@@ -311,7 +318,7 @@ export const Sidebar = memo(function Sidebar({
               pathname === '/maintenance' ||
               pathname.startsWith('/maintenance/')
             }
-            isCollapsed={isCollapsed}
+            isCollapsed={mounted && isCollapsed}
           />
 
           {/* Divider */}
@@ -323,7 +330,7 @@ export const Sidebar = memo(function Sidebar({
             icon={<Settings className="h-4 w-4" />}
             label="Settings"
             isActive={pathname === '/settings'}
-            isCollapsed={isCollapsed}
+            isCollapsed={mounted && isCollapsed}
           />
 
           {/* Shortcuts - button that opens ShortcutsHelp modal */}
@@ -331,22 +338,23 @@ export const Sidebar = memo(function Sidebar({
             icon={<Keyboard className="h-4 w-4" />}
             label="Shortcuts"
             onClick={openShortcutsHelp}
-            isCollapsed={isCollapsed}
+            isCollapsed={mounted && isCollapsed}
           />
 
           {/* Theme Toggle */}
-          <ThemeToggle isCollapsed={isCollapsed} />
+          <ThemeToggle isCollapsed={mounted && isCollapsed} />
         </nav>
 
         {/* Profile & Sign out */}
         <div
+          suppressHydrationWarning
           className={cn(
             'border-t border-sidebar-border py-4',
-            isCollapsed ? 'px-2' : 'px-3',
+            mounted && isCollapsed ? 'px-2' : 'px-3',
           )}
         >
           {/* Profile Link */}
-          {isCollapsed ? (
+          {mounted && isCollapsed ? (
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
                 <Link
@@ -395,7 +403,7 @@ export const Sidebar = memo(function Sidebar({
           )}
 
           {/* Sign Out Button */}
-          {isCollapsed ? (
+          {mounted && isCollapsed ? (
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
                 <Button
