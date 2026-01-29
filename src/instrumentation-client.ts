@@ -9,19 +9,30 @@ const DISABLED_HOSTNAMES = ['localhost', '127.0.0.1'] as const
 
 /**
  * Determines if Sentry should be enabled on the client.
- * Only enables in production environment, NOT in:
+ * Only enables in Vercel production environment, NOT in:
+ * - Vercel preview/development deployments
  * - localhost development
  * - 127.0.0.1 (local IP)
+ * - Local network addresses (192.168.x.x, 10.x.x.x)
  *
  * @returns {boolean} Whether Sentry should be enabled
  *
  * @example
  * // On localhost:3008 -> false
- * // On gitbox-laststance.vercel.app -> true
+ * // On Vercel preview deployment -> false
+ * // On gitbox-laststance.vercel.app (production) -> true
  */
 const isSentryEnabled = (): boolean => {
+  // Server-side rendering check
   if (typeof window === 'undefined') {
     return false
+  }
+
+  // Check Vercel environment first (most reliable)
+  // NEXT_PUBLIC_VERCEL_ENV is automatically set by Vercel: 'production' | 'preview' | 'development'
+  const vercelEnv = process.env.NEXT_PUBLIC_VERCEL_ENV
+  if (vercelEnv) {
+    return vercelEnv === 'production'
   }
 
   const hostname = window.location.hostname
@@ -38,6 +49,7 @@ const isSentryEnabled = (): boolean => {
     return false
   }
 
+  // Fallback: only enable for production-like domains
   return true
 }
 
