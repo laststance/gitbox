@@ -7,19 +7,15 @@
 
 'use client'
 
-import { useCallback, useSyncExternalStore } from 'react'
+import { useCallback } from 'react'
 
+import { useMounted } from '@/hooks/use-mounted'
 import {
   selectSidebarCollapsed,
   setSidebarCollapsed as setSidebarCollapsedAction,
   toggleSidebarCollapsed as toggleSidebarCollapsedAction,
 } from '@/lib/redux/slices/settingsSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
-
-// Helper to detect if we're in a browser environment
-const getSnapshot = () => true
-const getServerSnapshot = () => false
-const subscribe = () => () => {}
 
 /**
  * Sidebar management hook using Redux
@@ -31,11 +27,7 @@ const subscribe = () => () => {}
  * // toggle() - toggles sidebar state
  */
 export function useSidebar() {
-  const isClient = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    getServerSnapshot,
-  )
+  const mounted = useMounted()
 
   const dispatch = useAppDispatch()
   const isCollapsed = useAppSelector(selectSidebarCollapsed)
@@ -55,6 +47,6 @@ export function useSidebar() {
     isCollapsed,
     setCollapsed,
     toggle,
-    mounted: isClient,
+    mounted,
   }
 }

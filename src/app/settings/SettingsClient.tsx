@@ -21,13 +21,13 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
+import { useTheme } from '@/hooks/use-theme'
 import {
   type ThemeType,
   LIGHT_THEMES,
   DARK_THEMES,
   THEME_INFO,
 } from '@/lib/constants/themes'
-import { useTheme } from '@/lib/hooks/use-theme'
 import {
   selectCompactMode,
   selectShowCardMetadata,

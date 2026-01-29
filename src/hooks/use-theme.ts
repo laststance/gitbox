@@ -8,8 +8,9 @@
 
 'use client'
 
-import { useCallback, useEffect, useSyncExternalStore } from 'react'
+import { useCallback, useEffect } from 'react'
 
+import { useMounted } from '@/hooks/use-mounted'
 import {
   type ThemeType,
   ALL_THEMES,
@@ -27,11 +28,6 @@ import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 export type { ThemeType }
 export { ALL_THEMES, LIGHT_THEMES, DARK_THEMES, isDarkTheme }
 
-// Helper to detect if we're in a browser environment
-const getSnapshot = () => true
-const getServerSnapshot = () => false
-const subscribe = () => () => {}
-
 /**
  * Theme management hook using Redux
  * @returns Theme state and setter with DOM application
@@ -41,18 +37,14 @@ const subscribe = () => () => {}
  * // setTheme('midnight') - changes theme and persists via Redux Storage Middleware
  */
 export function useTheme() {
-  const isClient = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    getServerSnapshot,
-  )
+  const mounted = useMounted()
 
   const dispatch = useAppDispatch()
   const theme = useAppSelector(selectTheme)
 
   // Apply theme to document
   useEffect(() => {
-    if (!isClient) return
+    if (!mounted) return
 
     const root = document.documentElement
 
@@ -80,7 +72,7 @@ export function useTheme() {
         root.classList.remove('dark')
       }
     }
-  }, [theme, isClient])
+  }, [theme, mounted])
 
   const setTheme = useCallback(
     (newTheme: ThemeType) => {
@@ -93,6 +85,6 @@ export function useTheme() {
     theme,
     setTheme,
     isDark: isDarkTheme(theme),
-    mounted: isClient,
+    mounted,
   }
 }

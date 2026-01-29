@@ -14,8 +14,8 @@ import React from 'react'
 import { Provider } from 'react-redux'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
+import { useSidebar } from '@/hooks/use-sidebar'
 import type { ThemeType } from '@/lib/constants/themes'
-import { useSidebar } from '@/lib/hooks/use-sidebar'
 import settingsSlice from '@/lib/redux/slices/settingsSlice'
 
 /**

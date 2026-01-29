@@ -14,8 +14,8 @@ import React from 'react'
 import { Provider } from 'react-redux'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
+import { useTheme } from '@/hooks/use-theme'
 import type { ThemeType } from '@/lib/constants/themes'
-import { useTheme } from '@/lib/hooks/use-theme'
 import settingsSlice from '@/lib/redux/slices/settingsSlice'
 
 /**

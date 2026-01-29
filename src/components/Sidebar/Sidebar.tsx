@@ -27,9 +27,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useSidebar } from '@/hooks/use-sidebar'
 import { signOut } from '@/lib/actions/auth'
 import { openShortcutsHelp } from '@/lib/events'
-import { useSidebar } from '@/lib/hooks/use-sidebar'
 import { cn } from '@/lib/utils'
 
 /** Base styles for navigation item */

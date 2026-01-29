@@ -10,7 +10,7 @@
 
 import { memo } from 'react'
 
-import { useTheme } from '@/lib/hooks/use-theme'
+import { useTheme } from '@/hooks/use-theme'
 
 /**
  * Renders nothing but applies theme to document via useTheme hook.

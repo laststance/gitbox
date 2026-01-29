@@ -28,6 +28,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useTheme } from '@/hooks/use-theme'
 import {
   type ThemeType,
   LIGHT_THEME_IDS,
@@ -35,7 +36,6 @@ import {
   THEME_INFO,
   isDarkTheme,
 } from '@/lib/constants/themes'
-import { useTheme } from '@/lib/hooks/use-theme'
 import { cn } from '@/lib/utils'
 
 interface ThemeToggleProps {
