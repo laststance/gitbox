@@ -218,6 +218,7 @@ function createMockInitialData(
       },
     ],
     comments: {},
+    maintenanceRepoIdentifiers: [],
     ...overrides,
   }
 }

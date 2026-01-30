@@ -106,6 +106,16 @@ export async function addRepositoriesToBoard(
         [],
     )
 
+    // Also exclude repos in maintenance mode (defense-in-depth)
+    const { data: maintenanceRepos } = await supabase
+      .from('maintenance')
+      .select('repo_owner, repo_name')
+      .eq('user_id', user.id)
+
+    for (const m of maintenanceRepos || []) {
+      existingRepoKeys.add(`${m.repo_owner}/${m.repo_name}`)
+    }
+
     // Filter to only non-duplicate repositories
     const newRepos = repositories.filter((repo) => {
       const key = `${repo.owner.login}/${repo.name}`

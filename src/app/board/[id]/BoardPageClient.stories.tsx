@@ -85,6 +85,7 @@ const createMockInitialData = (): BoardInitialData => ({
   ],
   repoCards: [],
   comments: {},
+  maintenanceRepoIdentifiers: [],
 })
 
 export const Default: Story = {
@@ -171,6 +172,7 @@ export const EmptyBoard: Story = {
       statusLists: [],
       repoCards: [],
       comments: {},
+      maintenanceRepoIdentifiers: [],
     },
   },
 }
