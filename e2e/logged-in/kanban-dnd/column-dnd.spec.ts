@@ -1655,11 +1655,10 @@ test.describe('10.3 Column Drag & Drop', () => {
       }>('statuslist', { id: statusId })
       expect(statusAfter).not.toBeNull()
 
-      // If drag was successful, grid_row should change to 2 (new row)
-      if (statusAfter?.grid_row !== initialRow) {
-        expect(statusAfter?.grid_row).toBe(2)
-        expect(statusAfter?.grid_col).toBe(1) // First column in new row
-      }
+      // Assert grid position changed (fail fast if drag didn't work)
+      expect(statusAfter?.grid_row).not.toBe(initialRow)
+      expect(statusAfter?.grid_row).toBe(2)
+      expect(statusAfter?.grid_col).toBe(1) // First column in new row
     })
   })
 })

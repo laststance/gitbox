@@ -330,10 +330,9 @@ test.describe('10.2 Card Drag & Drop', () => {
       })
       expect(cardAfter).not.toBeNull()
 
-      // If drag was successful, status_id should be updated
-      if (cardAfter?.status_id !== initialStatusId) {
-        expect(cardAfter?.status_id).toBe(STATUS_IDS.productionRelease)
-      }
+      // Assert status_id changed (fail fast if drag didn't work)
+      expect(cardAfter?.status_id).not.toBe(initialStatusId)
+      expect(cardAfter?.status_id).toBe(STATUS_IDS.productionRelease)
     })
   })
 })
