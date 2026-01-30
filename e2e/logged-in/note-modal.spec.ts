@@ -13,6 +13,7 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import { querySingle, PROJECT_INFO_IDS } from '../helpers/db-query'
 
 test.describe('NoteModal (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
@@ -158,6 +159,49 @@ test.describe('NoteModal (Authenticated)', () => {
 
     // Wait for network to settle after save action completes in background
     await page.waitForLoadState('networkidle')
+  })
+
+  // TODO: Re-enable when real Supabase auth is implemented
+  // Currently skipped because mock auth tokens don't work with supabase.auth.getUser()
+  // See: gap_2026-01-29_e2e_crud_verification_auth in Serena memories
+  test.skip('should verify note is persisted in database after save', async ({
+    page,
+  }) => {
+    // card-1 uses projinfo1 for its project info
+    const projectInfoId = PROJECT_INFO_IDS.projinfo1
+
+    // Open NoteModal for card-1
+    const card = page.locator('[data-testid="repo-card-card-1"]')
+    await expect(card).toBeVisible({ timeout: 10000 })
+    const noteButton = card.getByRole('button', { name: 'Open note' })
+    await noteButton.click()
+
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible({ timeout: 5000 })
+
+    // Clear existing content and type new note
+    const editorContent = dialog.locator('[data-slate-editor="true"]')
+    await editorContent.click()
+    await page.keyboard.press('Meta+a')
+    await page.keyboard.press('Backspace')
+
+    const uniqueNote = `DB verified note ${Date.now()}`
+    await page.keyboard.type(uniqueNote)
+
+    // Save the note
+    const saveButton = dialog.getByRole('button', { name: /save/i })
+    await saveButton.click()
+
+    // Wait for server action to complete
+    await page.waitForTimeout(1500)
+
+    // Verify note is persisted in database
+    const projectInfo = await querySingle<{ note: string }>('projectinfo', {
+      id: projectInfoId,
+    })
+    expect(projectInfo).not.toBeNull()
+    // Note content includes the text we typed (Plate stores as rich text JSON)
+    expect(projectInfo?.note).toContain(uniqueNote)
   })
 
   test('should trigger slash command menu on "/" key', async ({ page }) => {

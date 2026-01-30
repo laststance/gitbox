@@ -19,16 +19,12 @@ import {
   cdpCardToColumnDragAndDrop,
   cdpCardDragAndDrop,
 } from '../../helpers/cdp-drag'
+import { querySingle, CARD_IDS, STATUS_IDS } from '../../helpers/db-query'
 
 const BOARD_URL = '/board/board-1'
 
 test.describe('10.2 Card Drag & Drop', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
-
-  test.beforeEach(async ({ request }) => {
-    // Reset MSW mock data for test isolation
-    await request.post('/__msw__/reset')
-  })
 
   /**
    * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -291,6 +287,52 @@ test.describe('10.2 Card Drag & Drop', () => {
       // Verify card is now in Production Release column
       expect(newInfo?.statusId).toBe('status-5')
       expect(newInfo?.columnTitle).toBe('Production Release')
+    })
+
+    /**
+     * Verify card status_id is persisted in database after cross-column move.
+     * This ensures the server action `updateRepoCardPosition()` saved to DB.
+     *
+     * TODO: Re-enable when real Supabase auth is implemented
+     * Currently skipped because mock auth tokens don't work with supabase.auth.getUser()
+     * See: gap_2026-01-29_e2e_crud_verification_auth in Serena memories
+     */
+    test.skip('should verify card status_id is persisted in database after move @slow', async ({
+      page,
+    }) => {
+      // Use card-4 for this test to avoid conflicts with other tests
+      const cardId = CARD_IDS.card4
+
+      // Verify initial state in database
+      const cardBefore = await querySingle<{ status_id: string }>('repocard', {
+        id: cardId,
+      })
+      expect(cardBefore).not.toBeNull()
+      const initialStatusId = cardBefore?.status_id
+
+      await page.goto(BOARD_URL)
+      await page.waitForLoadState('networkidle')
+      await page.waitForTimeout(800)
+
+      // Move card-4 to a different column (Production Release)
+      await cdpCardToColumnDragAndDrop(page, 'card-4', 'status-5', {
+        steps: 20,
+        stepDelay: 40,
+        dropDelay: 300,
+      })
+
+      // Wait for server action to complete
+      await page.waitForTimeout(1500)
+
+      // Verify card status_id is updated in database
+      const cardAfter = await querySingle<{ status_id: string }>('repocard', {
+        id: cardId,
+      })
+      expect(cardAfter).not.toBeNull()
+
+      // Assert status_id changed (fail fast if drag didn't work)
+      expect(cardAfter?.status_id).not.toBe(initialStatusId)
+      expect(cardAfter?.status_id).toBe(STATUS_IDS.productionRelease)
     })
   })
 })

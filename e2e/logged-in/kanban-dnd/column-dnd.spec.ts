@@ -22,6 +22,7 @@ import {
   cdpColumnToNewRowDragAndDrop,
   cdpColumnToInsertZone,
 } from '../../helpers/cdp-drag'
+import { querySingle, STATUS_IDS } from '../../helpers/db-query'
 
 const BOARD_URL = '/board/board-1'
 
@@ -68,11 +69,6 @@ const getColumnTitles = async (
 
 test.describe('10.3 Column Drag & Drop', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
-
-  test.beforeEach(async ({ request }) => {
-    // Reset MSW mock data for test isolation
-    await request.post('/__msw__/reset')
-  })
 
   /**
    * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1604,6 +1600,65 @@ test.describe('10.3 Column Drag & Drop', () => {
 
       // Verify all 5 columns exist
       expect(Object.keys(finalPositions).length).toBe(5)
+    })
+  })
+
+  /**
+   * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   * Database Verification Tests
+   * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   *
+   * Verifies that column position changes are persisted in the database.
+   */
+  test.describe('Column Position Database Verification', () => {
+    /**
+     * Verify column grid_row and grid_col are persisted in database after move.
+     * Uses NewRowDropZone to create a multi-row layout.
+     *
+     * TODO: Re-enable when real Supabase auth is implemented
+     * Currently skipped because mock auth tokens don't work with supabase.auth.getUser()
+     * See: gap_2026-01-29_e2e_crud_verification_auth in Serena memories
+     */
+    test.skip('should verify column grid position is persisted in database @slow', async ({
+      page,
+    }) => {
+      // Use status-3 (Focus Development) for this test
+      const statusId = STATUS_IDS.focusDevelopment
+
+      // Get initial state from database
+      const statusBefore = await querySingle<{
+        grid_row: number
+        grid_col: number
+      }>('statuslist', { id: statusId })
+      expect(statusBefore).not.toBeNull()
+      const initialRow = statusBefore?.grid_row
+      const initialCol = statusBefore?.grid_col
+
+      await page.goto(BOARD_URL)
+      await page.waitForLoadState('networkidle')
+      await page.waitForTimeout(800)
+
+      // Move status-3 to a new row via NewRowDropZone
+      await cdpColumnToNewRowDragAndDrop(page, 'status-3', 1, {
+        steps: 30,
+        stepDelay: 40,
+        dropDelay: 350,
+      })
+
+      // Wait for server action to complete
+      await page.waitForTimeout(1500)
+
+      // Verify column position is updated in database
+      const statusAfter = await querySingle<{
+        grid_row: number
+        grid_col: number
+      }>('statuslist', { id: statusId })
+      expect(statusAfter).not.toBeNull()
+
+      // Assert grid position changed (fail fast if drag didn't work)
+      expect(statusAfter?.grid_row).not.toBe(initialRow)
+      expect(statusAfter?.grid_row).toBe(2)
+      expect(statusAfter?.grid_col).toBe(1) // First column in new row
     })
   })
 })

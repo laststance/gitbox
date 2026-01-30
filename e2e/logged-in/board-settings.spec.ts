@@ -16,6 +16,7 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import { querySingle, BOARD_IDS } from '../helpers/db-query'
 
 test.describe('Board Settings Dialog (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
@@ -294,6 +295,48 @@ test.describe('Board Settings Dialog (Authenticated)', () => {
       await expect(
         page.getByText(/Are you sure you want to delete/),
       ).not.toBeVisible({ timeout: 5000 })
+    })
+  })
+
+  // TODO: Re-enable when real Supabase auth is implemented
+  // Currently skipped because mock auth tokens don't work with supabase.auth.getUser()
+  // See: gap_2026-01-29_e2e_crud_verification_auth in Serena memories
+  test.describe('Database Verification', () => {
+    test.skip('should verify board name is persisted in database after rename', async ({
+      page,
+    }) => {
+      // Use testBoard for this test
+      const boardId = BOARD_IDS.testBoard
+
+      // Open dialog
+      const settingsButton = page.getByRole('button', {
+        name: /board settings/i,
+      })
+      await settingsButton.click()
+
+      const dialog = page.getByRole('dialog')
+      await expect(dialog).toBeVisible({ timeout: 10000 })
+
+      // Type a unique new name
+      const uniqueName = `Renamed Board ${Date.now()}`
+      const input = dialog.getByRole('textbox')
+      await input.fill(uniqueName)
+
+      // Click Rename button
+      const renameButton = dialog
+        .getByRole('button', { name: /rename/i })
+        .first()
+      await renameButton.click()
+
+      // Wait for server action to complete
+      await page.waitForTimeout(1500)
+
+      // Verify board name is updated in database
+      const board = await querySingle<{ name: string }>('board', {
+        id: boardId,
+      })
+      expect(board).not.toBeNull()
+      expect(board?.name).toBe(uniqueName)
     })
   })
 

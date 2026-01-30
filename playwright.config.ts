@@ -4,21 +4,39 @@ import { defineConfig, devices } from '@playwright/test'
  * Playwright E2E Test Configuration for GitBox
  *
  * Features:
+ * - Real local Supabase database for data persistence tests
+ * - MSW for GitHub API mocking (external API stability)
  * - Auth setup with cookie injection for Supabase + GitHub OAuth
  * - Separate projects for authenticated vs unauthenticated tests
  * - V8 code coverage collection with monocart-reporter
+ * - Global setup/teardown for database reset
  */
 
 /** Path to store authenticated state for reuse across tests */
 const AUTH_FILE = 'e2e/.auth/user.json'
 
+/**
+ * Local Supabase configuration
+ * Using local instance for real database testing
+ */
+const LOCAL_SUPABASE_URL = 'http://127.0.0.1:54321'
+const LOCAL_SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+
 export default defineConfig({
   testDir: './e2e',
 
   /**
-   * Disable full parallel execution for MSW compatibility.
-   * MSW handlers share state within a process, so tests must run
-   * sequentially within each worker to avoid state conflicts.
+   * Global setup: Reset database before all tests.
+   * Global teardown: Clean up database after all tests.
+   */
+  globalSetup: './e2e/global-setup.ts',
+  globalTeardown: './e2e/global-teardown.ts',
+
+  /**
+   * Disable full parallel execution for database state consistency.
+   * Tests share the same database, so they must run sequentially
+   * within each worker to avoid race conditions.
    */
   fullyParallel: false,
 
@@ -27,17 +45,13 @@ export default defineConfig({
 
   /**
    * Worker configuration:
-   * - CI: 1 worker for consistent, reproducible results
-   * - Local: 4 workers (stable parallelization)
+   * - CI: 1 worker per shard for database state consistency
+   * - Local: 1 worker (during migration, can increase after verification)
    *
-   * Rationale: Testing showed workers=4 is reliably stable. Workers=6+ can
-   * cause intermittent failures due to race conditions in MSW's shared mock
-   * state (mockBoards in mocks/handlers.ts). Workers=4 provides good balance
-   * between speed (~45s) and reliability.
-   *
-   * Performance improvement: 1 worker (2m+) → 4 workers (~45s) = ~60% faster
+   * Note: With real database, parallel workers need careful test isolation.
+   * Starting with 1 worker for reliability, can optimize later.
    */
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 1 : 1,
 
   /**
    * Don't fail the test run if tests are flaky (passed after retry).
@@ -219,24 +233,27 @@ export default defineConfig({
   /**
    * webServer: Build and start a local Next.js server.
    *
+   * Configuration:
+   * - Uses local Supabase (127.0.0.1:54321) for real database testing
+   * - MSW enabled for GitHub API mocking only (external API stability)
+   * - APP_ENV=test enables test mode auth bypass
+   *
    * CRITICAL: NEXT_PUBLIC_* vars must be set at BUILD time because Next.js
    * inlines them during the build process.
    *
    * NOTE: reuseExistingServer is set to false to ALWAYS use a fresh server
-   * with correct test environment variables. If set to true and a dev server
-   * (pnpm dev) is already running, it would be reused WITHOUT the test env vars,
-   * causing isTestMode() to return false and auth bypass to fail.
+   * with correct test environment variables.
    */
   webServer: {
-    command:
-      'NEXT_PUBLIC_ENABLE_MSW_MOCK=true APP_ENV=test NEXT_PUBLIC_SUPABASE_URL=https://jqtxjzdxczqwsrvevmyk.supabase.co pnpm build && pnpm start',
+    command: `NEXT_PUBLIC_ENABLE_MSW_MOCK=true APP_ENV=test NEXT_PUBLIC_SUPABASE_URL=${LOCAL_SUPABASE_URL} NEXT_PUBLIC_SUPABASE_ANON_KEY=${LOCAL_SUPABASE_ANON_KEY} pnpm build && pnpm start`,
     url: 'http://localhost:3008',
     reuseExistingServer: false,
     timeout: 120000,
     env: {
       NEXT_PUBLIC_ENABLE_MSW_MOCK: 'true',
       APP_ENV: 'test',
-      NEXT_PUBLIC_SUPABASE_URL: 'https://jqtxjzdxczqwsrvevmyk.supabase.co',
+      NEXT_PUBLIC_SUPABASE_URL: LOCAL_SUPABASE_URL,
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: LOCAL_SUPABASE_ANON_KEY,
     },
   },
 })

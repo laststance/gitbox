@@ -17,10 +17,6 @@ test.describe('CDP Drag Helper Integration', () => {
 
   const BOARD_URL = '/board/board-1'
 
-  test.beforeEach(async ({ request }) => {
-    await request.post('/__msw__/reset')
-  })
-
   /**
    * Test that CDP session can be created and used.
    */

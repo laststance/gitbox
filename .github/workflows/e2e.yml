@@ -10,11 +10,17 @@ permissions:
   contents: read
   pull-requests: write
 
+# Local Supabase configuration (matches supabase start output)
+env:
+  LOCAL_SUPABASE_URL: http://127.0.0.1:54321
+  LOCAL_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+  LOCAL_SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+
 jobs:
   # Sharded E2E test execution
   e2e-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -31,30 +37,50 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
 
+      # Install Supabase CLI
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
+      # Start local Supabase (Docker is pre-installed on ubuntu-latest)
+      - name: Start Supabase
+        run: |
+          cd src/supabase
+          supabase start
+          # Apply seed data
+          supabase db reset --local
+
       - name: Build application
         run: pnpm build
         env:
-          NEXT_PUBLIC_SUPABASE_URL: https://mock.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: mock-anon-key
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.LOCAL_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.LOCAL_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_ENABLE_MSW_MOCK: 'true'
           APP_ENV: test
-          SUPABASE_SERVICE_ROLE_KEY: mock-service-role-key
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.LOCAL_SUPABASE_SERVICE_ROLE_KEY }}
 
       - name: Run E2E tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
         run: pnpm exec playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
-          NEXT_PUBLIC_SUPABASE_URL: https://mock.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: mock-anon-key
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.LOCAL_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.LOCAL_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_ENABLE_MSW_MOCK: 'true'
           APP_ENV: test
           SHARD_INDEX: ${{ matrix.shardIndex }}
-          SUPABASE_SERVICE_ROLE_KEY: mock-service-role-key
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.LOCAL_SUPABASE_SERVICE_ROLE_KEY }}
+
+      # Stop Supabase to free resources
+      - name: Stop Supabase
+        if: always()
+        run: |
+          cd src/supabase
+          supabase stop || true
 
       - name: Upload blob report
         if: ${{ !cancelled() }}

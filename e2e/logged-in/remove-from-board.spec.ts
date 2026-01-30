@@ -12,6 +12,7 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import { querySingle, CARD_IDS } from '../helpers/db-query'
 
 test.describe('Remove from Board Feature', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
@@ -177,6 +178,50 @@ test.describe('Remove from Board Feature', () => {
       const removedCard = page.locator(`[data-testid="${firstCardTestId}"]`)
       await expect(removedCard).not.toBeVisible()
     }
+  })
+
+  // TODO: Re-enable when real Supabase auth is implemented
+  // Currently skipped because mock auth tokens don't work with supabase.auth.getUser()
+  // See: gap_2026-01-29_e2e_crud_verification_auth in Serena memories
+  test.skip('should verify card is deleted from database after removal', async ({
+    page,
+  }) => {
+    // Use card-5 which is expendable for this test
+    const cardId = CARD_IDS.card5
+
+    // Verify card exists before removal
+    const cardBefore = await querySingle('repocard', { id: cardId })
+    expect(cardBefore).not.toBeNull()
+
+    await page.goto(BOARD_URL)
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(500)
+
+    // Find the specific card's overflow menu
+    const overflowMenuTrigger = page.locator(
+      `[data-testid="overflow-menu-trigger-card-5"]`,
+    )
+    await expect(overflowMenuTrigger).toBeVisible({ timeout: 10000 })
+    await overflowMenuTrigger.click()
+
+    // Click Remove from Board
+    const removeMenuItem = page.locator(
+      '[data-testid="remove-from-board-card-5"]',
+    )
+    await removeMenuItem.click()
+
+    // Confirm removal
+    const alertDialog = page.getByRole('alertdialog')
+    await expect(alertDialog).toBeVisible({ timeout: 5000 })
+    const removeButton = alertDialog.getByRole('button', { name: /^remove$/i })
+    await removeButton.click()
+
+    // Wait for server action to complete
+    await page.waitForTimeout(1000)
+
+    // Verify card is deleted from database
+    const cardAfter = await querySingle('repocard', { id: cardId })
+    expect(cardAfter).toBeNull()
   })
 
   test('should show repository name in confirmation dialog', async ({
