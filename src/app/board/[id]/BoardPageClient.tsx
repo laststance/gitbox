@@ -274,6 +274,9 @@ export const BoardPageClient = memo(function BoardPageClient({
                 statusId={addRepoCombobox.statusId || statusLists[0]?.id || ''}
                 isOpen={addRepoCombobox.isOpen}
                 onOpenChange={addRepoCombobox.handleOpenChange}
+                maintenanceRepoIdentifiers={
+                  initialData.maintenanceRepoIdentifiers
+                }
                 onRepositoriesAdded={(createdCards: CreatedRepoCard[]) => {
                   // Optimistic UI update: Add cards to Redux state immediately
                   // No page reload needed - cards appear instantly

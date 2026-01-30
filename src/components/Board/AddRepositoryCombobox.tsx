@@ -60,6 +60,11 @@ interface AddRepositoryComboboxProps {
    * Called when the combobox should open or close
    */
   onOpenChange?: (open: boolean) => void
+  /**
+   * Lowercase "owner/repo" identifiers of repos in maintenance mode.
+   * These repos will be filtered out from the combobox options.
+   */
+  maintenanceRepoIdentifiers?: string[]
 }
 
 /**
@@ -81,6 +86,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   onQuickNoteFocus,
   isOpen: controlledIsOpen,
   onOpenChange,
+  maintenanceRepoIdentifiers,
 }: AddRepositoryComboboxProps) {
   // State - supports both controlled and uncontrolled modes
   const [internalIsOpen, setInternalIsOpen] = useState(false)
@@ -146,6 +152,16 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
         ),
       ),
     [existingRepoCards],
+  )
+
+  /**
+   * Set of "owner/repo" identifiers for repos in maintenance mode.
+   * Used to filter these repos from the combobox options.
+   * @example Set { "archived/project", "old/repo" }
+   */
+  const maintenanceIdentifiers = useMemo(
+    () => new Set(maintenanceRepoIdentifiers || []),
+    [maintenanceRepoIdentifiers],
   )
 
   // Organization filter state
@@ -305,6 +321,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       (repo) => !existingRepoIdentifiers.has(repo.full_name.toLowerCase()),
     )
 
+    // Filter out repos in maintenance mode
+    filtered = filtered.filter(
+      (repo) => !maintenanceIdentifiers.has(repo.full_name.toLowerCase()),
+    )
+
     // Filter by search query (uses deferred value for non-blocking filtering)
     if (deferredSearchQuery) {
       filtered = filtered.filter(
@@ -339,6 +360,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     organizationFilter,
     visibilityFilter,
     existingRepoIdentifiers,
+    maintenanceIdentifiers,
   ])
 
   const isLoading = isLoadingRepos || isAdding
