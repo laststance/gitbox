@@ -14,6 +14,7 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import { querySingle, PROJECT_INFO_IDS } from '../helpers/db-query'
 
 test.describe('ProjectInfo Links (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
@@ -416,6 +417,57 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
 
     // Note: In MSW mock environment, data won't persist across page reloads.
     // Actual persistence is verified in integration tests with real database.
+  })
+
+  // TODO: Re-enable when real Supabase auth is implemented
+  // Currently skipped because mock auth tokens don't work with supabase.auth.getUser()
+  // See: gap_2026-01-29_e2e_crud_verification_auth in Serena memories
+  test.skip('should verify links are persisted in database after save', async ({
+    page,
+  }) => {
+    // card-1 uses projinfo1 for its project info
+    const projectInfoId = PROJECT_INFO_IDS.projinfo1
+
+    const dialog = await openNoteModal(page)
+
+    // Add a URL with unique identifier
+    const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
+    await addUrlButton.click()
+
+    // Select GitHub type
+    const comboboxTrigger = dialog.locator(
+      '[data-testid="link-type-combobox-trigger"]',
+    )
+    await comboboxTrigger.click()
+    await page.waitForTimeout(300)
+
+    const searchInput = page.getByPlaceholder(/search link type/i)
+    await searchInput.fill('github')
+    await page.waitForTimeout(200)
+
+    const githubOption = page.locator('[data-testid="link-type-option-github"]')
+    await expect(githubOption).toBeVisible({ timeout: 5000 })
+    await githubOption.click()
+
+    // Enter URL with unique timestamp
+    const uniqueUrl = `https://github.com/test/repo-${Date.now()}`
+    const urlInput = dialog.locator('[data-testid="url-input-0"]')
+    await urlInput.fill(uniqueUrl)
+
+    // Save
+    const saveButton = dialog.locator('[data-testid="save-button"]')
+    await saveButton.click()
+
+    // Wait for server action to complete
+    await page.waitForTimeout(1500)
+
+    // Verify links are persisted in database
+    const projectInfo = await querySingle<{ links: string }>('projectinfo', {
+      id: projectInfoId,
+    })
+    expect(projectInfo).not.toBeNull()
+    // Links are stored as JSON string containing the URL
+    expect(projectInfo?.links).toContain(uniqueUrl)
   })
 
   test('should cancel without saving changes', async ({ page }) => {

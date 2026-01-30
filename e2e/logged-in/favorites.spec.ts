@@ -9,15 +9,12 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import { querySingle, BOARD_IDS } from '../helpers/db-query'
 
 test.describe('Board Favorites Feature', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
   test.beforeEach(async ({ page }) => {
-    // Reset MSW mock data to initial state for test isolation
-    // Use relative path - Playwright will prepend the baseURL
-    await page.request.post('/__msw__/reset')
-
     // Navigate to boards page before each test
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
@@ -126,6 +123,51 @@ test.describe('Board Favorites Feature', () => {
       }
 
       expect(foundCard).toBe(true)
+    })
+
+    // TODO: Re-enable when real Supabase auth is implemented
+    // Currently skipped because mock auth tokens don't work with supabase.auth.getUser()
+    // See: gap_2026-01-29_e2e_crud_verification_auth in Serena memories
+    test.skip('should verify is_favorite is persisted in database after toggle', async ({
+      page,
+    }) => {
+      // Use testBoard for this test
+      const boardId = BOARD_IDS.testBoard
+
+      // Get initial state from database
+      const boardBefore = await querySingle<{ is_favorite: boolean }>('board', {
+        id: boardId,
+      })
+      expect(boardBefore).not.toBeNull()
+      const initialFavorite = boardBefore?.is_favorite ?? false
+
+      // Find the "Test Board" card specifically using its name
+      const boardCards = page.locator('[data-testid="board-card"]')
+      const cardCount = await boardCards.count()
+
+      // Find the Test Board card by name
+      let starButton = null
+      for (let i = 0; i < cardCount; i++) {
+        const card = boardCards.nth(i)
+        const cardName = await card.locator('h2, h3').first().textContent()
+        if (cardName?.includes('Test Board')) {
+          starButton = card.locator('button[aria-label*="favorite"]')
+          break
+        }
+      }
+
+      expect(starButton).not.toBeNull()
+      await starButton!.click()
+
+      // Wait for server action to complete (optimistic update + server roundtrip)
+      await page.waitForTimeout(1500)
+
+      // Verify is_favorite is toggled in database
+      const boardAfter = await querySingle<{ is_favorite: boolean }>('board', {
+        id: boardId,
+      })
+      expect(boardAfter).not.toBeNull()
+      expect(boardAfter?.is_favorite).toBe(!initialFavorite)
     })
 
     test('should handle multiple rapid clicks gracefully', async ({ page }) => {

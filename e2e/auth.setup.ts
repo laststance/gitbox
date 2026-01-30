@@ -32,6 +32,10 @@ const MOCK_USER = {
  * Creates a mock Supabase session token.
  * This is a simplified session structure for testing purposes.
  *
+ * NOTE: This mock token allows UI testing (page rendering) but does NOT work
+ * with real Supabase auth validation. Server actions that call supabase.auth.getUser()
+ * will return an error. For full CRUD verification, a real Supabase session is needed.
+ *
  * @returns JSON string of mock session data (Supabase SSR expects JSON, not Base64)
  */
 function createMockSupabaseSession(): string {
@@ -58,6 +62,10 @@ function createMockSupabaseSession(): string {
  * 2. GitHub provider token cookie (gh_token_{project-ref-prefix})
  *
  * The storage state is saved to AUTH_FILE for reuse by dependent test projects.
+ *
+ * LIMITATION: This mock auth works for UI rendering but NOT for server-side auth
+ * validation. Tests that verify database mutations after UI actions will fail
+ * because supabase.auth.getUser() returns null with the mock token.
  *
  * NOTE: For local Supabase, the project ref is "gitbox" (from config.toml project_id).
  */

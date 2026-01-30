@@ -17,6 +17,7 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import { querySingle, PROJECT_INFO_IDS } from '../helpers/db-query'
 
 test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
@@ -240,6 +241,47 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
     await expect(inlineEdit).not.toBeVisible({ timeout: 5000 })
     await expect(card1CommentDisplay).toBeVisible()
     await expect(card1CommentDisplay).toContainText(newComment)
+  })
+
+  // TODO: Re-enable when real Supabase auth is implemented
+  // Currently skipped because mock auth tokens don't work with supabase.auth.getUser()
+  // See: gap_2026-01-29_e2e_crud_verification_auth in Serena memories
+  test.skip('should verify comment is persisted in database after save', async ({
+    page,
+  }) => {
+    // card-1 uses projinfo1 for its project info
+    const projectInfoId = PROJECT_INFO_IDS.projinfo1
+
+    // Navigate to board
+    const card1CommentDisplay = page.locator(
+      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+    )
+    await expect(card1CommentDisplay).toBeVisible({ timeout: 10000 })
+    await card1CommentDisplay.click()
+
+    // Wait for inline edit
+    const inlineEdit = page.locator(
+      '[data-testid="repo-card-card-1"] [data-testid="comment-inline-edit"]',
+    )
+    await expect(inlineEdit).toBeVisible({ timeout: 5000 })
+
+    const textarea = inlineEdit.locator('textarea')
+    const uniqueComment = `DB verified comment ${Date.now()}`
+    await textarea.fill(uniqueComment)
+
+    // Save the comment
+    const saveButton = inlineEdit.locator('[data-testid="comment-save-btn"]')
+    await saveButton.click()
+
+    // Wait for server action to complete
+    await page.waitForTimeout(1000)
+
+    // Verify comment is persisted in database
+    const projectInfo = await querySingle<{ comment: string }>('projectinfo', {
+      id: projectInfoId,
+    })
+    expect(projectInfo).not.toBeNull()
+    expect(projectInfo?.comment).toBe(uniqueComment)
   })
 
   test('should show character count warning when approaching limit', async ({
