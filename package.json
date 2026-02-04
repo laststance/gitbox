@@ -134,7 +134,7 @@
     "husky": "^9.1.7",
     "knip": "^5.83.0",
     "lint-staged": "^16.2.7",
-    "monocart-reporter": "^2.9.23",
+    "monocart-reporter": "^2.10.0",
     "msw": "^2.12.8",
     "msw-storybook-addon": "^2.0.6",
     "playwright": "^1.58.1",
