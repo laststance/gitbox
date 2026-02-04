@@ -245,7 +245,7 @@ export default defineConfig({
    * with correct test environment variables.
    */
   webServer: {
-    command: `NEXT_PUBLIC_ENABLE_MSW_MOCK=true APP_ENV=test NEXT_PUBLIC_SUPABASE_URL=${LOCAL_SUPABASE_URL} NEXT_PUBLIC_SUPABASE_ANON_KEY=${LOCAL_SUPABASE_ANON_KEY} pnpm build && pnpm start`,
+    command: `pnpm build && pnpm start`,
     url: 'http://localhost:3008',
     reuseExistingServer: false,
     timeout: 120000,
