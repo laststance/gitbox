@@ -76,6 +76,7 @@ When deploying to Vercel, the following are auto-injected:
 Start the dev server:
 
 ```bash
+supabase start
 pnpm dev
 ```
 

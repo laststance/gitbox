@@ -6,8 +6,6 @@
 
 import { z } from 'zod'
 
-import { ALL_THEME_IDS } from '@/lib/constants/themes'
-
 import { uuidSchema } from './common'
 
 // ========================================
@@ -46,22 +44,6 @@ export const boardNameSchema = z
  * boardIdSchema.safeParse('invalid')                              // => { success: false }
  */
 export const boardIdSchema = uuidSchema
-
-// ========================================
-// Theme Schema
-// ========================================
-
-/**
- * Schema for validating theme IDs.
- * Uses the centralized ALL_THEME_IDS constant from themes.ts.
- *
- * @example
- * themeSchema.safeParse('midnight') // => { success: true, data: 'midnight' }
- * themeSchema.safeParse('invalid')  // => { success: false, error: 'Invalid theme' }
- */
-export const themeSchema = z.enum(ALL_THEME_IDS, {
-  message: 'Invalid theme',
-})
 
 // ========================================
 // Board Settings Schema
@@ -118,17 +100,6 @@ export const renameBoardFormSchema = z.object({
  */
 export const deleteBoardFormSchema = z.object({
   boardId: boardIdSchema,
-})
-
-/**
- * Schema for update theme form data.
- *
- * @example
- * updateThemeFormSchema.safeParse({ boardId: 'uuid', theme: 'midnight' })
- */
-export const updateThemeFormSchema = z.object({
-  boardId: boardIdSchema,
-  theme: themeSchema,
 })
 
 /**
