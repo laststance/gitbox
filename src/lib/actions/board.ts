@@ -19,7 +19,6 @@ import type { Tables, TablesInsert } from '@/lib/supabase/types'
 import {
   boardNameSchema,
   boardIdSchema,
-  themeSchema,
   boardSettingsSchema,
 } from '@/lib/validations/board'
 
@@ -536,7 +535,6 @@ export async function getBoardData(boardId: string): Promise<{
  */
 export async function createBoard(
   name: string,
-  theme: string = 'sunrise',
 ): Promise<{ id: string; name: string }> {
   const supabase = await createClient()
 
@@ -555,14 +553,13 @@ export async function createBoard(
     .insert({
       user_id: user.id,
       name,
-      theme,
     })
     .select('id, name')
     .single()
 
   if (error || !data) {
     Sentry.captureException(error ?? new Error('No data returned'), {
-      extra: { context: 'Create board', name, theme },
+      extra: { context: 'Create board', name },
     })
     throw new Error('Failed to create board')
   }
@@ -594,7 +591,7 @@ export async function deleteBoard(boardId: string): Promise<void> {
  */
 export async function updateBoard(
   boardId: string,
-  updates: { name?: string; theme?: string },
+  updates: { name?: string },
 ): Promise<void> {
   const supabase = await createClient()
 
@@ -707,66 +704,6 @@ export async function deleteBoardAction(
     return { success: true }
   } catch {
     return { error: 'Failed to delete board' }
-  }
-}
-
-// ========================================
-// Board Theme Action (useActionState compatible)
-// ========================================
-
-/**
- * State returned from the update board theme action.
- */
-export type UpdateBoardThemeState = {
-  success?: boolean
-  newTheme?: string
-  error?: string
-}
-
-/**
- * Server Action for updating a board's theme.
- * Compatible with useActionState (accepts prevState as first arg).
- *
- * @param prevState - Previous state from useActionState
- * @param formData - Form data containing boardId and theme fields
- * @returns
- * - On success: { success: true, newTheme: string }
- * - On validation error: { error: 'Invalid theme' }
- * - On server error: { error: 'Failed to update theme' }
- *
- * @example
- * // In React component with useActionState
- * const [state, formAction, isPending] = useActionState(updateBoardThemeAction, {})
- * <form action={formAction}>
- *   <input type="hidden" name="boardId" value={boardId} />
- *   <input type="hidden" name="theme" value="midnight" />
- *   <button disabled={isPending}>Apply Theme</button>
- * </form>
- */
-export async function updateBoardThemeAction(
-  _prevState: UpdateBoardThemeState,
-  formData: FormData,
-): Promise<UpdateBoardThemeState> {
-  const boardId = formData.get('boardId') as string
-  const theme = formData.get('theme') as string
-
-  // Validate board ID format
-  const idResult = boardIdSchema.safeParse(boardId)
-  if (!idResult.success) {
-    return { error: 'Invalid board ID' }
-  }
-
-  // Validate theme is in allowed list using Zod schema
-  const themeResult = themeSchema.safeParse(theme)
-  if (!themeResult.success) {
-    return { error: 'Invalid theme' }
-  }
-
-  try {
-    await updateBoard(idResult.data, { theme: themeResult.data })
-    return { success: true, newTheme: themeResult.data }
-  } catch {
-    return { error: 'Failed to update theme' }
   }
 }
 
@@ -891,7 +828,6 @@ export async function createFirstBoardIfNeeded(
     .insert({
       user_id: userId,
       name: 'First Board',
-      theme: 'sunrise',
     })
     .select('id, name')
     .single()

@@ -61,12 +61,11 @@ ON CONFLICT (id) DO NOTHING;
 -- ============================================================================
 
 -- Board 1: Test Board (main board for most tests)
-INSERT INTO board (id, user_id, name, theme, settings, is_favorite, created_at, updated_at)
+INSERT INTO board (id, user_id, name, settings, is_favorite, created_at, updated_at)
 VALUES (
   '00000000-0000-0000-0000-000000000100'::uuid,
   '00000000-0000-0000-0000-000000000001'::uuid,
   'Test Board',
-  'sunrise',
   '{}'::jsonb,
   false,
   '2024-01-01T00:00:00.000Z'::timestamptz,
@@ -75,12 +74,11 @@ VALUES (
 ON CONFLICT (id) DO NOTHING;
 
 -- Board 2: Work Projects (secondary board)
-INSERT INTO board (id, user_id, name, theme, settings, is_favorite, created_at, updated_at)
+INSERT INTO board (id, user_id, name, settings, is_favorite, created_at, updated_at)
 VALUES (
   '00000000-0000-0000-0000-000000000101'::uuid,
   '00000000-0000-0000-0000-000000000001'::uuid,
   'Work Projects',
-  'midnight',
   '{}'::jsonb,
   false,
   '2024-01-02T00:00:00.000Z'::timestamptz,

@@ -425,24 +425,6 @@ type ProjectInfo = Tables<'projectinfo'>
 type Maintenance = Tables<'maintenance'>
 type UserLinkPreset = Tables<'user_link_presets'>
 
-// Theme type (stored as string in board.theme)
-type Theme =
-  | 'default'
-  | 'sunrise'
-  | 'sandstone'
-  | 'mint'
-  | 'sky'
-  | 'lavender'
-  | 'rose'
-  | 'dark'
-  | 'midnight'
-  | 'graphite'
-  | 'forest'
-  | 'ocean'
-  | 'plum'
-  | 'rust'
-  | 'system'
-
 // Comment color type (stored as string in projectinfo.comment_color)
 // Matches COMMENT_BORDER_COLORS keys in CommentDisplay.tsx
 export type CommentColor =

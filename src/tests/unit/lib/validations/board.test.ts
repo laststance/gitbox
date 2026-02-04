@@ -8,11 +8,9 @@ import {
   BOARD_NAME_MAX_LENGTH,
   boardNameSchema,
   boardIdSchema,
-  themeSchema,
   boardSettingsSchema,
   renameBoardFormSchema,
   deleteBoardFormSchema,
-  updateThemeFormSchema,
   updateSettingsFormSchema,
 } from '@/lib/validations/board'
 
@@ -65,37 +63,6 @@ describe('boardIdSchema', () => {
   test('rejects invalid UUID', () => {
     const result = boardIdSchema.safeParse('invalid-id')
     expect(result.success).toBe(false)
-  })
-})
-
-describe('themeSchema', () => {
-  const validThemes = [
-    'default',
-    'sunrise',
-    'sandstone',
-    'mint',
-    'sky',
-    'lavender',
-    'rose',
-    'dark',
-    'midnight',
-    'graphite',
-    'forest',
-    'ocean',
-    'plum',
-    'rust',
-  ]
-
-  test.each(validThemes)('accepts valid theme: %s', (theme) => {
-    const result = themeSchema.safeParse(theme)
-    expect(result.success).toBe(true)
-    expect(result.data).toBe(theme)
-  })
-
-  test('rejects invalid theme', () => {
-    const result = themeSchema.safeParse('invalid-theme')
-    expect(result.success).toBe(false)
-    expect(result.error?.issues[0]?.message).toContain('Invalid theme')
   })
 })
 
@@ -177,26 +144,6 @@ describe('deleteBoardFormSchema', () => {
   test('rejects invalid board ID', () => {
     const result = deleteBoardFormSchema.safeParse({
       boardId: 'not-a-uuid',
-    })
-    expect(result.success).toBe(false)
-  })
-})
-
-describe('updateThemeFormSchema', () => {
-  const validBoardId = '550e8400-e29b-41d4-a716-446655440000'
-
-  test('accepts valid theme update', () => {
-    const result = updateThemeFormSchema.safeParse({
-      boardId: validBoardId,
-      theme: 'midnight',
-    })
-    expect(result.success).toBe(true)
-  })
-
-  test('rejects invalid theme', () => {
-    const result = updateThemeFormSchema.safeParse({
-      boardId: validBoardId,
-      theme: 'invalid-theme',
     })
     expect(result.success).toBe(false)
   })

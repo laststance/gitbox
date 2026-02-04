@@ -24,11 +24,9 @@ export {
   BOARD_NAME_MAX_LENGTH,
   boardNameSchema,
   boardIdSchema,
-  themeSchema,
   boardSettingsSchema,
   renameBoardFormSchema,
   deleteBoardFormSchema,
-  updateThemeFormSchema,
   updateSettingsFormSchema,
 } from './board'
 
