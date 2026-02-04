@@ -21,20 +21,6 @@ import { ShortcutsHelp } from '@/components/ShortcutsHelp'
 import { Providers } from '@/lib/redux/providers'
 import { isMSWEnabled } from '@/lib/utils/isMSWEnabled'
 import '@/styles/globals.css'
-// Theme file imports - Light themes
-import '@/styles/themes/light/sunrise.css'
-import '@/styles/themes/light/sandstone.css'
-import '@/styles/themes/light/mint.css'
-import '@/styles/themes/light/sky.css'
-import '@/styles/themes/light/lavender.css'
-import '@/styles/themes/light/rose.css'
-// Theme file imports - Dark themes
-import '@/styles/themes/dark/midnight.css'
-import '@/styles/themes/dark/graphite.css'
-import '@/styles/themes/dark/forest.css'
-import '@/styles/themes/dark/ocean.css'
-import '@/styles/themes/dark/plum.css'
-import '@/styles/themes/dark/rust.css'
 
 import { MSWProvider } from './msw-provider'
 

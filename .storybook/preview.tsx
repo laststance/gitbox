@@ -8,20 +8,6 @@ import { store } from '@/lib/redux/store'
 import { handlers } from '../mocks/handlers/index'
 import '@/styles/globals.css'
 
-// Import theme CSS files
-import '@/styles/themes/light/sunrise.css'
-import '@/styles/themes/light/sandstone.css'
-import '@/styles/themes/light/mint.css'
-import '@/styles/themes/light/sky.css'
-import '@/styles/themes/light/lavender.css'
-import '@/styles/themes/light/rose.css'
-import '@/styles/themes/dark/midnight.css'
-import '@/styles/themes/dark/graphite.css'
-import '@/styles/themes/dark/forest.css'
-import '@/styles/themes/dark/ocean.css'
-import '@/styles/themes/dark/plum.css'
-import '@/styles/themes/dark/rust.css'
-
 // Theme constants (duplicated from lib/constants/themes.ts to avoid bundling issues)
 const DARK_THEME_IDS = [
   'dark',
