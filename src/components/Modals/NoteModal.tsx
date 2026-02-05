@@ -416,7 +416,7 @@ export const NoteModal = memo(function NoteModal({
           </div>
         </div>
 
-        <DialogFooter className="flex items-center justify-between sm:justify-between">
+        <DialogFooter className="flex items-center justify-between">
           <div>
             {hasChanges && !draft && (
               <p className="text-xs text-muted-foreground">
