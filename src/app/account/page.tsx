@@ -52,8 +52,8 @@ export default async function AccountPage() {
       .eq('user_id', user.id),
     supabase
       .from('repocard')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id),
+      .select('id, board!inner()', { count: 'exact', head: true })
+      .eq('board.user_id', user.id),
     supabase
       .from('maintenance')
       .select('id', { count: 'exact', head: true })
