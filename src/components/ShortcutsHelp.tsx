@@ -26,6 +26,64 @@ interface ShortcutItem {
   category: string
 }
 
+/**
+ * Keyboard shortcuts definition
+ * Static data — no dependency on props or state
+ */
+const shortcuts: ShortcutItem[] = [
+  {
+    key: 'Tab',
+    description: 'Navigate between cards',
+    icon: <Keyboard className="w-4 h-4" />,
+    category: 'Navigation',
+  },
+  {
+    key: '.',
+    description: 'Open overflow menu',
+    icon: <MoreHorizontal className="w-4 h-4" />,
+    category: 'Navigation',
+  },
+  {
+    key: 'Enter',
+    description: 'Open card',
+    icon: <CornerDownLeft className="w-4 h-4" />,
+    category: 'Actions',
+  },
+  {
+    key: 'Z',
+    description: 'Undo last operation',
+    icon: <RotateCcw className="w-4 h-4" />,
+    category: 'Actions',
+  },
+  {
+    key: '?',
+    description: 'Show/hide this help',
+    icon: <HelpCircle className="w-4 h-4" />,
+    category: 'Help',
+  },
+  {
+    key: '⌘ K',
+    description: 'Open command palette',
+    icon: <Command className="w-4 h-4" />,
+    category: 'Navigation',
+  },
+]
+
+/**
+ * Group shortcuts by category
+ * Pre-computed at module scope since shortcuts is static
+ */
+const groupedShortcuts = shortcuts.reduce(
+  (acc, shortcut) => {
+    if (!acc[shortcut.category]) {
+      acc[shortcut.category] = []
+    }
+    acc[shortcut.category]!.push(shortcut)
+    return acc
+  },
+  {} as Record<string, ShortcutItem[]>,
+)
+
 interface ShortcutsHelpProps {
   defaultOpen?: boolean
 }
@@ -54,63 +112,6 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open)
   }
-
-  /**
-   * Keyboard shortcuts definition
-   * English text for UI display
-   */
-  const shortcuts: ShortcutItem[] = [
-    {
-      key: 'Tab',
-      description: 'Navigate between cards',
-      icon: <Keyboard className="w-4 h-4" />,
-      category: 'Navigation',
-    },
-    {
-      key: '.',
-      description: 'Open overflow menu',
-      icon: <MoreHorizontal className="w-4 h-4" />,
-      category: 'Navigation',
-    },
-    {
-      key: 'Enter',
-      description: 'Open card',
-      icon: <CornerDownLeft className="w-4 h-4" />,
-      category: 'Actions',
-    },
-    {
-      key: 'Z',
-      description: 'Undo last operation',
-      icon: <RotateCcw className="w-4 h-4" />,
-      category: 'Actions',
-    },
-    {
-      key: '?',
-      description: 'Show/hide this help',
-      icon: <HelpCircle className="w-4 h-4" />,
-      category: 'Help',
-    },
-    {
-      key: '⌘ K',
-      description: 'Open command palette',
-      icon: <Command className="w-4 h-4" />,
-      category: 'Navigation',
-    },
-  ]
-
-  /**
-   * Group shortcuts by category
-   */
-  const groupedShortcuts = shortcuts.reduce(
-    (acc, shortcut) => {
-      if (!acc[shortcut.category]) {
-        acc[shortcut.category] = []
-      }
-      acc[shortcut.category]!.push(shortcut)
-      return acc
-    },
-    {} as Record<string, ShortcutItem[]>,
-  )
 
   /**
    * Keyboard event handler
