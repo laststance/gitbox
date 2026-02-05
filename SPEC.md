@@ -1,4 +1,4 @@
-# GitBox — Specification v1.0 (2026-01-13)
+# GitBox — Specification v1.1 (2026-02-06)
 
 ## 1) Product Overview
 
@@ -13,11 +13,29 @@
 
 - **Maintenance Mode** — Archived/maintenance projects storage (Sidebar link, Explorer UI)
 - **Command Palette (⌘K)**
-- **Settings** — Theme/Display/Typography
+- **Settings** — Display/Typography
 - **Shortcuts (?)**
 - **Account** — Profile, statistics, account deletion
 - **Privacy Policy** (`/privacy`) — GDPR-compliant privacy policy
 - **Terms of Use** (`/terms`) — Terms of service
+
+### Tech Stack
+
+| Category   | Technology                                           |
+| ---------- | ---------------------------------------------------- |
+| Framework  | Next.js 16 (App Router)                              |
+| UI Library | React 19.2                                           |
+| Language   | TypeScript 5.9 (strict, noUncheckedIndexedAccess)    |
+| Styling    | Tailwind CSS 4 + shadcn/ui (OKLCH tokens)            |
+| State      | Redux Toolkit + @laststance/redux-storage-middleware |
+| Database   | Supabase (PostgreSQL + Auth + RLS)                   |
+| Rich Text  | Plate.js (Platejs 52)                                |
+| D&D        | @dnd-kit (core + sortable + modifiers)               |
+| Testing    | Vitest 4, Playwright 1.58, Storybook 10              |
+| Monitoring | Sentry 10                                            |
+| Analytics  | Vercel Analytics                                     |
+| Validation | Zod 4                                                |
+| Hosting    | Vercel                                               |
 
 ---
 
@@ -29,6 +47,7 @@
 
 - **OKLCH-based** scale with aligned lightness (L) values
 - **Dark/Light mirror mapping** for consistent contrast
+- **CSS variables** from shadcn/ui theme system (no hardcoded gray-\* classes in dark mode)
 - Reference: [Harmonizer](https://harmonizer.evilmartians.com/)
 
 #### Contrast Requirements
@@ -41,49 +60,43 @@
 
 - **Base font**: **16px**
 - Step: 1px increments (minimum 12px to recommended 28px)
-- Source of truth: Uploaded OKLCH palette (Tailwind tokens)
+- Source of truth: OKLCH palette (Tailwind tokens)
 
 ### 2.2 Design Tokens (14 Themes)
 
-#### Token Set (Common Keys)
+#### Token Set (Common Keys — CSS Variables)
 
 ```
-color.background         // Base layer
-color.surface            // Card/panel
-color.surfaceAlt         // Sub-surface (sidebar/toolbar)
-color.border
-color.overlay            // Modal/tooltip background
+--background              // Base layer
+--card / --popover        // Elevated surfaces
+--muted                   // Subtle backgrounds for secondary content
+--border / --input        // Default borders / form input borders
+--ring                    // Focus ring
 
-color.textPrimary
-color.textSecondary
-color.textMuted
-color.focusRing
+--foreground              // Primary text
+--muted-foreground        // Secondary text
 
-color.primary
-color.primaryFg
-color.secondary
-color.secondaryFg
-color.tertiary
-color.tertiaryFg
-
-color.success / warning / danger
+--primary / --primary-foreground
+--secondary / --secondary-foreground
+--accent / --accent-foreground
+--destructive / --destructive-foreground
 ```
 
 #### Light Theme (Recommended OKLCH Range)
 
-- background L≈0.98, surface L≈0.96, surfaceAlt L≈0.92
-- textPrimary contrast **4.5:1+**, textSecondary **3:1+**
-- primary/secondary/tertiary with saturation, **primaryFg** always AA compliant (auto black/white switch)
+- background L≈0.98, card L≈0.96, muted L≈0.92
+- foreground contrast **4.5:1+**, muted-foreground **3:1+**
+- primary/secondary/accent with saturation, **primary-foreground** always AA compliant (auto black/white switch)
 
 #### Dark Theme (Recommended OKLCH Range)
 
-- background L≈0.12, surface L≈0.16, surfaceAlt L≈0.20
-- textPrimary with **4.5:1+ contrast** via lightness difference
+- background L≈0.12, card L≈0.16, muted L≈0.20
+- foreground with **4.5:1+ contrast** via lightness difference
 - primary with **elevated luminance** for button/selection visibility
 
 #### Theme Names
 
-- **Light:** Light / Sunrise / Sandstone / Mint / Sky / Lavender / Rose
+- **Light:** Default / Sunrise / Sandstone / Mint / Sky / Lavender / Rose
 - **Dark:** Dark / Midnight / Graphite / Forest / Ocean / Plum / Rust
 
 ---
@@ -96,14 +109,16 @@ color.success / warning / danger
 
 - Combobox search (owner/repo, topics, visibility)
 - Batch addition / duplicate detection
-- **Organization Filter**: Filter repositories by user/org (persisted)
-- **First Board auto-creation**: Auto-create "My First Board" on first login
+- **Organization Filter**: Filter repositories by user/org (persisted to Redux/localStorage)
+- **Maintenance Filter**: Repos in Maintenance Mode are excluded from combobox (client + server validation)
+- **First Board auto-creation**: Auto-create "My First Board" on first login (DB trigger)
 
 #### Acceptance Criteria
 
 - No delay displaying candidates with 100+ repos
 - D&D/Undo works smoothly
 - Organization selection persists across sessions
+- Maintenance repos cannot be added to board
 
 ### 3.2 Board (Kanban)
 
@@ -111,16 +126,18 @@ color.success / warning / danger
 
 - **Column = Status** (e.g., Suspend / Spec designing / Active / Completed)
 - Column CRUD operations (2D grid layout: gridRow, gridCol)
+- **Column Width Constraint**: CSS variable `--column-width: 320px`, `minmax(280px, var(--column-width))`
 - **Card**: repo name, quick note, optional meta (Stars/Updated/Visibility/Language/Topics)
 - **⋯ (Overflow menu)**: Launch **Project Info** modal
 - **Favorites**: Add board to favorites (star icon, prioritized in sidebar)
-- **Board Settings**: Board name, card display settings (theme is app-wide)
+- **Board Settings**: Board name, card display settings (theme is app-wide via Settings/Sidebar)
 
 #### Acceptance Criteria
 
 - Board = Status field basis
 - D&D follows conventions ([GitHub Docs](https://docs.github.com/en/issues/planning-and-tracking-with-projects/))
 - Favorites toggle reflects immediately
+- Columns don't expand to fill available space (constrained to max width)
 
 ### 3.3 Maintenance Mode
 
@@ -130,7 +147,7 @@ color.success / warning / danger
 - **Explorer UI** (Grid/List toggle, sort/search)
 - **Click = Navigate to GitHub repo**
 - **⋯ menu** on card top-right
-- **Restore to Board** operation
+- **Restore to Board** operation (via RestoreToBoardDialog)
 
 #### UI Reference
 
@@ -142,7 +159,7 @@ Full-featured WYSIWYG editor accessible from each RepoCard's Note button.
 
 #### Specifications
 
-- **Plate Editor**-based rich text editor
+- **Plate Editor**-based rich text editor (Platejs 52)
 - **Fixed Toolbar**: Always-visible formatting toolbar (Bold, Italic, Headings, Lists, etc.)
 - **Floating Toolbar**: Context toolbar on text selection
 - **Slash Commands**: `/` input shows command menu (/h1, /code, /table, etc.)
@@ -175,23 +192,28 @@ Full-featured WYSIWYG editor accessible from each RepoCard's Note button.
 
 ### 3.5 Project Info (Modal)
 
-Accessible from all RepoCards.
+Accessible from all RepoCards (Board & Maintenance).
 
 #### Sections
 
 1. **Comment** (inline comment, max 2,000 chars. Displayed on RepoCard. See 3.6)
 
 2. **Links** (55 built-in link types + custom presets)
-   - **Built-in Types**: 55 link types in 12 categories
-     - Development (GitHub, GitLab, Bitbucket, etc.)
-     - Deployment (Vercel, Netlify, AWS, etc.)
+   - **Built-in Types**: 55 link types in 13 categories
+     - Hosting (Vercel, Netlify, Cloudflare Pages, etc.)
+     - Cloud (AWS, GCP, Azure, etc.)
      - Database (Supabase, MongoDB, Firebase, etc.)
-     - Monitoring (Sentry, DataDog, etc.)
-     - Documentation (Notion, Confluence, etc.)
-     - Analytics (Google Analytics, Mixpanel, etc.)
-     - Communication (Slack, Discord, etc.)
-     - Others
-   - **Custom Presets**: User-defined link types (Lucide icon selection)
+     - Storage (S3, R2, GCS, etc.)
+     - Auth (Auth0, Clerk, NextAuth, etc.)
+     - Email (SendGrid, Resend, Postmark, etc.)
+     - Monitoring (Sentry, DataDog, Grafana, etc.)
+     - Testing (Playwright, Cypress, BrowserStack, etc.)
+     - Project (GitHub, GitLab, Jira, Linear, etc.)
+     - Docs (Notion, Confluence, GitBook, etc.)
+     - Publishing (npm, PyPI, Docker Hub, etc.)
+     - Payment (Stripe, LemonSqueezy, Paddle, etc.)
+     - Custom (user-created presets)
+   - **Custom Presets**: User-defined link types (Lucide icon selection, stored in `user_link_presets` table)
    - **EditableUrlItem UI**: Inline editing component
      - **Single-Edit Coordination**: Only one URL editable at a time (others auto-save)
      - **URL Validation**: Max 2083 chars, http/https only
@@ -199,7 +221,7 @@ Accessible from all RepoCards.
      - **Delete with Undo**: 5-second undo window after deletion (Sonner toast)
      - **Blur Handler**: Prevent accidental save on Combobox/Dropdown click
 
-3. **Note** (rich text, max 20,000 chars. Edited with Plate Editor)
+3. **Note** (rich text, max 20,000 chars. Edited with Plate Editor via NoteModal)
 
 ### 3.6 Comment on RepoCard (Inline Comment)
 
@@ -212,6 +234,7 @@ Display free-text status comments on RepoCard in Card-in-Card style.
 - **Full text display**: No truncation, card height expands with content
 - **Inline editing**: Click to edit directly, 2,000 character limit
 - **Color customization**: 8 colors available (primary/red/orange/yellow/green/blue/purple/pink)
+- **Per-comment color**: Color stored per comment in `projectinfo.comment_color`
 
 #### UI Wireframe
 
@@ -238,11 +261,9 @@ interface BoardSettings {
   cardDisplay?: {
     showGitHubDescription: boolean // default: true
     showComment: boolean // default: true
-    commentStyle: {
+    commentText: {
       fontSize: 'sm' | 'base' | 'lg' // default: 'sm'
-      bold: boolean // default: false
-      borderColor: string // default: 'primary'
-      backgroundColor: string // default: 'muted/30'
+      fontWeight: 'normal' | 'medium' | 'semibold' | 'bold' // default: 'normal'
     }
   }
 }
@@ -250,10 +271,10 @@ interface BoardSettings {
 
 #### Data Model
 
-| Column                      | Type | Limit       | Description    |
-| --------------------------- | ---- | ----------- | -------------- |
-| `projectinfo.comment`       | TEXT | 2,000 chars | Inline comment |
-| `projectinfo.comment_color` | TEXT | -           | 8 color choice |
+| Column                      | Type | Limit       | Description                  |
+| --------------------------- | ---- | ----------- | ---------------------------- |
+| `projectinfo.comment`       | TEXT | 2,000 chars | Inline comment               |
+| `projectinfo.comment_color` | TEXT | -           | 8 color choice (per-comment) |
 
 #### Acceptance Criteria
 
@@ -273,12 +294,14 @@ interface BoardSettings {
 - **Transition Animation**: 300ms ease-out smooth width change
 - **Tooltips**: On collapse, tooltip on hover for each nav item (side="right")
 - **State Persistence**: Persisted to localStorage via Redux Storage Middleware
+- **Hydration Safety**: `useMounted()` guard pattern to prevent SSR mismatch
 
 #### Technical Specifications
 
 - **useSidebar Hook**: Mounted state management for hydration safety
 - **CSS**: `transition-[width] duration-300 ease-out`
 - **Responsive**: Desktop only (different layout for mobile)
+- **SSR**: Renders expanded (default) state on server, applies persisted state after mount
 
 #### Acceptance Criteria
 
@@ -287,6 +310,7 @@ interface BoardSettings {
 - All navigation functional when collapsed
 - State persists after page reload
 - Tooltips display correctly when collapsed
+- No hydration mismatch errors
 
 ### 3.8 Account Management
 
@@ -301,6 +325,30 @@ interface BoardSettings {
 - Profile info correctly fetched from GitHub auth
 - All related data deleted on account deletion
 - Deletion confirmation requires exact "DELETE" match
+
+### 3.9 Navigation Progress Bar
+
+#### Specifications
+
+- **Library**: `nextjs-toploader`
+- **Style**: Algora-style green bar (`oklch(0.696 0.17 162.48)`)
+- **Configuration**: Height 3px, no spinner, crawl enabled, speed 200ms
+- **Z-index**: 9999 (above all content)
+
+#### Acceptance Criteria
+
+- Progress bar shows on page navigation
+- Does not interfere with modal/dialog overlays
+
+### 3.10 Error & Loading States
+
+#### Specifications
+
+- **Error Boundary** (`app/error.tsx`): Global error boundary with Sentry integration
+  - Retry and "Go to Boards" recovery actions
+- **Global Error** (`app/global-error.tsx`): Root-level error boundary
+- **Board Loading** (`app/board/[id]/loading.tsx`): Skeleton UI matching KanbanBoard layout
+  - CardSkeleton, ColumnSkeleton components
 
 ---
 
@@ -327,7 +375,7 @@ Restore to Board     // Maintenance only
 - `.` — Focused card's Overflow menu
 - `Enter` — Default action (Board=Open card, Maintenance=Open on GitHub)
 - `⌘K` / `Ctrl+K` — Command Palette
-- `Z` — Undo last D&D move (max 10 history, Redux managed)
+- `Z` — Undo last operation
 - `Tab` — Focus navigation
 - `Escape` — Close menu/dialog
 - `?` — Shortcuts help
@@ -335,8 +383,6 @@ Restore to Board     // Maintenance only
 ---
 
 ## 5) UI Specifications (Text Wireframes)
-
-**Important**: All UI generated from wireframes below using [Magic MCP](https://github.com/21st-dev/magic-mcp)
 
 ### 5.1 Sidebar (All Screens, Collapsible)
 
@@ -471,25 +517,15 @@ core-cli          "Security"           2025-07-01      87     [⋯]
 ┌───────────────────────────────────────────────┐
 │ Settings                                      │
 │-----------------------------------------------│
-│ Theme (14 + System)                           │
-│  ○ System (OS preference)                     │
-│  Light: default / Sunrise / Sandstone / Mint /│
-│         Sky / Lavender / Rose                 │
-│  Dark : dark / Midnight / Graphite / Forest / │
-│         Ocean / Plum / Rust                   │
-│-----------------------------------------------│
 │ Display                                       │
 │  ☑ Compact Mode                               │
 │  ☑ Show Card Metadata (stars, language, date) │
-│-----------------------------------------------│
-│ Typography                                    │
-│  Base size: [16px] (12-20px range)            │
 └───────────────────────────────────────────────┘
 ```
 
-**Theme**:
+**Theme** (via Sidebar):
 
-- **Access**: Settings screen or Sidebar Theme dropdown
+- **Access**: Sidebar Theme dropdown
 - **Scope**: App-wide (no board-specific settings)
 - **14 themes + System**: Light 7 + Dark 7 + OS preference follow
 
@@ -498,7 +534,7 @@ core-cli          "Security"           2025-07-01      87     [⋯]
 - **Compact Mode**: Reduce card/column padding for higher information density
 - **Show Card Metadata**: Toggle stars, language, update date visibility
 
-**Persistence**: Redux + localStorage (`redux-storage-middleware`)
+**Persistence**: Redux + localStorage (`@laststance/redux-storage-middleware`)
 
 ### 5.6 NoteModal (Rich Text Editor)
 
@@ -567,19 +603,19 @@ core-cli          "Security"           2025-07-01      87     [⋯]
 
 ```sql
 -- Board: Kanban Board
-Board {
+board {
   id uuid PRIMARY KEY,
   user_id uuid REFERENCES auth.users,
   name text NOT NULL,
-  description text,
   is_favorite boolean DEFAULT false,  -- Favorite board
+  settings jsonb,                     -- Board-level settings (card display, etc.)
   created_at, updated_at
 }
 
 -- StatusList: Kanban Column (Grid layout support)
-StatusList {
+statuslist {
   id uuid PRIMARY KEY,
-  board_id uuid REFERENCES Board,
+  board_id uuid REFERENCES board,
   name text NOT NULL,
   color text,
   order integer,
@@ -589,40 +625,41 @@ StatusList {
 }
 
 -- RepoCard: GitHub Repository Card
-RepoCard {
+repocard {
   id uuid PRIMARY KEY,
-  board_id uuid REFERENCES Board,
-  status_list_id uuid REFERENCES StatusList,
+  board_id uuid REFERENCES board,
+  status_id uuid REFERENCES statuslist,
   repo_name text NOT NULL,
   repo_owner text NOT NULL,
   order integer,
+  meta jsonb,  -- GitHub API metadata cache (stars, language, etc.)
   created_at, updated_at
-  -- note moved to ProjectInfo
 }
 
 -- ProjectInfo: Extended Project Details
-ProjectInfo {
+projectinfo {
   id uuid PRIMARY KEY,
-  repo_card_id uuid REFERENCES RepoCard,
-  maintenance_id uuid REFERENCES Maintenance,  -- Maintenance link
+  repo_card_id uuid REFERENCES repocard (one-to-one),
+  maintenance_id uuid REFERENCES maintenance,  -- Maintenance link
   links jsonb,  -- {type, url, icon}[] - 55 built-in types
   note text,  -- Rich text (Plate Editor, max 20,000 chars)
   comment text,  -- Inline comment (max 2,000 chars)
-  comment_color text DEFAULT 'primary',  -- 8 colors
+  comment_color text DEFAULT 'primary',  -- 8 colors (per-comment)
   created_at, updated_at
 }
 
 -- UserLinkPresets: User-defined Link Types
-UserLinkPresets {
+user_link_presets {
   id uuid PRIMARY KEY,
   user_id uuid REFERENCES auth.users,
-  name text NOT NULL,
-  icon text NOT NULL,  -- Lucide icon name
+  label text NOT NULL,  -- Display label
+  value text NOT NULL,  -- Programmatic value
+  icon text,            -- Lucide icon name
   created_at, updated_at
 }
 
 -- Maintenance: Archived Repositories
-Maintenance {
+maintenance {
   id uuid PRIMARY KEY,
   user_id uuid REFERENCES auth.users,
   repo_owner text NOT NULL,
@@ -635,47 +672,47 @@ Maintenance {
 
 ```typescript
 // Settings Slice (Persistence: localStorage)
-Settings {
-  theme: ThemeName,              // 14 themes + system (global setting)
-  typography: { baseSize, scale },
-  compactMode: boolean,
-  showCardMetadata: boolean,
-  organizationFilter: string,    // AddRepositoryCombobox filter
-  sidebarCollapsed: boolean,     // Sidebar collapse state (default: false)
+interface SettingsState {
+  theme: ThemeType // 14 themes + system (ThemeId | 'system')
+  compactMode: boolean
+  showCardMetadata: boolean // Display stars, language, and last updated on cards
+  organizationFilter: string // AddRepositoryCombobox filter ('all' or org login)
+  sidebarCollapsed: boolean // Sidebar collapse state (default: false)
 }
 
-// Board Slice (Session)
-Board {
-  activeBoard: Board | null,
-  statusLists: StatusListDomain[],
-  repoCards: RepoCardForRedux[],
-  loading: boolean,
-  error: string | null,
-  lastDragOperation: DragOperation | null,  // For Undo
-  undoHistory: DragOperation[],             // Max 10 entries
+// Board Slice (Session — not persisted)
+interface BoardState {
+  activeBoard: SimplifiedBoard | null
+  statusLists: StatusListDomain[]
+  repoCards: RepoCardForRedux[]
+  loading: boolean
+  error: string | null
 }
 
 // Draft Slice (Persistence: localStorage)
-Draft {
-  [repoCardId]: { note: JSON, comment: string },  // Auto-save
+interface DraftState {
+  notes: Record<string, DraftNote> // Map of cardId -> DraftNote
 }
 
-// Auth Slice (Session)
-Auth {
-  isAuthenticated: boolean,
+interface DraftNote {
+  cardId: string
+  content: string // Rich text JSON string
+  links: ProjectLink[] // Draft links
+  lastModified: number // Timestamp
 }
 ```
 
 ### 6.3 RepoCard Meta (GitHub API)
 
 ```typescript
-// Fetched from GitHub API, not stored in DB
-RepoCardMeta {
-  stars: number,
-  updatedAt: string,
-  visibility: 'public' | 'private',
-  language: string | null,
-  topics: string[],
+// Fetched from GitHub API, cached in repocard.meta JSONB column
+interface RepoCardMeta {
+  stars?: number
+  updatedAt?: string
+  visibility?: 'public' | 'private'
+  language?: string
+  topics?: string[]
+  description?: string
 }
 ```
 
@@ -695,6 +732,14 @@ RepoCardMeta {
 - No delay displaying candidates with 100+ repositories
 - D&D/Undo operations work smoothly
 - Grid/List toggle reflects instantly with one click
+- Column width constrained (no expansion to fill available space)
+
+### 7.3 Code Quality
+
+- `noUncheckedIndexedAccess` enabled in tsconfig
+- Knip for dead code detection
+- ESLint with `react-you-might-not-need-an-effect` plugin
+- Storybook for component-level testing & visual review
 
 ---
 
@@ -719,19 +764,32 @@ RepoCardMeta {
 
 ## 9) Implementation Phases
 
-### Phase 1: Basic Features (MVP)
+### Phase 1: Basic Features (MVP) ✅
 
 - Board/Kanban basic features
 - GitHub OAuth & Repository addition
 - Project Info (Notes, Links)
 
-### Phase 2: Full Version
+### Phase 2: Full Version ✅
 
 - Complete Maintenance Mode implementation
 - 14 theme support (Light 7 + Dark 7)
 - Comment on RepoCard feature
 - Account management (profile, stats, deletion)
 - Favorites feature
+- Sidebar collapse
+
+### Phase 3: Polish & Infrastructure
+
+- Navigation progress bar
+- Error boundaries & loading states
+- Column width constraint
+- Dark theme neutral color fix (OKLCH CSS variables)
+- Hydration safety (useMounted pattern)
+- E2E migration to real Supabase DB
+- Dead code cleanup (Knip)
+- noUncheckedIndexedAccess strict typing
+- Maintenance repo filtering in Add Repository
 
 ---
 
@@ -755,9 +813,13 @@ Social media preview images and metadata.
 ```typescript
 // app/layout.tsx
 export const metadata: Metadata = {
-  title: 'GitBox - Organize Your GitHub Repositories',
-  description: 'PWA for managing GitHub repositories in Kanban format',
-  keywords: ['GitHub', 'Repository Manager', 'Kanban', 'PWA'],
+  title: {
+    default: 'GitBox - GitHub Repository Manager',
+    template: '%s | GitBox',
+  },
+  description: 'Manage GitHub repositories in Kanban board format',
+  applicationName: 'GitBox',
+  keywords: ['GitHub', 'Kanban', 'Repository', 'Project Management', 'Developer Tools'],
   openGraph: { ... },
   twitter: { card: 'summary_large_image', ... },
 }
@@ -765,18 +827,7 @@ export const metadata: Metadata = {
 
 #### PWA Manifest
 
-`public/manifest.json` enables PWA installation.
-
-```json
-{
-  "name": "GitBox",
-  "short_name": "GitBox",
-  "display": "standalone",
-  "start_url": "/",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
-}
-```
+`app/manifest.ts` enables PWA installation (dynamic manifest generation).
 
 ### 10.2 Hosting (Vercel)
 
@@ -815,6 +866,16 @@ Each Supabase project requires its own GitHub OAuth App:
 | GitHub OAuth App       | `gitbox-dev`                                                | `gitbox-prod`                                               |
 | Authorization callback | `https://jqtxjzdxczqwsrvevmyk.supabase.co/auth/v1/callback` | `https://mfeesjmtofgayktirswf.supabase.co/auth/v1/callback` |
 
+#### Local Supabase + GitHub OAuth Setup
+
+Supabase CLI reads environment variables from `src/supabase/.env` (NOT root `.env`):
+
+```bash
+# src/supabase/.env
+GITHUB_CLIENT_ID=your_client_id
+GITHUB_CLIENT_SECRET=your_client_secret
+```
+
 #### Redirect URLs (Supabase Auth)
 
 ```toml
@@ -830,7 +891,7 @@ additional_redirect_urls = [
 #### Migration Workflow
 
 1. Create migration: `supabase migration new <description>`
-2. Write SQL in `supabase/migrations/YYYYMMDDHHMMSS_<description>.sql`
+2. Write SQL in `src/supabase/migrations/YYYYMMDDHHMMSS_<description>.sql`
 3. Test on dev: `supabase link --project-ref jqtxjzdxczqwsrvevmyk` → `supabase db push --linked`
 4. Merge to `main` → Production deploys via GitHub Actions
 
@@ -1021,6 +1082,7 @@ Row 1: [   ] [   ] [ B ]   →     Row 1: [ A ] [   ] [   ]
 | Column: NewRowDropZone       | ✅ Added (6 test cases in `column-dnd.spec.ts`)                |
 | Column: ColumnInsertZone     | ✅ Added (5 test cases in `column-dnd.spec.ts`)                |
 | Column: Auto-Height          | ✅ Added (`e2e/kanban.spec.ts` - 6 tests)                      |
+| Column: Width constraint     | ✅ Added (`e2e/kanban-column-width.spec.ts` - 4 tests)         |
 
 ### 11.6 CDP Drag Helper List
 
@@ -1053,6 +1115,71 @@ export async function cdpColumnToInsertZone(page, columnId, row, col, options?)
 
 ---
 
+## 12) Testing Infrastructure
+
+### 12.1 Unit Tests
+
+- **Runner**: Vitest 4 + happy-dom
+- **Coverage**: @vitest/coverage-v8
+- **React Testing**: @testing-library/react + @testing-library/user-event
+
+### 12.2 E2E Tests (Hybrid Architecture)
+
+- **Runner**: Playwright 1.58
+- **Database**: Real local Supabase (not mocked)
+- **GitHub API**: MSW mocking (stability for external API)
+- **Auth**: Pre-authenticated via `e2e/auth.setup.ts`
+- **D&D**: CDP-based helpers (`e2e/helpers/cdp-drag.ts`)
+- **DB Reset**: `pnpm db:reset` via `e2e/global-setup.ts` before tests
+- **Workers**: 1 (for database state consistency)
+
+### 12.3 Storybook
+
+- **Version**: Storybook 10 (@storybook/nextjs-vite)
+- **Addons**: a11y, docs, vitest, chromatic
+- **MSW**: msw-storybook-addon for API mocking
+
+### 12.4 E2E Test Spec Files
+
+| Category    | File                                       | Description                 |
+| ----------- | ------------------------------------------ | --------------------------- |
+| Kanban D&D  | `kanban-dnd/card-dnd.spec.ts`              | Card drag & drop            |
+| Kanban D&D  | `kanban-dnd/column-dnd.spec.ts`            | Column drag & drop          |
+| Kanban      | `kanban-basic.spec.ts`                     | Basic kanban operations     |
+| Kanban      | `kanban-scroll.spec.ts`                    | Scroll behavior             |
+| Kanban      | `kanban-auto-height.spec.ts`               | Column auto-height          |
+| Kanban      | `kanban-column-width.spec.ts`              | Column width constraint     |
+| Kanban      | `kanban-column-edit.spec.ts`               | Column edit operations      |
+| Board       | `board-settings.spec.ts`                   | Board settings dialog       |
+| Board       | `board-settings-card-display.spec.ts`      | Card display settings       |
+| Board       | `create-board.spec.ts`                     | Board creation              |
+| Board       | `boards.spec.ts`                           | Board list                  |
+| Board       | `favorites.spec.ts`                        | Favorites feature           |
+| Repo        | `add-repository-combobox.spec.ts`          | Add repository combobox     |
+| Repo        | `add-repository-pagination.spec.ts`        | Repository pagination       |
+| Repo        | `repo-card-display.spec.ts`                | Card display                |
+| Repo        | `repo-card-description.spec.ts`            | Card description            |
+| Repo        | `remove-from-board.spec.ts`                | Remove card from board      |
+| Comment     | `comment-display.spec.ts`                  | Comment display             |
+| Comment     | `comment-inline-edit.spec.ts`              | Comment inline editing      |
+| Comment     | `comment-color-theme-independence.spec.ts` | Color theme independence    |
+| Note        | `note-modal.spec.ts`                       | Note modal (rich text)      |
+| Links       | `project-info-links.spec.ts`               | Project info links          |
+| Maintenance | `maintenance-back-to-board.spec.ts`        | Back to board               |
+| Maintenance | `maintenance-project-info.spec.ts`         | Maintenance project info    |
+| Settings    | `settings.spec.ts`                         | Settings page               |
+| Theme       | `sidebar-theme-toggle.spec.ts`             | Theme toggle                |
+| Theme       | `theme-persistence.spec.ts`                | Theme persistence           |
+| Sidebar     | `sidebar-collapse.spec.ts`                 | Sidebar collapse            |
+| SSR         | `ssr-hydration-board.spec.ts`              | SSR hydration (board)       |
+| Page        | `page-titles.spec.ts`                      | Page titles                 |
+| Unauth      | `landing.spec.ts`                          | Landing page                |
+| Unauth      | `login.spec.ts`                            | Login page                  |
+| Unauth      | `page-titles.spec.ts`                      | Unauthenticated page titles |
+| Unauth      | `ssr-hydration.spec.ts`                    | SSR hydration (unauth)      |
+
+---
+
 ## References
 
 - [Harmonizer - Evil Martians](https://harmonizer.evilmartians.com/)
@@ -1063,3 +1190,5 @@ export async function cdpColumnToInsertZone(page, columnId, row, col, options?)
 - [GitHub Docs - Projects](https://docs.github.com/en/issues/planning-and-tracking-with-projects/)
 - [Supabase Docs](https://supabase.com/docs/)
 - [Deque University - Color Contrast](https://dequeuniversity.com/rules/axe/4.8/color-contrast)
+- [nextjs-toploader](https://github.com/TheSGJ/nextjs-toploader)
+- [Plate.js](https://platejs.org/)
