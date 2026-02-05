@@ -115,6 +115,34 @@ supabase db reset
 
 **⚠️ Note:** Local and Production use **different** GitHub OAuth Apps due to different callback URLs.
 
+### Local Supabase + GitHub OAuth Setup
+
+**🔴 CRITICAL:** Supabase CLI reads environment variables from `src/supabase/.env`, NOT from root `.env`.
+
+1. **config.toml** (`src/supabase/config.toml`) must have:
+
+   ```toml
+   [auth.external.github]
+   enabled = true
+   client_id = "env(GITHUB_CLIENT_ID)"
+   secret = "env(GITHUB_CLIENT_SECRET)"
+   redirect_uri = "http://127.0.0.1:54321/auth/v1/callback"
+   ```
+
+2. **Create `src/supabase/.env`** with GitHub OAuth credentials:
+
+   ```bash
+   GITHUB_CLIENT_ID="your_client_id"
+   GITHUB_CLIENT_SECRET="your_client_secret"
+   ```
+
+3. **Restart Supabase** after adding/changing `.env`:
+   ```bash
+   supabase stop && supabase start
+   ```
+
+**⚠️ Note:** `src/supabase/.env` is gitignored. Each developer must create their own from the GitHub OAuth App settings.
+
 ### Production Migration Procedure
 
 **🔴 CRITICAL:** Never use Supabase Dashboard for production schema changes. Always use migrations.

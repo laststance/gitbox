@@ -73,10 +73,45 @@ When deploying to Vercel, the following are auto-injected:
 - `VERCEL_ENV` - Current deployment environment
 - `VERCEL_URL` - Deployment URL
 
-Start the dev server:
+### Local Supabase Setup
+
+**Prerequisites:** Docker Desktop running
 
 ```bash
+# Start local Supabase (applies migrations automatically)
 supabase start
+
+# Check status and credentials
+supabase status
+```
+
+**Local URLs:**
+
+- Studio: http://127.0.0.1:54323
+- API: http://127.0.0.1:54321
+
+### GitHub OAuth for Local Development
+
+Supabase CLI reads OAuth credentials from `src/supabase/.env` (not root `.env`).
+
+1. Create `src/supabase/.env`:
+
+```bash
+GITHUB_CLIENT_ID="your-github-oauth-client-id"
+GITHUB_CLIENT_SECRET="your-github-oauth-client-secret"
+```
+
+2. Configure GitHub OAuth App with callback URL: `http://127.0.0.1:54321/auth/v1/callback`
+
+3. Restart Supabase after adding/changing `.env`:
+
+```bash
+supabase stop && supabase start
+```
+
+### Start Development Server
+
+```bash
 pnpm dev
 ```
 
