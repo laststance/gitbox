@@ -2,7 +2,6 @@
  * Redux Toolkit Store Configuration
  *
  * Application-wide state management store
- * - authSlice: Authentication state
  * - boardSlice: Board state
  * - settingsSlice: Settings (theme, language)
  * - storageMiddleware: LocalStorage synchronization
@@ -17,14 +16,12 @@ import type { TypedUseSelectorHook } from 'react-redux'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { createStorageMiddleware } from '@laststance/redux-storage-middleware'
-import authReducer from './slices/authSlice'
 import boardReducer from './slices/boardSlice'
 import draftReducer from './slices/draftSlice'
 import settingsReducer from './slices/settingsSlice'
 
 // Combine all reducers
 const rootReducer = combineReducers({
-  auth: authReducer,
   board: boardReducer,
   draft: draftReducer,
   settings: settingsReducer,
