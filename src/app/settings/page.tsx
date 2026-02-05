@@ -3,7 +3,6 @@
  *
  * PRD: Settings screen
  * - Theme selection (14 themes)
- * - Typography settings
  * - Display settings
  */
 

@@ -297,37 +297,6 @@ export const SettingsClient = memo(function SettingsClient() {
           </CardContent>
         </Card>
 
-        {/* Typography Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Typography</CardTitle>
-            <CardDescription>
-              Adjust text size for better readability
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="font-size" className="mb-2 block">
-                  Base Font Size
-                </Label>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-muted-foreground">12px</span>
-                  <input
-                    type="range"
-                    id="font-size"
-                    min={12}
-                    max={20}
-                    defaultValue={16}
-                    className="flex-1"
-                  />
-                  <span className="text-sm text-muted-foreground">20px</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Actions */}
         <div className="flex justify-between pt-4">
           <Link href="/boards">
