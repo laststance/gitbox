@@ -9,13 +9,11 @@
  * Note: GitHub API calls use Server Actions (lib/actions/github.ts) instead of
  * RTK Query for security reasons (HTTP-only cookie token access).
  */
-
-/* eslint-disable import/order -- Workspace package @gitbox/* resolves differently in CI vs local environments */
+import { createStorageMiddleware } from '@laststance/redux-storage-middleware'
 import { combineReducers, configureStore } from '@reduxjs/toolkit'
 import type { TypedUseSelectorHook } from 'react-redux'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { createStorageMiddleware } from '@laststance/redux-storage-middleware'
 import boardReducer from './slices/boardSlice'
 import draftReducer from './slices/draftSlice'
 import settingsReducer from './slices/settingsSlice'
