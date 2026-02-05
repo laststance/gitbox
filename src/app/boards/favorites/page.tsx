@@ -26,11 +26,13 @@ export default async function FavoritesPage() {
   const supabase = await createClient()
 
   // Authentication check (also done in middleware, but double-check)
+  // IMPORTANT: Use getUser() not getSession() for secure server-side validation
+  // getSession() reads from cookies without verification, getUser() validates with Auth server
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     redirect('/')
   }
 
@@ -38,7 +40,7 @@ export default async function FavoritesPage() {
   const { data: boards, error } = (await supabase
     .from('board')
     .select('*')
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
     .eq('is_favorite', true)
     .order('updated_at', { ascending: false })) as {
     data: Tables<'board'>[] | null

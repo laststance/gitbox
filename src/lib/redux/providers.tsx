@@ -15,7 +15,7 @@ import { Provider } from 'react-redux'
 
 import { supabase } from '@/lib/supabase/client'
 
-import { setSession, setUser, setLoading } from './slices/authSlice'
+import { setUser, setLoading } from './slices/authSlice'
 import { store } from './store'
 
 /**
@@ -27,30 +27,31 @@ const AuthSync = memo(function AuthSync({
   children: React.ReactNode
 }): React.ReactNode {
   useEffect(() => {
-    // Get initial session
+    // Get initial user (use getUser() instead of getSession() for security)
+    // getSession() reads from cookies without verification, getUser() validates with Auth server
     const initSession = async () => {
       try {
         const {
-          data: { session },
+          data: { user },
           error,
-        } = await supabase.auth.getSession()
+        } = await supabase.auth.getUser()
         if (error) {
           Sentry.captureException(error, {
-            extra: { context: 'Get Supabase session' },
+            extra: { context: 'Get Supabase user' },
           })
           store.dispatch(setLoading(false))
           return
         }
 
-        if (session) {
-          store.dispatch(setSession(session))
-          store.dispatch(setUser(session.user))
+        if (user) {
+          store.dispatch(setUser(user))
+          store.dispatch(setLoading(false))
         } else {
           store.dispatch(setLoading(false))
         }
       } catch (err) {
         Sentry.captureException(err, {
-          extra: { context: 'Session initialization' },
+          extra: { context: 'User initialization' },
         })
         store.dispatch(setLoading(false))
       }
@@ -58,15 +59,14 @@ const AuthSync = memo(function AuthSync({
 
     initSession()
 
-    // Monitor session changes
+    // Monitor auth state changes
+    // Note: session from onAuthStateChange is from cookies, use session.user for UI sync only
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
-        store.dispatch(setSession(session))
         store.dispatch(setUser(session.user))
       } else {
-        store.dispatch(setSession(null))
         store.dispatch(setUser(null))
       }
     })
