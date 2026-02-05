@@ -110,7 +110,7 @@ describe('KanbanBoard Horizontal Scroll Tests', () => {
 
         if (gridContainer) {
           const style = gridContainer.getAttribute('style')
-          // Should have gridTemplateColumns with minmax(280px, 1fr)
+          // Should have gridTemplateColumns with minmax(280px, var(--column-width))
           expect(style).toContain('grid-template-columns')
         }
       })
@@ -247,22 +247,26 @@ describe('Horizontal Scroll Technical Requirements', () => {
   })
 
   describe('Grid Column Sizing', () => {
-    it('should use minmax(280px, 1fr) for flexible column sizing', () => {
-      // minmax(280px, 1fr) ensures:
+    it('should use minmax(280px, var(--column-width)) for constrained column sizing', () => {
+      // minmax(280px, var(--column-width)) ensures:
       // - Minimum width of 280px per column
-      // - Maximum width grows equally (1fr) when space available
-      const gridTemplatePattern = 'minmax(280px, 1fr)'
+      // - Maximum width constrained by CSS variable (320px) to prevent expansion
+      const gridTemplatePattern = 'minmax(280px, var(--column-width))'
       expect(gridTemplatePattern).toContain('280px')
-      expect(gridTemplatePattern).toContain('1fr')
+      expect(gridTemplatePattern).toContain('var(--column-width)')
     })
 
     it('should calculate grid template for N columns', () => {
       const generateGridTemplate = (cols: number): string => {
-        return `repeat(${cols}, minmax(280px, 1fr))`
+        return `repeat(${cols}, minmax(280px, var(--column-width)))`
       }
 
-      expect(generateGridTemplate(6)).toBe('repeat(6, minmax(280px, 1fr))')
-      expect(generateGridTemplate(10)).toBe('repeat(10, minmax(280px, 1fr))')
+      expect(generateGridTemplate(6)).toBe(
+        'repeat(6, minmax(280px, var(--column-width)))',
+      )
+      expect(generateGridTemplate(10)).toBe(
+        'repeat(10, minmax(280px, var(--column-width)))',
+      )
     })
   })
 
@@ -1468,7 +1472,7 @@ describe('KanbanBoard Multi-Row Layout', () => {
     // Verify 2 columns template
     const gridContainer = container.querySelector('.grid.gap-4.pb-4')
     const style = gridContainer?.getAttribute('style')
-    expect(style).toContain('repeat(2, minmax(280px, 1fr))')
+    expect(style).toContain('repeat(2, minmax(280px, var(--column-width))')
     expect(style).toContain('repeat(2, minmax(min-content, auto))')
   })
 })

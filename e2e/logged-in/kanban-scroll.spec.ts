@@ -105,7 +105,7 @@ test.describe('Kanban Board Horizontal Scroll', () => {
     // Verify grid has inline style with gridTemplateColumns
     expect(gridStyle).not.toBeNull()
     expect(gridStyle).toContain('grid-template-columns')
-    expect(gridStyle).toContain('minmax(280px, 1fr)')
+    expect(gridStyle).toContain('minmax(280px, var(--column-width))')
   })
 
   test('should allow adding new columns via Add Column button', async ({

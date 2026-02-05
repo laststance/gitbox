@@ -776,13 +776,14 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                 isMounted
                   ? {
                       // Add extra column when dragging to allow insertion at end
-                      gridTemplateColumns: `repeat(${gridDimensions.maxCol + 1 + (activeDragType === 'column' ? 1 : 0)}, minmax(280px, 1fr))`,
+                      gridTemplateColumns: `repeat(${gridDimensions.maxCol + 1 + (activeDragType === 'column' ? 1 : 0)}, minmax(280px, var(--column-width)))`,
                       // Use minmax(min-content, auto) for auto-height expansion (columns grow to fit cards)
                       gridTemplateRows: `repeat(${gridDimensions.maxRow + 1 + (activeDragType === 'column' ? 1 : 0)}, minmax(min-content, auto))`,
                     }
                   : {
                       // Stable initial styles for SSR hydration
-                      gridTemplateColumns: 'repeat(1, minmax(280px, 1fr))',
+                      gridTemplateColumns:
+                        'repeat(1, minmax(280px, var(--column-width)))',
                       gridTemplateRows: 'repeat(1, auto)',
                     }
               }
