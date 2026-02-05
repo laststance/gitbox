@@ -18,7 +18,7 @@ import { Toaster } from 'sonner'
 
 import { CommandPalette } from '@/components/CommandPalette/CommandPalette'
 import { ShortcutsHelp } from '@/components/ShortcutsHelp'
-import { Providers } from '@/lib/redux/providers'
+import { ReduxProvider } from '@/lib/redux/reduxProvider'
 import { isMSWEnabled } from '@/lib/utils/isMSWEnabled'
 import '@/styles/globals.css'
 
@@ -95,7 +95,7 @@ export default function RootLayout({
           shadow="0 0 10px oklch(0.696 0.17 162.48), 0 0 5px oklch(0.696 0.17 162.48)"
           zIndex={9999}
         />
-        <Providers>
+        <ReduxProvider>
           <MSWProvider>
             {children}
             <ShortcutsHelp />
@@ -103,7 +103,7 @@ export default function RootLayout({
             <Toaster richColors position="bottom-right" />
             <Analytics />
           </MSWProvider>
-        </Providers>
+        </ReduxProvider>
       </body>
     </html>
   )
