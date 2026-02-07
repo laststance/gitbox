@@ -5,7 +5,7 @@ import { initialize, mswLoader } from 'msw-storybook-addon'
 
 import { Provider as ReduxStoreProvider } from 'react-redux'
 import { store } from '@/lib/redux/store'
-import { handlers } from '../mocks/handlers/index'
+import { storybookHandlers } from '../mocks/handlers/index'
 import '@/styles/globals.css'
 
 // Theme constants (duplicated from lib/constants/themes.ts to avoid bundling issues)
@@ -58,7 +58,7 @@ initialize()
 
 const preview: Preview = {
   parameters: {
-    msw: { handlers: [...handlers] },
+    msw: { handlers: [...storybookHandlers] },
     controls: {
       matchers: {
         color: /(background|color)$/i,

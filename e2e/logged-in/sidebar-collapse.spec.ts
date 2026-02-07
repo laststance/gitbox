@@ -13,6 +13,7 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import { BOARD_IDS } from '../helpers/db-query'
 
 test.describe('Sidebar Collapse', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
@@ -150,7 +151,9 @@ test.describe('Sidebar Collapse', () => {
     await expect(sidebar).toHaveClass(/w-16/)
 
     // Click on a board link (client-side navigation via Next.js)
-    const boardLink = page.locator('a[href="/board/board-1"]').first()
+    const boardLink = page
+      .locator(`a[href="/board/${BOARD_IDS.testBoard}"]`)
+      .first()
     await boardLink.click()
     await page.waitForLoadState('networkidle')
     await page.waitForTimeout(500)
@@ -204,7 +207,7 @@ test.describe('Sidebar Collapse', () => {
 
   test('should work on board page', async ({ page }) => {
     // Navigate to a board page
-    await page.goto('/board/board-1')
+    await page.goto(`/board/${BOARD_IDS.testBoard}`)
     await page.waitForLoadState('networkidle')
     await page.waitForTimeout(500)
 

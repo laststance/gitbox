@@ -11,6 +11,7 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import { BOARD_IDS } from '../helpers/db-query'
 
 test.describe('Sidebar ThemeToggle', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
@@ -209,8 +210,8 @@ test.describe('Sidebar ThemeToggle', () => {
   test('theme toggle should work on individual board page', async ({
     page,
   }) => {
-    // Navigate to a board page (the MSW mock provides board-1)
-    await page.goto('/board/board-1')
+    // Navigate to a board page (test board)
+    await page.goto(`/board/${BOARD_IDS.testBoard}`)
     await page.waitForLoadState('networkidle')
     await page.waitForTimeout(1000)
 

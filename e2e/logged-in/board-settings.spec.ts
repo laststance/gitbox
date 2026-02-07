@@ -21,7 +21,7 @@ import { querySingle, BOARD_IDS } from '../helpers/db-query'
 test.describe('Board Settings Dialog (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   test.beforeEach(async ({ page }) => {
     await page.goto(BOARD_URL)

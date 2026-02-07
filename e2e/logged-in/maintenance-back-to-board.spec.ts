@@ -11,11 +11,12 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import { BOARD_IDS } from '../helpers/db-query'
 
 test.describe('Maintenance Page - Back to Board Navigation', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
   const MAINTENANCE_URL = '/maintenance'
 
   test('should not show Back to Board link when no board has been visited', async ({
@@ -129,7 +130,7 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
     await backLink.click()
 
     // Should navigate to the board page
-    await expect(page).toHaveURL(/\/board\/board-1/)
+    await expect(page).toHaveURL(new RegExp(BOARD_IDS.testBoard))
     await page.waitForLoadState('networkidle')
 
     // Board should be visible
@@ -148,10 +149,10 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
     const firstBoard = await page.evaluate(() => {
       return JSON.parse(localStorage.getItem('gitbox:lastVisitedBoard')!)
     })
-    expect(firstBoard.id).toBe('board-1')
+    expect(firstBoard.id).toBe(BOARD_IDS.testBoard)
 
-    // Visit second board (if available in MSW mock)
-    await page.goto('/board/board-2')
+    // Visit second board
+    await page.goto(`/board/${BOARD_IDS.workProjects}`)
     await page.waitForLoadState('networkidle')
     await expect(page.locator('main').first()).toBeVisible({ timeout: 10000 })
 
@@ -159,7 +160,7 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
     const secondBoard = await page.evaluate(() => {
       return JSON.parse(localStorage.getItem('gitbox:lastVisitedBoard')!)
     })
-    expect(secondBoard.id).toBe('board-2')
+    expect(secondBoard.id).toBe(BOARD_IDS.workProjects)
 
     // Navigate to maintenance and verify link goes to second board
     await page.goto(MAINTENANCE_URL)
@@ -174,7 +175,7 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
     await backLink.click()
 
     // Should navigate to second board
-    await expect(page).toHaveURL(/\/board\/board-2/)
+    await expect(page).toHaveURL(new RegExp(BOARD_IDS.workProjects))
   })
 
   test('should show shortened text on mobile viewport', async ({ page }) => {

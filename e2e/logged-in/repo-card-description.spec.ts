@@ -11,11 +11,12 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import { BOARD_IDS, CARD_IDS } from '../helpers/db-query'
 
 test.describe('RepoCard Description Persistence', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
   const FAVORITES_URL = '/boards/favorites'
 
   /**
@@ -159,7 +160,7 @@ test.describe('RepoCard Description Persistence', () => {
     expect(cardCount).toBeGreaterThan(0)
 
     // Verify card-1 (test-repo) has correct description
-    const card1 = page.locator('[data-testid="repo-card-card-1"]')
+    const card1 = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     const card1Visible = (await card1.count()) > 0
 
     if (card1Visible) {
@@ -171,7 +172,7 @@ test.describe('RepoCard Description Persistence', () => {
     }
 
     // Verify card-2 (another-repo) has correct description
-    const card2 = page.locator('[data-testid="repo-card-card-2"]')
+    const card2 = page.locator(`[data-testid="repo-card-${CARD_IDS.card2}"]`)
     const card2Visible = (await card2.count()) > 0
 
     if (card2Visible) {

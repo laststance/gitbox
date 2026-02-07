@@ -14,11 +14,21 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import {
+  BOARD_IDS,
+  CARD_IDS,
+  resetProjectInfoComments,
+} from '../helpers/db-query'
 
 test.describe('Comment Display on RepoCard (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
+
+  // Reset comments before each test to ensure clean state (real DB persists mutations)
+  test.beforeEach(async () => {
+    await resetProjectInfoComments()
+  })
 
   test('should display comments on RepoCards that have projectinfo.comment', async ({
     page,
@@ -37,14 +47,14 @@ test.describe('Comment Display on RepoCard (Authenticated)', () => {
 
     // card-1 has comment "npmリリース完了、当分は機能追加予定なし"
     const card1CommentDisplay = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
     )
     await expect(card1CommentDisplay).toBeVisible({ timeout: 10000 })
     await expect(card1CommentDisplay).toContainText('npmリリース完了')
 
     // card-2 has comment "プロトタイプ作ったけど微妙"
     const card2CommentDisplay = page.locator(
-      '[data-testid="repo-card-card-2"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card2}"] [data-testid="comment-display"]`,
     )
     await expect(card2CommentDisplay).toBeVisible({ timeout: 10000 })
     await expect(card2CommentDisplay).toContainText('プロトタイプ作ったけど')
@@ -67,7 +77,7 @@ test.describe('Comment Display on RepoCard (Authenticated)', () => {
 
     // card-3 has empty comment - should show empty state
     const card3EmptyState = page.locator(
-      '[data-testid="repo-card-card-3"] [data-testid="comment-empty-state"]',
+      `[data-testid="repo-card-${CARD_IDS.card3}"] [data-testid="comment-empty-state"]`,
     )
     await expect(card3EmptyState).toBeVisible({ timeout: 10000 })
     await expect(card3EmptyState).toContainText('Add comment')
@@ -88,7 +98,7 @@ test.describe('Comment Display on RepoCard (Authenticated)', () => {
 
     // Check that comment display has Card-in-Card styling (full fill + border)
     const commentDisplay = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
     )
     await expect(commentDisplay).toBeVisible({ timeout: 10000 })
 
@@ -113,7 +123,7 @@ test.describe('Comment Display on RepoCard (Authenticated)', () => {
 
     // Check that comment display contains the message square icon
     const commentDisplay = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
     )
     await expect(commentDisplay).toBeVisible({ timeout: 10000 })
 
@@ -139,7 +149,7 @@ test.describe('Comment Display on RepoCard (Authenticated)', () => {
 
     // card-2 has a longer comment
     const commentText = page.locator(
-      '[data-testid="repo-card-card-2"] [data-testid="comment-text"]',
+      `[data-testid="repo-card-${CARD_IDS.card2}"] [data-testid="comment-text"]`,
     )
     await expect(commentText).toBeVisible({ timeout: 10000 })
 
@@ -164,7 +174,7 @@ test.describe('Comment Display on RepoCard (Authenticated)', () => {
     })
 
     // card-5 has no projectinfo at all - should show empty state
-    const card5 = page.locator('[data-testid="repo-card-card-5"]')
+    const card5 = page.locator(`[data-testid="repo-card-${CARD_IDS.card5}"]`)
     if (await card5.isVisible()) {
       const emptyState = card5.locator('[data-testid="comment-empty-state"]')
       await expect(emptyState).toBeVisible({ timeout: 5000 })
@@ -189,20 +199,20 @@ test.describe('Comment Display on RepoCard (Authenticated)', () => {
     // Click on the empty state / comment area to enter edit mode
     // card-3 has empty comment - use it for testing
     const card3EmptyState = page.locator(
-      '[data-testid="repo-card-card-3"] [data-testid="comment-empty-state"]',
+      `[data-testid="repo-card-${CARD_IDS.card3}"] [data-testid="comment-empty-state"]`,
     )
     await expect(card3EmptyState).toBeVisible({ timeout: 10000 })
     await card3EmptyState.click()
 
     // Wait for inline edit to appear
     const inlineEdit = page.locator(
-      '[data-testid="repo-card-card-3"] [data-testid="comment-inline-edit"]',
+      `[data-testid="repo-card-${CARD_IDS.card3}"] [data-testid="comment-inline-edit"]`,
     )
     await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
     // Get the textarea
     const textarea = page.locator(
-      '[data-testid="repo-card-card-3"] [data-testid="comment-textarea"]',
+      `[data-testid="repo-card-${CARD_IDS.card3}"] [data-testid="comment-textarea"]`,
     )
     await expect(textarea).toBeVisible({ timeout: 5000 })
     await expect(textarea).toBeFocused()
@@ -241,20 +251,20 @@ test.describe('Comment Display on RepoCard (Authenticated)', () => {
     // Click on existing comment to enter edit mode
     // card-1 has a comment already
     const card1CommentDisplay = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
     )
     await expect(card1CommentDisplay).toBeVisible({ timeout: 10000 })
     await card1CommentDisplay.click()
 
     // Wait for inline edit to appear
     const inlineEdit = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-inline-edit"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-inline-edit"]`,
     )
     await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
     // Get the textarea
     const textarea = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-textarea"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-textarea"]`,
     )
     await expect(textarea).toBeVisible({ timeout: 5000 })
 

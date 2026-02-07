@@ -18,7 +18,11 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 // Local Supabase configuration
-const LOCAL_SUPABASE_URL = 'http://127.0.0.1:54321'
+// In parallel mode, each shard has its own PostgREST instance via nginx proxy.
+// The NEXT_PUBLIC_SUPABASE_URL env var points to the shard's proxy (e.g., http://127.0.0.1:54400).
+// In single-shard mode, falls back to main Supabase at port 54321.
+const LOCAL_SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'
 // Local Supabase anon key (from `supabase status`)
 // This is a well-known test key for local development
 const LOCAL_SUPABASE_ANON_KEY =
@@ -189,3 +193,146 @@ export const MAINTENANCE_IDS = {
 /** Maintenance project info UUID */
 export const MAINTENANCE_PROJECT_INFO_ID =
   '00000000-0000-0000-0000-000000000601'
+
+// ============================================================================
+// State Reset Helpers (for test isolation with real DB)
+// ============================================================================
+
+/**
+ * Reset all status list (column) positions to seed.sql initial values.
+ * Call this in beforeEach for DnD column tests to ensure clean state.
+ *
+ * @example
+ * test.beforeEach(async () => {
+ *   await resetStatusListPositions()
+ * })
+ */
+export async function resetStatusListPositions(): Promise<void> {
+  const supabase = createLocalSupabaseClient()
+
+  const seedPositions = [
+    { id: STATUS_IDS.pending, order: 0, grid_row: 0, grid_col: 0 },
+    { id: STATUS_IDS.planning, order: 1, grid_row: 0, grid_col: 1 },
+    { id: STATUS_IDS.focusDevelopment, order: 2, grid_row: 0, grid_col: 2 },
+    { id: STATUS_IDS.mvpRelease, order: 3, grid_row: 0, grid_col: 3 },
+    { id: STATUS_IDS.productionRelease, order: 4, grid_row: 0, grid_col: 4 },
+  ]
+
+  for (const pos of seedPositions) {
+    const { data, error } = await supabase
+      .from('statuslist')
+      .update({
+        order: pos.order,
+        grid_row: pos.grid_row,
+        grid_col: pos.grid_col,
+      })
+      .eq('id', pos.id)
+      .select('id')
+    if (error) {
+      throw new Error(`Failed to reset statuslist ${pos.id}: ${error.message}`)
+    }
+    if (!data || data.length === 0) {
+      throw new Error(
+        `resetStatusListPositions: UPDATE matched 0 rows for id=${pos.id}. ` +
+          `URL=${process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'}`,
+      )
+    }
+  }
+}
+
+/**
+ * Reset project info comments to seed.sql initial values.
+ * Call this in beforeEach for comment-related tests to ensure clean state.
+ *
+ * @example
+ * test.beforeEach(async () => {
+ *   await resetProjectInfoComments()
+ * })
+ */
+export async function resetProjectInfoComments(): Promise<void> {
+  const supabase = createLocalSupabaseClient()
+
+  const seedComments = [
+    {
+      id: PROJECT_INFO_IDS.projinfo1,
+      comment: 'npmリリース完了、当分は機能追加予定なし',
+      comment_color: 'primary',
+    },
+    {
+      id: PROJECT_INFO_IDS.projinfo2,
+      comment: 'プロトタイプ作ったけど微妙、差分表示エディタで苦戦中',
+      comment_color: 'primary',
+    },
+    { id: PROJECT_INFO_IDS.projinfo3, comment: '', comment_color: 'primary' },
+    {
+      id: PROJECT_INFO_IDS.projinfo4,
+      comment: 'v2.0リリース準備中',
+      comment_color: 'primary',
+    },
+  ]
+
+  for (const item of seedComments) {
+    const { data, error } = await supabase
+      .from('projectinfo')
+      .update({ comment: item.comment, comment_color: item.comment_color })
+      .eq('id', item.id)
+      .select('id, comment, comment_color')
+    if (error) {
+      throw new Error(
+        `Failed to reset projectinfo ${item.id}: ${error.message}`,
+      )
+    }
+    // Verify the update actually affected a row and returned correct data
+    if (!data || data.length === 0) {
+      throw new Error(
+        `resetProjectInfoComments: UPDATE matched 0 rows for id=${item.id}. ` +
+          `URL=${process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'}`,
+      )
+    }
+    const returned = data[0] as { comment: string; comment_color: string }
+    if (returned.comment !== item.comment) {
+      throw new Error(
+        `resetProjectInfoComments: UPDATE returned wrong comment for id=${item.id}. ` +
+          `Expected="${item.comment}" Got="${returned.comment}"`,
+      )
+    }
+  }
+}
+
+/**
+ * Reset all repo card positions to seed.sql initial values.
+ * Call this in beforeEach for DnD card tests to ensure clean state.
+ *
+ * @example
+ * test.beforeEach(async () => {
+ *   await resetCardPositions()
+ * })
+ */
+export async function resetCardPositions(): Promise<void> {
+  const supabase = createLocalSupabaseClient()
+
+  const seedPositions = [
+    { id: CARD_IDS.card1, status_id: STATUS_IDS.planning, order: 0 },
+    { id: CARD_IDS.card2, status_id: STATUS_IDS.focusDevelopment, order: 0 },
+    { id: CARD_IDS.card3, status_id: STATUS_IDS.pending, order: 0 },
+    { id: CARD_IDS.card4, status_id: STATUS_IDS.planning, order: 1 },
+    { id: CARD_IDS.card5, status_id: STATUS_IDS.planning, order: 2 },
+  ]
+
+  for (const pos of seedPositions) {
+    const { data, error } = await supabase
+      .from('repocard')
+      .update({ status_id: pos.status_id, order: pos.order })
+      .eq('id', pos.id)
+      .select('id')
+    if (error) {
+      throw new Error(`Failed to reset repocard ${pos.id}: ${error.message}`)
+    }
+    if (!data || data.length === 0) {
+      throw new Error(
+        `resetCardPositions: UPDATE matched 0 rows for id=${pos.id}. ` +
+          `URL=${process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'}`,
+      )
+    }
+  }
+}

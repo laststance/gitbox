@@ -11,11 +11,12 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import { BOARD_IDS } from './db-query'
 
 test.describe('CDP Drag Helper Integration', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   /**
    * Test that CDP session can be created and used.
@@ -31,7 +32,7 @@ test.describe('CDP Drag Helper Integration', () => {
       expression: 'window.location.href',
     })
 
-    expect(result.result.value).toContain('/board/board-1')
+    expect(result.result.value).toContain(`/board/${BOARD_IDS.testBoard}`)
 
     await client.detach()
   })

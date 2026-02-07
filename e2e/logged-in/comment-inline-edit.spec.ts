@@ -17,14 +17,22 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
-import { querySingle, PROJECT_INFO_IDS } from '../helpers/db-query'
+import {
+  querySingle,
+  PROJECT_INFO_IDS,
+  BOARD_IDS,
+  CARD_IDS,
+  resetProjectInfoComments,
+} from '../helpers/db-query'
 
 test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
+  // Reset comments before each test to ensure clean state (real DB persists mutations)
   test.beforeEach(async ({ page }) => {
+    await resetProjectInfoComments()
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
     // Wait for kanban board to load
@@ -38,39 +46,44 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
   test('should open edit mode when clicking on existing comment', async ({
     page,
   }) => {
-    // card-1 has comment "npmリリース完了、当分は機能追加予定なし"
+    // card-1 has comment - capture the displayed text before editing
     const card1CommentDisplay = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
     )
     await expect(card1CommentDisplay).toBeVisible({ timeout: 10000 })
+    const commentText = page.locator(
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-text"]`,
+    )
+    const displayedText = await commentText.textContent()
 
     // Click on comment to edit
     await card1CommentDisplay.click()
 
     // Should show inline edit textarea
     const inlineEdit = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-inline-edit"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-inline-edit"]`,
     )
     await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
-    // Should have textarea with existing comment
+    // Should have textarea pre-filled with the displayed comment
     const textarea = inlineEdit.locator('textarea')
     await expect(textarea).toBeVisible()
-    await expect(textarea).toHaveValue(
-      'npmリリース完了、当分は機能追加予定なし',
-    )
+    // The textarea value should match what was displayed on the card
+    const textareaValue = await textarea.inputValue()
+    expect(textareaValue).toBeTruthy()
+    expect(textareaValue).toBe(displayedText)
   })
 
   test('should display character counter in edit mode', async ({ page }) => {
     // card-1 has comment
     const card1CommentDisplay = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
     )
     await card1CommentDisplay.click()
 
     // Wait for inline edit to appear
     const inlineEdit = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-inline-edit"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-inline-edit"]`,
     )
     await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
@@ -85,15 +98,18 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
   test('should cancel edit and return to display mode on Escape key', async ({
     page,
   }) => {
-    // card-1 has comment
+    // card-1 has comment - capture the current text before editing
     const card1CommentDisplay = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
     )
+    await expect(card1CommentDisplay).toBeVisible({ timeout: 10000 })
+    const originalText = await card1CommentDisplay.textContent()
+
     await card1CommentDisplay.click()
 
     // Wait for inline edit
     const inlineEdit = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-inline-edit"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-inline-edit"]`,
     )
     await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
@@ -104,25 +120,23 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
     // Press Escape to cancel
     await textarea.press('Escape')
 
-    // Should return to display mode
+    // Should return to display mode with the original text preserved
     await expect(inlineEdit).not.toBeVisible({ timeout: 5000 })
     await expect(card1CommentDisplay).toBeVisible()
-
-    // Original comment should be preserved (not the modified one)
-    await expect(card1CommentDisplay).toContainText('npmリリース完了')
+    await expect(card1CommentDisplay).toHaveText(originalText!)
     await expect(card1CommentDisplay).not.toContainText('Modified comment')
   })
 
   test('should save comment on Enter key (without Shift)', async ({ page }) => {
     // card-1 has comment
     const card1CommentDisplay = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
     )
     await card1CommentDisplay.click()
 
     // Wait for inline edit
     const inlineEdit = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-inline-edit"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-inline-edit"]`,
     )
     await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
@@ -146,7 +160,7 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
   }) => {
     // card-3 has empty comment - should show empty state
     const card3EmptyState = page.locator(
-      '[data-testid="repo-card-card-3"] [data-testid="comment-empty-state"]',
+      `[data-testid="repo-card-${CARD_IDS.card3}"] [data-testid="comment-empty-state"]`,
     )
     await expect(card3EmptyState).toBeVisible({ timeout: 10000 })
 
@@ -155,7 +169,7 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
 
     // Should show inline edit
     const inlineEdit = page.locator(
-      '[data-testid="repo-card-card-3"] [data-testid="comment-inline-edit"]',
+      `[data-testid="repo-card-${CARD_IDS.card3}"] [data-testid="comment-inline-edit"]`,
     )
     await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
@@ -169,13 +183,13 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
   }) => {
     // card-1 has comment
     const card1CommentDisplay = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
     )
     await card1CommentDisplay.click()
 
     // Wait for inline edit
     const inlineEdit = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-inline-edit"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-inline-edit"]`,
     )
     await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
@@ -191,15 +205,18 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
   })
 
   test('should cancel edit when pressing Escape key', async ({ page }) => {
-    // card-1 has comment
+    // card-1 has comment - capture the current text before editing
     const card1CommentDisplay = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
     )
+    await expect(card1CommentDisplay).toBeVisible({ timeout: 10000 })
+    const originalText = await card1CommentDisplay.textContent()
+
     await card1CommentDisplay.click()
 
     // Wait for inline edit
     const inlineEdit = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-inline-edit"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-inline-edit"]`,
     )
     await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
@@ -210,22 +227,23 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
     // Press Escape to cancel (no cancel button in new design)
     await textarea.press('Escape')
 
-    // Should return to display mode with original comment
+    // Should return to display mode with the same text as before editing
     await expect(inlineEdit).not.toBeVisible({ timeout: 5000 })
     await expect(card1CommentDisplay).toBeVisible()
-    await expect(card1CommentDisplay).toContainText('npmリリース完了')
+    // Verify the original text is preserved (Escape cancels the edit)
+    await expect(card1CommentDisplay).toHaveText(originalText!)
   })
 
   test('should save comment when clicking Save button', async ({ page }) => {
     // card-1 has comment
     const card1CommentDisplay = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
     )
     await card1CommentDisplay.click()
 
     // Wait for inline edit
     const inlineEdit = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-inline-edit"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-inline-edit"]`,
     )
     await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
@@ -254,14 +272,14 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
 
     // Navigate to board
     const card1CommentDisplay = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
     )
     await expect(card1CommentDisplay).toBeVisible({ timeout: 10000 })
     await card1CommentDisplay.click()
 
     // Wait for inline edit
     const inlineEdit = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-inline-edit"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-inline-edit"]`,
     )
     await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
@@ -289,13 +307,13 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
   }) => {
     // card-1 has comment
     const card1CommentDisplay = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
     )
     await card1CommentDisplay.click()
 
     // Wait for inline edit
     const inlineEdit = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-inline-edit"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-inline-edit"]`,
     )
     await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
@@ -317,13 +335,13 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
   }) => {
     // card-1 has comment
     const card1CommentDisplay = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
     )
     await card1CommentDisplay.click()
 
     // Wait for inline edit
     const inlineEdit = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-inline-edit"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-inline-edit"]`,
     )
     await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
@@ -347,13 +365,13 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
   }) => {
     // card-1 has comment
     const card1CommentDisplay = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
     )
     await card1CommentDisplay.click()
 
     // Wait for inline edit
     const inlineEdit = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-inline-edit"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-inline-edit"]`,
     )
     await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
@@ -365,13 +383,13 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
   test('should allow multiline input with Shift+Enter', async ({ page }) => {
     // card-1 has comment
     const card1CommentDisplay = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
     )
     await card1CommentDisplay.click()
 
     // Wait for inline edit
     const inlineEdit = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-inline-edit"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-inline-edit"]`,
     )
     await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 

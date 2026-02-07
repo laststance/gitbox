@@ -1,21 +1,19 @@
 /**
  * MSW Mock Data Reset API Route
  *
- * This route allows E2E tests to reset the MSW mock data state between tests.
- * Only available in test mode (when MSW is enabled).
+ * Legacy endpoint kept for backward compatibility.
+ * With real DB E2E testing, mock data reset is no longer needed —
+ * each shard has its own isolated database.
  *
  * @example
- * // In Playwright test beforeEach:
  * await page.request.post('http://localhost:3008/__msw__/reset')
  */
 
 import { NextResponse } from 'next/server'
 
 import { isMSWEnabled } from '@/lib/utils/isMSWEnabled'
-import { resetMockData } from '@/mocks/handlers'
 
 export async function POST() {
-  // Only allow when MSW is enabled (test mode)
   if (!isMSWEnabled()) {
     return NextResponse.json(
       { success: false, error: 'Reset endpoint only available in test mode' },
@@ -23,10 +21,10 @@ export async function POST() {
     )
   }
 
-  resetMockData()
-
+  // No-op: With real DB per shard, mock data reset is unnecessary.
+  // Each E2E shard has its own isolated PostgreSQL database.
   return NextResponse.json({
     success: true,
-    message: 'Mock data reset to initial state',
+    message: 'No-op: using real database per shard',
   })
 }
