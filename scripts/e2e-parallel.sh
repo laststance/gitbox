@@ -153,9 +153,9 @@ PW_COMMON_ARGS=()
 if [ -n "$GREP_PATTERN" ]; then
   PW_COMMON_ARGS+=(--grep "$GREP_PATTERN")
 fi
-if [ ${#EXTRA_PW_ARGS[@]} -gt 0 ]; then
-  PW_COMMON_ARGS+=("${EXTRA_PW_ARGS[@]}")
-fi
+for arg in ${EXTRA_PW_ARGS[@]+"${EXTRA_PW_ARGS[@]}"}; do
+  PW_COMMON_ARGS+=("$arg")
+done
 
 for i in $(seq 1 "$SHARD_COUNT"); do
   port=$((BASE_PORT + i - 1))
@@ -178,18 +178,20 @@ done
 
 # ─── Step 9: Wait for all shards (fail-fast: false) ──────────
 SHARD_RESULTS=()
-FAILED_SHARDS=()
-PASSED_SHARDS=()
+PASSED_COUNT=0
+FAILED_COUNT=0
+FAILED_LIST=""
 
 for i in $(seq 1 "$SHARD_COUNT"); do
   idx=$((i - 1))
   pid="${SHARD_PIDS[$idx]}"
   if wait "$pid" 2>/dev/null; then
     SHARD_RESULTS+=("pass")
-    PASSED_SHARDS+=("$i")
+    PASSED_COUNT=$((PASSED_COUNT + 1))
   else
     SHARD_RESULTS+=("fail")
-    FAILED_SHARDS+=("$i")
+    FAILED_COUNT=$((FAILED_COUNT + 1))
+    FAILED_LIST="${FAILED_LIST:+$FAILED_LIST, }$i"
   fi
 done
 
@@ -232,13 +234,13 @@ for i in $(seq 1 "$SHARD_COUNT"); do
 done
 
 echo ""
-echo "  Passed: ${#PASSED_SHARDS[@]}/${SHARD_COUNT}"
-if [ ${#FAILED_SHARDS[@]} -gt 0 ]; then
-  echo "  Failed: ${#FAILED_SHARDS[@]} (shards: ${FAILED_SHARDS[*]})"
+echo "  Passed: ${PASSED_COUNT}/${SHARD_COUNT}"
+if [ "$FAILED_COUNT" -gt 0 ]; then
+  echo "  Failed: ${FAILED_COUNT} (shards: ${FAILED_LIST})"
 fi
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Exit with failure if any shard failed
-if [ ${#FAILED_SHARDS[@]} -gt 0 ]; then
+if [ "$FAILED_COUNT" -gt 0 ]; then
   exit 1
 fi

@@ -202,9 +202,15 @@ test.describe('10.2 Card Drag & Drop', () => {
       // Verify reorder completed successfully
       expect(newOrder.length).toBeGreaterThanOrEqual(2)
       expect(newOrder).toContain(dragCard)
-
-      // Verify the drag operation executed (all cards still present)
       expect(newOrder.length).toBe(initialOrder.length)
+
+      // Verify relative positions changed (dragCard was at [0], targetCard at [1])
+      const newDragIdx = newOrder.indexOf(dragCard)
+      const newTargetIdx = newOrder.indexOf(targetCard)
+      if (newDragIdx !== -1 && newTargetIdx !== -1) {
+        // After drag, the first card should now be after the second
+        expect(newDragIdx).toBeGreaterThan(newTargetIdx)
+      }
     })
   })
 
