@@ -153,7 +153,9 @@ PW_COMMON_ARGS=()
 if [ -n "$GREP_PATTERN" ]; then
   PW_COMMON_ARGS+=(--grep "$GREP_PATTERN")
 fi
-PW_COMMON_ARGS+=("${EXTRA_PW_ARGS[@]}")
+if [ ${#EXTRA_PW_ARGS[@]} -gt 0 ]; then
+  PW_COMMON_ARGS+=("${EXTRA_PW_ARGS[@]}")
+fi
 
 for i in $(seq 1 "$SHARD_COUNT"); do
   port=$((BASE_PORT + i - 1))
@@ -169,7 +171,7 @@ for i in $(seq 1 "$SHARD_COUNT"); do
   SUPABASE_SERVICE_ROLE_KEY="${LOCAL_SUPABASE_SERVICE_ROLE_KEY}" \
     pnpm exec playwright test \
       --shard="${i}/${SHARD_COUNT}" \
-      "${PW_COMMON_ARGS[@]}" \
+      ${PW_COMMON_ARGS[@]+"${PW_COMMON_ARGS[@]}"} \
       > "/tmp/e2e-shard-${i}.log" 2>&1 &
   SHARD_PIDS+=($!)
 done
