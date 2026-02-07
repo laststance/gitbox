@@ -12,6 +12,7 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import { BOARD_IDS } from '../helpers/db-query'
 
 /**
  * AddRepositoryCombobox E2E Tests - Existing Repo Filtering
@@ -24,12 +25,12 @@ import { test, expect } from '../fixtures/coverage'
 test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   /**
    * Verifies that repositories already on the board do NOT appear in the combobox
    *
-   * The MSW mock data has these repos on board-1:
+   * The seed data has these repos on the test board:
    * - testuser/test-repo (card-1)
    * - testuser/another-repo (card-2)
    * - laststance/create-react-app-vite (card-3)
@@ -214,7 +215,7 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
 test.describe('AddRepositoryCombobox - GITBOX-1 Fix', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   /**
    * GITBOX-1: TypeError when repo.owner is undefined with organization filter
@@ -416,7 +417,7 @@ test.describe('AddRepositoryCombobox - GITBOX-1 Fix', () => {
 test.describe('AddRepositoryCombobox - Optimistic Update', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   /**
    * Verifies that adding a repository shows the card immediately
@@ -597,7 +598,7 @@ test.describe('AddRepositoryCombobox - Optimistic Update', () => {
 test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   /**
    * Verifies that clicking "Add Repo" button in a column opens the combobox

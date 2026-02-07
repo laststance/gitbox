@@ -153,7 +153,7 @@ function sleep(ms: number): Promise<void> {
  *
  * @example
  * ```typescript
- * const coords = await getElementCenter(page, '[data-testid="sortable-column-1"]');
+ * const coords = await getElementCenter(page, '[data-testid="sortable-column-<uuid>"]');
  * // Returns: { x: 150, y: 200 }
  * ```
  */
@@ -185,7 +185,7 @@ async function getElementCenter(
  *
  * @example
  * ```typescript
- * const coords = await getColumnDragHandleCenter(page, '[data-testid="sortable-column-status-1"]');
+ * const coords = await getColumnDragHandleCenter(page, `[data-testid="sortable-column-${STATUS_IDS.pending}"]`);
  * ```
  */
 async function getColumnDragHandleCenter(
@@ -221,11 +221,11 @@ async function getColumnDragHandleCenter(
  *
  * @example
  * ```typescript
- * // Drag column 1 to column 3's position
+ * // Drag Pending column to Focus Development column's position
  * await cdpDragAndDrop(
  *   page,
- *   '[data-testid="sortable-column-status-1"]',
- *   '[data-testid="sortable-column-status-3"]',
+ *   `[data-testid="sortable-column-${STATUS_IDS.pending}"]`,
+ *   `[data-testid="sortable-column-${STATUS_IDS.focusDevelopment}"]`,
  *   { steps: 15, stepDelay: 30 }
  * );
  * ```
@@ -290,7 +290,7 @@ async function cdpDragAndDrop(
  * @example
  * ```typescript
  * // Drag "Pending" column to "Production Release" column's position
- * await cdpColumnDragAndDrop(page, 'status-1', 'status-5');
+ * await cdpColumnDragAndDrop(page, STATUS_IDS.pending, STATUS_IDS.productionRelease);
  * ```
  */
 export async function cdpColumnDragAndDrop(
@@ -363,8 +363,8 @@ export async function cdpColumnDragAndDrop(
  *
  * @example
  * ```typescript
- * // Move card-1 before card-3
- * await cdpCardDragAndDrop(page, 'card-1', 'card-3');
+ * // Move card1 before card3
+ * await cdpCardDragAndDrop(page, CARD_IDS.card1, CARD_IDS.card3);
  * ```
  */
 export async function cdpCardDragAndDrop(
@@ -418,8 +418,8 @@ export async function cdpCardDragAndDrop(
  *
  * @example
  * ```typescript
- * // Move card-1 to the "Production Release" column
- * await cdpCardToColumnDragAndDrop(page, 'card-1', 'status-5');
+ * // Move card1 to the "Production Release" column
+ * await cdpCardToColumnDragAndDrop(page, CARD_IDS.card1, STATUS_IDS.productionRelease);
  * ```
  */
 export async function cdpCardToColumnDragAndDrop(
@@ -492,7 +492,7 @@ export async function cdpCardToColumnDragAndDrop(
  * @example
  * ```typescript
  * // Move "Pending" column to a new second row
- * await cdpColumnToNewRowDragAndDrop(page, 'status-1', 1);
+ * await cdpColumnToNewRowDragAndDrop(page, STATUS_IDS.pending, 1);
  * ```
  */
 export async function cdpColumnToNewRowDragAndDrop(
@@ -607,9 +607,9 @@ export async function cdpColumnToNewRowDragAndDrop(
  * @example
  * ```typescript
  * // First create empty slot by moving a column to row 1
- * await cdpColumnToNewRowDragAndDrop(page, 'status-3', 1);
+ * await cdpColumnToNewRowDragAndDrop(page, STATUS_IDS.focusDevelopment, 1);
  * // Then insert another column into the empty slot
- * await cdpColumnToInsertZone(page, 'status-1', 0, 2);
+ * await cdpColumnToInsertZone(page, STATUS_IDS.pending, 0, 2);
  * ```
  */
 export async function cdpColumnToInsertZone(
@@ -726,7 +726,7 @@ export async function cdpColumnToInsertZone(
  * @example
  * ```typescript
  * // Move column to row 1, column 2
- * await cdpColumnToGridPosition(page, 'status-1', 1, 2);
+ * await cdpColumnToGridPosition(page, STATUS_IDS.pending, 1, 2);
  * ```
  */
 async function cdpColumnToGridPosition(

@@ -9,12 +9,12 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
-import { querySingle, STATUS_IDS } from '../helpers/db-query'
+import { querySingle, STATUS_IDS, BOARD_IDS } from '../helpers/db-query'
 
 test.describe('Kanban Board Column Edit Dialog', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   test('should allow typing "z" character in column name input', async ({
     page,

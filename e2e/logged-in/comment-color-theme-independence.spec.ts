@@ -14,13 +14,20 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import {
+  BOARD_IDS,
+  CARD_IDS,
+  resetProjectInfoComments,
+} from '../helpers/db-query'
 
 test.describe('Comment Color Theme Independence (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
+  // Reset comments before each test to ensure clean state (real DB persists mutations)
   test.beforeEach(async ({ page }) => {
+    await resetProjectInfoComments()
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
   })
@@ -35,7 +42,7 @@ test.describe('Comment Color Theme Independence (Authenticated)', () => {
 
     // card-1 has a comment - verify it uses neutral color styling
     const commentDisplay = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
     )
     await expect(commentDisplay).toBeVisible({ timeout: 10000 })
 
@@ -53,7 +60,7 @@ test.describe('Comment Color Theme Independence (Authenticated)', () => {
 
     // Get initial comment display state
     const commentDisplay = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
     )
     await expect(commentDisplay).toBeVisible({ timeout: 10000 })
 
@@ -103,7 +110,7 @@ test.describe('Comment Color Theme Independence (Authenticated)', () => {
     // Verify comment color remains consistent
     // For neutral color, the background should stay the same relative opacity
     const finalCommentDisplay = page.locator(
-      '[data-testid="repo-card-card-1"] [data-testid="comment-display"]',
+      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
     )
     await expect(finalCommentDisplay).toBeVisible()
 
@@ -122,7 +129,7 @@ test.describe('Comment Color Theme Independence (Authenticated)', () => {
 
     // card-3 has empty comment - verify empty state styling
     const card3EmptyState = page.locator(
-      '[data-testid="repo-card-card-3"] [data-testid="comment-empty-state"]',
+      `[data-testid="repo-card-${CARD_IDS.card3}"] [data-testid="comment-empty-state"]`,
     )
     await expect(card3EmptyState).toBeVisible({ timeout: 10000 })
 
@@ -138,7 +145,7 @@ test.describe('Comment Color Theme Independence (Authenticated)', () => {
     })
 
     // Find card-1 which has a comment
-    const card1 = page.locator('[data-testid="repo-card-card-1"]')
+    const card1 = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card1).toBeVisible({ timeout: 10000 })
 
     // Hover over comment to reveal actions menu

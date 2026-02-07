@@ -12,12 +12,12 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
-import { querySingle, CARD_IDS } from '../helpers/db-query'
+import { querySingle, CARD_IDS, BOARD_IDS } from '../helpers/db-query'
 
 test.describe('Remove from Board Feature', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   test('should display Remove from Board option in overflow menu', async ({
     page,
@@ -199,14 +199,14 @@ test.describe('Remove from Board Feature', () => {
 
     // Find the specific card's overflow menu
     const overflowMenuTrigger = page.locator(
-      `[data-testid="overflow-menu-trigger-card-5"]`,
+      `[data-testid="overflow-menu-trigger-${CARD_IDS.card5}"]`,
     )
     await expect(overflowMenuTrigger).toBeVisible({ timeout: 10000 })
     await overflowMenuTrigger.click()
 
     // Click Remove from Board
     const removeMenuItem = page.locator(
-      '[data-testid="remove-from-board-card-5"]',
+      `[data-testid="remove-from-board-${CARD_IDS.card5}"]`,
     )
     await removeMenuItem.click()
 
@@ -297,7 +297,7 @@ test.describe('Remove from Board Feature', () => {
 test.describe('Remove from Board - Keyboard Accessibility', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   test('should close confirmation dialog with Escape key', async ({ page }) => {
     await page.goto(BOARD_URL)

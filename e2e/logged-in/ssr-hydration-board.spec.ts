@@ -15,11 +15,12 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import { BOARD_IDS } from '../helpers/db-query'
 
 test.describe('SSR Hydration - Board Page (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   test('board page should not have hydration mismatch errors', async ({
     page,

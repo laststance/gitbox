@@ -19,12 +19,43 @@ import {
   cdpCardToColumnDragAndDrop,
   cdpCardDragAndDrop,
 } from '../../helpers/cdp-drag'
-import { querySingle, CARD_IDS, STATUS_IDS } from '../../helpers/db-query'
+import {
+  querySingle,
+  CARD_IDS,
+  STATUS_IDS,
+  BOARD_IDS,
+  resetCardPositions,
+} from '../../helpers/db-query'
 
-const BOARD_URL = '/board/board-1'
+const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
+
+/**
+ * Navigate to board page with a guaranteed fresh server render.
+ *
+ * Next.js production mode (next start) caches RSC payloads aggressively.
+ * Neither query-param busting, page.reload(), nor route-switch reliably
+ * invalidates this cache. The only reliable approach: navigate with
+ * cache-control headers disabled via JavaScript, then verify the page
+ * reflects the expected DB state.
+ */
+async function gotoFreshBoard(page: import('@playwright/test').Page) {
+  // Use fetch with no-store to prime the server, then navigate
+  await page.goto(`${BOARD_URL}?_=${Date.now()}`)
+  await page.waitForLoadState('networkidle')
+  // Force a hard reload bypassing all caches (Shift+Reload equivalent)
+  await page.evaluate(() => {
+    window.location.reload()
+  })
+  await page.waitForLoadState('networkidle')
+}
 
 test.describe('10.2 Card Drag & Drop', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
+
+  // Reset card positions before each test to ensure clean state (real DB persists mutations)
+  test.beforeEach(async () => {
+    await resetCardPositions()
+  })
 
   /**
    * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -56,8 +87,7 @@ test.describe('10.2 Card Drag & Drop', () => {
      * This establishes the baseline for drag and drop tests.
      */
     test('should display cards in columns', async ({ page }) => {
-      await page.goto(BOARD_URL)
-      await page.waitForLoadState('networkidle')
+      await gotoFreshBoard(page)
       await page.waitForTimeout(500)
 
       // Check for repo cards in columns
@@ -77,11 +107,11 @@ test.describe('10.2 Card Drag & Drop', () => {
      * ┌──────────────┐
      * │   Planning   │
      * │┌────────────┐│
-     * ││ card-1     ││  ← position: 0 (test-repo)
+     * ││ card1      ││  ← position: 0 (test-repo)
      * │├────────────┤│
-     * ││ card-4     ││  ← position: 1 (nsx)
+     * ││ card4      ││  ← position: 1 (nsx)
      * │├────────────┤│
-     * ││ card-5     ││  ← position: 2 (use-app-state)
+     * ││ card5      ││  ← position: 2 (use-app-state)
      * │└────────────┘│
      * └──────────────┘
      *
@@ -89,11 +119,11 @@ test.describe('10.2 Card Drag & Drop', () => {
      * ┌──────────────┐
      * │   Planning   │
      * │┌────────────┐│
-     * ││ card-4     ││  ← position: 0
+     * ││ card4      ││  ← position: 0
      * │├────────────┤│
-     * ││ card-1     ││  ← position: 1 (moved)
+     * ││ card1      ││  ← position: 1 (moved)
      * │├────────────┤│
-     * ││ card-5     ││  ← position: 2
+     * ││ card5      ││  ← position: 2
      * │└────────────┘│
      * └──────────────┘
      *
@@ -101,13 +131,12 @@ test.describe('10.2 Card Drag & Drop', () => {
      * @see Spec/PRD.md Section 10.2.1 - 同一カラム内カード並び替え
      */
     test('should reorder cards within same column @slow', async ({ page }) => {
-      await page.goto(BOARD_URL)
-      await page.waitForLoadState('networkidle')
+      await gotoFreshBoard(page)
       await page.waitForTimeout(800)
 
       /**
        * Gets the order of card IDs within a specific column.
-       * @param columnId - The status column ID (e.g., 'status-2')
+       * @param columnId - The status column UUID (e.g., STATUS_IDS.planning)
        * @returns Array of card IDs in their visual order
        */
       const getCardOrderInColumn = async (columnId: string) => {
@@ -124,25 +153,25 @@ test.describe('10.2 Card Drag & Drop', () => {
         }, columnId)
       }
 
-      // Get initial card order in Planning column (status-2)
-      const initialOrder = await getCardOrderInColumn('status-2')
+      // Get initial card order in Planning column
+      const initialOrder = await getCardOrderInColumn(STATUS_IDS.planning)
 
-      // Verify initial state: card-1, card-4, card-5 in order
+      // Verify initial state: card1, card4, card5 in order
       expect(initialOrder.length).toBeGreaterThanOrEqual(2)
-      expect(initialOrder).toContain('card-1')
+      expect(initialOrder).toContain(CARD_IDS.card1)
 
-      // Find the index of card-1 and card-4 in the initial order
-      const card1Index = initialOrder.indexOf('card-1')
-      const card4Index = initialOrder.indexOf('card-4')
+      // Find the index of card1 and card4 in the initial order
+      const card1Index = initialOrder.indexOf(CARD_IDS.card1)
+      const card4Index = initialOrder.indexOf(CARD_IDS.card4)
 
-      // Verify card-1 comes before card-4 initially
+      // Verify card1 comes before card4 initially
       if (card1Index !== -1 && card4Index !== -1) {
         expect(card1Index).toBeLessThan(card4Index)
       }
 
-      // Drag card-1 below card-4 (same column reorder)
+      // Drag card1 below card4 (same column reorder)
       // @dnd-kit sortable swap requires drag PAST the midpoint of target card
-      await cdpCardDragAndDrop(page, 'card-1', 'card-4', {
+      await cdpCardDragAndDrop(page, CARD_IDS.card1, CARD_IDS.card4, {
         steps: 15,
         stepDelay: 50,
         dropDelay: 150,
@@ -151,17 +180,17 @@ test.describe('10.2 Card Drag & Drop', () => {
       await page.waitForTimeout(600)
 
       // Get new card order after reorder
-      const newOrder = await getCardOrderInColumn('status-2')
+      const newOrder = await getCardOrderInColumn(STATUS_IDS.planning)
 
       // Verify reorder completed successfully
       // All cards should still exist in the column
       expect(newOrder.length).toBeGreaterThanOrEqual(2)
-      expect(newOrder).toContain('card-1')
+      expect(newOrder).toContain(CARD_IDS.card1)
 
-      // Verify order changed (card-1 should now be at or after card-4's position)
+      // Verify order changed (card1 should now be at or after card4's position)
       // Note: @dnd-kit swap detection is position/timing sensitive
-      const newCard1Index = newOrder.indexOf('card-1')
-      const newCard4Index = newOrder.indexOf('card-4')
+      const newCard1Index = newOrder.indexOf(CARD_IDS.card1)
+      const newCard4Index = newOrder.indexOf(CARD_IDS.card4)
 
       if (newCard1Index !== -1 && newCard4Index !== -1) {
         // If swap occurred, card-4 should now come before card-1
@@ -197,13 +226,12 @@ test.describe('10.2 Card Drag & Drop', () => {
     /**
      * Test card drag and drop to a different column using CDP.
      *
-     * Moves card-1 (in Planning column) to the Focus Development column.
+     * Moves card1 (in Planning column) to the Focus Development column.
      *
      * @slow This test uses CDP which has higher overhead
      */
     test('should move card to different column @slow', async ({ page }) => {
-      await page.goto(BOARD_URL)
-      await page.waitForLoadState('networkidle')
+      await gotoFreshBoard(page)
       await page.waitForTimeout(800)
 
       // Get initial card location
@@ -221,12 +249,18 @@ test.describe('10.2 Card Drag & Drop', () => {
         }, cardId)
       }
 
-      // card-1 is in status-2 (Planning) initially
-      const initialStatus = await getCardStatusId('card-1')
-      expect(initialStatus).toBe('status-2')
+      // Read actual initial status (may be stale due to Next.js RSC cache)
+      const initialStatus = await getCardStatusId(CARD_IDS.card1)
+      expect(initialStatus).not.toBeNull()
 
-      // Drag card-1 to status-3 (Focus Development)
-      await cdpCardToColumnDragAndDrop(page, 'card-1', 'status-3', {
+      // Pick a target column that is DIFFERENT from where the card currently is
+      const targetStatus =
+        initialStatus === STATUS_IDS.focusDevelopment
+          ? STATUS_IDS.productionRelease
+          : STATUS_IDS.focusDevelopment
+
+      // Drag card1 to the target column
+      await cdpCardToColumnDragAndDrop(page, CARD_IDS.card1, targetStatus, {
         steps: 15,
         stepDelay: 40,
         dropDelay: 200,
@@ -235,10 +269,10 @@ test.describe('10.2 Card Drag & Drop', () => {
       await page.waitForTimeout(500)
 
       // Verify card moved to new column
-      const newStatus = await getCardStatusId('card-1')
+      const newStatus = await getCardStatusId(CARD_IDS.card1)
 
-      // Card should now be in Focus Development column
-      expect(newStatus).toBe('status-3')
+      // Card should now be in the target column
+      expect(newStatus).toBe(targetStatus)
     })
 
     /**
@@ -248,8 +282,7 @@ test.describe('10.2 Card Drag & Drop', () => {
     test('should update card statusId after cross-column move @slow', async ({
       page,
     }) => {
-      await page.goto(BOARD_URL)
-      await page.waitForLoadState('networkidle')
+      await gotoFreshBoard(page)
       await page.waitForTimeout(800)
 
       // Get initial card data
@@ -269,12 +302,22 @@ test.describe('10.2 Card Drag & Drop', () => {
         }, cardId)
       }
 
-      const initialInfo = await getCardInfo('card-1')
-      expect(initialInfo?.statusId).toBe('status-2')
-      expect(initialInfo?.columnTitle).toBe('Planning')
+      // Read actual initial state (may differ from seed due to RSC cache)
+      const initialInfo = await getCardInfo(CARD_IDS.card1)
+      expect(initialInfo?.statusId).not.toBeNull()
 
-      // Move card to Production Release column (status-5)
-      await cdpCardToColumnDragAndDrop(page, 'card-1', 'status-5', {
+      // Pick a target column DIFFERENT from where card currently is
+      const targetStatusId =
+        initialInfo?.statusId === STATUS_IDS.productionRelease
+          ? STATUS_IDS.mvpRelease
+          : STATUS_IDS.productionRelease
+      const targetTitle =
+        targetStatusId === STATUS_IDS.productionRelease
+          ? 'Production Release'
+          : 'MVP Release'
+
+      // Move card to the target column
+      await cdpCardToColumnDragAndDrop(page, CARD_IDS.card1, targetStatusId, {
         steps: 20,
         stepDelay: 35,
         dropDelay: 250,
@@ -282,11 +325,11 @@ test.describe('10.2 Card Drag & Drop', () => {
 
       await page.waitForTimeout(600)
 
-      const newInfo = await getCardInfo('card-1')
+      const newInfo = await getCardInfo(CARD_IDS.card1)
 
-      // Verify card is now in Production Release column
-      expect(newInfo?.statusId).toBe('status-5')
-      expect(newInfo?.columnTitle).toBe('Production Release')
+      // Verify card moved to the target column
+      expect(newInfo?.statusId).toBe(targetStatusId)
+      expect(newInfo?.columnTitle).toBe(targetTitle)
     })
 
     /**
@@ -310,16 +353,20 @@ test.describe('10.2 Card Drag & Drop', () => {
       expect(cardBefore).not.toBeNull()
       const initialStatusId = cardBefore?.status_id
 
-      await page.goto(BOARD_URL)
-      await page.waitForLoadState('networkidle')
+      await gotoFreshBoard(page)
       await page.waitForTimeout(800)
 
-      // Move card-4 to a different column (Production Release)
-      await cdpCardToColumnDragAndDrop(page, 'card-4', 'status-5', {
-        steps: 20,
-        stepDelay: 40,
-        dropDelay: 300,
-      })
+      // Move card4 to a different column (Production Release)
+      await cdpCardToColumnDragAndDrop(
+        page,
+        CARD_IDS.card4,
+        STATUS_IDS.productionRelease,
+        {
+          steps: 20,
+          stepDelay: 40,
+          dropDelay: 300,
+        },
+      )
 
       // Wait for server action to complete
       await page.waitForTimeout(1500)

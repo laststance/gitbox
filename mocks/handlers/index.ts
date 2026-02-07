@@ -1,8 +1,9 @@
 /**
  * MSW Handlers Barrel Export
  *
- * Combines all API handlers and exports shared mock data.
- * Used by browser.ts and server.ts to set up MSW workers.
+ * Exports two handler sets:
+ * - `handlers`: GitHub API only (used by Next.js server.ts/browser.ts for E2E)
+ * - `storybookHandlers`: GitHub API + Supabase mocks (used by Storybook)
  *
  * @see https://mswjs.io/docs/concepts/request-handler
  */
@@ -11,7 +12,7 @@ import type { HttpHandler } from 'msw'
 import { githubApiHandlers } from './github'
 import { supabaseHandlers } from './supabase'
 
-// Re-export mock data utilities for tests/stories
+// Re-export mock data utilities for Storybook stories
 export { resetMockData } from './data'
 
 // Re-export individual handler groups for selective use
@@ -23,10 +24,19 @@ export {
 } from './supabase'
 
 /**
- * Combined array of all MSW request handlers
- * Used by Storybook and tests to mock API requests
+ * Handlers for Next.js (E2E + dev): GitHub API only
+ *
+ * Supabase calls go to real PostgREST via NEXT_PUBLIC_SUPABASE_URL.
+ * Auth is handled by server-side code proxy (APP_ENV=test).
  */
-export const handlers: HttpHandler[] = [
+export const handlers: HttpHandler[] = [...githubApiHandlers]
+
+/**
+ * Handlers for Storybook: GitHub API + Supabase mocks
+ *
+ * Storybook needs full mocking since there's no real backend.
+ */
+export const storybookHandlers: HttpHandler[] = [
   ...supabaseHandlers,
   ...githubApiHandlers,
 ]

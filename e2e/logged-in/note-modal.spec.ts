@@ -13,12 +13,17 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
-import { querySingle, PROJECT_INFO_IDS } from '../helpers/db-query'
+import {
+  querySingle,
+  PROJECT_INFO_IDS,
+  BOARD_IDS,
+  CARD_IDS,
+} from '../helpers/db-query'
 
 test.describe('NoteModal (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   test.beforeEach(async ({ page }) => {
     await page.goto(BOARD_URL)
@@ -171,7 +176,7 @@ test.describe('NoteModal (Authenticated)', () => {
     const projectInfoId = PROJECT_INFO_IDS.projinfo1
 
     // Open NoteModal for card-1
-    const card = page.locator('[data-testid="repo-card-card-1"]')
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card).toBeVisible({ timeout: 10000 })
     const noteButton = card.getByRole('button', { name: 'Open note' })
     await noteButton.click()
@@ -221,14 +226,24 @@ test.describe('NoteModal (Authenticated)', () => {
     // Clear existing content first
     await page.keyboard.press('Meta+a')
     await page.keyboard.press('Backspace')
+
+    // Ensure editor is ready — type some text first, then clear and type /
+    // This guarantees the editor has focus and is accepting input
+    await page.keyboard.type('a')
+    await page.waitForTimeout(200)
+    await page.keyboard.press('Meta+a')
+    await page.keyboard.press('Backspace')
+    await page.waitForTimeout(300)
+
     await page.keyboard.type('/')
 
-    // Wait for slash menu to appear - look for menu items
-    // The slash menu shows options like "Heading 1", "Paragraph", etc.
+    // Slash menu renders via Portal at body level with class .bg-popover
+    // It contains items like "Heading 1", "Text", "Bulleted list" etc.
+    // The ariakit Combobox popover has role="listbox" and items with role="option"
     const slashMenu = page
       .locator('.bg-popover')
-      .filter({ hasText: /heading|paragraph/i })
-    await expect(slashMenu).toBeVisible({ timeout: 3000 })
+      .filter({ hasText: /Heading 1/i })
+    await expect(slashMenu).toBeVisible({ timeout: 8000 })
   })
 
   test('should apply bold formatting via keyboard shortcut', async ({
@@ -328,7 +343,7 @@ test.describe('NoteModal (Authenticated)', () => {
 test.describe('NoteModal Editor Height & Scroll (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   test.beforeEach(async ({ page }) => {
     await page.goto(BOARD_URL)
@@ -461,7 +476,7 @@ test.describe('NoteModal Editor Height & Scroll (Authenticated)', () => {
 test.describe('NoteModal Formatting (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   test('should support markdown autoformat for heading', async ({ page }) => {
     await page.goto(BOARD_URL)

@@ -207,36 +207,28 @@ test.describe('Maintenance Comment Inline Edit (Authenticated)', () => {
       timeout: 10000,
     })
 
-    // Find clickable comment area (empty state or display)
-    const commentEmptyState = page.locator(
-      '[data-testid="comment-empty-state"]',
-    )
-    const commentDisplay = page.locator('[data-testid="comment-display"]')
+    // Scope to the card with empty comment (old-project from seed data)
+    // <Activity mode="hidden"> keeps CommentInlineEdit in DOM for ALL cards,
+    // so we must scope to the correct card to avoid finding a hidden instance
+    const card = page
+      .locator('.group')
+      .filter({ has: page.locator('h3', { hasText: 'old-project' }) })
 
-    const emptyCount = await commentEmptyState.count()
-    const displayCount = await commentDisplay.count()
+    const emptyState = card.locator('[data-testid="comment-empty-state"]')
+    const display = card.locator('[data-testid="comment-display"]')
+
+    const emptyCount = await emptyState.count()
+    const displayCount = await display.count()
 
     if (emptyCount > 0) {
-      // Click empty state to add comment
-      await commentEmptyState.first().click()
-
-      // Should show inline edit (use first() since multiple cards may exist)
-      const inlineEdit = page
-        .locator('[data-testid="comment-inline-edit"]')
-        .first()
+      await emptyState.click()
+      const inlineEdit = card.locator('[data-testid="comment-inline-edit"]')
       await expect(inlineEdit).toBeVisible({ timeout: 5000 })
-
-      // Should have textarea
       const textarea = inlineEdit.locator('textarea')
       await expect(textarea).toBeVisible()
     } else if (displayCount > 0) {
-      // Click existing comment to edit
-      await commentDisplay.first().click()
-
-      // Should show inline edit (use first() since multiple cards may exist)
-      const inlineEdit = page
-        .locator('[data-testid="comment-inline-edit"]')
-        .first()
+      await display.click()
+      const inlineEdit = card.locator('[data-testid="comment-inline-edit"]')
       await expect(inlineEdit).toBeVisible({ timeout: 5000 })
     }
   })
@@ -249,28 +241,26 @@ test.describe('Maintenance Comment Inline Edit (Authenticated)', () => {
       timeout: 10000,
     })
 
-    // Find and click comment area
-    const commentEmptyState = page.locator(
-      '[data-testid="comment-empty-state"]',
-    )
-    const commentDisplay = page.locator('[data-testid="comment-display"]')
+    // Scope to old-project card (has empty comment in seed data)
+    const card = page
+      .locator('.group')
+      .filter({ has: page.locator('h3', { hasText: 'old-project' }) })
 
-    const emptyCount = await commentEmptyState.count()
-    const displayCount = await commentDisplay.count()
+    const emptyState = card.locator('[data-testid="comment-empty-state"]')
+    const display = card.locator('[data-testid="comment-display"]')
+
+    const emptyCount = await emptyState.count()
+    const displayCount = await display.count()
 
     if (emptyCount > 0) {
-      await commentEmptyState.first().click()
+      await emptyState.click()
     } else if (displayCount > 0) {
-      await commentDisplay.first().click()
+      await display.click()
     } else {
-      // Skip if no comment area found
       return
     }
 
-    // Should show inline edit with character counter (use first() for multiple cards)
-    const inlineEdit = page
-      .locator('[data-testid="comment-inline-edit"]')
-      .first()
+    const inlineEdit = card.locator('[data-testid="comment-inline-edit"]')
     await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
     const counter = inlineEdit.locator('[data-testid="character-counter"]')
@@ -284,22 +274,20 @@ test.describe('Maintenance Comment Inline Edit (Authenticated)', () => {
       timeout: 10000,
     })
 
-    // Find and click comment area
-    const commentEmptyState = page.locator(
-      '[data-testid="comment-empty-state"]',
-    )
-    const emptyCount = await commentEmptyState.count()
+    // Scope to old-project card (has empty comment in seed data)
+    const card = page
+      .locator('.group')
+      .filter({ has: page.locator('h3', { hasText: 'old-project' }) })
+
+    const emptyState = card.locator('[data-testid="comment-empty-state"]')
+    const emptyCount = await emptyState.count()
 
     if (emptyCount > 0) {
-      await commentEmptyState.first().click()
+      await emptyState.click()
 
-      // Use first() since multiple cards may exist
-      const inlineEdit = page
-        .locator('[data-testid="comment-inline-edit"]')
-        .first()
+      const inlineEdit = card.locator('[data-testid="comment-inline-edit"]')
       await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
-      // Type comment and press Enter to save
       const textarea = inlineEdit.locator('textarea')
       const testComment = 'E2E test comment for maintenance'
       await textarea.fill(testComment)
@@ -308,9 +296,9 @@ test.describe('Maintenance Comment Inline Edit (Authenticated)', () => {
       // Should close inline edit
       await expect(inlineEdit).not.toBeVisible({ timeout: 5000 })
 
-      // Comment should be displayed
-      const commentDisplay = page.locator('[data-testid="comment-display"]')
-      await expect(commentDisplay.first()).toContainText(testComment)
+      // Comment should be displayed on this card
+      const commentDisplay = card.locator('[data-testid="comment-display"]')
+      await expect(commentDisplay).toContainText(testComment)
     }
   })
 
@@ -320,28 +308,27 @@ test.describe('Maintenance Comment Inline Edit (Authenticated)', () => {
       timeout: 10000,
     })
 
-    // Find and click comment area
-    const commentEmptyState = page.locator(
-      '[data-testid="comment-empty-state"]',
-    )
-    const emptyCount = await commentEmptyState.count()
+    // Scope to old-project card (has empty comment in seed data)
+    const card = page
+      .locator('.group')
+      .filter({ has: page.locator('h3', { hasText: 'old-project' }) })
+
+    const emptyState = card.locator('[data-testid="comment-empty-state"]')
+    const emptyCount = await emptyState.count()
 
     if (emptyCount > 0) {
-      await commentEmptyState.first().click()
+      await emptyState.click()
 
-      const inlineEdit = page
-        .locator('[data-testid="comment-inline-edit"]')
-        .first()
+      const inlineEdit = card.locator('[data-testid="comment-inline-edit"]')
       await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
-      // Type comment and press Escape to cancel
       const textarea = inlineEdit.locator('textarea')
       await textarea.fill('This should be cancelled')
       await textarea.press('Escape')
 
       // Should close inline edit and show empty state again
       await expect(inlineEdit).not.toBeVisible({ timeout: 5000 })
-      await expect(commentEmptyState.first()).toBeVisible()
+      await expect(emptyState).toBeVisible()
     }
   })
 })

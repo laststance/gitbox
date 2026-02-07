@@ -203,10 +203,10 @@ export async function createServerActionClient() {
  * Mock user for E2E testing when MSW is enabled
  */
 const MOCK_USER_FOR_E2E = {
-  id: 'test-user-id-12345',
+  id: '00000000-0000-0000-0000-000000000001',
   aud: 'authenticated',
   role: 'authenticated',
-  email: 'test@example.com',
+  email: 'test@gitbox.dev',
   email_confirmed_at: new Date().toISOString(),
   phone: '',
   confirmed_at: new Date().toISOString(),

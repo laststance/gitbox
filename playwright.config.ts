@@ -23,15 +23,25 @@ const LOCAL_SUPABASE_URL = 'http://127.0.0.1:54321'
 const LOCAL_SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
 
+/**
+ * Parallel mode configuration.
+ * When E2E_PARALLEL_MODE is set, the orchestrator script (scripts/e2e-parallel.sh)
+ * manages server lifecycle and DB reset externally. Each shard gets its own
+ * Next.js server on a unique port via E2E_SHARD_PORT.
+ */
+const isParallelMode = !!process.env.E2E_PARALLEL_MODE
+const shardPort = process.env.E2E_SHARD_PORT || '3008'
+
 export default defineConfig({
   testDir: './e2e',
 
   /**
    * Global setup: Reset database before all tests.
    * Global teardown: Clean up database after all tests.
+   * Disabled in parallel mode — the orchestrator handles DB reset once.
    */
-  globalSetup: './e2e/global-setup.ts',
-  globalTeardown: './e2e/global-teardown.ts',
+  globalSetup: isParallelMode ? undefined : './e2e/global-setup.ts',
+  globalTeardown: isParallelMode ? undefined : './e2e/global-teardown.ts',
 
   /**
    * Disable full parallel execution for database state consistency.
@@ -68,126 +78,135 @@ export default defineConfig({
    * `blob-report/` directory with test results that are merged by
    * `playwright merge-reports` in the merge-reports job.
    */
-  reporter: process.env.CI
+  reporter: isParallelMode
     ? [
-        ['blob'],
         [
-          'monocart-reporter',
+          'blob',
           {
-            name: 'GitBox E2E Coverage Report',
-            outputFile: './coverage-e2e/index.html',
-            coverage: {
-              reports: [
-                ['v8'],
-                ['html', { subdir: 'istanbul' }],
-                ['lcovonly', { file: 'lcov.info' }],
-                ['text-summary'],
-                ['json-summary', { file: 'coverage-summary.json' }],
-              ],
-              entryFilter: {
-                '**/node_modules/**': false,
-                '**/_next/static/chunks/webpack*': false,
-                '**/_next/static/chunks/polyfills*': false,
-                '**/_next/static/**': true,
-              },
-              sourceFilter: {
-                // Exclude: Server-side only code (E2E cannot trigger)
-                '**/lib/actions/**': false,
-                '**/lib/supabase/**': false,
-                '**/app/auth/callback/**': false,
-                '**/instrumentation*.ts': false,
-                '**/sentry.*.config.ts': false,
-                // Exclude: Test/dev infrastructure
-                '**/tests/**': false,
-                '**/mocks/**': false,
-                '**/*.spec.ts': false,
-                '**/*.test.ts': false,
-                '**/*.test.tsx': false,
-                '**/*.stories.tsx': false,
-                '**/.storybook/**': false,
-                // Exclude: Config & build
-                '**/*.config.ts': false,
-                '**/*.config.js': false,
-                '**/*.config.mjs': false,
-                '**/node_modules/**': false,
-                '**/.next/**': false,
-                // Include: Client code
-                '**/app/**': true,
-                '**/components/**': true,
-                '**/lib/**': true,
-                '**/packages/**': true,
-              },
-              sourcePath: (filePath: string) => {
-                return filePath
-                  .replace(/^webpack:\/\/gitbox\//, '')
-                  .replace(/^\.\//g, '')
-              },
-            },
+            outputDir: `./blob-report/shard-${process.env.SHARD_INDEX || '1'}`,
           },
         ],
       ]
-    : [
-        ['list'],
-        [
-          'monocart-reporter',
-          {
-            name: 'GitBox E2E Coverage Report',
-            outputFile: './coverage-e2e/index.html',
-            coverage: {
-              reports: [
-                ['v8'],
-                ['html', { subdir: 'istanbul' }],
-                ['lcovonly', { file: 'lcov.info' }],
-                ['text-summary'],
-                ['json-summary', { file: 'coverage-summary.json' }],
-              ],
-              entryFilter: {
-                '**/node_modules/**': false,
-                '**/_next/static/chunks/webpack*': false,
-                '**/_next/static/chunks/polyfills*': false,
-                '**/_next/static/**': true,
-              },
-              sourceFilter: {
-                // Exclude: Server-side only code (E2E cannot trigger)
-                '**/lib/actions/**': false,
-                '**/lib/supabase/**': false,
-                '**/app/auth/callback/**': false,
-                '**/instrumentation*.ts': false,
-                '**/sentry.*.config.ts': false,
-                // Exclude: Test/dev infrastructure
-                '**/tests/**': false,
-                '**/mocks/**': false,
-                '**/*.spec.ts': false,
-                '**/*.test.ts': false,
-                '**/*.test.tsx': false,
-                '**/*.stories.tsx': false,
-                '**/.storybook/**': false,
-                // Exclude: Config & build
-                '**/*.config.ts': false,
-                '**/*.config.js': false,
-                '**/*.config.mjs': false,
-                '**/node_modules/**': false,
-                '**/.next/**': false,
-                // Include: Client code
-                '**/app/**': true,
-                '**/components/**': true,
-                '**/lib/**': true,
-                '**/packages/**': true,
-              },
-              sourcePath: (filePath: string) => {
-                return filePath
-                  .replace(/^webpack:\/\/gitbox\//, '')
-                  .replace(/^\.\//g, '')
+    : process.env.CI
+      ? [
+          ['blob'],
+          [
+            'monocart-reporter',
+            {
+              name: 'GitBox E2E Coverage Report',
+              outputFile: './coverage-e2e/index.html',
+              coverage: {
+                reports: [
+                  ['v8'],
+                  ['html', { subdir: 'istanbul' }],
+                  ['lcovonly', { file: 'lcov.info' }],
+                  ['text-summary'],
+                  ['json-summary', { file: 'coverage-summary.json' }],
+                ],
+                entryFilter: {
+                  '**/node_modules/**': false,
+                  '**/_next/static/chunks/webpack*': false,
+                  '**/_next/static/chunks/polyfills*': false,
+                  '**/_next/static/**': true,
+                },
+                sourceFilter: {
+                  // Exclude: Server-side only code (E2E cannot trigger)
+                  '**/lib/actions/**': false,
+                  '**/lib/supabase/**': false,
+                  '**/app/auth/callback/**': false,
+                  '**/instrumentation*.ts': false,
+                  '**/sentry.*.config.ts': false,
+                  // Exclude: Test/dev infrastructure
+                  '**/tests/**': false,
+                  '**/mocks/**': false,
+                  '**/*.spec.ts': false,
+                  '**/*.test.ts': false,
+                  '**/*.test.tsx': false,
+                  '**/*.stories.tsx': false,
+                  '**/.storybook/**': false,
+                  // Exclude: Config & build
+                  '**/*.config.ts': false,
+                  '**/*.config.js': false,
+                  '**/*.config.mjs': false,
+                  '**/node_modules/**': false,
+                  '**/.next/**': false,
+                  // Include: Client code
+                  '**/app/**': true,
+                  '**/components/**': true,
+                  '**/lib/**': true,
+                  '**/packages/**': true,
+                },
+                sourcePath: (filePath: string) => {
+                  return filePath
+                    .replace(/^webpack:\/\/gitbox\//, '')
+                    .replace(/^\.\//g, '')
+                },
               },
             },
-          },
+          ],
+        ]
+      : [
+          ['list'],
+          [
+            'monocart-reporter',
+            {
+              name: 'GitBox E2E Coverage Report',
+              outputFile: './coverage-e2e/index.html',
+              coverage: {
+                reports: [
+                  ['v8'],
+                  ['html', { subdir: 'istanbul' }],
+                  ['lcovonly', { file: 'lcov.info' }],
+                  ['text-summary'],
+                  ['json-summary', { file: 'coverage-summary.json' }],
+                ],
+                entryFilter: {
+                  '**/node_modules/**': false,
+                  '**/_next/static/chunks/webpack*': false,
+                  '**/_next/static/chunks/polyfills*': false,
+                  '**/_next/static/**': true,
+                },
+                sourceFilter: {
+                  // Exclude: Server-side only code (E2E cannot trigger)
+                  '**/lib/actions/**': false,
+                  '**/lib/supabase/**': false,
+                  '**/app/auth/callback/**': false,
+                  '**/instrumentation*.ts': false,
+                  '**/sentry.*.config.ts': false,
+                  // Exclude: Test/dev infrastructure
+                  '**/tests/**': false,
+                  '**/mocks/**': false,
+                  '**/*.spec.ts': false,
+                  '**/*.test.ts': false,
+                  '**/*.test.tsx': false,
+                  '**/*.stories.tsx': false,
+                  '**/.storybook/**': false,
+                  // Exclude: Config & build
+                  '**/*.config.ts': false,
+                  '**/*.config.js': false,
+                  '**/*.config.mjs': false,
+                  '**/node_modules/**': false,
+                  '**/.next/**': false,
+                  // Include: Client code
+                  '**/app/**': true,
+                  '**/components/**': true,
+                  '**/lib/**': true,
+                  '**/packages/**': true,
+                },
+                sourcePath: (filePath: string) => {
+                  return filePath
+                    .replace(/^webpack:\/\/gitbox\//, '')
+                    .replace(/^\.\//g, '')
+                },
+              },
+            },
+          ],
         ],
-      ],
 
   timeout: 60000,
 
   use: {
-    baseURL: 'http://localhost:3008',
+    baseURL: `http://localhost:${shardPort}`,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -243,17 +262,21 @@ export default defineConfig({
    *
    * NOTE: reuseExistingServer is set to false to ALWAYS use a fresh server
    * with correct test environment variables.
+   *
+   * Disabled in parallel mode — the orchestrator manages servers externally.
    */
-  webServer: {
-    command: `pnpm build && pnpm start`,
-    url: 'http://localhost:3008',
-    reuseExistingServer: false,
-    timeout: 120000,
-    env: {
-      NEXT_PUBLIC_ENABLE_MSW_MOCK: 'true',
-      APP_ENV: 'test',
-      NEXT_PUBLIC_SUPABASE_URL: LOCAL_SUPABASE_URL,
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: LOCAL_SUPABASE_ANON_KEY,
-    },
-  },
+  webServer: isParallelMode
+    ? undefined
+    : {
+        command: `pnpm build && pnpm start`,
+        url: 'http://localhost:3008',
+        reuseExistingServer: false,
+        timeout: 120000,
+        env: {
+          NEXT_PUBLIC_ENABLE_MSW_MOCK: 'true',
+          APP_ENV: 'test',
+          NEXT_PUBLIC_SUPABASE_URL: LOCAL_SUPABASE_URL,
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: LOCAL_SUPABASE_ANON_KEY,
+        },
+      },
 })

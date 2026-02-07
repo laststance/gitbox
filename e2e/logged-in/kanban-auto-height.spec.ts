@@ -11,6 +11,7 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import { BOARD_IDS } from '../helpers/db-query'
 
 test.describe('Kanban Board Column Auto-Height', () => {
   // Use larger viewport to ensure columns have room to expand
@@ -19,7 +20,7 @@ test.describe('Kanban Board Column Auto-Height', () => {
     viewport: { width: 1920, height: 1200 },
   })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   test('should have KanbanBoard container without height constraints', async ({
     page,
@@ -199,7 +200,7 @@ test.describe('Kanban Board Column Auto-Height - Many Cards', () => {
     viewport: { width: 1920, height: 1200 },
   })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   test('should show all cards without internal column scrollbar', async ({
     page,

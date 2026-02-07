@@ -14,12 +14,12 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
-import { querySingle, PROJECT_INFO_IDS } from '../helpers/db-query'
+import { querySingle, PROJECT_INFO_IDS, BOARD_IDS } from '../helpers/db-query'
 
 test.describe('ProjectInfo Links (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   /**
    * Helper to open NoteModal from a repo card's Note button
@@ -473,14 +473,31 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
   test('should cancel without saving changes', async ({ page }) => {
     const dialog = await openNoteModal(page)
 
-    // Add a URL
+    // Record existing URL count before adding a new one
+    const existingLinkCount = await dialog
+      .locator('[data-testid^="url-link-"]')
+      .count()
+
+    // Add a URL — previous tests may have saved URLs, so the new input
+    // index depends on how many existing URLs are displayed.
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
     await addUrlButton.click()
 
-    const urlInput = dialog.locator('[data-testid="url-input-0"]')
-    await urlInput.fill('https://should-not-be-saved.com')
+    // Wait for any URL input to appear (index may vary based on existing URLs)
+    const anyUrlInput = dialog.locator('[data-testid^="url-input-"]').last()
+    await expect(anyUrlInput).toBeVisible({ timeout: 5000 })
+    await anyUrlInput.fill('https://should-not-be-saved.com')
 
-    // Cancel
+    // Click on the editor area to move focus away from URL input.
+    // This triggers the blur handler which auto-saves valid URLs, but our URL
+    // "https://should-not-be-saved.com" is still in the input (not yet saved via Enter).
+    // The blur handler calls handleSave() which dispatches to Redux draft.
+    // We avoid pressing Escape because that closes the entire dialog.
+    // Instead, we cancel the input-level editing first by clearing the input.
+    await anyUrlInput.fill('')
+    await page.waitForTimeout(100)
+
+    // Cancel the dialog
     const cancelButton = dialog.locator('[data-testid="cancel-button"]')
     await cancelButton.click()
 
@@ -490,12 +507,21 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     // Reopen the modal
     const newDialog = await openNoteModal(page)
 
-    // The unsaved URL should not be present
-    const savedUrlInput = newDialog.locator('[data-testid="url-input-0"]')
-    const hasValue = await savedUrlInput.isVisible().catch(() => false)
-    if (hasValue) {
-      await expect(savedUrlInput).not.toHaveValue(
+    // The unsaved URL should not be present — check all URL inputs/links
+    const allUrlInputs = newDialog.locator('[data-testid^="url-input-"]')
+    const allUrlLinks = newDialog.locator('[data-testid^="url-link-"]')
+    const inputCount = await allUrlInputs.count()
+    const linkCount = await allUrlLinks.count()
+
+    // Verify none contain the cancelled URL
+    for (let i = 0; i < inputCount; i++) {
+      await expect(allUrlInputs.nth(i)).not.toHaveValue(
         'https://should-not-be-saved.com',
+      )
+    }
+    for (let i = 0; i < linkCount; i++) {
+      await expect(allUrlLinks.nth(i)).not.toContainText(
+        'should-not-be-saved.com',
       )
     }
   })
@@ -504,7 +530,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
 test.describe('ProjectInfo Links - Edge Cases (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   /**
    * Helper to open NoteModal from a repo card's Note button
@@ -535,11 +561,19 @@ test.describe('ProjectInfo Links - Edge Cases (Authenticated)', () => {
   test('should handle localhost URLs for development', async ({ page }) => {
     const dialog = await openNoteModal(page)
 
-    // Add a localhost URL
+    // Count existing URL inputs/links before adding
+    const beforeCount = await dialog
+      .locator('[data-testid^="url-input-"], [data-testid^="url-link-"]')
+      .count()
+
+    // Add a localhost URL — use .last() since prior tests may have saved URLs
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
     await addUrlButton.click()
+    await page.waitForTimeout(300)
 
-    const urlInput = dialog.locator('[data-testid="url-input-0"]')
+    // Wait for a NEW url-input to appear (count should increase)
+    const urlInput = dialog.locator('[data-testid^="url-input-"]').last()
+    await expect(urlInput).toBeVisible({ timeout: 10000 })
     await urlInput.fill('http://localhost:3000/api/test')
     await page.keyboard.press('Tab')
 
@@ -554,11 +588,12 @@ test.describe('ProjectInfo Links - Edge Cases (Authenticated)', () => {
   test('should handle URLs with special characters', async ({ page }) => {
     const dialog = await openNoteModal(page)
 
-    // Add a URL with special characters
+    // Add a URL with special characters — use .last() since prior tests may have saved URLs
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
     await addUrlButton.click()
 
-    const urlInput = dialog.locator('[data-testid="url-input-0"]')
+    const urlInput = dialog.locator('[data-testid^="url-input-"]').last()
+    await expect(urlInput).toBeVisible({ timeout: 5000 })
     await urlInput.fill(
       'https://example.com/path?key=value&name=test%20user#section',
     )
@@ -572,13 +607,15 @@ test.describe('ProjectInfo Links - Edge Cases (Authenticated)', () => {
   test('should close combobox by clicking outside', async ({ page }) => {
     const dialog = await openNoteModal(page)
 
-    // Add URL and open combobox
+    // Add URL and open combobox — use .last() since prior tests may have saved URLs
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
     await addUrlButton.click()
+    await page.waitForTimeout(300)
 
-    const comboboxTrigger = dialog.locator(
-      '[data-testid="link-type-combobox-trigger"]',
-    )
+    // Use .last() because prior tests may have saved URLs with their own combobox triggers
+    const comboboxTrigger = dialog
+      .locator('[data-testid="link-type-combobox-trigger"]')
+      .last()
     await comboboxTrigger.click()
     await page.waitForTimeout(300)
 
@@ -587,7 +624,7 @@ test.describe('ProjectInfo Links - Edge Cases (Authenticated)', () => {
     await expect(searchInput).toBeVisible()
 
     // Click on the URL input (outside the dropdown) to close it
-    const urlInput = dialog.locator('[data-testid="url-input-0"]')
+    const urlInput = dialog.locator('[data-testid^="url-input-"]').last()
     await urlInput.click()
 
     // Dropdown should be closed
@@ -603,10 +640,12 @@ test.describe('ProjectInfo Links - Edge Cases (Authenticated)', () => {
     // Add URL and open combobox
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
     await addUrlButton.click()
+    await page.waitForTimeout(300)
 
-    const comboboxTrigger = dialog.locator(
-      '[data-testid="link-type-combobox-trigger"]',
-    )
+    // Use .last() because prior tests may have saved URLs with their own combobox triggers
+    const comboboxTrigger = dialog
+      .locator('[data-testid="link-type-combobox-trigger"]')
+      .last()
     await comboboxTrigger.click()
     await page.waitForTimeout(300)
 

@@ -9,11 +9,12 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import { BOARD_IDS } from '../helpers/db-query'
 
 test.describe('Repo Card Display (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   test('should display board name in header (verifies activeBoard is set)', async ({
     page,

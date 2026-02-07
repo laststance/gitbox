@@ -19,13 +19,20 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import {
+  BOARD_IDS,
+  CARD_IDS,
+  resetProjectInfoComments,
+} from '../helpers/db-query'
 
 test.describe('Board Settings Card Display (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
+  // Reset comments before each test to ensure clean state (real DB persists mutations)
   test.beforeEach(async ({ page }) => {
+    await resetProjectInfoComments()
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
   })
@@ -295,9 +302,11 @@ test.describe('Board Settings Card Display (Authenticated)', () => {
 test.describe('RepoCard Display Settings Reflection (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
-  const BOARD_URL = '/board/board-1'
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
+  // Reset comments before each test to ensure clean state (real DB persists mutations)
   test.beforeEach(async ({ page }) => {
+    await resetProjectInfoComments()
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
   })
@@ -311,7 +320,7 @@ test.describe('RepoCard Display Settings Reflection (Authenticated)', () => {
     })
 
     // Card-1 has comment "npmリリース完了、当分は機能追加予定なし" in mock data
-    const card1 = page.locator('[data-testid="repo-card-card-1"]')
+    const card1 = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card1).toBeVisible()
 
     // Comment should be visible (either display or empty state)
@@ -333,7 +342,7 @@ test.describe('RepoCard Display Settings Reflection (Authenticated)', () => {
     })
 
     // Card-1 has description "A test repository for GitBox" in mock data
-    const card1 = page.locator('[data-testid="repo-card-card-1"]')
+    const card1 = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card1).toBeVisible()
 
     // Description should be visible (GitHub description from meta.description)
@@ -349,7 +358,7 @@ test.describe('RepoCard Display Settings Reflection (Authenticated)', () => {
     })
 
     // Card-1 has comment in mock data
-    const card1 = page.locator('[data-testid="repo-card-card-1"]')
+    const card1 = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card1).toBeVisible()
 
     // Should show the actual comment text (Japanese text from mock data)
@@ -369,7 +378,7 @@ test.describe('RepoCard Display Settings Reflection (Authenticated)', () => {
     })
 
     // Card-3 has empty comment in mock data
-    const card3 = page.locator('[data-testid="repo-card-card-3"]')
+    const card3 = page.locator(`[data-testid="repo-card-${CARD_IDS.card3}"]`)
     await expect(card3).toBeVisible()
 
     // Should show empty state (add comment placeholder)
@@ -391,8 +400,8 @@ test.describe('RepoCard Display Settings Reflection (Authenticated)', () => {
     })
 
     // Verify multiple cards show repo names
-    const card1 = page.locator('[data-testid="repo-card-card-1"]')
-    const card2 = page.locator('[data-testid="repo-card-card-2"]')
+    const card1 = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
+    const card2 = page.locator(`[data-testid="repo-card-${CARD_IDS.card2}"]`)
 
     // Check repo names are visible
     await expect(card1.locator('[data-testid="repo-name"]')).toBeVisible()
@@ -416,7 +425,7 @@ test.describe('RepoCard Display Settings Reflection (Authenticated)', () => {
     })
 
     // Card-1 has a comment
-    const card1 = page.locator('[data-testid="repo-card-card-1"]')
+    const card1 = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card1).toBeVisible()
 
     const commentDisplay = card1.locator('[data-testid="comment-display"]')
