@@ -58,11 +58,11 @@ cleanup() {
   echo ""
   echo "🧹 Cleaning up..."
   # Kill all Next.js servers
-  for pid in "${SERVER_PIDS[@]}"; do
+  for pid in ${SERVER_PIDS[@]+"${SERVER_PIDS[@]}"}; do
     kill "$pid" 2>/dev/null || true
   done
   # Kill any remaining shard processes
-  for pid in "${SHARD_PIDS[@]}"; do
+  for pid in ${SHARD_PIDS[@]+"${SHARD_PIDS[@]}"}; do
     kill "$pid" 2>/dev/null || true
   done
   wait 2>/dev/null || true
