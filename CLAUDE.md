@@ -77,15 +77,20 @@ await supabase.from('Board').select('*') // ❌ Wrong
 
 **Prerequisites:** Docker Desktop running
 
+**🔴 CRITICAL:** Always use the npm scripts to start/stop Supabase. Running bare `supabase start` from the project root will NOT load GitHub OAuth credentials (the `env()` substitution in `config.toml` requires shell env vars from `src/supabase/.env`).
+
 ```bash
-# Start local Supabase (applies migrations automatically)
-supabase start
+# Start local Supabase (sources .env + applies migrations)
+pnpm db:start
 
 # Check status and get credentials
 supabase status
 
 # Stop when done
-supabase stop
+pnpm db:stop
+
+# Reset database
+pnpm db:reset
 ```
 
 **Local URLs:**
