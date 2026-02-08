@@ -7,11 +7,19 @@ import { test as setup } from './fixtures/coverage'
 export const AUTH_FILE = 'e2e/.auth/user.json'
 
 /**
- * Local Supabase project reference.
- * For local development, Supabase uses "gitbox" as project_id (from config.toml).
- * The cookie name format is: sb-{project-id}-auth-token
+ * Compute the Supabase auth cookie name from the Supabase URL.
+ *
+ * @supabase/supabase-js derives the storage key (= cookie name) as:
+ *   `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token`
+ *
+ * For local dev (http://127.0.0.1:54321), this becomes `sb-127-auth-token`.
+ * For production (https://xxx.supabase.co), it becomes `sb-xxx-auth-token`.
+ *
+ * @see node_modules/@supabase/supabase-js/dist/index.cjs line ~202
  */
-const SUPABASE_PROJECT_REF = 'gitbox'
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'
+const SUPABASE_AUTH_COOKIE_NAME = `sb-${new URL(SUPABASE_URL).hostname.split('.')[0]}-auth-token`
 
 /**
  * Test user data matching seed.sql.
@@ -29,18 +37,28 @@ const MOCK_USER = {
 }
 
 /**
- * Creates a mock Supabase session token.
- * This is a simplified session structure for testing purposes.
+ * Pre-computed JWT for E2E test mode.
  *
- * NOTE: This mock token allows UI testing (page rendering) but does NOT work
- * with real Supabase auth validation. Server actions that call supabase.auth.getUser()
- * will return an error. For full CRUD verification, a real Supabase session is needed.
+ * Signed with the well-known local Supabase JWT secret.
+ * Claims: iss=supabase-demo, role=authenticated,
+ *   sub=00000000-0000-0000-0000-000000000001, aud=authenticated, exp=2032
  *
- * @returns JSON string of mock session data (Supabase SSR expects JSON, not Base64)
+ * PostgREST validates this JWT and sets auth.uid() = sub claim for RLS.
+ */
+const E2E_TEST_JWT =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJzdWIiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxOTgzODEyOTk2fQ.iUckNAR3RMWPmn8smgOZr0NeDUzRLR0LOx_5V1ddQVs'
+
+/**
+ * Creates a mock Supabase session token with a valid JWT.
+ *
+ * The access_token is a real JWT that PostgREST can validate, enabling
+ * auth.uid() to return the mock user UUID for RLS policy evaluation.
+ *
+ * @returns JSON string of session data (Supabase SSR expects JSON, not Base64)
  */
 function createMockSupabaseSession(): string {
   const session = {
-    access_token: 'mock-access-token-for-testing',
+    access_token: E2E_TEST_JWT,
     token_type: 'bearer',
     expires_in: 3600,
     expires_at: Math.floor(Date.now() / 1000) + 3600,
@@ -78,10 +96,11 @@ setup('inject auth cookies', async ({ page }) => {
   await page.goto(baseURL)
 
   // Inject Supabase auth cookie
-  // Cookie name format: sb-{project-ref}-auth-token
+  // Cookie name must match the storageKey that @supabase/supabase-js computes
+  // from the Supabase URL: `sb-${hostname.split('.')[0]}-auth-token`
   await page.context().addCookies([
     {
-      name: `sb-${SUPABASE_PROJECT_REF}-auth-token`,
+      name: SUPABASE_AUTH_COOKIE_NAME,
       value: createMockSupabaseSession(),
       domain: 'localhost',
       path: '/',
@@ -92,11 +111,9 @@ setup('inject auth cookies', async ({ page }) => {
   ])
 
   // Inject GitHub provider token cookie
-  // Cookie name format: gh_token_{first 8 chars of project ref}
-  const projectRefPrefix = SUPABASE_PROJECT_REF.substring(0, 8)
   await page.context().addCookies([
     {
-      name: `gh_token_${projectRefPrefix}`,
+      name: 'gh_token_gitbox',
       value: 'mock-github-provider-token-for-testing',
       domain: 'localhost',
       path: '/',

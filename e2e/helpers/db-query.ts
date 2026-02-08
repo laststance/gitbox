@@ -23,19 +23,20 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 // In single-shard mode, falls back to main Supabase at port 54321.
 const LOCAL_SUPABASE_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'
-// Local Supabase anon key (from `supabase status`)
-// This is a well-known test key for local development
-const LOCAL_SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+// Local Supabase service_role key (from `supabase status`)
+// This is a well-known test key for local development.
+// service_role bypasses RLS, which is required for E2E setup/teardown helpers.
+const LOCAL_SUPABASE_SERVICE_ROLE_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
 
 /**
  * Create a Supabase client for direct database queries.
- * Uses local Supabase instance.
+ * Uses service_role key to bypass RLS for setup/teardown operations.
  *
- * @returns Supabase client configured for local instance
+ * @returns Supabase client configured for local instance with admin access
  */
 function createLocalSupabaseClient(): SupabaseClient {
-  return createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_ANON_KEY)
+  return createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_SERVICE_ROLE_KEY)
 }
 
 /**

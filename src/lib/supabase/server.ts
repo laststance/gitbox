@@ -23,6 +23,24 @@ const isE2ETestMode = () =>
   process.env.APP_ENV === 'test' || process.env.NODE_ENV === 'test'
 
 /**
+ * Pre-computed JWT for E2E test mode.
+ *
+ * Signed with the well-known local Supabase JWT secret:
+ *   "super-secret-jwt-token-with-at-least-32-characters-long"
+ *
+ * Claims: iss=supabase-demo, role=authenticated,
+ *   sub=00000000-0000-0000-0000-000000000001, aud=authenticated, exp=2032
+ *
+ * PostgREST validates this JWT and sets:
+ *   - role = 'authenticated' (PostgreSQL role switch)
+ *   - auth.uid() = sub claim (for RLS policy evaluation)
+ *
+ * @see https://supabase.com/docs/guides/database/postgres/row-level-security
+ */
+const E2E_TEST_JWT =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJzdWIiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxOTgzODEyOTk2fQ.iUckNAR3RMWPmn8smgOZr0NeDUzRLR0LOx_5V1ddQVs'
+
+/**
  * Create Supabase client for use in Server Components
  *
  * Uses getAll/setAll pattern required for PKCE flow support.
@@ -40,6 +58,7 @@ const isE2ETestMode = () =>
  */
 export async function createClient() {
   const cookieStore = await cookies()
+  const testMode = isE2ETestMode()
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -48,9 +67,29 @@ export async function createClient() {
       cookies: {
         /**
          * Get all cookies for PKCE flow support.
+         *
+         * In E2E test mode, replaces the mock access_token in the Supabase
+         * auth cookie with a valid JWT so PostgREST can set auth.uid() for RLS.
          */
         getAll() {
-          return cookieStore.getAll()
+          const allCookies = cookieStore.getAll()
+          if (!testMode) return allCookies
+
+          return allCookies.map((cookie) => {
+            if (
+              cookie.name.startsWith('sb-') &&
+              cookie.name.endsWith('-auth-token')
+            ) {
+              try {
+                const session = JSON.parse(cookie.value)
+                session.access_token = E2E_TEST_JWT
+                return { ...cookie, value: JSON.stringify(session) }
+              } catch {
+                return cookie
+              }
+            }
+            return cookie
+          })
         },
         /**
          * Set all cookies for PKCE flow support.
@@ -71,7 +110,6 @@ export async function createClient() {
   )
 
   // In E2E test mode, wrap auth methods to return mock data
-  const testMode = isE2ETestMode()
   if (testMode) {
     // Use a Proxy to intercept auth methods while preserving all other client functionality
     const mockedAuth = {
@@ -82,7 +120,7 @@ export async function createClient() {
       getSession: async () => ({
         data: {
           session: {
-            access_token: 'mock-access-token-for-testing',
+            access_token: E2E_TEST_JWT,
             token_type: 'bearer',
             expires_in: 3600,
             expires_at: Math.floor(Date.now() / 1000) + 3600,
