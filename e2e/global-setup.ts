@@ -11,8 +11,19 @@ import { execSync } from 'node:child_process'
 /**
  * Global setup function executed before all tests.
  * Resets the local Supabase database to ensure clean test state.
+ *
+ * In CI, the database is already reset by the workflow's "Start Supabase" step
+ * (`supabase db reset --local`), so we skip the redundant reset here.
+ * The `pnpm db:reset` script uses `source .env` which requires a local
+ * `.env` file that doesn't exist in CI.
  */
 export default async function globalSetup(): Promise<void> {
+  // CI already resets the database in the workflow step before running tests
+  if (process.env.CI) {
+    console.log('⏭️ Skipping db:reset in CI (already done by workflow)')
+    return
+  }
+
   console.log('🔄 Resetting local Supabase database...')
 
   try {
