@@ -118,18 +118,23 @@ setup() {
     db_exec psql -U "$PG_USER" \
       -d "$DB_NAME" -f /tmp/e2e-template.sql > /dev/null 2>&1
 
-    # Grant table permissions to anon role (pg_dump --no-privileges strips GRANTs)
-    # PostgREST uses anon role based on JWT claims from the Supabase anon key
-    # Also disable RLS on all tables so anon can UPDATE/DELETE without auth.uid()
+    # Grant table permissions to anon, authenticated, and service_role roles
+    # (pg_dump --no-privileges strips GRANTs)
+    # - anon: PostgREST default role
+    # - authenticated: PostgREST role when using JWT with role=authenticated
+    #   (test JWT sets auth.uid() for RLS policy evaluation)
+    # - service_role: bypasses RLS for E2E setup/teardown helpers (db-query.ts)
+    # RLS stays ENABLED — policies enforce access via auth.uid() from test JWT
     db_exec psql -U "$PG_USER" -d "$DB_NAME" -c "
       GRANT USAGE ON SCHEMA public TO anon;
+      GRANT USAGE ON SCHEMA public TO authenticated;
+      GRANT USAGE ON SCHEMA public TO service_role;
       GRANT ALL ON ALL TABLES IN SCHEMA public TO anon;
+      GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
+      GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
       GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon;
-      ALTER TABLE board DISABLE ROW LEVEL SECURITY;
-      ALTER TABLE statuslist DISABLE ROW LEVEL SECURITY;
-      ALTER TABLE repocard DISABLE ROW LEVEL SECURITY;
-      ALTER TABLE projectinfo DISABLE ROW LEVEL SECURITY;
-      ALTER TABLE maintenance DISABLE ROW LEVEL SECURITY;
+      GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+      GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
     " > /dev/null 2>&1
 
     # Start PostgREST container (internal only, no port mapping)
