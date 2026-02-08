@@ -42,7 +42,8 @@ CREATE POLICY "Users can create their own boards"
 
 CREATE POLICY "Users can update their own boards"
   ON board FOR UPDATE
-  USING ((select auth.uid()) = user_id);
+  USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can delete their own boards"
   ON board FOR DELETE
@@ -73,6 +74,13 @@ CREATE POLICY "Users can manage their board's status lists"
       WHERE board.id = statuslist.board_id
       AND board.user_id = (select auth.uid())
     )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM board
+      WHERE board.id = statuslist.board_id
+      AND board.user_id = (select auth.uid())
+    )
   );
 
 -- ============================================================================
@@ -95,6 +103,13 @@ CREATE POLICY "Users can view their board's repo cards"
 CREATE POLICY "Users can manage their board's repo cards"
   ON repocard FOR ALL
   USING (
+    EXISTS (
+      SELECT 1 FROM board
+      WHERE board.id = repocard.board_id
+      AND board.user_id = (select auth.uid())
+    )
+  )
+  WITH CHECK (
     EXISTS (
       SELECT 1 FROM board
       WHERE board.id = repocard.board_id
@@ -141,6 +156,20 @@ CREATE POLICY "Users can manage their project info"
       WHERE maintenance.id = projectinfo.maintenance_id
       AND maintenance.user_id = (select auth.uid())
     )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM repocard
+      JOIN board ON board.id = repocard.board_id
+      WHERE repocard.id = projectinfo.repo_card_id
+      AND board.user_id = (select auth.uid())
+    )
+    OR
+    EXISTS (
+      SELECT 1 FROM maintenance
+      WHERE maintenance.id = projectinfo.maintenance_id
+      AND maintenance.user_id = (select auth.uid())
+    )
   );
 
 -- ============================================================================
@@ -156,7 +185,8 @@ CREATE POLICY "Users can view their maintenance items"
 
 CREATE POLICY "Users can manage their maintenance items"
   ON maintenance FOR ALL
-  USING ((select auth.uid()) = user_id);
+  USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
 
 -- ============================================================================
 -- 7. user_link_presets Policies (optimize existing - already RLS enabled)
