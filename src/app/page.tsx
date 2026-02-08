@@ -159,28 +159,28 @@ const Navigation = () => {
   }
 
   return (
-    <header className="fixed top-0 w-full z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
-      <nav className="max-w-7xl mx-auto px-6 py-4">
+    <header className="border-border/50 bg-background/80 fixed top-0 z-50 w-full border-b backdrop-blur-md">
+      <nav className="mx-auto max-w-7xl px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Columns3 className="h-5 w-5 text-primary-foreground" />
+            <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
+              <Columns3 className="text-primary-foreground h-5 w-5" />
             </div>
-            <span className="text-xl font-semibold text-foreground">
+            <span className="text-foreground text-xl font-semibold">
               GitBox
             </span>
           </div>
 
-          <div className="hidden md:flex items-center justify-center gap-8 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <div className="absolute top-1/2 left-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-8 md:flex">
             <a
               href="#features"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="text-muted-foreground hover:text-foreground text-sm transition-colors"
             >
               Features
             </a>
             <a
               href="#how-it-works"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="text-muted-foreground hover:text-foreground text-sm transition-colors"
             >
               How It Works
             </a>
@@ -188,23 +188,23 @@ const Navigation = () => {
               href="https://github.com/laststance/gitbox"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+              className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm transition-colors"
             >
               GitHub
               <ExternalLink className="h-3 w-3" />
             </a>
           </div>
 
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden items-center gap-4 md:flex">
             <Button variant="github" size="default" onClick={handleSignIn}>
-              <Github className="h-4 w-4 mr-2" />
+              <Github className="mr-2 h-4 w-4" />
               Sign in with GitHub
             </Button>
           </div>
 
           <button
             type="button"
-            className="md:hidden text-foreground min-w-11 min-h-11 flex items-center justify-center"
+            className="text-foreground flex min-h-11 min-w-11 items-center justify-center md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -214,17 +214,17 @@ const Navigation = () => {
       </nav>
 
       {mobileMenuOpen && (
-        <div className="md:hidden bg-background/95 backdrop-blur-md border-t border-border/50">
-          <div className="px-6 py-4 flex flex-col gap-4">
+        <div className="bg-background/95 border-border/50 border-t backdrop-blur-md md:hidden">
+          <div className="flex flex-col gap-4 px-6 py-4">
             <a
               href="#features"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+              className="text-muted-foreground hover:text-foreground py-2 text-sm transition-colors"
             >
               Features
             </a>
             <a
               href="#how-it-works"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+              className="text-muted-foreground hover:text-foreground py-2 text-sm transition-colors"
             >
               How It Works
             </a>
@@ -232,19 +232,19 @@ const Navigation = () => {
               href="https://github.com/laststance/gitbox"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2 flex items-center gap-1"
+              className="text-muted-foreground hover:text-foreground flex items-center gap-1 py-2 text-sm transition-colors"
             >
               GitHub
               <ExternalLink className="h-3 w-3" />
             </a>
-            <div className="pt-4 border-t border-border/50">
+            <div className="border-border/50 border-t pt-4">
               <Button
                 variant="github"
                 size="default"
                 className="w-full"
                 onClick={handleSignIn}
               >
-                <Github className="h-4 w-4 mr-2" />
+                <Github className="mr-2 h-4 w-4" />
                 Sign in with GitHub
               </Button>
             </div>
@@ -624,18 +624,18 @@ const KanbanPreview = () => {
   }
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto mt-16">
+    <div className="relative mx-auto mt-16 w-full max-w-4xl">
       {/* Browser chrome */}
-      <div className="rounded-xl border border-border/50 bg-background/50 backdrop-blur-sm shadow-2xl overflow-hidden">
+      <div className="border-border/50 bg-background/50 overflow-hidden rounded-xl border shadow-2xl backdrop-blur-sm">
         {/* Title bar */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-muted/30">
+        <div className="border-border/50 bg-muted/30 flex items-center gap-2 border-b px-4 py-3">
           <div className="flex gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-red-500/70" />
-            <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
-            <div className="w-3 h-3 rounded-full bg-green-500/70" />
+            <div className="h-3 w-3 rounded-full bg-red-500/70" />
+            <div className="h-3 w-3 rounded-full bg-yellow-500/70" />
+            <div className="h-3 w-3 rounded-full bg-green-500/70" />
           </div>
           <div className="flex-1 text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-1 rounded-md bg-muted/50 text-xs text-muted-foreground">
+            <div className="bg-muted/50 text-muted-foreground inline-flex items-center gap-2 rounded-md px-4 py-1 text-xs">
               <Columns3 className="h-3 w-3" />
               My Projects Board
             </div>
@@ -643,7 +643,7 @@ const KanbanPreview = () => {
         </div>
 
         {/* Kanban board - 4 columns layout */}
-        <div className="p-6 grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-4 gap-4 p-6">
           {columns.map((column, idx) => (
             <div
               key={column.id}
@@ -665,22 +665,22 @@ const KanbanPreview = () => {
                 }
               }}
               className={cn(
-                'p-3 rounded-lg border transition-all duration-200',
+                'rounded-lg border p-3 transition-all duration-200',
                 // Empty placeholder column styling
                 column.id.startsWith('empty-')
-                  ? 'border-dashed border-border/30 bg-transparent'
-                  : 'border-border/40 shadow-sm bg-muted/20',
+                  ? 'border-border/30 border-dashed bg-transparent'
+                  : 'border-border/40 bg-muted/20 shadow-sm',
                 // Card drop highlight
                 dragOverColumn === column.id &&
                   !draggedColumnId &&
                   'border-primary/50 bg-primary/5 shadow-md',
                 // Column being dragged
-                draggedColumnId === column.id && 'opacity-50 scale-[0.98]',
+                draggedColumnId === column.id && 'scale-[0.98] opacity-50',
                 // Column drop target indicator
                 dragOverColumnIndex === idx &&
                   draggedColumnId &&
                   draggedColumnId !== column.id &&
-                  'ring-2 ring-primary ring-offset-2 ring-offset-background',
+                  'ring-primary ring-offset-background ring-2 ring-offset-2',
               )}
               style={{
                 animation: `fadeInUp 0.5s ease-out ${idx * 0.08}s forwards`,
@@ -691,7 +691,7 @@ const KanbanPreview = () => {
               {/* Column header - draggable handle */}
               <div
                 className={cn(
-                  'flex items-center justify-between cursor-grab active:cursor-grabbing',
+                  'flex cursor-grab items-center justify-between active:cursor-grabbing',
                   column.id.startsWith('empty-')
                     ? 'mb-0 justify-center'
                     : 'mb-3',
@@ -700,11 +700,11 @@ const KanbanPreview = () => {
                 {column.id.startsWith('empty-') ? null : (
                   // Regular column - show title and count
                   <>
-                    <span className="text-xs font-medium text-muted-foreground">
+                    <span className="text-muted-foreground text-xs font-medium">
                       {column.title}
                     </span>
                     <span
-                      className="text-xs text-muted-foreground/60"
+                      className="text-muted-foreground/60 text-xs"
                       data-testid={`column-count-${column.id}`}
                     >
                       {column.cards.length}
@@ -714,7 +714,7 @@ const KanbanPreview = () => {
               </div>
               {/* Cards container - hidden for empty placeholder columns */}
               {!column.id.startsWith('empty-') && (
-                <div className="space-y-2 min-h-15">
+                <div className="min-h-15 space-y-2">
                   {column.cards.map((card, cardIdx) => (
                     <div
                       key={card.id}
@@ -726,8 +726,8 @@ const KanbanPreview = () => {
                       }}
                       onDragEnd={handleCardDragEnd}
                       className={cn(
-                        'p-3 rounded-lg border transition-all duration-200',
-                        'hover:scale-[1.02] hover:shadow-md cursor-grab active:cursor-grabbing',
+                        'rounded-lg border p-3 transition-all duration-200',
+                        'cursor-grab hover:scale-[1.02] hover:shadow-md active:cursor-grabbing',
                         card.color,
                         draggedCard?.id === card.id && 'opacity-50',
                       )}
@@ -736,7 +736,7 @@ const KanbanPreview = () => {
                         opacity: 0,
                       }}
                     >
-                      <span className="text-xs font-medium text-foreground">
+                      <span className="text-foreground text-xs font-medium">
                         {card.name}
                       </span>
                     </div>
@@ -749,7 +749,7 @@ const KanbanPreview = () => {
       </div>
 
       {/* Decorative elements */}
-      <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-2/3 h-16 bg-linear-to-b from-primary/5 to-transparent blur-2xl" />
+      <div className="from-primary/5 absolute -bottom-8 left-1/2 h-16 w-2/3 -translate-x-1/2 bg-linear-to-b to-transparent blur-2xl" />
     </div>
   )
 }
@@ -781,7 +781,7 @@ const HeroSection = () => {
   return (
     <section
       id="hero-section"
-      className="relative min-h-screen flex flex-col items-center justify-center px-6 py-32 overflow-hidden bg-linear-to-br from-background via-background to-muted"
+      className="from-background via-background to-muted relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-linear-to-br px-6 py-32"
     >
       <style>{`
         @keyframes fadeIn {
@@ -824,7 +824,7 @@ const HeroSection = () => {
 
       {/* Mouse Follow Glow */}
       <div
-        className="absolute pointer-events-none z-0 transition-opacity duration-300"
+        className="pointer-events-none absolute z-0 transition-opacity duration-300"
         style={{
           left: mousePosition.x,
           top: mousePosition.y,
@@ -839,24 +839,24 @@ const HeroSection = () => {
       <Glow variant="center" className="opacity-40" />
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col items-center text-center max-w-5xl mx-auto space-y-8">
-        <h1 className="animate-fade-in opacity-0 delay-100 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight bg-linear-to-b from-foreground via-foreground to-muted-foreground bg-clip-text text-transparent">
+      <div className="relative z-10 mx-auto flex max-w-5xl flex-col items-center space-y-8 text-center">
+        <h1 className="animate-fade-in from-foreground via-foreground to-muted-foreground bg-linear-to-b bg-clip-text text-4xl leading-tight font-bold text-transparent opacity-0 delay-100 sm:text-5xl md:text-6xl lg:text-7xl">
           Manage GitHub Repos
           <br />
           <span className="text-primary">Like Never Before</span>
         </h1>
 
-        <p className="animate-fade-in opacity-0 delay-200 text-lg md:text-xl text-muted-foreground max-w-2xl">
+        <p className="animate-fade-in text-muted-foreground max-w-2xl text-lg opacity-0 delay-200 md:text-xl">
           Organize your GitHub repositories in a beautiful Kanban board.
           Drag-and-drop to track progress, add notes, and keep your projects
           under control.
         </p>
 
-        <div className="animate-fade-in opacity-0 delay-300 flex flex-wrap items-center justify-center gap-4 pt-4">
+        <div className="animate-fade-in flex flex-wrap items-center justify-center gap-4 pt-4 opacity-0 delay-300">
           <Button
             variant="github"
             size="xl"
-            className="gap-2 min-h-14"
+            className="min-h-14 gap-2"
             onClick={() => router.push('/login')}
           >
             <Github className="h-5 w-5" />
@@ -866,7 +866,7 @@ const HeroSection = () => {
           <Button
             variant="outline"
             size="lg"
-            className="gap-2 min-h-12"
+            className="min-h-12 gap-2"
             onClick={() => {
               document
                 .getElementById('features')
@@ -877,13 +877,13 @@ const HeroSection = () => {
           </Button>
         </div>
 
-        <p className="animate-fade-in opacity-0 delay-500 text-sm text-muted-foreground/70">
+        <p className="animate-fade-in text-muted-foreground/70 text-sm opacity-0 delay-500">
           Free and open source. Your data stays with you.
         </p>
       </div>
 
       {/* Kanban Preview */}
-      <div className="animate-fade-in opacity-0 delay-500 w-full">
+      <div className="animate-fade-in w-full opacity-0 delay-500">
         <KanbanPreview />
       </div>
     </section>
@@ -968,27 +968,27 @@ const FeaturesSection = () => {
   ]
 
   return (
-    <section id="features" className="relative py-24 px-6 bg-muted/30">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 bg-linear-to-b from-foreground to-muted-foreground bg-clip-text text-transparent">
+    <section id="features" className="bg-muted/30 relative px-6 py-24">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-16 text-center">
+          <h2 className="from-foreground to-muted-foreground mb-4 bg-linear-to-b bg-clip-text text-3xl font-bold text-transparent md:text-4xl lg:text-5xl">
             For AI Era Developers
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-muted-foreground mx-auto max-w-2xl text-lg">
             {FEATURE_SUBTITLES[subtitleIndex]}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
           {features.map((feature, index) => (
             <div
               key={index}
-              className="group relative p-8 rounded-2xl border border-border bg-background/50 backdrop-blur-sm hover:bg-background transition-all duration-300 hover:shadow-lg hover:border-primary/20"
+              className="group border-border bg-background/50 hover:bg-background hover:border-primary/20 relative rounded-2xl border p-8 backdrop-blur-sm transition-all duration-300 hover:shadow-lg"
             >
-              <div className="mb-4 text-primary group-hover:scale-110 transition-transform duration-300">
+              <div className="text-primary mb-4 transition-transform duration-300 group-hover:scale-110">
                 {feature.icon}
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-foreground">
+              <h3 className="text-foreground mb-2 text-xl font-semibold">
                 {feature.title}
               </h3>
               <p className="text-muted-foreground">{feature.description}</p>
@@ -1030,28 +1030,28 @@ const HowItWorksSection = () => {
   ]
 
   return (
-    <section id="how-it-works" className="relative py-24 px-6">
-      <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 bg-linear-to-b from-foreground to-muted-foreground bg-clip-text text-transparent">
+    <section id="how-it-works" className="relative px-6 py-24">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-16 text-center">
+          <h2 className="from-foreground to-muted-foreground mb-4 bg-linear-to-b bg-clip-text text-3xl font-bold text-transparent md:text-4xl lg:text-5xl">
             How It Works
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-muted-foreground mx-auto max-w-2xl text-lg">
             Get started in minutes with a simple setup process
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
           {steps.map((item, index) => (
             <div
               key={index}
-              className="relative flex gap-4 p-6 rounded-xl border border-border/50 bg-background/30"
+              className="border-border/50 bg-background/30 relative flex gap-4 rounded-xl border p-6"
             >
-              <div className="shrink-0 w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-lg">
+              <div className="bg-primary/10 text-primary flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-bold">
                 {item.step}
               </div>
               <div>
-                <h3 className="text-lg font-semibold mb-1 text-foreground">
+                <h3 className="text-foreground mb-1 text-lg font-semibold">
                   {item.title}
                 </h3>
                 <p className="text-muted-foreground text-sm">
@@ -1071,15 +1071,15 @@ const CTASection = () => {
   const router = useRouter()
 
   return (
-    <section className="relative py-24 px-6 overflow-hidden">
-      <div className="absolute inset-0 bg-linear-to-br from-primary/10 via-background to-primary/5" />
+    <section className="relative overflow-hidden px-6 py-24">
+      <div className="from-primary/10 via-background to-primary/5 absolute inset-0 bg-linear-to-br" />
       <Glow variant="center" className="opacity-30" />
 
-      <div className="relative z-10 max-w-4xl mx-auto text-center space-y-8">
-        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold bg-linear-to-b from-foreground to-muted-foreground bg-clip-text text-transparent">
+      <div className="relative z-10 mx-auto max-w-4xl space-y-8 text-center">
+        <h2 className="from-foreground to-muted-foreground bg-linear-to-b bg-clip-text text-3xl font-bold text-transparent md:text-4xl lg:text-5xl">
           Ready to Organize Your Repos?
         </h2>
-        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+        <p className="text-muted-foreground mx-auto max-w-2xl text-lg md:text-xl">
           Start managing your GitHub repositories visually. It&apos;s free, open
           source, and your data stays with you.
         </p>
@@ -1087,7 +1087,7 @@ const CTASection = () => {
           <Button
             variant="github"
             size="xl"
-            className="gap-2 min-h-14"
+            className="min-h-14 gap-2"
             onClick={() => router.push('/login')}
           >
             <Github className="h-5 w-5" />
@@ -1103,20 +1103,20 @@ const CTASection = () => {
 // Footer Component
 const Footer = () => {
   return (
-    <footer className="border-t border-border/50 py-8 px-6">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+    <footer className="border-border/50 border-t px-6 py-8">
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 md:flex-row">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
-            <Columns3 className="h-4 w-4 text-primary-foreground" />
+          <div className="bg-primary flex h-6 w-6 items-center justify-center rounded">
+            <Columns3 className="text-primary-foreground h-4 w-4" />
           </div>
-          <span className="text-sm font-medium text-foreground">GitBox</span>
+          <span className="text-foreground text-sm font-medium">GitBox</span>
         </div>
-        <div className="flex items-center gap-6 text-sm text-muted-foreground">
+        <div className="text-muted-foreground flex items-center gap-6 text-sm">
           <a
             href="https://github.com/laststance/gitbox"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-foreground transition-colors flex items-center gap-1"
+            className="hover:text-foreground flex items-center gap-1 transition-colors"
           >
             <Github className="h-4 w-4" />
             GitHub
@@ -1136,7 +1136,7 @@ const Footer = () => {
 // Main Landing Page Component
 function GitBoxLandingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="bg-background text-foreground min-h-screen">
       <Navigation />
       <HeroSection />
       <FeaturesSection />

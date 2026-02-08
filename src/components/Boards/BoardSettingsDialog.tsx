@@ -316,7 +316,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
 
           {/* Tab Navigation */}
           <nav
-            className="flex gap-1 border-b border-border pb-2"
+            className="border-border flex gap-1 border-b pb-2"
             role="tablist"
           >
             <button
@@ -390,7 +390,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                       {hasRenameError ? (
                         <p
                           id="name-error"
-                          className="text-sm text-destructive"
+                          className="text-destructive text-sm"
                           role="alert"
                         >
                           {renameState.errors?.name?.[0]}
@@ -403,7 +403,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                         className={
                           isNearLimit
                             ? 'text-sm text-orange-500'
-                            : 'text-sm text-muted-foreground'
+                            : 'text-muted-foreground text-sm'
                         }
                       >
                         {charCount}/{BOARD_NAME_MAX_LENGTH}
@@ -432,7 +432,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                 data-testid="panel-card-display"
               >
                 <div>
-                  <p className="mb-4 text-sm text-muted-foreground">
+                  <p className="text-muted-foreground mb-4 text-sm">
                     Customize how cards appear on this board. Control which
                     elements are visible and how comments are styled.
                   </p>
@@ -451,7 +451,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                       >
                         GitHub Description
                       </Label>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         Display repository description on cards
                       </p>
                     </div>
@@ -474,7 +474,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                       >
                         Inline Comment
                       </Label>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         Display comment section on cards
                       </p>
                     </div>
@@ -496,7 +496,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
 
                     {/* Font Size */}
                     <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">
+                      <Label className="text-muted-foreground text-xs">
                         Font Size
                       </Label>
                       <div className="flex flex-wrap gap-2">
@@ -529,7 +529,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
 
                     {/* Font Weight */}
                     <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">
+                      <Label className="text-muted-foreground text-xs">
                         Font Weight
                       </Label>
                       <div className="flex flex-wrap gap-2">
@@ -591,11 +591,11 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                 aria-labelledby="tab-danger"
                 className="space-y-4"
               >
-                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-                  <h3 className="mb-2 text-lg font-semibold text-destructive">
+                <div className="border-destructive/30 bg-destructive/5 rounded-lg border p-4">
+                  <h3 className="text-destructive mb-2 text-lg font-semibold">
                     Delete Board
                   </h3>
-                  <p className="mb-4 text-sm text-muted-foreground">
+                  <p className="text-muted-foreground mb-4 text-sm">
                     Once you delete this board, there is no going back. All
                     columns and cards will be permanently removed.
                   </p>

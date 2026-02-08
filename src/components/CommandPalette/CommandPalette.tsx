@@ -296,11 +296,11 @@ export const CommandPalette = memo(function CommandPalette() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
             transition={{ duration: 0.15 }}
-            className="fixed left-1/2 top-[20%] z-50 w-full max-w-lg -translate-x-1/2 rounded-xl border border-border bg-background shadow-2xl"
+            className="border-border bg-background fixed top-[20%] left-1/2 z-50 w-full max-w-lg -translate-x-1/2 rounded-xl border shadow-2xl"
           >
             {/* Search Input */}
-            <div className="flex items-center gap-3 border-b border-border px-4">
-              <Search className="h-5 w-5 text-muted-foreground" />
+            <div className="border-border flex items-center gap-3 border-b px-4">
+              <Search className="text-muted-foreground h-5 w-5" />
               <input
                 ref={inputRef}
                 type="text"
@@ -308,10 +308,10 @@ export const CommandPalette = memo(function CommandPalette() {
                 onChange={handleSearchChange}
                 onKeyDown={handleInputKeyDown}
                 placeholder="Search commands..."
-                className="h-14 flex-1 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none"
+                className="text-foreground placeholder:text-muted-foreground h-14 flex-1 bg-transparent focus:outline-none"
                 autoFocus
               />
-              <kbd className="hidden rounded bg-muted px-2 py-1 text-xs text-muted-foreground sm:inline-block">
+              <kbd className="bg-muted text-muted-foreground hidden rounded px-2 py-1 text-xs sm:inline-block">
                 ESC
               </kbd>
             </div>
@@ -319,13 +319,13 @@ export const CommandPalette = memo(function CommandPalette() {
             {/* Command List */}
             <div ref={listRef} className="max-h-80 overflow-y-auto p-2">
               {flatCommands.length === 0 ? (
-                <div className="py-8 text-center text-muted-foreground">
+                <div className="text-muted-foreground py-8 text-center">
                   No commands found
                 </div>
               ) : (
                 Object.entries(groupedCommands).map(([category, cmds]) => (
                   <div key={category} className="mb-2">
-                    <div className="mb-1 px-2 text-xs font-medium text-muted-foreground">
+                    <div className="text-muted-foreground mb-1 px-2 text-xs font-medium">
                       {categoryLabels[category]}
                     </div>
                     {cmds.map((cmd) => {
@@ -358,18 +358,18 @@ export const CommandPalette = memo(function CommandPalette() {
             </div>
 
             {/* Footer */}
-            <div className="border-t border-border px-4 py-2">
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <div className="border-border border-t px-4 py-2">
+              <div className="text-muted-foreground flex items-center gap-4 text-xs">
                 <span className="flex items-center gap-1">
-                  <kbd className="rounded bg-muted px-1.5 py-0.5">↑↓</kbd>
+                  <kbd className="bg-muted rounded px-1.5 py-0.5">↑↓</kbd>
                   Navigate
                 </span>
                 <span className="flex items-center gap-1">
-                  <kbd className="rounded bg-muted px-1.5 py-0.5">↵</kbd>
+                  <kbd className="bg-muted rounded px-1.5 py-0.5">↵</kbd>
                   Select
                 </span>
                 <span className="flex items-center gap-1">
-                  <kbd className="rounded bg-muted px-1.5 py-0.5">esc</kbd>
+                  <kbd className="bg-muted rounded px-1.5 py-0.5">esc</kbd>
                   Close
                 </span>
               </div>

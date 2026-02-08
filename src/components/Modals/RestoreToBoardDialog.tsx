@@ -178,31 +178,31 @@ export const RestoreToBoardDialog = memo(function RestoreToBoardDialog({
       <DialogContent className="sm:max-w-md" accessibleTitle="Restore to Board">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <LayoutGrid className="h-5 w-5 text-primary" />
+            <LayoutGrid className="text-primary h-5 w-5" />
             Restore to Board
           </DialogTitle>
           <DialogDescription>
             Restore{' '}
-            <span className="font-medium text-foreground">{repoName}</span> from
+            <span className="text-foreground font-medium">{repoName}</span> from
             maintenance back to an active board.
           </DialogDescription>
         </DialogHeader>
 
         {isLoadingBoards ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            <span className="ml-2 text-sm text-muted-foreground">
+            <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+            <span className="text-muted-foreground ml-2 text-sm">
               Loading boards...
             </span>
           </div>
         ) : boardsError ? (
           <div className="py-8 text-center">
-            <p className="text-sm text-destructive">{boardsError}</p>
+            <p className="text-destructive text-sm">{boardsError}</p>
           </div>
         ) : boards.length === 0 ? (
           <div className="py-8 text-center">
-            <LayoutGrid className="mx-auto h-12 w-12 text-muted-foreground/50" />
-            <p className="mt-4 text-sm text-muted-foreground">
+            <LayoutGrid className="text-muted-foreground/50 mx-auto h-12 w-12" />
+            <p className="text-muted-foreground mt-4 text-sm">
               No boards available. Create a board first.
             </p>
           </div>
@@ -211,7 +211,7 @@ export const RestoreToBoardDialog = memo(function RestoreToBoardDialog({
             {/* Board Selection */}
             <div className="space-y-2">
               <Label htmlFor="board-select" className="flex items-center gap-2">
-                <LayoutGrid className="h-4 w-4 text-muted-foreground" />
+                <LayoutGrid className="text-muted-foreground h-4 w-4" />
                 Board
               </Label>
               <Select
@@ -237,7 +237,7 @@ export const RestoreToBoardDialog = memo(function RestoreToBoardDialog({
                 htmlFor="status-select"
                 className="flex items-center gap-2"
               >
-                <Columns3 className="h-4 w-4 text-muted-foreground" />
+                <Columns3 className="text-muted-foreground h-4 w-4" />
                 Column
               </Label>
               <Select
@@ -270,7 +270,7 @@ export const RestoreToBoardDialog = memo(function RestoreToBoardDialog({
                 </SelectContent>
               </Select>
               {statusLists.length === 0 && effectiveBoardId && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   This board has no columns. Add columns to the board first.
                 </p>
               )}
@@ -278,7 +278,7 @@ export const RestoreToBoardDialog = memo(function RestoreToBoardDialog({
 
             {/* Error Display */}
             {error && (
-              <p className="text-sm text-destructive" role="alert">
+              <p className="text-destructive text-sm" role="alert">
                 {error}
               </p>
             )}

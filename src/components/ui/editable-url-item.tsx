@@ -498,9 +498,9 @@ export const EditableUrlItem = memo(function EditableUrlItem({
                     target="_blank"
                     rel="noopener noreferrer"
                     className={cn(
-                      'min-w-0 flex-1 truncate text-base text-primary hover:underline',
+                      'text-primary min-w-0 flex-1 truncate text-base hover:underline',
                       'max-w-75 sm:max-w-100 lg:max-w-none',
-                      showSaveSuccess && 'animate-pulse text-success',
+                      showSaveSuccess && 'text-success animate-pulse',
                     )}
                     data-testid={`url-link-${index}`}
                   >
@@ -509,12 +509,12 @@ export const EditableUrlItem = memo(function EditableUrlItem({
                   </a>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-lg">
-                  <p className="break-all text-xs">{link.url}</p>
+                  <p className="text-xs break-all">{link.url}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           ) : (
-            <p className="flex-1 text-sm italic text-muted-foreground">
+            <p className="text-muted-foreground flex-1 text-sm italic">
               No URL set
             </p>
           )}
@@ -551,7 +551,7 @@ export const EditableUrlItem = memo(function EditableUrlItem({
       {error && (
         <p
           id={`url-error-${index}`}
-          className="text-sm text-destructive"
+          className="text-destructive text-sm"
           role="alert"
         >
           {error}

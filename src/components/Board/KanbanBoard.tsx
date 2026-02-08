@@ -122,13 +122,13 @@ interface KanbanBoardProps {
 // Loading Skeleton Component
 const KanbanSkeleton = memo(() => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-4">
+    <div className="grid grid-cols-1 gap-4 pb-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {[...Array(5)].map((_, colIndex) => (
         <div
           key={colIndex}
-          className="bg-background/50 backdrop-blur-sm rounded-xl p-4 border border-border"
+          className="bg-background/50 border-border rounded-xl border p-4 backdrop-blur-sm"
         >
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 flex items-center justify-between">
             <Skeleton className="h-6 w-24" />
             <Skeleton className="h-5 w-12" />
           </div>
@@ -154,12 +154,12 @@ KanbanSkeleton.displayName = 'KanbanSkeleton'
 // Error State Component
 const ErrorState = memo(({ message }: { message: string }) => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[400px] p-8">
-      <AlertCircle className="w-16 h-16 text-destructive mb-4" />
-      <h3 className="text-xl font-semibold text-foreground mb-2">
+    <div className="flex min-h-[400px] flex-col items-center justify-center p-8">
+      <AlertCircle className="text-destructive mb-4 h-16 w-16" />
+      <h3 className="text-foreground mb-2 text-xl font-semibold">
         Something went wrong
       </h3>
-      <p className="text-muted-foreground text-center max-w-md">{message}</p>
+      <p className="text-muted-foreground max-w-md text-center">{message}</p>
     </div>
   )
 })
@@ -747,14 +747,14 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     const activeCard = cards.find((c) => c.id === activeId)
 
     return (
-      <div className="w-fit min-w-full p-6 relative">
+      <div className="relative w-fit min-w-full p-6">
         {/* Undo message display */}
         {undoMessage && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-lg"
+            className="bg-primary text-primary-foreground absolute top-4 left-1/2 z-50 -translate-x-1/2 transform rounded-lg px-4 py-2 shadow-lg"
           >
             {undoMessage}
           </motion.div>
@@ -770,7 +770,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           {/* Column-level SortableContext for 2D grid reordering */}
           <SortableContext items={columnIds} strategy={rectSortingStrategy}>
             <div
-              className="grid gap-4 pb-4 w-fit min-w-full"
+              className="grid w-fit min-w-full gap-4 pb-4"
               suppressHydrationWarning
               style={
                 isMounted
@@ -838,19 +838,19 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           <DragOverlay>
             {activeDragType === 'column' && activeId ? (
               // Column drag preview for 2D grid layout
-              <div className="w-70 max-w-full bg-background/80 backdrop-blur-sm rounded-xl p-4 border-2 border-primary shadow-2xl opacity-90 rotate-2">
-                <h3 className="font-semibold text-foreground">
+              <div className="bg-background/80 border-primary w-70 max-w-full rotate-2 rounded-xl border-2 p-4 opacity-90 shadow-2xl backdrop-blur-sm">
+                <h3 className="text-foreground font-semibold">
                   {sortedStatuses.find((s) => s.id === activeId)?.title}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-muted-foreground mt-1 text-xs">
                   {cards.filter((c) => c.statusId === activeId).length} cards
                 </p>
               </div>
             ) : activeCard ? (
               // Card drag preview
-              <Card className="cursor-grabbing shadow-2xl rotate-3 opacity-90">
+              <Card className="rotate-3 cursor-grabbing opacity-90 shadow-2xl">
                 <CardContent className="p-4">
-                  <h4 className="font-semibold text-foreground">
+                  <h4 className="text-foreground font-semibold">
                     {activeCard.title}
                   </h4>
                 </CardContent>

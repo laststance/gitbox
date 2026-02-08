@@ -21,12 +21,12 @@ const meta = {
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <div className="w-[320px] p-4 bg-card rounded-lg border">
-        <div className="relative group">
-          <p className="text-sm text-muted-foreground mb-4">
+      <div className="bg-card w-[320px] rounded-lg border p-4">
+        <div className="group relative">
+          <p className="text-muted-foreground mb-4 text-sm">
             Hover to show the menu trigger
           </p>
-          <div className="absolute bottom-0 right-0">
+          <div className="absolute right-0 bottom-0">
             <Story />
           </div>
         </div>

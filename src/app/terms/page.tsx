@@ -13,26 +13,26 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <main className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-12 px-4">
-      <article className="mx-auto max-w-3xl rounded-xl bg-card p-8 shadow-lg">
+    <main className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 px-4 py-12 dark:from-gray-900 dark:to-gray-800">
+      <article className="bg-card mx-auto max-w-3xl rounded-xl p-8 shadow-lg">
         <header className="mb-8">
           <Link
             href="/login"
-            className="text-sm text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground text-sm"
           >
             ← Back to Login
           </Link>
-          <h1 className="mt-4 text-3xl font-bold text-foreground">
+          <h1 className="text-foreground mt-4 text-3xl font-bold">
             Terms of Use
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-2 text-sm">
             Last updated: January 7, 2026
           </p>
         </header>
 
         <div className="prose prose-gray dark:prose-invert max-w-none">
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
               1. Acceptance of Terms
             </h2>
             <p className="text-gray-600 dark:text-gray-300">
@@ -43,7 +43,7 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
               2. Description of Service
             </h2>
             <p className="text-gray-600 dark:text-gray-300">
@@ -55,10 +55,10 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
               3. User Responsibilities
             </h2>
-            <ul className="list-disc pl-6 text-gray-600 dark:text-gray-300 space-y-2">
+            <ul className="list-disc space-y-2 pl-6 text-gray-600 dark:text-gray-300">
               <li>
                 You are responsible for maintaining the confidentiality of your
                 GitHub account
@@ -78,15 +78,15 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
               4. Intellectual Property
             </h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
+            <p className="mb-4 text-gray-600 dark:text-gray-300">
               GitBox is open-source software licensed under the MIT License. The
               source code is available on{' '}
               <a
                 href="https://github.com/laststance/gitbox"
-                className="text-blue-600 dark:text-blue-400 hover:underline"
+                className="text-blue-600 hover:underline dark:text-blue-400"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -103,14 +103,14 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
               5. Limitation of Liability
             </h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
+            <p className="mb-4 text-gray-600 dark:text-gray-300">
               GitBox is a personal project provided free of charge. To the
               maximum extent permitted by law:
             </p>
-            <ul className="list-disc pl-6 text-gray-600 dark:text-gray-300 space-y-2">
+            <ul className="list-disc space-y-2 pl-6 text-gray-600 dark:text-gray-300">
               <li>
                 The service is provided &quot;as is&quot; without warranty of
                 any kind
@@ -125,7 +125,7 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
               6. Account Termination
             </h2>
             <p className="text-gray-600 dark:text-gray-300">
@@ -136,7 +136,7 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
               7. Service Modifications
             </h2>
             <p className="text-gray-600 dark:text-gray-300">
@@ -147,7 +147,7 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
               8. Governing Law
             </h2>
             <p className="text-gray-600 dark:text-gray-300">
@@ -158,14 +158,14 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
               9. Contact
             </h2>
             <p className="text-gray-600 dark:text-gray-300">
               For questions about these Terms, please open an issue on our{' '}
               <a
                 href="https://github.com/laststance/gitbox/issues"
-                className="text-blue-600 dark:text-blue-400 hover:underline"
+                className="text-blue-600 hover:underline dark:text-blue-400"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -176,10 +176,10 @@ export default function TermsPage() {
           </section>
         </div>
 
-        <footer className="mt-8 pt-8 border-t border-border">
+        <footer className="border-border mt-8 border-t pt-8">
           <Link
             href="/privacy"
-            className="text-blue-600 dark:text-blue-400 hover:underline"
+            className="text-blue-600 hover:underline dark:text-blue-400"
           >
             View Privacy Policy →
           </Link>

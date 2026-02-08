@@ -20,11 +20,11 @@ export const metadata: Metadata = {
 export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="w-full max-w-md space-y-8 rounded-xl bg-card p-8 shadow-lg">
+      <div className="bg-card w-full max-w-md space-y-8 rounded-xl p-8 shadow-lg">
         {/* Logo / Title */}
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-foreground">GitBox</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <h1 className="text-foreground text-4xl font-bold">GitBox</h1>
+          <p className="text-muted-foreground mt-2 text-sm">
             Manage GitHub repositories in Kanban format
           </p>
         </div>
@@ -34,7 +34,7 @@ export default function LoginPage() {
           <form action={signInWithGitHub}>
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-3 rounded-lg bg-gray-900 px-4 py-3 text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 transition-colors"
+              className="flex w-full items-center justify-center gap-3 rounded-lg bg-gray-900 px-4 py-3 text-white transition-colors hover:bg-gray-800 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
             >
               {/* GitHub Icon */}
               <svg
@@ -54,7 +54,7 @@ export default function LoginPage() {
           </form>
 
           {/* Additional Info */}
-          <p className="mt-4 text-center text-xs text-muted-foreground">
+          <p className="text-muted-foreground mt-4 text-center text-xs">
             By signing in, you agree to our{' '}
             <Link
               href="/terms"

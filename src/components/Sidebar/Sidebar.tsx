@@ -203,7 +203,7 @@ export const Sidebar = memo(function Sidebar({
       <aside
         suppressHydrationWarning
         className={cn(
-          'flex h-screen flex-col border-r border-border bg-sidebar text-sidebar-foreground',
+          'border-border bg-sidebar text-sidebar-foreground flex h-screen flex-col border-r',
           'transition-[width] duration-300 ease-out',
           sidebarWidth,
         )}
@@ -212,7 +212,7 @@ export const Sidebar = memo(function Sidebar({
         <div
           suppressHydrationWarning
           className={cn(
-            'flex items-center border-b border-sidebar-border px-2 py-4',
+            'border-sidebar-border flex items-center border-b px-2 py-4',
             mounted && isCollapsed ? 'justify-center' : 'justify-between',
           )}
         >
@@ -222,7 +222,7 @@ export const Sidebar = memo(function Sidebar({
               mounted && isCollapsed && 'justify-center',
             )}
           >
-            <Github className="h-6 w-6 flex-shrink-0 text-sidebar-primary" />
+            <Github className="text-sidebar-primary h-6 w-6 flex-shrink-0" />
             {(!mounted || !isCollapsed) && (
               <span className="text-lg font-semibold">GitBox</span>
             )}
@@ -234,7 +234,7 @@ export const Sidebar = memo(function Sidebar({
 
         {/* Toggle button when collapsed - shown below logo */}
         {isCollapsed && mounted && (
-          <div className="flex justify-center border-b border-sidebar-border py-2">
+          <div className="border-sidebar-border flex justify-center border-b py-2">
             <SidebarToggleButton isCollapsed={isCollapsed} onToggle={toggle} />
           </div>
         )}
@@ -254,7 +254,7 @@ export const Sidebar = memo(function Sidebar({
               <button
                 type="button"
                 onClick={() => setBoardsExpanded(!boardsExpanded)}
-                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold text-sidebar-foreground hover:bg-sidebar-accent"
+                className="text-sidebar-foreground hover:bg-sidebar-accent flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold"
               >
                 <span>Boards</span>
                 {boardsExpanded ? (
@@ -265,7 +265,7 @@ export const Sidebar = memo(function Sidebar({
               </button>
 
               {boardsExpanded && (
-                <div className="ml-2 mt-1 space-y-1">
+                <div className="mt-1 ml-2 space-y-1">
                   <NavItem
                     href="/boards"
                     icon={<LayoutDashboard className="h-4 w-4" />}
@@ -307,7 +307,7 @@ export const Sidebar = memo(function Sidebar({
           )}
 
           {/* Divider */}
-          <div className="my-4 border-t border-sidebar-border" />
+          <div className="border-sidebar-border my-4 border-t" />
 
           {/* Maintenance Mode */}
           <NavItem
@@ -322,7 +322,7 @@ export const Sidebar = memo(function Sidebar({
           />
 
           {/* Divider */}
-          <div className="my-4 border-t border-sidebar-border" />
+          <div className="border-sidebar-border my-4 border-t" />
 
           {/* Settings */}
           <NavItem
@@ -349,7 +349,7 @@ export const Sidebar = memo(function Sidebar({
         <div
           suppressHydrationWarning
           className={cn(
-            'border-t border-sidebar-border py-4',
+            'border-sidebar-border border-t py-4',
             mounted && isCollapsed ? 'px-2' : 'px-3',
           )}
         >
@@ -359,7 +359,7 @@ export const Sidebar = memo(function Sidebar({
               <TooltipTrigger asChild>
                 <Link
                   href="/account"
-                  className="flex items-center justify-center rounded-lg py-2 transition-colors hover:bg-sidebar-accent"
+                  className="hover:bg-sidebar-accent flex items-center justify-center rounded-lg py-2 transition-colors"
                 >
                   {userAvatar ? (
                     <Image
@@ -370,7 +370,7 @@ export const Sidebar = memo(function Sidebar({
                       className="h-8 w-8 rounded-full"
                     />
                   ) : (
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-accent">
+                    <div className="bg-sidebar-accent flex h-8 w-8 items-center justify-center rounded-full">
                       <User className="h-4 w-4" />
                     </div>
                   )}
@@ -381,7 +381,7 @@ export const Sidebar = memo(function Sidebar({
           ) : (
             <Link
               href="/account"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-sidebar-accent"
+              className="hover:bg-sidebar-accent flex items-center gap-3 rounded-lg px-3 py-2 transition-colors"
             >
               {userAvatar ? (
                 <Image
@@ -392,7 +392,7 @@ export const Sidebar = memo(function Sidebar({
                   className="h-8 w-8 rounded-full"
                 />
               ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-accent">
+                <div className="bg-sidebar-accent flex h-8 w-8 items-center justify-center rounded-full">
                   <User className="h-4 w-4" />
                 </div>
               )}
@@ -410,7 +410,7 @@ export const Sidebar = memo(function Sidebar({
                   variant="ghost"
                   size="icon"
                   onClick={handleSignOut}
-                  className="mt-2 w-full text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground mt-2 w-full"
                   aria-label="Sign out"
                 >
                   <LogOut className="h-4 w-4" />
@@ -423,7 +423,7 @@ export const Sidebar = memo(function Sidebar({
               variant="ghost"
               size="sm"
               onClick={handleSignOut}
-              className="mt-2 w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground mt-2 w-full justify-start gap-2"
             >
               <LogOut className="h-4 w-4" />
               Sign out

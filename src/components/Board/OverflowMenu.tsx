@@ -105,10 +105,10 @@ export const OverflowMenu = memo<OverflowMenuProps>(
       <>
         <DropdownMenu open={open} onOpenChange={onOpenChange}>
           <DropdownMenuTrigger
-            className="p-1 rounded-md hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            className="hover:bg-accent hover:text-accent-foreground focus:ring-ring rounded-md p-1 focus:ring-2 focus:ring-offset-2 focus:outline-none"
             data-testid={`overflow-menu-trigger-${cardId}`}
           >
-            <MoreHorizontal className="w-4 h-4" />
+            <MoreHorizontal className="h-4 w-4" />
             <span className="sr-only">Open menu</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -122,7 +122,7 @@ export const OverflowMenu = memo<OverflowMenuProps>(
                 onClick={() => handleOpenUrl(githubUrl)}
                 data-testid={`open-github-${cardId}`}
               >
-                <Github className="w-4 h-4 mr-2" />
+                <Github className="mr-2 h-4 w-4" />
                 Open on GitHub
               </DropdownMenuItem>
             )}
@@ -133,7 +133,7 @@ export const OverflowMenu = memo<OverflowMenuProps>(
                 onClick={() => handleOpenUrl(productionUrl)}
                 data-testid={`open-production-${cardId}`}
               >
-                <ExternalLink className="w-4 h-4 mr-2" />
+                <ExternalLink className="mr-2 h-4 w-4" />
                 Open Production URL
               </DropdownMenuItem>
             )}
@@ -144,7 +144,7 @@ export const OverflowMenu = memo<OverflowMenuProps>(
                 onClick={() => handleOpenUrl(trackingUrl)}
                 data-testid={`open-tracking-${cardId}`}
               >
-                <BarChart2 className="w-4 h-4 mr-2" />
+                <BarChart2 className="mr-2 h-4 w-4" />
                 Open Tracking dashboard
               </DropdownMenuItem>
             )}
@@ -155,7 +155,7 @@ export const OverflowMenu = memo<OverflowMenuProps>(
                 onClick={() => handleOpenUrl(supabaseUrl)}
                 data-testid={`open-supabase-${cardId}`}
               >
-                <Database className="w-4 h-4 mr-2" />
+                <Database className="mr-2 h-4 w-4" />
                 Open Supabase dashboard
               </DropdownMenuItem>
             )}
@@ -172,7 +172,7 @@ export const OverflowMenu = memo<OverflowMenuProps>(
                 onClick={() => onMoveToMaintenance(cardId)}
                 data-testid={`move-to-maintenance-${cardId}`}
               >
-                <Archive className="w-4 h-4 mr-2" />
+                <Archive className="mr-2 h-4 w-4" />
                 Move to Maintenance
               </DropdownMenuItem>
             )}
@@ -186,7 +186,7 @@ export const OverflowMenu = memo<OverflowMenuProps>(
                   className="text-destructive focus:text-destructive focus:bg-destructive/10"
                   data-testid={`remove-from-board-${cardId}`}
                 >
-                  <Trash2 className="w-4 h-4 mr-2" />
+                  <Trash2 className="mr-2 h-4 w-4" />
                   Remove from Board
                 </DropdownMenuItem>
               </>
@@ -198,7 +198,7 @@ export const OverflowMenu = memo<OverflowMenuProps>(
                 onClick={() => onRestoreToBoard(cardId)}
                 data-testid={`restore-to-board-${cardId}`}
               >
-                <RotateCcw className="w-4 h-4 mr-2" />
+                <RotateCcw className="mr-2 h-4 w-4" />
                 Restore to Board
               </DropdownMenuItem>
             )}
@@ -212,7 +212,7 @@ export const OverflowMenu = memo<OverflowMenuProps>(
               <AlertDialogTitle>Remove Repository from Board?</AlertDialogTitle>
               <AlertDialogDescription>
                 This will permanently remove{' '}
-                <span className="font-semibold text-foreground">
+                <span className="text-foreground font-semibold">
                   {repoOwner}/{repoName}
                 </span>{' '}
                 from this board. The repository itself will not be deleted from
@@ -223,7 +223,7 @@ export const OverflowMenu = memo<OverflowMenuProps>(
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleConfirmRemove}
-                className="bg-destructive text-white hover:bg-destructive/90"
+                className="bg-destructive hover:bg-destructive/90 text-white"
                 data-testid={`confirm-remove-${cardId}`}
               >
                 Remove

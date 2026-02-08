@@ -34,37 +34,37 @@ const shortcuts: ShortcutItem[] = [
   {
     key: 'Tab',
     description: 'Navigate between cards',
-    icon: <Keyboard className="w-4 h-4" />,
+    icon: <Keyboard className="h-4 w-4" />,
     category: 'Navigation',
   },
   {
     key: '.',
     description: 'Open overflow menu',
-    icon: <MoreHorizontal className="w-4 h-4" />,
+    icon: <MoreHorizontal className="h-4 w-4" />,
     category: 'Navigation',
   },
   {
     key: 'Enter',
     description: 'Open card',
-    icon: <CornerDownLeft className="w-4 h-4" />,
+    icon: <CornerDownLeft className="h-4 w-4" />,
     category: 'Actions',
   },
   {
     key: 'Z',
     description: 'Undo last operation',
-    icon: <RotateCcw className="w-4 h-4" />,
+    icon: <RotateCcw className="h-4 w-4" />,
     category: 'Actions',
   },
   {
     key: '?',
     description: 'Show/hide this help',
-    icon: <HelpCircle className="w-4 h-4" />,
+    icon: <HelpCircle className="h-4 w-4" />,
     category: 'Help',
   },
   {
     key: '⌘ K',
     description: 'Open command palette',
-    icon: <Command className="w-4 h-4" />,
+    icon: <Command className="h-4 w-4" />,
     category: 'Navigation',
   },
 ]
@@ -165,8 +165,8 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
         aria-describedby="keyboard-shortcuts-description"
       >
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-            <Keyboard className="w-6 h-6" />
+          <DialogTitle className="flex items-center gap-2 text-2xl font-bold">
+            <Keyboard className="h-6 w-6" />
             Keyboard Shortcuts
           </DialogTitle>
           <DialogDescription id="keyboard-shortcuts-description">
@@ -177,10 +177,10 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
         <div className="mt-6 space-y-6">
           {Object.entries(groupedShortcuts).map(([category, items]) => (
             <div key={category} className="space-y-3">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+              <h3 className="text-foreground text-sm font-semibold tracking-wider uppercase">
                 {category}
               </h3>
-              <div className="border border-border rounded-lg overflow-hidden">
+              <div className="border-border overflow-hidden rounded-lg border">
                 <table className="w-full">
                   <thead className="sr-only">
                     <tr>
@@ -189,19 +189,19 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
                       <th scope="col">Description</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
+                  <tbody className="divide-border divide-y">
                     {items.map((shortcut, index) => (
                       <tr
                         key={`${category}-${index}`}
                         className="hover:bg-muted/50 transition-colors"
                       >
-                        <td className="px-4 py-3 w-12">
+                        <td className="w-12 px-4 py-3">
                           <div className="text-muted-foreground flex items-center justify-center">
                             {shortcut.icon}
                           </div>
                         </td>
-                        <td className="px-4 py-3 w-32">
-                          <kbd className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-semibold bg-muted border border-border rounded-md shadow-sm min-w-12">
+                        <td className="w-32 px-4 py-3">
+                          <kbd className="bg-muted border-border inline-flex min-w-12 items-center justify-center rounded-md border px-3 py-1.5 text-sm font-semibold shadow-sm">
                             {shortcut.key}
                           </kbd>
                         </td>
@@ -217,13 +217,13 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
           ))}
         </div>
 
-        <div className="mt-6 pt-4 border-t border-border">
-          <p className="text-sm text-muted-foreground text-center">
-            <kbd className="px-2 py-1 text-xs font-semibold bg-muted border border-border rounded">
+        <div className="border-border mt-6 border-t pt-4">
+          <p className="text-muted-foreground text-center text-sm">
+            <kbd className="bg-muted border-border rounded border px-2 py-1 text-xs font-semibold">
               ?
             </kbd>{' '}
             or{' '}
-            <kbd className="px-2 py-1 text-xs font-semibold bg-muted border border-border rounded">
+            <kbd className="bg-muted border-border rounded border px-2 py-1 text-xs font-semibold">
               ESC
             </kbd>{' '}
             to close this dialog

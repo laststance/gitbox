@@ -144,13 +144,13 @@ export const MultipleZones: Story = {
     <>
       {/* Placeholder for existing content in rows 0-1 */}
       <div
-        className="bg-muted/30 rounded-lg p-4 text-center text-muted-foreground"
+        className="bg-muted/30 text-muted-foreground rounded-lg p-4 text-center"
         style={{ gridColumn: '1 / span 3', gridRow: 1 }}
       >
         Row 0: Existing columns
       </div>
       <div
-        className="bg-muted/30 rounded-lg p-4 text-center text-muted-foreground"
+        className="bg-muted/30 text-muted-foreground rounded-lg p-4 text-center"
         style={{ gridColumn: '1 / span 3', gridRow: 2 }}
       >
         Row 1: Existing columns

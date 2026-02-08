@@ -127,20 +127,17 @@ const StatusListForm = memo(function StatusListForm({
                 type="button"
                 onClick={() => setColor(preset.value)}
                 data-color={preset.value}
-                className={`
-                  w-8 h-8 rounded-full border-2 transition-all
-                  ${color === preset.value ? 'border-foreground scale-110' : 'border-transparent'}
-                `}
+                className={`h-8 w-8 rounded-full border-2 transition-all ${color === preset.value ? 'border-foreground scale-110' : 'border-transparent'} `}
                 style={{ backgroundColor: preset.value }}
                 title={preset.name}
                 aria-label={preset.name}
               />
             ))}
           </div>
-          <div className="flex items-center gap-2 mt-2">
+          <div className="mt-2 flex items-center gap-2">
             <Label
               htmlFor="custom-color"
-              className="text-xs text-muted-foreground"
+              className="text-muted-foreground text-xs"
             >
               Custom:
             </Label>
@@ -149,16 +146,16 @@ const StatusListForm = memo(function StatusListForm({
               type="color"
               value={color}
               onChange={(e) => setColor(e.target.value)}
-              className="w-12 h-8 p-0 border-0 cursor-pointer"
+              className="h-8 w-12 cursor-pointer border-0 p-0"
             />
-            <span className="text-xs text-muted-foreground font-mono">
+            <span className="text-muted-foreground font-mono text-xs">
               {color}
             </span>
           </div>
         </div>
 
         {/* Error */}
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <p className="text-destructive text-sm">{error}</p>}
 
         <DialogFooter>
           <Button

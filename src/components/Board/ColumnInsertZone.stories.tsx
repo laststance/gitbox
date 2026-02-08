@@ -103,7 +103,7 @@ export const GridWithMultipleZones: Story = {
     <>
       {/* Simulate an existing column */}
       <div
-        className="bg-card border border-border rounded-xl p-4 flex items-center justify-center"
+        className="bg-card border-border flex items-center justify-center rounded-xl border p-4"
         style={{ gridRow: 1, gridColumn: 1 }}
       >
         <span className="text-muted-foreground">Existing Column</span>
@@ -156,19 +156,19 @@ export const SparseGrid: Story = {
     <>
       {/* Existing columns scattered in the grid */}
       <div
-        className="bg-card border border-border rounded-xl p-4 flex items-center justify-center"
+        className="bg-card border-border flex items-center justify-center rounded-xl border p-4"
         style={{ gridRow: 1, gridColumn: 1 }}
       >
         <span className="text-muted-foreground text-sm">To Do</span>
       </div>
       <div
-        className="bg-card border border-border rounded-xl p-4 flex items-center justify-center"
+        className="bg-card border-border flex items-center justify-center rounded-xl border p-4"
         style={{ gridRow: 1, gridColumn: 3 }}
       >
         <span className="text-muted-foreground text-sm">In Progress</span>
       </div>
       <div
-        className="bg-card border border-border rounded-xl p-4 flex items-center justify-center"
+        className="bg-card border-border flex items-center justify-center rounded-xl border p-4"
         style={{ gridRow: 2, gridColumn: 2 }}
       >
         <span className="text-muted-foreground text-sm">Done</span>

@@ -273,7 +273,7 @@ const InlineComboboxContent: typeof ComboboxPopover = ({
     <Portal>
       <ComboboxPopover
         className={cn(
-          'z-500 max-h-72 w-75 overflow-y-auto rounded-md bg-popover shadow-md',
+          'bg-popover z-500 max-h-72 w-75 overflow-y-auto rounded-md shadow-md',
           className,
         )}
         {...props}
@@ -376,7 +376,7 @@ function InlineComboboxGroup({
     <ComboboxGroup
       {...props}
       className={cn(
-        'hidden not-last:border-b py-1.5 [&:has([role=option])]:block',
+        'hidden py-1.5 not-last:border-b [&:has([role=option])]:block',
         className,
       )}
     />
@@ -391,7 +391,7 @@ function InlineComboboxGroupLabel({
     <ComboboxGroupLabel
       {...props}
       className={cn(
-        'mt-1.5 mb-2 px-3 font-medium text-muted-foreground text-xs',
+        'text-muted-foreground mt-1.5 mb-2 px-3 text-xs font-medium',
         className,
       )}
     />

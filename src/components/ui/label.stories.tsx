@@ -31,7 +31,7 @@ export const Default: Story = {
 
 export const WithInput: Story = {
   render: () => (
-    <div className="space-y-2 w-[350px]">
+    <div className="w-[350px] space-y-2">
       <Label htmlFor="email">Email</Label>
       <Input id="email" type="email" placeholder="name@example.com" />
     </div>
@@ -40,7 +40,7 @@ export const WithInput: Story = {
 
 export const Required: Story = {
   render: () => (
-    <div className="space-y-2 w-[350px]">
+    <div className="w-[350px] space-y-2">
       <Label htmlFor="required">
         Required Field <span className="text-destructive">*</span>
       </Label>
@@ -51,7 +51,7 @@ export const Required: Story = {
 
 export const WithDisabledInput: Story = {
   render: () => (
-    <div className="space-y-2 w-[350px]">
+    <div className="w-[350px] space-y-2">
       <Label htmlFor="disabled">Disabled Input</Label>
       <Input id="disabled" type="text" disabled placeholder="Cannot edit" />
     </div>

@@ -77,8 +77,8 @@ export const AccountClient = memo(function AccountClient({
     <div className="container mx-auto max-w-2xl px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Account</h1>
-        <p className="mt-2 text-muted-foreground">
+        <h1 className="text-foreground text-3xl font-bold">Account</h1>
+        <p className="text-muted-foreground mt-2">
           Manage your account settings and data
         </p>
       </div>
@@ -104,19 +104,19 @@ export const AccountClient = memo(function AccountClient({
                   className="h-16 w-16 rounded-full"
                 />
               ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                  <Github className="h-8 w-8 text-muted-foreground" />
+                <div className="bg-muted flex h-16 w-16 items-center justify-center rounded-full">
+                  <Github className="text-muted-foreground h-8 w-8" />
                 </div>
               )}
               <div>
                 <p className="text-lg font-semibold">@{userProfile.userName}</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   Connected via GitHub
                 </p>
               </div>
             </div>
             <div className="border-t pt-4">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 Linked since {formatLinkedDate(userProfile.linkedSince)}
               </p>
             </div>
@@ -132,27 +132,27 @@ export const AccountClient = memo(function AccountClient({
           <CardContent>
             <div className="grid grid-cols-3 gap-4">
               <div className="flex flex-col items-center rounded-lg border p-4">
-                <LayoutDashboard className="mb-2 h-6 w-6 text-muted-foreground" />
+                <LayoutDashboard className="text-muted-foreground mb-2 h-6 w-6" />
                 <span className="text-2xl font-bold">
                   {accountData.boardsCount}
                 </span>
-                <span className="text-sm text-muted-foreground">Boards</span>
+                <span className="text-muted-foreground text-sm">Boards</span>
               </div>
               <div className="flex flex-col items-center rounded-lg border p-4">
-                <FileText className="mb-2 h-6 w-6 text-muted-foreground" />
+                <FileText className="text-muted-foreground mb-2 h-6 w-6" />
                 <span className="text-2xl font-bold">
                   {accountData.cardsCount}
                 </span>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-muted-foreground text-sm">
                   Repository Cards
                 </span>
               </div>
               <div className="flex flex-col items-center rounded-lg border p-4">
-                <Archive className="mb-2 h-6 w-6 text-muted-foreground" />
+                <Archive className="text-muted-foreground mb-2 h-6 w-6" />
                 <span className="text-2xl font-bold">
                   {accountData.maintenanceCount}
                 </span>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-muted-foreground text-sm">
                   Maintenance Items
                 </span>
               </div>
@@ -169,12 +169,12 @@ export const AccountClient = memo(function AccountClient({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
-              <p className="text-sm text-muted-foreground">
+            <div className="border-destructive/20 bg-destructive/5 rounded-lg border p-4">
+              <p className="text-muted-foreground text-sm">
                 Deleting your account will permanently remove all your boards,
                 cards, and settings. This action cannot be undone.
               </p>
-              <p className="mt-2 text-sm font-medium text-foreground">
+              <p className="text-foreground mt-2 text-sm font-medium">
                 Your GitHub repositories will NOT be affected.
               </p>
             </div>

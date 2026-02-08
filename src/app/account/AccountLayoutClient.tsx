@@ -31,7 +31,7 @@ export const AccountLayoutClient = memo(function AccountLayoutClient({
         <Sidebar userName={userName} userAvatar={userAvatar} />
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto bg-background">{children}</main>
+        <main className="bg-background flex-1 overflow-auto">{children}</main>
       </div>
     </>
   )

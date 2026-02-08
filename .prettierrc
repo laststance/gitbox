@@ -1,5 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/prettierrc",
   "singleQuote": true,
-  "semi": false
+  "semi": false,
+  "plugins": [
+    "prettier-plugin-tailwindcss-canonical-classes",
+    "prettier-plugin-tailwindcss"
+  ]
 }

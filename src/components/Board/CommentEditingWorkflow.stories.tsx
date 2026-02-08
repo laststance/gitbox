@@ -183,7 +183,7 @@ Integrated demonstration of the comment editing workflow.
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <div className="w-[320px] p-4 bg-card rounded-lg border">
+      <div className="bg-card w-[320px] rounded-lg border p-4">
         <Story />
       </div>
     ),
@@ -596,12 +596,12 @@ export const TestAutoSaveOnBlur: Story = {
   },
   decorators: [
     (Story) => (
-      <div className="w-[320px] p-4 bg-card rounded-lg border">
+      <div className="bg-card w-[320px] rounded-lg border p-4">
         <Story />
         <button
           type="button"
           data-testid="external-button"
-          className="mt-4 px-4 py-2 border rounded text-sm"
+          className="mt-4 rounded border px-4 py-2 text-sm"
         >
           Click to blur
         </button>

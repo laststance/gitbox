@@ -236,7 +236,7 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
           disabled={isSaving}
           data-testid="comment-textarea"
           className={cn(
-            'w-full min-h-[60px] resize-none bg-transparent border-0 p-0',
+            'min-h-[60px] w-full resize-none border-0 bg-transparent p-0',
             'focus-visible:ring-0 focus-visible:ring-offset-0',
             'text-sm leading-relaxed',
             isOverLimit && 'text-destructive',
@@ -244,7 +244,7 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
         />
 
         {/* Controls row */}
-        <div className="flex items-center justify-between mt-2">
+        <div className="mt-2 flex items-center justify-between">
           {/* Character counter */}
           <span
             data-testid="character-counter"
@@ -266,10 +266,10 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
             onClick={async () => handleSave(true)}
             disabled={isSaving || isOverLimit}
             data-testid="comment-save-btn"
-            className="h-7 px-2 text-primary hover:text-primary hover:bg-primary/10"
+            className="text-primary hover:text-primary hover:bg-primary/10 h-7 px-2"
             aria-label="Save comment"
           >
-            <Check className="w-4 h-4" />
+            <Check className="h-4 w-4" />
           </Button>
         </div>
       </div>

@@ -327,12 +327,12 @@ export const NoteModal = memo(function NoteModal({
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent
-        className="max-w-7xl max-h-[90vh] overflow-y-auto"
+        className="max-h-[90vh] max-w-7xl overflow-y-auto"
         data-testid="note-modal"
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <StickyNote className="w-5 h-5" />
+            <StickyNote className="h-5 w-5" />
             Project Note
           </DialogTitle>
           <DialogDescription>
@@ -357,7 +357,7 @@ export const NoteModal = memo(function NoteModal({
             <div className="flex items-center justify-between">
               <div>
                 {draft && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     Draft saved{' '}
                     {new Date(draft.lastModified).toLocaleTimeString()}
                   </p>
@@ -385,7 +385,7 @@ export const NoteModal = memo(function NoteModal({
                 onClick={handleAddUrl}
                 data-testid="add-url-button"
               >
-                <Plus className="h-4 w-4 mr-1" />
+                <Plus className="mr-1 h-4 w-4" />
                 Add URL
               </Button>
             </div>
@@ -419,7 +419,7 @@ export const NoteModal = memo(function NoteModal({
         <DialogFooter className="flex items-center justify-between">
           <div>
             {hasChanges && !draft && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 You have unsaved changes
               </p>
             )}

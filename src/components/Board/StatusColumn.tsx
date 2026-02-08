@@ -98,17 +98,17 @@ export const StatusColumn = memo<StatusColumnProps>(
         <div
           {...dragAttributes}
           {...dragListeners}
-          className="flex items-center justify-between mb-4 cursor-grab active:cursor-grabbing touch-none"
+          className="mb-4 flex cursor-grab touch-none items-center justify-between active:cursor-grabbing"
           aria-label={`Drag to reorder ${status.title} column. Use arrow keys to move in any direction.`}
         >
           <div className="flex items-center gap-2">
             {status.color && (
               <div
-                className="w-3 h-3 rounded-full"
+                className="h-3 w-3 rounded-full"
                 style={{ backgroundColor: status.color }}
               />
             )}
-            <h3 className="font-semibold text-foreground">{status.title}</h3>
+            <h3 className="text-foreground font-semibold">{status.title}</h3>
           </div>
           <div className="flex items-center gap-1">
             {/* Column Menu */}
@@ -117,7 +117,7 @@ export const StatusColumn = memo<StatusColumnProps>(
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 hover:bg-accent"
+                  className="hover:bg-accent h-6 w-6 p-0"
                   aria-label="Column options"
                 >
                   <MoreHorizontal className="h-4 w-4" />
@@ -147,11 +147,7 @@ export const StatusColumn = memo<StatusColumnProps>(
         <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
           <div
             ref={setNodeRef}
-            className={`
-              space-y-3 flex-1 rounded-lg p-1
-              transition-colors duration-200
-              ${isOver ? 'bg-accent/50 ring-2 ring-primary/20' : ''}
-            `}
+            className={`flex-1 space-y-3 rounded-lg p-1 transition-colors duration-200 ${isOver ? 'bg-accent/50 ring-primary/20 ring-2' : ''} `}
           >
             <AnimatePresence>
               {cards.map((card) => (
@@ -186,7 +182,7 @@ export const StatusColumn = memo<StatusColumnProps>(
             variant="ghost"
             size="sm"
             onClick={() => onAddCard(status.id)}
-            className="w-full mt-3 justify-start text-muted-foreground hover:text-foreground hover:bg-accent"
+            className="text-muted-foreground hover:text-foreground hover:bg-accent mt-3 w-full justify-start"
             data-testid="add-repo-button"
           >
             <Plus className="mr-2 h-4 w-4" />

@@ -282,7 +282,7 @@ const SingleEditCoordinationStory = memo(
 
     return (
       <div className="space-y-3">
-        <p className="text-sm text-muted-foreground mb-4">
+        <p className="text-muted-foreground mb-4 text-sm">
           Click a pen icon to edit. Only one item can be edited at a time.
         </p>
         {links.map((link, index) => (

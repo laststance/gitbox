@@ -165,15 +165,15 @@ export const CommentDisplay = memo<CommentDisplayProps>(
           tabIndex={0}
           data-testid="comment-empty-state"
           className={cn(
-            'border-2 border-dashed border-muted-foreground/30 rounded-md p-3',
+            'border-muted-foreground/30 rounded-md border-2 border-dashed p-3',
             'hover:border-muted-foreground/50 hover:bg-muted/10',
             'cursor-pointer transition-all duration-200',
-            'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+            'focus:ring-ring focus:ring-2 focus:ring-offset-2 focus:outline-none',
             className,
           )}
         >
-          <div className="flex items-center gap-2 text-muted-foreground text-sm">
-            <Plus className="w-4 h-4" />
+          <div className="text-muted-foreground flex items-center gap-2 text-sm">
+            <Plus className="h-4 w-4" />
             <span>Add comment</span>
           </div>
         </div>
@@ -195,18 +195,18 @@ export const CommentDisplay = memo<CommentDisplayProps>(
         data-testid="comment-display"
         className={cn(
           // Base styles - full rounded card with background fill
-          'relative rounded-md p-3 transition-all duration-200 cursor-pointer group',
+          'group relative cursor-pointer rounded-md p-3 transition-all duration-200',
           // Combined card color (bg + border from COMMENT_CARD_COLORS)
           cardColorClass,
           // Focus styles
-          'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+          'focus:ring-ring focus:ring-2 focus:ring-offset-2 focus:outline-none',
           className,
         )}
       >
         {/* Text content */}
         <p
           className={cn(
-            'leading-relaxed text-foreground/90',
+            'text-foreground/90 leading-relaxed',
             fontSizeClass,
             fontWeightClass,
           )}
@@ -217,7 +217,7 @@ export const CommentDisplay = memo<CommentDisplayProps>(
 
         {/* Action buttons (appears on hover) */}
         {renderActions && (
-          <div className="absolute bottom-2 right-2">{renderActions()}</div>
+          <div className="absolute right-2 bottom-2">{renderActions()}</div>
         )}
       </div>
     )

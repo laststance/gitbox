@@ -200,7 +200,7 @@ export const RepoCard = memo<RepoCardProps>(
         className="cursor-grab active:cursor-grabbing"
       >
         <Card
-          className="transition-all duration-200 border bg-card hover:shadow-md dark:hover:shadow-lg focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+          className="bg-card focus-within:ring-ring border transition-all duration-200 focus-within:ring-2 focus-within:ring-offset-2 hover:shadow-md dark:hover:shadow-lg"
           tabIndex={0}
           onKeyDown={handleKeyDown}
         >
@@ -208,7 +208,7 @@ export const RepoCard = memo<RepoCardProps>(
             <div className="space-y-3">
               <div className="flex items-start justify-between">
                 <h4
-                  className="font-semibold text-foreground leading-tight flex-1"
+                  className="text-foreground flex-1 leading-tight font-semibold"
                   data-testid="repo-name"
                 >
                   {card.title}
@@ -226,7 +226,7 @@ export const RepoCard = memo<RepoCardProps>(
               </div>
 
               {card.description && (
-                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                <p className="text-muted-foreground line-clamp-2 text-sm leading-relaxed">
                   {card.description}
                 </p>
               )}
@@ -285,10 +285,10 @@ export const RepoCard = memo<RepoCardProps>(
               )}
 
               <div className="flex items-center justify-between pt-2">
-                <div className="flex items-center gap-3 text-muted-foreground">
+                <div className="text-muted-foreground flex items-center gap-3">
                   {card.dueDate && (
                     <div className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
+                      <Calendar className="h-4 w-4" />
                       <span className="text-xs font-medium">
                         {new Date(card.dueDate).toLocaleDateString('en-US', {
                           month: 'short',
@@ -299,7 +299,7 @@ export const RepoCard = memo<RepoCardProps>(
                   )}
                   {card.attachments && (
                     <div className="flex items-center gap-1">
-                      <Paperclip className="w-4 h-4" />
+                      <Paperclip className="h-4 w-4" />
                       <span className="text-xs font-medium">
                         {card.attachments}
                       </span>
@@ -308,16 +308,16 @@ export const RepoCard = memo<RepoCardProps>(
                   <button
                     type="button"
                     onClick={() => onNote?.(card.id)}
-                    className="flex items-center gap-1 hover:text-foreground transition-colors"
+                    className="hover:text-foreground flex items-center gap-1 transition-colors"
                     aria-label="Open note"
                   >
-                    <StickyNote className="w-4 h-4" />
+                    <StickyNote className="h-4 w-4" />
                     <span className="text-sm font-medium">Note</span>
                   </button>
                 </div>
 
                 {card.assignee && (
-                  <Avatar className="w-7 h-7 ring-2 ring-background">
+                  <Avatar className="ring-background h-7 w-7 ring-2">
                     <AvatarImage src={card.assignee.avatar} />
                     <AvatarFallback
                       className="text-xs"

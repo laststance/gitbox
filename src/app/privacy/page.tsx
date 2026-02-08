@@ -16,29 +16,29 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-12 px-4">
-      <article className="mx-auto max-w-3xl rounded-xl bg-card p-8 shadow-lg">
+    <main className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 px-4 py-12 dark:from-gray-900 dark:to-gray-800">
+      <article className="bg-card mx-auto max-w-3xl rounded-xl p-8 shadow-lg">
         <header className="mb-8">
           <Link
             href="/login"
-            className="text-sm text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground text-sm"
           >
             ← Back to Login
           </Link>
-          <h1 className="mt-4 text-3xl font-bold text-foreground">
+          <h1 className="text-foreground mt-4 text-3xl font-bold">
             Privacy Policy
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-2 text-sm">
             Last updated: January 7, 2026
           </p>
         </header>
 
         <div className="prose prose-gray dark:prose-invert max-w-none">
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
               1. Introduction
             </h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
+            <p className="mb-4 text-gray-600 dark:text-gray-300">
               GitBox (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) is a
               personal project that helps you organize GitHub repositories in
               Kanban format. This Privacy Policy explains how we collect, use,
@@ -47,13 +47,13 @@ export default function PrivacyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
               2. Data We Collect
             </h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
+            <p className="mb-4 text-gray-600 dark:text-gray-300">
               We collect minimal data necessary to provide our service:
             </p>
-            <ul className="list-disc pl-6 text-gray-600 dark:text-gray-300 space-y-2">
+            <ul className="list-disc space-y-2 pl-6 text-gray-600 dark:text-gray-300">
               <li>
                 <strong>GitHub Profile Information:</strong> Username, email,
                 and avatar URL (provided via GitHub OAuth)
@@ -70,34 +70,34 @@ export default function PrivacyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
               3. How We Use Your Data
             </h2>
-            <ul className="list-disc pl-6 text-gray-600 dark:text-gray-300 space-y-2">
+            <ul className="list-disc space-y-2 pl-6 text-gray-600 dark:text-gray-300">
               <li>To authenticate you via GitHub OAuth</li>
               <li>To display and manage your Kanban boards</li>
               <li>To save your preferences and settings</li>
             </ul>
-            <p className="text-gray-600 dark:text-gray-300 mt-4">
+            <p className="mt-4 text-gray-600 dark:text-gray-300">
               We do <strong>not</strong> sell your data, use it for advertising,
               or share it with third parties for marketing purposes.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
               4. Data Storage
             </h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
+            <p className="mb-4 text-gray-600 dark:text-gray-300">
               Your data is stored securely using:
             </p>
-            <ul className="list-disc pl-6 text-gray-600 dark:text-gray-300 space-y-2">
+            <ul className="list-disc space-y-2 pl-6 text-gray-600 dark:text-gray-300">
               <li>
                 <strong>Supabase:</strong> For database storage and
                 authentication (
                 <a
                   href="https://supabase.com/privacy"
-                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                  className="text-blue-600 hover:underline dark:text-blue-400"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -109,7 +109,7 @@ export default function PrivacyPage() {
                 <strong>Vercel:</strong> For application hosting (
                 <a
                   href="https://vercel.com/legal/privacy-policy"
-                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                  className="text-blue-600 hover:underline dark:text-blue-400"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -125,13 +125,13 @@ export default function PrivacyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
               5. Your Rights (GDPR)
             </h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
+            <p className="mb-4 text-gray-600 dark:text-gray-300">
               Under GDPR, you have the following rights:
             </p>
-            <ul className="list-disc pl-6 text-gray-600 dark:text-gray-300 space-y-2">
+            <ul className="list-disc space-y-2 pl-6 text-gray-600 dark:text-gray-300">
               <li>
                 <strong>Right to Access:</strong> Request a copy of your data
               </li>
@@ -152,7 +152,7 @@ export default function PrivacyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
               6. Cookies
             </h2>
             <p className="text-gray-600 dark:text-gray-300">
@@ -162,14 +162,14 @@ export default function PrivacyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
               7. Contact
             </h2>
             <p className="text-gray-600 dark:text-gray-300">
               For privacy-related inquiries, please open an issue on our{' '}
               <a
                 href="https://github.com/laststance/gitbox/issues"
-                className="text-blue-600 dark:text-blue-400 hover:underline"
+                className="text-blue-600 hover:underline dark:text-blue-400"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -180,7 +180,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
               8. Changes to This Policy
             </h2>
             <p className="text-gray-600 dark:text-gray-300">
@@ -191,10 +191,10 @@ export default function PrivacyPage() {
           </section>
         </div>
 
-        <footer className="mt-8 pt-8 border-t border-border">
+        <footer className="border-border mt-8 border-t pt-8">
           <Link
             href="/terms"
-            className="text-blue-600 dark:text-blue-400 hover:underline"
+            className="text-blue-600 hover:underline dark:text-blue-400"
           >
             View Terms of Use →
           </Link>

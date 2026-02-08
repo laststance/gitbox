@@ -24,7 +24,7 @@ const meta = {
   decorators: [
     (Story) => (
       <DndContext>
-        <div className="w-[320px] h-[600px]">
+        <div className="h-[600px] w-[320px]">
           <Story />
         </div>
       </DndContext>

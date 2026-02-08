@@ -68,10 +68,10 @@ export const ColumnInsertZone = memo<ColumnInsertZoneProps>(
         }}
         aria-label={`Insert column at row ${gridRow + 1}, column ${gridCol + 1}`}
       >
-        <div className="flex items-center justify-center h-full">
+        <div className="flex h-full items-center justify-center">
           <div
             className={cn(
-              'text-center p-4 rounded-lg transition-all duration-200',
+              'rounded-lg p-4 text-center transition-all duration-200',
               isOver ? 'text-primary font-medium' : 'text-muted-foreground/50',
             )}
           >

@@ -55,10 +55,10 @@ export default async function FavoritesPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-foreground text-3xl font-bold">
             Favorite Boards
           </h1>
-          <p className="mt-2 text-muted-foreground">
+          <p className="text-muted-foreground mt-2">
             Your starred boards for quick access
           </p>
         </div>
@@ -66,7 +66,7 @@ export default async function FavoritesPage() {
         {/* Back to All Boards */}
         <Link
           href="/boards"
-          className="inline-flex items-center gap-2 rounded-lg border border-input bg-background px-4 py-2 text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors"
+          className="border-input bg-background text-foreground hover:bg-accent focus:ring-primary inline-flex items-center gap-2 rounded-lg border px-4 py-2 transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none"
         >
           View All Boards
         </Link>
@@ -87,19 +87,19 @@ export default async function FavoritesPage() {
  */
 function FavoritesEmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted py-16">
+    <div className="border-border bg-muted flex flex-col items-center justify-center rounded-lg border-2 border-dashed py-16">
       <div className="rounded-full bg-amber-100 p-4 dark:bg-amber-900/30">
         <Star className="h-10 w-10 text-amber-500 dark:text-amber-400" />
       </div>
-      <h3 className="mt-6 text-xl font-medium text-foreground">
+      <h3 className="text-foreground mt-6 text-xl font-medium">
         No favorite boards yet
       </h3>
-      <p className="mt-2 max-w-md text-center text-muted-foreground">
+      <p className="text-muted-foreground mt-2 max-w-md text-center">
         Star boards from the All Boards page to add them here for quick access.
       </p>
       <Link
         href="/boards"
-        className="mt-8 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700 transition-colors"
+        className="mt-8 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-white transition-colors hover:bg-blue-700"
       >
         <svg
           className="h-5 w-5"

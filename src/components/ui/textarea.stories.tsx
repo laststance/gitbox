@@ -31,7 +31,7 @@ export const Default: Story = {
 
 export const WithLabel: Story = {
   render: () => (
-    <div className="space-y-2 w-[350px]">
+    <div className="w-[350px] space-y-2">
       <Label htmlFor="textarea">Description</Label>
       <Textarea id="textarea" placeholder="Enter description..." rows={4} />
     </div>

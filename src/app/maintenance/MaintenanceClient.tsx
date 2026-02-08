@@ -370,16 +370,16 @@ export const MaintenanceClient = memo(function MaintenanceClient({
   )
 
   return (
-    <div className="flex h-screen flex-col bg-background">
+    <div className="bg-background flex h-screen flex-col">
       {/* Header */}
-      <header className="border-b border-border px-6 py-4">
+      <header className="border-border border-b px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Back to Board link - shows only if user has visited a board */}
             {lastVisitedBoard && (
               <Link
                 href={`/board/${lastVisitedBoard.id}`}
-                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-sm transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span className="hidden sm:inline">
@@ -389,10 +389,10 @@ export const MaintenanceClient = memo(function MaintenanceClient({
               </Link>
             )}
             <div>
-              <h1 className="text-2xl font-bold text-foreground">
+              <h1 className="text-foreground text-2xl font-bold">
                 Maintenance Mode
               </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="text-muted-foreground mt-1 text-sm">
                 Archived and maintenance projects • {repos.length} items
               </p>
             </div>
@@ -401,7 +401,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
           <div className="flex items-center gap-4">
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
               <Input
                 type="text"
                 placeholder="Search repositories..."
@@ -436,7 +436,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
             </DropdownMenu>
 
             {/* View Toggle */}
-            <div className="flex rounded-lg border border-border p-1">
+            <div className="border-border flex rounded-lg border p-1">
               <button
                 type="button"
                 onClick={() => setViewMode('grid')}
@@ -460,11 +460,11 @@ export const MaintenanceClient = memo(function MaintenanceClient({
       <main className="flex-1 overflow-auto p-6">
         {sortedRepos.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">
-            <Archive className="h-16 w-16 text-muted-foreground/50" />
-            <h3 className="mt-4 text-lg font-medium text-foreground">
+            <Archive className="text-muted-foreground/50 h-16 w-16" />
+            <h3 className="text-foreground mt-4 text-lg font-medium">
               {search ? 'No matching repositories' : 'No maintenance projects'}
             </h3>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="text-muted-foreground mt-2 text-sm">
               {search
                 ? 'Try adjusting your search terms'
                 : 'Move projects here from your boards when they are archived'}
@@ -481,7 +481,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ delay: index * 0.05 }}
-                    className="group relative rounded-lg border border-border bg-card p-4 hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
+                    className="group border-border bg-card hover:border-primary/50 relative cursor-pointer rounded-lg border p-4 transition-all hover:shadow-md"
                     onClick={() => openGitHubUrl(repo)}
                   >
                     {/* Menu */}
@@ -492,7 +492,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                       >
                         <button
                           type="button"
-                          className="absolute right-2 top-2 rounded-md p-1.5 opacity-0 group-hover:opacity-100 hover:bg-muted transition-opacity"
+                          className="hover:bg-muted absolute top-2 right-2 rounded-md p-1.5 opacity-0 transition-opacity group-hover:opacity-100"
                         >
                           <MoreVertical className="h-4 w-4" />
                         </button>
@@ -514,10 +514,10 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                       className="space-y-2"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <h3 className="font-semibold text-foreground truncate pr-8">
+                      <h3 className="text-foreground truncate pr-8 font-semibold">
                         {repo.repo_name}
                       </h3>
-                      <p className="text-sm text-muted-foreground truncate">
+                      <p className="text-muted-foreground truncate text-sm">
                         {repo.repo_owner}
                       </p>
 
@@ -573,7 +573,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
 
                       {/* Meta + Note Button */}
                       <div className="flex items-center justify-between pt-2">
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <div className="text-muted-foreground flex items-center gap-3 text-xs">
                           {repo.meta?.stars !== undefined && (
                             <span className="flex items-center gap-1">
                               <Star className="h-3 w-3" />
@@ -593,7 +593,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                         <button
                           type="button"
                           onClick={() => openNoteModal(repo)}
-                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs transition-colors"
                           aria-label="Open note"
                         >
                           <StickyNote className="h-3 w-3" />
@@ -613,19 +613,19 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ delay: index * 0.03 }}
-                    className="group rounded-lg border border-border bg-card p-4 hover:border-primary/50 hover:shadow-sm transition-all"
+                    className="group border-border bg-card hover:border-primary/50 rounded-lg border p-4 transition-all hover:shadow-sm"
                   >
                     <div className="flex items-center gap-4">
                       <div
-                        className="flex-1 min-w-0 cursor-pointer"
+                        className="min-w-0 flex-1 cursor-pointer"
                         onClick={() => openGitHubUrl(repo)}
                       >
                         <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-foreground truncate">
+                          <h3 className="text-foreground truncate font-semibold">
                             {repo.repo_owner}/{repo.repo_name}
                           </h3>
                           {repo.meta?.language && (
-                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                            <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
                               {repo.meta.language}
                             </span>
                           )}
@@ -633,7 +633,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                       </div>
 
                       {/* Meta */}
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="text-muted-foreground flex items-center gap-4 text-sm">
                         {repo.meta?.stars !== undefined && (
                           <span className="flex items-center gap-1">
                             <Star className="h-4 w-4" />
@@ -648,7 +648,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                       </div>
 
                       {/* Actions */}
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
                         <Button
                           variant="ghost"
                           size="sm"

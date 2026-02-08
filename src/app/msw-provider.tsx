@@ -70,7 +70,7 @@ function MSWProviderComponent({ children }: MSWProviderProps): React.ReactNode {
   // where fetch requests are made before MSW can intercept them
   if (isMSWEnabled() && !isMSWReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <p className="text-lg">Initializing MSW...</p>
       </div>
     )

@@ -125,7 +125,7 @@ export const RenameBoardDialog = memo(function RenameBoardDialog({
               {hasError ? (
                 <p
                   id="name-error"
-                  className="text-sm text-destructive"
+                  className="text-destructive text-sm"
                   role="alert"
                 >
                   {state.errors?.name?.[0]}
@@ -138,7 +138,7 @@ export const RenameBoardDialog = memo(function RenameBoardDialog({
                 className={
                   isNearLimit
                     ? 'text-sm text-orange-500'
-                    : 'text-sm text-muted-foreground'
+                    : 'text-muted-foreground text-sm'
                 }
               >
                 {charCount}/{BOARD_NAME_MAX_LENGTH}

@@ -153,7 +153,7 @@ export const PlateEditor = memo(function PlateEditor({
         <Plate editor={editor} onChange={handleChange}>
           <EditorContainer
             className={cn(
-              'rounded-lg border border-input bg-background shadow-sm',
+              'border-input bg-background rounded-lg border shadow-sm',
               disabled && 'cursor-not-allowed opacity-50',
             )}
             style={{ minHeight, maxHeight }}

@@ -87,7 +87,7 @@ export const DeleteAccountDialog = memo(function DeleteAccountDialog({
     <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
       <AlertDialogContent data-testid="delete-account-dialog">
         <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+          <AlertDialogTitle className="text-destructive flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
             Delete Account
           </AlertDialogTitle>
@@ -96,7 +96,7 @@ export const DeleteAccountDialog = memo(function DeleteAccountDialog({
               This action is <strong>irreversible</strong>. All your boards,
               cards, notes, and settings will be permanently deleted.
             </p>
-            <p className="font-medium text-foreground">
+            <p className="text-foreground font-medium">
               Your GitHub repositories will NOT be affected.
             </p>
           </AlertDialogDescription>

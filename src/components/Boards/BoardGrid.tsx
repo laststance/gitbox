@@ -117,9 +117,9 @@ export const BoardGrid = memo(function BoardGrid({
  */
 const EmptyState = memo(function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted py-12">
+    <div className="border-border bg-muted flex flex-col items-center justify-center rounded-lg border-2 border-dashed py-12">
       <svg
-        className="h-12 w-12 text-muted-foreground"
+        className="text-muted-foreground h-12 w-12"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -132,15 +132,15 @@ const EmptyState = memo(function EmptyState() {
           d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
         />
       </svg>
-      <h3 className="mt-4 text-lg font-medium text-foreground">
+      <h3 className="text-foreground mt-4 text-lg font-medium">
         No boards yet
       </h3>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <p className="text-muted-foreground mt-2 text-sm">
         Get started by creating your first board
       </p>
       <Link
         href="/boards/new"
-        className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors"
+        className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
       >
         <svg
           className="h-5 w-5"

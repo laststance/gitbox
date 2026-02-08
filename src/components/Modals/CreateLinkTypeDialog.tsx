@@ -159,7 +159,7 @@ export const CreateLinkTypeDialog = memo(function CreateLinkTypeDialog({
                 aria-describedby={error ? 'link-type-error' : undefined}
                 aria-invalid={!!error}
               />
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 {label.length}/50 characters
               </p>
             </div>
@@ -188,7 +188,7 @@ export const CreateLinkTypeDialog = memo(function CreateLinkTypeDialog({
             {error && (
               <p
                 id="link-type-error"
-                className="text-sm text-destructive"
+                className="text-destructive text-sm"
                 role="alert"
                 data-testid="link-type-error"
               >

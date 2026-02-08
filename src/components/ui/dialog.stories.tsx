@@ -95,7 +95,7 @@ export const WithForm: Story = {
             Fill in the form below to create a new item
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4 space-y-4">
+        <div className="space-y-4 py-4">
           <div>
             <label className="text-sm font-medium">Name</label>
             <input

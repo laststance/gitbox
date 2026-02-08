@@ -242,7 +242,7 @@ export const LinkTypeCombobox = memo(function LinkTypeCombobox({
           {onAddCustomClick && (
             <button
               type="button"
-              className="flex w-full items-center gap-2 border-b px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none"
+              className="text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground flex w-full items-center gap-2 border-b px-3 py-2 text-sm transition-colors focus:outline-none"
               onClick={() => {
                 setOpen(false)
                 onAddCustomClick()

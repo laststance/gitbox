@@ -137,7 +137,7 @@ export const BoardCard = memo(function BoardCard({
     <>
       <div
         data-testid="board-card"
-        className="group relative block rounded-lg border border-border bg-card p-6 shadow-sm hover:shadow-md hover:border-primary transition-all"
+        className="group border-border bg-card hover:border-primary relative block rounded-lg border p-6 shadow-sm transition-all hover:shadow-md"
       >
         {/* Board link - covers the card but not the menu */}
         <Link
@@ -147,15 +147,15 @@ export const BoardCard = memo(function BoardCard({
         />
 
         {/* Top-right actions: Favorite star + Menu */}
-        <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
+        <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
           {/* Favorite star button */}
           <Button
             variant="ghost"
             size="icon"
             className={`h-8 w-8 transition-all ${
               localIsFavorite
-                ? 'text-amber-500 hover:text-amber-600 opacity-100'
-                : 'text-muted-foreground hover:text-amber-500 opacity-70 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100'
+                ? 'text-amber-500 opacity-100 hover:text-amber-600'
+                : 'text-muted-foreground opacity-70 hover:text-amber-500 focus-visible:opacity-100 md:opacity-0 md:group-hover:opacity-100'
             }`}
             aria-label={
               localIsFavorite
@@ -178,7 +178,7 @@ export const BoardCard = memo(function BoardCard({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 opacity-70 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                className="h-8 w-8 opacity-70 transition-opacity focus-visible:opacity-100 md:opacity-0 md:group-hover:opacity-100"
                 aria-label={`Open menu for ${board.name}`}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -203,11 +203,11 @@ export const BoardCard = memo(function BoardCard({
         </div>
 
         {/* Card content */}
-        <h3 className="text-xl font-semibold text-foreground group-hover:text-primary transition-colors pr-16">
+        <h3 className="text-foreground group-hover:text-primary pr-16 text-xl font-semibold transition-colors">
           {board.name}
         </h3>
 
-        <div className="mt-4 flex items-center text-sm text-muted-foreground">
+        <div className="text-muted-foreground mt-4 flex items-center text-sm">
           <div className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
             {board.created_at

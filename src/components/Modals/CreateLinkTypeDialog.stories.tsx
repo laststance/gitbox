@@ -33,7 +33,7 @@ const DefaultStory = memo(function DefaultStory() {
   const [createdPreset, setCreatedPreset] = useState<string | null>(null)
 
   return (
-    <div className="flex flex-col gap-4 items-center">
+    <div className="flex flex-col items-center gap-4">
       <Button onClick={() => setOpen(true)}>Add Custom Link Type</Button>
       <CreateLinkTypeDialog
         open={open}

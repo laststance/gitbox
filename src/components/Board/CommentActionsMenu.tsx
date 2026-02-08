@@ -108,13 +108,13 @@ export const CommentActionsMenu = memo<CommentActionsMenuProps>(
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+            className="h-6 w-6 p-0 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
             disabled={disabled}
             aria-label="Comment actions"
             data-testid="comment-actions-trigger"
             onClick={(e) => e.stopPropagation()}
           >
-            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+            <Pencil className="text-muted-foreground h-3.5 w-3.5" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-36">
@@ -149,7 +149,7 @@ export const CommentActionsMenu = memo<CommentActionsMenuProps>(
                   />
                   <span className="flex-1">{option.label}</span>
                   {currentColor === option.value && (
-                    <Check className="ml-2 h-4 w-4 text-primary" />
+                    <Check className="text-primary ml-2 h-4 w-4" />
                   )}
                 </DropdownMenuItem>
               ))}

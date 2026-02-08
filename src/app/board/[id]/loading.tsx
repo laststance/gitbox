@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
  */
 const CardSkeleton = memo(function CardSkeleton() {
   return (
-    <div className="rounded-lg border bg-card p-3">
+    <div className="bg-card rounded-lg border p-3">
       <div className="flex items-start gap-3">
         <Skeleton className="size-8 shrink-0 rounded-md" />
         <div className="min-w-0 flex-1 space-y-2">
@@ -35,7 +35,7 @@ const ColumnSkeleton = memo(function ColumnSkeleton({
   cardCount: number
 }) {
   return (
-    <div className="flex w-72 shrink-0 flex-col rounded-lg border bg-muted/30 p-3">
+    <div className="bg-muted/30 flex w-72 shrink-0 flex-col rounded-lg border p-3">
       {/* Column header */}
       <div className="mb-3 flex items-center justify-between">
         <Skeleton className="h-5 w-24" />

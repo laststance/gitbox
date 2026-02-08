@@ -59,15 +59,15 @@ const DifferentPresetsStory = memo(function DifferentPresetsStory() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
-        <span className="text-sm w-24">Monitoring:</span>
+        <span className="w-24 text-sm">Monitoring:</span>
         <LinkTypeCombobox value={value1} onValueChange={setValue1} />
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-sm w-24">Database:</span>
+        <span className="w-24 text-sm">Database:</span>
         <LinkTypeCombobox value={value2} onValueChange={setValue2} />
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-sm w-24">Payment:</span>
+        <span className="w-24 text-sm">Payment:</span>
         <LinkTypeCombobox value={value3} onValueChange={setValue3} />
       </div>
     </div>
@@ -127,7 +127,7 @@ const WithAddCustomStory = memo(function WithAddCustomStory() {
         onAddCustomClick={() => setShowLog(true)}
       />
       {showLog && (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Add Custom clicked! (Dialog would open here)
         </p>
       )}
@@ -156,7 +156,7 @@ const LegacyValueStory = memo(function LegacyValueStory() {
   return (
     <div className="flex flex-col gap-2">
       <LinkTypeCombobox value={value} onValueChange={setValue} />
-      <p className="text-xs text-muted-foreground">
+      <p className="text-muted-foreground text-xs">
         Legacy production value is shown as Production
       </p>
     </div>
@@ -175,7 +175,7 @@ const UnknownValueStory = memo(function UnknownValueStory() {
   return (
     <div className="flex flex-col gap-2">
       <LinkTypeCombobox value={value} onValueChange={setValue} />
-      <p className="text-xs text-muted-foreground">
+      <p className="text-muted-foreground text-xs">
         Unknown values are converted to Title Case
       </p>
     </div>

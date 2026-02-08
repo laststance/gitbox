@@ -108,7 +108,7 @@ export const ThemeToggle = memo(function ThemeToggle({
       {!isCollapsed && (
         <>
           <span className="flex-1 text-left">Theme</span>
-          <span className="text-xs text-muted-foreground/70">
+          <span className="text-muted-foreground/70 text-xs">
             {currentThemeName}
           </span>
         </>
@@ -219,19 +219,19 @@ const ThemeMenuItem = memo(function ThemeMenuItem({
     >
       {/* Color swatch */}
       {themeId === 'system' ? (
-        <div className="flex h-4 w-4 items-center justify-center rounded-full bg-muted">
-          <Monitor className="h-2.5 w-2.5 text-muted-foreground" />
+        <div className="bg-muted flex h-4 w-4 items-center justify-center rounded-full">
+          <Monitor className="text-muted-foreground h-2.5 w-2.5" />
         </div>
       ) : (
         <div
-          className={`h-4 w-4 rounded-full shadow-sm ${info?.needsBorder ? 'border border-border' : ''}`}
+          className={`h-4 w-4 rounded-full shadow-sm ${info?.needsBorder ? 'border-border border' : ''}`}
           style={{ backgroundColor: info?.color }}
         />
       )}
       {/* Theme name */}
       <span className="flex-1">{info?.name}</span>
       {/* Check mark for selected theme */}
-      {isSelected && <Check className="h-4 w-4 text-primary" />}
+      {isSelected && <Check className="text-primary h-4 w-4" />}
     </DropdownMenuItem>
   )
 })

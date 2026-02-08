@@ -29,7 +29,7 @@ const meta = {
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <div className="w-[320px] p-4 bg-card rounded-lg border">
+      <div className="bg-card w-[320px] rounded-lg border p-4">
         <Story />
       </div>
     ),
@@ -195,11 +195,11 @@ export const Interactive: Story = {
           <button
             type="button"
             onClick={() => setIsEditing(true)}
-            className="w-full text-left p-3 border rounded-md hover:bg-muted/50"
+            className="hover:bg-muted/50 w-full rounded-md border p-3 text-left"
           >
             {savedValue || 'Click to add comment'}
           </button>
-          <p className="text-xs text-muted-foreground">Click to edit</p>
+          <p className="text-muted-foreground text-xs">Click to edit</p>
         </div>
       )
     }
@@ -218,7 +218,7 @@ export const Interactive: Story = {
           }}
           onCancel={() => setIsEditing(false)}
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           Press Enter to save, Escape to cancel
         </p>
       </div>
@@ -301,13 +301,13 @@ export const TestOnBlurAutoSave: Story = {
   },
   decorators: [
     (Story) => (
-      <div className="w-[320px] p-4 bg-card rounded-lg border">
+      <div className="bg-card w-[320px] rounded-lg border p-4">
         <Story />
         {/* External element to click for blur */}
         <button
           type="button"
           data-testid="external-button"
-          className="mt-4 px-4 py-2 border rounded"
+          className="mt-4 rounded border px-4 py-2"
         >
           Click me to trigger blur
         </button>
@@ -574,12 +574,12 @@ export const TestNoSaveWhenUnchanged: Story = {
   },
   decorators: [
     (Story) => (
-      <div className="w-[320px] p-4 bg-card rounded-lg border">
+      <div className="bg-card w-[320px] rounded-lg border p-4">
         <Story />
         <button
           type="button"
           data-testid="external-button"
-          className="mt-4 px-4 py-2 border rounded"
+          className="mt-4 rounded border px-4 py-2"
         >
           Click me
         </button>

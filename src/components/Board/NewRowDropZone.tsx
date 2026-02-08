@@ -48,9 +48,9 @@ export const NewRowDropZone = memo<NewRowDropZoneProps>(
       <div
         ref={setNodeRef}
         className={cn(
-          'h-20 border-2 border-dashed rounded-xl',
+          'h-20 rounded-xl border-2 border-dashed',
           'flex items-center justify-center',
-          'text-sm text-muted-foreground font-medium',
+          'text-muted-foreground text-sm font-medium',
           'transition-all duration-200',
           isOver
             ? 'border-primary bg-primary/10 text-primary scale-[1.02]'

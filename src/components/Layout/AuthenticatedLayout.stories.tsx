@@ -20,7 +20,7 @@ export const Default: Story = {
     userAvatar: 'https://avatars.githubusercontent.com/u/1?v=4',
     children: (
       <div className="p-8">
-        <h1 className="text-2xl font-bold mb-4">Main Content Area</h1>
+        <h1 className="mb-4 text-2xl font-bold">Main Content Area</h1>
         <p>This is the main content area of the authenticated layout.</p>
       </div>
     ),
@@ -33,7 +33,7 @@ export const WithLongContent: Story = {
     userAvatar: 'https://avatars.githubusercontent.com/u/1?v=4',
     children: (
       <div className="p-8">
-        <h1 className="text-2xl font-bold mb-4">Long Content</h1>
+        <h1 className="mb-4 text-2xl font-bold">Long Content</h1>
         {Array.from({ length: 50 }, (_, i) => (
           <p key={i} className="mb-4">
             This is paragraph {i + 1} of a long content area to demonstrate

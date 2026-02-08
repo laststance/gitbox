@@ -42,9 +42,9 @@ export const Rectangle: Story = {
 
 export const CardSkeleton: Story = {
   render: () => (
-    <div className="flex items-center space-x-4 w-[350px]">
+    <div className="flex w-[350px] items-center space-x-4">
       <Skeleton className="h-12 w-12 rounded-full" />
-      <div className="space-y-2 flex-1">
+      <div className="flex-1 space-y-2">
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-3/4" />
       </div>
@@ -54,7 +54,7 @@ export const CardSkeleton: Story = {
 
 export const TextSkeleton: Story = {
   render: () => (
-    <div className="space-y-2 w-[350px]">
+    <div className="w-[350px] space-y-2">
       <Skeleton className="h-4 w-full" />
       <Skeleton className="h-4 w-full" />
       <Skeleton className="h-4 w-5/6" />
@@ -64,7 +64,7 @@ export const TextSkeleton: Story = {
 
 export const CardLayout: Story = {
   render: () => (
-    <div className="space-y-4 w-[350px]">
+    <div className="w-[350px] space-y-4">
       <Skeleton className="h-[200px] w-full rounded-lg" />
       <div className="space-y-2">
         <Skeleton className="h-4 w-3/4" />

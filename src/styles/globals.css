@@ -6,10 +6,10 @@
  */
 /*---break---
  */
-@plugin "tailwindcss-animate";
+@plugin 'tailwindcss-animate';
 /*---break---
  */
-@plugin "tailwind-scrollbar-hide";
+@plugin 'tailwind-scrollbar-hide';
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import './themes.css';

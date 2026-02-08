@@ -70,15 +70,15 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
           autoFocus
           disabled={isPending}
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           {name.length}/50 characters
         </p>
       </div>
 
       {/* Error Message */}
       {error && (
-        <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3">
-          <p className="text-sm text-destructive">{error}</p>
+        <div className="bg-destructive/10 border-destructive/20 rounded-lg border p-3">
+          <p className="text-destructive text-sm">{error}</p>
         </div>
       )}
 

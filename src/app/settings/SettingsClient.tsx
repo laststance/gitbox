@@ -112,8 +112,8 @@ const ThemeButton = memo(function ThemeButton({
   return (
     <button type="button" onClick={onClick} className={buttonClassName}>
       {theme === 'system' ? (
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-          <Monitor className="h-5 w-5 text-muted-foreground" />
+        <div className="bg-muted flex h-10 w-10 items-center justify-center rounded-full">
+          <Monitor className="text-muted-foreground h-5 w-5" />
         </div>
       ) : (
         <div
@@ -122,10 +122,10 @@ const ThemeButton = memo(function ThemeButton({
         />
       )}
       <span className="text-sm font-medium">{info.name}</span>
-      <span className="text-xs text-muted-foreground">{info.description}</span>
+      <span className="text-muted-foreground text-xs">{info.description}</span>
       {isSelected && (
-        <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
-          <Check className="h-3 w-3 text-primary-foreground" />
+        <div className="bg-primary absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full">
+          <Check className="text-primary-foreground h-3 w-3" />
         </div>
       )}
     </button>
@@ -178,8 +178,8 @@ export const SettingsClient = memo(function SettingsClient() {
     return (
       <div className="container mx-auto max-w-4xl px-4 py-8">
         <div className="animate-pulse space-y-6">
-          <div className="h-8 w-48 rounded bg-muted" />
-          <div className="h-64 rounded-lg bg-muted" />
+          <div className="bg-muted h-8 w-48 rounded" />
+          <div className="bg-muted h-64 rounded-lg" />
         </div>
       </div>
     )
@@ -189,8 +189,8 @@ export const SettingsClient = memo(function SettingsClient() {
     <div className="container mx-auto max-w-4xl px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-        <p className="mt-2 text-muted-foreground">
+        <h1 className="text-foreground text-3xl font-bold">Settings</h1>
+        <p className="text-muted-foreground mt-2">
           Customize your GitBox experience
         </p>
       </div>
@@ -271,7 +271,7 @@ export const SettingsClient = memo(function SettingsClient() {
             <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="compact-mode">Compact Mode</Label>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   Reduce spacing and card sizes for more content on screen
                 </p>
               </div>
@@ -284,7 +284,7 @@ export const SettingsClient = memo(function SettingsClient() {
             <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="show-card-metadata">Show Card Metadata</Label>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   Display stars, language, and last updated on cards
                 </p>
               </div>
