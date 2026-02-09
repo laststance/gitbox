@@ -484,8 +484,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ delay: Math.min(index * 0.05, 0.5) }}
-                      className="group border-border bg-card hover:border-primary/50 relative cursor-pointer rounded-lg border p-4 transition-all hover:shadow-md"
-                      onClick={() => openGitHubUrl(repo)}
+                      className="group border-border bg-card hover:border-primary/50 relative rounded-lg border p-4 transition-all hover:shadow-md"
                     >
                       {/* Menu */}
                       <DropdownMenu>
@@ -513,10 +512,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                       </DropdownMenu>
 
                       {/* Content */}
-                      <div
-                        className="space-y-2"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <div className="space-y-2">
                         <h3 className="text-foreground truncate pr-8 font-semibold">
                           {repo.repo_name}
                         </h3>
