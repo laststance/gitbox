@@ -458,279 +458,283 @@ export const MaintenanceClient = memo(function MaintenanceClient({
 
       {/* Content */}
       <main className="flex-1 overflow-auto p-6">
-        {sortedRepos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16">
-            <Archive className="text-muted-foreground/50 h-16 w-16" />
-            <h3 className="text-foreground mt-4 text-lg font-medium">
-              {search ? 'No matching repositories' : 'No maintenance projects'}
-            </h3>
-            <p className="text-muted-foreground mt-2 text-sm">
-              {search
-                ? 'Try adjusting your search terms'
-                : 'Move projects here from your boards when they are archived'}
-            </p>
-          </div>
-        ) : (
-          <AnimatePresence mode="popLayout">
-            {viewMode === 'grid' ? (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {sortedRepos.map((repo, index) => (
-                  <motion.div
-                    key={repo.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="group border-border bg-card hover:border-primary/50 relative cursor-pointer rounded-lg border p-4 transition-all hover:shadow-md"
-                    onClick={() => openGitHubUrl(repo)}
-                  >
-                    {/* Menu */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        asChild
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          type="button"
-                          className="hover:bg-muted absolute top-2 right-2 rounded-md p-1.5 opacity-0 transition-opacity group-hover:opacity-100"
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openGitHubUrl(repo)}>
-                          <ExternalLink className="mr-2 h-4 w-4" />
-                          Open on GitHub
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleRestore(repo)}>
-                          <RotateCcw className="mr-2 h-4 w-4" />
-                          Restore to Board
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    {/* Content */}
-                    <div
-                      className="space-y-2"
-                      onClick={(e) => e.stopPropagation()}
+        <div className="mx-auto w-full max-w-6xl">
+          {sortedRepos.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <Archive className="text-muted-foreground/50 h-16 w-16" />
+              <h3 className="text-foreground mt-4 text-lg font-medium">
+                {search
+                  ? 'No matching repositories'
+                  : 'No maintenance projects'}
+              </h3>
+              <p className="text-muted-foreground mt-2 text-sm">
+                {search
+                  ? 'Try adjusting your search terms'
+                  : 'Move projects here from your boards when they are archived'}
+              </p>
+            </div>
+          ) : (
+            <AnimatePresence mode="popLayout">
+              {viewMode === 'grid' ? (
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {sortedRepos.map((repo, index) => (
+                    <motion.div
+                      key={repo.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ delay: Math.min(index * 0.05, 0.5) }}
+                      className="group border-border bg-card hover:border-primary/50 relative rounded-lg border p-4 transition-all hover:shadow-md"
                     >
-                      <h3 className="text-foreground truncate pr-8 font-semibold">
-                        {repo.repo_name}
-                      </h3>
-                      <p className="text-muted-foreground truncate text-sm">
-                        {repo.repo_owner}
-                      </p>
+                      {/* Menu */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          asChild
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            className="hover:bg-muted absolute top-2 right-2 rounded-md p-1.5 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openGitHubUrl(repo)}>
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            Open on GitHub
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleRestore(repo)}>
+                            <RotateCcw className="mr-2 h-4 w-4" />
+                            Restore to Board
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
 
-                      {/* Inline Comment (same as Board RepoCard) */}
-                      <Activity
-                        mode={
-                          editingCommentId === repo.id ? 'visible' : 'hidden'
-                        }
-                      >
-                        <CommentInlineEdit
-                          initialValue={comments[repo.id]?.comment ?? ''}
-                          onSave={async (newComment, options) =>
-                            handleCommentSave(repo.id, newComment, options)
-                          }
-                          onCancel={handleCommentCancel}
-                          style={{
-                            borderColor: comments[repo.id]?.color ?? 'neutral',
-                          }}
-                        />
-                      </Activity>
-                      <Activity
-                        mode={
-                          editingCommentId === repo.id ? 'hidden' : 'visible'
-                        }
-                      >
-                        <CommentDisplay
-                          comment={comments[repo.id]?.comment}
-                          onClick={() => handleCommentClick(repo.id)}
-                          style={{
-                            borderColor: comments[repo.id]?.color ?? 'neutral',
-                          }}
-                          showEmptyState={true}
-                          renderActions={
-                            comments[repo.id]?.comment
-                              ? () => (
-                                  <CommentActionsMenu
-                                    onEdit={() => handleCommentClick(repo.id)}
-                                    onColorChange={async (color) =>
-                                      handleColorChange(repo.id, color)
-                                    }
-                                    onDelete={async () =>
-                                      handleCommentDelete(repo.id)
-                                    }
-                                    currentColor={
-                                      comments[repo.id]?.color ?? 'neutral'
-                                    }
-                                  />
-                                )
-                              : undefined
-                          }
-                        />
-                      </Activity>
+                      {/* Content */}
+                      <div className="space-y-2">
+                        <h3 className="text-foreground truncate pr-8 font-semibold">
+                          {repo.repo_name}
+                        </h3>
+                        <p className="text-muted-foreground truncate text-sm">
+                          {repo.repo_owner}
+                        </p>
 
-                      {/* Meta + Note Button */}
-                      <div className="flex items-center justify-between pt-2">
-                        <div className="text-muted-foreground flex items-center gap-3 text-xs">
+                        {/* Inline Comment (same as Board RepoCard) */}
+                        <Activity
+                          mode={
+                            editingCommentId === repo.id ? 'visible' : 'hidden'
+                          }
+                        >
+                          <CommentInlineEdit
+                            initialValue={comments[repo.id]?.comment ?? ''}
+                            onSave={async (newComment, options) =>
+                              handleCommentSave(repo.id, newComment, options)
+                            }
+                            onCancel={handleCommentCancel}
+                            style={{
+                              borderColor:
+                                comments[repo.id]?.color ?? 'neutral',
+                            }}
+                          />
+                        </Activity>
+                        <Activity
+                          mode={
+                            editingCommentId === repo.id ? 'hidden' : 'visible'
+                          }
+                        >
+                          <CommentDisplay
+                            comment={comments[repo.id]?.comment}
+                            onClick={() => handleCommentClick(repo.id)}
+                            style={{
+                              borderColor:
+                                comments[repo.id]?.color ?? 'neutral',
+                            }}
+                            showEmptyState={true}
+                            renderActions={
+                              comments[repo.id]?.comment
+                                ? () => (
+                                    <CommentActionsMenu
+                                      onEdit={() => handleCommentClick(repo.id)}
+                                      onColorChange={async (color) =>
+                                        handleColorChange(repo.id, color)
+                                      }
+                                      onDelete={async () =>
+                                        handleCommentDelete(repo.id)
+                                      }
+                                      currentColor={
+                                        comments[repo.id]?.color ?? 'neutral'
+                                      }
+                                    />
+                                  )
+                                : undefined
+                            }
+                          />
+                        </Activity>
+
+                        {/* Meta + Note Button */}
+                        <div className="flex items-center justify-between pt-2">
+                          <div className="text-muted-foreground flex items-center gap-3 text-xs">
+                            {repo.meta?.stars !== undefined && (
+                              <span className="flex items-center gap-1">
+                                <Star className="h-3 w-3" />
+                                {repo.meta.stars}
+                              </span>
+                            )}
+                            {repo.meta?.language && (
+                              <span>{repo.meta.language}</span>
+                            )}
+                            {repo.updated_at && (
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {new Date(repo.updated_at).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => openNoteModal(repo)}
+                            className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs transition-colors"
+                            aria-label="Open note"
+                          >
+                            <StickyNote className="h-3 w-3" />
+                            <span>Note</span>
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {sortedRepos.map((repo, index) => (
+                    <motion.div
+                      key={repo.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ delay: Math.min(index * 0.03, 0.3) }}
+                      className="group border-border bg-card hover:border-primary/50 rounded-lg border p-4 transition-all hover:shadow-sm"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div
+                          className="min-w-0 flex-1 cursor-pointer"
+                          onClick={() => openGitHubUrl(repo)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-foreground truncate font-semibold">
+                              {repo.repo_owner}/{repo.repo_name}
+                            </h3>
+                            {repo.meta?.language && (
+                              <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
+                                {repo.meta.language}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Meta */}
+                        <div className="text-muted-foreground flex items-center gap-4 text-sm">
                           {repo.meta?.stars !== undefined && (
                             <span className="flex items-center gap-1">
-                              <Star className="h-3 w-3" />
+                              <Star className="h-4 w-4" />
                               {repo.meta.stars}
                             </span>
                           )}
-                          {repo.meta?.language && (
-                            <span>{repo.meta.language}</span>
-                          )}
                           {repo.updated_at && (
-                            <span className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
+                            <span className="hidden sm:inline">
                               {new Date(repo.updated_at).toLocaleDateString()}
                             </span>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => openNoteModal(repo)}
-                          className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs transition-colors"
-                          aria-label="Open note"
-                        >
-                          <StickyNote className="h-3 w-3" />
-                          <span>Note</span>
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {sortedRepos.map((repo, index) => (
-                  <motion.div
-                    key={repo.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ delay: index * 0.03 }}
-                    className="group border-border bg-card hover:border-primary/50 rounded-lg border p-4 transition-all hover:shadow-sm"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div
-                        className="min-w-0 flex-1 cursor-pointer"
-                        onClick={() => openGitHubUrl(repo)}
-                      >
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-foreground truncate font-semibold">
-                            {repo.repo_owner}/{repo.repo_name}
-                          </h3>
-                          {repo.meta?.language && (
-                            <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
-                              {repo.meta.language}
-                            </span>
-                          )}
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openNoteModal(repo)}
+                            aria-label="Open note"
+                          >
+                            <StickyNote className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openGitHubUrl(repo)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRestore(repo)}
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
 
-                      {/* Meta */}
-                      <div className="text-muted-foreground flex items-center gap-4 text-sm">
-                        {repo.meta?.stars !== undefined && (
-                          <span className="flex items-center gap-1">
-                            <Star className="h-4 w-4" />
-                            {repo.meta.stars}
-                          </span>
-                        )}
-                        {repo.updated_at && (
-                          <span className="hidden sm:inline">
-                            {new Date(repo.updated_at).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openNoteModal(repo)}
-                          aria-label="Open note"
-                        >
-                          <StickyNote className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openGitHubUrl(repo)}
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRestore(repo)}
-                        >
-                          <RotateCcw className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Inline Comment for List view */}
-                    <div className="mt-3">
-                      <Activity
-                        mode={
-                          editingCommentId === repo.id ? 'visible' : 'hidden'
-                        }
-                      >
-                        <CommentInlineEdit
-                          initialValue={comments[repo.id]?.comment ?? ''}
-                          onSave={async (newComment, options) =>
-                            handleCommentSave(repo.id, newComment, options)
+                      {/* Inline Comment for List view */}
+                      <div className="mt-3">
+                        <Activity
+                          mode={
+                            editingCommentId === repo.id ? 'visible' : 'hidden'
                           }
-                          onCancel={handleCommentCancel}
-                          style={{
-                            borderColor: comments[repo.id]?.color ?? 'neutral',
-                          }}
-                        />
-                      </Activity>
-                      <Activity
-                        mode={
-                          editingCommentId === repo.id ? 'hidden' : 'visible'
-                        }
-                      >
-                        <CommentDisplay
-                          comment={comments[repo.id]?.comment}
-                          onClick={() => handleCommentClick(repo.id)}
-                          style={{
-                            borderColor: comments[repo.id]?.color ?? 'neutral',
-                          }}
-                          showEmptyState={true}
-                          renderActions={
-                            comments[repo.id]?.comment
-                              ? () => (
-                                  <CommentActionsMenu
-                                    onEdit={() => handleCommentClick(repo.id)}
-                                    onColorChange={async (color) =>
-                                      handleColorChange(repo.id, color)
-                                    }
-                                    onDelete={async () =>
-                                      handleCommentDelete(repo.id)
-                                    }
-                                    currentColor={
-                                      comments[repo.id]?.color ?? 'neutral'
-                                    }
-                                  />
-                                )
-                              : undefined
+                        >
+                          <CommentInlineEdit
+                            initialValue={comments[repo.id]?.comment ?? ''}
+                            onSave={async (newComment, options) =>
+                              handleCommentSave(repo.id, newComment, options)
+                            }
+                            onCancel={handleCommentCancel}
+                            style={{
+                              borderColor:
+                                comments[repo.id]?.color ?? 'neutral',
+                            }}
+                          />
+                        </Activity>
+                        <Activity
+                          mode={
+                            editingCommentId === repo.id ? 'hidden' : 'visible'
                           }
-                        />
-                      </Activity>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </AnimatePresence>
-        )}
+                        >
+                          <CommentDisplay
+                            comment={comments[repo.id]?.comment}
+                            onClick={() => handleCommentClick(repo.id)}
+                            style={{
+                              borderColor:
+                                comments[repo.id]?.color ?? 'neutral',
+                            }}
+                            showEmptyState={true}
+                            renderActions={
+                              comments[repo.id]?.comment
+                                ? () => (
+                                    <CommentActionsMenu
+                                      onEdit={() => handleCommentClick(repo.id)}
+                                      onColorChange={async (color) =>
+                                        handleColorChange(repo.id, color)
+                                      }
+                                      onDelete={async () =>
+                                        handleCommentDelete(repo.id)
+                                      }
+                                      currentColor={
+                                        comments[repo.id]?.color ?? 'neutral'
+                                      }
+                                    />
+                                  )
+                                : undefined
+                            }
+                          />
+                        </Activity>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </AnimatePresence>
+          )}
+        </div>
       </main>
 
       {/* Restore to Board Dialog */}

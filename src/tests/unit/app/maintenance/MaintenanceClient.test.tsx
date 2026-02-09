@@ -9,7 +9,7 @@
  * - Repository card rendering
  */
 
-import { render, waitFor, screen, fireEvent } from '@testing-library/react'
+import { render, waitFor, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
@@ -412,7 +412,7 @@ describe('MaintenanceClient Handler Tests', () => {
     mockOpen.mockClear()
   })
 
-  it('should open GitHub URL when card is clicked', async () => {
+  it('should open GitHub URL via dropdown menu', async () => {
     const repos = [createMockRepo()]
     render(<MaintenanceClient repos={repos} />)
 
@@ -420,11 +420,18 @@ describe('MaintenanceClient Handler Tests', () => {
       expect(screen.getByText('example-repo')).toBeInTheDocument()
     })
 
-    // Click on the card (specifically the clickable area)
-    const card = screen.getByText('example-repo').closest('.group')
-    if (card) {
-      fireEvent.click(card)
+    // Open the dropdown menu on the card
+    const menuTrigger = screen
+      .getByText('example-repo')
+      .closest('.group')
+      ?.querySelector('button')
+    if (menuTrigger) {
+      await userEvent.click(menuTrigger)
     }
+
+    // Click "Open on GitHub" menu item
+    const menuItem = await screen.findByText('Open on GitHub')
+    await userEvent.click(menuItem)
 
     // Should open GitHub URL
     expect(mockOpen).toHaveBeenCalledWith(

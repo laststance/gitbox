@@ -316,6 +316,63 @@ pnpm e2e --headed
 - **Setup File:** `tests/e2e/auth.setup.ts` (injects mock cookies)
 - **Config:** `playwright.config.ts`
 
+### Local Authentication Bypass for Browser Verification
+
+Use this only for **local verification** when you need to open protected pages
+(`/boards`, `/maintenance`) without completing real GitHub OAuth.
+
+#### Prerequisites
+
+- Local Supabase is running at `http://127.0.0.1:54321`.
+- This workflow is local-only. Do not use it for production environments.
+
+#### 1. Start app in test mode
+
+```bash
+NEXT_PUBLIC_ENABLE_MSW_MOCK=true \
+APP_ENV=test \
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 \
+NEXT_PUBLIC_SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
+pnpm build
+
+NEXT_PUBLIC_ENABLE_MSW_MOCK=true \
+APP_ENV=test \
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 \
+NEXT_PUBLIC_SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
+pnpm start
+```
+
+#### 2. Generate Playwright auth state
+
+```bash
+pnpm exec playwright test e2e/auth.setup.ts --project=setup --reporter=list
+```
+
+This creates `e2e/.auth/user.json` with `sb-127-auth-token` and
+`gh_token_gitbox` cookies.
+
+#### 3. Inject cookies in `agent-browser`
+
+```bash
+SB_COOKIE="$(jq -r '.cookies[] | select(.name==\"sb-127-auth-token\").value' e2e/.auth/user.json)"
+GH_COOKIE="$(jq -r '.cookies[] | select(.name==\"gh_token_gitbox\").value' e2e/.auth/user.json)"
+
+agent-browser --session local-auth open http://localhost:3008
+agent-browser --session local-auth cookies set sb-127-auth-token "$SB_COOKIE"
+agent-browser --session local-auth cookies set gh_token_gitbox "$GH_COOKIE"
+agent-browser --session local-auth open http://localhost:3008/boards
+```
+
+#### Notes
+
+- If `APP_ENV=test` is missing, server-side auth checks redirect to `/login`.
+- After cookie injection, open the target route again (`/boards`, `/maintenance`).
+- Close session when done: `agent-browser --session local-auth close`.
+
+#### Troubleshooting
+
+- If port 3008 is occupied: `npx kill-port 3008`.
+
 ---
 
 ## Project-Specific Rules
