@@ -483,7 +483,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ delay: index * 0.05 }}
+                      transition={{ delay: Math.min(index * 0.05, 0.5) }}
                       className="group border-border bg-card hover:border-primary/50 relative cursor-pointer rounded-lg border p-4 transition-all hover:shadow-md"
                       onClick={() => openGitHubUrl(repo)}
                     >
@@ -617,7 +617,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20 }}
-                      transition={{ delay: index * 0.03 }}
+                      transition={{ delay: Math.min(index * 0.03, 0.3) }}
                       className="group border-border bg-card hover:border-primary/50 rounded-lg border p-4 transition-all hover:shadow-sm"
                     >
                       <div className="flex items-center gap-4">
@@ -653,7 +653,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                         </div>
 
                         {/* Actions */}
-                        <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                        <div className="flex items-center gap-2 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
                           <Button
                             variant="ghost"
                             size="sm"
