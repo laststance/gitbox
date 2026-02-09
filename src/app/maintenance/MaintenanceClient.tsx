@@ -495,7 +495,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                         >
                           <button
                             type="button"
-                            className="hover:bg-muted absolute top-2 right-2 rounded-md p-1.5 opacity-0 transition-opacity group-hover:opacity-100"
+                            className="hover:bg-muted absolute top-2 right-2 rounded-md p-1.5 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
                           >
                             <MoreVertical className="h-4 w-4" />
                           </button>
