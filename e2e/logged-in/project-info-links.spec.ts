@@ -14,7 +14,12 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
-import { querySingle, PROJECT_INFO_IDS, BOARD_IDS } from '../helpers/db-query'
+import {
+  querySingle,
+  PROJECT_INFO_IDS,
+  BOARD_IDS,
+  resetProjectInfoLinks,
+} from '../helpers/db-query'
 
 test.describe('ProjectInfo Links (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
@@ -419,55 +424,67 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     // Actual persistence is verified in integration tests with real database.
   })
 
-  // TODO: Re-enable when real Supabase auth is implemented
-  // Currently skipped because mock auth tokens don't work with supabase.auth.getUser()
-  // See: gap_2026-01-29_e2e_crud_verification_auth in Serena memories
-  test.skip('should verify links are persisted in database after save', async ({
-    page,
-  }) => {
-    // card-1 uses projinfo1 for its project info
-    const projectInfoId = PROJECT_INFO_IDS.projinfo1
-
-    const dialog = await openNoteModal(page)
-
-    // Add a URL with unique identifier
-    const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
-    await addUrlButton.click()
-
-    // Select GitHub type
-    const comboboxTrigger = dialog.locator(
-      '[data-testid="link-type-combobox-trigger"]',
-    )
-    await comboboxTrigger.click()
-    await page.waitForTimeout(300)
-
-    const searchInput = page.getByPlaceholder(/search link type/i)
-    await searchInput.fill('github')
-    await page.waitForTimeout(200)
-
-    const githubOption = page.locator('[data-testid="link-type-option-github"]')
-    await expect(githubOption).toBeVisible({ timeout: 5000 })
-    await githubOption.click()
-
-    // Enter URL with unique timestamp
-    const uniqueUrl = `https://github.com/test/repo-${Date.now()}`
-    const urlInput = dialog.locator('[data-testid="url-input-0"]')
-    await urlInput.fill(uniqueUrl)
-
-    // Save
-    const saveButton = dialog.locator('[data-testid="save-button"]')
-    await saveButton.click()
-
-    // Wait for server action to complete
-    await page.waitForTimeout(1500)
-
-    // Verify links are persisted in database
-    const projectInfo = await querySingle<{ links: string }>('projectinfo', {
-      id: projectInfoId,
+  test.describe('Database Verification', () => {
+    test.afterEach(async () => {
+      await resetProjectInfoLinks()
     })
-    expect(projectInfo).not.toBeNull()
-    // Links are stored as JSON string containing the URL
-    expect(projectInfo?.links).toContain(uniqueUrl)
+
+    test('should verify links are persisted in database after save', async ({
+      page,
+    }) => {
+      // openNoteModal opens the first card on the page (card-3: laststance/create-react-app-vite)
+      // which maps to projinfo3 in seed data
+      const projectInfoId = PROJECT_INFO_IDS.projinfo3
+
+      const dialog = await openNoteModal(page)
+
+      // Add a URL with unique identifier
+      const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
+      await addUrlButton.click()
+
+      // Select Sentry type — use .last() since prior tests may have saved URLs
+      const comboboxTrigger = dialog
+        .locator('[data-testid="link-type-combobox-trigger"]')
+        .last()
+      await comboboxTrigger.click()
+      await page.waitForTimeout(300)
+
+      const searchInput = page.getByPlaceholder(/search link type/i)
+      await searchInput.fill('sentry')
+      await page.waitForTimeout(200)
+
+      const sentryOption = page.locator(
+        '[data-testid="link-type-option-sentry"]',
+      )
+      await expect(sentryOption).toBeVisible({ timeout: 5000 })
+      await sentryOption.click()
+
+      // Enter URL with unique timestamp — use .last() for newly added input
+      const uniqueUrl = `https://sentry.io/test/project-${Date.now()}`
+      const urlInput = dialog.locator('[data-testid^="url-input-"]').last()
+      await urlInput.fill(uniqueUrl)
+
+      // Click inline "Save URL" button to commit the URL to parent state
+      // (EditableUrlItem uses internal state; onUrlChange only fires on inline save/blur)
+      const inlineSaveBtn = dialog.locator('[data-testid^="url-save-"]').last()
+      await inlineSaveBtn.click()
+      await page.waitForTimeout(500)
+
+      // Save the dialog
+      const saveButton = dialog.locator('[data-testid="save-button"]')
+      await saveButton.click()
+
+      // Wait for server action to complete
+      await page.waitForTimeout(1500)
+
+      // Verify links are persisted in database
+      const projectInfo = await querySingle<{ links: unknown }>('projectinfo', {
+        id: projectInfoId,
+      })
+      expect(projectInfo).not.toBeNull()
+      // Links column is JSONB — Supabase returns parsed JS array, so stringify for substring check
+      expect(JSON.stringify(projectInfo?.links)).toContain(uniqueUrl)
+    })
   })
 
   test('should cancel without saving changes', async ({ page }) => {

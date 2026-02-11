@@ -16,7 +16,7 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
-import { querySingle, BOARD_IDS } from '../helpers/db-query'
+import { querySingle, BOARD_IDS, resetBoardNames } from '../helpers/db-query'
 
 test.describe('Board Settings Dialog (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
@@ -298,11 +298,12 @@ test.describe('Board Settings Dialog (Authenticated)', () => {
     })
   })
 
-  // TODO: Re-enable when real Supabase auth is implemented
-  // Currently skipped because mock auth tokens don't work with supabase.auth.getUser()
-  // See: gap_2026-01-29_e2e_crud_verification_auth in Serena memories
   test.describe('Database Verification', () => {
-    test.skip('should verify board name is persisted in database after rename', async ({
+    test.afterEach(async () => {
+      await resetBoardNames()
+    })
+
+    test('should verify board name is persisted in database after rename', async ({
       page,
     }) => {
       // Use testBoard for this test

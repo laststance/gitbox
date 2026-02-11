@@ -444,3 +444,115 @@ export async function resetRepoCards(): Promise<void> {
     }
   }
 }
+
+/**
+ * Reset board names to seed.sql initial values.
+ * Call this in afterEach for board rename tests to prevent cross-test contamination.
+ *
+ * @example
+ * test.afterEach(async () => {
+ *   await resetBoardNames()
+ * })
+ */
+export async function resetBoardNames(): Promise<void> {
+  const supabase = createLocalSupabaseClient()
+
+  const seedNames = [
+    { id: BOARD_IDS.testBoard, name: 'Test Board' },
+    { id: BOARD_IDS.workProjects, name: 'Work Projects' },
+  ]
+
+  for (const item of seedNames) {
+    const { data, error } = await supabase
+      .from('board')
+      .update({ name: item.name })
+      .eq('id', item.id)
+      .select('id')
+    if (error) {
+      throw new Error(
+        `resetBoardNames: failed for id=${item.id}: ${error.message}`,
+      )
+    }
+    if (!data || data.length === 0) {
+      throw new Error(
+        `resetBoardNames: UPDATE matched 0 rows for id=${item.id}. ` +
+          `URL=${process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'}`,
+      )
+    }
+  }
+}
+
+/**
+ * Reset status list (column) names to seed.sql initial values.
+ * Call this in afterEach for column rename tests to prevent cross-test contamination.
+ *
+ * @example
+ * test.afterEach(async () => {
+ *   await resetStatusListNames()
+ * })
+ */
+export async function resetStatusListNames(): Promise<void> {
+  const supabase = createLocalSupabaseClient()
+
+  const seedNames = [
+    { id: STATUS_IDS.pending, name: 'Pending' },
+    { id: STATUS_IDS.planning, name: 'Planning' },
+    { id: STATUS_IDS.focusDevelopment, name: 'Focus Development' },
+    { id: STATUS_IDS.mvpRelease, name: 'MVP Release' },
+    { id: STATUS_IDS.productionRelease, name: 'Production Release' },
+  ]
+
+  for (const item of seedNames) {
+    const { data, error } = await supabase
+      .from('statuslist')
+      .update({ name: item.name })
+      .eq('id', item.id)
+      .select('id')
+    if (error) {
+      throw new Error(
+        `resetStatusListNames: failed for id=${item.id}: ${error.message}`,
+      )
+    }
+    if (!data || data.length === 0) {
+      throw new Error(
+        `resetStatusListNames: UPDATE matched 0 rows for id=${item.id}. ` +
+          `URL=${process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'}`,
+      )
+    }
+  }
+}
+
+/**
+ * Reset projectinfo links to seed.sql initial values.
+ * Call this in afterEach for link persistence tests to prevent cross-test contamination.
+ *
+ * @example
+ * test.afterEach(async () => {
+ *   await resetProjectInfoLinks()
+ * })
+ */
+export async function resetProjectInfoLinks(): Promise<void> {
+  const supabase = createLocalSupabaseClient()
+
+  // Seed data: projinfo3 (card-3: laststance/create-react-app-vite) has empty links
+  const seedLinks = [{ id: PROJECT_INFO_IDS.projinfo3, links: [] as unknown[] }]
+
+  for (const item of seedLinks) {
+    const { data, error } = await supabase
+      .from('projectinfo')
+      .update({ links: item.links })
+      .eq('id', item.id)
+      .select('id')
+    if (error) {
+      throw new Error(
+        `resetProjectInfoLinks: failed for id=${item.id}: ${error.message}`,
+      )
+    }
+    if (!data || data.length === 0) {
+      throw new Error(
+        `resetProjectInfoLinks: UPDATE matched 0 rows for id=${item.id}. ` +
+          `URL=${process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'}`,
+      )
+    }
+  }
+}
