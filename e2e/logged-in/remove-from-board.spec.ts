@@ -12,7 +12,12 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
-import { querySingle, CARD_IDS, BOARD_IDS } from '../helpers/db-query'
+import {
+  querySingle,
+  CARD_IDS,
+  BOARD_IDS,
+  resetRepoCards,
+} from '../helpers/db-query'
 
 test.describe('Remove from Board Feature', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
@@ -180,13 +185,12 @@ test.describe('Remove from Board Feature', () => {
     }
   })
 
-  // TODO: Re-enable when real Supabase auth is implemented
-  // Currently skipped because mock auth tokens don't work with supabase.auth.getUser()
-  // See: gap_2026-01-29_e2e_crud_verification_auth in Serena memories
-  test.skip('should verify card is deleted from database after removal', async ({
+  test('should verify card is deleted from database after removal', async ({
     page,
   }) => {
-    // Use card-5 which is expendable for this test
+    // Ensure card-5 exists (may have been deleted by prior tests on same shard)
+    await resetRepoCards()
+
     const cardId = CARD_IDS.card5
 
     // Verify card exists before removal
@@ -222,6 +226,9 @@ test.describe('Remove from Board Feature', () => {
     // Verify card is deleted from database
     const cardAfter = await querySingle('repocard', { id: cardId })
     expect(cardAfter).toBeNull()
+
+    // Restore card-5 for subsequent tests on same shard
+    await resetRepoCards()
   })
 
   test('should show repository name in confirmation dialog', async ({

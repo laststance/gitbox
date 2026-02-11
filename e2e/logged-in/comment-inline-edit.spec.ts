@@ -261,10 +261,7 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
     await expect(card1CommentDisplay).toContainText(newComment)
   })
 
-  // TODO: Re-enable when real Supabase auth is implemented
-  // Currently skipped because mock auth tokens don't work with supabase.auth.getUser()
-  // See: gap_2026-01-29_e2e_crud_verification_auth in Serena memories
-  test.skip('should verify comment is persisted in database after save', async ({
+  test('should verify comment is persisted in database after save', async ({
     page,
   }) => {
     // card-1 uses projinfo1 for its project info

@@ -9,7 +9,12 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
-import { querySingle, STATUS_IDS, BOARD_IDS } from '../helpers/db-query'
+import {
+  querySingle,
+  STATUS_IDS,
+  BOARD_IDS,
+  resetStatusListNames,
+} from '../helpers/db-query'
 
 test.describe('Kanban Board Column Edit Dialog', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
@@ -117,50 +122,55 @@ test.describe('Kanban Board Column Edit Dialog', () => {
     await expect(page.locator('.grid.gap-4.pb-4').first()).toBeVisible()
   })
 
-  // TODO: Re-enable when real Supabase auth is implemented
-  // Currently skipped because mock auth tokens don't work with supabase.auth.getUser()
-  // See: gap_2026-01-29_e2e_crud_verification_auth in Serena memories
-  test.skip('should verify column name is persisted in database after edit', async ({
-    page,
-  }) => {
-    // Use status-1 (Pending) for this test
-    const statusId = STATUS_IDS.pending
-
-    await page.goto(BOARD_URL)
-    await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
-
-    // Open column edit dialog for the first column
-    const columnOptionsButton = page
-      .getByRole('button', { name: /column options/i })
-      .first()
-    await expect(columnOptionsButton).toBeVisible({ timeout: 10000 })
-    await columnOptionsButton.click()
-
-    const editColumnItem = page.getByRole('menuitem', { name: /edit column/i })
-    await expect(editColumnItem).toBeVisible({ timeout: 5000 })
-    await editColumnItem.click()
-
-    const dialog = page.getByRole('dialog')
-    await expect(dialog).toBeVisible({ timeout: 5000 })
-
-    // Type a unique new name
-    const uniqueName = `Edited Column ${Date.now()}`
-    const nameInput = page.getByPlaceholder(/in progress|review/i)
-    await nameInput.fill(uniqueName)
-
-    // Click Save button
-    const saveButton = dialog.getByRole('button', { name: /save/i })
-    await saveButton.click()
-
-    // Wait for server action to complete
-    await page.waitForTimeout(1500)
-
-    // Verify column name is updated in database
-    const status = await querySingle<{ name: string }>('statuslist', {
-      id: statusId,
+  test.describe('Database Verification', () => {
+    test.afterEach(async () => {
+      await resetStatusListNames()
     })
-    expect(status).not.toBeNull()
-    expect(status?.name).toBe(uniqueName)
+
+    test('should verify column name is persisted in database after edit', async ({
+      page,
+    }) => {
+      // Use status-1 (Pending) for this test
+      const statusId = STATUS_IDS.pending
+
+      await page.goto(BOARD_URL)
+      await page.waitForLoadState('networkidle')
+      await page.waitForTimeout(500)
+
+      // Open column edit dialog for the first column
+      const columnOptionsButton = page
+        .getByRole('button', { name: /column options/i })
+        .first()
+      await expect(columnOptionsButton).toBeVisible({ timeout: 10000 })
+      await columnOptionsButton.click()
+
+      const editColumnItem = page.getByRole('menuitem', {
+        name: /edit column/i,
+      })
+      await expect(editColumnItem).toBeVisible({ timeout: 5000 })
+      await editColumnItem.click()
+
+      const dialog = page.getByRole('dialog')
+      await expect(dialog).toBeVisible({ timeout: 5000 })
+
+      // Type a unique new name
+      const uniqueName = `Edited Column ${Date.now()}`
+      const nameInput = page.getByPlaceholder(/in progress|review/i)
+      await nameInput.fill(uniqueName)
+
+      // Click Save button
+      const saveButton = dialog.getByRole('button', { name: /save/i })
+      await saveButton.click()
+
+      // Wait for server action to complete
+      await page.waitForTimeout(1500)
+
+      // Verify column name is updated in database
+      const status = await querySingle<{ name: string }>('statuslist', {
+        id: statusId,
+      })
+      expect(status).not.toBeNull()
+      expect(status?.name).toBe(uniqueName)
+    })
   })
 })

@@ -125,10 +125,7 @@ test.describe('Board Favorites Feature', () => {
       expect(foundCard).toBe(true)
     })
 
-    // TODO: Re-enable when real Supabase auth is implemented
-    // Currently skipped because mock auth tokens don't work with supabase.auth.getUser()
-    // See: gap_2026-01-29_e2e_crud_verification_auth in Serena memories
-    test.skip('should verify is_favorite is persisted in database after toggle', async ({
+    test('should verify is_favorite is persisted in database after toggle', async ({
       page,
     }) => {
       // Use testBoard for this test
