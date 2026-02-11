@@ -2,6 +2,22 @@ import { withSentryConfig } from '@sentry/nextjs'
 import { codeInspectorPlugin } from 'code-inspector-plugin'
 import type { NextConfig } from 'next'
 
+// Prevent test-mode environment variables from reaching production builds.
+// If either is set, ALL authentication is bypassed (proxy.ts, supabase/server.ts).
+if (process.env.NODE_ENV === 'production' && process.env.APP_ENV === 'test') {
+  throw new Error(
+    'FATAL: APP_ENV=test must not be set in production builds. This would bypass all authentication.',
+  )
+}
+if (
+  process.env.NODE_ENV === 'production' &&
+  process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK === 'true'
+) {
+  throw new Error(
+    'FATAL: NEXT_PUBLIC_ENABLE_MSW_MOCK=true must not be set in production builds. This would enable mock data.',
+  )
+}
+
 const nextConfig: NextConfig = {
   turbopack: {
     rules: codeInspectorPlugin({
