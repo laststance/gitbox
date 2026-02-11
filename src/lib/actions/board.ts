@@ -566,7 +566,7 @@ export async function createBoard(
 
 /**
  * Batch update board positions for DnD reordering.
- * Updates multiple boards' position values in parallel.
+ * Updates multiple boards' position values atomically via a PostgreSQL RPC.
  *
  * @param updates - Array of { id, position } pairs
  * @returns void on success, throws on validation or DB error

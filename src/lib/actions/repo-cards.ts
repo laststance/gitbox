@@ -270,30 +270,6 @@ export async function deleteRepoCard(
 }
 
 /**
- * Move a RepoCard to Maintenance mode
- *
- * Transfers a repository card from the active board to the maintenance archive.
- * Creates a maintenance entry with the card's metadata and removes it from the board.
- *
- * @param cardId - RepoCard ID to move to maintenance
- * @returns
- * - On success: `{ success: true, maintenanceId: string }`
- * - On auth error: `{ success: false, error: 'Authentication required' }`
- * - On not found: `{ success: false, error: 'Card not found' }`
- * - On ownership error: `{ success: false, error: 'Unauthorized' }`
- * - On duplicate: `{ success: false, error: 'Repository already in maintenance' }`
- * - On insert error: `{ success: false, error: 'Failed to move to maintenance' }`
- *
- * @example
- * const result = await moveToMaintenance('card-uuid-123')
- * if (result.success) {
- *   console.log('Moved to maintenance:', result.maintenanceId)
- * } else {
- *   console.error('Failed:', result.error)
- * }
- */
-
-/**
  * Restore a maintenance item back to a board
  *
  * Transfers a repository from the maintenance archive back to an active board.
@@ -518,6 +494,29 @@ export async function getUserBoardsWithStatusLists(): Promise<{
   }
 }
 
+/**
+ * Move a RepoCard to Maintenance mode
+ *
+ * Transfers a repository card from the active board to the maintenance archive.
+ * Creates a maintenance entry with the card's metadata and removes it from the board.
+ *
+ * @param cardId - RepoCard ID to move to maintenance
+ * @returns
+ * - On success: `{ success: true, maintenanceId: string }`
+ * - On auth error: `{ success: false, error: 'Authentication required' }`
+ * - On not found: `{ success: false, error: 'Card not found' }`
+ * - On ownership error: `{ success: false, error: 'Unauthorized' }`
+ * - On duplicate: `{ success: false, error: 'Repository already in maintenance' }`
+ * - On insert error: `{ success: false, error: 'Failed to move to maintenance' }`
+ *
+ * @example
+ * const result = await moveToMaintenance('card-uuid-123')
+ * if (result.success) {
+ *   console.log('Moved to maintenance:', result.maintenanceId)
+ * } else {
+ *   console.error('Failed:', result.error)
+ * }
+ */
 export async function moveToMaintenance(
   cardId: string,
 ): Promise<{ success: boolean; maintenanceId?: string; error?: string }> {

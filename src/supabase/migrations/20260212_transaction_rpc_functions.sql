@@ -153,7 +153,8 @@ BEGIN
   FOR v_item IN SELECT * FROM jsonb_array_elements(p_updates)
   LOOP
     UPDATE board
-    SET position = (v_item->>'position')::INT
+    SET position = (v_item->>'position')::INT,
+        updated_at = now()
     WHERE id = (v_item->>'id')::UUID;
   END LOOP;
 END;
