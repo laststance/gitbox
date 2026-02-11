@@ -95,13 +95,13 @@ describe('boardSettingsSchema', () => {
     expect(result.success).toBe(true)
   })
 
-  test('passes through additional properties', () => {
+  test('strips unknown properties for safety', () => {
     const result = boardSettingsSchema.safeParse({
       cardDisplay: {},
       futureFeature: 'value',
     })
     expect(result.success).toBe(true)
-    expect(result.data).toHaveProperty('futureFeature')
+    expect(result.data).not.toHaveProperty('futureFeature')
   })
 })
 
@@ -219,7 +219,7 @@ describe('updateSettingsFormSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  test('passes through additional properties in settings', () => {
+  test('strips unknown properties in settings for safety', () => {
     const settings = JSON.stringify({
       cardDisplay: {},
       customProperty: 'value',
@@ -232,7 +232,7 @@ describe('updateSettingsFormSchema', () => {
 
     expect(result.success).toBe(true)
     if (result.success) {
-      expect(result.data.settings).toHaveProperty('customProperty')
+      expect(result.data.settings).not.toHaveProperty('customProperty')
     }
   })
 })
