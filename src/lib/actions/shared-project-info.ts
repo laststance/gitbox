@@ -360,11 +360,6 @@ export async function getCommentsCore(
   fk: FkConfig,
   entityIds: string[],
 ): Promise<Record<string, CommentData>> {
-  const emptyComment: CommentData = {
-    comment: '',
-    color: DEFAULT_COMMENT_COLOR,
-  }
-
   if (entityIds.length === 0) {
     return {}
   }
@@ -396,7 +391,7 @@ export async function getCommentsCore(
 
   for (const id of entityIds) {
     if (!(id in commentsMap)) {
-      commentsMap[id] = emptyComment
+      commentsMap[id] = { comment: '', color: DEFAULT_COMMENT_COLOR }
     }
   }
 
