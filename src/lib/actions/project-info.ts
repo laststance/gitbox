@@ -17,6 +17,7 @@
 
 import * as Sentry from '@sentry/nextjs'
 
+import { withAuth } from '@/lib/actions/auth-guard'
 import { createClient } from '@/lib/supabase/server'
 import type {
   TablesInsert,
@@ -228,9 +229,7 @@ export async function upsertProjectInfo(
   repoCardId: string,
   data: ProjectInfoData,
 ): Promise<void> {
-  const supabase = await createClient()
-
-  // Validation
+  // Validation (before auth - fail fast on invalid input)
   validateNote(data.note)
   validateComment(data.comment)
   data.links.forEach((link) => {
@@ -251,63 +250,65 @@ export async function upsertProjectInfo(
     .filter((link) => link.url && link.url.trim() !== '')
     .map((link) => ({ type: link.type, url: link.url }))
 
-  try {
-    // project_info upsert
-    const { data: existingInfo } = await supabase
-      .from('projectinfo')
-      .select('id')
-      .eq('repo_card_id', repoCardId)
-      .single<{ id: string }>()
-
-    if (existingInfo) {
-      // Update
-      const updateData: ProjectInfoUpdate = {
-        note: data.note,
-        comment: data.comment,
-        links: linksArray,
-        updated_at: new Date().toISOString(),
-      }
-
-      const { error: updateError } = await supabase
+  return withAuth(async (supabase) => {
+    try {
+      // project_info upsert
+      const { data: existingInfo } = await supabase
         .from('projectinfo')
-        .update(updateData)
-        .eq('id', existingInfo.id)
+        .select('id')
+        .eq('repo_card_id', repoCardId)
+        .single<{ id: string }>()
 
-      if (updateError) {
-        Sentry.captureException(updateError, {
-          extra: { context: 'Update project info', repoCardId },
-        })
-        throw new Error('Failed to update project information')
-      }
-    } else {
-      // Create new
-      const insertData: ProjectInfoInsert = {
-        repo_card_id: repoCardId,
-        note: data.note,
-        comment: data.comment,
-        links: linksArray,
+      if (existingInfo) {
+        // Update
+        const updateData: ProjectInfoUpdate = {
+          note: data.note,
+          comment: data.comment,
+          links: linksArray,
+          updated_at: new Date().toISOString(),
+        }
+
+        const { error: updateError } = await supabase
+          .from('projectinfo')
+          .update(updateData)
+          .eq('id', existingInfo.id)
+
+        if (updateError) {
+          Sentry.captureException(updateError, {
+            extra: { context: 'Update project info', repoCardId },
+          })
+          throw new Error('Failed to update project information')
+        }
+      } else {
+        // Create new
+        const insertData: ProjectInfoInsert = {
+          repo_card_id: repoCardId,
+          note: data.note,
+          comment: data.comment,
+          links: linksArray,
+        }
+
+        const { error: createError } = await supabase
+          .from('projectinfo')
+          .insert(insertData)
+
+        if (createError) {
+          Sentry.captureException(createError, {
+            extra: { context: 'Create project info', repoCardId },
+          })
+          throw new Error('Failed to create project information')
+        }
       }
 
-      const { error: createError } = await supabase
-        .from('projectinfo')
-        .insert(insertData)
-
-      if (createError) {
-        Sentry.captureException(createError, {
-          extra: { context: 'Create project info', repoCardId },
-        })
-        throw new Error('Failed to create project information')
+      // Note: No revalidatePath needed - Next.js v16 doesn't cache Supabase requests
+      // Client handles state updates via Redux optimistic updates
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error
       }
+      throw new Error('An error occurred while saving project information')
     }
-
-    // Note: No revalidatePath needed - Next.js v16 doesn't cache Supabase requests
-    // Client handles state updates via Redux optimistic updates
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error
-    }
-    throw new Error('An error occurred while saving project information')
-  }
+  })
 }
 
 /**
@@ -391,62 +392,62 @@ export async function updateComment(
   comment: string,
   color?: CommentColor,
 ): Promise<void> {
-  const supabase = await createClient()
-
-  // Validate
+  // Validate (before auth - fail fast)
   validateComment(comment)
   if (color) {
     validateCommentColor(color)
   }
 
-  // Check if projectinfo exists
-  const { data: existingInfo } = await supabase
-    .from('projectinfo')
-    .select('id')
-    .eq('repo_card_id', repoCardId)
-    .single<{ id: string }>()
-
-  if (existingInfo) {
-    // Update existing
-    const updateData: ProjectInfoUpdate = {
-      comment,
-      updated_at: new Date().toISOString(),
-    }
-    // Only update color if provided
-    if (color) {
-      updateData.comment_color = color
-    }
-
-    const { error } = await supabase
+  return withAuth(async (supabase) => {
+    // Check if projectinfo exists
+    const { data: existingInfo } = await supabase
       .from('projectinfo')
-      .update(updateData)
-      .eq('id', existingInfo.id)
+      .select('id')
+      .eq('repo_card_id', repoCardId)
+      .single<{ id: string }>()
 
-    if (error) {
-      Sentry.captureException(error, {
-        extra: { context: 'Update comment', repoCardId },
+    if (existingInfo) {
+      // Update existing
+      const updateData: ProjectInfoUpdate = {
+        comment,
+        updated_at: new Date().toISOString(),
+      }
+      // Only update color if provided
+      if (color) {
+        updateData.comment_color = color
+      }
+
+      const { error } = await supabase
+        .from('projectinfo')
+        .update(updateData)
+        .eq('id', existingInfo.id)
+
+      if (error) {
+        Sentry.captureException(error, {
+          extra: { context: 'Update comment', repoCardId },
+        })
+        throw new Error('Failed to update comment')
+      }
+    } else {
+      // Create new projectinfo with just the comment
+      const { error } = await supabase.from('projectinfo').insert({
+        repo_card_id: repoCardId,
+        comment,
+        comment_color: color || DEFAULT_COMMENT_COLOR,
+        note: '',
+        links: [],
       })
-      throw new Error('Failed to update comment')
-    }
-  } else {
-    // Create new projectinfo with just the comment
-    const { error } = await supabase.from('projectinfo').insert({
-      repo_card_id: repoCardId,
-      comment,
-      comment_color: color || DEFAULT_COMMENT_COLOR,
-      note: '',
-      links: [],
-    })
 
-    if (error) {
-      Sentry.captureException(error, {
-        extra: { context: 'Create comment', repoCardId },
-      })
-      throw new Error('Failed to save comment')
+      if (error) {
+        Sentry.captureException(error, {
+          extra: { context: 'Create comment', repoCardId },
+        })
+        throw new Error('Failed to save comment')
+      }
     }
-  }
 
-  // Note: No revalidatePath needed - client handles state via Redux
+    // Note: No revalidatePath needed - client handles state via Redux
+  })
 }
 
 /**
@@ -466,53 +467,53 @@ export async function updateCommentColor(
   repoCardId: string,
   color: CommentColor,
 ): Promise<void> {
-  const supabase = await createClient()
-
-  // Validate
+  // Validate (before auth - fail fast)
   validateCommentColor(color)
 
-  // Check if projectinfo exists
-  const { data: existingInfo } = await supabase
-    .from('projectinfo')
-    .select('id')
-    .eq('repo_card_id', repoCardId)
-    .single<{ id: string }>()
-
-  if (existingInfo) {
-    // Update existing
-    const { error } = await supabase
+  return withAuth(async (supabase) => {
+    // Check if projectinfo exists
+    const { data: existingInfo } = await supabase
       .from('projectinfo')
-      .update({
+      .select('id')
+      .eq('repo_card_id', repoCardId)
+      .single<{ id: string }>()
+
+    if (existingInfo) {
+      // Update existing
+      const { error } = await supabase
+        .from('projectinfo')
+        .update({
+          comment_color: color,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingInfo.id)
+
+      if (error) {
+        Sentry.captureException(error, {
+          extra: { context: 'Update comment color', repoCardId, color },
+        })
+        throw new Error('Failed to update comment color')
+      }
+    } else {
+      // Create new projectinfo with just the color (no comment text)
+      const { error } = await supabase.from('projectinfo').insert({
+        repo_card_id: repoCardId,
+        comment: null,
         comment_color: color,
-        updated_at: new Date().toISOString(),
+        note: '',
+        links: [],
       })
-      .eq('id', existingInfo.id)
 
-    if (error) {
-      Sentry.captureException(error, {
-        extra: { context: 'Update comment color', repoCardId, color },
-      })
-      throw new Error('Failed to update comment color')
+      if (error) {
+        Sentry.captureException(error, {
+          extra: { context: 'Create projectinfo for color', repoCardId, color },
+        })
+        throw new Error('Failed to save comment color')
+      }
     }
-  } else {
-    // Create new projectinfo with just the color (no comment text)
-    const { error } = await supabase.from('projectinfo').insert({
-      repo_card_id: repoCardId,
-      comment: null,
-      comment_color: color,
-      note: '',
-      links: [],
-    })
 
-    if (error) {
-      Sentry.captureException(error, {
-        extra: { context: 'Create projectinfo for color', repoCardId, color },
-      })
-      throw new Error('Failed to save comment color')
-    }
-  }
-
-  // Note: No revalidatePath needed - client handles state via Redux
+    // Note: No revalidatePath needed - client handles state via Redux
+  })
 }
 
 /**
@@ -527,36 +528,36 @@ export async function updateCommentColor(
  * await deleteComment('card-1')
  */
 export async function deleteComment(repoCardId: string): Promise<void> {
-  const supabase = await createClient()
+  return withAuth(async (supabase) => {
+    // Check if projectinfo exists
+    const { data: existingInfo } = await supabase
+      .from('projectinfo')
+      .select('id')
+      .eq('repo_card_id', repoCardId)
+      .single<{ id: string }>()
 
-  // Check if projectinfo exists
-  const { data: existingInfo } = await supabase
-    .from('projectinfo')
-    .select('id')
-    .eq('repo_card_id', repoCardId)
-    .single<{ id: string }>()
+    if (!existingInfo) {
+      // Nothing to delete
+      return
+    }
 
-  if (!existingInfo) {
-    // Nothing to delete
-    return
-  }
+    // Clear comment and reset color to default
+    const { error } = await supabase
+      .from('projectinfo')
+      .update({
+        comment: null,
+        comment_color: DEFAULT_COMMENT_COLOR,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existingInfo.id)
 
-  // Clear comment and reset color to default
-  const { error } = await supabase
-    .from('projectinfo')
-    .update({
-      comment: null,
-      comment_color: DEFAULT_COMMENT_COLOR,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', existingInfo.id)
+    if (error) {
+      Sentry.captureException(error, {
+        extra: { context: 'Delete comment', repoCardId },
+      })
+      throw new Error('Failed to delete comment')
+    }
 
-  if (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'Delete comment', repoCardId },
-    })
-    throw new Error('Failed to delete comment')
-  }
-
-  // Note: No revalidatePath needed - client handles state via Redux
+    // Note: No revalidatePath needed - client handles state via Redux
+  })
 }

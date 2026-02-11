@@ -11,6 +11,7 @@
 
 import * as Sentry from '@sentry/nextjs'
 
+import { withAuth } from '@/lib/actions/auth-guard'
 import { createClient } from '@/lib/supabase/server'
 import type {
   TablesInsert,
@@ -166,9 +167,7 @@ export async function upsertMaintenanceProjectInfo(
   maintenanceId: string,
   data: ProjectInfoData,
 ): Promise<void> {
-  const supabase = await createClient()
-
-  // Validation
+  // Validation (before auth - fail fast on invalid input)
   validateNote(data.note)
   validateComment(data.comment)
   data.links.forEach((link) => {
@@ -181,57 +180,65 @@ export async function upsertMaintenanceProjectInfo(
     .filter((link) => link.url && link.url.trim() !== '')
     .map((link) => ({ type: link.type, url: link.url }))
 
-  try {
-    const { data: existingInfo } = await supabase
-      .from('projectinfo')
-      .select('id')
-      .eq('maintenance_id', maintenanceId)
-      .single<{ id: string }>()
-
-    if (existingInfo) {
-      const updateData: ProjectInfoUpdate = {
-        note: data.note,
-        comment: data.comment,
-        links: linksArray,
-        updated_at: new Date().toISOString(),
-      }
-
-      const { error: updateError } = await supabase
+  return withAuth(async (supabase) => {
+    try {
+      const { data: existingInfo } = await supabase
         .from('projectinfo')
-        .update(updateData)
-        .eq('id', existingInfo.id)
+        .select('id')
+        .eq('maintenance_id', maintenanceId)
+        .single<{ id: string }>()
 
-      if (updateError) {
-        Sentry.captureException(updateError, {
-          extra: { context: 'Update maintenance project info', maintenanceId },
-        })
-        throw new Error('Failed to update project information')
-      }
-    } else {
-      const insertData: ProjectInfoInsert = {
-        maintenance_id: maintenanceId,
-        note: data.note,
-        comment: data.comment,
-        links: linksArray,
-      }
+      if (existingInfo) {
+        const updateData: ProjectInfoUpdate = {
+          note: data.note,
+          comment: data.comment,
+          links: linksArray,
+          updated_at: new Date().toISOString(),
+        }
 
-      const { error: createError } = await supabase
-        .from('projectinfo')
-        .insert(insertData)
+        const { error: updateError } = await supabase
+          .from('projectinfo')
+          .update(updateData)
+          .eq('id', existingInfo.id)
 
-      if (createError) {
-        Sentry.captureException(createError, {
-          extra: { context: 'Create maintenance project info', maintenanceId },
-        })
-        throw new Error('Failed to create project information')
+        if (updateError) {
+          Sentry.captureException(updateError, {
+            extra: {
+              context: 'Update maintenance project info',
+              maintenanceId,
+            },
+          })
+          throw new Error('Failed to update project information')
+        }
+      } else {
+        const insertData: ProjectInfoInsert = {
+          maintenance_id: maintenanceId,
+          note: data.note,
+          comment: data.comment,
+          links: linksArray,
+        }
+
+        const { error: createError } = await supabase
+          .from('projectinfo')
+          .insert(insertData)
+
+        if (createError) {
+          Sentry.captureException(createError, {
+            extra: {
+              context: 'Create maintenance project info',
+              maintenanceId,
+            },
+          })
+          throw new Error('Failed to create project information')
+        }
       }
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error
+      }
+      throw new Error('An error occurred while saving project information')
     }
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error
-    }
-    throw new Error('An error occurred while saving project information')
-  }
+  })
 }
 
 /**
@@ -308,55 +315,56 @@ export async function updateMaintenanceComment(
   comment: string,
   color?: CommentColor,
 ): Promise<void> {
-  const supabase = await createClient()
-
+  // Validate (before auth - fail fast)
   validateComment(comment)
   if (color) {
     validateCommentColor(color)
   }
 
-  const { data: existingInfo } = await supabase
-    .from('projectinfo')
-    .select('id')
-    .eq('maintenance_id', maintenanceId)
-    .single<{ id: string }>()
-
-  if (existingInfo) {
-    const updateData: ProjectInfoUpdate = {
-      comment,
-      updated_at: new Date().toISOString(),
-    }
-    if (color) {
-      updateData.comment_color = color
-    }
-
-    const { error } = await supabase
+  return withAuth(async (supabase) => {
+    const { data: existingInfo } = await supabase
       .from('projectinfo')
-      .update(updateData)
-      .eq('id', existingInfo.id)
+      .select('id')
+      .eq('maintenance_id', maintenanceId)
+      .single<{ id: string }>()
 
-    if (error) {
-      Sentry.captureException(error, {
-        extra: { context: 'Update maintenance comment', maintenanceId },
-      })
-      throw new Error('Failed to update comment')
-    }
-  } else {
-    const { error } = await supabase.from('projectinfo').insert({
-      maintenance_id: maintenanceId,
-      comment,
-      comment_color: color || DEFAULT_COMMENT_COLOR,
-      note: '',
-      links: [],
-    })
+    if (existingInfo) {
+      const updateData: ProjectInfoUpdate = {
+        comment,
+        updated_at: new Date().toISOString(),
+      }
+      if (color) {
+        updateData.comment_color = color
+      }
 
-    if (error) {
-      Sentry.captureException(error, {
-        extra: { context: 'Create maintenance comment', maintenanceId },
+      const { error } = await supabase
+        .from('projectinfo')
+        .update(updateData)
+        .eq('id', existingInfo.id)
+
+      if (error) {
+        Sentry.captureException(error, {
+          extra: { context: 'Update maintenance comment', maintenanceId },
+        })
+        throw new Error('Failed to update comment')
+      }
+    } else {
+      const { error } = await supabase.from('projectinfo').insert({
+        maintenance_id: maintenanceId,
+        comment,
+        comment_color: color || DEFAULT_COMMENT_COLOR,
+        note: '',
+        links: [],
       })
-      throw new Error('Failed to save comment')
+
+      if (error) {
+        Sentry.captureException(error, {
+          extra: { context: 'Create maintenance comment', maintenanceId },
+        })
+        throw new Error('Failed to save comment')
+      }
     }
-  }
+  })
 }
 
 /**
@@ -372,55 +380,56 @@ export async function updateMaintenanceCommentColor(
   maintenanceId: string,
   color: CommentColor,
 ): Promise<void> {
-  const supabase = await createClient()
-
+  // Validate (before auth - fail fast)
   validateCommentColor(color)
 
-  const { data: existingInfo } = await supabase
-    .from('projectinfo')
-    .select('id')
-    .eq('maintenance_id', maintenanceId)
-    .single<{ id: string }>()
-
-  if (existingInfo) {
-    const { error } = await supabase
+  return withAuth(async (supabase) => {
+    const { data: existingInfo } = await supabase
       .from('projectinfo')
-      .update({
+      .select('id')
+      .eq('maintenance_id', maintenanceId)
+      .single<{ id: string }>()
+
+    if (existingInfo) {
+      const { error } = await supabase
+        .from('projectinfo')
+        .update({
+          comment_color: color,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingInfo.id)
+
+      if (error) {
+        Sentry.captureException(error, {
+          extra: {
+            context: 'Update maintenance comment color',
+            maintenanceId,
+            color,
+          },
+        })
+        throw new Error('Failed to update comment color')
+      }
+    } else {
+      const { error } = await supabase.from('projectinfo').insert({
+        maintenance_id: maintenanceId,
+        comment: null,
         comment_color: color,
-        updated_at: new Date().toISOString(),
+        note: '',
+        links: [],
       })
-      .eq('id', existingInfo.id)
 
-    if (error) {
-      Sentry.captureException(error, {
-        extra: {
-          context: 'Update maintenance comment color',
-          maintenanceId,
-          color,
-        },
-      })
-      throw new Error('Failed to update comment color')
+      if (error) {
+        Sentry.captureException(error, {
+          extra: {
+            context: 'Create maintenance projectinfo for color',
+            maintenanceId,
+            color,
+          },
+        })
+        throw new Error('Failed to save comment color')
+      }
     }
-  } else {
-    const { error } = await supabase.from('projectinfo').insert({
-      maintenance_id: maintenanceId,
-      comment: null,
-      comment_color: color,
-      note: '',
-      links: [],
-    })
-
-    if (error) {
-      Sentry.captureException(error, {
-        extra: {
-          context: 'Create maintenance projectinfo for color',
-          maintenanceId,
-          color,
-        },
-      })
-      throw new Error('Failed to save comment color')
-    }
-  }
+  })
 }
 
 /**
@@ -437,31 +446,31 @@ export async function updateMaintenanceCommentColor(
 export async function deleteMaintenanceComment(
   maintenanceId: string,
 ): Promise<void> {
-  const supabase = await createClient()
+  return withAuth(async (supabase) => {
+    const { data: existingInfo } = await supabase
+      .from('projectinfo')
+      .select('id')
+      .eq('maintenance_id', maintenanceId)
+      .single<{ id: string }>()
 
-  const { data: existingInfo } = await supabase
-    .from('projectinfo')
-    .select('id')
-    .eq('maintenance_id', maintenanceId)
-    .single<{ id: string }>()
+    if (!existingInfo) {
+      return
+    }
 
-  if (!existingInfo) {
-    return
-  }
+    const { error } = await supabase
+      .from('projectinfo')
+      .update({
+        comment: null,
+        comment_color: DEFAULT_COMMENT_COLOR,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existingInfo.id)
 
-  const { error } = await supabase
-    .from('projectinfo')
-    .update({
-      comment: null,
-      comment_color: DEFAULT_COMMENT_COLOR,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', existingInfo.id)
-
-  if (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'Delete maintenance comment', maintenanceId },
-    })
-    throw new Error('Failed to delete comment')
-  }
+    if (error) {
+      Sentry.captureException(error, {
+        extra: { context: 'Delete maintenance comment', maintenanceId },
+      })
+      throw new Error('Failed to delete comment')
+    }
+  })
 }

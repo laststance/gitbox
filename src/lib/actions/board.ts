@@ -9,6 +9,7 @@
 
 import * as Sentry from '@sentry/nextjs'
 
+import { withAuth } from '@/lib/actions/auth-guard'
 import type {
   StatusListDomain,
   RepoCardDomain,
@@ -221,23 +222,23 @@ export async function updateStatusList(
   if (updates.name !== undefined) statusListNameSchema.parse(updates.name)
   if (updates.color !== undefined) statusListColorSchema.parse(updates.color)
 
-  const supabase = await createClient()
+  return withAuth(async (supabase) => {
+    const updateData: Record<string, unknown> = {}
+    if (updates.name !== undefined) updateData.name = updates.name
+    if (updates.color !== undefined) updateData.color = updates.color
 
-  const updateData: Record<string, unknown> = {}
-  if (updates.name !== undefined) updateData.name = updates.name
-  if (updates.color !== undefined) updateData.color = updates.color
+    const { error } = await supabase
+      .from('statuslist')
+      .update(updateData)
+      .eq('id', statusId)
 
-  const { error } = await supabase
-    .from('statuslist')
-    .update(updateData)
-    .eq('id', statusId)
-
-  if (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'Update status list', statusId, updates },
-    })
-    throw new Error('Failed to update status list')
-  }
+    if (error) {
+      Sentry.captureException(error, {
+        extra: { context: 'Update status list', statusId, updates },
+      })
+      throw new Error('Failed to update status list')
+    }
+  })
 }
 
 /**
@@ -284,23 +285,23 @@ export async function updateStatusListPosition(
   // Validate grid position (P2-4)
   gridPositionSchema.parse({ gridRow, gridCol })
 
-  const supabase = await createClient()
+  return withAuth(async (supabase) => {
+    const { error } = await supabase
+      .from('statuslist')
+      .update({
+        grid_row: gridRow,
+        grid_col: gridCol,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
 
-  const { error } = await supabase
-    .from('statuslist')
-    .update({
-      grid_row: gridRow,
-      grid_col: gridCol,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id)
-
-  if (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'Update status list position', id, gridRow, gridCol },
-    })
-    throw new Error('Failed to update column position')
-  }
+    if (error) {
+      Sentry.captureException(error, {
+        extra: { context: 'Update status list position', id, gridRow, gridCol },
+      })
+      throw new Error('Failed to update column position')
+    }
+  })
 }
 
 /**
@@ -319,23 +320,23 @@ export async function swapStatusListPositions(
   id1: string,
   id2: string,
 ): Promise<void> {
-  const supabase = await createClient()
-
-  const { error } = await supabase.rpc('swap_statuslist_positions', {
-    id_a: id1,
-    id_b: id2,
-  })
-
-  if (error) {
-    Sentry.captureException(error, {
-      extra: {
-        context: 'Swap status list positions (RPC)',
-        id1,
-        id2,
-      },
+  return withAuth(async (supabase) => {
+    const { error } = await supabase.rpc('swap_statuslist_positions', {
+      id_a: id1,
+      id_b: id2,
     })
-    throw new Error('Failed to swap column positions')
-  }
+
+    if (error) {
+      Sentry.captureException(error, {
+        extra: {
+          context: 'Swap status list positions (RPC)',
+          id1,
+          id2,
+        },
+      })
+      throw new Error('Failed to swap column positions')
+    }
+  })
 }
 
 /**
@@ -352,35 +353,35 @@ export async function swapStatusListPositions(
 export async function batchUpdateStatusListPositions(
   updates: Array<{ id: string; gridRow: number; gridCol: number }>,
 ): Promise<void> {
-  const supabase = await createClient()
-
-  // Use parallel updates for performance
-  const updatePromises = updates.map(({ id, gridRow, gridCol }) =>
-    supabase
-      .from('statuslist')
-      .update({
-        grid_row: gridRow,
-        grid_col: gridCol,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id),
-  )
-
-  const results = await Promise.all(updatePromises)
-
-  const errorResults = results.filter((r) => r.error)
-  if (errorResults.length > 0) {
-    Sentry.captureException(
-      new Error('Failed to batch update status list positions'),
-      {
-        extra: {
-          context: 'Batch update status list positions',
-          errors: errorResults,
-        },
-      },
+  return withAuth(async (supabase) => {
+    // Use parallel updates for performance
+    const updatePromises = updates.map(({ id, gridRow, gridCol }) =>
+      supabase
+        .from('statuslist')
+        .update({
+          grid_row: gridRow,
+          grid_col: gridCol,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id),
     )
-    throw new Error('Failed to update column positions')
-  }
+
+    const results = await Promise.all(updatePromises)
+
+    const errorResults = results.filter((r) => r.error)
+    if (errorResults.length > 0) {
+      Sentry.captureException(
+        new Error('Failed to batch update status list positions'),
+        {
+          extra: {
+            context: 'Batch update status list positions',
+            errors: errorResults,
+          },
+        },
+      )
+      throw new Error('Failed to update column positions')
+    }
+  })
 }
 
 // ========================================
@@ -441,23 +442,28 @@ export async function updateRepoCardPosition(
   statusId: string,
   order: number,
 ): Promise<void> {
-  const supabase = await createClient()
+  return withAuth(async (supabase) => {
+    const { error } = await supabase
+      .from('repocard')
+      .update({
+        status_id: statusId,
+        order: order,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', cardId)
 
-  const { error } = await supabase
-    .from('repocard')
-    .update({
-      status_id: statusId,
-      order: order,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', cardId)
-
-  if (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'Update repo card position', cardId, statusId, order },
-    })
-    throw new Error('Failed to update repo card position')
-  }
+    if (error) {
+      Sentry.captureException(error, {
+        extra: {
+          context: 'Update repo card position',
+          cardId,
+          statusId,
+          order,
+        },
+      })
+      throw new Error('Failed to update repo card position')
+    }
+  })
 }
 
 /**
@@ -467,35 +473,35 @@ export async function updateRepoCardPosition(
 export async function batchUpdateRepoCardOrders(
   updates: Array<{ id: string; statusId: string; order: number }>,
 ): Promise<void> {
-  const supabase = await createClient()
-
-  // Use a transaction-like approach with Promise.all
-  const updatePromises = updates.map(({ id, statusId, order }) =>
-    supabase
-      .from('repocard')
-      .update({
-        status_id: statusId,
-        order: order,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id),
-  )
-
-  const results = await Promise.all(updatePromises)
-
-  const errorResults = results.filter((r) => r.error)
-  if (errorResults.length > 0) {
-    Sentry.captureException(
-      new Error('Failed to batch update repo card orders'),
-      {
-        extra: {
-          context: 'Batch update repo card orders',
-          errors: errorResults,
-        },
-      },
+  return withAuth(async (supabase) => {
+    // Use a transaction-like approach with Promise.all
+    const updatePromises = updates.map(({ id, statusId, order }) =>
+      supabase
+        .from('repocard')
+        .update({
+          status_id: statusId,
+          order: order,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id),
     )
-    throw new Error('Failed to update some repo cards')
-  }
+
+    const results = await Promise.all(updatePromises)
+
+    const errorResults = results.filter((r) => r.error)
+    if (errorResults.length > 0) {
+      Sentry.captureException(
+        new Error('Failed to batch update repo card orders'),
+        {
+          extra: {
+            context: 'Batch update repo card orders',
+            errors: errorResults,
+          },
+        },
+      )
+      throw new Error('Failed to update some repo cards')
+    }
+  })
 }
 
 // ========================================
@@ -635,16 +641,16 @@ export async function updateBoardPositions(
  * Delete a board
  */
 export async function deleteBoard(boardId: string): Promise<void> {
-  const supabase = await createClient()
+  return withAuth(async (supabase) => {
+    const { error } = await supabase.from('board').delete().eq('id', boardId)
 
-  const { error } = await supabase.from('board').delete().eq('id', boardId)
-
-  if (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'Delete board', boardId },
-    })
-    throw new Error('Failed to delete board')
-  }
+    if (error) {
+      Sentry.captureException(error, {
+        extra: { context: 'Delete board', boardId },
+      })
+      throw new Error('Failed to delete board')
+    }
+  })
 }
 
 /**
@@ -654,19 +660,19 @@ export async function updateBoard(
   boardId: string,
   updates: { name?: string },
 ): Promise<void> {
-  const supabase = await createClient()
+  return withAuth(async (supabase) => {
+    const { error } = await supabase
+      .from('board')
+      .update(updates)
+      .eq('id', boardId)
 
-  const { error } = await supabase
-    .from('board')
-    .update(updates)
-    .eq('id', boardId)
-
-  if (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'Update board', boardId, updates },
-    })
-    throw new Error('Failed to update board')
-  }
+    if (error) {
+      Sentry.captureException(error, {
+        extra: { context: 'Update board', boardId, updates },
+      })
+      throw new Error('Failed to update board')
+    }
+  })
 }
 
 // ========================================
