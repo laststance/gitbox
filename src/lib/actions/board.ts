@@ -291,7 +291,6 @@ export async function updateStatusListPosition(
       .update({
         grid_row: gridRow,
         grid_col: gridCol,
-        updated_at: new Date().toISOString(),
       })
       .eq('id', id)
 
@@ -439,7 +438,6 @@ export async function updateRepoCardPosition(
       .update({
         status_id: statusId,
         order: order,
-        updated_at: new Date().toISOString(),
       })
       .eq('id', cardId)
 
@@ -813,7 +811,7 @@ export async function toggleBoardFavorite(
   const newStatus = !board.is_favorite
   const { error: updateError } = await supabase
     .from('board')
-    .update({ is_favorite: newStatus, updated_at: new Date().toISOString() })
+    .update({ is_favorite: newStatus })
     .eq('id', boardId)
 
   if (updateError) {

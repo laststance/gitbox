@@ -260,6 +260,17 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       return zones
     }, [activeDragType, gridDimensions, statuses, activeId])
 
+    // Memoize cards grouped by status to avoid re-creating arrays on every render.
+    // Without this, each SortableColumn receives a new array ref, defeating memo().
+    const EMPTY_CARDS: RepoCardForRedux[] = useMemo(() => [], [])
+    const cardsByStatus = useMemo(() => {
+      const grouped: Record<string, RepoCardForRedux[]> = {}
+      for (const card of cards) {
+        ;(grouped[card.statusId] ??= []).push(card)
+      }
+      return grouped
+    }, [cards])
+
     // Column IDs for SortableContext
     const columnIds = useMemo(
       () => sortedStatuses.map((s) => s.id),
@@ -701,7 +712,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
 
       if (activeCard.statusId === targetStatusId) {
         // Reordering within the same column
-        const columnCards = cards.filter((c) => c.statusId === targetStatusId)
+        const columnCards = cardsByStatus[targetStatusId] ?? EMPTY_CARDS
         const oldIndex = columnCards.findIndex((c) => c.id === active.id)
         const newIndex = columnCards.findIndex((c) => c.id === over.id)
 
@@ -827,7 +838,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                   <SortableColumn
                     key={status.id}
                     status={status}
-                    cards={cards.filter((c) => c.statusId === status.id)}
+                    cards={cardsByStatus[status.id] ?? EMPTY_CARDS}
                     comments={comments}
                     cardDisplaySettings={cardDisplaySettings}
                     onMaintenance={onMoveToMaintenance}
@@ -876,7 +887,8 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                   {sortedStatuses.find((s) => s.id === activeId)?.title}
                 </h3>
                 <p className="text-muted-foreground mt-1 text-xs">
-                  {cards.filter((c) => c.statusId === activeId).length} cards
+                  {(cardsByStatus[activeId as string] ?? EMPTY_CARDS).length}{' '}
+                  cards
                 </p>
               </div>
             ) : activeCard ? (

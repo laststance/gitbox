@@ -15,6 +15,8 @@ import { isAxiosError } from 'axios'
 import { createGitHubAxios, hasGitHubToken } from '@/lib/axios-github'
 import { createModuleLogger } from '@/lib/logger'
 
+import type { ActionResult } from './types'
+
 const log = createModuleLogger('github')
 
 export interface GitHubRepository {
@@ -117,10 +119,10 @@ export async function getAuthenticatedUserRepositories(params?: {
   per_page?: number
   page?: number
   fetchAll?: boolean
-}): Promise<{ data: GitHubRepository[] | null; error: string | null }> {
+}): Promise<ActionResult<GitHubRepository[]>> {
   if (!(await hasGitHubToken())) {
     return {
-      data: null,
+      success: false,
       error: 'GitHub token not found. Please sign in again.',
     }
   }
@@ -157,7 +159,7 @@ export async function getAuthenticatedUserRepositories(params?: {
         page++
       }
 
-      return { data: allRepos, error: null }
+      return { success: true, data: allRepos }
     }
 
     // Single page fetch (original behavior)
@@ -170,10 +172,10 @@ export async function getAuthenticatedUserRepositories(params?: {
       `/user/repos?${searchParams.toString()}`,
     )
 
-    return { data, error: null }
+    return { success: true, data }
   } catch (error) {
     return {
-      data: null,
+      success: false,
       error: handleGitHubError(error, 'fetch repositories'),
     }
   }
@@ -190,13 +192,12 @@ export async function getAuthenticatedUserRepositories(params?: {
  * const { data, error } = await getAuthenticatedUser()
  * if (data) console.log(data.login) // => "ryota-murakami"
  */
-export async function getAuthenticatedUser(): Promise<{
-  data: GitHubUser | null
-  error: string | null
-}> {
+export async function getAuthenticatedUser(): Promise<
+  ActionResult<GitHubUser>
+> {
   if (!(await hasGitHubToken())) {
     return {
-      data: null,
+      success: false,
       error: 'GitHub token not found. Please sign in again.',
     }
   }
@@ -205,10 +206,10 @@ export async function getAuthenticatedUser(): Promise<{
 
   try {
     const { data } = await api.get<GitHubUser>('/user')
-    return { data, error: null }
+    return { success: true, data }
   } catch (error) {
     return {
-      data: null,
+      success: false,
       error: handleGitHubError(error, 'fetch user'),
     }
   }
@@ -234,10 +235,10 @@ export async function getOrganizationRepositories(
     per_page?: number
     fetchAll?: boolean
   },
-): Promise<{ data: GitHubRepository[] | null; error: string | null }> {
+): Promise<ActionResult<GitHubRepository[]>> {
   if (!(await hasGitHubToken())) {
     return {
-      data: null,
+      success: false,
       error: 'GitHub token not found. Please sign in again.',
     }
   }
@@ -273,7 +274,7 @@ export async function getOrganizationRepositories(
         page++
       }
 
-      return { data: allRepos, error: null }
+      return { success: true, data: allRepos }
     }
 
     // Single page fetch
@@ -285,13 +286,13 @@ export async function getOrganizationRepositories(
       `/orgs/${org}/repos?${searchParams.toString()}`,
     )
 
-    return { data, error: null }
+    return { success: true, data }
   } catch (error) {
     if (isAxiosError(error) && error.response?.status === 404) {
-      return { data: null, error: `Organization '${org}' not found.` }
+      return { success: false, error: `Organization '${org}' not found.` }
     }
     return {
-      data: null,
+      success: false,
       error: handleGitHubError(error, 'fetch organization repositories'),
     }
   }
@@ -309,13 +310,12 @@ export async function getOrganizationRepositories(
  * const { data, error } = await getAuthenticatedUserOrganizations()
  * if (data) data.forEach(org => console.log(org.login))
  */
-export async function getAuthenticatedUserOrganizations(): Promise<{
-  data: GitHubOrganization[] | null
-  error: string | null
-}> {
+export async function getAuthenticatedUserOrganizations(): Promise<
+  ActionResult<GitHubOrganization[]>
+> {
   if (!(await hasGitHubToken())) {
     return {
-      data: null,
+      success: false,
       error: 'GitHub token not found. Please sign in again.',
     }
   }
@@ -324,10 +324,10 @@ export async function getAuthenticatedUserOrganizations(): Promise<{
 
   try {
     const { data } = await api.get<GitHubOrganization[]>('/user/orgs')
-    return { data, error: null }
+    return { success: true, data }
   } catch (error) {
     return {
-      data: null,
+      success: false,
       error: handleGitHubError(error, 'fetch organizations'),
     }
   }

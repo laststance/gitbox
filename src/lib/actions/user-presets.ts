@@ -18,6 +18,8 @@ import {
   MAX_CUSTOM_PRESETS,
 } from '@/lib/validations/user-presets'
 
+import type { ActionResult } from './types'
+
 type UserLinkPresetInsert = TablesInsert<'user_link_presets'>
 
 /**
@@ -31,42 +33,6 @@ export interface UserPreset {
 }
 
 /**
- * Validate preset value format using Zod schema.
- *
- * @param value - The value to validate
- * @throws Error if value is invalid
- *
- * @example
- * validateValue('my-custom-preset') // => void (success)
- * validateValue('My Preset')        // => throws Error (not kebab-case)
- * validateValue('vercel')           // => throws Error (built-in)
- */
-function validateValue(value: string): void {
-  const result = presetValueSchema.safeParse(value)
-  if (!result.success) {
-    throw new Error(result.error.issues[0]?.message || 'Invalid value')
-  }
-}
-
-/**
- * Validate preset label using Zod schema.
- *
- * @param label - The label to validate
- * @throws Error if label is invalid
- *
- * @example
- * validateLabel('My Custom Service') // => void (success)
- * validateLabel('')                   // => throws Error (required)
- * validateLabel('x'.repeat(51))       // => throws Error (too long)
- */
-function validateLabel(label: string): void {
-  const result = presetLabelSchema.safeParse(label)
-  if (!result.success) {
-    throw new Error(result.error.issues[0]?.message || 'Invalid label')
-  }
-}
-
-/**
  * Get all custom presets for the current user
  *
  * @returns Array of user presets sorted by label
@@ -75,7 +41,7 @@ function validateLabel(label: string): void {
  * const presets = await getUserPresets()
  * // Returns: [{ id: '...', value: 'my-service', label: 'My Service', icon: 'Link' }, ...]
  */
-export async function getUserPresets(): Promise<UserPreset[]> {
+export async function getUserPresets(): Promise<ActionResult<UserPreset[]>> {
   const supabase = await createClient()
 
   const {
@@ -83,7 +49,7 @@ export async function getUserPresets(): Promise<UserPreset[]> {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return []
+    return { success: true, data: [] }
   }
 
   const { data, error } = await supabase
@@ -96,15 +62,18 @@ export async function getUserPresets(): Promise<UserPreset[]> {
     Sentry.captureException(error, {
       extra: { context: 'Get user presets', userId: user.id },
     })
-    throw new Error('Failed to fetch custom presets')
+    return { success: false, error: 'Failed to fetch custom presets' }
   }
 
-  return (data || []).map((row) => ({
-    id: row.id,
-    value: row.value,
-    label: row.label,
-    icon: row.icon || 'Link',
-  }))
+  return {
+    success: true,
+    data: (data || []).map((row) => ({
+      id: row.id,
+      value: row.value,
+      label: row.label,
+      icon: row.icon || 'Link',
+    })),
+  }
 }
 
 /**
@@ -122,7 +91,7 @@ export async function getUserPresets(): Promise<UserPreset[]> {
 export async function createUserPreset(
   label: string,
   icon?: string,
-): Promise<UserPreset> {
+): Promise<ActionResult<UserPreset>> {
   const supabase = await createClient()
 
   const {
@@ -130,13 +99,25 @@ export async function createUserPreset(
   } = await supabase.auth.getUser()
 
   if (!user) {
-    throw new Error('Authentication required')
+    return { success: false, error: 'Authentication required' }
   }
 
   // Validate inputs
-  validateLabel(label)
+  const labelResult = presetLabelSchema.safeParse(label)
+  if (!labelResult.success) {
+    return {
+      success: false,
+      error: labelResult.error.issues[0]?.message || 'Invalid label',
+    }
+  }
   const value = labelToValue(label)
-  validateValue(value)
+  const valueResult = presetValueSchema.safeParse(value)
+  if (!valueResult.success) {
+    return {
+      success: false,
+      error: valueResult.error.issues[0]?.message || 'Invalid value',
+    }
+  }
 
   // Check preset limit
   const { count, error: countError } = await supabase
@@ -148,13 +129,14 @@ export async function createUserPreset(
     Sentry.captureException(countError, {
       extra: { context: 'Count user presets', userId: user.id },
     })
-    throw new Error('Failed to check preset limit')
+    return { success: false, error: 'Failed to check preset limit' }
   }
 
   if ((count || 0) >= MAX_CUSTOM_PRESETS) {
-    throw new Error(
-      `Maximum of ${MAX_CUSTOM_PRESETS} custom presets reached. Delete some to add more.`,
-    )
+    return {
+      success: false,
+      error: `Maximum of ${MAX_CUSTOM_PRESETS} custom presets reached. Delete some to add more.`,
+    }
   }
 
   // Check for duplicate value
@@ -166,7 +148,7 @@ export async function createUserPreset(
     .single()
 
   if (existing) {
-    throw new Error('A preset with this name already exists')
+    return { success: false, error: 'A preset with this name already exists' }
   }
 
   // Create preset
@@ -187,13 +169,16 @@ export async function createUserPreset(
     Sentry.captureException(error, {
       extra: { context: 'Create user preset', userId: user.id, label },
     })
-    throw new Error('Failed to create custom preset')
+    return { success: false, error: 'Failed to create custom preset' }
   }
 
   return {
-    id: data.id,
-    value: data.value,
-    label: data.label,
-    icon: data.icon || 'Link',
+    success: true,
+    data: {
+      id: data.id,
+      value: data.value,
+      label: data.label,
+      icon: data.icon || 'Link',
+    },
   }
 }
