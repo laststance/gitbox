@@ -52,30 +52,26 @@ export const boardIdSchema = uuidSchema
 /**
  * Schema for card display settings within board settings.
  */
-const cardDisplaySettingsSchema = z
-  .object({
-    commentText: z
-      .object({
-        enabled: z.boolean().optional(),
-        maxLength: z.number().int().positive().optional(),
-      })
-      .optional(),
-  })
-  .passthrough()
+const cardDisplaySettingsSchema = z.object({
+  commentText: z
+    .object({
+      enabled: z.boolean().optional(),
+      maxLength: z.number().int().positive().optional(),
+    })
+    .optional(),
+})
 
 /**
  * Schema for validating board settings.
- * Uses passthrough() to allow additional properties for future extensibility.
+ * Unknown properties are stripped for security (prevents arbitrary JSON injection).
  *
  * @example
  * boardSettingsSchema.safeParse({ cardDisplay: { commentText: { enabled: true } } })
  * // => { success: true }
  */
-export const boardSettingsSchema = z
-  .object({
-    cardDisplay: cardDisplaySettingsSchema.optional(),
-  })
-  .passthrough()
+export const boardSettingsSchema = z.object({
+  cardDisplay: cardDisplaySettingsSchema.optional(),
+})
 
 // ========================================
 // StatusList Schemas (P2-1, P2-4)
