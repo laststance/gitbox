@@ -222,13 +222,13 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
         fetchAll: true, // Enable pagination to fetch all repos
       })
 
-      if (result.error) {
+      if (!result.success) {
         setReposError(result.error)
         setUserRepos([])
         return
       }
 
-      const allRepos = result.data || []
+      const allRepos = [...result.data]
 
       // Additionally fetch organization repos to ensure org repos are visible
       // The /user/repos API may not return all org repos, so we need to supplement
@@ -242,7 +242,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
         // Merge org repos with user repos, deduplicating by repo id
         const existingIds = new Set(allRepos.map((repo) => repo.id))
         for (const orgResult of orgResults) {
-          if (orgResult.data) {
+          if (orgResult.success) {
             for (const repo of orgResult.data) {
               if (!existingIds.has(repo.id)) {
                 allRepos.push(repo)
@@ -279,11 +279,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
         getAuthenticatedUserOrganizations(),
       ])
 
-      if (userResult.data) {
+      if (userResult.success) {
         setCurrentUser(userResult.data)
       }
 
-      if (orgsResult.data) {
+      if (orgsResult.success) {
         setOrganizations(orgsResult.data)
       }
     } catch (error) {
