@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import {
   Search,
   Home,
@@ -60,6 +60,7 @@ interface Command {
  */
 export const CommandPalette = memo(function CommandPalette() {
   const router = useRouter()
+  const prefersReducedMotion = useReducedMotion()
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -283,19 +284,26 @@ export const CommandPalette = memo(function CommandPalette() {
         <>
           {/* Backdrop */}
           <motion.div
-            initial={{ opacity: 0 }}
+            initial={prefersReducedMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0 : undefined }}
             className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
             onClick={handleClose}
           />
 
           {/* Palette */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -20 }}
+            initial={
+              prefersReducedMotion ? false : { opacity: 0, scale: 0.95, y: -20 }
+            }
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -20 }}
-            transition={{ duration: 0.15 }}
+            exit={
+              prefersReducedMotion
+                ? { opacity: 0 }
+                : { opacity: 0, scale: 0.95, y: -20 }
+            }
+            transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
             className="border-border bg-background fixed top-[20%] left-1/2 z-50 w-full max-w-lg -translate-x-1/2 rounded-xl border shadow-2xl"
           >
             {/* Search Input */}

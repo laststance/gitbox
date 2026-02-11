@@ -6,11 +6,13 @@
  * - Create new board
  */
 
+import { Plus } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { BoardGrid } from '@/components/Boards'
+import { Button } from '@/components/ui/button'
 import { createModuleLogger } from '@/lib/logger'
 import { createClient } from '@/lib/supabase/server'
 import type { Tables } from '@/lib/supabase/types'
@@ -54,35 +56,19 @@ export default async function BoardsPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            My Boards
-          </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
+          <h1 className="text-foreground text-3xl font-bold">My Boards</h1>
+          <p className="text-muted-foreground mt-2">
             Manage your GitHub repositories in Kanban format
           </p>
         </div>
 
         {/* Create New Board Button */}
-        <Link
-          href="/boards/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-        >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          Create Board
-        </Link>
+        <Button asChild>
+          <Link href="/boards/new" className="gap-2">
+            <Plus className="h-5 w-5" />
+            Create Board
+          </Link>
+        </Button>
       </div>
 
       {/* Boards Grid with rename/delete support */}

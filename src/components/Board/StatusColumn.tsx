@@ -2,7 +2,7 @@
 
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { MoreHorizontal, Pencil, Trash2, Plus } from 'lucide-react'
 import React, { memo } from 'react'
 
@@ -81,6 +81,7 @@ export const StatusColumn = memo<StatusColumnProps>(
     dragAttributes,
     dragListeners,
   }) => {
+    const prefersReducedMotion = useReducedMotion()
     const cardIds = cards.map((c) => c.id)
 
     // Make the column a droppable target for cards
@@ -117,7 +118,7 @@ export const StatusColumn = memo<StatusColumnProps>(
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="hover:bg-accent h-6 w-6 p-0"
+                  className="hover:bg-accent relative h-6 w-6 p-0 after:absolute after:-inset-[9px] after:content-['']"
                   aria-label="Column options"
                 >
                   <MoreHorizontal className="h-4 w-4" />
@@ -153,10 +154,16 @@ export const StatusColumn = memo<StatusColumnProps>(
               {cards.map((card) => (
                 <motion.div
                   key={card.id}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.2 }}
+                  exit={
+                    prefersReducedMotion
+                      ? { opacity: 0 }
+                      : { opacity: 0, y: -20 }
+                  }
+                  transition={{
+                    duration: prefersReducedMotion ? 0 : 0.2,
+                  }}
                 >
                   <RepoCard
                     card={card}

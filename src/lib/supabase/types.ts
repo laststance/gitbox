@@ -280,7 +280,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      swap_statuslist_positions: {
+        Args: {
+          id_a: string
+          id_b: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

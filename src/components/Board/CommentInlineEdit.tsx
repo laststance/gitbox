@@ -22,6 +22,7 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import { COMMENT_MAX_LENGTH } from '@/lib/validations/project-info'
 
 import {
   COMMENT_CARD_COLORS,
@@ -29,11 +30,8 @@ import {
   DEFAULT_COMMENT_STYLE,
 } from './CommentDisplay'
 
-/** Maximum character limit for inline comments */
-const MAX_LENGTH = 300
-
-/** Warning threshold (show orange counter) */
-const WARNING_THRESHOLD = 270
+/** Maximum character limit for inline comments (from shared validation) */
+const MAX_LENGTH = COMMENT_MAX_LENGTH
 
 /** Options for save callback */
 export interface CommentSaveOptions {
@@ -101,8 +99,9 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
 
     // Character count helpers
     const charCount = editValue.length
+    const warningThreshold = Math.floor(maxLength * 0.9)
     const isOverLimit = charCount > maxLength
-    const isWarning = charCount >= WARNING_THRESHOLD && !isOverLimit
+    const isWarning = charCount >= warningThreshold && !isOverLimit
 
     /**
      * Handle save action

@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <main className="bg-background flex min-h-screen items-center justify-center">
       <div className="bg-card w-full max-w-md space-y-8 rounded-xl p-8 shadow-lg">
         {/* Logo / Title */}
         <div className="text-center">
@@ -34,7 +34,7 @@ export default function LoginPage() {
           <form action={signInWithGitHub}>
             <button
               type="submit"
-              className="flex w-full items-center justify-center gap-3 rounded-lg bg-gray-900 px-4 py-3 text-white transition-colors hover:bg-gray-800 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-ring flex w-full items-center justify-center gap-3 rounded-lg px-4 py-3 transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none"
             >
               {/* GitHub Icon */}
               <svg
@@ -58,14 +58,14 @@ export default function LoginPage() {
             By signing in, you agree to our{' '}
             <Link
               href="/terms"
-              className="text-blue-600 hover:underline dark:text-blue-400"
+              className="text-primary hover:text-primary/80 hover:underline"
             >
               Terms of Use
             </Link>{' '}
             and{' '}
             <Link
               href="/privacy"
-              className="text-blue-600 hover:underline dark:text-blue-400"
+              className="text-primary hover:text-primary/80 hover:underline"
             >
               Privacy Policy
             </Link>

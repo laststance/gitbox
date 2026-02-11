@@ -33,7 +33,7 @@ const Switch = memo(function Switch({
   return (
     <SwitchPrimitives.Root
       className={cn(
-        'peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent shadow-sm transition-colors',
+        "peer relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent shadow-sm transition-colors after:absolute after:-inset-x-[4px] after:-inset-y-[12px] after:content-['']",
         'focus-visible:ring-ring focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
         'disabled:cursor-not-allowed disabled:opacity-50',
         'data-[state=checked]:bg-primary data-[state=unchecked]:bg-input',

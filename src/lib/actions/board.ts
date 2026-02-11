@@ -20,6 +20,9 @@ import {
   boardNameSchema,
   boardIdSchema,
   boardSettingsSchema,
+  statusListNameSchema,
+  statusListColorSchema,
+  gridPositionSchema,
 } from '@/lib/validations/board'
 
 type StatusListRow = Tables<'statuslist'>
@@ -150,7 +153,17 @@ export async function createStatusList(
   name: string,
   color: string = '#6B7280',
 ): Promise<StatusListDomain> {
+  // Validate inputs (P2-1)
+  statusListNameSchema.parse(name)
+  statusListColorSchema.parse(color)
+
   const supabase = await createClient()
+
+  // Auth check (P1-5): RLS handles ownership, but verify user is authenticated
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Authentication required')
 
   // Get the current max grid_col in row 0
   const { data: maxColData } = await supabase
@@ -203,6 +216,10 @@ export async function updateStatusList(
   statusId: string,
   updates: { name?: string; color?: string },
 ): Promise<void> {
+  // Validate inputs (P2-1)
+  if (updates.name !== undefined) statusListNameSchema.parse(updates.name)
+  if (updates.color !== undefined) statusListColorSchema.parse(updates.color)
+
   const supabase = await createClient()
 
   const updateData: Record<string, unknown> = {}
@@ -231,6 +248,12 @@ export async function deleteStatusList(
 ): Promise<void> {
   const supabase = await createClient()
 
+  // Auth check (P1-5)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Authentication required')
+
   const { error } = await supabase
     .from('statuslist')
     .delete()
@@ -257,6 +280,9 @@ export async function updateStatusListPosition(
   gridRow: number,
   gridCol: number,
 ): Promise<void> {
+  // Validate grid position (P2-4)
+  gridPositionSchema.parse({ gridRow, gridCol })
+
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -277,11 +303,16 @@ export async function updateStatusListPosition(
 }
 
 /**
- * Swap positions between two status lists
- * Used when dropping a column onto an occupied cell
+ * Swap positions between two status lists (atomic)
+ * Uses a PostgreSQL RPC function for transactional safety.
+ * If either update fails, both are rolled back.
  *
  * @param id1 - First status list ID
  * @param id2 - Second status list ID
+ *
+ * @example
+ * await swapStatusListPositions('uuid-a', 'uuid-b')
+ * // Atomically swaps grid_row/grid_col between the two status lists
  */
 export async function swapStatusListPositions(
   id1: string,
@@ -289,52 +320,17 @@ export async function swapStatusListPositions(
 ): Promise<void> {
   const supabase = await createClient()
 
-  // Get current positions
-  const { data: status1 } = await supabase
-    .from('statuslist')
-    .select('grid_row, grid_col')
-    .eq('id', id1)
-    .single()
+  const { error } = await supabase.rpc('swap_statuslist_positions', {
+    id_a: id1,
+    id_b: id2,
+  })
 
-  const { data: status2 } = await supabase
-    .from('statuslist')
-    .select('grid_row, grid_col')
-    .eq('id', id2)
-    .single()
-
-  if (!status1 || !status2) {
-    throw new Error('Failed to find status lists to swap')
-  }
-
-  // Swap positions
-  const updatePromises = [
-    supabase
-      .from('statuslist')
-      .update({
-        grid_row: status2.grid_row,
-        grid_col: status2.grid_col,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id1),
-    supabase
-      .from('statuslist')
-      .update({
-        grid_row: status1.grid_row,
-        grid_col: status1.grid_col,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id2),
-  ]
-
-  const results = await Promise.all(updatePromises)
-  const errorResults = results.filter((r) => r.error)
-  if (errorResults.length > 0) {
-    Sentry.captureException(new Error('Failed to swap status list positions'), {
+  if (error) {
+    Sentry.captureException(error, {
       extra: {
-        context: 'Swap status list positions',
+        context: 'Swap status list positions (RPC)',
         id1,
         id2,
-        errors: errorResults,
       },
     })
     throw new Error('Failed to swap column positions')
@@ -536,6 +532,9 @@ export async function getBoardData(boardId: string): Promise<{
 export async function createBoard(
   name: string,
 ): Promise<{ id: string; name: string }> {
+  // Validate board name (P2-3)
+  boardNameSchema.parse(name)
+
   const supabase = await createClient()
 
   // Get current user

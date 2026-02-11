@@ -49,6 +49,7 @@ vi.mock('framer-motion', () => ({
   }: {
     children: React.ReactNode
   }): React.ReactNode => children,
+  useReducedMotion: () => false,
 }))
 
 // Mock RepoCard to isolate StatusColumn testing

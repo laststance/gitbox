@@ -70,7 +70,7 @@ describe('CommentInlineEdit', () => {
       render(<CommentInlineEdit {...defaultProps} />)
 
       expect(screen.getByTestId('character-counter')).toHaveTextContent(
-        '15/300',
+        '15/2000',
       )
     })
 
@@ -102,13 +102,17 @@ describe('CommentInlineEdit', () => {
       )
 
       const counter = screen.getByTestId('character-counter')
-      expect(counter).toHaveTextContent('100/300')
+      expect(counter).toHaveTextContent('100/2000')
       expect(counter).toHaveClass('text-muted-foreground')
     })
 
     it('should show warning color when at warning threshold (270+)', () => {
       render(
-        <CommentInlineEdit {...defaultProps} initialValue={'a'.repeat(270)} />,
+        <CommentInlineEdit
+          {...defaultProps}
+          maxLength={300}
+          initialValue={'a'.repeat(270)}
+        />,
       )
 
       const counter = screen.getByTestId('character-counter')
@@ -118,7 +122,11 @@ describe('CommentInlineEdit', () => {
 
     it('should show error color when over limit (300+)', () => {
       render(
-        <CommentInlineEdit {...defaultProps} initialValue={'a'.repeat(310)} />,
+        <CommentInlineEdit
+          {...defaultProps}
+          maxLength={300}
+          initialValue={'a'.repeat(310)}
+        />,
       )
 
       const counter = screen.getByTestId('character-counter')
@@ -171,7 +179,11 @@ describe('CommentInlineEdit', () => {
 
     it('should disable save button when over character limit', () => {
       render(
-        <CommentInlineEdit {...defaultProps} initialValue={'a'.repeat(310)} />,
+        <CommentInlineEdit
+          {...defaultProps}
+          maxLength={300}
+          initialValue={'a'.repeat(310)}
+        />,
       )
 
       const saveBtn = screen.getByTestId('comment-save-btn')
@@ -386,7 +398,9 @@ describe('CommentInlineEdit', () => {
     it('should handle empty initial value', () => {
       render(<CommentInlineEdit {...defaultProps} initialValue="" />)
 
-      expect(screen.getByTestId('character-counter')).toHaveTextContent('0/300')
+      expect(screen.getByTestId('character-counter')).toHaveTextContent(
+        '0/2000',
+      )
     })
 
     it('should handle whitespace-only input', async () => {

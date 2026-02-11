@@ -261,13 +261,13 @@ export const BoardPageClient = memo(function BoardPageClient({
       <main className="flex h-screen flex-col">
         {/* Header */}
         <header className="border-border bg-background border-b px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-foreground text-2xl font-bold">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h1 className="text-foreground text-xl font-bold sm:text-2xl">
               {boardSettings.displayName}
             </h1>
 
             {/* Board operation buttons */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {/* Add Repositories - PRD 3.1 */}
               <AddRepositoryCombobox
                 boardId={boardId}
@@ -396,7 +396,17 @@ export const BoardPageClient = memo(function BoardPageClient({
             <AlertDialogDescription>
               Are you sure you want to delete &quot;
               {statusListDialog.pendingDeleteStatusTitle}
-              &quot;? This action cannot be undone.
+              &quot;?
+              {(() => {
+                const cardCount = repoCards.filter(
+                  (c) => c.statusId === statusListDialog.pendingDeleteStatusId,
+                ).length
+                if (cardCount > 0) {
+                  return ` This will also remove ${cardCount} card${cardCount !== 1 ? 's' : ''} in this column.`
+                }
+                return ''
+              })()}{' '}
+              This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -85,7 +85,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head></head>
-      <body>
+      <body className="antialiased">
         <NextTopLoader
           color="oklch(0.696 0.17 162.48)"
           height={3}
