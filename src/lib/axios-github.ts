@@ -80,6 +80,28 @@ export function createGitHubAxios(): AxiosInstance {
     },
   )
 
+  /**
+   * Response interceptor: Clears stale GitHub token cookie on 401.
+   *
+   * When the GitHub token has expired (default 8h for fine-grained tokens),
+   * the API returns 401. This interceptor proactively deletes the cookie
+   * so subsequent hasGitHubToken() checks correctly return false, prompting
+   * re-authentication instead of repeated 401 failures.
+   */
+  instance.interceptors.response.use(undefined, async (error) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      try {
+        const cookieStore = await cookies()
+        const cookieName = getGitHubTokenCookieName()
+        cookieStore.delete(cookieName)
+      } catch {
+        // Cookie deletion may fail in certain Next.js contexts (e.g., static
+        // generation). Silently ignore — the token will expire naturally.
+      }
+    }
+    return Promise.reject(error)
+  })
+
   return instance
 }
 
