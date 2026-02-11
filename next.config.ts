@@ -2,6 +2,21 @@ import { withSentryConfig } from '@sentry/nextjs'
 import { codeInspectorPlugin } from 'code-inspector-plugin'
 import type { NextConfig } from 'next'
 
+// Prevent test-mode environment variables from reaching Vercel deployments.
+// If either is set, ALL authentication is bypassed (proxy.ts, supabase/server.ts).
+// NOTE: Only guard Vercel builds (VERCEL env is set). E2E CI builds intentionally
+// use APP_ENV=test + next build, which sets NODE_ENV=production.
+if (process.env.VERCEL && process.env.APP_ENV === 'test') {
+  throw new Error(
+    'FATAL: APP_ENV=test must not be set in Vercel builds. This would bypass all authentication.',
+  )
+}
+if (process.env.VERCEL && process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK === 'true') {
+  throw new Error(
+    'FATAL: NEXT_PUBLIC_ENABLE_MSW_MOCK=true must not be set in Vercel builds. This would enable mock data.',
+  )
+}
+
 const nextConfig: NextConfig = {
   turbopack: {
     rules: codeInspectorPlugin({

@@ -275,6 +275,38 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      batch_update_board_positions: {
+        Args: { p_updates: Json }
+        Returns: undefined
+      }
+      batch_update_repocard_orders: {
+        Args: { p_updates: Json }
+        Returns: undefined
+      }
+      batch_update_statuslist_positions: {
+        Args: { p_updates: Json }
+        Returns: undefined
+      }
+      move_to_maintenance: {
+        Args: {
+          p_card_id: string
+          p_user_id: string
+          p_repo_owner: string
+          p_repo_name: string
+        }
+        Returns: string
+      }
+      restore_to_board: {
+        Args: {
+          p_maintenance_id: string
+          p_board_id: string
+          p_status_id: string
+          p_repo_owner: string
+          p_repo_name: string
+          p_next_order: number
+        }
+        Returns: string
+      }
       swap_statuslist_positions: {
         Args: { id_a: string; id_b: string }
         Returns: undefined
