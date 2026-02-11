@@ -39,7 +39,10 @@ export async function GET(request: Request) {
    * @default '/boards' - If `next` is not provided, redirects to the main boards page
    * @note Currently, no code sets this parameter; it exists for future extensibility
    */
-  const next = searchParams.get('next') ?? '/boards'
+  const rawNext = searchParams.get('next') ?? '/boards'
+  // Prevent open redirect: only allow relative paths, block protocol-relative URLs
+  const next =
+    rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/boards'
 
   if (code) {
     const supabase = await createRouteHandlerClient(request)
