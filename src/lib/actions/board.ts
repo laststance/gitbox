@@ -354,31 +354,22 @@ export async function batchUpdateStatusListPositions(
 ): Promise<void> {
   const supabase = await createClient()
 
-  // Use parallel updates for performance
-  const updatePromises = updates.map(({ id, gridRow, gridCol }) =>
-    supabase
-      .from('statuslist')
-      .update({
-        grid_row: gridRow,
-        grid_col: gridCol,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id),
-  )
+  // Atomic batch update via PostgreSQL RPC — all updates succeed or all fail
+  const { error } = await supabase.rpc('batch_update_statuslist_positions', {
+    p_updates: updates.map(({ id, gridRow, gridCol }) => ({
+      id,
+      grid_row: gridRow,
+      grid_col: gridCol,
+    })),
+  })
 
-  const results = await Promise.all(updatePromises)
-
-  const errorResults = results.filter((r) => r.error)
-  if (errorResults.length > 0) {
-    Sentry.captureException(
-      new Error('Failed to batch update status list positions'),
-      {
-        extra: {
-          context: 'Batch update status list positions',
-          errors: errorResults,
-        },
+  if (error) {
+    Sentry.captureException(error, {
+      extra: {
+        context: 'Batch update status list positions (RPC)',
+        updateCount: updates.length,
       },
-    )
+    })
     throw new Error('Failed to update column positions')
   }
 }
@@ -469,31 +460,22 @@ export async function batchUpdateRepoCardOrders(
 ): Promise<void> {
   const supabase = await createClient()
 
-  // Use a transaction-like approach with Promise.all
-  const updatePromises = updates.map(({ id, statusId, order }) =>
-    supabase
-      .from('repocard')
-      .update({
-        status_id: statusId,
-        order: order,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id),
-  )
+  // Atomic batch update via PostgreSQL RPC — all updates succeed or all fail
+  const { error } = await supabase.rpc('batch_update_repocard_orders', {
+    p_updates: updates.map(({ id, statusId, order }) => ({
+      id,
+      status_id: statusId,
+      order,
+    })),
+  })
 
-  const results = await Promise.all(updatePromises)
-
-  const errorResults = results.filter((r) => r.error)
-  if (errorResults.length > 0) {
-    Sentry.captureException(
-      new Error('Failed to batch update repo card orders'),
-      {
-        extra: {
-          context: 'Batch update repo card orders',
-          errors: errorResults,
-        },
+  if (error) {
+    Sentry.captureException(error, {
+      extra: {
+        context: 'Batch update repo card orders (RPC)',
+        updateCount: updates.length,
       },
-    )
+    })
     throw new Error('Failed to update some repo cards')
   }
 }
@@ -612,20 +594,18 @@ export async function updateBoardPositions(
     throw new Error('Authentication required')
   }
 
-  const results = await Promise.all(
-    updates.map(({ id, position }) =>
-      supabase
-        .from('board')
-        .update({ position })
-        .eq('id', id)
-        .eq('user_id', user.id),
-    ),
-  )
+  // Atomic batch update via PostgreSQL RPC — all updates succeed or all fail
+  // Note: RLS policies on board table still enforce user ownership
+  const { error } = await supabase.rpc('batch_update_board_positions', {
+    p_updates: updates.map(({ id, position }) => ({ id, position })),
+  })
 
-  const failed = results.find((r) => r.error)
-  if (failed?.error) {
-    Sentry.captureException(failed.error, {
-      extra: { context: 'Batch update board positions', updates },
+  if (error) {
+    Sentry.captureException(error, {
+      extra: {
+        context: 'Batch update board positions (RPC)',
+        updateCount: updates.length,
+      },
     })
     throw new Error('Failed to update board positions')
   }
