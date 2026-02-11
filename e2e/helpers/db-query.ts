@@ -521,3 +521,38 @@ export async function resetStatusListNames(): Promise<void> {
     }
   }
 }
+
+/**
+ * Reset projectinfo links to seed.sql initial values.
+ * Call this in afterEach for link persistence tests to prevent cross-test contamination.
+ *
+ * @example
+ * test.afterEach(async () => {
+ *   await resetProjectInfoLinks()
+ * })
+ */
+export async function resetProjectInfoLinks(): Promise<void> {
+  const supabase = createLocalSupabaseClient()
+
+  // Seed data: projinfo3 (card-3: laststance/create-react-app-vite) has empty links
+  const seedLinks = [{ id: PROJECT_INFO_IDS.projinfo3, links: [] as unknown[] }]
+
+  for (const item of seedLinks) {
+    const { data, error } = await supabase
+      .from('projectinfo')
+      .update({ links: item.links })
+      .eq('id', item.id)
+      .select('id')
+    if (error) {
+      throw new Error(
+        `resetProjectInfoLinks: failed for id=${item.id}: ${error.message}`,
+      )
+    }
+    if (!data || data.length === 0) {
+      throw new Error(
+        `resetProjectInfoLinks: UPDATE matched 0 rows for id=${item.id}. ` +
+          `URL=${process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'}`,
+      )
+    }
+  }
+}
