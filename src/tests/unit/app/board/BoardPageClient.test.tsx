@@ -97,6 +97,9 @@ vi.mock('@/hooks/board', () => ({
     handleOpenChange: vi.fn(),
     openForStatus: vi.fn(),
   }),
+  useOptimisticCardAction: () => ({
+    executeCardAction: vi.fn(),
+  }),
 }))
 
 // Mock child components
