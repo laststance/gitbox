@@ -101,6 +101,34 @@ export const githubApiHandlers: HttpHandler[] = [
   }),
 
   /**
+   * GET /orgs/:org/repos - Get organization repositories
+   *
+   * @see https://docs.github.com/en/rest/repos/repos#list-organization-repositories
+   */
+  http.get(`${GITHUB_API_URL}/orgs/:org/repos`, ({ params, request }) => {
+    const authHeader = request.headers.get('Authorization')
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return HttpResponse.json(
+        { message: 'Requires authentication' },
+        { status: 401 },
+      )
+    }
+
+    const { org } = params
+    const searchParams = getSearchParams(request)
+    const perPage = parseInt(searchParams.get('per_page') || '30', 10)
+    const page = parseInt(searchParams.get('page') || '1', 10)
+
+    const orgRepos = mockGitHubRepos.filter((repo) => repo.owner.login === org)
+
+    const start = (page - 1) * perPage
+    const paged = orgRepos.slice(start, start + perPage)
+
+    return HttpResponse.json(paged)
+  }),
+
+  /**
    * GET /repos/:owner/:repo - Get a specific repository
    */
   http.get(`${GITHUB_API_URL}/repos/:owner/:repo`, ({ params, request }) => {
