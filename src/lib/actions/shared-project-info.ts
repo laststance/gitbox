@@ -402,7 +402,6 @@ export async function updateCommentCore(
   if (existingInfo) {
     const updateData: ProjectInfoUpdate = {
       comment,
-      updated_at: new Date().toISOString(),
     }
     if (color) {
       updateData.comment_color = color
@@ -471,7 +470,6 @@ export async function updateCommentColorCore(
       .from('projectinfo')
       .update({
         comment_color: color,
-        updated_at: new Date().toISOString(),
       })
       .eq('id', existingInfo.id)
 
@@ -539,7 +537,6 @@ export async function deleteCommentCore(
     .update({
       comment: null,
       comment_color: DEFAULT_COMMENT_COLOR,
-      updated_at: new Date().toISOString(),
     })
     .eq('id', existingInfo.id)
 
