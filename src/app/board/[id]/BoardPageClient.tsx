@@ -41,6 +41,7 @@ import {
   useStatusListDialog,
   useNoteModal,
   useAddRepositoryCombobox,
+  useOptimisticCardAction,
 } from '@/hooks/board'
 import type { BoardInitialData } from '@/lib/actions/board-data'
 import {
@@ -54,7 +55,6 @@ import {
   setRepoCards,
   setActiveBoard,
   addRepoCards,
-  removeRepoCard,
   selectStatusLists,
   selectRepoCards,
 } from '@/lib/redux/slices/boardSlice'
@@ -129,99 +129,28 @@ export const BoardPageClient = memo(function BoardPageClient({
   }, [boardId, boardName])
 
   // ========================================
-  // Card Action Handlers
+  // Card Action Handlers (via shared optimistic hook)
   // ========================================
 
-  /**
-   * Move to Maintenance Mode
-   *
-   * Transfers a card from the active board to maintenance archive.
-   * Uses optimistic UI update via Redux for instant feedback.
-   *
-   * @param cardId - The card ID to move to maintenance
-   */
+  const executeCardAction = useOptimisticCardAction()
+
   const handleMoveToMaintenance = useCallback(
-    async (cardId: string) => {
-      // Find card to remove for optimistic update
-      const cardToRemove = repoCards.find((c) => c.id === cardId)
-      if (!cardToRemove) return
-
-      // Store previous state for potential rollback
-      const previousCards = repoCards
-
-      // Optimistic update via Redux (instant UI feedback)
-      dispatch(removeRepoCard(cardId))
-
-      try {
-        const result = await moveToMaintenance(cardId)
-        if (!result.success) {
-          // Revert Redux on error
-          dispatch(setRepoCards(previousCards))
-          toast.error('Failed to move to maintenance', {
-            description: result.error,
-          })
-        }
-      } catch (error) {
-        // Revert Redux on error
-        dispatch(setRepoCards(previousCards))
-        Sentry.captureException(error, {
-          tags: { action: 'moveToMaintenance' },
-        })
-        toast.error('Failed to move to maintenance', {
-          description: 'Please try again.',
-        })
-      }
-    },
-    [repoCards, dispatch],
+    async (cardId: string) =>
+      executeCardAction(cardId, moveToMaintenance, {
+        actionName: 'moveToMaintenance',
+        errorMessage: 'Failed to move to maintenance',
+      }),
+    [executeCardAction],
   )
 
-  /**
-   * Remove Repository from Board
-   *
-   * Permanently deletes a card from the board.
-   * Uses optimistic UI update via Redux for instant feedback.
-   *
-   * @param cardId - The card ID to remove
-   */
   const handleRemoveFromBoard = useCallback(
-    async (cardId: string) => {
-      // Store card for potential rollback
-      const cardToRemove = repoCards.find((c) => c.id === cardId)
-      const previousCards = repoCards
-
-      // Optimistic update via Redux (instant UI feedback)
-      dispatch(removeRepoCard(cardId))
-
-      try {
-        const result = await deleteRepoCard(cardId)
-        if (!result.success) {
-          // Revert Redux on error
-          dispatch(setRepoCards(previousCards))
-          Sentry.captureMessage('Delete repo card failed', {
-            level: 'error',
-            tags: { action: 'deleteRepoCard' },
-            extra: { error: result.error },
-          })
-          toast.error('Failed to remove from board', {
-            description: result.error,
-          })
-        } else {
-          toast.success('Repository removed', {
-            description: 'The repository has been removed from the board.',
-          })
-        }
-      } catch (error) {
-        // Revert Redux on error if we have the card
-        if (cardToRemove) {
-          dispatch(setRepoCards(previousCards))
-        }
-        Sentry.captureException(error, { tags: { action: 'removeFromBoard' } })
-        toast.error('Failed to remove from board', {
-          description: 'Please try again.',
-        })
-      }
-    },
-    [repoCards, dispatch],
+    async (cardId: string) =>
+      executeCardAction(cardId, deleteRepoCard, {
+        actionName: 'removeFromBoard',
+        errorMessage: 'Failed to remove from board',
+        successMessage: 'Repository removed',
+      }),
+    [executeCardAction],
   )
 
   // ========================================
