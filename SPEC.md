@@ -1,4 +1,4 @@
-# GitBox — Specification v1.1 (2026-02-06)
+# GitBox — Specification v1.2 (2026-02-11)
 
 ## 1) Product Overview
 
@@ -131,6 +131,11 @@
 - **⋯ (Overflow menu)**: Launch **Project Info** modal
 - **Favorites**: Add board to favorites (star icon, prioritized in sidebar)
 - **Board Settings**: Board name, card display settings (theme is app-wide via Settings/Sidebar)
+- **Board D&D Reorder**: Drag & drop board cards on `/boards` page to reorder (position persisted to DB)
+  - GripVertical drag handle (visible on hover)
+  - Optimistic UI with `useOptimistic` + `useState` dual pattern
+  - DragOverlay for visual feedback during drag
+  - Disabled on `/boards/favorites` (filtered view)
 
 #### Acceptance Criteria
 
@@ -138,6 +143,7 @@
 - D&D follows conventions ([GitHub Docs](https://docs.github.com/en/issues/planning-and-tracking-with-projects/))
 - Favorites toggle reflects immediately
 - Columns don't expand to fill available space (constrained to max width)
+- Board card order persists after page reload (DB-backed position)
 
 ### 3.3 Maintenance Mode
 
@@ -233,7 +239,7 @@ Display free-text status comments on RepoCard in Card-in-Card style.
 - **Card-in-Card UI**: Left border accent + background color for visual distinction
 - **Full text display**: No truncation, card height expands with content
 - **Inline editing**: Click to edit directly, 2,000 character limit
-- **Color customization**: 8 colors available (primary/red/orange/yellow/green/blue/purple/pink)
+- **Color customization**: 8 colors available (primary/blue/green/amber/purple/rose/cyan/neutral)
 - **Per-comment color**: Color stored per comment in `projectinfo.comment_color`
 
 #### UI Wireframe
@@ -263,7 +269,7 @@ interface BoardSettings {
     showComment: boolean // default: true
     commentText: {
       fontSize: 'sm' | 'base' | 'lg' // default: 'sm'
-      fontWeight: 'normal' | 'medium' | 'semibold' | 'bold' // default: 'normal'
+      fontWeight: 'normal' | 'medium' | 'semibold' // default: 'normal'
     }
   }
 }
@@ -608,6 +614,7 @@ board {
   user_id uuid REFERENCES auth.users,
   name text NOT NULL,
   is_favorite boolean DEFAULT false,  -- Favorite board
+  position integer DEFAULT 0,        -- Board order for D&D reordering on /boards
   settings jsonb,                     -- Board-level settings (card display, etc.)
   created_at, updated_at
 }
@@ -644,7 +651,7 @@ projectinfo {
   links jsonb,  -- {type, url, icon}[] - 55 built-in types
   note text,  -- Rich text (Plate Editor, max 20,000 chars)
   comment text,  -- Inline comment (max 2,000 chars)
-  comment_color text DEFAULT 'primary',  -- 8 colors (per-comment)
+  comment_color text DEFAULT 'primary',  -- CHECK IN ('primary','blue','green','amber','purple','rose','cyan','neutral')
   created_at, updated_at
 }
 
@@ -781,15 +788,18 @@ interface RepoCardMeta {
 
 ### Phase 3: Polish & Infrastructure
 
-- Navigation progress bar
-- Error boundaries & loading states
-- Column width constraint
-- Dark theme neutral color fix (OKLCH CSS variables)
-- Hydration safety (useMounted pattern)
-- E2E migration to real Supabase DB
-- Dead code cleanup (Knip)
-- noUncheckedIndexedAccess strict typing
-- Maintenance repo filtering in Add Repository
+- Navigation progress bar ✅
+- Error boundaries & loading states ✅
+- Column width constraint ✅
+- Dark theme neutral color fix (OKLCH CSS variables) ✅
+- Hydration safety (useMounted pattern) ✅
+- E2E migration to real Supabase DB ✅
+- Dead code cleanup (Knip) ✅
+- noUncheckedIndexedAccess strict typing ✅
+- Maintenance repo filtering in Add Repository ✅
+- Board D&D reorder on /boards page ✅
+- Theme CSS variables validation script ✅
+- RLS re-enabled with optimized policies ✅
 
 ---
 
@@ -1056,9 +1066,31 @@ Row 1: [   ] [   ] [ B ]   →     Row 1: [ A ] [   ] [   ]
 | CDP Helper    | `cdpColumnDragAndDrop()`                 |
 | Note          | Both gridRow and gridCol fully exchanged |
 
-### 11.4 Previously Unimplemented Features
+### 11.4 Board Card Drag & Drop
 
-#### 11.4.1 Column Auto-Height (Height Auto-Expansion)
+#### 11.4.1 Board Card Reorder on /boards Page
+
+```
+┌───────────────┐  ┌───────────────┐         ┌───────────────┐  ┌───────────────┐
+│ Board A    [≡] │  │ Board B    [≡] │  drag   │ Board B    [≡] │  │ Board A    [≡] │
+└───────────────┘  └───────────────┘   →     └───────────────┘  └───────────────┘
+       ↓_______________↑                        (A and B swapped, position persisted)
+```
+
+| Item          | Value                                                         |
+| ------------- | ------------------------------------------------------------- |
+| Status        | ✅ Implemented                                                |
+| E2E Coverage  | ✅ Covered (`board-dnd.spec.ts` - 4 tests)                    |
+| Server Action | `updateBoardPositions()`                                      |
+| CDP Helper    | `cdpBoardDragAndDrop()`                                       |
+| Sensors       | MouseSensor (distance: 8), TouchSensor (delay: 200), Keyboard |
+| Collision     | `closestCenter` + `restrictToWindowEdges`                     |
+| State         | `useState` + `useOptimistic` dual pattern with error revert   |
+| Note          | Disabled on `/boards/favorites` (filtered view)               |
+
+### 11.5 Previously Unimplemented Features
+
+#### 11.5.1 Column Auto-Height (Height Auto-Expansion)
 
 | Item         | Value                                                                      |
 | ------------ | -------------------------------------------------------------------------- |
@@ -1067,7 +1099,7 @@ Row 1: [   ] [   ] [ B ]   →     Row 1: [ A ] [   ] [   ]
 | Files        | `KanbanBoard.tsx`, `SortableColumn.tsx`, `StatusColumn.tsx`, `cdp-drag.ts` |
 | Method       | CSS Grid `minmax(min-content, auto)` + height constraint removal           |
 
-### 11.5 E2E Test Coverage Requirements
+### 11.6 E2E Test Coverage Requirements
 
 | Test Name                    | Status                                                         |
 | ---------------------------- | -------------------------------------------------------------- |
@@ -1083,8 +1115,10 @@ Row 1: [   ] [   ] [ B ]   →     Row 1: [ A ] [   ] [   ]
 | Column: ColumnInsertZone     | ✅ Added (5 test cases in `column-dnd.spec.ts`)                |
 | Column: Auto-Height          | ✅ Added (`e2e/kanban.spec.ts` - 6 tests)                      |
 | Column: Width constraint     | ✅ Added (`e2e/kanban-column-width.spec.ts` - 4 tests)         |
+| Board: D&D reorder           | ✅ Added (`board-dnd.spec.ts` - 4 tests)                       |
+| Board: DB persistence        | ✅ Added (position verified after reload)                      |
 
-### 11.6 CDP Drag Helper List
+### 11.7 CDP Drag Helper List
 
 ```typescript
 // e2e/helpers/cdp-drag.ts
@@ -1111,6 +1145,12 @@ export async function cdpColumnToGridPosition(
   options?,
 )
 export async function cdpColumnToInsertZone(page, columnId, row, col, options?)
+export async function cdpBoardDragAndDrop(
+  page,
+  sourceBoardId,
+  targetBoardId,
+  options?,
+)
 ```
 
 ---
@@ -1150,6 +1190,7 @@ export async function cdpColumnToInsertZone(page, columnId, row, col, options?)
 | Kanban      | `kanban-auto-height.spec.ts`               | Column auto-height          |
 | Kanban      | `kanban-column-width.spec.ts`              | Column width constraint     |
 | Kanban      | `kanban-column-edit.spec.ts`               | Column edit operations      |
+| Board       | `board-dnd.spec.ts`                        | Board card D&D reorder      |
 | Board       | `board-settings.spec.ts`                   | Board settings dialog       |
 | Board       | `board-settings-card-display.spec.ts`      | Card display settings       |
 | Board       | `create-board.spec.ts`                     | Board creation              |
@@ -1170,6 +1211,7 @@ export async function cdpColumnToInsertZone(page, columnId, row, col, options?)
 | Settings    | `settings.spec.ts`                         | Settings page               |
 | Theme       | `sidebar-theme-toggle.spec.ts`             | Theme toggle                |
 | Theme       | `theme-persistence.spec.ts`                | Theme persistence           |
+| Theme       | `theme-visual-application.spec.ts`         | Theme visual application    |
 | Sidebar     | `sidebar-collapse.spec.ts`                 | Sidebar collapse            |
 | SSR         | `ssr-hydration-board.spec.ts`              | SSR hydration (board)       |
 | Page        | `page-titles.spec.ts`                      | Page titles                 |
