@@ -15,6 +15,7 @@ CREATE OR REPLACE FUNCTION move_to_maintenance(
 RETURNS UUID
 LANGUAGE plpgsql
 SECURITY INVOKER
+SET search_path = pg_catalog, public
 AS $$
 DECLARE
   v_maint_id UUID;
@@ -32,8 +33,11 @@ BEGIN
       updated_at = now()
   WHERE repo_card_id = p_card_id;
 
-  -- Step 3: Delete the repocard
+  -- Step 3: Delete the repocard (guard against TOCTOU race)
   DELETE FROM repocard WHERE id = p_card_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'repocard % not found', p_card_id;
+  END IF;
 
   RETURN v_maint_id;
 END;
@@ -56,6 +60,7 @@ CREATE OR REPLACE FUNCTION restore_to_board(
 RETURNS UUID
 LANGUAGE plpgsql
 SECURITY INVOKER
+SET search_path = pg_catalog, public
 AS $$
 DECLARE
   v_card_id UUID;
@@ -73,8 +78,11 @@ BEGIN
       updated_at = now()
   WHERE maintenance_id = p_maintenance_id;
 
-  -- Step 3: Delete from maintenance
+  -- Step 3: Delete from maintenance (guard against TOCTOU race)
   DELETE FROM maintenance WHERE id = p_maintenance_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'maintenance record % not found', p_maintenance_id;
+  END IF;
 
   RETURN v_card_id;
 END;
@@ -92,6 +100,7 @@ CREATE OR REPLACE FUNCTION batch_update_statuslist_positions(
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY INVOKER
+SET search_path = pg_catalog, public
 AS $$
 DECLARE
   v_item JSONB;
@@ -119,6 +128,7 @@ CREATE OR REPLACE FUNCTION batch_update_repocard_orders(
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY INVOKER
+SET search_path = pg_catalog, public
 AS $$
 DECLARE
   v_item JSONB;
@@ -146,6 +156,7 @@ CREATE OR REPLACE FUNCTION batch_update_board_positions(
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY INVOKER
+SET search_path = pg_catalog, public
 AS $$
 DECLARE
   v_item JSONB;
