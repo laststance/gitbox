@@ -41,8 +41,13 @@ export async function GET(request: Request) {
    */
   const rawNext = searchParams.get('next') ?? '/boards'
   // Prevent open redirect: only allow relative paths, block protocol-relative URLs
+  // Also block backslash variants (/\evil.com) — WHATWG URL Standard normalizes \ to / for http/https
   const next =
-    rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/boards'
+    rawNext.startsWith('/') &&
+    !rawNext.startsWith('//') &&
+    !rawNext.includes('\\')
+      ? rawNext
+      : '/boards'
 
   if (code) {
     const supabase = await createRouteHandlerClient(request)
