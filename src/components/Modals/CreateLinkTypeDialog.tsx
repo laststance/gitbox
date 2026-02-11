@@ -115,16 +115,12 @@ export const CreateLinkTypeDialog = memo(function CreateLinkTypeDialog({
     }
 
     startTransition(async () => {
-      try {
-        const preset = await createUserPreset(trimmedLabel, icon)
-        onCreated?.(preset)
+      const result = await createUserPreset(trimmedLabel, icon)
+      if (result.success) {
+        onCreated?.(result.data)
         handleClose()
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message)
-        } else {
-          setError('Failed to create custom type')
-        }
+      } else {
+        setError(result.error)
       }
     })
   }

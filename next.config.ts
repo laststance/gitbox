@@ -47,12 +47,30 @@ const nextConfig: NextConfig = {
             value: 'nosniff',
           },
           {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
-          },
-          {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
+          },
+          {
+            // Report-Only mode: logs violations without blocking resources.
+            // Switch to Content-Security-Policy (enforcement) once stable.
+            key: 'Content-Security-Policy-Report-Only',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' https://avatars.githubusercontent.com https://github.com data: blob:",
+              "connect-src 'self' https://*.supabase.co http://127.0.0.1:* https://api.github.com https://*.ingest.us.sentry.io https://vitals.vercel-insights.com",
+              "font-src 'self'",
+              "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+              "object-src 'none'",
+            ].join('; '),
+          },
+          {
+            key: 'Permissions-Policy',
+            value:
+              'camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=()',
           },
         ],
       },

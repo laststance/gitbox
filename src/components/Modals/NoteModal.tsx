@@ -109,9 +109,9 @@ export const NoteModal = memo(function NoteModal({
   useEffect(() => {
     let mounted = true
     getUserPresets()
-      .then((presets) => {
-        if (mounted) {
-          setUserPresets(presets)
+      .then((result) => {
+        if (mounted && result.success) {
+          setUserPresets(result.data)
         }
       })
       .catch(() => {
