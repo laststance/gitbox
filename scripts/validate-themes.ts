@@ -134,7 +134,7 @@ function parseThemeBlocks(filePath: string, content: string): ThemeBlock[] {
   const relPath = relative(PROJECT_ROOT, filePath)
 
   // Match named themes: html[data-theme='xxx'] { ... }
-  const namedThemeRegex = /html\[data-theme=['"](\w+)['"]\]\s*\{([^}]+)\}/g
+  const namedThemeRegex = /html\[data-theme=['"]([\w-]+)['"]\]\s*\{([^}]+)\}/g
   let match: RegExpExecArray | null
   while ((match = namedThemeRegex.exec(content)) !== null) {
     blocks.push({
