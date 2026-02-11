@@ -265,7 +265,7 @@ test.describe('Maintenance Comment Inline Edit (Authenticated)', () => {
 
     const counter = inlineEdit.locator('[data-testid="character-counter"]')
     await expect(counter).toBeVisible()
-    await expect(counter).toContainText('/300')
+    await expect(counter).toContainText('/2000')
   })
 
   test('should save comment on Enter key', async ({ page }) => {

@@ -337,3 +337,110 @@ export async function resetCardPositions(): Promise<void> {
     }
   }
 }
+
+/**
+ * Reset all repo cards to seed.sql initial state (upsert).
+ * Re-creates cards that may have been deleted by other tests (e.g., remove-from-board).
+ *
+ * @example
+ * test.beforeEach(async () => {
+ *   await resetRepoCards()
+ * })
+ */
+export async function resetRepoCards(): Promise<void> {
+  const supabase = createLocalSupabaseClient()
+
+  const seedCards = [
+    {
+      id: CARD_IDS.card1,
+      board_id: BOARD_IDS.testBoard,
+      status_id: STATUS_IDS.planning,
+      repo_owner: 'testuser',
+      repo_name: 'test-repo',
+      order: 0,
+      meta: {
+        stars: 42,
+        language: 'TypeScript',
+        topics: ['react', 'nextjs'],
+        visibility: 'public',
+        description: 'A test repository for GitBox',
+        updatedAt: '2024-01-15T00:00:00.000Z',
+      },
+    },
+    {
+      id: CARD_IDS.card2,
+      board_id: BOARD_IDS.testBoard,
+      status_id: STATUS_IDS.focusDevelopment,
+      repo_owner: 'testuser',
+      repo_name: 'another-repo',
+      order: 0,
+      meta: {
+        stars: 128,
+        language: 'JavaScript',
+        topics: ['nodejs', 'api'],
+        visibility: 'public',
+        description: 'Another test repository',
+        updatedAt: '2024-01-10T00:00:00.000Z',
+      },
+    },
+    {
+      id: CARD_IDS.card3,
+      board_id: BOARD_IDS.testBoard,
+      status_id: STATUS_IDS.pending,
+      repo_owner: 'laststance',
+      repo_name: 'create-react-app-vite',
+      order: 0,
+      meta: {
+        stars: 500,
+        language: 'TypeScript',
+        topics: ['vite', 'react', 'template'],
+        visibility: 'public',
+        description: 'Create React App + Vite template',
+        updatedAt: '2024-01-20T00:00:00.000Z',
+      },
+    },
+    {
+      id: CARD_IDS.card4,
+      board_id: BOARD_IDS.testBoard,
+      status_id: STATUS_IDS.planning,
+      repo_owner: 'laststance',
+      repo_name: 'nsx',
+      order: 1,
+      meta: {
+        stars: 85,
+        language: 'TypeScript',
+        topics: ['cli', 'monorepo', 'npm'],
+        visibility: 'public',
+        description: 'Monorepo workspace CLI tool',
+        updatedAt: '2024-01-18T00:00:00.000Z',
+      },
+    },
+    {
+      id: CARD_IDS.card5,
+      board_id: BOARD_IDS.testBoard,
+      status_id: STATUS_IDS.planning,
+      repo_owner: 'laststance',
+      repo_name: 'use-app-state',
+      order: 2,
+      meta: {
+        stars: 120,
+        language: 'TypeScript',
+        topics: ['react', 'hooks', 'state'],
+        visibility: 'public',
+        description: 'Simple React state management hook',
+        updatedAt: '2024-01-12T00:00:00.000Z',
+      },
+    },
+  ]
+
+  for (const card of seedCards) {
+    const { error } = await supabase
+      .from('repocard')
+      .upsert(card, { onConflict: 'id' })
+    if (error) {
+      throw new Error(
+        `resetRepoCards: upsert failed for id=${card.id}: ${error.message}`,
+      )
+    }
+  }
+}

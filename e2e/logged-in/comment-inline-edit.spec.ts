@@ -91,8 +91,8 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
     const counter = inlineEdit.locator('[data-testid="character-counter"]')
     await expect(counter).toBeVisible()
 
-    // Should display format like "XX/300"
-    await expect(counter).toContainText('/300')
+    // Should display format like "XX/2000" (COMMENT_MAX_LENGTH)
+    await expect(counter).toContainText('/2000')
   })
 
   test('should cancel edit and return to display mode on Escape key', async ({
@@ -317,14 +317,14 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
     )
     await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
-    // Type a long comment (> 270 chars for warning state)
+    // Type a long comment (> 90% of 2000 = 1800 for warning state)
     const textarea = inlineEdit.locator('textarea')
-    const longText = 'A'.repeat(280) // 280 characters
+    const longText = 'A'.repeat(1900) // 1900 characters (above 90% threshold)
     await textarea.fill(longText)
 
     // Character counter should show warning state (orange color class)
     const counter = inlineEdit.locator('[data-testid="character-counter"]')
-    await expect(counter).toContainText('280/300')
+    await expect(counter).toContainText('1900/2000')
 
     // Should have warning styling (text-amber or text-orange)
     await expect(counter).toHaveClass(/text-amber|text-orange/)
@@ -345,9 +345,9 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
     )
     await expect(inlineEdit).toBeVisible({ timeout: 5000 })
 
-    // Type a comment over limit (> 300 chars)
+    // Type a comment over limit (> 2000 chars = COMMENT_MAX_LENGTH)
     const textarea = inlineEdit.locator('textarea')
-    const overLimitText = 'A'.repeat(310) // 310 characters
+    const overLimitText = 'A'.repeat(2010) // 2010 characters
     await textarea.fill(overLimitText)
 
     // Save button should be disabled
@@ -356,7 +356,7 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
 
     // Character counter should show error state (red color)
     const counter = inlineEdit.locator('[data-testid="character-counter"]')
-    await expect(counter).toContainText('310/300')
+    await expect(counter).toContainText('2010/2000')
     await expect(counter).toHaveClass(/text-destructive|text-red/)
   })
 

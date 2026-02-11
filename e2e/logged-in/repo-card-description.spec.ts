@@ -11,13 +11,19 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
-import { BOARD_IDS, CARD_IDS } from '../helpers/db-query'
+import { BOARD_IDS, CARD_IDS, resetRepoCards } from '../helpers/db-query'
 
 test.describe('RepoCard Description Persistence', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
   const FAVORITES_URL = '/boards/favorites'
+
+  // Reset repo cards before each test to restore any deleted by earlier tests
+  // (e.g., remove-from-board.spec.ts deletes card-3 on the same shard)
+  test.beforeEach(async () => {
+    await resetRepoCards()
+  })
 
   /**
    * Verifies that card descriptions from meta.description are displayed

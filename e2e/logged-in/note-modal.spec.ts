@@ -20,6 +20,9 @@ import {
   CARD_IDS,
 } from '../helpers/db-query'
 
+/** Platform-aware modifier key: Cmd on macOS, Ctrl on Linux/Windows (CI) */
+const MOD = process.platform === 'darwin' ? 'Meta' : 'Control'
+
 test.describe('NoteModal (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
@@ -108,7 +111,7 @@ test.describe('NoteModal (Authenticated)', () => {
     await editorContent.click()
 
     // Clear any existing content first
-    await page.keyboard.press('Meta+a')
+    await page.keyboard.press(`${MOD}+a`)
     await page.keyboard.press('Backspace')
     await page.keyboard.type('Test')
 
@@ -187,7 +190,7 @@ test.describe('NoteModal (Authenticated)', () => {
     // Clear existing content and type new note
     const editorContent = dialog.locator('[data-slate-editor="true"]')
     await editorContent.click()
-    await page.keyboard.press('Meta+a')
+    await page.keyboard.press(`${MOD}+a`)
     await page.keyboard.press('Backspace')
 
     const uniqueNote = `DB verified note ${Date.now()}`
@@ -224,14 +227,14 @@ test.describe('NoteModal (Authenticated)', () => {
     await editorContent.click()
 
     // Clear existing content first
-    await page.keyboard.press('Meta+a')
+    await page.keyboard.press(`${MOD}+a`)
     await page.keyboard.press('Backspace')
 
     // Ensure editor is ready — type some text first, then clear and type /
     // This guarantees the editor has focus and is accepting input
     await page.keyboard.type('a')
     await page.waitForTimeout(200)
-    await page.keyboard.press('Meta+a')
+    await page.keyboard.press(`${MOD}+a`)
     await page.keyboard.press('Backspace')
     await page.waitForTimeout(300)
 
@@ -263,17 +266,17 @@ test.describe('NoteModal (Authenticated)', () => {
     await editorContent.click()
 
     // Clear existing content
-    await page.keyboard.press('Meta+a')
+    await page.keyboard.press(`${MOD}+a`)
     await page.keyboard.press('Backspace')
 
     // Type some text
     await page.keyboard.type('Bold text')
 
     // Select all text
-    await page.keyboard.press('Meta+a')
+    await page.keyboard.press(`${MOD}+a`)
 
     // Apply bold with Cmd+B
-    await page.keyboard.press('Meta+b')
+    await page.keyboard.press(`${MOD}+b`)
 
     // Click somewhere to deselect and make formatting visible
     await page.keyboard.press('End')
@@ -381,7 +384,7 @@ test.describe('NoteModal Editor Height & Scroll (Authenticated)', () => {
     await editorContent.click()
 
     // Clear existing content
-    await page.keyboard.press('Meta+a')
+    await page.keyboard.press(`${MOD}+a`)
     await page.keyboard.press('Backspace')
 
     // Type multiple lines to exceed editor height
@@ -433,7 +436,7 @@ test.describe('NoteModal Editor Height & Scroll (Authenticated)', () => {
     await editorContent.click()
 
     // Clear existing content
-    await page.keyboard.press('Meta+a')
+    await page.keyboard.press(`${MOD}+a`)
     await page.keyboard.press('Backspace')
 
     // Type unique marker text at the top
@@ -497,7 +500,7 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
     await editorContent.click()
 
     // Clear existing content
-    await page.keyboard.press('Meta+a')
+    await page.keyboard.press(`${MOD}+a`)
     await page.keyboard.press('Backspace')
 
     // Type markdown heading - the space after # triggers autoformat
@@ -531,17 +534,17 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
     await editorContent.click()
 
     // Clear existing content
-    await page.keyboard.press('Meta+a')
+    await page.keyboard.press(`${MOD}+a`)
     await page.keyboard.press('Backspace')
 
     // Type some text
     await page.keyboard.type('Italic text')
 
     // Select all text
-    await page.keyboard.press('Meta+a')
+    await page.keyboard.press(`${MOD}+a`)
 
     // Apply italic with Cmd+I
-    await page.keyboard.press('Meta+i')
+    await page.keyboard.press(`${MOD}+i`)
 
     // Click somewhere to deselect and make formatting visible
     await page.keyboard.press('End')
