@@ -7,9 +7,11 @@
 
 'use client'
 
+import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import { memo, useCallback, useOptimistic } from 'react'
 
+import { Button } from '@/components/ui/button'
 import type { Tables } from '@/lib/supabase/types'
 
 import { BoardCard } from './BoardCard'
@@ -138,26 +140,12 @@ const EmptyState = memo(function EmptyState() {
       <p className="text-muted-foreground mt-2 text-sm">
         Get started by creating your first board
       </p>
-      <Link
-        href="/boards/new"
-        className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
-      >
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 4v16m8-8H4"
-          />
-        </svg>
-        Create Board
-      </Link>
+      <Button asChild className="mt-6">
+        <Link href="/boards/new" className="gap-2">
+          <Plus className="h-5 w-5" />
+          Create Board
+        </Link>
+      </Button>
     </div>
   )
 })

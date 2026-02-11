@@ -24,9 +24,10 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable'
 import * as Sentry from '@sentry/nextjs'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { AlertCircle } from 'lucide-react'
 import React, { useState, useEffect, memo, useCallback, useMemo } from 'react'
+import { toast } from 'sonner'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -121,6 +122,7 @@ interface KanbanBoardProps {
  */
 // Loading Skeleton Component
 const KanbanSkeleton = memo(() => {
+  const prefersReducedMotion = useReducedMotion()
   return (
     <div className="grid grid-cols-1 gap-4 pb-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {[...Array(5)].map((_, colIndex) => (
@@ -136,9 +138,12 @@ const KanbanSkeleton = memo(() => {
             {[...Array(2)].map((_, cardIndex) => (
               <motion.div
                 key={cardIndex}
-                initial={{ opacity: 0, y: 20 }}
+                initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: cardIndex * 0.1 }}
+                transition={{
+                  delay: prefersReducedMotion ? 0 : cardIndex * 0.1,
+                  duration: prefersReducedMotion ? 0 : undefined,
+                }}
               >
                 <Skeleton className="h-32 w-full rounded-lg" />
               </motion.div>
@@ -181,6 +186,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     // Note: _boardId is no longer used for data fetching (Phase 4 refactoring)
     // Data is now fetched by Server Component and passed via props/Redux
     // Kept for backwards compatibility and potential future use (e.g., refresh)
+    const prefersReducedMotion = useReducedMotion()
     // Redux state (auto-synced to LocalStorage)
     const dispatch = useAppDispatch()
     const statuses = useAppSelector(selectStatusLists)
@@ -380,6 +386,19 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           setColumnHistory((prev) => prev.slice(0, -1))
           setUndoMessage('Column order restored')
           setTimeout(() => setUndoMessage(null), 2000)
+
+          // P1-8: Sync reverted column positions to DB
+          const updates = previousState.map((s) => ({
+            id: s.id,
+            gridRow: s.gridRow,
+            gridCol: s.gridCol,
+          }))
+          batchUpdateStatusListPositions(updates).catch((error) => {
+            Sentry.captureException(error, {
+              tags: { action: 'undoColumnPositions' },
+            })
+            toast.error('Failed to sync undo to database')
+          })
         }
         return
       }
@@ -391,6 +410,19 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           setHistory((prev) => prev.slice(0, -1))
           setUndoMessage('Card operation undone')
           setTimeout(() => setUndoMessage(null), 2000)
+
+          // P1-8: Sync reverted card positions to DB
+          const updates = previousState.map((c, index) => ({
+            id: c.id,
+            statusId: c.statusId,
+            order: c.order ?? index,
+          }))
+          batchUpdateRepoCardOrders(updates).catch((error) => {
+            Sentry.captureException(error, {
+              tags: { action: 'undoCardPositions' },
+            })
+            toast.error('Failed to sync undo to database')
+          })
         }
       }
     }, [history, columnHistory, dispatch])
@@ -751,9 +783,10 @@ export const KanbanBoard = memo<KanbanBoardProps>(
         {/* Undo message display */}
         {undoMessage && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0 : undefined }}
             className="bg-primary text-primary-foreground absolute top-4 left-1/2 z-50 -translate-x-1/2 transform rounded-lg px-4 py-2 shadow-lg"
           >
             {undoMessage}

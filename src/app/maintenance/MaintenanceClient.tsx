@@ -6,7 +6,7 @@
 
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import {
   Grid3X3,
   List,
@@ -98,6 +98,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
   repos: initialRepos,
 }: MaintenanceClientProps) {
   const router = useRouter()
+  const prefersReducedMotion = useReducedMotion()
   const [repos, setRepos] = useState<MaintenanceRepo[]>(initialRepos)
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [search, setSearch] = useState('')
@@ -480,10 +481,21 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                   {sortedRepos.map((repo, index) => (
                     <motion.div
                       key={repo.id}
-                      initial={{ opacity: 0, y: 20 }}
+                      initial={
+                        prefersReducedMotion ? false : { opacity: 0, y: 20 }
+                      }
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ delay: Math.min(index * 0.05, 0.5) }}
+                      exit={
+                        prefersReducedMotion
+                          ? { opacity: 0 }
+                          : { opacity: 0, scale: 0.95 }
+                      }
+                      transition={{
+                        delay: prefersReducedMotion
+                          ? 0
+                          : Math.min(index * 0.05, 0.5),
+                        duration: prefersReducedMotion ? 0 : undefined,
+                      }}
                       className="group border-border bg-card hover:border-primary/50 relative rounded-lg border p-4 transition-all hover:shadow-md"
                     >
                       {/* Menu */}
@@ -610,10 +622,21 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                   {sortedRepos.map((repo, index) => (
                     <motion.div
                       key={repo.id}
-                      initial={{ opacity: 0, x: -20 }}
+                      initial={
+                        prefersReducedMotion ? false : { opacity: 0, x: -20 }
+                      }
                       animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ delay: Math.min(index * 0.03, 0.3) }}
+                      exit={
+                        prefersReducedMotion
+                          ? { opacity: 0 }
+                          : { opacity: 0, x: 20 }
+                      }
+                      transition={{
+                        delay: prefersReducedMotion
+                          ? 0
+                          : Math.min(index * 0.03, 0.3),
+                        duration: prefersReducedMotion ? 0 : undefined,
+                      }}
                       className="group border-border bg-card hover:border-primary/50 rounded-lg border p-4 transition-all hover:shadow-sm"
                     >
                       <div className="flex items-center gap-4">

@@ -280,7 +280,7 @@ export const TestTypeText: Story = {
     await step('Verify character counter updated', async () => {
       await waitFor(() => {
         const counter = canvas.getByTestId('character-counter')
-        expect(counter).toHaveTextContent('46/300')
+        expect(counter).toHaveTextContent('46/2000')
       })
     })
   },
@@ -457,18 +457,18 @@ export const TestCharacterCounter: Story = {
     const canvas = within(canvasElement)
     const textarea = canvas.getByTestId('comment-textarea')
 
-    await step('Verify initial counter shows 0/300', async () => {
+    await step('Verify initial counter shows 0/2000', async () => {
       const counter = canvas.getByTestId('character-counter')
-      expect(counter).toHaveTextContent('0/300')
+      expect(counter).toHaveTextContent('0/2000')
     })
 
     await step('Type 10 characters', async () => {
       await userEvent.type(textarea, '1234567890')
     })
 
-    await step('Verify counter shows 10/300', async () => {
+    await step('Verify counter shows 10/2000', async () => {
       const counter = canvas.getByTestId('character-counter')
-      expect(counter).toHaveTextContent('10/300')
+      expect(counter).toHaveTextContent('10/2000')
     })
   },
 }
@@ -482,6 +482,7 @@ export const TestCharacterCounter: Story = {
 export const TestWarningThreshold: Story = {
   args: {
     initialValue: 'A'.repeat(270),
+    maxLength: 300,
     onSave: fn(),
     onCancel: fn(),
   },
@@ -505,6 +506,7 @@ export const TestWarningThreshold: Story = {
 export const TestOverLimitDisabled: Story = {
   args: {
     initialValue: 'A'.repeat(301),
+    maxLength: 300,
     onSave: fn(),
     onCancel: fn(),
   },
@@ -628,7 +630,7 @@ export const TestJapaneseInput: Story = {
     await step('Verify counter shows correct character count', async () => {
       const counter = canvas.getByTestId('character-counter')
       // 12 Japanese characters
-      expect(counter).toHaveTextContent('12/300')
+      expect(counter).toHaveTextContent('12/2000')
     })
   },
 }

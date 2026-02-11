@@ -653,9 +653,9 @@ export const TestCharacterCounter: Story = {
       await userEvent.click(placeholder)
     })
 
-    await step('Verify initial counter shows 0/300', async () => {
+    await step('Verify initial counter shows 0/2000', async () => {
       const counter = canvas.getByTestId('character-counter')
-      expect(counter).toHaveTextContent('0/300')
+      expect(counter).toHaveTextContent('0/2000')
     })
 
     await step('Type 15 characters', async () => {
@@ -663,9 +663,9 @@ export const TestCharacterCounter: Story = {
       await userEvent.type(textarea, 'Hello, World!!!')
     })
 
-    await step('Verify counter shows 15/300', async () => {
+    await step('Verify counter shows 15/2000', async () => {
       const counter = canvas.getByTestId('character-counter')
-      expect(counter).toHaveTextContent('15/300')
+      expect(counter).toHaveTextContent('15/2000')
     })
   },
 }

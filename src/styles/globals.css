@@ -162,6 +162,33 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family:
+      -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto,
+      'Helvetica Neue', Arial, sans-serif;
+  }
+}
+
+/* Reduced motion: disable animations for users who prefer it (P0-3) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast: improve muted text and border visibility (P2-8) */
+@media (prefers-contrast: more) {
+  :root {
+    --muted-foreground: oklch(0.4 0 0);
+    --border: oklch(0.7 0 0);
+  }
+  .dark {
+    --muted-foreground: oklch(0.8 0 0);
+    --border: oklch(0.5 0 0);
   }
 }

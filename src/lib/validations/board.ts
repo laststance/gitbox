@@ -78,6 +78,52 @@ export const boardSettingsSchema = z
   .passthrough()
 
 // ========================================
+// StatusList Schemas (P2-1, P2-4)
+// ========================================
+
+/** Maximum character limit for status list names */
+export const STATUS_LIST_NAME_MAX_LENGTH = 50
+
+/**
+ * Schema for validating status list names.
+ *
+ * @example
+ * statusListNameSchema.safeParse('In Progress') // => { success: true }
+ * statusListNameSchema.safeParse('')             // => { success: false }
+ */
+export const statusListNameSchema = z
+  .string()
+  .trim()
+  .min(1, 'Column name is required')
+  .max(
+    STATUS_LIST_NAME_MAX_LENGTH,
+    `Column name must be ${STATUS_LIST_NAME_MAX_LENGTH} characters or less`,
+  )
+
+/**
+ * Schema for validating status list color (hex format).
+ *
+ * @example
+ * statusListColorSchema.safeParse('#6B7280') // => { success: true }
+ * statusListColorSchema.safeParse('red')     // => { success: false }
+ */
+export const statusListColorSchema = z
+  .string()
+  .regex(/^#[0-9A-Fa-f]{6}$/, 'Color must be a valid hex color (e.g., #6B7280)')
+
+/**
+ * Schema for validating grid positions (non-negative integers).
+ *
+ * @example
+ * gridPositionSchema.safeParse({ gridRow: 0, gridCol: 3 }) // => { success: true }
+ * gridPositionSchema.safeParse({ gridRow: -1, gridCol: 0 }) // => { success: false }
+ */
+export const gridPositionSchema = z.object({
+  gridRow: z.number().int().min(0, 'Grid row must be non-negative'),
+  gridCol: z.number().int().min(0, 'Grid column must be non-negative'),
+})
+
+// ========================================
 // Form Schemas for Server Actions
 // ========================================
 
