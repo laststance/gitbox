@@ -270,30 +270,6 @@ export async function deleteRepoCard(
 }
 
 /**
- * Move a RepoCard to Maintenance mode
- *
- * Transfers a repository card from the active board to the maintenance archive.
- * Creates a maintenance entry with the card's metadata and removes it from the board.
- *
- * @param cardId - RepoCard ID to move to maintenance
- * @returns
- * - On success: `{ success: true, maintenanceId: string }`
- * - On auth error: `{ success: false, error: 'Authentication required' }`
- * - On not found: `{ success: false, error: 'Card not found' }`
- * - On ownership error: `{ success: false, error: 'Unauthorized' }`
- * - On duplicate: `{ success: false, error: 'Repository already in maintenance' }`
- * - On insert error: `{ success: false, error: 'Failed to move to maintenance' }`
- *
- * @example
- * const result = await moveToMaintenance('card-uuid-123')
- * if (result.success) {
- *   console.log('Moved to maintenance:', result.maintenanceId)
- * } else {
- *   console.error('Failed:', result.error)
- * }
- */
-
-/**
  * Restore a maintenance item back to a board
  *
  * Transfers a repository from the maintenance archive back to an active board.
@@ -386,61 +362,29 @@ export async function restoreToBoard(
 
     const nextOrder = (maxOrderData?.order ?? -1) + 1
 
-    // Create new repocard
-    const { data: newCard, error: insertError } = await supabase
-      .from('repocard')
-      .insert({
-        board_id: boardId,
-        status_id: statusId,
-        repo_owner: maintItem.repo_owner,
-        repo_name: maintItem.repo_name,
-        order: nextOrder,
-        meta: {},
-      })
-      .select('id')
-      .single()
+    // Atomic transaction: insert repocard → transfer projectinfo FK → delete maintenance
+    // All 3 steps run in a single PostgreSQL transaction — automatic rollback on failure
+    const { data: cardId, error: rpcError } = await supabase.rpc(
+      'restore_to_board',
+      {
+        p_maintenance_id: maintenanceId,
+        p_board_id: boardId,
+        p_status_id: statusId,
+        p_repo_owner: maintItem.repo_owner,
+        p_repo_name: maintItem.repo_name,
+        p_next_order: nextOrder,
+      },
+    )
 
-    if (insertError || !newCard) {
-      log.error({ error: insertError }, 'RepoCard insert error')
+    if (rpcError) {
+      log.error({ error: rpcError }, 'restore_to_board RPC error')
+      Sentry.captureException(rpcError, {
+        extra: { context: 'restore_to_board RPC', maintenanceId, boardId },
+      })
       return { success: false, error: 'Failed to restore repository' }
     }
 
-    // Transfer projectinfo from maintenance to repocard
-    // This preserves notes, comments, and links during the restore
-    const { error: projectInfoError } = await supabase
-      .from('projectinfo')
-      .update({
-        repo_card_id: newCard.id,
-        maintenance_id: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('maintenance_id', maintenanceId)
-
-    if (projectInfoError) {
-      // Rollback: delete the card we just created
-      await supabase.from('repocard').delete().eq('id', newCard.id)
-      log.error({ error: projectInfoError }, 'ProjectInfo transfer error')
-      return { success: false, error: 'Failed to transfer project info' }
-    }
-
-    // Delete from maintenance
-    const { error: deleteError } = await supabase
-      .from('maintenance')
-      .delete()
-      .eq('id', maintenanceId)
-
-    if (deleteError) {
-      // Rollback: revert projectinfo and delete the card
-      await supabase
-        .from('projectinfo')
-        .update({ maintenance_id: maintenanceId, repo_card_id: null })
-        .eq('repo_card_id', newCard.id)
-      await supabase.from('repocard').delete().eq('id', newCard.id)
-      log.error({ error: deleteError }, 'Maintenance delete error')
-      return { success: false, error: 'Failed to remove from maintenance' }
-    }
-
-    return { success: true, cardId: newCard.id }
+    return { success: true, cardId }
   } catch (error) {
     log.error({ error }, 'Restore to board error')
     return {
@@ -550,6 +494,29 @@ export async function getUserBoardsWithStatusLists(): Promise<{
   }
 }
 
+/**
+ * Move a RepoCard to Maintenance mode
+ *
+ * Transfers a repository card from the active board to the maintenance archive.
+ * Creates a maintenance entry with the card's metadata and removes it from the board.
+ *
+ * @param cardId - RepoCard ID to move to maintenance
+ * @returns
+ * - On success: `{ success: true, maintenanceId: string }`
+ * - On auth error: `{ success: false, error: 'Authentication required' }`
+ * - On not found: `{ success: false, error: 'Card not found' }`
+ * - On ownership error: `{ success: false, error: 'Unauthorized' }`
+ * - On duplicate: `{ success: false, error: 'Repository already in maintenance' }`
+ * - On insert error: `{ success: false, error: 'Failed to move to maintenance' }`
+ *
+ * @example
+ * const result = await moveToMaintenance('card-uuid-123')
+ * if (result.success) {
+ *   console.log('Moved to maintenance:', result.maintenanceId)
+ * } else {
+ *   console.error('Failed:', result.error)
+ * }
+ */
 export async function moveToMaintenance(
   cardId: string,
 ): Promise<{ success: boolean; maintenanceId?: string; error?: string }> {
@@ -596,58 +563,27 @@ export async function moveToMaintenance(
       return { success: false, error: 'Repository already in maintenance' }
     }
 
-    // Create maintenance entry
-    const { data: maintEntry, error: insertError } = await supabase
-      .from('maintenance')
-      .insert({
-        user_id: user.id,
-        repo_owner: card.repo_owner,
-        repo_name: card.repo_name,
-      })
-      .select('id')
-      .single()
+    // Atomic transaction: insert maintenance → transfer projectinfo FK → delete repocard
+    // All 3 steps run in a single PostgreSQL transaction — automatic rollback on failure
+    const { data: maintId, error: rpcError } = await supabase.rpc(
+      'move_to_maintenance',
+      {
+        p_card_id: cardId,
+        p_user_id: user.id,
+        p_repo_owner: card.repo_owner,
+        p_repo_name: card.repo_name,
+      },
+    )
 
-    if (insertError || !maintEntry) {
-      log.error({ error: insertError }, 'Maintenance insert error')
+    if (rpcError) {
+      log.error({ error: rpcError }, 'move_to_maintenance RPC error')
+      Sentry.captureException(rpcError, {
+        extra: { context: 'move_to_maintenance RPC', cardId },
+      })
       return { success: false, error: 'Failed to move to maintenance' }
     }
 
-    // Transfer projectinfo from repocard to maintenance
-    // This preserves notes, comments, and links during the move
-    const { error: projectInfoError } = await supabase
-      .from('projectinfo')
-      .update({
-        maintenance_id: maintEntry.id,
-        repo_card_id: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('repo_card_id', cardId)
-
-    if (projectInfoError) {
-      // Rollback: delete the maintenance entry we just created
-      await supabase.from('maintenance').delete().eq('id', maintEntry.id)
-      log.error({ error: projectInfoError }, 'ProjectInfo transfer error')
-      return { success: false, error: 'Failed to transfer project info' }
-    }
-
-    // Delete the repocard from the board
-    const { error: deleteError } = await supabase
-      .from('repocard')
-      .delete()
-      .eq('id', cardId)
-
-    if (deleteError) {
-      // Rollback: revert projectinfo and delete maintenance entry
-      await supabase
-        .from('projectinfo')
-        .update({ maintenance_id: null, repo_card_id: cardId })
-        .eq('maintenance_id', maintEntry.id)
-      await supabase.from('maintenance').delete().eq('id', maintEntry.id)
-      log.error({ error: deleteError }, 'RepoCard delete error')
-      return { success: false, error: 'Failed to remove card from board' }
-    }
-
-    return { success: true, maintenanceId: maintEntry.id }
+    return { success: true, maintenanceId: maintId }
   } catch (error) {
     log.error({ error }, 'Move to maintenance error')
     return {
