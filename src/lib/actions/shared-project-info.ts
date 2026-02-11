@@ -290,56 +290,22 @@ export async function upsertProjectInfoCore(
     .filter((link) => link.url && link.url.trim() !== '')
     .map((link) => ({ type: link.type, url: link.url }))
 
-  try {
-    const { data: existingInfo } = await supabase
-      .from('projectinfo')
-      .select('id')
-      .eq(fk.column, entityId)
-      .single<{ id: string }>()
+  const upsertData = {
+    [fk.column]: entityId,
+    note: data.note,
+    comment: data.comment,
+    links: linksArray,
+  } as ProjectInfoInsert
 
-    if (existingInfo) {
-      const updateData: ProjectInfoUpdate = {
-        note: data.note,
-        comment: data.comment,
-        links: linksArray,
-        updated_at: new Date().toISOString(),
-      }
+  const { error } = await supabase
+    .from('projectinfo')
+    .upsert(upsertData, { onConflict: fk.column })
 
-      const { error: updateError } = await supabase
-        .from('projectinfo')
-        .update(updateData)
-        .eq('id', existingInfo.id)
-
-      if (updateError) {
-        Sentry.captureException(updateError, {
-          extra: { context: `Update ${fk.label}`, entityId },
-        })
-        throw new Error('Failed to update project information')
-      }
-    } else {
-      const insertData: ProjectInfoInsert = {
-        [fk.column]: entityId,
-        note: data.note,
-        comment: data.comment,
-        links: linksArray,
-      }
-
-      const { error: createError } = await supabase
-        .from('projectinfo')
-        .insert(insertData)
-
-      if (createError) {
-        Sentry.captureException(createError, {
-          extra: { context: `Create ${fk.label}`, entityId },
-        })
-        throw new Error('Failed to create project information')
-      }
-    }
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error
-    }
-    throw new Error('An error occurred while saving project information')
+  if (error) {
+    Sentry.captureException(error, {
+      extra: { context: `Upsert ${fk.label}`, entityId },
+    })
+    throw new Error('Failed to save project information')
   }
 }
 
