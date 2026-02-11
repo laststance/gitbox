@@ -147,6 +147,7 @@ test.describe('Theme Visual Application', () => {
       const themeButton = page.locator('button').filter({
         has: page.locator(`span:text-is("${theme.name}")`),
       })
+      await expect(themeButton).toBeVisible()
       await themeButton.click()
       await page.waitForTimeout(500)
 
@@ -175,6 +176,7 @@ test.describe('Theme Visual Application', () => {
       const themeButton = page.locator('button').filter({
         has: page.locator(`span:text-is("${theme.name}")`),
       })
+      await expect(themeButton).toBeVisible()
       await themeButton.click()
       await page.waitForTimeout(500)
 

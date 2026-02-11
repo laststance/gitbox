@@ -16,14 +16,20 @@ DECLARE
   row_b INT;
   col_b INT;
 BEGIN
-  -- Lock both rows to prevent concurrent modifications
-  SELECT grid_row, grid_col INTO row_a, col_a
-    FROM statuslist WHERE id = id_a FOR UPDATE;
+  -- Lock in deterministic order to prevent deadlocks
+  IF id_a < id_b THEN
+    SELECT grid_row, grid_col INTO row_a, col_a
+      FROM statuslist WHERE id = id_a FOR UPDATE;
+    SELECT grid_row, grid_col INTO row_b, col_b
+      FROM statuslist WHERE id = id_b FOR UPDATE;
+  ELSE
+    SELECT grid_row, grid_col INTO row_b, col_b
+      FROM statuslist WHERE id = id_b FOR UPDATE;
+    SELECT grid_row, grid_col INTO row_a, col_a
+      FROM statuslist WHERE id = id_a FOR UPDATE;
+  END IF;
 
-  SELECT grid_row, grid_col INTO row_b, col_b
-    FROM statuslist WHERE id = id_b FOR UPDATE;
-
-  IF NOT FOUND OR row_a IS NULL OR row_b IS NULL THEN
+  IF NOT FOUND OR row_a IS NULL OR col_a IS NULL OR row_b IS NULL OR col_b IS NULL THEN
     RAISE EXCEPTION 'One or both status lists not found';
   END IF;
 

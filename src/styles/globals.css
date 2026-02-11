@@ -183,11 +183,27 @@
 
 /* High contrast: improve muted text and border visibility (P2-8) */
 @media (prefers-contrast: more) {
-  :root {
+  /* Light themes */
+  :root,
+  html[data-theme='default'],
+  html[data-theme='sunrise'],
+  html[data-theme='sandstone'],
+  html[data-theme='mint'],
+  html[data-theme='sky'],
+  html[data-theme='lavender'],
+  html[data-theme='rose'] {
     --muted-foreground: oklch(0.4 0 0);
     --border: oklch(0.7 0 0);
   }
-  .dark {
+  /* Dark themes */
+  .dark,
+  html[data-theme='dark'],
+  html[data-theme='midnight'],
+  html[data-theme='graphite'],
+  html[data-theme='forest'],
+  html[data-theme='ocean'],
+  html[data-theme='plum'],
+  html[data-theme='rust'] {
     --muted-foreground: oklch(0.8 0 0);
     --border: oklch(0.5 0 0);
   }
