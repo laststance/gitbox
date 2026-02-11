@@ -136,7 +136,7 @@ export const BoardCard = memo(function BoardCard({
   return (
     <>
       <div
-        data-testid="board-card"
+        data-testid={`board-card-${board.id}`}
         className="group border-border bg-card hover:border-primary relative block rounded-lg border p-6 shadow-sm transition-all hover:shadow-md"
       >
         {/* Board link - covers the card but not the menu */}

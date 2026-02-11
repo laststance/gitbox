@@ -301,10 +301,10 @@ describe('boardSlice', () => {
     const createMockBoard = (overrides = {}) => ({
       id: 'board-1',
       name: 'Test Board',
-      theme: null,
       settings: null,
       user_id: 'user-1',
       is_favorite: false,
+      position: 0,
       created_at: '2024-01-01T00:00:00.000Z',
       updated_at: '2024-01-01T00:00:00.000Z',
       ...overrides,
@@ -368,7 +368,7 @@ describe('boardSlice', () => {
       expect(nextState.activeBoard).toBeNull()
     })
 
-    it('should preserve board properties including theme', () => {
+    it('should preserve board properties including position', () => {
       const initialState = {
         activeBoard: null,
         statusLists: [],
@@ -380,12 +380,12 @@ describe('boardSlice', () => {
       }
 
       const board = createMockBoard({
-        theme: 'dark-green',
+        position: 3,
         is_favorite: true,
       })
       const nextState = boardSlice(initialState, setActiveBoard(board))
 
-      expect(nextState.activeBoard?.theme).toBe('dark-green')
+      expect(nextState.activeBoard?.position).toBe(3)
       expect(nextState.activeBoard?.is_favorite).toBe(true)
     })
   })

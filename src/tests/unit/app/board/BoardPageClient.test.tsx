@@ -168,7 +168,7 @@ function createMockBoard(overrides?: Partial<Board>): Board {
     updated_at: '2024-01-01T00:00:00Z',
     is_favorite: false,
     settings: null,
-    theme: null,
+    position: 0,
     ...overrides,
   }
 }

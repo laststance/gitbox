@@ -20,6 +20,7 @@ import {
   boardNameSchema,
   boardIdSchema,
   boardSettingsSchema,
+  boardPositionUpdatesSchema,
   statusListNameSchema,
   statusListColorSchema,
   gridPositionSchema,
@@ -547,11 +548,23 @@ export async function createBoard(
     throw new Error('Authentication required')
   }
 
+  // Auto-assign position: append to end of user's board list
+  const { data: maxPositionRow } = await supabase
+    .from('board')
+    .select('position')
+    .eq('user_id', user.id)
+    .order('position', { ascending: false })
+    .limit(1)
+    .single()
+
+  const nextPosition = (maxPositionRow?.position ?? -1) + 1
+
   const { data, error } = await supabase
     .from('board')
     .insert({
       user_id: user.id,
       name,
+      position: nextPosition,
     })
     .select('id, name')
     .single()
@@ -567,6 +580,55 @@ export async function createBoard(
   await createDefaultStatusLists(data.id)
 
   return { id: data.id, name: data.name }
+}
+
+/**
+ * Batch update board positions for DnD reordering.
+ * Updates multiple boards' position values in parallel.
+ *
+ * @param updates - Array of { id, position } pairs
+ * @returns void on success, throws on validation or DB error
+ *
+ * @example
+ * // Swap two boards
+ * await updateBoardPositions([
+ *   { id: 'board-uuid-1', position: 1 },
+ *   { id: 'board-uuid-2', position: 0 },
+ * ])
+ */
+export async function updateBoardPositions(
+  updates: Array<{ id: string; position: number }>,
+): Promise<void> {
+  boardPositionUpdatesSchema.parse(updates)
+
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    throw new Error('Authentication required')
+  }
+
+  const results = await Promise.all(
+    updates.map(({ id, position }) =>
+      supabase
+        .from('board')
+        .update({ position })
+        .eq('id', id)
+        .eq('user_id', user.id),
+    ),
+  )
+
+  const failed = results.find((r) => r.error)
+  if (failed?.error) {
+    Sentry.captureException(failed.error, {
+      extra: { context: 'Batch update board positions', updates },
+    })
+    throw new Error('Failed to update board positions')
+  }
 }
 
 /**
@@ -827,6 +889,7 @@ export async function createFirstBoardIfNeeded(
     .insert({
       user_id: userId,
       name: 'First Board',
+      position: 0,
     })
     .select('id, name')
     .single()

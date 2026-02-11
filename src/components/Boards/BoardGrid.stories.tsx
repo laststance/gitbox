@@ -18,8 +18,8 @@ const createMockBoard = (overrides: Partial<Board> = {}): Board => ({
   id: 'board-1',
   user_id: 'user-1',
   name: 'My Project Board',
-  theme: 'default',
   settings: null,
+  position: 0,
   created_at: '2024-12-01T00:00:00Z',
   updated_at: '2024-12-15T00:00:00Z',
   is_favorite: false,
@@ -30,13 +30,12 @@ const mockBoards: Board[] = [
   createMockBoard({
     id: 'board-1',
     name: 'Frontend Development',
-    theme: 'default',
   }),
-  createMockBoard({ id: 'board-2', name: 'Backend API', theme: 'midnight' }),
-  createMockBoard({ id: 'board-3', name: 'Design System', theme: 'mint' }),
-  createMockBoard({ id: 'board-4', name: 'DevOps Pipeline', theme: 'sky' }),
-  createMockBoard({ id: 'board-5', name: 'Documentation', theme: 'lavender' }),
-  createMockBoard({ id: 'board-6', name: 'Bug Fixes', theme: 'rose' }),
+  createMockBoard({ id: 'board-2', name: 'Backend API' }),
+  createMockBoard({ id: 'board-3', name: 'Design System' }),
+  createMockBoard({ id: 'board-4', name: 'DevOps Pipeline' }),
+  createMockBoard({ id: 'board-5', name: 'Documentation' }),
+  createMockBoard({ id: 'board-6', name: 'Bug Fixes' }),
 ]
 
 const meta = {
@@ -108,20 +107,17 @@ export const ManyBoards: Story = {
       createMockBoard({
         id: 'board-7',
         name: 'Mobile App',
-        theme: 'sandstone',
       }),
-      createMockBoard({ id: 'board-8', name: 'Analytics', theme: 'graphite' }),
+      createMockBoard({ id: 'board-8', name: 'Analytics' }),
       createMockBoard({
         id: 'board-9',
         name: 'Security Audit',
-        theme: 'forest',
       }),
-      createMockBoard({ id: 'board-10', name: 'Performance', theme: 'ocean' }),
-      createMockBoard({ id: 'board-11', name: 'Testing', theme: 'plum' }),
+      createMockBoard({ id: 'board-10', name: 'Performance' }),
+      createMockBoard({ id: 'board-11', name: 'Testing' }),
       createMockBoard({
         id: 'board-12',
         name: 'Infrastructure',
-        theme: 'rust',
       }),
     ],
   },
@@ -136,17 +132,14 @@ export const LongNames: Story = {
       createMockBoard({
         id: 'board-long-1',
         name: 'This Is An Extremely Long Board Name That Should Be Handled Gracefully',
-        theme: 'sunrise',
       }),
       createMockBoard({
         id: 'board-long-2',
         name: 'Another Very Long Board Name For Testing Layout Behavior',
-        theme: 'midnight',
       }),
       createMockBoard({
         id: 'board-long-3',
         name: 'Yet Another Long Name To Verify Consistent Card Heights',
-        theme: 'mint',
       }),
     ],
   },
@@ -158,12 +151,12 @@ export const LongNames: Story = {
 export const LightThemes: Story = {
   args: {
     initialBoards: [
-      createMockBoard({ id: '1', name: 'Sunrise Theme', theme: 'sunrise' }),
-      createMockBoard({ id: '2', name: 'Sandstone Theme', theme: 'sandstone' }),
-      createMockBoard({ id: '3', name: 'Mint Theme', theme: 'mint' }),
-      createMockBoard({ id: '4', name: 'Sky Theme', theme: 'sky' }),
-      createMockBoard({ id: '5', name: 'Lavender Theme', theme: 'lavender' }),
-      createMockBoard({ id: '6', name: 'Rose Theme', theme: 'rose' }),
+      createMockBoard({ id: '1', name: 'Sunrise Theme' }),
+      createMockBoard({ id: '2', name: 'Sandstone Theme' }),
+      createMockBoard({ id: '3', name: 'Mint Theme' }),
+      createMockBoard({ id: '4', name: 'Sky Theme' }),
+      createMockBoard({ id: '5', name: 'Lavender Theme' }),
+      createMockBoard({ id: '6', name: 'Rose Theme' }),
     ],
   },
 }
@@ -174,12 +167,12 @@ export const LightThemes: Story = {
 export const DarkThemes: Story = {
   args: {
     initialBoards: [
-      createMockBoard({ id: '1', name: 'Midnight Theme', theme: 'midnight' }),
-      createMockBoard({ id: '2', name: 'Graphite Theme', theme: 'graphite' }),
-      createMockBoard({ id: '3', name: 'Forest Theme', theme: 'forest' }),
-      createMockBoard({ id: '4', name: 'Ocean Theme', theme: 'ocean' }),
-      createMockBoard({ id: '5', name: 'Plum Theme', theme: 'plum' }),
-      createMockBoard({ id: '6', name: 'Rust Theme', theme: 'rust' }),
+      createMockBoard({ id: '1', name: 'Midnight Theme' }),
+      createMockBoard({ id: '2', name: 'Graphite Theme' }),
+      createMockBoard({ id: '3', name: 'Forest Theme' }),
+      createMockBoard({ id: '4', name: 'Ocean Theme' }),
+      createMockBoard({ id: '5', name: 'Plum Theme' }),
+      createMockBoard({ id: '6', name: 'Rust Theme' }),
     ],
   },
 }

@@ -714,6 +714,96 @@ export async function cdpColumnToInsertZone(
 }
 
 /**
+ * Performs a board card drag and drop operation using CDP events.
+ * Specifically handles @dnd-kit board card reordering on the /boards page.
+ *
+ * @param page - Playwright Page instance
+ * @param sourceBoardId - Board UUID of the source board card
+ * @param targetBoardId - Board UUID of the target board card
+ * @param options - Drag configuration options
+ *
+ * @example
+ * ```typescript
+ * // Drag "Test Board" to "Work Projects" position
+ * await cdpBoardDragAndDrop(page, BOARD_IDS.testBoard, BOARD_IDS.workProjects);
+ * ```
+ */
+export async function cdpBoardDragAndDrop(
+  page: Page,
+  sourceBoardId: string,
+  targetBoardId: string,
+  options: CDPDragOptions = {},
+): Promise<void> {
+  const { steps = 12, stepDelay = 40, dropDelay = 150 } = options
+
+  const client = await page.context().newCDPSession(page)
+
+  try {
+    // Target the drag handle (GripVertical icon) on the sortable board card
+    const sourceDragHandle = `[data-testid="drag-handle-${sourceBoardId}"]`
+    const targetCard = `[data-testid="board-card-${targetBoardId}"]`
+
+    // First hover over the card to make drag handle visible (opacity-0 → group-hover/sortable:opacity-100)
+    const sourceCard = `[data-testid="board-card-${sourceBoardId}"]`
+    const cardCoords = await getElementCenter(page, sourceCard)
+    await dispatchMouseEvent(client, 'mouseMoved', cardCoords, 'none', 0)
+    await sleep(100) // Allow CSS hover transition
+
+    // Now get drag handle coordinates (visible after hover)
+    const handle = page.locator(sourceDragHandle)
+    await handle.waitFor({ state: 'attached', timeout: 5000 })
+    const handleBox = await handle.boundingBox()
+    if (!handleBox) {
+      throw new Error(`Drag handle not visible: ${sourceDragHandle}`)
+    }
+    const sourceCoords: Coordinates = {
+      x: Math.round(handleBox.x + handleBox.width / 2),
+      y: Math.round(handleBox.y + handleBox.height / 2),
+    }
+    const targetCoords = await getElementCenter(page, targetCard)
+
+    // Calculate overshoot for reliable swap detection
+    const overshootX = targetCoords.x > sourceCoords.x ? 30 : -30
+    const overshootY = targetCoords.y > sourceCoords.y ? 30 : -30
+    const overshootCoords: Coordinates = {
+      x: targetCoords.x + overshootX,
+      y: targetCoords.y + overshootY,
+    }
+
+    // 1. Move to source drag handle
+    await dispatchMouseEvent(client, 'mouseMoved', sourceCoords, 'none', 0)
+    await sleep(50)
+
+    // 2. Press to initiate drag
+    await dispatchMouseEvent(client, 'mousePressed', sourceCoords, 'left', 1)
+    await sleep(150)
+
+    // 3. Smooth drag motion to overshoot point
+    const points = interpolateCoordinates(sourceCoords, overshootCoords, steps)
+    for (const point of points) {
+      await dispatchMouseEvent(client, 'mouseMoved', point, 'left', 0)
+      await sleep(stepDelay)
+    }
+
+    // 4. Hold at overshoot position
+    await dispatchMouseEvent(client, 'mouseMoved', overshootCoords, 'left', 0)
+    await sleep(dropDelay)
+
+    // 5. Release to complete reorder
+    await dispatchMouseEvent(
+      client,
+      'mouseReleased',
+      overshootCoords,
+      'left',
+      1,
+    )
+    await sleep(200)
+  } finally {
+    await client.detach()
+  }
+}
+
+/**
  * Performs a column drag to a specific grid position (2D).
  * Enables precise column placement in the 2D Kanban grid.
  *
