@@ -12,6 +12,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 
 import type { BoardInitialData } from '@/lib/actions/board-data'
+import type { Board } from '@/lib/supabase/types'
 
 import { BoardPageClient } from './BoardPageClient'
 
@@ -34,15 +35,14 @@ const createMockBoard = (
   overrides?: Partial<{
     id: string
     name: string
-    theme: string | null
   }>,
-) => ({
+): Board => ({
   id: overrides?.id ?? 'board-1',
   name: overrides?.name ?? 'My Kanban Board',
-  theme: overrides?.theme ?? null,
   settings: null,
   user_id: 'user-1',
   is_favorite: false,
+  position: 0,
   created_at: '2024-01-01T00:00:00.000Z',
   updated_at: '2024-01-01T00:00:00.000Z',
 })
@@ -106,14 +106,13 @@ export const WithLongBoardName: Story = {
 }
 
 /**
- * Board with custom theme
+ * Board with custom settings
  */
-export const WithTheme: Story = {
+export const WithSettings: Story = {
   args: {
     board: createMockBoard({
       id: 'board-3',
-      name: 'Themed Board',
-      theme: 'ocean',
+      name: 'Custom Board',
     }),
     initialData: createMockInitialData(),
   },

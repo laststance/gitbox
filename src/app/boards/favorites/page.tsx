@@ -76,7 +76,7 @@ export default async function FavoritesPage() {
       {(boards?.length ?? 0) === 0 ? (
         <FavoritesEmptyState />
       ) : (
-        <BoardGrid initialBoards={boards ?? []} />
+        <BoardGrid initialBoards={boards ?? []} enableDnD={false} />
       )}
     </div>
   )

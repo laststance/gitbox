@@ -43,7 +43,7 @@ export default async function BoardsPage() {
     .from('board')
     .select('*')
     .eq('user_id', user.id)
-    .order('created_at', { ascending: false })) as {
+    .order('position', { ascending: true })) as {
     data: Tables<'board'>[] | null
     error: Error | null
   }

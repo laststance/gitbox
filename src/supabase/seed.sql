@@ -61,26 +61,30 @@ ON CONFLICT (id) DO NOTHING;
 -- ============================================================================
 
 -- Board 1: Test Board (main board for most tests)
-INSERT INTO board (id, user_id, name, settings, is_favorite, created_at, updated_at)
+-- position=1: second in list (created_at DESC puts newer board-2 first)
+INSERT INTO board (id, user_id, name, settings, is_favorite, position, created_at, updated_at)
 VALUES (
   '00000000-0000-0000-0000-000000000100'::uuid,
   '00000000-0000-0000-0000-000000000001'::uuid,
   'Test Board',
   '{}'::jsonb,
   false,
+  1,
   '2024-01-01T00:00:00.000Z'::timestamptz,
   '2024-01-01T00:00:00.000Z'::timestamptz
 )
 ON CONFLICT (id) DO NOTHING;
 
 -- Board 2: Work Projects (secondary board)
-INSERT INTO board (id, user_id, name, settings, is_favorite, created_at, updated_at)
+-- position=0: first in list (newer board appears first, matching created_at DESC legacy order)
+INSERT INTO board (id, user_id, name, settings, is_favorite, position, created_at, updated_at)
 VALUES (
   '00000000-0000-0000-0000-000000000101'::uuid,
   '00000000-0000-0000-0000-000000000001'::uuid,
   'Work Projects',
   '{}'::jsonb,
   false,
+  0,
   '2024-01-02T00:00:00.000Z'::timestamptz,
   '2024-01-02T00:00:00.000Z'::timestamptz
 )

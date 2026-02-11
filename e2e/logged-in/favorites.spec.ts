@@ -23,7 +23,7 @@ test.describe('Board Favorites Feature', () => {
   test.describe('Favorites Toggle', () => {
     test('should toggle board favorite status', async ({ page }) => {
       // Find the first board card and its star button
-      const firstCard = page.locator('[data-testid="board-card"]').first()
+      const firstCard = page.locator('[data-testid^="board-card-"]').first()
       const starButton = firstCard
         .locator('button[aria-label*="favorite"]')
         .first()
@@ -62,7 +62,7 @@ test.describe('Board Favorites Feature', () => {
       page,
     }) => {
       // Find first unfavorited board card that has an "Add to favorites" button
-      const boardCards = page.locator('[data-testid="board-card"]')
+      const boardCards = page.locator('[data-testid^="board-card-"]')
       let targetCard = boardCards.first()
       let foundUnfavorited = false
 
@@ -105,7 +105,7 @@ test.describe('Board Favorites Feature', () => {
 
       // Find the board by name and verify it's still favorited
       // Use the board card with the matching h3 text
-      const reloadedCards = page.locator('[data-testid="board-card"]')
+      const reloadedCards = page.locator('[data-testid^="board-card-"]')
       const cardCount = await reloadedCards.count()
       let foundCard = false
 
@@ -139,7 +139,7 @@ test.describe('Board Favorites Feature', () => {
       const initialFavorite = boardBefore?.is_favorite ?? false
 
       // Find the "Test Board" card specifically using its name
-      const boardCards = page.locator('[data-testid="board-card"]')
+      const boardCards = page.locator('[data-testid^="board-card-"]')
       const cardCount = await boardCards.count()
 
       // Find the Test Board card by name
@@ -203,7 +203,7 @@ test.describe('Board Favorites Feature', () => {
       page,
     }) => {
       // Find first board card with an "Add to favorites" button
-      const boardCards = page.locator('[data-testid="board-card"]')
+      const boardCards = page.locator('[data-testid^="board-card-"]')
       let targetCard = boardCards.first()
       let foundUnfavorited = false
 
@@ -324,7 +324,7 @@ test.describe('Board Favorites Feature', () => {
       await page.waitForLoadState('networkidle')
 
       // Get the first favorited board
-      const firstCard = page.locator('[data-testid="board-card"]').first()
+      const firstCard = page.locator('[data-testid^="board-card-"]').first()
       const boardName = await firstCard.locator('h2, h3').first().textContent()
       const starButton = firstCard.locator('button[aria-label*="Remove"]')
 

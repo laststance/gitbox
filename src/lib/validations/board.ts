@@ -124,6 +124,42 @@ export const gridPositionSchema = z.object({
 })
 
 // ========================================
+// Board Position Schema
+// ========================================
+
+/**
+ * Schema for validating a single board position update.
+ *
+ * @example
+ * boardPositionUpdateSchema.safeParse({ id: 'uuid', position: 0 }) // => { success: true }
+ * boardPositionUpdateSchema.safeParse({ id: 'uuid', position: -1 }) // => { success: false }
+ */
+export const boardPositionUpdateSchema = z.object({
+  // Use lenient UUID regex instead of z.string().uuid() which rejects
+  // test seed UUIDs (version byte 0 not in RFC 4122 [1-8] range)
+  id: z
+    .string()
+    .regex(
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
+      'Invalid ID format',
+    ),
+  position: z.number().int().min(0, 'Position must be non-negative'),
+})
+
+/**
+ * Schema for validating a batch of board position updates.
+ *
+ * @example
+ * boardPositionUpdatesSchema.safeParse([
+ *   { id: 'uuid-1', position: 0 },
+ *   { id: 'uuid-2', position: 1 },
+ * ]) // => { success: true }
+ */
+export const boardPositionUpdatesSchema = z
+  .array(boardPositionUpdateSchema)
+  .min(1, 'At least one position update is required')
+
+// ========================================
 // Form Schemas for Server Actions
 // ========================================
 

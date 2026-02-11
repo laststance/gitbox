@@ -523,6 +523,47 @@ export async function resetStatusListNames(): Promise<void> {
 }
 
 /**
+ * Reset board positions to seed.sql initial values.
+ * Call this in afterEach for board DnD tests to prevent cross-test contamination.
+ *
+ * Seed positions:
+ * - workProjects (board-2): position=0 (first, newer)
+ * - testBoard (board-1): position=1 (second, older)
+ *
+ * @example
+ * test.afterEach(async () => {
+ *   await resetBoardPositions()
+ * })
+ */
+export async function resetBoardPositions(): Promise<void> {
+  const supabase = createLocalSupabaseClient()
+
+  const seedPositions = [
+    { id: BOARD_IDS.workProjects, position: 0 },
+    { id: BOARD_IDS.testBoard, position: 1 },
+  ]
+
+  for (const item of seedPositions) {
+    const { data, error } = await supabase
+      .from('board')
+      .update({ position: item.position })
+      .eq('id', item.id)
+      .select('id')
+    if (error) {
+      throw new Error(
+        `resetBoardPositions: failed for id=${item.id}: ${error.message}`,
+      )
+    }
+    if (!data || data.length === 0) {
+      throw new Error(
+        `resetBoardPositions: UPDATE matched 0 rows for id=${item.id}. ` +
+          `URL=${process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'}`,
+      )
+    }
+  }
+}
+
+/**
  * Reset projectinfo links to seed.sql initial values.
  * Call this in afterEach for link persistence tests to prevent cross-test contamination.
  *
