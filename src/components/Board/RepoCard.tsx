@@ -3,7 +3,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Calendar, Paperclip, StickyNote } from 'lucide-react'
-import React, { Activity, memo, useCallback, useState } from 'react'
+import React, { memo, useCallback, useState } from 'react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -12,9 +12,8 @@ import type { CommentData } from '@/lib/actions/project-info'
 import type { CommentColor } from '@/lib/supabase/types'
 import type { CommentTextSettings } from '@/lib/types/board-settings'
 
-import { CommentActionsMenu } from './CommentActionsMenu'
-import { CommentDisplay } from './CommentDisplay'
-import { CommentInlineEdit, type CommentSaveOptions } from './CommentInlineEdit'
+import { type CommentSaveOptions } from './CommentInlineEdit'
+import { CommentSection } from './CommentSection'
 import { OverflowMenu } from './OverflowMenu'
 
 // Types
@@ -242,46 +241,18 @@ export const RepoCard = memo<RepoCardProps>(
               )}
 
               {/* Inline Comment (Card-in-Card style) */}
-              {/* Using React 19 <Activity /> to preserve CommentInlineEdit state */}
-              {/* When parent re-renders, conditional rendering would unmount/remount */}
-              {/* <Activity mode="hidden"> keeps DOM but hides, preserving state */}
               {showComment && (
-                <>
-                  <Activity mode={isEditingComment ? 'visible' : 'hidden'}>
-                    <CommentInlineEdit
-                      initialValue={commentData?.comment ?? ''}
-                      onSave={handleCommentSave}
-                      onCancel={handleCommentCancel}
-                      style={{
-                        borderColor: commentData?.color ?? 'neutral',
-                        ...commentText,
-                      }}
-                    />
-                  </Activity>
-                  <Activity mode={isEditingComment ? 'hidden' : 'visible'}>
-                    <CommentDisplay
-                      comment={commentData?.comment}
-                      onClick={handleCommentClick}
-                      style={{
-                        borderColor: commentData?.color ?? 'neutral',
-                        ...commentText,
-                      }}
-                      showEmptyState={true}
-                      renderActions={
-                        commentData?.comment
-                          ? () => (
-                              <CommentActionsMenu
-                                onEdit={handleCommentClick}
-                                onColorChange={handleColorChange}
-                                onDelete={handleCommentDelete}
-                                currentColor={commentData?.color ?? 'neutral'}
-                              />
-                            )
-                          : undefined
-                      }
-                    />
-                  </Activity>
-                </>
+                <CommentSection
+                  comment={commentData?.comment}
+                  color={commentData?.color}
+                  isEditing={isEditingComment}
+                  onStartEdit={handleCommentClick}
+                  onSave={handleCommentSave}
+                  onCancel={handleCommentCancel}
+                  onColorChange={handleColorChange}
+                  onDelete={handleCommentDelete}
+                  style={commentText}
+                />
               )}
 
               <div className="flex items-center justify-between pt-2">

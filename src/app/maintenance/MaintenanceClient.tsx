@@ -31,15 +31,10 @@ import {
   useRef,
   useTransition,
   useEffect,
-  Activity,
 } from 'react'
 
-import { CommentActionsMenu } from '@/components/Board/CommentActionsMenu'
-import { CommentDisplay } from '@/components/Board/CommentDisplay'
-import {
-  CommentInlineEdit,
-  type CommentSaveOptions,
-} from '@/components/Board/CommentInlineEdit'
+import { type CommentSaveOptions } from '@/components/Board/CommentInlineEdit'
+import { CommentSection } from '@/components/Board/CommentSection'
 import { NoteModal } from '@/components/Modals/NoteModal'
 import {
   RestoreToBoardDialog,
@@ -532,57 +527,21 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                           {repo.repo_owner}
                         </p>
 
-                        {/* Inline Comment (same as Board RepoCard) */}
-                        <Activity
-                          mode={
-                            editingCommentId === repo.id ? 'visible' : 'hidden'
+                        {/* Inline Comment (shared CommentSection) */}
+                        <CommentSection
+                          comment={comments[repo.id]?.comment}
+                          color={comments[repo.id]?.color}
+                          isEditing={editingCommentId === repo.id}
+                          onStartEdit={() => handleCommentClick(repo.id)}
+                          onSave={async (newComment, options) =>
+                            handleCommentSave(repo.id, newComment, options)
                           }
-                        >
-                          <CommentInlineEdit
-                            initialValue={comments[repo.id]?.comment ?? ''}
-                            onSave={async (newComment, options) =>
-                              handleCommentSave(repo.id, newComment, options)
-                            }
-                            onCancel={handleCommentCancel}
-                            style={{
-                              borderColor:
-                                comments[repo.id]?.color ?? 'neutral',
-                            }}
-                          />
-                        </Activity>
-                        <Activity
-                          mode={
-                            editingCommentId === repo.id ? 'hidden' : 'visible'
+                          onCancel={handleCommentCancel}
+                          onColorChange={async (color) =>
+                            handleColorChange(repo.id, color)
                           }
-                        >
-                          <CommentDisplay
-                            comment={comments[repo.id]?.comment}
-                            onClick={() => handleCommentClick(repo.id)}
-                            style={{
-                              borderColor:
-                                comments[repo.id]?.color ?? 'neutral',
-                            }}
-                            showEmptyState={true}
-                            renderActions={
-                              comments[repo.id]?.comment
-                                ? () => (
-                                    <CommentActionsMenu
-                                      onEdit={() => handleCommentClick(repo.id)}
-                                      onColorChange={async (color) =>
-                                        handleColorChange(repo.id, color)
-                                      }
-                                      onDelete={async () =>
-                                        handleCommentDelete(repo.id)
-                                      }
-                                      currentColor={
-                                        comments[repo.id]?.color ?? 'neutral'
-                                      }
-                                    />
-                                  )
-                                : undefined
-                            }
-                          />
-                        </Activity>
+                          onDelete={async () => handleCommentDelete(repo.id)}
+                        />
 
                         {/* Meta + Note Button */}
                         <div className="flex items-center justify-between pt-2">
@@ -699,58 +658,21 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                       </div>
 
                       {/* Inline Comment for List view */}
-                      <div className="mt-3">
-                        <Activity
-                          mode={
-                            editingCommentId === repo.id ? 'visible' : 'hidden'
-                          }
-                        >
-                          <CommentInlineEdit
-                            initialValue={comments[repo.id]?.comment ?? ''}
-                            onSave={async (newComment, options) =>
-                              handleCommentSave(repo.id, newComment, options)
-                            }
-                            onCancel={handleCommentCancel}
-                            style={{
-                              borderColor:
-                                comments[repo.id]?.color ?? 'neutral',
-                            }}
-                          />
-                        </Activity>
-                        <Activity
-                          mode={
-                            editingCommentId === repo.id ? 'hidden' : 'visible'
-                          }
-                        >
-                          <CommentDisplay
-                            comment={comments[repo.id]?.comment}
-                            onClick={() => handleCommentClick(repo.id)}
-                            style={{
-                              borderColor:
-                                comments[repo.id]?.color ?? 'neutral',
-                            }}
-                            showEmptyState={true}
-                            renderActions={
-                              comments[repo.id]?.comment
-                                ? () => (
-                                    <CommentActionsMenu
-                                      onEdit={() => handleCommentClick(repo.id)}
-                                      onColorChange={async (color) =>
-                                        handleColorChange(repo.id, color)
-                                      }
-                                      onDelete={async () =>
-                                        handleCommentDelete(repo.id)
-                                      }
-                                      currentColor={
-                                        comments[repo.id]?.color ?? 'neutral'
-                                      }
-                                    />
-                                  )
-                                : undefined
-                            }
-                          />
-                        </Activity>
-                      </div>
+                      <CommentSection
+                        comment={comments[repo.id]?.comment}
+                        color={comments[repo.id]?.color}
+                        isEditing={editingCommentId === repo.id}
+                        onStartEdit={() => handleCommentClick(repo.id)}
+                        onSave={async (newComment, options) =>
+                          handleCommentSave(repo.id, newComment, options)
+                        }
+                        onCancel={handleCommentCancel}
+                        onColorChange={async (color) =>
+                          handleColorChange(repo.id, color)
+                        }
+                        onDelete={async () => handleCommentDelete(repo.id)}
+                        className="mt-3"
+                      />
                     </motion.div>
                   ))}
                 </div>
