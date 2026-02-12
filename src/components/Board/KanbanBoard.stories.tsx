@@ -23,11 +23,7 @@ import { useDispatch } from 'react-redux'
 import { expect, waitFor } from 'storybook/test'
 
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
-import {
-  setStatusLists,
-  setRepoCards,
-  setBoardError,
-} from '@/lib/redux/slices/boardSlice'
+import { setStatusLists, setRepoCards } from '@/lib/redux/slices/boardSlice'
 import { mockStatusLists, mockRepoCards } from '@/mocks/handlers/data'
 
 import { KanbanBoard } from './KanbanBoard'
@@ -72,8 +68,6 @@ function ReduxHydrator({
   const dispatch = useDispatch()
 
   useLayoutEffect(() => {
-    // Clear any persisted error state from localStorage
-    dispatch(setBoardError(null))
     // Hydrate Redux with mock board data
     dispatch(setStatusLists(transformedStatusLists))
     dispatch(setRepoCards(transformedRepoCards))

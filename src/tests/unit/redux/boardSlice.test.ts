@@ -7,7 +7,7 @@
  * - setRepoCards action
  * - addRepoCards action (optimistic updates)
  * - removeRepoCard action
- * - selectStatusLists, selectRepoCards, selectBoardLoading, selectBoardError selectors
+ * - selectStatusLists, selectRepoCards selectors
  */
 
 import { describe, it, expect } from 'vitest'
@@ -21,8 +21,6 @@ import boardSlice, {
   setStatusLists,
   removeRepoCard,
   selectStatusLists,
-  selectBoardLoading,
-  selectBoardError,
 } from '@/lib/redux/slices/boardSlice'
 
 /**
@@ -71,8 +69,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: [],
-        loading: false,
-        error: null,
         lastDragOperation: null,
         undoHistory: [],
       }
@@ -98,8 +94,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
-        loading: false,
-        error: null,
         lastDragOperation: null,
         undoHistory: [],
       }
@@ -124,8 +118,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
-        loading: false,
-        error: null,
         lastDragOperation: null,
         undoHistory: [],
       }
@@ -141,8 +133,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: [],
-        loading: false,
-        error: null,
         lastDragOperation: null,
         undoHistory: [],
       }
@@ -179,8 +169,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
-        loading: false,
-        error: null,
         lastDragOperation: null,
         undoHistory: [],
       }
@@ -203,8 +191,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
-        loading: false,
-        error: null,
         lastDragOperation: null,
         undoHistory: [],
       }
@@ -227,8 +213,6 @@ describe('boardSlice', () => {
           activeBoard: null,
           statusLists: [],
           repoCards: cards,
-          loading: false,
-          error: null,
           lastDragOperation: null,
           undoHistory: [],
         },
@@ -249,8 +233,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
-        loading: false,
-        error: null,
         lastDragOperation: null,
         undoHistory: [],
       }
@@ -281,8 +263,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
-        loading: false,
-        error: null,
         lastDragOperation: null,
         undoHistory: [],
       }
@@ -315,8 +295,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: [],
-        loading: false,
-        error: null,
         lastDragOperation: null,
         undoHistory: [],
       }
@@ -338,8 +316,6 @@ describe('boardSlice', () => {
         activeBoard: existingBoard,
         statusLists: [],
         repoCards: [],
-        loading: false,
-        error: null,
         lastDragOperation: null,
         undoHistory: [],
       }
@@ -357,8 +333,6 @@ describe('boardSlice', () => {
         activeBoard: existingBoard,
         statusLists: [],
         repoCards: [],
-        loading: false,
-        error: null,
         lastDragOperation: null,
         undoHistory: [],
       }
@@ -373,8 +347,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: [],
-        loading: false,
-        error: null,
         lastDragOperation: null,
         undoHistory: [],
       }
@@ -396,8 +368,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: [],
-        loading: false,
-        error: null,
         lastDragOperation: null,
         undoHistory: [],
       }
@@ -420,8 +390,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: existingStatuses,
         repoCards: [],
-        loading: false,
-        error: null,
         lastDragOperation: null,
         undoHistory: [],
       }
@@ -445,8 +413,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
-        loading: false,
-        error: null,
         lastDragOperation: null,
         undoHistory: [],
       }
@@ -463,8 +429,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
-        loading: false,
-        error: null,
         lastDragOperation: null,
         undoHistory: [],
       }
@@ -486,8 +450,6 @@ describe('boardSlice', () => {
           activeBoard: null,
           statusLists: statuses,
           repoCards: [],
-          loading: false,
-          error: null,
           lastDragOperation: null,
           undoHistory: [],
         },
@@ -497,42 +459,6 @@ describe('boardSlice', () => {
 
       expect(result).toHaveLength(2)
       expect(result[0]!.title).toBe('Todo')
-    })
-  })
-
-  describe('selectBoardLoading selector', () => {
-    it('should return loading state', () => {
-      const state = {
-        board: {
-          activeBoard: null,
-          statusLists: [],
-          repoCards: [],
-          loading: true,
-          error: null,
-          lastDragOperation: null,
-          undoHistory: [],
-        },
-      }
-
-      expect(selectBoardLoading(state)).toBe(true)
-    })
-  })
-
-  describe('selectBoardError selector', () => {
-    it('should return error from state', () => {
-      const state = {
-        board: {
-          activeBoard: null,
-          statusLists: [],
-          repoCards: [],
-          loading: false,
-          error: 'Test error',
-          lastDragOperation: null,
-          undoHistory: [],
-        },
-      }
-
-      expect(selectBoardError(state)).toBe('Test error')
     })
   })
 })
