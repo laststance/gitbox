@@ -10,6 +10,7 @@
 import * as Sentry from '@sentry/nextjs'
 
 import { withAuth } from '@/lib/actions/auth-guard'
+import { toStatusListDomain } from '@/lib/actions/mappers'
 import type {
   StatusListDomain,
   RepoCardDomain,
@@ -27,7 +28,6 @@ import {
   gridPositionSchema,
 } from '@/lib/validations/board'
 
-type StatusListRow = Tables<'statuslist'>
 type RepoCardRow = Tables<'repocard'>
 
 // ========================================
@@ -58,16 +58,7 @@ export async function getStatusLists(
   }
 
   // Convert DB rows to domain model
-  return (data || []).map((row: StatusListRow) => ({
-    id: row.id,
-    title: row.name,
-    color: row.color ?? '#6B7280',
-    gridRow: row.grid_row ?? 0,
-    gridCol: row.grid_col ?? 0,
-    boardId: row.board_id,
-    createdAt: row.created_at ?? new Date().toISOString(),
-    updatedAt: row.updated_at ?? new Date().toISOString(),
-  }))
+  return (data || []).map(toStatusListDomain)
 }
 
 /**
@@ -135,16 +126,7 @@ export async function createDefaultStatusLists(
     throw new Error('Failed to create default status lists')
   }
 
-  return (data || []).map((row: StatusListRow) => ({
-    id: row.id,
-    title: row.name,
-    color: row.color ?? '#6B7280',
-    gridRow: row.grid_row ?? 0,
-    gridCol: row.grid_col ?? 0,
-    boardId: row.board_id,
-    createdAt: row.created_at ?? new Date().toISOString(),
-    updatedAt: row.updated_at ?? new Date().toISOString(),
-  }))
+  return (data || []).map(toStatusListDomain)
 }
 
 /**
@@ -199,16 +181,7 @@ export async function createStatusList(
     throw new Error('Failed to create status list')
   }
 
-  return {
-    id: data.id,
-    title: data.name,
-    color: data.color ?? '#6B7280',
-    gridRow: data.grid_row ?? 0,
-    gridCol: data.grid_col ?? 0,
-    boardId: data.board_id,
-    createdAt: data.created_at ?? new Date().toISOString(),
-    updatedAt: data.updated_at ?? new Date().toISOString(),
-  }
+  return toStatusListDomain(data)
 }
 
 /**
