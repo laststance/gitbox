@@ -1,17 +1,7 @@
 'use client'
 
-import * as Sentry from '@sentry/nextjs'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import {
-  useState,
-  useEffect,
-  useEffectEvent,
-  useRef,
-  useMemo,
-  memo,
-  useCallback,
-  useDeferredValue,
-} from 'react'
+import { useState, useRef, useMemo, memo, useCallback } from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -21,15 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  getAuthenticatedUserRepositories,
-  getAuthenticatedUser,
-  getAuthenticatedUserOrganizations,
-  getOrganizationRepositories,
-  type GitHubRepository,
-  type GitHubUser,
-  type GitHubOrganization,
-} from '@/lib/actions/github'
+import { useOrganizationData } from '@/hooks/board/useOrganizationData'
+import { useRepositoryData } from '@/hooks/board/useRepositoryData'
+import { useRepositorySearch } from '@/hooks/board/useRepositorySearch'
 import {
   addRepositoriesToBoard,
   type CreatedRepoCard,
@@ -119,13 +103,29 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     }
   }
 
-  const [searchQuery, setSearchQuery] = useState('')
-  // useDeferredValue replaces manual setTimeout debouncing
-  // React automatically defers the value during heavy renders
-  const deferredSearchQuery = useDeferredValue(searchQuery)
-  const [selectedRepos, setSelectedRepos] = useState<GitHubRepository[]>([])
-  const [isAdding, setIsAdding] = useState(false)
-  const [addError, setAddError] = useState<string | null>(null)
+  // --- Extracted hooks ---
+  const {
+    searchQuery,
+    setSearchQuery,
+    deferredSearchQuery,
+    selectedRepos,
+    setSelectedRepos,
+    isAdding,
+    setIsAdding,
+    addError,
+    setAddError,
+    toggleRepoSelection,
+    removeSelectedRepo,
+  } = useRepositorySearch()
+
+  const { currentUser, filteredOrganizations, isLoadingOrgs, organizations } =
+    useOrganizationData(isOpen)
+
+  const { userRepos, isLoadingRepos, reposError } = useRepositoryData(
+    isOpen,
+    organizations,
+    isLoadingOrgs,
+  )
 
   // Filters (organizationFilter persisted to localStorage via Redux)
   const dispatch = useAppDispatch()
@@ -164,23 +164,6 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     [maintenanceRepoIdentifiers],
   )
 
-  // Organization filter state
-  const [currentUser, setCurrentUser] = useState<GitHubUser | null>(null)
-  const [organizations, setOrganizations] = useState<GitHubOrganization[]>([])
-  const [isLoadingOrgs, setIsLoadingOrgs] = useState(false)
-
-  /**
-   * Filter organizations to exclude currentUser (prevents duplicate SelectItem values)
-   * This avoids Radix Select reconciliation issues when the same value appears multiple times
-   */
-  const filteredOrganizations = useMemo(
-    () =>
-      organizations.filter(
-        (org) => org.login.toLowerCase() !== currentUser?.login?.toLowerCase(),
-      ),
-    [organizations, currentUser?.login],
-  )
-
   /**
    * Guarded organization filter change handler
    * Dispatches Redux action to persist organization filter to localStorage
@@ -198,117 +181,6 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   const searchInputRef = useRef<HTMLInputElement>(null)
   const comboboxRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
-
-  // Server Action: Fetch authenticated user's repository list
-  const [userRepos, setUserRepos] = useState<GitHubRepository[]>([])
-  const [isLoadingRepos, setIsLoadingRepos] = useState(false)
-  const [reposError, setReposError] = useState<string | null>(null)
-
-  /**
-   * Fetch repositories from GitHub API
-   * Uses useEffectEvent to avoid circular dependencies with isOpen
-   * The effect that calls this already guards with `if (isOpen)`
-   */
-  const fetchRepositories = useEffectEvent(async () => {
-    setIsLoadingRepos(true)
-    setReposError(null)
-
-    try {
-      // Fetch ALL repos with pagination to ensure all repos are available
-      // This fixes the bug where repos beyond the first 100 were not visible
-      const result = await getAuthenticatedUserRepositories({
-        sort: 'updated',
-        per_page: 100,
-        fetchAll: true, // Enable pagination to fetch all repos
-      })
-
-      if (!result.success) {
-        setReposError(result.error)
-        setUserRepos([])
-        return
-      }
-
-      const allRepos = [...result.data]
-
-      // Additionally fetch organization repos to ensure org repos are visible
-      // The /user/repos API may not return all org repos, so we need to supplement
-      // with /orgs/{org}/repos for each organization the user belongs to
-      if (organizations.length > 0) {
-        const orgRepoPromises = organizations.map(async (org) =>
-          getOrganizationRepositories(org.login, { fetchAll: true }),
-        )
-        const orgResults = await Promise.all(orgRepoPromises)
-
-        // Merge org repos with user repos, deduplicating by repo id
-        const existingIds = new Set(allRepos.map((repo) => repo.id))
-        for (const orgResult of orgResults) {
-          if (orgResult.success) {
-            for (const repo of orgResult.data) {
-              if (!existingIds.has(repo.id)) {
-                allRepos.push(repo)
-                existingIds.add(repo.id)
-              }
-            }
-          }
-        }
-      }
-
-      setUserRepos(allRepos)
-    } catch (error) {
-      setReposError(
-        error instanceof Error ? error.message : 'Failed to fetch repositories',
-      )
-      setUserRepos([])
-    } finally {
-      setIsLoadingRepos(false)
-    }
-  })
-
-  /**
-   * Fetch current user and organizations for the Organization Filter
-   * Uses useEffectEvent to avoid circular dependencies with isOpen
-   * The effect that calls this already guards with `if (isOpen)`
-   */
-  const fetchOrganizations = useEffectEvent(async () => {
-    setIsLoadingOrgs(true)
-
-    try {
-      // Fetch user and organizations in parallel
-      const [userResult, orgsResult] = await Promise.all([
-        getAuthenticatedUser(),
-        getAuthenticatedUserOrganizations(),
-      ])
-
-      if (userResult.success) {
-        setCurrentUser(userResult.data)
-      }
-
-      if (orgsResult.success) {
-        setOrganizations(orgsResult.data)
-      }
-    } catch (error) {
-      Sentry.captureException(error, { tags: { action: 'fetchOrganizations' } })
-    } finally {
-      setIsLoadingOrgs(false)
-    }
-  })
-
-  // Fetch organizations when combobox opens
-  // fetchOrganizations is useEffectEvent - no deps needed for event callbacks
-  useEffect(() => {
-    if (isOpen) {
-      fetchOrganizations()
-    }
-  }, [isOpen])
-
-  // Fetch repositories after organizations are loaded (or if no orgs)
-  // This ensures org repos are included in the fetch
-  // fetchRepositories is useEffectEvent - no deps needed for event callbacks
-  useEffect(() => {
-    if (isOpen && !isLoadingOrgs) {
-      fetchRepositories()
-    }
-  }, [isOpen, isLoadingOrgs])
 
   // Filtered repositories (client-side filtering)
   const filteredRepositories = useMemo(() => {
@@ -375,23 +247,6 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     enabled: shouldVirtualize,
     overscan: 5, // Render 5 extra items outside scroll area
   })
-
-  // Toggle repository selection
-  const toggleRepoSelection = (repo: GitHubRepository) => {
-    setSelectedRepos((prev) => {
-      const isSelected = prev.some((r) => r.id === repo.id)
-      if (isSelected) {
-        return prev.filter((r) => r.id !== repo.id)
-      } else {
-        return [...prev, repo]
-      }
-    })
-  }
-
-  // Remove selected repository
-  const removeSelectedRepo = (repoId: number) => {
-    setSelectedRepos((prev) => prev.filter((r) => r.id !== repoId))
-  }
 
   // Add selected repositories to board
   const handleAddRepositories = async () => {
