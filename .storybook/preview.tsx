@@ -73,10 +73,10 @@ const preview: Preview = {
       appDirectory: true,
     },
     a11y: {
-      // 'todo' - show a11y violations in the test UI only
-      // 'error' - fail CI on a11y violations
+      // 'error' - fail tests on a11y violations (enforces accessibility)
+      // 'todo' - show a11y violations without failing tests
       // 'off' - skip a11y checks entirely
-      test: 'todo',
+      test: 'error',
     },
   },
   // Global types for Storybook toolbar
