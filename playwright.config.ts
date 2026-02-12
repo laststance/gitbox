@@ -64,10 +64,10 @@ export default defineConfig({
   workers: process.env.CI ? 1 : 1,
 
   /**
-   * Don't fail the test run if tests are flaky (passed after retry).
-   * This allows CI to pass when tests eventually succeed.
+   * Fail the test run if any tests are flaky (passed only after retry).
+   * This enforces test reliability — flaky tests must be fixed, not ignored.
    */
-  failOnFlakyTests: false,
+  failOnFlakyTests: true,
 
   /**
    * Reporters:
