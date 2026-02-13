@@ -74,7 +74,7 @@ const preview: Preview = {
     },
     a11y: {
       // 'todo' - show a11y violations in the test UI only
-      // 'error' - fail CI on a11y violations
+      // 'error' - fail CI on a11y violations (enable after fixing existing violations)
       // 'off' - skip a11y checks entirely
       test: 'todo',
     },

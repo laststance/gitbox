@@ -203,7 +203,7 @@ export default defineConfig({
           ],
         ],
 
-  timeout: 60000,
+  timeout: 30000,
 
   use: {
     baseURL: `http://localhost:${shardPort}`,
