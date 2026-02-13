@@ -289,6 +289,7 @@ export const CommandPalette = memo(function CommandPalette() {
             exit={{ opacity: 0 }}
             transition={{ duration: prefersReducedMotion ? 0 : undefined }}
             className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+            data-testid="command-palette-backdrop"
             onClick={handleClose}
           />
 
