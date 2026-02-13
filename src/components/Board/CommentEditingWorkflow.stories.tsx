@@ -744,6 +744,9 @@ export const TestFullWorkflow: Story = {
       })
 
       const textarea = await canvas.findByTestId('comment-textarea')
+      // Activity keeps component mounted — auto-focus effect may not re-fire.
+      // Explicitly click to ensure focus before clearing.
+      await userEvent.click(textarea)
       await userEvent.clear(textarea)
       await userEvent.type(textarea, 'Updated comment')
       // Use save button instead of Enter key
