@@ -401,7 +401,9 @@ test.describe('Board Favorites Feature', () => {
       // Get the first favorited board
       const firstCard = page.locator('[data-testid^="board-card-"]').first()
       const boardName = await firstCard.locator('h2, h3').first().textContent()
-      const removeBtn = firstCard.locator('button[aria-label*="Remove"]')
+      const removeBtn = firstCard.locator(
+        'button[aria-label*="Remove"][aria-label*="favorite"]',
+      )
 
       // Unfavorite it
       await removeBtn.click()
