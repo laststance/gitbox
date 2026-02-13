@@ -11,13 +11,29 @@
 
 import * as Sentry from '@sentry/nextjs'
 import { isAxiosError } from 'axios'
+import { headers } from 'next/headers'
 
 import { createGitHubAxios, hasGitHubToken } from '@/lib/axios-github'
 import { createModuleLogger } from '@/lib/logger'
+import { checkRateLimit } from '@/lib/rate-limit/check'
 
 import type { ActionResult } from './types'
 
 const log = createModuleLogger('github')
+
+/**
+ * Get client IP from request headers for rate limiting.
+ * GitHub API functions don't use Supabase auth, so we use IP-based limiting.
+ * Logs a warning when x-forwarded-for is missing (proxy misconfiguration).
+ */
+async function getClientIp(): Promise<string> {
+  const headerStore = await headers()
+  const forwarded = headerStore.get('x-forwarded-for')?.split(',')[0]?.trim()
+  if (!forwarded) {
+    log.warn('x-forwarded-for header missing — falling back to 127.0.0.1')
+  }
+  return forwarded || '127.0.0.1'
+}
 
 export interface GitHubRepository {
   id: number
@@ -127,6 +143,13 @@ export async function getAuthenticatedUserRepositories(params?: {
     }
   }
 
+  // Rate limit GitHub API calls by IP
+  const ip = await getClientIp()
+  const rlResult = checkRateLimit('githubApi', ip)
+  if (!rlResult.allowed) {
+    return { success: false, error: rlResult.error! }
+  }
+
   const api = createGitHubAxios()
 
   try {
@@ -202,6 +225,13 @@ export async function getAuthenticatedUser(): Promise<
     }
   }
 
+  // Rate limit GitHub API calls by IP
+  const ip = await getClientIp()
+  const rlResult = checkRateLimit('githubApi', ip)
+  if (!rlResult.allowed) {
+    return { success: false, error: rlResult.error! }
+  }
+
   const api = createGitHubAxios()
 
   try {
@@ -241,6 +271,13 @@ export async function getOrganizationRepositories(
       success: false,
       error: 'GitHub token not found. Please sign in again.',
     }
+  }
+
+  // Rate limit GitHub API calls by IP
+  const ip = await getClientIp()
+  const rlResult = checkRateLimit('githubApi', ip)
+  if (!rlResult.allowed) {
+    return { success: false, error: rlResult.error! }
   }
 
   const api = createGitHubAxios()
@@ -318,6 +355,13 @@ export async function getAuthenticatedUserOrganizations(): Promise<
       success: false,
       error: 'GitHub token not found. Please sign in again.',
     }
+  }
+
+  // Rate limit GitHub API calls by IP
+  const ip = await getClientIp()
+  const rlResult = checkRateLimit('githubApi', ip)
+  if (!rlResult.allowed) {
+    return { success: false, error: rlResult.error! }
   }
 
   const api = createGitHubAxios()

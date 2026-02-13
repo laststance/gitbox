@@ -20,6 +20,7 @@ import * as Sentry from '@sentry/nextjs'
  * - logout: User-initiated sign out
  * - account_deleted: User account permanently deleted
  * - unauthorized_access: Unauthenticated access to protected route
+ * - rate_limited: Request blocked by rate limiter
  */
 type SecurityEventType =
   | 'login_success'
@@ -27,6 +28,7 @@ type SecurityEventType =
   | 'logout'
   | 'account_deleted'
   | 'unauthorized_access'
+  | 'rate_limited'
 
 /**
  * Context data for security events.
@@ -67,7 +69,9 @@ export function logSecurityEvent(
   context: SecurityEventContext = {},
 ) {
   const level =
-    type === 'login_failure' || type === 'unauthorized_access'
+    type === 'login_failure' ||
+    type === 'unauthorized_access' ||
+    type === 'rate_limited'
       ? ('warning' as const)
       : ('info' as const)
 

@@ -11,6 +11,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { RATE_LIMIT_CONFIG } from '@/lib/rate-limit/config'
+import { edgeRateLimit, getClientIp } from '@/lib/rate-limit/edge-memory'
 import { logSecurityEvent } from '@/lib/security-events'
 import { isTestMode } from '@/tests/isTestMode'
 
@@ -25,6 +27,20 @@ export async function proxy(request: NextRequest) {
         headers: request.headers,
       },
     })
+  }
+
+  // Rate limit OAuth callback by IP
+  const { pathname } = request.nextUrl
+  if (pathname === '/auth/callback') {
+    const ip = getClientIp(request)
+    const config = RATE_LIMIT_CONFIG['auth/callback']
+    if (!edgeRateLimit(ip, config.maxRequests, config.windowMs)) {
+      logSecurityEvent('rate_limited', { ip, path: pathname })
+      return new NextResponse(
+        'Too many authentication attempts. Please try again later.',
+        { status: 429, headers: { 'Retry-After': '60' } },
+      )
+    }
   }
 
   // Create response that we'll modify with cookie updates
@@ -69,9 +85,6 @@ export async function proxy(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
-  // Check path
-  const { pathname } = request.nextUrl
 
   // Allow public paths without authentication
   if (publicPaths.includes(pathname)) {

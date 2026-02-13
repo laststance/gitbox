@@ -14,6 +14,7 @@ import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 import { getGitHubTokenCookieName } from '@/lib/constants/cookies'
+import { checkRateLimit } from '@/lib/rate-limit/check'
 import { logSecurityEvent } from '@/lib/security-events'
 import {
   createServerActionClient,
@@ -26,9 +27,25 @@ import {
  * @returns Redirect URL to GitHub authentication screen
  */
 export async function signInWithGitHub() {
+  // Rate limit by IP (user not yet authenticated)
+  const headerStore = await headers()
+  const forwarded = headerStore.get('x-forwarded-for')?.split(',')[0]?.trim()
+  if (!forwarded) {
+    Sentry.captureMessage('signInWithGitHub: x-forwarded-for header missing', {
+      level: 'warning',
+      tags: { category: 'rate_limit' },
+    })
+  }
+  const ip = forwarded || '127.0.0.1'
+  const rlResult = checkRateLimit('signInWithGitHub', ip)
+  if (!rlResult.allowed) {
+    redirect(
+      `/login?error=rate_limited&message=${encodeURIComponent(rlResult.error!)}`,
+    )
+  }
+
   const supabase = await createServerActionClient()
-  const origin =
-    (await headers()).get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL
+  const origin = headerStore.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'github',
@@ -111,6 +128,12 @@ export async function deleteAccount() {
       extra: { context: 'Delete account - get user' },
     })
     throw new Error('Not authenticated')
+  }
+
+  // Rate limit by user ID
+  const rlResult = checkRateLimit('deleteAccount', user.id)
+  if (!rlResult.allowed) {
+    throw new Error(rlResult.error!)
   }
 
   // Use admin client to delete user (bypasses RLS)
