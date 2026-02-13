@@ -14,6 +14,7 @@ import * as Sentry from '@sentry/nextjs'
 
 import type { GitHubRepository } from '@/lib/actions/github'
 import { createModuleLogger } from '@/lib/logger'
+import { checkRateLimit } from '@/lib/rate-limit/check'
 import { createClient } from '@/lib/supabase/server'
 
 import type { ActionResult } from './types'
@@ -79,6 +80,16 @@ export async function addRepositoriesToBoard(
 
     if (userError || !user) {
       throw new Error('Authentication required')
+    }
+
+    // Rate limit add repository operations
+    const rlResult = checkRateLimit('addReposToBoard', user.id)
+    if (!rlResult.allowed) {
+      return {
+        success: false,
+        addedCount: 0,
+        errors: [rlResult.error!],
+      }
     }
 
     // Check if board exists and user owns it

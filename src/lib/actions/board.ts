@@ -9,7 +9,11 @@
 
 import * as Sentry from '@sentry/nextjs'
 
-import { withAuth, withAuthResult } from '@/lib/actions/auth-guard'
+import {
+  withAuth,
+  withAuthRateLimit,
+  withAuthResultRateLimit,
+} from '@/lib/actions/auth-guard'
 import { toStatusListDomain } from '@/lib/actions/mappers'
 import type {
   StatusListDomain,
@@ -294,7 +298,7 @@ export async function swapStatusListPositions(
   id1: string,
   id2: string,
 ): Promise<void> {
-  return withAuth(async (supabase) => {
+  return withAuthRateLimit('batchDnD', async (supabase) => {
     const { error } = await supabase.rpc('swap_statuslist_positions', {
       id_a: id1,
       id_b: id2,
@@ -327,7 +331,7 @@ export async function swapStatusListPositions(
 export async function batchUpdateStatusListPositions(
   updates: Array<{ id: string; gridRow: number; gridCol: number }>,
 ): Promise<void> {
-  return withAuth(async (supabase) => {
+  return withAuthRateLimit('batchDnD', async (supabase) => {
     // Atomic batch update via PostgreSQL RPC — all updates succeed or all fail
     const { error } = await supabase.rpc('batch_update_statuslist_positions', {
       p_updates: updates.map(({ id, gridRow, gridCol }) => ({
@@ -437,7 +441,7 @@ export async function updateRepoCardPosition(
 export async function batchUpdateRepoCardOrders(
   updates: Array<{ id: string; statusId: string; order: number }>,
 ): Promise<void> {
-  return withAuth(async (supabase) => {
+  return withAuthRateLimit('batchDnD', async (supabase) => {
     // Atomic batch update via PostgreSQL RPC — all updates succeed or all fail
     const { error } = await supabase.rpc('batch_update_repocard_orders', {
       p_updates: updates.map(({ id, statusId, order }) => ({
@@ -515,7 +519,7 @@ export async function createBoard(
     }
   }
 
-  return withAuthResult(async (supabase, user) => {
+  return withAuthResultRateLimit('boardCrud', async (supabase, user) => {
     // Auto-assign position: append to end of user's board list
     const { data: maxPositionRow } = await supabase
       .from('board')
@@ -576,7 +580,7 @@ export async function updateBoardPositions(
     }
   }
 
-  return withAuthResult(async (supabase) => {
+  return withAuthResultRateLimit('batchDnD', async (supabase) => {
     // Atomic batch update via PostgreSQL RPC — all updates succeed or all fail
     // Note: RLS policies on board table still enforce user ownership
     const { error } = await supabase.rpc('batch_update_board_positions', {
@@ -593,7 +597,7 @@ export async function updateBoardPositions(
  * Delete a board
  */
 export async function deleteBoard(boardId: string): Promise<void> {
-  return withAuth(async (supabase) => {
+  return withAuthRateLimit('boardCrud', async (supabase) => {
     const { error } = await supabase.from('board').delete().eq('id', boardId)
 
     if (error) {
