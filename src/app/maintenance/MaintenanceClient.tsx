@@ -1,7 +1,12 @@
 /**
  * Maintenance Mode Client Component
  *
- * Explorer UI with Grid/List view toggle
+ * Explorer UI with Grid/List view toggle.
+ * Logic is extracted into custom hooks for maintainability:
+ * - useMaintenanceViewState: view mode, search, sort
+ * - useRestoreDialog: restore-to-board dialog
+ * - useMaintenanceComments: comment CRUD with optimistic updates
+ * - useMaintenanceNoteModal: note modal with lazy project info loading
  */
 
 'use client'
@@ -23,23 +28,11 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import {
-  useState,
-  useCallback,
-  memo,
-  useMemo,
-  useRef,
-  useTransition,
-  useEffect,
-} from 'react'
+import { useState, memo, useMemo } from 'react'
 
-import { type CommentSaveOptions } from '@/components/Board/CommentInlineEdit'
 import { CommentSection } from '@/components/Board/CommentSection'
 import { NoteModal } from '@/components/Modals/NoteModal'
-import {
-  RestoreToBoardDialog,
-  type BoardOption,
-} from '@/components/Modals/RestoreToBoardDialog'
+import { RestoreToBoardDialog } from '@/components/Modals/RestoreToBoardDialog'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -47,19 +40,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { type ProjectLink } from '@/components/ui/editable-url-item'
 import { Input } from '@/components/ui/input'
-import {
-  getCommentsForMaintenanceItems,
-  updateMaintenanceComment,
-  updateMaintenanceCommentColor,
-  deleteMaintenanceComment,
-  getMaintenanceProjectInfo,
-  upsertMaintenanceProjectInfo,
-  type CommentData,
-} from '@/lib/actions/maintenance-project-info'
-import { getUserBoardsWithStatusLists } from '@/lib/actions/repo-cards'
-import type { CommentColor } from '@/lib/supabase/types'
+
+import { useMaintenanceComments } from './hooks/useMaintenanceComments'
+import { useMaintenanceNoteModal } from './hooks/useMaintenanceNoteModal'
+import { useMaintenanceViewState } from './hooks/useMaintenanceViewState'
+import { useRestoreDialog } from './hooks/useRestoreDialog'
 
 /** Base styles for view mode toggle button */
 const VIEW_TOGGLE_BASE = 'rounded-md p-2 transition-colors'
@@ -86,41 +72,56 @@ interface MaintenanceClientProps {
   repos: MaintenanceRepo[]
 }
 
-type ViewMode = 'grid' | 'list'
-type SortOption = 'name' | 'updated' | 'stars'
-
 export const MaintenanceClient = memo(function MaintenanceClient({
   repos: initialRepos,
 }: MaintenanceClientProps) {
   const router = useRouter()
   const prefersReducedMotion = useReducedMotion()
   const [repos, setRepos] = useState<MaintenanceRepo[]>(initialRepos)
-  const [viewMode, setViewMode] = useState<ViewMode>('grid')
-  const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState<SortOption>('updated')
-  const [sortAsc, setSortAsc] = useState(false)
-  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
-  const [selectedRepo, setSelectedRepo] = useState<MaintenanceRepo | null>(null)
 
-  // Board data for restore dialog
-  const [boards, setBoards] = useState<BoardOption[]>([])
-  const [boardsError, setBoardsError] = useState<string | null>(null)
-  const hasFetchedBoards = useRef(false)
-  const [isLoadingBoards, startLoadingBoards] = useTransition()
+  // Custom hooks for each concern
+  const {
+    viewMode,
+    setViewMode,
+    search,
+    setSearch,
+    sortBy,
+    setSortBy,
+    sortAsc,
+    setSortAsc,
+    sortedRepos,
+  } = useMaintenanceViewState({ repos })
 
-  // Comment data for all maintenance items (batch loaded)
-  const [comments, setComments] = useState<Record<string, CommentData>>({})
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const {
+    restoreDialogOpen,
+    selectedRepo,
+    boards,
+    boardsError,
+    isLoadingBoards,
+    handleRestore,
+    handleRestored,
+    closeRestoreDialog,
+  } = useRestoreDialog({ onReposChange: setRepos, router })
 
-  // Note modal state
-  const [noteModalOpen, setNoteModalOpen] = useState(false)
-  const [selectedRepoForNote, setSelectedRepoForNote] =
-    useState<MaintenanceRepo | null>(null)
-  const [currentNote, setCurrentNote] = useState<string>('')
-  const [currentLinks, setCurrentLinks] = useState<ProjectLink[]>([])
-  const [, startLoadingProjectInfo] = useTransition()
-  // Guard for async project info fetch - prevents stale data on repo switch
-  const activeNoteRepoId = useRef<string | null>(null)
+  const {
+    comments,
+    editingCommentId,
+    handleCommentClick,
+    handleCommentSave,
+    handleCommentCancel,
+    handleColorChange,
+    handleCommentDelete,
+  } = useMaintenanceComments({ initialRepos })
+
+  const {
+    noteModalOpen,
+    selectedRepoForNote,
+    currentNote,
+    currentLinks,
+    openNoteModal,
+    handleProjectInfoSave,
+    closeNoteModal,
+  } = useMaintenanceNoteModal({ comments })
 
   // Last visited board for navigation - lazy initialization from localStorage
   const [lastVisitedBoard] = useState<{
@@ -137,62 +138,8 @@ export const MaintenanceClient = memo(function MaintenanceClient({
     }
   })
 
-  // Load comments on mount
-  useEffect(() => {
-    if (initialRepos.length === 0) return
-    const ids = initialRepos.map((r) => r.id)
-    getCommentsForMaintenanceItems(ids).then(setComments)
-  }, [initialRepos])
-
-  /**
-   * Fetch boards for restore dialog (event-driven, only once per session)
-   * Moved from useEffect to event handler for proper separation of concerns
-   */
-  const fetchBoardsOnce = useCallback(() => {
-    if (hasFetchedBoards.current) return
-    hasFetchedBoards.current = true
-    startLoadingBoards(async () => {
-      const result = await getUserBoardsWithStatusLists()
-      if (result.success && result.boards) {
-        setBoards(result.boards)
-        setBoardsError(null)
-      } else {
-        setBoardsError(result.error || 'Failed to load boards')
-      }
-    })
-  }, [])
-
-  // Filter repos based on search (searches owner/name only - notes are in projectinfo)
-  const filteredRepos = repos.filter((repo) =>
-    `${repo.repo_owner}/${repo.repo_name}`
-      .toLowerCase()
-      .includes(search.toLowerCase()),
-  )
-
-  // Sort repos
-  const sortedRepos = [...filteredRepos].sort((a, b) => {
-    let comparison = 0
-    switch (sortBy) {
-      case 'name':
-        comparison = `${a.repo_owner}/${a.repo_name}`.localeCompare(
-          `${b.repo_owner}/${b.repo_name}`,
-        )
-        break
-      case 'updated':
-        comparison =
-          new Date(b.updated_at || 0).getTime() -
-          new Date(a.updated_at || 0).getTime()
-        break
-      case 'stars':
-        comparison = (b.meta?.stars || 0) - (a.meta?.stars || 0)
-        break
-    }
-    return sortAsc ? -comparison : comparison
-  })
-
   /**
    * Open GitHub page for repository
-   * Not wrapped in useCallback - always used with inline handlers passing repo
    */
   const openGitHubUrl = (repo: MaintenanceRepo) => {
     window.open(
@@ -200,158 +147,6 @@ export const MaintenanceClient = memo(function MaintenanceClient({
       '_blank',
     )
   }
-
-  /**
-   * Open restore dialog for a specific maintenance item
-   * Fetches boards on first open (event-driven, no useEffect needed)
-   */
-  const handleRestore = useCallback(
-    (repo: MaintenanceRepo) => {
-      setSelectedRepo(repo)
-      setRestoreDialogOpen(true)
-      fetchBoardsOnce() // Fetch boards when dialog opens
-    },
-    [fetchBoardsOnce],
-  )
-
-  /**
-   * Handle successful restore by removing item from local state
-   */
-  const handleRestored = useCallback(() => {
-    if (selectedRepo) {
-      setRepos((prev) => prev.filter((r) => r.id !== selectedRepo.id))
-      setSelectedRepo(null)
-    }
-    // Refresh to ensure server state is synced
-    router.refresh()
-  }, [selectedRepo, router])
-
-  // ========================================
-  // Comment Handlers
-  // ========================================
-
-  /**
-   * Handle click on comment area to start editing
-   */
-  const handleCommentClick = useCallback((repoId: string) => {
-    setEditingCommentId(repoId)
-  }, [])
-
-  /**
-   * Handle saving a comment
-   */
-  const handleCommentSave = useCallback(
-    async (repoId: string, newComment: string, options: CommentSaveOptions) => {
-      // Optimistic update
-      setComments((prev) => {
-        const existing = prev[repoId]
-        return {
-          ...prev,
-          [repoId]: {
-            comment: newComment,
-            color: existing?.color ?? 'neutral',
-          },
-        }
-      })
-      // Server update
-      await updateMaintenanceComment(repoId, newComment)
-      if (options.closeOnSave) {
-        setEditingCommentId(null)
-      }
-    },
-    [],
-  )
-
-  /**
-   * Handle cancelling comment edit
-   */
-  const handleCommentCancel = useCallback(() => {
-    setEditingCommentId(null)
-  }, [])
-
-  /**
-   * Handle color change from CommentActionsMenu
-   */
-  const handleColorChange = useCallback(
-    async (repoId: string, color: CommentColor) => {
-      // Optimistic update
-      setComments((prev) => {
-        const existing = prev[repoId]
-        return {
-          ...prev,
-          [repoId]: { color, comment: existing?.comment ?? '' },
-        }
-      })
-      await updateMaintenanceCommentColor(repoId, color)
-    },
-    [],
-  )
-
-  /**
-   * Handle delete from CommentActionsMenu
-   */
-  const handleCommentDelete = useCallback(async (repoId: string) => {
-    // Optimistic update
-    setComments((prev) => ({
-      ...prev,
-      [repoId]: { comment: '', color: 'primary' },
-    }))
-    await deleteMaintenanceComment(repoId)
-  }, [])
-
-  // ========================================
-  // Note Modal Handlers
-  // ========================================
-
-  /**
-   * Open note modal for a specific repo
-   * Not wrapped in useCallback - always used with inline handlers passing repo
-   * Uses activeNoteRepoId ref to guard against stale data on repo switch
-   */
-  const openNoteModal = (repo: MaintenanceRepo) => {
-    activeNoteRepoId.current = repo.id
-    setSelectedRepoForNote(repo)
-    setNoteModalOpen(true)
-    // Reset state before async load to prevent showing stale data
-    setCurrentNote('')
-    setCurrentLinks([])
-    // Lazy load project info with guard
-    startLoadingProjectInfo(async () => {
-      try {
-        const data = await getMaintenanceProjectInfo(repo.id)
-        // Guard: only update if this repo is still active
-        if (activeNoteRepoId.current !== repo.id) return
-        setCurrentNote(data?.note || '')
-        setCurrentLinks(data?.links || [])
-      } catch {
-        // Guard: only reset if this repo is still active
-        if (activeNoteRepoId.current !== repo.id) return
-        setCurrentNote('')
-        setCurrentLinks([])
-      }
-    })
-  }
-
-  /**
-   * Handle saving project info from modal
-   */
-  const handleProjectInfoSave = useCallback(
-    async (note: string, links: ProjectLink[]) => {
-      if (!selectedRepoForNote) return
-      // Get current comment from comments state for this repo
-      const currentComment = comments[selectedRepoForNote.id]?.comment || ''
-      await upsertMaintenanceProjectInfo(selectedRepoForNote.id, {
-        note,
-        comment: currentComment,
-        links,
-      })
-      setNoteModalOpen(false)
-      setSelectedRepoForNote(null)
-      setCurrentNote('')
-      setCurrentLinks([])
-    },
-    [selectedRepoForNote, comments],
-  )
 
   const gridToggleClassName = useMemo(
     () =>
@@ -686,10 +481,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
       {selectedRepo && (
         <RestoreToBoardDialog
           isOpen={restoreDialogOpen}
-          onClose={() => {
-            setRestoreDialogOpen(false)
-            setSelectedRepo(null)
-          }}
+          onClose={closeRestoreDialog}
           maintenanceId={selectedRepo.id}
           repoName={`${selectedRepo.repo_owner}/${selectedRepo.repo_name}`}
           onRestored={handleRestored}
@@ -703,13 +495,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
       {selectedRepoForNote && (
         <NoteModal
           isOpen={noteModalOpen}
-          onClose={() => {
-            setNoteModalOpen(false)
-            setSelectedRepoForNote(null)
-            activeNoteRepoId.current = null
-            setCurrentNote('')
-            setCurrentLinks([])
-          }}
+          onClose={closeNoteModal}
           onSave={handleProjectInfoSave}
           cardId={selectedRepoForNote.id}
           initialNote={currentNote}
