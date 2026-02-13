@@ -5,13 +5,13 @@
  * Server component that fetches favorite boards from Supabase.
  */
 
+import * as Sentry from '@sentry/nextjs'
 import { Star } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { BoardGrid } from '@/components/Boards'
-import { createModuleLogger } from '@/lib/logger'
 import { createClient } from '@/lib/supabase/server'
 import type { Tables } from '@/lib/supabase/types'
 
@@ -19,8 +19,6 @@ export const metadata: Metadata = {
   title: 'Favorites',
   description: 'Your starred boards for quick access',
 }
-
-const log = createModuleLogger('favorites')
 
 export default async function FavoritesPage() {
   const supabase = await createClient()
@@ -48,7 +46,9 @@ export default async function FavoritesPage() {
   }
 
   if (error) {
-    log.error({ error }, 'Failed to fetch favorite boards')
+    Sentry.captureException(error, {
+      extra: { context: 'Fetch favorite boards', userId: user.id },
+    })
   }
 
   return (
