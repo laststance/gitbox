@@ -111,6 +111,16 @@ test.describe('Sidebar ThemeToggle', () => {
       timeout: 5000,
     })
 
+    // Wait for Redux storage middleware to persist theme to localStorage (300ms debounce)
+    await expect(async () => {
+      const stored = await page.evaluate(() =>
+        localStorage.getItem('gitbox-state'),
+      )
+      expect(stored).not.toBeNull()
+      const parsed = JSON.parse(stored!)
+      expect(parsed?.state?.settings?.theme).toBe('graphite')
+    }).toPass({ timeout: 5000 })
+
     // Navigate to settings page
     await page.goto('/settings')
     await page.waitForLoadState('networkidle')
@@ -130,23 +140,39 @@ test.describe('Sidebar ThemeToggle', () => {
     let themeButton = page.locator('aside button:has-text("Theme")')
     await expect(themeButton).toBeVisible()
 
-    // First select sunrise theme
+    // Open dropdown and select sunrise theme
     await themeButton.click()
+    await expect(page.locator('[role="menuitem"]').first()).toBeVisible({
+      timeout: 5000,
+    })
 
     const sunriseOption = page
       .locator('[role="menuitem"]')
       .filter({ hasText: 'Sunrise' })
     await sunriseOption.click()
 
-    // Verify theme applied before re-opening dropdown
+    // Wait for dropdown to close after selection
+    await expect(page.locator('[role="menuitem"]').first()).not.toBeVisible({
+      timeout: 5000,
+    })
+
+    // Verify theme applied
     const html = page.locator('html')
     await expect(html).toHaveAttribute('data-theme', 'sunrise', {
       timeout: 5000,
     })
 
-    // Re-open dropdown
+    // Verify button text updated to reflect selected theme
     themeButton = page.locator('aside button:has-text("Theme")')
+    await expect(themeButton).toContainText('Sunrise', { timeout: 5000 })
+
+    // Re-open dropdown
     await themeButton.click()
+
+    // Wait for dropdown menu items to appear
+    await expect(page.locator('[role="menuitem"]').first()).toBeVisible({
+      timeout: 5000,
+    })
 
     // Sunrise option should have a check mark (svg inside)
     const sunriseWithCheck = page

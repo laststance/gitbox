@@ -350,6 +350,15 @@ export async function resetCardPositions(): Promise<void> {
 export async function resetRepoCards(): Promise<void> {
   const supabase = createLocalSupabaseClient()
 
+  // First, delete ALL cards from testBoard (including any added by previous tests)
+  const { error: deleteError } = await supabase
+    .from('repocard')
+    .delete()
+    .eq('board_id', BOARD_IDS.testBoard)
+  if (deleteError) {
+    throw new Error(`resetRepoCards: delete failed: ${deleteError.message}`)
+  }
+
   const seedCards = [
     {
       id: CARD_IDS.card1,

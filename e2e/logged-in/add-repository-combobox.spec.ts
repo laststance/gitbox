@@ -12,7 +12,7 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
-import { BOARD_IDS } from '../helpers/db-query'
+import { BOARD_IDS, resetRepoCards } from '../helpers/db-query'
 
 /**
  * AddRepositoryCombobox E2E Tests - Existing Repo Filtering
@@ -419,6 +419,10 @@ test.describe('AddRepositoryCombobox - Optimistic Update', () => {
 
   const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
+  test.beforeEach(async () => {
+    await resetRepoCards()
+  })
+
   /**
    * Verifies that adding a repository shows the card immediately
    * without triggering a page reload or loading spinner.
@@ -602,6 +606,10 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
+
+  test.beforeEach(async () => {
+    await resetRepoCards()
+  })
 
   /**
    * Verifies that clicking "Add Repo" button in a column opens the combobox
