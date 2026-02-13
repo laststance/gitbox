@@ -141,10 +141,7 @@ describe('CommandPalette', () => {
         screen.getByPlaceholderText('Search commands...'),
       ).toBeInTheDocument()
 
-      // Backdrop is the first div with bg-black/50
-      const backdrop = screen
-        .getByPlaceholderText('Search commands...')
-        .closest('.border')!.previousElementSibling as HTMLElement
+      const backdrop = screen.getByTestId('command-palette-backdrop')
       fireEvent.click(backdrop)
 
       expect(
