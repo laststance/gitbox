@@ -7,7 +7,6 @@
 
 'use client'
 
-import * as Sentry from '@sentry/nextjs'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition, memo } from 'react'
 import { toast } from 'sonner'
@@ -38,19 +37,16 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
     const validatedName = result.data
 
     startTransition(async () => {
-      try {
-        const board = await createBoard(validatedName)
+      const result = await createBoard(validatedName)
+      if (result.success) {
         toast.success('Board created', {
           description: `"${validatedName}" has been created.`,
         })
-        router.push(`/board/${board.id}`)
-      } catch (err) {
-        Sentry.captureException(err, { tags: { action: 'createBoard' } })
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to create board'
-        setError(errorMessage)
+        router.push(`/board/${result.data.id}`)
+      } else {
+        setError(result.error)
         toast.error('Failed to create board', {
-          description: errorMessage,
+          description: result.error,
         })
       }
     })

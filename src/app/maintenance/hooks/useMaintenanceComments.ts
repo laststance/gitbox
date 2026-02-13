@@ -44,7 +44,9 @@ export function useMaintenanceComments({
   useEffect(() => {
     if (initialRepos.length === 0) return
     const ids = initialRepos.map((r) => r.id)
-    getCommentsForMaintenanceItems(ids).then(setComments)
+    getCommentsForMaintenanceItems(ids).then((result) => {
+      if (result.success) setComments(result.data)
+    })
   }, [initialRepos])
   /* eslint-enable react-you-might-not-need-an-effect/no-pass-data-to-parent */
 

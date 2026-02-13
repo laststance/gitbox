@@ -57,11 +57,16 @@ export function useMaintenanceNoteModal({
     // Lazy load project info with guard
     startLoadingProjectInfo(async () => {
       try {
-        const data = await getMaintenanceProjectInfo(repo.id)
+        const result = await getMaintenanceProjectInfo(repo.id)
         // Guard: only update if this repo is still active
         if (activeNoteRepoId.current !== repo.id) return
-        setCurrentNote(data?.note || '')
-        setCurrentLinks(data?.links || [])
+        if (result.success && result.data) {
+          setCurrentNote(result.data.note || '')
+          setCurrentLinks(result.data.links || [])
+        } else {
+          setCurrentNote('')
+          setCurrentLinks([])
+        }
       } catch {
         // Guard: only reset if this repo is still active
         if (activeNoteRepoId.current !== repo.id) return

@@ -296,13 +296,8 @@ export const KanbanBoard = memo<KanbanBoardProps>(
         }))
 
         // Persist to database
-        try {
-          await updateComment(cardId, newComment)
-        } catch (error) {
-          // Revert on error
-          Sentry.captureException(error, {
-            extra: { context: 'Update comment', cardId },
-          })
+        const result = await updateComment(cardId, newComment)
+        if (!result.success) {
           // Could implement rollback here if needed
         }
       },
@@ -327,13 +322,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
         }))
 
         // Persist to database
-        try {
-          await updateCommentColor(cardId, color)
-        } catch (error) {
-          Sentry.captureException(error, {
-            extra: { context: 'Update comment color', cardId, color },
-          })
-        }
+        await updateCommentColor(cardId, color)
       },
       [],
     )
@@ -355,13 +344,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       }))
 
       // Persist to database
-      try {
-        await deleteComment(cardId)
-      } catch (error) {
-        Sentry.captureException(error, {
-          extra: { context: 'Delete comment', cardId },
-        })
-      }
+      await deleteComment(cardId)
     }, [])
 
     /**

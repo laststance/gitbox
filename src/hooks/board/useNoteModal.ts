@@ -8,7 +8,6 @@
  * - Save operation for note and links
  */
 
-import * as Sentry from '@sentry/nextjs'
 import { useState, useCallback } from 'react'
 
 import {
@@ -88,12 +87,11 @@ export function useNoteModal({
       setCardId(targetCardId)
       setCardTitle(card.title)
 
-      try {
-        const data = await getProjectInfo(targetCardId)
-        setInitialNote(data?.note || '')
-        setInitialLinks(data?.links || [])
-      } catch (error) {
-        Sentry.captureException(error, { tags: { action: 'loadProjectInfo' } })
+      const result = await getProjectInfo(targetCardId)
+      if (result.success && result.data) {
+        setInitialNote(result.data.note || '')
+        setInitialLinks(result.data.links || [])
+      } else {
         setInitialNote('')
         setInitialLinks([])
       }

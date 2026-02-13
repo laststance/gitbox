@@ -3,13 +3,16 @@
  *
  * Thin wrappers around shared-project-info.ts core functions.
  * All logic is centralized in the shared module; this file only provides
- * the 'use server' boundary and binds the maintenance_id foreign key.
+ * the 'use server' boundary, binds the maintenance_id foreign key,
+ * and returns ActionResult<T> for type-safe error handling.
  *
  * @see shared-project-info.ts for core implementation
  * @see project-info.ts for RepoCard-linked wrappers
  */
 
 'use server'
+
+import * as Sentry from '@sentry/nextjs'
 
 import type { CommentColor } from '@/lib/supabase/types'
 
@@ -22,7 +25,9 @@ import {
   deleteCommentCore,
   type FkConfig,
   type ProjectInfoData,
+  type CommentData,
 } from './shared-project-info'
+import type { ActionResult } from './types'
 export type {
   ProjectLink,
   ProjectInfoData,
@@ -38,14 +43,32 @@ const FK: FkConfig = {
  * Get project info for a maintenance item
  *
  * @param maintenanceId - Maintenance record ID
- * @returns ProjectInfoData with note, comment, and links
+ * @returns
+ * - On success: `{ success: true, data: ProjectInfoData | null }`
+ * - On error: `{ success: false, error: string }`
  *
  * @example
- * const info = await getMaintenanceProjectInfo('maint-uuid-123')
- * // Returns: { note: '...', comment: '...', links: [...] }
+ * const result = await getMaintenanceProjectInfo('maint-uuid-123')
+ * if (result.success) console.log(result.data)
  */
-export async function getMaintenanceProjectInfo(maintenanceId: string) {
-  return getProjectInfoCore(FK, maintenanceId)
+export async function getMaintenanceProjectInfo(
+  maintenanceId: string,
+): Promise<ActionResult<ProjectInfoData | null>> {
+  try {
+    const data = await getProjectInfoCore(FK, maintenanceId)
+    return { success: true, data }
+  } catch (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'getMaintenanceProjectInfo', maintenanceId },
+    })
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Failed to fetch maintenance project info',
+    }
+  }
 }
 
 /**
@@ -53,6 +76,9 @@ export async function getMaintenanceProjectInfo(maintenanceId: string) {
  *
  * @param maintenanceId - Maintenance record ID
  * @param data - ProjectInfoData to save
+ * @returns
+ * - On success: `{ success: true, data: undefined }`
+ * - On error: `{ success: false, error: string }`
  *
  * @example
  * await upsertMaintenanceProjectInfo('maint-uuid-123', {
@@ -64,22 +90,52 @@ export async function getMaintenanceProjectInfo(maintenanceId: string) {
 export async function upsertMaintenanceProjectInfo(
   maintenanceId: string,
   data: ProjectInfoData,
-) {
-  return upsertProjectInfoCore(FK, maintenanceId, data)
+): Promise<ActionResult<void>> {
+  try {
+    await upsertProjectInfoCore(FK, maintenanceId, data)
+    return { success: true, data: undefined }
+  } catch (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'upsertMaintenanceProjectInfo', maintenanceId },
+    })
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Failed to save maintenance project info',
+    }
+  }
 }
 
 /**
  * Get comments for multiple maintenance items (batch fetch)
  *
  * @param maintenanceIds - Array of maintenance IDs
- * @returns Map of maintenance ID to CommentData
+ * @returns
+ * - On success: `{ success: true, data: Record<string, CommentData> }`
+ * - On error: `{ success: false, error: string }`
  *
  * @example
- * const comments = await getCommentsForMaintenanceItems(['maint-1', 'maint-2'])
- * // Returns: { 'maint-1': { comment: 'text', color: 'primary' }, ... }
+ * const result = await getCommentsForMaintenanceItems(['maint-1', 'maint-2'])
+ * if (result.success) console.log(result.data['maint-1'])
  */
-export async function getCommentsForMaintenanceItems(maintenanceIds: string[]) {
-  return getCommentsCore(FK, maintenanceIds)
+export async function getCommentsForMaintenanceItems(
+  maintenanceIds: string[],
+): Promise<ActionResult<Record<string, CommentData>>> {
+  try {
+    const data = await getCommentsCore(FK, maintenanceIds)
+    return { success: true, data }
+  } catch (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'getCommentsForMaintenanceItems', maintenanceIds },
+    })
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'Failed to fetch comments',
+    }
+  }
 }
 
 /**
@@ -88,17 +144,31 @@ export async function getCommentsForMaintenanceItems(maintenanceIds: string[]) {
  * @param maintenanceId - Maintenance record ID
  * @param comment - New comment text (max 2000 chars)
  * @param color - Optional color for the comment
+ * @returns
+ * - On success: `{ success: true, data: undefined }`
+ * - On error: `{ success: false, error: string }`
  *
  * @example
- * await updateMaintenanceComment('maint-1', 'Updated comment text')
- * await updateMaintenanceComment('maint-1', 'With color', 'blue')
+ * const result = await updateMaintenanceComment('maint-1', 'Updated comment text')
  */
 export async function updateMaintenanceComment(
   maintenanceId: string,
   comment: string,
   color?: CommentColor,
-) {
-  return updateCommentCore(FK, maintenanceId, comment, color)
+): Promise<ActionResult<void>> {
+  try {
+    await updateCommentCore(FK, maintenanceId, comment, color)
+    return { success: true, data: undefined }
+  } catch (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'updateMaintenanceComment', maintenanceId },
+    })
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'Failed to update comment',
+    }
+  }
 }
 
 /**
@@ -106,15 +176,32 @@ export async function updateMaintenanceComment(
  *
  * @param maintenanceId - Maintenance record ID
  * @param color - New color to set
+ * @returns
+ * - On success: `{ success: true, data: undefined }`
+ * - On error: `{ success: false, error: string }`
  *
  * @example
- * await updateMaintenanceCommentColor('maint-1', 'blue')
+ * const result = await updateMaintenanceCommentColor('maint-1', 'blue')
  */
 export async function updateMaintenanceCommentColor(
   maintenanceId: string,
   color: CommentColor,
-) {
-  return updateCommentColorCore(FK, maintenanceId, color)
+): Promise<ActionResult<void>> {
+  try {
+    await updateCommentColorCore(FK, maintenanceId, color)
+    return { success: true, data: undefined }
+  } catch (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'updateMaintenanceCommentColor', maintenanceId },
+    })
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Failed to update comment color',
+    }
+  }
 }
 
 /**
@@ -124,10 +211,27 @@ export async function updateMaintenanceCommentColor(
  * Does NOT delete the projectinfo row (preserves note, links).
  *
  * @param maintenanceId - Maintenance record ID
+ * @returns
+ * - On success: `{ success: true, data: undefined }`
+ * - On error: `{ success: false, error: string }`
  *
  * @example
- * await deleteMaintenanceComment('maint-1')
+ * const result = await deleteMaintenanceComment('maint-1')
  */
-export async function deleteMaintenanceComment(maintenanceId: string) {
-  return deleteCommentCore(FK, maintenanceId)
+export async function deleteMaintenanceComment(
+  maintenanceId: string,
+): Promise<ActionResult<void>> {
+  try {
+    await deleteCommentCore(FK, maintenanceId)
+    return { success: true, data: undefined }
+  } catch (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'deleteMaintenanceComment', maintenanceId },
+    })
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'Failed to delete comment',
+    }
+  }
 }

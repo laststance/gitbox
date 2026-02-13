@@ -11,8 +11,6 @@
  * @see maintenance-project-info.ts for Maintenance wrappers
  */
 
-import * as Sentry from '@sentry/nextjs'
-
 import { createClient } from '@/lib/supabase/server'
 import type {
   TablesInsert,
@@ -243,9 +241,6 @@ export async function getProjectInfoCore(
     if (infoError.code === 'PGRST116') {
       return { note: '', comment: '', links: [] }
     }
-    Sentry.captureException(infoError, {
-      extra: { context: `Fetch ${fk.label}`, entityId },
-    })
     throw new Error('Failed to fetch project information')
   }
 
@@ -302,9 +297,6 @@ export async function upsertProjectInfoCore(
     .upsert(upsertData, { onConflict: fk.column })
 
   if (error) {
-    Sentry.captureException(error, {
-      extra: { context: `Upsert ${fk.label}`, entityId },
-    })
     throw new Error('Failed to save project information')
   }
 }
@@ -338,10 +330,7 @@ export async function getCommentsCore(
     .in(fk.column, entityIds)
 
   if (error) {
-    Sentry.captureException(error, {
-      extra: { context: `Batch fetch ${fk.label} comments`, entityIds },
-    })
-    return {}
+    throw new Error('Failed to fetch comments')
   }
 
   const commentsMap: Record<string, CommentData> = {}
@@ -413,9 +402,6 @@ export async function updateCommentCore(
       .eq('id', existingInfo.id)
 
     if (error) {
-      Sentry.captureException(error, {
-        extra: { context: `Update ${fk.label} comment`, entityId },
-      })
       throw new Error('Failed to update comment')
     }
   } else {
@@ -428,9 +414,6 @@ export async function updateCommentCore(
     } as ProjectInfoInsert)
 
     if (error) {
-      Sentry.captureException(error, {
-        extra: { context: `Create ${fk.label} comment`, entityId },
-      })
       throw new Error('Failed to save comment')
     }
   }
@@ -474,9 +457,6 @@ export async function updateCommentColorCore(
       .eq('id', existingInfo.id)
 
     if (error) {
-      Sentry.captureException(error, {
-        extra: { context: `Update ${fk.label} comment color`, entityId, color },
-      })
       throw new Error('Failed to update comment color')
     }
   } else {
@@ -489,13 +469,6 @@ export async function updateCommentColorCore(
     } as ProjectInfoInsert)
 
     if (error) {
-      Sentry.captureException(error, {
-        extra: {
-          context: `Create ${fk.label} for color`,
-          entityId,
-          color,
-        },
-      })
       throw new Error('Failed to save comment color')
     }
   }
@@ -541,9 +514,6 @@ export async function deleteCommentCore(
     .eq('id', existingInfo.id)
 
   if (error) {
-    Sentry.captureException(error, {
-      extra: { context: `Delete ${fk.label} comment`, entityId },
-    })
     throw new Error('Failed to delete comment')
   }
 }
