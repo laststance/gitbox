@@ -16,6 +16,8 @@ import type { GitHubRepository } from '@/lib/actions/github'
 import { createModuleLogger } from '@/lib/logger'
 import { createClient } from '@/lib/supabase/server'
 
+import type { ActionResult } from './types'
+
 const log = createModuleLogger('repo-cards')
 
 /**
@@ -222,7 +224,7 @@ export async function addRepositoriesToBoard(
  */
 export async function deleteRepoCard(
   cardId: string,
-): Promise<{ success: boolean; error?: string }> {
+): Promise<ActionResult<void>> {
   try {
     const supabase = await createClient()
 
@@ -256,7 +258,7 @@ export async function deleteRepoCard(
       }
     }
 
-    return { success: true }
+    return { success: true, data: undefined }
   } catch (error) {
     log.error({ error }, 'Delete card error')
     Sentry.captureException(error, {

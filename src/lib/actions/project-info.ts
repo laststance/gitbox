@@ -3,13 +3,16 @@
  *
  * Thin wrappers around shared-project-info.ts core functions.
  * All logic is centralized in the shared module; this file only provides
- * the 'use server' boundary and binds the repo_card_id foreign key.
+ * the 'use server' boundary, binds the repo_card_id foreign key,
+ * and returns ActionResult<T> for type-safe error handling.
  *
  * @see shared-project-info.ts for core implementation
  * @see maintenance-project-info.ts for Maintenance-linked wrappers
  */
 
 'use server'
+
+import * as Sentry from '@sentry/nextjs'
 
 import type { CommentColor } from '@/lib/supabase/types'
 
@@ -22,7 +25,9 @@ import {
   deleteCommentCore,
   type FkConfig,
   type ProjectInfoData,
+  type CommentData,
 } from './shared-project-info'
+import type { ActionResult } from './types'
 export type {
   ProjectLink,
   ProjectInfoData,
@@ -35,14 +40,30 @@ const FK: FkConfig = { column: 'repo_card_id', label: 'project info' }
  * Get project info for a repo card
  *
  * @param repoCardId - RepoCard ID
- * @returns ProjectInfoData with note, comment, and links
+ * @returns
+ * - On success: `{ success: true, data: ProjectInfoData | null }`
+ * - On error: `{ success: false, error: string }`
  *
  * @example
- * const info = await getProjectInfo('card-uuid-123')
- * // Returns: { note: '...', comment: '...', links: [...] }
+ * const result = await getProjectInfo('card-uuid-123')
+ * if (result.success) console.log(result.data)
  */
-export async function getProjectInfo(repoCardId: string) {
-  return getProjectInfoCore(FK, repoCardId)
+export async function getProjectInfo(
+  repoCardId: string,
+): Promise<ActionResult<ProjectInfoData | null>> {
+  try {
+    const data = await getProjectInfoCore(FK, repoCardId)
+    return { success: true, data }
+  } catch (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'getProjectInfo', repoCardId },
+    })
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'Failed to fetch project info',
+    }
+  }
 }
 
 /**
@@ -50,9 +71,12 @@ export async function getProjectInfo(repoCardId: string) {
  *
  * @param repoCardId - RepoCard ID
  * @param data - ProjectInfoData to save
+ * @returns
+ * - On success: `{ success: true, data: undefined }`
+ * - On error: `{ success: false, error: string }`
  *
  * @example
- * await upsertProjectInfo('card-uuid-123', {
+ * const result = await upsertProjectInfo('card-uuid-123', {
  *   note: 'Rich text content...',
  *   comment: 'Inline comment',
  *   links: [{ type: 'vercel', url: 'https://...' }]
@@ -61,22 +85,50 @@ export async function getProjectInfo(repoCardId: string) {
 export async function upsertProjectInfo(
   repoCardId: string,
   data: ProjectInfoData,
-) {
-  return upsertProjectInfoCore(FK, repoCardId, data)
+): Promise<ActionResult<void>> {
+  try {
+    await upsertProjectInfoCore(FK, repoCardId, data)
+    return { success: true, data: undefined }
+  } catch (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'upsertProjectInfo', repoCardId },
+    })
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'Failed to save project info',
+    }
+  }
 }
 
 /**
  * Get comments for multiple repo cards (batch fetch)
  *
  * @param repoCardIds - Array of repo card IDs
- * @returns Map of repo card ID to CommentData
+ * @returns
+ * - On success: `{ success: true, data: Record<string, CommentData> }`
+ * - On error: `{ success: false, error: string }`
  *
  * @example
- * const comments = await getCommentsForCards(['card-1', 'card-2'])
- * // Returns: { 'card-1': { comment: 'text', color: 'primary' }, ... }
+ * const result = await getCommentsForCards(['card-1', 'card-2'])
+ * if (result.success) console.log(result.data['card-1'])
  */
-export async function getCommentsForCards(repoCardIds: string[]) {
-  return getCommentsCore(FK, repoCardIds)
+export async function getCommentsForCards(
+  repoCardIds: string[],
+): Promise<ActionResult<Record<string, CommentData>>> {
+  try {
+    const data = await getCommentsCore(FK, repoCardIds)
+    return { success: true, data }
+  } catch (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'getCommentsForCards', repoCardIds },
+    })
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'Failed to fetch comments',
+    }
+  }
 }
 
 /**
@@ -85,17 +137,31 @@ export async function getCommentsForCards(repoCardIds: string[]) {
  * @param repoCardId - RepoCard ID
  * @param comment - New comment text (max 2000 chars)
  * @param color - Optional color for the comment
+ * @returns
+ * - On success: `{ success: true, data: undefined }`
+ * - On error: `{ success: false, error: string }`
  *
  * @example
- * await updateComment('card-1', 'Updated comment text')
- * await updateComment('card-1', 'With color', 'blue')
+ * const result = await updateComment('card-1', 'Updated comment text')
  */
 export async function updateComment(
   repoCardId: string,
   comment: string,
   color?: CommentColor,
-) {
-  return updateCommentCore(FK, repoCardId, comment, color)
+): Promise<ActionResult<void>> {
+  try {
+    await updateCommentCore(FK, repoCardId, comment, color)
+    return { success: true, data: undefined }
+  } catch (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'updateComment', repoCardId },
+    })
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'Failed to update comment',
+    }
+  }
 }
 
 /**
@@ -103,15 +169,32 @@ export async function updateComment(
  *
  * @param repoCardId - RepoCard ID
  * @param color - New color to set
+ * @returns
+ * - On success: `{ success: true, data: undefined }`
+ * - On error: `{ success: false, error: string }`
  *
  * @example
- * await updateCommentColor('card-1', 'blue')
+ * const result = await updateCommentColor('card-1', 'blue')
  */
 export async function updateCommentColor(
   repoCardId: string,
   color: CommentColor,
-) {
-  return updateCommentColorCore(FK, repoCardId, color)
+): Promise<ActionResult<void>> {
+  try {
+    await updateCommentColorCore(FK, repoCardId, color)
+    return { success: true, data: undefined }
+  } catch (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'updateCommentColor', repoCardId },
+    })
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Failed to update comment color',
+    }
+  }
 }
 
 /**
@@ -121,10 +204,27 @@ export async function updateCommentColor(
  * Does NOT delete the projectinfo row (preserves note, links).
  *
  * @param repoCardId - RepoCard ID
+ * @returns
+ * - On success: `{ success: true, data: undefined }`
+ * - On error: `{ success: false, error: string }`
  *
  * @example
- * await deleteComment('card-1')
+ * const result = await deleteComment('card-1')
  */
-export async function deleteComment(repoCardId: string) {
-  return deleteCommentCore(FK, repoCardId)
+export async function deleteComment(
+  repoCardId: string,
+): Promise<ActionResult<void>> {
+  try {
+    await deleteCommentCore(FK, repoCardId)
+    return { success: true, data: undefined }
+  } catch (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'deleteComment', repoCardId },
+    })
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'Failed to delete comment',
+    }
+  }
 }

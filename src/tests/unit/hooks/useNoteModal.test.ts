@@ -8,7 +8,6 @@
  * - Error handling
  */
 
-import * as Sentry from '@sentry/nextjs'
 import { renderHook, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
@@ -20,11 +19,6 @@ import type { RepoCardForRedux } from '@/lib/models/domain'
 vi.mock('@/lib/actions/project-info', () => ({
   getProjectInfo: vi.fn(),
   upsertProjectInfo: vi.fn(),
-}))
-
-// Mock Sentry
-vi.mock('@sentry/nextjs', () => ({
-  captureException: vi.fn(),
 }))
 
 const mockGetProjectInfo = vi.mocked(getProjectInfo)
@@ -81,9 +75,12 @@ describe('useNoteModal', () => {
   describe('open()', () => {
     it('should open modal and fetch note and links for card', async () => {
       mockGetProjectInfo.mockResolvedValueOnce({
-        note: 'Existing note content',
-        comment: '',
-        links: [{ url: 'https://vercel.app', type: 'vercel' }],
+        success: true,
+        data: {
+          note: 'Existing note content',
+          comment: '',
+          links: [{ url: 'https://vercel.app', type: 'vercel' }],
+        },
       })
 
       const { result } = renderHook(() =>
@@ -105,7 +102,10 @@ describe('useNoteModal', () => {
     })
 
     it('should set empty note and links when no project info exists', async () => {
-      mockGetProjectInfo.mockResolvedValueOnce(null)
+      mockGetProjectInfo.mockResolvedValueOnce({
+        success: true,
+        data: null,
+      })
 
       const { result } = renderHook(() =>
         useNoteModal({ repoCards: mockRepoCards }),
@@ -121,8 +121,10 @@ describe('useNoteModal', () => {
     })
 
     it('should handle fetch error gracefully', async () => {
-      const error = new Error('Network error')
-      mockGetProjectInfo.mockRejectedValueOnce(error)
+      mockGetProjectInfo.mockResolvedValueOnce({
+        success: false,
+        error: 'Network error',
+      })
 
       const { result } = renderHook(() =>
         useNoteModal({ repoCards: mockRepoCards }),
@@ -134,9 +136,7 @@ describe('useNoteModal', () => {
 
       expect(result.current.isOpen).toBe(true)
       expect(result.current.initialNote).toBe('')
-      expect(Sentry.captureException).toHaveBeenCalledWith(error, {
-        tags: { action: 'loadProjectInfo' },
-      })
+      expect(result.current.initialLinks).toEqual([])
     })
 
     it('should not open when card is not found', async () => {
@@ -156,9 +156,12 @@ describe('useNoteModal', () => {
   describe('close()', () => {
     it('should close modal and reset state', async () => {
       mockGetProjectInfo.mockResolvedValueOnce({
-        note: 'Existing note',
-        comment: '',
-        links: [],
+        success: true,
+        data: {
+          note: 'Existing note',
+          comment: '',
+          links: [],
+        },
       })
 
       const { result } = renderHook(() =>
@@ -188,11 +191,17 @@ describe('useNoteModal', () => {
   describe('save()', () => {
     it('should save note and links to server', async () => {
       mockGetProjectInfo.mockResolvedValueOnce({
-        note: 'Old note',
-        comment: '',
-        links: [],
+        success: true,
+        data: {
+          note: 'Old note',
+          comment: '',
+          links: [],
+        },
       })
-      mockUpsertProjectInfo.mockResolvedValueOnce(undefined)
+      mockUpsertProjectInfo.mockResolvedValueOnce({
+        success: true,
+        data: undefined,
+      })
 
       const { result } = renderHook(() =>
         useNoteModal({ repoCards: mockRepoCards }),

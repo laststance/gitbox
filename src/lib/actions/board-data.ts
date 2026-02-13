@@ -103,10 +103,11 @@ export async function fetchBoardInitialData(
   const { statusLists, repoCards } = boardData
 
   // Batch fetch comments for all cards
-  const comments =
+  const commentsResult =
     repoCards.length > 0
       ? await getCommentsForCards(repoCards.map((c) => c.id))
-      : {}
+      : null
+  const comments = commentsResult?.success ? commentsResult.data : {}
 
   return { statusLists, repoCards, comments, maintenanceRepoIdentifiers }
 }

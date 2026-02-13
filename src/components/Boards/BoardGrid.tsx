@@ -186,14 +186,13 @@ export const BoardGrid = memo(function BoardGrid({
       setLocalBoards(reorderedWithPositions)
 
       // Sync to Supabase
-      try {
-        await updateBoardPositions(
-          reorderedWithPositions.map((b) => ({
-            id: b.id,
-            position: b.position,
-          })),
-        )
-      } catch {
+      const result = await updateBoardPositions(
+        reorderedWithPositions.map((b) => ({
+          id: b.id,
+          position: b.position,
+        })),
+      )
+      if (!result.success) {
         // Revert local state on error
         setLocalBoards(previousBoards)
         toast.error('Failed to update board order')

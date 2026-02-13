@@ -9,7 +9,7 @@
 
 import * as Sentry from '@sentry/nextjs'
 
-import { withAuth } from '@/lib/actions/auth-guard'
+import { withAuth, withAuthResult } from '@/lib/actions/auth-guard'
 import { toStatusListDomain } from '@/lib/actions/mappers'
 import type {
   StatusListDomain,
@@ -27,6 +27,8 @@ import {
   statusListColorSchema,
   gridPositionSchema,
 } from '@/lib/validations/board'
+
+import type { ActionResult } from './types'
 
 type RepoCardRow = Tables<'repocard'>
 
@@ -488,57 +490,62 @@ export async function getBoardData(boardId: string): Promise<{
 
 /**
  * Create a new board
+ *
+ * @param name - Board name (validated via boardNameSchema)
+ * @returns
+ * - On success: `{ success: true, data: { id, name } }`
+ * - On auth error: `{ success: false, error: 'Authentication required' }`
+ * - On DB error: `{ success: false, error: 'Failed to create board' }`
+ *
+ * @example
+ * const result = await createBoard('Side Projects')
+ * if (result.success) {
+ *   router.push(`/board/${result.data.id}`)
+ * }
  */
 export async function createBoard(
   name: string,
-): Promise<{ id: string; name: string }> {
+): Promise<ActionResult<{ id: string; name: string }>> {
   // Validate board name (P2-3)
-  boardNameSchema.parse(name)
-
-  const supabase = await createClient()
-
-  // Get current user
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  if (userError || !user) {
-    throw new Error('Authentication required')
+  const validation = boardNameSchema.safeParse(name)
+  if (!validation.success) {
+    return {
+      success: false,
+      error: validation.error.issues[0]?.message || 'Invalid board name',
+    }
   }
 
-  // Auto-assign position: append to end of user's board list
-  const { data: maxPositionRow } = await supabase
-    .from('board')
-    .select('position')
-    .eq('user_id', user.id)
-    .order('position', { ascending: false })
-    .limit(1)
-    .single()
+  return withAuthResult(async (supabase, user) => {
+    // Auto-assign position: append to end of user's board list
+    const { data: maxPositionRow } = await supabase
+      .from('board')
+      .select('position')
+      .eq('user_id', user.id)
+      .order('position', { ascending: false })
+      .limit(1)
+      .single()
 
-  const nextPosition = (maxPositionRow?.position ?? -1) + 1
+    const nextPosition = (maxPositionRow?.position ?? -1) + 1
 
-  const { data, error } = await supabase
-    .from('board')
-    .insert({
-      user_id: user.id,
-      name,
-      position: nextPosition,
-    })
-    .select('id, name')
-    .single()
+    const { data, error } = await supabase
+      .from('board')
+      .insert({
+        user_id: user.id,
+        name,
+        position: nextPosition,
+      })
+      .select('id, name')
+      .single()
 
-  if (error || !data) {
-    Sentry.captureException(error ?? new Error('No data returned'), {
-      extra: { context: 'Create board', name },
-    })
-    throw new Error('Failed to create board')
-  }
+    if (error || !data) {
+      throw new Error('Failed to create board')
+    }
 
-  // Create default status lists for the new board
-  await createDefaultStatusLists(data.id)
+    // Create default status lists for the new board
+    await createDefaultStatusLists(data.id)
 
-  return { id: data.id, name: data.name }
+    return { id: data.id, name: data.name }
+  })
 }
 
 /**
@@ -546,46 +553,40 @@ export async function createBoard(
  * Updates multiple boards' position values atomically via a PostgreSQL RPC.
  *
  * @param updates - Array of { id, position } pairs
- * @returns void on success, throws on validation or DB error
+ * @returns
+ * - On success: `{ success: true, data: undefined }`
+ * - On validation error: `{ success: false, error: string }`
+ * - On auth/DB error: `{ success: false, error: string }`
  *
  * @example
- * // Swap two boards
- * await updateBoardPositions([
+ * const result = await updateBoardPositions([
  *   { id: 'board-uuid-1', position: 1 },
  *   { id: 'board-uuid-2', position: 0 },
  * ])
+ * if (!result.success) toast.error(result.error)
  */
 export async function updateBoardPositions(
   updates: Array<{ id: string; position: number }>,
-): Promise<void> {
-  boardPositionUpdatesSchema.parse(updates)
-
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  if (userError || !user) {
-    throw new Error('Authentication required')
+): Promise<ActionResult<void>> {
+  const validation = boardPositionUpdatesSchema.safeParse(updates)
+  if (!validation.success) {
+    return {
+      success: false,
+      error: validation.error.issues[0]?.message || 'Invalid position updates',
+    }
   }
 
-  // Atomic batch update via PostgreSQL RPC — all updates succeed or all fail
-  // Note: RLS policies on board table still enforce user ownership
-  const { error } = await supabase.rpc('batch_update_board_positions', {
-    p_updates: updates.map(({ id, position }) => ({ id, position })),
-  })
-
-  if (error) {
-    Sentry.captureException(error, {
-      extra: {
-        context: 'Batch update board positions (RPC)',
-        updateCount: updates.length,
-      },
+  return withAuthResult(async (supabase) => {
+    // Atomic batch update via PostgreSQL RPC — all updates succeed or all fail
+    // Note: RLS policies on board table still enforce user ownership
+    const { error } = await supabase.rpc('batch_update_board_positions', {
+      p_updates: updates.map(({ id, position }) => ({ id, position })),
     })
-    throw new Error('Failed to update board positions')
-  }
+
+    if (error) {
+      throw new Error('Failed to update board positions')
+    }
+  })
 }
 
 /**
