@@ -9,7 +9,12 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
-import { querySingle, querySupabase, BOARD_IDS } from '../helpers/db-query'
+import {
+  querySingle,
+  querySupabase,
+  BOARD_IDS,
+  TEST_USER_ID,
+} from '../helpers/db-query'
 
 test.describe('Board Favorites Feature', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
@@ -112,14 +117,13 @@ test.describe('Board Favorites Feature', () => {
       // Wait for server action to persist is_favorite to the database
       const boardTestId = await targetCard.getAttribute('data-testid')
       const boardId = boardTestId?.replace('board-card-', '')
-      if (boardId) {
-        await expect(async () => {
-          const board = await querySingle<{ is_favorite: boolean }>('board', {
-            id: boardId,
-          })
-          expect(board?.is_favorite).toBe(true)
-        }).toPass({ timeout: 5000 })
-      }
+      expect(boardId).toBeTruthy()
+      await expect(async () => {
+        const board = await querySingle<{ is_favorite: boolean }>('board', {
+          id: boardId!,
+        })
+        expect(board?.is_favorite).toBe(true)
+      }).toPass({ timeout: 5000 })
 
       // Reload the page
       await page.reload()
@@ -271,14 +275,13 @@ test.describe('Board Favorites Feature', () => {
       // Wait for server action to persist is_favorite to the database
       const boardTestId = await targetCard.getAttribute('data-testid')
       const boardId = boardTestId?.replace('board-card-', '')
-      if (boardId) {
-        await expect(async () => {
-          const board = await querySingle<{ is_favorite: boolean }>('board', {
-            id: boardId,
-          })
-          expect(board?.is_favorite).toBe(true)
-        }).toPass({ timeout: 5000 })
-      }
+      expect(boardId).toBeTruthy()
+      await expect(async () => {
+        const board = await querySingle<{ is_favorite: boolean }>('board', {
+          id: boardId!,
+        })
+        expect(board?.is_favorite).toBe(true)
+      }).toPass({ timeout: 5000 })
 
       // Navigate to favorites page
       await page.goto('/boards/favorites')
@@ -323,7 +326,7 @@ test.describe('Board Favorites Feature', () => {
       await expect(async () => {
         const favBoards = await querySupabase<{ is_favorite: boolean }>(
           'board',
-          { is_favorite: true },
+          { user_id: TEST_USER_ID, is_favorite: true },
         )
         expect(favBoards).toHaveLength(0)
       }).toPass({ timeout: 5000 })
@@ -382,14 +385,13 @@ test.describe('Board Favorites Feature', () => {
         // Wait for server action to persist to database
         const setupTestId = await setupCard.getAttribute('data-testid')
         const setupBoardId = setupTestId?.replace('board-card-', '')
-        if (setupBoardId) {
-          await expect(async () => {
-            const board = await querySingle<{ is_favorite: boolean }>('board', {
-              id: setupBoardId,
-            })
-            expect(board?.is_favorite).toBe(true)
-          }).toPass({ timeout: 5000 })
-        }
+        expect(setupBoardId).toBeTruthy()
+        await expect(async () => {
+          const board = await querySingle<{ is_favorite: boolean }>('board', {
+            id: setupBoardId!,
+          })
+          expect(board?.is_favorite).toBe(true)
+        }).toPass({ timeout: 5000 })
       }
 
       // Navigate to favorites page
@@ -412,14 +414,13 @@ test.describe('Board Favorites Feature', () => {
       // Wait for server action to persist is_favorite=false to the database
       const cardTestId = await firstCard.getAttribute('data-testid')
       const cardBoardId = cardTestId?.replace('board-card-', '')
-      if (cardBoardId) {
-        await expect(async () => {
-          const board = await querySingle<{ is_favorite: boolean }>('board', {
-            id: cardBoardId,
-          })
-          expect(board?.is_favorite).toBe(false)
-        }).toPass({ timeout: 5000 })
-      }
+      expect(cardBoardId).toBeTruthy()
+      await expect(async () => {
+        const board = await querySingle<{ is_favorite: boolean }>('board', {
+          id: cardBoardId!,
+        })
+        expect(board?.is_favorite).toBe(false)
+      }).toPass({ timeout: 5000 })
 
       // Reload to verify the board is no longer on the favorites page
       await page.reload()
