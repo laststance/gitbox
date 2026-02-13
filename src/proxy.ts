@@ -11,6 +11,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { logSecurityEvent } from '@/lib/security-events'
 import { isTestMode } from '@/tests/isTestMode'
 
 // Public paths that don't require authentication
@@ -79,6 +80,7 @@ export async function proxy(request: NextRequest) {
 
   // Redirect to login if not authenticated
   if (!user) {
+    logSecurityEvent('unauthorized_access', { path: pathname })
     const loginUrl = new URL('/login', request.url)
     // Copy cookies to redirect response
     const redirectResponse = NextResponse.redirect(loginUrl)
