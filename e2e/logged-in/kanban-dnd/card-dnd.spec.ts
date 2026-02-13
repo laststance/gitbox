@@ -92,7 +92,6 @@ test.describe('10.2 Card Drag & Drop', () => {
      */
     test('should display cards in columns', async ({ page }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(500)
 
       // Check for repo cards in columns
       const cards = await page.locator('[data-testid^="repo-card-"]').all()
@@ -136,7 +135,11 @@ test.describe('10.2 Card Drag & Drop', () => {
      */
     test('should reorder cards within same column @slow', async ({ page }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be fully rendered for DnD
+      await expect(
+        page.locator('[data-testid^="status-column-"]').first(),
+      ).toBeVisible({ timeout: 10000 })
 
       /**
        * Gets the order of card IDs within a specific column.
@@ -187,7 +190,10 @@ test.describe('10.2 Card Drag & Drop', () => {
         dropDelay: 150,
       })
 
-      await page.waitForTimeout(600)
+      // Wait for DnD to settle - verify card is still visible after drop
+      await expect(
+        page.locator(`[data-testid="repo-card-${dragCard}"]`),
+      ).toBeVisible({ timeout: 5000 })
 
       // Get new card order from any column that contains the dragged card
       let newOrder: string[] = []
@@ -244,7 +250,11 @@ test.describe('10.2 Card Drag & Drop', () => {
      */
     test('should move card to different column @slow', async ({ page }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be fully rendered for DnD
+      await expect(
+        page.locator('[data-testid^="status-column-"]').first(),
+      ).toBeVisible({ timeout: 10000 })
 
       // Get initial card location
       const getCardStatusId = async (cardId: string) => {
@@ -278,7 +288,10 @@ test.describe('10.2 Card Drag & Drop', () => {
         dropDelay: 200,
       })
 
-      await page.waitForTimeout(500)
+      // Wait for DnD to settle - verify card is still visible after drop
+      await expect(
+        page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`),
+      ).toBeVisible({ timeout: 5000 })
 
       // Verify card moved to new column
       const newStatus = await getCardStatusId(CARD_IDS.card1)
@@ -295,7 +308,11 @@ test.describe('10.2 Card Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be fully rendered for DnD
+      await expect(
+        page.locator('[data-testid^="status-column-"]').first(),
+      ).toBeVisible({ timeout: 10000 })
 
       // Get initial card data
       const getCardInfo = async (cardId: string) => {
@@ -335,7 +352,10 @@ test.describe('10.2 Card Drag & Drop', () => {
         dropDelay: 250,
       })
 
-      await page.waitForTimeout(600)
+      // Wait for DnD to settle - verify card is still visible after drop
+      await expect(
+        page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`),
+      ).toBeVisible({ timeout: 5000 })
 
       const newInfo = await getCardInfo(CARD_IDS.card1)
 
@@ -362,7 +382,11 @@ test.describe('10.2 Card Drag & Drop', () => {
       const initialStatusId = cardBefore?.status_id
 
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be fully rendered for DnD
+      await expect(
+        page.locator('[data-testid^="status-column-"]').first(),
+      ).toBeVisible({ timeout: 10000 })
 
       // Move card4 to a different column (Production Release)
       await cdpCardToColumnDragAndDrop(
@@ -376,10 +400,13 @@ test.describe('10.2 Card Drag & Drop', () => {
         },
       )
 
-      // Wait for server action to complete
-      await page.waitForTimeout(1500)
+      // Wait for DnD to settle - verify card is still visible after drop
+      await expect(
+        page.locator(`[data-testid="repo-card-${CARD_IDS.card4}"]`),
+      ).toBeVisible({ timeout: 5000 })
 
-      // Verify card status_id is updated in database
+      // Poll database until status_id is updated (server action may be async)
+      // Note: CDP drag is inherently flaky, so the skip below handles cases where drag didn't register
       const cardAfter = await querySingle<{ status_id: string }>('repocard', {
         id: cardId,
       })

@@ -116,7 +116,7 @@ test.describe('Board DnD Reordering', () => {
     )
 
     // Wait for server action to persist, then reload to verify persisted order
-    await page.waitForTimeout(1000)
+    await page.waitForLoadState('networkidle')
     await page.reload()
     await page.waitForLoadState('networkidle')
     await expect(allCards.first()).toBeVisible({ timeout: 10000 })
@@ -175,8 +175,8 @@ test.describe('Board DnD Reordering', () => {
       { steps: 15, stepDelay: 50, dropDelay: 200 },
     )
 
-    // Wait for server action to complete
-    await page.waitForTimeout(1000)
+    // Wait for server action to complete by polling DB
+    await page.waitForLoadState('networkidle')
 
     // Query DB to verify positions were updated
     const boardsAfter = await querySupabase<{

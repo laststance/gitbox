@@ -43,9 +43,6 @@ test.describe('RepoCard Description Persistence', () => {
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
 
-    // Wait for cards to be rendered
-    await page.waitForTimeout(1000)
-
     // Get all visible card descriptions (descriptions are shown under card titles)
     // These descriptions come from meta.description, not from note
 
@@ -81,7 +78,6 @@ test.describe('RepoCard Description Persistence', () => {
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
-    await page.waitForTimeout(1000)
 
     // Verify descriptions are visible initially
     const description1 = page.getByText('A test repository for GitBox')
@@ -99,7 +95,6 @@ test.describe('RepoCard Description Persistence', () => {
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
-    await page.waitForTimeout(1000)
 
     // Step 4: Verify descriptions are still visible after navigation
     // This was the bug - descriptions would disappear after navigation
@@ -122,7 +117,6 @@ test.describe('RepoCard Description Persistence', () => {
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
-    await page.waitForTimeout(1000)
 
     // Verify descriptions are visible initially
     const description1 = page.getByText('A test repository for GitBox')
@@ -134,7 +128,6 @@ test.describe('RepoCard Description Persistence', () => {
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
-    await page.waitForTimeout(1000)
 
     // Verify descriptions are still visible after refresh
     await expect(description1).toBeVisible({ timeout: 10000 })
@@ -156,7 +149,11 @@ test.describe('RepoCard Description Persistence', () => {
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
-    await page.waitForTimeout(1000)
+
+    // Wait for cards to be rendered
+    await expect(
+      page.locator('[data-testid^="repo-card-"]').first(),
+    ).toBeVisible({ timeout: 10000 })
 
     // Find the card containers by their data-testid
     const cards = page.locator('[data-testid^="repo-card-"]')
@@ -202,7 +199,11 @@ test.describe('RepoCard Description Persistence', () => {
 
     // Wait for Kanban board to load
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
-    await page.waitForTimeout(1000)
+
+    // Wait for cards to be rendered
+    await expect(
+      page.locator('[data-testid^="repo-card-"]').first(),
+    ).toBeVisible({ timeout: 10000 })
 
     // The page should load without errors
     // All cards with descriptions should be visible

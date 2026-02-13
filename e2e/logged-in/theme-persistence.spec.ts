@@ -14,8 +14,8 @@ test.describe('Theme Persistence (Authenticated)', () => {
     await page.goto('/settings')
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration to complete
-    await page.waitForTimeout(1000)
+    // Wait for hydration by asserting the settings page content is ready
+    const html = page.locator('html')
 
     // Select midnight theme (dark theme)
     const midnightButton = page.locator('button').filter({
@@ -24,11 +24,7 @@ test.describe('Theme Persistence (Authenticated)', () => {
     await expect(midnightButton).toBeVisible()
     await midnightButton.click()
 
-    // Wait for theme to be applied
-    await page.waitForTimeout(500)
-
     // Verify theme is applied immediately
-    const html = page.locator('html')
     await expect(html).toHaveAttribute('data-theme', 'midnight', {
       timeout: 5000,
     })
@@ -38,10 +34,16 @@ test.describe('Theme Persistence (Authenticated)', () => {
     await page.reload()
     await page.waitForLoadState('networkidle')
 
-    // Wait for Redux hydration after reload
-    await page.waitForTimeout(1000)
+    // Verify theme persists after reload via localStorage check
+    await expect(async () => {
+      const theme = await page.evaluate(() => {
+        const state = localStorage.getItem('gitbox-state')
+        return state ? JSON.parse(state)?.settings?.theme : null
+      })
+      expect(theme).toBe('midnight')
+    }).toPass({ timeout: 5000 })
 
-    // Verify theme persists after reload
+    // Verify theme persists in DOM after reload
     await expect(html).toHaveAttribute('data-theme', 'midnight', {
       timeout: 5000,
     })
@@ -51,15 +53,15 @@ test.describe('Theme Persistence (Authenticated)', () => {
   test('should persist sunrise theme after page reload', async ({ page }) => {
     await page.goto('/settings')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000)
 
-    // Select sunrise theme (light theme)
+    // Wait for hydration by asserting theme button is visible
     const sunriseButton = page.locator('button').filter({
       has: page.locator('span:text-is("Sunrise")'),
     })
     await expect(sunriseButton).toBeVisible()
+
+    // Select sunrise theme (light theme)
     await sunriseButton.click()
-    await page.waitForTimeout(500)
 
     // Verify theme is applied
     const html = page.locator('html')
@@ -73,7 +75,15 @@ test.describe('Theme Persistence (Authenticated)', () => {
     // Reload and verify persistence
     await page.reload()
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000)
+
+    // Verify theme persists via localStorage
+    await expect(async () => {
+      const theme = await page.evaluate(() => {
+        const state = localStorage.getItem('gitbox-state')
+        return state ? JSON.parse(state)?.settings?.theme : null
+      })
+      expect(theme).toBe('sunrise')
+    }).toPass({ timeout: 5000 })
 
     await expect(html).toHaveAttribute('data-theme', 'sunrise', {
       timeout: 5000,
@@ -84,31 +94,34 @@ test.describe('Theme Persistence (Authenticated)', () => {
   test('should persist system theme after page reload', async ({ page }) => {
     await page.goto('/settings')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000)
 
-    // Select system theme
+    // Wait for hydration by asserting theme button is visible
     const systemButton = page.locator('button').filter({
       has: page.locator('span:text-is("System")'),
     })
     await expect(systemButton).toBeVisible()
+
+    // Select system theme
     await systemButton.click()
-    await page.waitForTimeout(500)
 
     // System theme should NOT have data-theme attribute (or empty)
     const html = page.locator('html')
-    // System theme removes the data-theme attribute
-    const dataTheme = await html.getAttribute('data-theme')
-    expect(dataTheme === null || dataTheme === '').toBe(true)
+    await expect(async () => {
+      const dataTheme = await html.getAttribute('data-theme')
+      expect(dataTheme === null || dataTheme === '').toBe(true)
+    }).toPass({ timeout: 5000 })
 
     // Reload and verify system theme persists
     await page.reload()
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000)
 
-    const dataThemeAfterReload = await html.getAttribute('data-theme')
-    expect(dataThemeAfterReload === null || dataThemeAfterReload === '').toBe(
-      true,
-    )
+    // Verify system theme persists via localStorage
+    await expect(async () => {
+      const dataThemeAfterReload = await html.getAttribute('data-theme')
+      expect(dataThemeAfterReload === null || dataThemeAfterReload === '').toBe(
+        true,
+      )
+    }).toPass({ timeout: 5000 })
   })
 
   test('should persist theme when navigating between pages', async ({
@@ -116,15 +129,15 @@ test.describe('Theme Persistence (Authenticated)', () => {
   }) => {
     await page.goto('/settings')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000)
 
-    // Select graphite theme (dark theme)
+    // Wait for hydration by asserting theme button is visible
     const graphiteButton = page.locator('button').filter({
       has: page.locator('span:text-is("Graphite")'),
     })
     await expect(graphiteButton).toBeVisible()
+
+    // Select graphite theme (dark theme)
     await graphiteButton.click()
-    await page.waitForTimeout(500)
 
     // Verify theme applied
     const html = page.locator('html')
@@ -136,7 +149,6 @@ test.describe('Theme Persistence (Authenticated)', () => {
     // Navigate to boards page
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000)
 
     // Theme should persist on boards page
     await expect(html).toHaveAttribute('data-theme', 'graphite', {
@@ -147,7 +159,6 @@ test.describe('Theme Persistence (Authenticated)', () => {
     // Navigate back to settings
     await page.goto('/settings')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000)
 
     // Theme should still be graphite
     await expect(html).toHaveAttribute('data-theme', 'graphite', {
@@ -162,22 +173,24 @@ test.describe('Theme Persistence (Authenticated)', () => {
 
     await page.goto('/settings')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000)
 
-    // Select system theme
+    // Wait for hydration by asserting theme button is visible
     const systemButton = page.locator('button').filter({
       has: page.locator('span:text-is("System")'),
     })
     await expect(systemButton).toBeVisible()
+
+    // Select system theme
     await systemButton.click()
-    await page.waitForTimeout(500)
 
     // Should have dark class (following system preference)
     const html = page.locator('html')
     await expect(html).toHaveClass(/dark/)
     // Should not have data-theme set for system theme
-    const dataTheme = await html.getAttribute('data-theme')
-    expect(dataTheme === null || dataTheme === '').toBe(true)
+    await expect(async () => {
+      const dataTheme = await html.getAttribute('data-theme')
+      expect(dataTheme === null || dataTheme === '').toBe(true)
+    }).toPass({ timeout: 5000 })
   })
 
   test('should respect system light mode preference', async ({ page }) => {
@@ -186,21 +199,23 @@ test.describe('Theme Persistence (Authenticated)', () => {
 
     await page.goto('/settings')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000)
 
-    // Select system theme
+    // Wait for hydration by asserting theme button is visible
     const systemButton = page.locator('button').filter({
       has: page.locator('span:text-is("System")'),
     })
     await expect(systemButton).toBeVisible()
+
+    // Select system theme
     await systemButton.click()
-    await page.waitForTimeout(500)
 
     // Should NOT have dark class (following system preference)
     const html = page.locator('html')
     await expect(html).not.toHaveClass(/dark/)
     // Should not have data-theme set for system theme
-    const dataTheme = await html.getAttribute('data-theme')
-    expect(dataTheme === null || dataTheme === '').toBe(true)
+    await expect(async () => {
+      const dataTheme = await html.getAttribute('data-theme')
+      expect(dataTheme === null || dataTheme === '').toBe(true)
+    }).toPass({ timeout: 5000 })
   })
 })

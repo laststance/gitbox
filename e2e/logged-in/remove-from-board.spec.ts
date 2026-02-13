@@ -30,9 +30,6 @@ test.describe('Remove from Board Feature', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration and cards to load
-    await page.waitForTimeout(500)
-
     // Find the first repo card's overflow menu trigger
     const overflowMenuTrigger = page
       .locator('[data-testid^="overflow-menu-trigger-"]')
@@ -61,12 +58,12 @@ test.describe('Remove from Board Feature', () => {
   }) => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
 
     // Open overflow menu
     const overflowMenuTrigger = page
       .locator('[data-testid^="overflow-menu-trigger-"]')
       .first()
+    await expect(overflowMenuTrigger).toBeVisible({ timeout: 10000 })
     await overflowMenuTrigger.click()
 
     // Click Remove from Board
@@ -102,12 +99,12 @@ test.describe('Remove from Board Feature', () => {
   }) => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
 
     // Open overflow menu and click Remove from Board
     const overflowMenuTrigger = page
       .locator('[data-testid^="overflow-menu-trigger-"]')
       .first()
+    await expect(overflowMenuTrigger).toBeVisible({ timeout: 10000 })
     await overflowMenuTrigger.click()
 
     const removeMenuItem = page
@@ -132,7 +129,11 @@ test.describe('Remove from Board Feature', () => {
   }) => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
+
+    // Wait for cards to load
+    await expect(
+      page.locator('[data-testid^="repo-card-"]').first(),
+    ).toBeVisible({ timeout: 10000 })
 
     // Count initial cards
     const initialCardCount = await page
@@ -166,17 +167,16 @@ test.describe('Remove from Board Feature', () => {
     const removeButton = alertDialog.getByRole('button', { name: /^remove$/i })
     await removeButton.click()
 
-    // Wait for optimistic update
-    await page.waitForTimeout(500)
-
-    // Dialog should close
+    // Dialog should close after optimistic update
     await expect(alertDialog).not.toBeVisible({ timeout: 5000 })
 
-    // Card count should decrease by 1
-    const finalCardCount = await page
-      .locator('[data-testid^="repo-card-"]')
-      .count()
-    expect(finalCardCount).toBe(initialCardCount - 1)
+    // Card count should decrease by 1 (wait for optimistic UI update)
+    await expect(async () => {
+      const finalCardCount = await page
+        .locator('[data-testid^="repo-card-"]')
+        .count()
+      expect(finalCardCount).toBe(initialCardCount - 1)
+    }).toPass({ timeout: 5000 })
 
     // The removed card should no longer exist
     if (firstCardTestId) {
@@ -199,7 +199,6 @@ test.describe('Remove from Board Feature', () => {
 
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
 
     // Find the specific card's overflow menu
     const overflowMenuTrigger = page.locator(
@@ -220,12 +219,14 @@ test.describe('Remove from Board Feature', () => {
     const removeButton = alertDialog.getByRole('button', { name: /^remove$/i })
     await removeButton.click()
 
-    // Wait for server action to complete
-    await page.waitForTimeout(1000)
+    // Wait for dialog to close (confirms action was triggered)
+    await expect(alertDialog).not.toBeVisible({ timeout: 5000 })
 
-    // Verify card is deleted from database
-    const cardAfter = await querySingle('repocard', { id: cardId })
-    expect(cardAfter).toBeNull()
+    // Poll database until card is deleted (server action may be async)
+    await expect(async () => {
+      const cardAfter = await querySingle('repocard', { id: cardId })
+      expect(cardAfter).toBeNull()
+    }).toPass({ timeout: 10000 })
 
     // Restore card-5 for subsequent tests on same shard
     await resetRepoCards()
@@ -236,7 +237,11 @@ test.describe('Remove from Board Feature', () => {
   }) => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
+
+    // Wait for cards to load
+    await expect(
+      page.locator('[data-testid^="repo-card-"]').first(),
+    ).toBeVisible({ timeout: 10000 })
 
     // Get the first card's repo name
     const cardTitle = await page
@@ -272,7 +277,11 @@ test.describe('Remove from Board Feature', () => {
   }) => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
+
+    // Wait for cards to load
+    await expect(
+      page.locator('[data-testid^="overflow-menu-trigger-"]').first(),
+    ).toBeVisible({ timeout: 10000 })
 
     // Open overflow menu
     const overflowMenuTrigger = page
@@ -309,7 +318,11 @@ test.describe('Remove from Board - Keyboard Accessibility', () => {
   test('should close confirmation dialog with Escape key', async ({ page }) => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
+
+    // Wait for cards to load
+    await expect(
+      page.locator('[data-testid^="overflow-menu-trigger-"]').first(),
+    ).toBeVisible({ timeout: 10000 })
 
     // Open overflow menu
     const overflowMenuTrigger = page

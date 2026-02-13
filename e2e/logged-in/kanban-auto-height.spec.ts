@@ -28,9 +28,6 @@ test.describe('Kanban Board Column Auto-Height', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration
-    await page.waitForTimeout(500)
-
     // Find the outer KanbanBoard container (should not have h-full or min-h-0)
     const kanbanContainer = page.locator('.w-fit.min-w-full.p-6').first()
     await expect(kanbanContainer).toBeVisible({ timeout: 10000 })
@@ -47,9 +44,6 @@ test.describe('Kanban Board Column Auto-Height', () => {
     await page.waitForLoadState('networkidle')
 
     // Wait for hydration - grid appears after isMounted is true
-    await page.waitForTimeout(500)
-
-    // Find the grid container
     const gridContainer = page.locator('.grid.gap-4.pb-4').first()
     await expect(gridContainer).toBeVisible({ timeout: 10000 })
 
@@ -65,8 +59,10 @@ test.describe('Kanban Board Column Auto-Height', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration
-    await page.waitForTimeout(500)
+    // Wait for hydration - grid appears after isMounted is true
+    await expect(page.locator('.grid.gap-4.pb-4').first()).toBeVisible({
+      timeout: 10000,
+    })
 
     // Check grid template rows style
     const gridStyle = await page.evaluate(() => {
@@ -88,9 +84,6 @@ test.describe('Kanban Board Column Auto-Height', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration
-    await page.waitForTimeout(500)
-
     // Find sortable columns by their data-testid pattern
     const sortableColumn = page
       .locator('[data-testid^="sortable-column-"]')
@@ -108,9 +101,6 @@ test.describe('Kanban Board Column Auto-Height', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration
-    await page.waitForTimeout(500)
-
     // Find status columns by their data-testid pattern
     const statusColumn = page.locator('[data-testid^="status-column-"]').first()
     await expect(statusColumn).toBeVisible({ timeout: 10000 })
@@ -125,9 +115,6 @@ test.describe('Kanban Board Column Auto-Height', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration
-    await page.waitForTimeout(500)
-
     // Find the card container inside a column (space-y-3 flex-1)
     const cardContainer = page.locator('.space-y-3.flex-1').first()
     await expect(cardContainer).toBeVisible({ timeout: 10000 })
@@ -141,8 +128,10 @@ test.describe('Kanban Board Column Auto-Height', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration
-    await page.waitForTimeout(500)
+    // Wait for hydration - cards render after isMounted is true
+    await expect(page.locator('.space-y-3.flex-1').first()).toBeVisible({
+      timeout: 10000,
+    })
 
     // Verify columns expand to fit content (no hidden cards)
     const columnInfo = await page.evaluate(() => {
@@ -208,8 +197,10 @@ test.describe('Kanban Board Column Auto-Height - Many Cards', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration
-    await page.waitForTimeout(500)
+    // Wait for hydration - card containers render after isMounted is true
+    await expect(page.locator('.space-y-3.flex-1').first()).toBeVisible({
+      timeout: 10000,
+    })
 
     // Verify no card container has internal overflow (scrollHeight === clientHeight)
     const overflowCheck = await page.evaluate(() => {
@@ -245,8 +236,10 @@ test.describe('Kanban Board Column Auto-Height - Many Cards', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration
-    await page.waitForTimeout(500)
+    // Wait for hydration - card containers render after isMounted is true
+    await expect(page.locator('.space-y-3.flex-1').first()).toBeVisible({
+      timeout: 10000,
+    })
 
     // Count total cards in all columns
     const cardCountResult = await page.evaluate(() => {
@@ -281,8 +274,10 @@ test.describe('Kanban Board Column Auto-Height - Many Cards', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration
-    await page.waitForTimeout(500)
+    // Wait for hydration - grid appears after isMounted is true
+    await expect(page.locator('.grid.gap-4.pb-4').first()).toBeVisible({
+      timeout: 10000,
+    })
 
     // Verify the hierarchy supports auto-height expansion
     const hierarchyCheck = await page.evaluate(() => {
@@ -345,16 +340,15 @@ test.describe('Kanban Board Column Auto-Height - Many Cards', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration and cards to be rendered
-    await page.waitForTimeout(500)
-
     // Wait for at least one column to be visible
     await expect(
       page.locator('[data-testid^="sortable-column-"]').first(),
     ).toBeVisible({ timeout: 10000 })
 
-    // Wait for cards to be rendered (they have animation)
-    await page.waitForTimeout(500)
+    // Wait for cards to be rendered
+    await expect(
+      page.locator('[data-testid^="repo-card-"]').first(),
+    ).toBeVisible({ timeout: 10000 })
 
     // Verify columns expand to match their content
     const heightInfo = await page.evaluate(() => {

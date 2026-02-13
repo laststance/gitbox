@@ -35,9 +35,6 @@ test.describe('Kanban Board Horizontal Scroll', () => {
     await page.waitForLoadState('networkidle')
 
     // Wait for hydration - grid appears after isMounted is true
-    await page.waitForTimeout(500)
-
-    // Find the grid container inside KanbanBoard
     const gridContainer = page.locator('.grid.gap-4.pb-4').first()
     await expect(gridContainer).toBeVisible({ timeout: 10000 })
 
@@ -63,8 +60,10 @@ test.describe('Kanban Board Horizontal Scroll', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration
-    await page.waitForTimeout(500)
+    // Wait for hydration - grid appears after isMounted is true
+    await expect(page.locator('.grid.gap-4.pb-4').first()).toBeVisible({
+      timeout: 10000,
+    })
 
     // Check if scroll container has scrollable content
     const scrollInfo = await page.evaluate(() => {
@@ -93,8 +92,10 @@ test.describe('Kanban Board Horizontal Scroll', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration
-    await page.waitForTimeout(500)
+    // Wait for hydration - grid appears after isMounted is true
+    await expect(page.locator('.grid.gap-4.pb-4').first()).toBeVisible({
+      timeout: 10000,
+    })
 
     // Check grid template columns style
     const gridStyle = await page.evaluate(() => {
@@ -160,8 +161,10 @@ test.describe('Kanban Board Horizontal Scroll - Multi Column', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration
-    await page.waitForTimeout(500)
+    // Wait for hydration - grid appears after isMounted is true
+    await expect(page.locator('.grid.gap-4.pb-4').first()).toBeVisible({
+      timeout: 10000,
+    })
 
     // Get initial scroll state
     const initialScrollState = await page.evaluate(() => {
@@ -217,8 +220,10 @@ test.describe('Kanban Board Horizontal Scroll - Multi Column', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration
-    await page.waitForTimeout(500)
+    // Wait for hydration - grid appears after isMounted is true
+    await expect(page.locator('.grid.gap-4.pb-4').first()).toBeVisible({
+      timeout: 10000,
+    })
 
     // Count visible columns before any scroll
     const initialColumnCount = await page.evaluate(() => {
@@ -253,8 +258,10 @@ test.describe('Kanban Board Horizontal Scroll - Multi Column', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration
-    await page.waitForTimeout(500)
+    // Wait for hydration - grid appears after isMounted is true
+    await expect(page.locator('.grid.gap-4.pb-4').first()).toBeVisible({
+      timeout: 10000,
+    })
 
     // Verify each column has minimum width of 280px
     const columnWidths = await page.evaluate(() => {

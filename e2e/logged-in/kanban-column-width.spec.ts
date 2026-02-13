@@ -23,8 +23,10 @@ test.describe('Kanban Column Width Constraints', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration
-    await page.waitForTimeout(500)
+    // Wait for hydration - grid appears after isMounted is true
+    await expect(
+      page.locator('[data-testid^="status-column-"]').first(),
+    ).toBeVisible({ timeout: 10000 })
 
     const columnWidth = await page.evaluate(() => {
       return getComputedStyle(document.documentElement)
@@ -40,7 +42,9 @@ test.describe('Kanban Column Width Constraints', () => {
     await page.waitForLoadState('networkidle')
 
     // Wait for hydration - grid appears after isMounted is true
-    await page.waitForTimeout(500)
+    await expect(page.locator('.grid.gap-4.pb-4').first()).toBeVisible({
+      timeout: 10000,
+    })
 
     const gridStyle = await page.evaluate(() => {
       const grid = document.querySelector('.grid.gap-4.pb-4')
@@ -58,8 +62,10 @@ test.describe('Kanban Column Width Constraints', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration
-    await page.waitForTimeout(500)
+    // Wait for hydration - columns appear after isMounted is true
+    await expect(
+      page.locator('[data-testid^="sortable-column-"]').first(),
+    ).toBeVisible({ timeout: 10000 })
 
     // Get all sortable columns (the wrapper divs that contain status columns)
     const columns = page.locator('[data-testid^="sortable-column-"]')
@@ -87,8 +93,10 @@ test.describe('Kanban Column Width Constraints', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for hydration
-    await page.waitForTimeout(500)
+    // Wait for hydration - columns appear after isMounted is true
+    await expect(
+      page.locator('[data-testid^="sortable-column-"]').first(),
+    ).toBeVisible({ timeout: 10000 })
 
     // Get column widths
     const columns = page.locator('[data-testid^="sortable-column-"]')

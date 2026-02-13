@@ -66,7 +66,11 @@ test.describe('Theme Visual Application', () => {
     }) => {
       await page.goto('/settings')
       await page.waitForLoadState('networkidle')
-      await page.waitForTimeout(1000)
+
+      // Wait for settings page to be fully rendered
+      await expect(
+        page.getByRole('heading', { name: /settings/i }),
+      ).toBeVisible({ timeout: 10000 })
 
       // Capture initial (system default) background
       const initialBg = await getBodyBgColor(page)
@@ -77,7 +81,6 @@ test.describe('Theme Visual Application', () => {
       })
       await expect(themeButton).toBeVisible()
       await themeButton.click()
-      await page.waitForTimeout(500)
 
       // Verify data-theme attribute is set
       const html = page.locator('html')
@@ -105,7 +108,11 @@ test.describe('Theme Visual Application', () => {
     }) => {
       await page.goto('/settings')
       await page.waitForLoadState('networkidle')
-      await page.waitForTimeout(1000)
+
+      // Wait for settings page to be fully rendered
+      await expect(
+        page.getByRole('heading', { name: /settings/i }),
+      ).toBeVisible({ timeout: 10000 })
 
       // Capture initial (system default) background
       const initialBg = await getBodyBgColor(page)
@@ -116,7 +123,6 @@ test.describe('Theme Visual Application', () => {
       })
       await expect(themeButton).toBeVisible()
       await themeButton.click()
-      await page.waitForTimeout(500)
 
       // Verify data-theme attribute is set
       const html = page.locator('html')
@@ -138,7 +144,11 @@ test.describe('Theme Visual Application', () => {
   }) => {
     await page.goto('/settings')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000)
+
+    // Wait for settings page to be fully rendered
+    await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible({
+      timeout: 10000,
+    })
 
     const backgrounds: Record<string, string> = {}
 
@@ -149,7 +159,13 @@ test.describe('Theme Visual Application', () => {
       })
       await expect(themeButton).toBeVisible()
       await themeButton.click()
-      await page.waitForTimeout(500)
+
+      // Wait for theme to be applied
+      await expect(page.locator('html')).toHaveAttribute(
+        'data-theme',
+        theme.id,
+        { timeout: 5000 },
+      )
 
       // Read the --background CSS variable (not computed color)
       const bgVar = await getBackgroundVar(page)
@@ -167,7 +183,11 @@ test.describe('Theme Visual Application', () => {
   }) => {
     await page.goto('/settings')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000)
+
+    // Wait for settings page to be fully rendered
+    await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible({
+      timeout: 10000,
+    })
 
     const backgrounds: Record<string, string> = {}
 
@@ -178,7 +198,13 @@ test.describe('Theme Visual Application', () => {
       })
       await expect(themeButton).toBeVisible()
       await themeButton.click()
-      await page.waitForTimeout(500)
+
+      // Wait for theme to be applied
+      await expect(page.locator('html')).toHaveAttribute(
+        'data-theme',
+        theme.id,
+        { timeout: 5000 },
+      )
 
       const bgVar = await getBackgroundVar(page)
       backgrounds[theme.id] = bgVar

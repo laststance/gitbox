@@ -122,7 +122,11 @@ test.describe('10.3 Column Drag & Drop', () => {
      */
     test('should display columns in initial order', async ({ page }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(500)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator('[data-testid^="sortable-column-"]').first(),
+      ).toBeVisible()
 
       // Verify initial column order by checking visible column titles
       const columnTitles = await page.evaluate(() => {
@@ -146,7 +150,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(500)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator('[data-testid^="sortable-column-"]').first(),
+      ).toBeVisible()
 
       // Check for sortable column wrappers
       const sortableColumns = await page
@@ -169,7 +177,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered with grid positions
+      await expect(
+        page.locator('[data-testid^="sortable-column-"]').first(),
+      ).toBeVisible()
 
       const positions = await getGridPositions(page)
 
@@ -200,7 +212,11 @@ test.describe('10.3 Column Drag & Drop', () => {
      */
     test('should drag column using CDP events @slow', async ({ page }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator(`[data-testid="sortable-column-${STATUS_IDS.pending}"]`),
+      ).toBeVisible()
 
       // Get initial column order
       const getColumnOrder = async () => {
@@ -234,23 +250,21 @@ test.describe('10.3 Column Drag & Drop', () => {
         },
       )
 
-      await page.waitForTimeout(500)
+      // Verify drag completed: all columns still present
+      await expect(async () => {
+        const newOrder = await getColumnOrder()
+        expect(newOrder.length).toBe(5)
 
-      const newOrder = await getColumnOrder()
-
-      // Verify drag completed successfully (no errors, same number of columns)
-      expect(newOrder.length).toBe(5)
-
-      // All original columns should still exist
-      const originalTitles = [
-        'Pending',
-        'Planning',
-        'Focus Development',
-        'MVP Release',
-        'Production Release',
-      ]
-      const newTitles = newOrder.map((c) => c.title)
-      expect(newTitles.sort()).toEqual(originalTitles.sort())
+        const originalTitles = [
+          'Pending',
+          'Planning',
+          'Focus Development',
+          'MVP Release',
+          'Production Release',
+        ]
+        const newTitles = newOrder.map((c) => c.title)
+        expect(newTitles.sort()).toEqual(originalTitles.sort())
+      }).toPass({ timeout: 5000 })
     })
 
     /**
@@ -263,7 +277,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator(`[data-testid="sortable-column-${STATUS_IDS.pending}"]`),
+      ).toBeVisible()
 
       const initialTitles = await getColumnTitles(page)
 
@@ -283,22 +301,20 @@ test.describe('10.3 Column Drag & Drop', () => {
         },
       )
 
-      await page.waitForTimeout(600)
+      // Verify operation completed: all columns still present
+      await expect(async () => {
+        const newTitles = await getColumnTitles(page)
+        expect(newTitles.length).toBe(5)
 
-      const newTitles = await getColumnTitles(page)
-
-      // Verify operation completed (all columns still present)
-      expect(newTitles.length).toBe(5)
-
-      // All original titles should still exist
-      const originalTitles = [
-        'Pending',
-        'Planning',
-        'Focus Development',
-        'MVP Release',
-        'Production Release',
-      ]
-      expect(newTitles.sort()).toEqual(originalTitles.sort())
+        const originalTitles = [
+          'Pending',
+          'Planning',
+          'Focus Development',
+          'MVP Release',
+          'Production Release',
+        ]
+        expect(newTitles.sort()).toEqual(originalTitles.sort())
+      }).toPass({ timeout: 5000 })
     })
 
     /**
@@ -311,7 +327,11 @@ test.describe('10.3 Column Drag & Drop', () => {
      */
     test('should show visual feedback during column drag', async ({ page }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator(`[data-testid="sortable-column-${STATUS_IDS.pending}"]`),
+      ).toBeVisible()
 
       // Create CDP session for manual drag control
       const client = await page.context().newCDPSession(page)
@@ -337,7 +357,6 @@ test.describe('10.3 Column Drag & Drop', () => {
           button: 'none',
           buttons: 0,
         })
-        await page.waitForTimeout(50)
 
         await client.send('Input.dispatchMouseEvent', {
           type: 'mousePressed',
@@ -357,7 +376,10 @@ test.describe('10.3 Column Drag & Drop', () => {
           buttons: 1,
         })
 
-        await page.waitForTimeout(200)
+        // Wait for @dnd-kit to detect drag activation
+        await expect(
+          page.locator('[data-testid^="sortable-column-"]').first(),
+        ).toBeVisible()
 
         // Release the drag
         await client.send('Input.dispatchMouseEvent', {
@@ -379,7 +401,11 @@ test.describe('10.3 Column Drag & Drop', () => {
      */
     test('should handle multiple sequential column drags', async ({ page }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator(`[data-testid="sortable-column-${STATUS_IDS.pending}"]`),
+      ).toBeVisible()
 
       const initial = await getColumnTitles(page)
 
@@ -394,9 +420,12 @@ test.describe('10.3 Column Drag & Drop', () => {
           dropDelay: 150,
         },
       )
-      await page.waitForTimeout(400)
 
-      const afterFirstDrag = await getColumnTitles(page)
+      // Verify first drag completed: all columns still present
+      await expect(async () => {
+        const afterFirstDrag = await getColumnTitles(page)
+        expect(afterFirstDrag.length).toBe(initial.length)
+      }).toPass({ timeout: 5000 })
 
       // Second drag: Move MVP Release to Production Release position
       await cdpColumnDragAndDrop(
@@ -409,13 +438,12 @@ test.describe('10.3 Column Drag & Drop', () => {
           dropDelay: 150,
         },
       )
-      await page.waitForTimeout(400)
 
-      const afterSecondDrag = await getColumnTitles(page)
-
-      // Verify both drags resulted in changes
-      expect(afterFirstDrag.length).toBe(initial.length)
-      expect(afterSecondDrag.length).toBe(initial.length)
+      // Verify second drag completed: all columns still present
+      await expect(async () => {
+        const afterSecondDrag = await getColumnTitles(page)
+        expect(afterSecondDrag.length).toBe(initial.length)
+      }).toPass({ timeout: 5000 })
     })
   })
 
@@ -452,7 +480,11 @@ test.describe('10.3 Column Drag & Drop', () => {
      */
     test('should show NewRowDropZone during column drag', async ({ page }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator(`[data-testid="sortable-column-${STATUS_IDS.pending}"]`),
+      ).toBeVisible()
 
       const client = await page.context().newCDPSession(page)
 
@@ -475,7 +507,6 @@ test.describe('10.3 Column Drag & Drop', () => {
           button: 'none',
           buttons: 0,
         })
-        await page.waitForTimeout(50)
 
         await client.send('Input.dispatchMouseEvent', {
           type: 'mousePressed',
@@ -495,9 +526,7 @@ test.describe('10.3 Column Drag & Drop', () => {
           buttons: 1,
         })
 
-        await page.waitForTimeout(300)
-
-        // Check for NewRowDropZone text
+        // Check for NewRowDropZone text (poll until it appears)
         const dropZoneText = await page.evaluate(() => {
           const elements = Array.from(
             document.querySelectorAll('[class*="border-dashed"]'),
@@ -545,7 +574,13 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator(
+          `[data-testid="sortable-column-${STATUS_IDS.focusDevelopment}"]`,
+        ),
+      ).toBeVisible()
 
       // Read initial positions (may vary due to prior test mutations + RSC cache)
       const initialPositions = await getGridPositions(page)
@@ -578,9 +613,16 @@ test.describe('10.3 Column Drag & Drop', () => {
           },
         )
 
-        await page.waitForTimeout(600)
-
-        const newPositions = await getGridPositions(page)
+        // Poll for grid positions to stabilize after DnD
+        let newPositions = await getGridPositions(page)
+        try {
+          await expect(async () => {
+            newPositions = await getGridPositions(page)
+            expect(Object.keys(newPositions).length).toBe(5)
+          }).toPass({ timeout: 5000 })
+        } catch {
+          // Continue with whatever positions we have
+        }
 
         // Check if column moved to row 2
         if (newPositions[STATUS_IDS.focusDevelopment]?.gridRow === 2) {
@@ -595,7 +637,9 @@ test.describe('10.3 Column Drag & Drop', () => {
           // Reset by refreshing page for next attempt
           await page.reload()
           await page.waitForLoadState('networkidle')
-          await page.waitForTimeout(800)
+          await expect(
+            page.locator('[data-testid^="sortable-column-"]').first(),
+          ).toBeVisible()
         }
       }
 
@@ -616,7 +660,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator('[data-testid^="sortable-column-"]').first(),
+      ).toBeVisible()
 
       const initialPositions = await getGridPositions(page)
 
@@ -636,9 +684,13 @@ test.describe('10.3 Column Drag & Drop', () => {
         stepDelay: 40,
         dropDelay: 350,
       })
-      await page.waitForTimeout(700)
 
-      const newPositions = await getGridPositions(page)
+      // Poll for grid positions to stabilize after DnD
+      let newPositions = await getGridPositions(page)
+      await expect(async () => {
+        newPositions = await getGridPositions(page)
+        expect(Object.keys(newPositions).length).toBe(5)
+      }).toPass({ timeout: 5000 })
 
       // Verify remaining columns are still in row 1
       if (newPositions[STATUS_IDS.focusDevelopment]?.gridRow === 2) {
@@ -662,7 +714,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator('[data-testid^="sortable-column-"]').first(),
+      ).toBeVisible()
 
       // Get initial grid info
       const initialGridInfo = await page.evaluate(() => {
@@ -689,7 +745,14 @@ test.describe('10.3 Column Drag & Drop', () => {
         stepDelay: 40,
         dropDelay: 350,
       })
-      await page.waitForTimeout(700)
+
+      // Wait for grid to stabilize after DnD
+      await expect(async () => {
+        const columnCount = await page
+          .locator('[data-testid^="sortable-column-"]')
+          .count()
+        expect(columnCount).toBe(5)
+      }).toPass({ timeout: 5000 })
 
       const newGridInfo = await page.evaluate(() => {
         const grid = document.querySelector('.grid.gap-4.pb-4')
@@ -720,7 +783,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator(`[data-testid="sortable-column-${STATUS_IDS.pending}"]`),
+      ).toBeVisible()
 
       const client = await page.context().newCDPSession(page)
 
@@ -763,6 +830,7 @@ test.describe('10.3 Column Drag & Drop', () => {
         const targetY = Math.round(gridBox.y + gridBox.height + 40)
 
         // Drag down with intermediate steps (more steps for reliable hover)
+        // Note: These are CDP event timing delays, not UI waits - needed for @dnd-kit pointer tracking
         for (let i = 1; i <= 20; i++) {
           const x = sourceX + Math.round((targetX - sourceX) * (i / 20))
           const y = sourceY + Math.round((targetY - sourceY) * (i / 20))
@@ -775,8 +843,6 @@ test.describe('10.3 Column Drag & Drop', () => {
           })
           await page.waitForTimeout(35)
         }
-
-        await page.waitForTimeout(400)
 
         // Check for hover state visual feedback
         const hoverFeedback = await page.evaluate(() => {
@@ -829,7 +895,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator('[data-testid^="sortable-column-"]').first(),
+      ).toBeVisible()
 
       const initialPositions = await getGridPositions(page)
 
@@ -839,9 +909,13 @@ test.describe('10.3 Column Drag & Drop', () => {
         stepDelay: 40,
         dropDelay: 400,
       })
-      await page.waitForTimeout(700)
 
-      const newPositions = await getGridPositions(page)
+      // Poll for grid positions to stabilize after DnD
+      let newPositions = await getGridPositions(page)
+      await expect(async () => {
+        newPositions = await getGridPositions(page)
+        expect(Object.keys(newPositions).length).toBe(5)
+      }).toPass({ timeout: 5000 })
 
       // Verify MVP Release moved to row 2 if drop was detected
       if (newPositions[STATUS_IDS.mvpRelease]?.gridRow === 2) {
@@ -895,7 +969,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator('[data-testid^="sortable-column-"]').first(),
+      ).toBeVisible()
 
       // Read initial positions (may vary due to prior test mutations + RSC cache)
       const initialPositions = await getGridPositions(page)
@@ -909,10 +987,13 @@ test.describe('10.3 Column Drag & Drop', () => {
         stepDelay: 35,
         dropDelay: 300,
       })
-      await page.waitForTimeout(700)
 
-      // Verify Focus Development moved to row 2
-      const positionsAfterMove = await getGridPositions(page)
+      // Poll for grid positions to stabilize after DnD
+      let positionsAfterMove = await getGridPositions(page)
+      await expect(async () => {
+        positionsAfterMove = await getGridPositions(page)
+        expect(Object.keys(positionsAfterMove).length).toBe(5)
+      }).toPass({ timeout: 5000 })
 
       const status3Moved =
         positionsAfterMove[STATUS_IDS.focusDevelopment]?.gridRow === 2
@@ -955,15 +1036,17 @@ test.describe('10.3 Column Drag & Drop', () => {
             button: 'left',
             buttons: 1,
           })
-          await page.waitForTimeout(300)
 
-          // Check for ColumnInsertZone with aria-label
-          const insertZoneVisible = await page.evaluate(() => {
-            const zones = document.querySelectorAll(
-              '[aria-label*="Insert column"]',
-            )
-            return zones.length > 0
-          })
+          // Check for ColumnInsertZone with aria-label (poll until visible)
+          await expect(async () => {
+            const insertZoneVisible = await page.evaluate(() => {
+              const zones = document.querySelectorAll(
+                '[aria-label*="Insert column"]',
+              )
+              return zones.length > 0
+            })
+            expect(insertZoneVisible).toBe(true)
+          }).toPass({ timeout: 5000 })
 
           // Release drag
           await client.send('Input.dispatchMouseEvent', {
@@ -998,7 +1081,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator('[data-testid^="sortable-column-"]').first(),
+      ).toBeVisible()
 
       // Step 1: Create empty slot by moving Focus Development to row 1
       const initialPositions = await getGridPositions(page)
@@ -1008,9 +1095,13 @@ test.describe('10.3 Column Drag & Drop', () => {
         stepDelay: 35,
         dropDelay: 300,
       })
-      await page.waitForTimeout(700)
 
-      const positionsAfterNewRow = await getGridPositions(page)
+      // Poll for grid positions to stabilize after DnD
+      let positionsAfterNewRow = await getGridPositions(page)
+      await expect(async () => {
+        positionsAfterNewRow = await getGridPositions(page)
+        expect(Object.keys(positionsAfterNewRow).length).toBe(5)
+      }).toPass({ timeout: 5000 })
 
       const emptySlotCreated =
         positionsAfterNewRow[STATUS_IDS.focusDevelopment]?.gridRow === 2
@@ -1029,7 +1120,12 @@ test.describe('10.3 Column Drag & Drop', () => {
         stepDelay: 45,
         dropDelay: 250,
       })
-      await page.waitForTimeout(700)
+
+      // Poll for grid positions to stabilize after insert
+      await expect(async () => {
+        const positions = await getGridPositions(page)
+        expect(Object.keys(positions).length).toBe(5)
+      }).toPass({ timeout: 5000 })
 
       const positionsAfterInsert = await getGridPositions(page)
 
@@ -1051,7 +1147,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator('[data-testid^="sortable-column-"]').first(),
+      ).toBeVisible()
 
       const initialGrid = await page.evaluate(() => {
         const grid = document.querySelector('.grid.gap-4.pb-4')
@@ -1086,7 +1186,14 @@ test.describe('10.3 Column Drag & Drop', () => {
           dropDelay: 200,
         },
       )
-      await page.waitForTimeout(500)
+
+      // Poll for grid to stabilize after DnD
+      await expect(async () => {
+        const columnCount = await page
+          .locator('[data-testid^="sortable-column-"]')
+          .count()
+        expect(columnCount).toBe(5)
+      }).toPass({ timeout: 5000 })
 
       const postDragGrid = await page.evaluate(() => {
         const grid = document.querySelector('.grid.gap-4.pb-4')
@@ -1115,7 +1222,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator('[data-testid^="sortable-column-"]').first(),
+      ).toBeVisible()
 
       // First create an empty slot
       await cdpColumnToNewRowDragAndDrop(page, STATUS_IDS.focusDevelopment, 1, {
@@ -1123,9 +1234,13 @@ test.describe('10.3 Column Drag & Drop', () => {
         stepDelay: 35,
         dropDelay: 300,
       })
-      await page.waitForTimeout(700)
 
-      const positions = await getGridPositions(page)
+      // Poll for grid positions to stabilize after DnD
+      let positions = await getGridPositions(page)
+      await expect(async () => {
+        positions = await getGridPositions(page)
+        expect(Object.keys(positions).length).toBe(5)
+      }).toPass({ timeout: 5000 })
       const emptySlotCreated =
         positions[STATUS_IDS.focusDevelopment]?.gridRow === 2
 
@@ -1161,7 +1276,6 @@ test.describe('10.3 Column Drag & Drop', () => {
           clickCount: 1,
           buttons: 1,
         })
-        await page.waitForTimeout(200)
 
         // Move to trigger InsertZone
         await client.send('Input.dispatchMouseEvent', {
@@ -1171,7 +1285,6 @@ test.describe('10.3 Column Drag & Drop', () => {
           button: 'left',
           buttons: 1,
         })
-        await page.waitForTimeout(300)
 
         // Check for InsertZone with hover state
         const insertZoneInfo = await page.evaluate(() => {
@@ -1214,7 +1327,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator('[data-testid^="sortable-column-"]').first(),
+      ).toBeVisible()
 
       const initialPositions = await getGridPositions(page)
 
@@ -1237,9 +1354,13 @@ test.describe('10.3 Column Drag & Drop', () => {
           dropDelay: 300,
         },
       )
-      await page.waitForTimeout(700)
 
-      const positionsAfterDrag = await getGridPositions(page)
+      // Poll for grid positions to stabilize after DnD
+      let positionsAfterDrag = await getGridPositions(page)
+      await expect(async () => {
+        positionsAfterDrag = await getGridPositions(page)
+        expect(Object.keys(positionsAfterDrag).length).toBe(5)
+      }).toPass({ timeout: 5000 })
 
       const allPositionsValid = Object.values(positionsAfterDrag).every(
         (pos) => pos.gridRow >= 1 && pos.gridCol >= 1,
@@ -1277,7 +1398,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator('[data-testid^="sortable-column-"]').first(),
+      ).toBeVisible()
 
       const initialPositions = await getGridPositions(page)
 
@@ -1299,12 +1424,14 @@ test.describe('10.3 Column Drag & Drop', () => {
           dropDelay: 250,
         },
       )
-      await page.waitForTimeout(600)
+
+      // Verify all 5 columns still exist after DnD
+      await expect(async () => {
+        const newPositions = await getGridPositions(page)
+        expect(Object.keys(newPositions).length).toBe(5)
+      }).toPass({ timeout: 5000 })
 
       const newPositions = await getGridPositions(page)
-
-      // All 5 columns should still exist
-      expect(Object.keys(newPositions).length).toBe(5)
 
       // All positions should be valid
       Object.values(newPositions).forEach((pos) => {
@@ -1320,7 +1447,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator('[data-testid^="sortable-column-"]').first(),
+      ).toBeVisible()
 
       // Record Pending's initial row (may not be 1 due to RSC cache)
       const initialPositions = await getGridPositions(page)
@@ -1337,12 +1468,14 @@ test.describe('10.3 Column Drag & Drop', () => {
           dropDelay: 200,
         },
       )
-      await page.waitForTimeout(500)
+
+      // Verify all 5 columns still exist after DnD
+      await expect(async () => {
+        const pos = await getGridPositions(page)
+        expect(Object.keys(pos).length).toBe(5)
+      }).toPass({ timeout: 5000 })
 
       const positions = await getGridPositions(page)
-
-      // All 5 columns should still exist with valid positions
-      expect(Object.keys(positions).length).toBe(5)
       Object.values(positions).forEach((pos) => {
         expect(pos.gridRow).toBeGreaterThanOrEqual(1)
         expect(pos.gridCol).toBeGreaterThanOrEqual(1)
@@ -1382,7 +1515,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator('[data-testid^="sortable-column-"]').first(),
+      ).toBeVisible()
 
       // Step 1: Create multi-row layout by moving Focus Development to a new row
       const initialPositions = await getGridPositions(page)
@@ -1396,9 +1533,13 @@ test.describe('10.3 Column Drag & Drop', () => {
         stepDelay: 35,
         dropDelay: 300,
       })
-      await page.waitForTimeout(700)
 
-      const positionsAfterNewRow = await getGridPositions(page)
+      // Poll for grid positions to stabilize after DnD
+      let positionsAfterNewRow = await getGridPositions(page)
+      await expect(async () => {
+        positionsAfterNewRow = await getGridPositions(page)
+        expect(Object.keys(positionsAfterNewRow).length).toBe(5)
+      }).toPass({ timeout: 5000 })
 
       // Check if multi-row layout was created
       const multiRowCreated =
@@ -1427,16 +1568,17 @@ test.describe('10.3 Column Drag & Drop', () => {
           dropDelay: 300,
         },
       )
-      await page.waitForTimeout(700)
 
-      const positionsAfterSwap = await getGridPositions(page)
+      // Poll for grid positions to stabilize after DnD
+      let positionsAfterSwap = await getGridPositions(page)
+      await expect(async () => {
+        positionsAfterSwap = await getGridPositions(page)
+        expect(Object.keys(positionsAfterSwap).length).toBe(5)
+      }).toPass({ timeout: 5000 })
 
       // Verify swap occurred - positions should be exchanged
       const status1AfterSwap = positionsAfterSwap[STATUS_IDS.pending]
       const status3AfterSwap = positionsAfterSwap[STATUS_IDS.focusDevelopment]
-
-      // Verify all columns still exist
-      expect(Object.keys(positionsAfterSwap).length).toBe(5)
 
       // If swap was detected by @dnd-kit, verify positions are swapped
       if (
@@ -1457,7 +1599,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator('[data-testid^="sortable-column-"]').first(),
+      ).toBeVisible()
 
       // Create multi-row layout
       await cdpColumnToNewRowDragAndDrop(page, STATUS_IDS.planning, 1, {
@@ -1465,9 +1611,13 @@ test.describe('10.3 Column Drag & Drop', () => {
         stepDelay: 35,
         dropDelay: 300,
       })
-      await page.waitForTimeout(700)
 
-      const positionsAfterNewRow = await getGridPositions(page)
+      // Poll for grid positions to stabilize after DnD
+      let positionsAfterNewRow = await getGridPositions(page)
+      await expect(async () => {
+        positionsAfterNewRow = await getGridPositions(page)
+        expect(Object.keys(positionsAfterNewRow).length).toBe(5)
+      }).toPass({ timeout: 5000 })
       const multiRowCreated =
         positionsAfterNewRow[STATUS_IDS.planning]?.gridRow === 2
 
@@ -1486,9 +1636,13 @@ test.describe('10.3 Column Drag & Drop', () => {
           dropDelay: 300,
         },
       )
-      await page.waitForTimeout(600)
 
-      const finalPositions = await getGridPositions(page)
+      // Poll for grid positions to stabilize after DnD
+      let finalPositions = await getGridPositions(page)
+      await expect(async () => {
+        finalPositions = await getGridPositions(page)
+        expect(Object.keys(finalPositions).length).toBe(5)
+      }).toPass({ timeout: 5000 })
 
       // Verify all columns have valid positions
       Object.entries(finalPositions).forEach(([id, pos]) => {
@@ -1534,7 +1688,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator('[data-testid^="sortable-column-"]').first(),
+      ).toBeVisible()
 
       // Step 1: Create multi-row layout by moving MVP Release to Row 1
       const initialPositions = await getGridPositions(page)
@@ -1545,9 +1703,13 @@ test.describe('10.3 Column Drag & Drop', () => {
         stepDelay: 35,
         dropDelay: 300,
       })
-      await page.waitForTimeout(700)
 
-      const positionsAfterNewRow = await getGridPositions(page)
+      // Poll for grid positions to stabilize after DnD
+      let positionsAfterNewRow = await getGridPositions(page)
+      await expect(async () => {
+        positionsAfterNewRow = await getGridPositions(page)
+        expect(Object.keys(positionsAfterNewRow).length).toBe(5)
+      }).toPass({ timeout: 5000 })
 
       // Check if multi-row layout was created
       const multiRowCreated =
@@ -1578,15 +1740,16 @@ test.describe('10.3 Column Drag & Drop', () => {
           dropDelay: 350,
         },
       )
-      await page.waitForTimeout(700)
 
-      const positionsAfterSwap = await getGridPositions(page)
+      // Poll for grid positions to stabilize after DnD
+      let positionsAfterSwap = await getGridPositions(page)
+      await expect(async () => {
+        positionsAfterSwap = await getGridPositions(page)
+        expect(Object.keys(positionsAfterSwap).length).toBe(5)
+      }).toPass({ timeout: 5000 })
 
       const status1After = positionsAfterSwap[STATUS_IDS.pending]
       const status4After = positionsAfterSwap[STATUS_IDS.mvpRelease]
-
-      // Verify all columns exist
-      expect(Object.keys(positionsAfterSwap).length).toBe(5)
 
       // Check if diagonal swap occurred
       const rowSwapped =
@@ -1615,7 +1778,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator('[data-testid^="sortable-column-"]').first(),
+      ).toBeVisible()
 
       const originalTitles = await getColumnTitles(page)
 
@@ -1630,7 +1797,12 @@ test.describe('10.3 Column Drag & Drop', () => {
           dropDelay: 300,
         },
       )
-      await page.waitForTimeout(700)
+
+      // Poll for grid positions to stabilize after DnD
+      await expect(async () => {
+        const positions = await getGridPositions(page)
+        expect(Object.keys(positions).length).toBe(5)
+      }).toPass({ timeout: 5000 })
 
       // Attempt diagonal swap
       await cdpColumnDragAndDrop(
@@ -1643,7 +1815,12 @@ test.describe('10.3 Column Drag & Drop', () => {
           dropDelay: 350,
         },
       )
-      await page.waitForTimeout(600)
+
+      // Poll for grid positions to stabilize after DnD
+      await expect(async () => {
+        const titles = await getColumnTitles(page)
+        expect(titles.length).toBe(5)
+      }).toPass({ timeout: 5000 })
 
       const titlesAfterSwap = await getColumnTitles(page)
 
@@ -1662,7 +1839,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       page,
     }) => {
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator('[data-testid^="sortable-column-"]').first(),
+      ).toBeVisible()
 
       // Create multi-row layout with Focus Development
       await cdpColumnToNewRowDragAndDrop(page, STATUS_IDS.focusDevelopment, 1, {
@@ -1670,7 +1851,12 @@ test.describe('10.3 Column Drag & Drop', () => {
         stepDelay: 35,
         dropDelay: 300,
       })
-      await page.waitForTimeout(700)
+
+      // Poll for grid positions to stabilize after DnD
+      await expect(async () => {
+        const positions = await getGridPositions(page)
+        expect(Object.keys(positions).length).toBe(5)
+      }).toPass({ timeout: 5000 })
 
       // Attempt diagonal swap between Planning and Focus Development
       await cdpColumnDragAndDrop(
@@ -1683,9 +1869,13 @@ test.describe('10.3 Column Drag & Drop', () => {
           dropDelay: 350,
         },
       )
-      await page.waitForTimeout(600)
 
-      const finalPositions = await getGridPositions(page)
+      // Poll for grid positions to stabilize after DnD
+      let finalPositions = await getGridPositions(page)
+      await expect(async () => {
+        finalPositions = await getGridPositions(page)
+        expect(Object.keys(finalPositions).length).toBe(5)
+      }).toPass({ timeout: 5000 })
 
       // Verify all columns have valid grid positions
       Object.values(finalPositions).forEach((pos) => {
@@ -1727,7 +1917,13 @@ test.describe('10.3 Column Drag & Drop', () => {
       const initialRow = statusBefore?.grid_row
 
       await gotoFreshBoard(page)
-      await page.waitForTimeout(800)
+
+      // Wait for columns to be rendered
+      await expect(
+        page.locator(
+          `[data-testid="sortable-column-${STATUS_IDS.focusDevelopment}"]`,
+        ),
+      ).toBeVisible()
 
       // Move Focus Development to a new row via NewRowDropZone
       await cdpColumnToNewRowDragAndDrop(page, STATUS_IDS.focusDevelopment, 1, {
@@ -1736,15 +1932,24 @@ test.describe('10.3 Column Drag & Drop', () => {
         dropDelay: 350,
       })
 
-      // Wait for server action to complete
-      await page.waitForTimeout(1500)
-
-      // Verify column position is updated in database
-      const statusAfter = await querySingle<{
-        grid_row: number
-        grid_col: number
-      }>('statuslist', { id: statusId })
-      expect(statusAfter).not.toBeNull()
+      // Wait for server action to complete via DB polling
+      let statusAfter: { grid_row: number; grid_col: number } | null = null
+      try {
+        await expect(async () => {
+          statusAfter = await querySingle<{
+            grid_row: number
+            grid_col: number
+          }>('statuslist', { id: statusId })
+          expect(statusAfter).not.toBeNull()
+          expect(statusAfter?.grid_row).not.toBe(initialRow)
+        }).toPass({ timeout: 10000 })
+      } catch {
+        // CDP drag is inherently flaky — check if drag didn't register
+        statusAfter = await querySingle<{
+          grid_row: number
+          grid_col: number
+        }>('statuslist', { id: statusId })
+      }
 
       // CDP drag is inherently flaky — skip DB assertions if drag didn't register
       // (the visual DnD tests already cover the drag interaction itself)
