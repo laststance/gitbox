@@ -9,7 +9,7 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
-import { querySingle, BOARD_IDS } from '../helpers/db-query'
+import { querySingle, querySupabase, BOARD_IDS } from '../helpers/db-query'
 
 test.describe('Board Favorites Feature', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
@@ -102,12 +102,24 @@ test.describe('Board Favorites Feature', () => {
       // Favorite the board
       await unfavoritedButton.click()
 
-      // Wait for the favorite status to be persisted
+      // Wait for the favorite status to be persisted (optimistic UI)
       await expect(
         targetCard.locator(
           'button[aria-label*="Remove"][aria-label*="favorite"]',
         ),
       ).toBeVisible({ timeout: 5000 })
+
+      // Wait for server action to persist is_favorite to the database
+      const boardTestId = await targetCard.getAttribute('data-testid')
+      const boardId = boardTestId?.replace('board-card-', '')
+      if (boardId) {
+        await expect(async () => {
+          const board = await querySingle<{ is_favorite: boolean }>('board', {
+            id: boardId,
+          })
+          expect(board?.is_favorite).toBe(true)
+        }).toPass({ timeout: 5000 })
+      }
 
       // Reload the page
       await page.reload()
@@ -249,12 +261,24 @@ test.describe('Board Favorites Feature', () => {
 
       await starButton.click()
 
-      // Wait for favorite to be applied before navigating
+      // Wait for favorite to be applied before navigating (optimistic UI)
       await expect(
         targetCard.locator(
           'button[aria-label*="Remove"][aria-label*="favorite"]',
         ),
       ).toBeVisible({ timeout: 5000 })
+
+      // Wait for server action to persist is_favorite to the database
+      const boardTestId = await targetCard.getAttribute('data-testid')
+      const boardId = boardTestId?.replace('board-card-', '')
+      if (boardId) {
+        await expect(async () => {
+          const board = await querySingle<{ is_favorite: boolean }>('board', {
+            id: boardId,
+          })
+          expect(board?.is_favorite).toBe(true)
+        }).toPass({ timeout: 5000 })
+      }
 
       // Navigate to favorites page
       await page.goto('/boards/favorites')
@@ -295,6 +319,15 @@ test.describe('Board Favorites Feature', () => {
         count = await favoritedButtons.count()
       }
 
+      // Wait for all unfavorite server actions to persist to the database
+      await expect(async () => {
+        const favBoards = await querySupabase<{ is_favorite: boolean }>(
+          'board',
+          { is_favorite: true },
+        )
+        expect(favBoards).toHaveLength(0)
+      }).toPass({ timeout: 5000 })
+
       // Navigate to favorites page
       await page.goto('/boards/favorites')
       await page.waitForLoadState('networkidle')
@@ -334,13 +367,29 @@ test.describe('Board Favorites Feature', () => {
       page,
     }) => {
       // Ensure at least one board is favorited
-      const addButton = page
-        .locator('button[aria-label*="Add"][aria-label*="favorite"]')
-        .first()
-      if ((await addButton.count()) > 0) {
-        await addButton.click()
-        // Wait for favorite to be applied
-        await expect(addButton).not.toBeVisible({ timeout: 5000 })
+      const setupCard = page.locator('[data-testid^="board-card-"]').first()
+      const setupAddBtn = setupCard.locator(
+        'button[aria-label*="Add"][aria-label*="favorite"]',
+      )
+      if ((await setupAddBtn.count()) > 0) {
+        await setupAddBtn.click()
+        // Wait for favorite to be applied on this specific card
+        await expect(
+          setupCard.locator(
+            'button[aria-label*="Remove"][aria-label*="favorite"]',
+          ),
+        ).toBeVisible({ timeout: 5000 })
+        // Wait for server action to persist to database
+        const setupTestId = await setupCard.getAttribute('data-testid')
+        const setupBoardId = setupTestId?.replace('board-card-', '')
+        if (setupBoardId) {
+          await expect(async () => {
+            const board = await querySingle<{ is_favorite: boolean }>('board', {
+              id: setupBoardId,
+            })
+            expect(board?.is_favorite).toBe(true)
+          }).toPass({ timeout: 5000 })
+        }
       }
 
       // Navigate to favorites page
@@ -350,31 +399,39 @@ test.describe('Board Favorites Feature', () => {
       // Get the first favorited board
       const firstCard = page.locator('[data-testid^="board-card-"]').first()
       const boardName = await firstCard.locator('h2, h3').first().textContent()
-      const starButton = firstCard.locator('button[aria-label*="Remove"]')
+      const removeBtn = firstCard.locator('button[aria-label*="Remove"]')
 
       // Unfavorite it
-      await starButton.click()
+      await removeBtn.click()
 
-      // Board should disappear from the page
+      // Wait for the button to change to "Add" (optimistic UI update)
+      await expect(
+        firstCard.locator('button[aria-label*="Add"][aria-label*="favorite"]'),
+      ).toBeVisible({ timeout: 5000 })
+
+      // Wait for server action to persist is_favorite=false to the database
+      const cardTestId = await firstCard.getAttribute('data-testid')
+      const cardBoardId = cardTestId?.replace('board-card-', '')
+      if (cardBoardId) {
+        await expect(async () => {
+          const board = await querySingle<{ is_favorite: boolean }>('board', {
+            id: cardBoardId,
+          })
+          expect(board?.is_favorite).toBe(false)
+        }).toPass({ timeout: 5000 })
+      }
+
+      // Reload to verify the board is no longer on the favorites page
+      await page.reload()
+      await page.waitForLoadState('networkidle')
+
+      // Board should not appear on the favorites page after reload
       if (boardName) {
-        // Check if the board card is still visible (use heading to avoid matching toast)
         const boardHeading = page.getByRole('heading', {
           name: boardName,
           level: 3,
         })
-
-        // Wait for the card to be removed from the favorites page
-        await expect(async () => {
-          const boardExists = (await boardHeading.count()) > 0
-          if (!boardExists) {
-            // Board section removed — check if empty state appears
-            await expect(
-              page.getByText(/no favorite boards yet/i),
-            ).toBeVisible()
-          }
-          // If board still exists, toPass will retry
-          expect(boardExists).toBe(false)
-        }).toPass({ timeout: 5000 })
+        await expect(boardHeading).not.toBeVisible()
       }
     })
   })

@@ -30,6 +30,15 @@ test.describe('Theme Persistence (Authenticated)', () => {
     })
     await expect(html).toHaveClass(/dark/)
 
+    // Wait for localStorage write before reloading
+    await expect(async () => {
+      const theme = await page.evaluate(() => {
+        const state = localStorage.getItem('gitbox-state')
+        return state ? JSON.parse(state)?.state?.settings?.theme : null
+      })
+      expect(theme).toBe('midnight')
+    }).toPass({ timeout: 5000 })
+
     // Reload page
     await page.reload()
     await page.waitForLoadState('networkidle')
@@ -38,7 +47,7 @@ test.describe('Theme Persistence (Authenticated)', () => {
     await expect(async () => {
       const theme = await page.evaluate(() => {
         const state = localStorage.getItem('gitbox-state')
-        return state ? JSON.parse(state)?.settings?.theme : null
+        return state ? JSON.parse(state)?.state?.settings?.theme : null
       })
       expect(theme).toBe('midnight')
     }).toPass({ timeout: 5000 })
@@ -72,6 +81,15 @@ test.describe('Theme Persistence (Authenticated)', () => {
     // Should NOT have dark class (light theme)
     await expect(html).not.toHaveClass(/dark/)
 
+    // Wait for localStorage write before reloading
+    await expect(async () => {
+      const theme = await page.evaluate(() => {
+        const state = localStorage.getItem('gitbox-state')
+        return state ? JSON.parse(state)?.state?.settings?.theme : null
+      })
+      expect(theme).toBe('sunrise')
+    }).toPass({ timeout: 5000 })
+
     // Reload and verify persistence
     await page.reload()
     await page.waitForLoadState('networkidle')
@@ -80,7 +98,7 @@ test.describe('Theme Persistence (Authenticated)', () => {
     await expect(async () => {
       const theme = await page.evaluate(() => {
         const state = localStorage.getItem('gitbox-state')
-        return state ? JSON.parse(state)?.settings?.theme : null
+        return state ? JSON.parse(state)?.state?.settings?.theme : null
       })
       expect(theme).toBe('sunrise')
     }).toPass({ timeout: 5000 })
@@ -145,6 +163,15 @@ test.describe('Theme Persistence (Authenticated)', () => {
       timeout: 5000,
     })
     await expect(html).toHaveClass(/dark/)
+
+    // Wait for localStorage write before navigating
+    await expect(async () => {
+      const theme = await page.evaluate(() => {
+        const state = localStorage.getItem('gitbox-state')
+        return state ? JSON.parse(state)?.state?.settings?.theme : null
+      })
+      expect(theme).toBe('graphite')
+    }).toPass({ timeout: 5000 })
 
     // Navigate to boards page
     await page.goto('/boards')

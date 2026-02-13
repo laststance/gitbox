@@ -78,13 +78,12 @@ test.describe('AddRepositoryCombobox - Pagination UI', () => {
     const searchInput = page.getByPlaceholder(/search repositories/i)
     await expect(searchInput).toBeVisible({ timeout: 10000 })
 
-    // Wait for initial load - options should be present or list should settle
-    await expect(async () => {
-      const count = await page.locator('[role="option"]').count()
-      expect(count).toBeGreaterThanOrEqual(0)
-    }).toPass({ timeout: 10000 })
+    // Wait for repository list to load (at least one option should appear)
+    await expect(page.locator('[role="option"]').first()).toBeVisible({
+      timeout: 10000,
+    })
 
-    // Get initial count
+    // Get initial count after options have loaded
     const initialCount = await page.locator('[role="option"]').count()
 
     // Search for a specific term
@@ -153,11 +152,10 @@ test.describe('AddRepositoryCombobox - Pagination UI', () => {
     const searchInput = page.getByPlaceholder(/search repositories/i)
     await expect(searchInput).toBeVisible({ timeout: 10000 })
 
-    // Wait for repository list to load
-    await expect(async () => {
-      const count = await page.locator('[role="option"]').count()
-      expect(count).toBeGreaterThanOrEqual(0)
-    }).toPass({ timeout: 10000 })
+    // Wait for repository list to load (at least one option should appear)
+    await expect(page.locator('[role="option"]').first()).toBeVisible({
+      timeout: 10000,
+    })
 
     // Get all repository options
     const repoOptions = page.locator('[role="option"]')
