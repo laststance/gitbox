@@ -141,7 +141,9 @@ export const MaintenanceClient = memo(function MaintenanceClient({
   useEffect(() => {
     if (initialRepos.length === 0) return
     const ids = initialRepos.map((r) => r.id)
-    getCommentsForMaintenanceItems(ids).then(setComments)
+    getCommentsForMaintenanceItems(ids).then((result) => {
+      if (result.success) setComments(result.data)
+    })
   }, [initialRepos])
 
   /**
@@ -318,11 +320,16 @@ export const MaintenanceClient = memo(function MaintenanceClient({
     // Lazy load project info with guard
     startLoadingProjectInfo(async () => {
       try {
-        const data = await getMaintenanceProjectInfo(repo.id)
+        const result = await getMaintenanceProjectInfo(repo.id)
         // Guard: only update if this repo is still active
         if (activeNoteRepoId.current !== repo.id) return
-        setCurrentNote(data?.note || '')
-        setCurrentLinks(data?.links || [])
+        if (result.success && result.data) {
+          setCurrentNote(result.data.note || '')
+          setCurrentLinks(result.data.links || [])
+        } else {
+          setCurrentNote('')
+          setCurrentLinks([])
+        }
       } catch {
         // Guard: only reset if this repo is still active
         if (activeNoteRepoId.current !== repo.id) return
