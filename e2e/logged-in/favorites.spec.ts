@@ -367,12 +367,13 @@ test.describe('Board Favorites Feature', () => {
         await expect(async () => {
           const boardExists = (await boardHeading.count()) > 0
           if (!boardExists) {
-            // Board is gone - check if empty state appears
-            const emptyState = await page
-              .getByText(/no favorite boards yet/i)
-              .isVisible()
-            expect(emptyState || !boardExists).toBe(true)
+            // Board section removed — check if empty state appears
+            await expect(
+              page.getByText(/no favorite boards yet/i),
+            ).toBeVisible()
           }
+          // If board still exists, toPass will retry
+          expect(boardExists).toBe(false)
         }).toPass({ timeout: 5000 })
       }
     })

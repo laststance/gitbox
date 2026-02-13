@@ -405,7 +405,7 @@ test.describe('10.2 Card Drag & Drop', () => {
         page.locator(`[data-testid="repo-card-${CARD_IDS.card4}"]`),
       ).toBeVisible({ timeout: 5000 })
 
-      // Poll database until status_id is updated (server action may be async)
+      // Query database for card status after DnD
       // Note: CDP drag is inherently flaky, so the skip below handles cases where drag didn't register
       const cardAfter = await querySingle<{ status_id: string }>('repocard', {
         id: cardId,
