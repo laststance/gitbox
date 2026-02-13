@@ -164,10 +164,7 @@ test.describe('Comment Color Theme Independence (Authenticated)', () => {
     await expect(colorSubmenu).toBeVisible({ timeout: 5000 })
     await colorSubmenu.hover()
 
-    // Wait for submenu to appear
-    await page.waitForTimeout(300)
-
-    // Select blue color from the expanded submenu
+    // Select blue color from the expanded submenu (wait for submenu to appear)
     const blueOption = page.locator('[data-testid="comment-color-blue"]')
     await expect(blueOption).toBeVisible({ timeout: 5000 })
     await blueOption.click()

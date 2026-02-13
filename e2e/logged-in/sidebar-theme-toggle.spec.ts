@@ -66,10 +66,12 @@ test.describe('Sidebar ThemeToggle', () => {
   test('should change theme when selecting from dropdown', async ({ page }) => {
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000) // Wait for hydration
+
+    // Wait for hydration by asserting the theme button is visible
+    const themeButton = page.locator('aside button:has-text("Theme")')
+    await expect(themeButton).toBeVisible()
 
     // Open theme dropdown
-    const themeButton = page.locator('aside button:has-text("Theme")')
     await themeButton.click()
 
     // Select midnight theme
@@ -78,9 +80,6 @@ test.describe('Sidebar ThemeToggle', () => {
       .filter({ hasText: 'Midnight' })
     await expect(midnightOption).toBeVisible()
     await midnightOption.click()
-
-    // Wait for theme to apply
-    await page.waitForTimeout(500)
 
     // Verify theme is applied to DOM
     const html = page.locator('html')
@@ -93,17 +92,18 @@ test.describe('Sidebar ThemeToggle', () => {
   test('should persist theme after page navigation', async ({ page }) => {
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000)
+
+    // Wait for hydration by asserting the theme button is visible
+    const themeButton = page.locator('aside button:has-text("Theme")')
+    await expect(themeButton).toBeVisible()
 
     // Open theme dropdown and select graphite
-    const themeButton = page.locator('aside button:has-text("Theme")')
     await themeButton.click()
 
     const graphiteOption = page
       .locator('[role="menuitem"]')
       .filter({ hasText: 'Graphite' })
     await graphiteOption.click()
-    await page.waitForTimeout(500)
 
     // Verify theme applied
     const html = page.locator('html')
@@ -111,10 +111,19 @@ test.describe('Sidebar ThemeToggle', () => {
       timeout: 5000,
     })
 
+    // Wait for Redux storage middleware to persist theme to localStorage (300ms debounce)
+    await expect(async () => {
+      const stored = await page.evaluate(() =>
+        localStorage.getItem('gitbox-state'),
+      )
+      expect(stored).not.toBeNull()
+      const parsed = JSON.parse(stored!)
+      expect(parsed?.state?.settings?.theme).toBe('graphite')
+    }).toPass({ timeout: 5000 })
+
     // Navigate to settings page
     await page.goto('/settings')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
 
     // Theme should persist
     await expect(html).toHaveAttribute('data-theme', 'graphite', {
@@ -126,21 +135,44 @@ test.describe('Sidebar ThemeToggle', () => {
   test('should show check mark on selected theme', async ({ page }) => {
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000)
 
-    // First select sunrise theme
+    // Wait for hydration by asserting the theme button is visible
     let themeButton = page.locator('aside button:has-text("Theme")')
+    await expect(themeButton).toBeVisible()
+
+    // Open dropdown and select sunrise theme
     await themeButton.click()
+    await expect(page.locator('[role="menuitem"]').first()).toBeVisible({
+      timeout: 5000,
+    })
 
     const sunriseOption = page
       .locator('[role="menuitem"]')
       .filter({ hasText: 'Sunrise' })
     await sunriseOption.click()
-    await page.waitForTimeout(500)
+
+    // Wait for dropdown to close after selection
+    await expect(page.locator('[role="menuitem"]').first()).not.toBeVisible({
+      timeout: 5000,
+    })
+
+    // Verify theme applied
+    const html = page.locator('html')
+    await expect(html).toHaveAttribute('data-theme', 'sunrise', {
+      timeout: 5000,
+    })
+
+    // Verify button text updated to reflect selected theme
+    themeButton = page.locator('aside button:has-text("Theme")')
+    await expect(themeButton).toContainText('Sunrise', { timeout: 5000 })
 
     // Re-open dropdown
-    themeButton = page.locator('aside button:has-text("Theme")')
     await themeButton.click()
+
+    // Wait for dropdown menu items to appear
+    await expect(page.locator('[role="menuitem"]').first()).toBeVisible({
+      timeout: 5000,
+    })
 
     // Sunrise option should have a check mark (svg inside)
     const sunriseWithCheck = page
@@ -153,17 +185,18 @@ test.describe('Sidebar ThemeToggle', () => {
   test('should apply light theme correctly', async ({ page }) => {
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000)
+
+    // Wait for hydration by asserting the theme button is visible
+    const themeButton = page.locator('aside button:has-text("Theme")')
+    await expect(themeButton).toBeVisible()
 
     // Open dropdown and select lavender (light theme)
-    const themeButton = page.locator('aside button:has-text("Theme")')
     await themeButton.click()
 
     const lavenderOption = page
       .locator('[role="menuitem"]')
       .filter({ hasText: 'Lavender' })
     await lavenderOption.click()
-    await page.waitForTimeout(500)
 
     // Verify light theme applied (no dark class)
     const html = page.locator('html')
@@ -176,17 +209,18 @@ test.describe('Sidebar ThemeToggle', () => {
   test('should apply dark theme correctly', async ({ page }) => {
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000)
+
+    // Wait for hydration by asserting the theme button is visible
+    const themeButton = page.locator('aside button:has-text("Theme")')
+    await expect(themeButton).toBeVisible()
 
     // Open dropdown and select forest (dark theme)
-    const themeButton = page.locator('aside button:has-text("Theme")')
     await themeButton.click()
 
     const forestOption = page
       .locator('[role="menuitem"]')
       .filter({ hasText: 'Forest' })
     await forestOption.click()
-    await page.waitForTimeout(500)
 
     // Verify dark theme applied
     const html = page.locator('html')
@@ -199,10 +233,12 @@ test.describe('Sidebar ThemeToggle', () => {
   test('should update icon based on current theme type', async ({ page }) => {
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000)
+
+    // Wait for hydration by asserting the theme button is visible
+    const themeButton = page.locator('aside button:has-text("Theme")')
+    await expect(themeButton).toBeVisible()
 
     // The theme button should have an icon (Sun, Moon, or Monitor)
-    const themeButton = page.locator('aside button:has-text("Theme")')
     const icon = themeButton.locator('svg').first()
     await expect(icon).toBeVisible()
   })
@@ -213,9 +249,8 @@ test.describe('Sidebar ThemeToggle', () => {
     // Navigate to a board page (test board)
     await page.goto(`/board/${BOARD_IDS.testBoard}`)
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000)
 
-    // Theme toggle should be visible in sidebar
+    // Wait for hydration by asserting the theme button is visible
     const themeButton = page.locator('aside button:has-text("Theme")')
     await expect(themeButton).toBeVisible()
 
@@ -230,7 +265,6 @@ test.describe('Sidebar ThemeToggle', () => {
       .locator('[role="menuitem"]')
       .filter({ hasText: 'Ocean' })
     await oceanOption.click()
-    await page.waitForTimeout(500)
 
     // Verify theme applied
     const html = page.locator('html')

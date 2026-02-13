@@ -288,15 +288,20 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
     const saveButton = inlineEdit.locator('[data-testid="comment-save-btn"]')
     await saveButton.click()
 
-    // Wait for server action to complete
-    await page.waitForTimeout(1000)
+    // Wait for edit mode to close (confirms save was triggered)
+    await expect(inlineEdit).not.toBeVisible({ timeout: 5000 })
 
-    // Verify comment is persisted in database
-    const projectInfo = await querySingle<{ comment: string }>('projectinfo', {
-      id: projectInfoId,
-    })
-    expect(projectInfo).not.toBeNull()
-    expect(projectInfo?.comment).toBe(uniqueComment)
+    // Poll database until comment is persisted (server action may be async)
+    await expect(async () => {
+      const projectInfo = await querySingle<{ comment: string }>(
+        'projectinfo',
+        {
+          id: projectInfoId,
+        },
+      )
+      expect(projectInfo).not.toBeNull()
+      expect(projectInfo?.comment).toBe(uniqueComment)
+    }).toPass({ timeout: 10000 })
   })
 
   test('should show character count warning when approaching limit', async ({

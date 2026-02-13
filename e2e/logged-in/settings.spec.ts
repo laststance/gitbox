@@ -49,12 +49,11 @@ test.describe('Settings Page (Authenticated)', () => {
     if (await themeButton.first().isVisible()) {
       await themeButton.first().click()
 
-      // Wait for theme change
-      await page.waitForTimeout(500)
-
-      // Body classes should change (theme applied)
-      const newClasses = await page.locator('html').getAttribute('class')
-      expect(newClasses).not.toBe(initialClasses)
+      // Wait for theme change by verifying class attribute changes
+      await expect(async () => {
+        const newClasses = await page.locator('html').getAttribute('class')
+        expect(newClasses).not.toBe(initialClasses)
+      }).toPass({ timeout: 5000 })
     }
   })
 

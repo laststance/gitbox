@@ -12,7 +12,7 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
-import { BOARD_IDS } from '../helpers/db-query'
+import { BOARD_IDS, resetRepoCards } from '../helpers/db-query'
 
 /**
  * AddRepositoryCombobox E2E Tests - Existing Repo Filtering
@@ -59,11 +59,11 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
     const searchInput = page.getByPlaceholder(/search repositories/i)
     await expect(searchInput).toBeVisible({ timeout: 10000 })
 
-    // Wait for repository list to load
-    await page.waitForTimeout(1000)
+    // Wait for repository list to load by asserting options appear
+    const repoOptions = page.locator('[role="option"]')
+    await expect(repoOptions.first()).toBeVisible({ timeout: 10000 })
 
     // Get all visible repository options
-    const repoOptions = page.locator('[role="option"]')
     const optionTexts: string[] = []
 
     const count = await repoOptions.count()
@@ -106,25 +106,28 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
     const searchInput = page.getByPlaceholder(/search repositories/i)
     await expect(searchInput).toBeVisible({ timeout: 10000 })
 
-    // Wait for initial load
-    await page.waitForTimeout(500)
+    // Wait for initial repo options to load
+    await expect(page.locator('[role="option"]').first()).toBeVisible({
+      timeout: 10000,
+    })
 
     // Search for a repo that's already on the board
     await searchInput.fill('test-repo')
 
-    // Wait for debounced search (300ms) + filter
-    await page.waitForTimeout(500)
-
+    // Wait for debounced search filter to apply - assert expected state
     // Since 'testuser/test-repo' is on the board, it should be filtered out
     // The only other matching repo would be if there's another one with 'test-repo' in the name
     const repoOptions = page.locator('[role="option"]')
-    const count = await repoOptions.count()
 
-    // Check that 'testuser/test-repo' specifically is not in the list
-    for (let i = 0; i < count; i++) {
-      const text = await repoOptions.nth(i).textContent()
-      expect(text?.toLowerCase()).not.toContain('testuser/test-repo')
-    }
+    // Use polling to wait for filter to settle
+    await expect(async () => {
+      const count = await repoOptions.count()
+      // Check that 'testuser/test-repo' specifically is not in the list
+      for (let i = 0; i < count; i++) {
+        const text = await repoOptions.nth(i).textContent()
+        expect(text?.toLowerCase()).not.toContain('testuser/test-repo')
+      }
+    }).toPass({ timeout: 5000 })
   })
 
   /**
@@ -151,12 +154,12 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
     const searchInput = page.getByPlaceholder(/search repositories/i)
     await expect(searchInput).toBeVisible({ timeout: 10000 })
 
-    // Wait for repository list to load
-    await page.waitForTimeout(1000)
+    // Wait for repository list to load by asserting options appear
+    const repoOptions = page.locator('[role="option"]')
+    await expect(repoOptions.first()).toBeVisible({ timeout: 10000 })
 
     // 'testuser/private-project' is in mockGitHubRepos but NOT on the board
     // It should appear in the combobox
-    const repoOptions = page.locator('[role="option"]')
     const count = await repoOptions.count()
 
     let foundPrivateProject = false
@@ -194,21 +197,24 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
     const searchInput = page.getByPlaceholder(/search repositories/i)
     await expect(searchInput).toBeVisible({ timeout: 10000 })
 
-    // Wait for repository list to load
-    await page.waitForTimeout(1000)
+    // Wait for repository list to load by asserting options appear
+    await expect(page.locator('[role="option"]').first()).toBeVisible({
+      timeout: 10000,
+    })
 
     // Search with different case - 'TEST-REPO' should still not show 'testuser/test-repo'
     await searchInput.fill('TEST-REPO')
-    await page.waitForTimeout(500)
 
+    // Wait for filter to apply and verify results
     const repoOptions = page.locator('[role="option"]')
-    const count = await repoOptions.count()
-
-    // Verify testuser/test-repo is not in results (case-insensitive match)
-    for (let i = 0; i < count; i++) {
-      const text = await repoOptions.nth(i).textContent()
-      expect(text?.toLowerCase()).not.toContain('testuser/test-repo')
-    }
+    await expect(async () => {
+      const count = await repoOptions.count()
+      // Verify testuser/test-repo is not in results (case-insensitive match)
+      for (let i = 0; i < count; i++) {
+        const text = await repoOptions.nth(i).textContent()
+        expect(text?.toLowerCase()).not.toContain('testuser/test-repo')
+      }
+    }).toPass({ timeout: 5000 })
   })
 })
 
@@ -228,6 +234,14 @@ test.describe('AddRepositoryCombobox - GITBOX-1 Fix', () => {
   test('should not crash when repo.owner is undefined with organization filter set', async ({
     page,
   }) => {
+    // Set up console error listener BEFORE navigation
+    const consoleErrors: string[] = []
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') {
+        consoleErrors.push(msg.text())
+      }
+    })
+
     // Step 1: Intercept GitHub user/repos API and inject a repo without owner
     await page.route('**/api.github.com/user/repos**', async (route) => {
       const response = await route.fetch()
@@ -299,18 +313,8 @@ test.describe('AddRepositoryCombobox - GITBOX-1 Fix', () => {
     const orgFilterTrigger = page.getByRole('combobox').first()
     await expect(orgFilterTrigger).toBeVisible()
 
-    // Step 8: Check console for no TypeErrors
-    const consoleErrors: string[] = []
-    page.on('console', (msg) => {
-      if (msg.type() === 'error') {
-        consoleErrors.push(msg.text())
-      }
-    })
-
-    // Wait a moment for any async errors to surface
-    await page.waitForTimeout(1000)
-
-    // Verify no TypeError related to toLowerCase
+    // Step 8: Verify no TypeError related to toLowerCase
+    // Check collected console errors (listener was set up before navigation)
     const hasLowerCaseError = consoleErrors.some(
       (error) =>
         error.includes('toLowerCase') ||
@@ -349,10 +353,6 @@ test.describe('AddRepositoryCombobox - GITBOX-1 Fix', () => {
 
     // Click the organization filter to open dropdown
     await orgFilterTrigger.click()
-
-    // Wait for dropdown to appear - Radix Select uses listbox role for the dropdown content
-    // The options are rendered in a portal, so we need to look for them in the page
-    await page.waitForTimeout(500) // Give time for dropdown animation
 
     // Look for "All Organizations" option in the dropdown
     // Radix Select items have role="option" when the dropdown is open
@@ -396,11 +396,11 @@ test.describe('AddRepositoryCombobox - GITBOX-1 Fix', () => {
     const searchInput = page.getByPlaceholder(/search repositories/i)
     await expect(searchInput).toBeVisible({ timeout: 10000 })
 
-    // Wait for repository list to be populated
-    await page.waitForTimeout(1000)
+    // Wait for repository list to be populated by asserting options appear
+    const repoItems = page.locator('[role="option"]')
+    await expect(repoItems.first()).toBeVisible({ timeout: 10000 })
 
     // Verify at least one repository is visible
-    const repoItems = page.locator('[role="option"]')
     const count = await repoItems.count()
     expect(count).toBeGreaterThan(0)
   })
@@ -418,6 +418,10 @@ test.describe('AddRepositoryCombobox - Optimistic Update', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
+
+  test.beforeEach(async () => {
+    await resetRepoCards()
+  })
 
   /**
    * Verifies that adding a repository shows the card immediately
@@ -449,8 +453,10 @@ test.describe('AddRepositoryCombobox - Optimistic Update', () => {
     const searchInput = page.getByPlaceholder(/search repositories/i)
     await expect(searchInput).toBeVisible({ timeout: 10000 })
 
-    // Wait for repository list to load
-    await page.waitForTimeout(1000)
+    // Wait for repository list to load by asserting options appear
+    await expect(page.locator('[role="option"]').first()).toBeVisible({
+      timeout: 10000,
+    })
 
     // Find and select an available repository (not already on board)
     // 'testuser/private-project' should be available
@@ -477,16 +483,17 @@ test.describe('AddRepositoryCombobox - Optimistic Update', () => {
       // Click Add button
       await addButton.click()
 
-      // Wait for the card to appear in the DOM
-      await page.waitForTimeout(2000)
+      // Wait for the card to appear in the DOM (optimistic update)
+      await expect(async () => {
+        const cardsAfter = await page
+          .locator('[data-testid="repo-card"]')
+          .count()
+        expect(cardsAfter).toBeGreaterThanOrEqual(cardsBefore)
+      }).toPass({ timeout: 5000 })
 
       // Verify NO full page navigation occurred (optimistic update)
       // Note: Navigation listener will capture any reload
       expect(navigationOccurred).toBe(false)
-
-      // Check cards increased (or at least didn't trigger error)
-      const cardsAfter = await page.locator('[data-testid="repo-card"]').count()
-      expect(cardsAfter).toBeGreaterThanOrEqual(cardsBefore)
     }
   })
 
@@ -513,8 +520,10 @@ test.describe('AddRepositoryCombobox - Optimistic Update', () => {
     const searchInput = page.getByPlaceholder(/search repositories/i)
     await expect(searchInput).toBeVisible({ timeout: 10000 })
 
-    // Wait for repository list to load
-    await page.waitForTimeout(1000)
+    // Wait for repository list to load by asserting options appear
+    await expect(page.locator('[role="option"]').first()).toBeVisible({
+      timeout: 10000,
+    })
 
     // Select any available repository
     const repoOption = page.locator('[role="option"]').first()
@@ -527,9 +536,6 @@ test.describe('AddRepositoryCombobox - Optimistic Update', () => {
       const addButton = page.getByRole('button', { name: /add \(\d+\)/i })
       if ((await addButton.count()) > 0) {
         await addButton.click()
-
-        // Wait for operation to complete
-        await page.waitForTimeout(1500)
 
         // Verify combobox is closed (search input should not be visible)
         await expect(searchInput).not.toBeVisible({ timeout: 5000 })
@@ -561,8 +567,10 @@ test.describe('AddRepositoryCombobox - Optimistic Update', () => {
     const searchInput = page.getByPlaceholder(/search repositories/i)
     await expect(searchInput).toBeVisible({ timeout: 10000 })
 
-    // Wait for repository list to load
-    await page.waitForTimeout(1000)
+    // Wait for repository list to load by asserting options appear
+    await expect(page.locator('[role="option"]').first()).toBeVisible({
+      timeout: 10000,
+    })
 
     // Get all available options
     const repoOptions = page.locator('[role="option"]')
@@ -572,7 +580,6 @@ test.describe('AddRepositoryCombobox - Optimistic Update', () => {
     const selectCount = Math.min(2, optionCount)
     for (let i = 0; i < selectCount; i++) {
       await repoOptions.nth(i).click()
-      await page.waitForTimeout(200)
     }
 
     // Verify button shows correct count
@@ -600,6 +607,10 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
 
   const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
+  test.beforeEach(async () => {
+    await resetRepoCards()
+  })
+
   /**
    * Verifies that clicking "Add Repo" button in a column opens the combobox
    *
@@ -626,9 +637,6 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
     // Verify the combobox opens
     const searchInput = page.getByPlaceholder(/search repositories/i)
     await expect(searchInput).toBeVisible({ timeout: 10000 })
-
-    // Verify repository list loads (at least the search input is functional)
-    await page.waitForTimeout(1000)
 
     // Verify Cancel and Add buttons are present
     const cancelButton = page.getByRole('button', { name: /cancel/i })
@@ -809,11 +817,11 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
     const searchInput = page.getByPlaceholder(/search repositories/i)
     await expect(searchInput).toBeVisible({ timeout: 10000 })
 
-    // Wait for repository list to load
-    await page.waitForTimeout(1000)
+    // Wait for repository list to load by asserting options appear
+    const repoOptions = page.locator('[role="option"]')
+    await expect(repoOptions.first()).toBeVisible({ timeout: 10000 })
 
     // Select an available repository
-    const repoOptions = page.locator('[role="option"]')
     const optionCount = await repoOptions.count()
 
     if (optionCount > 0) {
@@ -834,20 +842,21 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
       // Click Add button
       await addButton.click()
 
-      // Wait for the action to complete
-      await page.waitForTimeout(2000)
+      // Wait for the action to complete - verify combobox closes
+      await expect(searchInput).not.toBeVisible({ timeout: 5000 })
 
       // Verify NO full page navigation occurred (optimistic update worked)
       expect(navigationOccurred).toBe(false)
 
-      // Verify combobox is closed (action was triggered successfully)
-      await expect(searchInput).not.toBeVisible({ timeout: 5000 })
-
       // Verify card count didn't decrease (at minimum, operation didn't break anything)
       // Note: With MSW mocking, the actual repo may or may not persist,
       // but the optimistic update should work without errors
-      const cardsAfter = await page.locator('[data-testid="repo-card"]').count()
-      expect(cardsAfter).toBeGreaterThanOrEqual(cardsBefore)
+      await expect(async () => {
+        const cardsAfter = await page
+          .locator('[data-testid="repo-card"]')
+          .count()
+        expect(cardsAfter).toBeGreaterThanOrEqual(cardsBefore)
+      }).toPass({ timeout: 5000 })
     }
   })
 })

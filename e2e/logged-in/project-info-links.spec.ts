@@ -101,8 +101,6 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     )
     await comboboxTrigger.click()
 
-    await page.waitForTimeout(300)
-
     // "Add custom type..." should be IMMEDIATELY visible at the top
     // without scrolling or searching
     const addCustomOption = page.locator('[data-testid="add-custom-link-type"]')
@@ -130,9 +128,6 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
       '[data-testid="link-type-combobox-trigger"]',
     )
     await comboboxTrigger.click()
-
-    // Wait for popover to open
-    await page.waitForTimeout(300)
 
     // Check for category headings (should have at least some of the 12 categories)
     const categories = [
@@ -187,17 +182,12 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     )
     await comboboxTrigger.click()
 
-    await page.waitForTimeout(300)
-
     // Type in the search field
     const searchInput = page.getByPlaceholder(/search link type/i)
     await expect(searchInput).toBeVisible()
     await searchInput.fill('stripe')
 
-    // Wait for search to filter
-    await page.waitForTimeout(200)
-
-    // Stripe should be visible in the filtered results
+    // Stripe should be visible in the filtered results (Playwright auto-retries)
     const stripeOption = page.locator('[data-testid="link-type-option-stripe"]')
     await expect(stripeOption).toBeVisible()
 
@@ -219,13 +209,10 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     )
     await comboboxTrigger.click()
 
-    await page.waitForTimeout(300)
-
     // Search for Supabase
     const searchInput = page.getByPlaceholder(/search link type/i)
+    await expect(searchInput).toBeVisible()
     await searchInput.fill('supabase')
-
-    await page.waitForTimeout(200)
 
     // Click on Supabase option
     const supabaseOption = page.locator(
@@ -248,10 +235,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     const urlInput = dialog.locator('[data-testid="url-input-0"]')
     await urlInput.fill('not-a-valid-url')
 
-    // Wait for debounced validation
-    await page.waitForTimeout(400)
-
-    // Error message should appear (using role="alert")
+    // Error message should appear (using role="alert") - Playwright auto-retries
     const errorMessage = dialog.locator('[role="alert"]')
     await expect(errorMessage).toBeVisible({ timeout: 3000 })
     await expect(errorMessage).toContainText(/http:\/\/ or https:\/\//i)
@@ -272,10 +256,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     const urlInput = dialog.locator('[data-testid="url-input-0"]')
     await urlInput.fill('https://example.com/path?query=value')
 
-    // Wait for debounced validation
-    await page.waitForTimeout(400)
-
-    // No error message should appear
+    // No error message should appear - Playwright auto-retries
     const errorMessage = dialog.locator('[role="alert"]')
     await expect(errorMessage).not.toBeVisible()
 
@@ -365,14 +346,10 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     )
     await comboboxTrigger.click()
 
-    await page.waitForTimeout(300)
-
     // Click on "Add custom type..." option
     const addCustomOption = page.locator('[data-testid="add-custom-link-type"]')
+    await expect(addCustomOption).toBeVisible()
     await addCustomOption.click()
-
-    // CreateLinkTypeDialog should open
-    await page.waitForTimeout(300)
 
     // Look for the dialog with "Create Custom Link Type" title or similar
     const createDialog = page
@@ -393,11 +370,10 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
       '[data-testid="link-type-combobox-trigger"]',
     )
     await comboboxTrigger.click()
-    await page.waitForTimeout(300)
 
     const searchInput = page.getByPlaceholder(/search link type/i)
+    await expect(searchInput).toBeVisible()
     await searchInput.fill('vercel')
-    await page.waitForTimeout(200)
 
     const vercelOption = page.locator('[data-testid="link-type-option-vercel"]')
     await expect(vercelOption).toBeVisible({ timeout: 5000 })
@@ -447,11 +423,10 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
         .locator('[data-testid="link-type-combobox-trigger"]')
         .last()
       await comboboxTrigger.click()
-      await page.waitForTimeout(300)
 
       const searchInput = page.getByPlaceholder(/search link type/i)
+      await expect(searchInput).toBeVisible()
       await searchInput.fill('sentry')
-      await page.waitForTimeout(200)
 
       const sentryOption = page.locator(
         '[data-testid="link-type-option-sentry"]',
@@ -468,22 +443,25 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
       // (EditableUrlItem uses internal state; onUrlChange only fires on inline save/blur)
       const inlineSaveBtn = dialog.locator('[data-testid^="url-save-"]').last()
       await inlineSaveBtn.click()
-      await page.waitForTimeout(500)
 
       // Save the dialog
       const saveButton = dialog.locator('[data-testid="save-button"]')
+      await expect(saveButton).not.toBeDisabled()
       await saveButton.click()
 
-      // Wait for server action to complete
-      await page.waitForTimeout(1500)
+      // Wait for dialog to close (indicates save completed)
+      await expect(dialog).not.toBeVisible({ timeout: 5000 })
 
-      // Verify links are persisted in database
-      const projectInfo = await querySingle<{ links: unknown }>('projectinfo', {
-        id: projectInfoId,
-      })
-      expect(projectInfo).not.toBeNull()
-      // Links column is JSONB — Supabase returns parsed JS array, so stringify for substring check
-      expect(JSON.stringify(projectInfo?.links)).toContain(uniqueUrl)
+      // Verify links are persisted in database via polling
+      await expect(async () => {
+        const projectInfo = await querySingle<{ links: unknown }>(
+          'projectinfo',
+          { id: projectInfoId },
+        )
+        expect(projectInfo).not.toBeNull()
+        // Links column is JSONB — Supabase returns parsed JS array, so stringify for substring check
+        expect(JSON.stringify(projectInfo?.links)).toContain(uniqueUrl)
+      }).toPass({ timeout: 10000 })
     })
   })
 
@@ -512,7 +490,6 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     // We avoid pressing Escape because that closes the entire dialog.
     // Instead, we cancel the input-level editing first by clearing the input.
     await anyUrlInput.fill('')
-    await page.waitForTimeout(100)
 
     // Cancel the dialog
     const cancelButton = dialog.locator('[data-testid="cancel-button"]')
@@ -586,7 +563,6 @@ test.describe('ProjectInfo Links - Edge Cases (Authenticated)', () => {
     // Add a localhost URL — use .last() since prior tests may have saved URLs
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
     await addUrlButton.click()
-    await page.waitForTimeout(300)
 
     // Wait for a NEW url-input to appear (count should increase)
     const urlInput = dialog.locator('[data-testid^="url-input-"]').last()
@@ -627,14 +603,13 @@ test.describe('ProjectInfo Links - Edge Cases (Authenticated)', () => {
     // Add URL and open combobox — use .last() since prior tests may have saved URLs
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
     await addUrlButton.click()
-    await page.waitForTimeout(300)
 
     // Use .last() because prior tests may have saved URLs with their own combobox triggers
     const comboboxTrigger = dialog
       .locator('[data-testid="link-type-combobox-trigger"]')
       .last()
+    await expect(comboboxTrigger).toBeVisible()
     await comboboxTrigger.click()
-    await page.waitForTimeout(300)
 
     // Verify dropdown is open
     const searchInput = page.getByPlaceholder(/search link type/i)
@@ -657,19 +632,22 @@ test.describe('ProjectInfo Links - Edge Cases (Authenticated)', () => {
     // Add URL and open combobox
     const addUrlButton = dialog.locator('[data-testid="add-url-button"]')
     await addUrlButton.click()
-    await page.waitForTimeout(300)
 
     // Use .last() because prior tests may have saved URLs with their own combobox triggers
     const comboboxTrigger = dialog
       .locator('[data-testid="link-type-combobox-trigger"]')
       .last()
+    await expect(comboboxTrigger).toBeVisible()
     await comboboxTrigger.click()
-    await page.waitForTimeout(300)
 
     // Search for something
     const searchInput = page.getByPlaceholder(/search link type/i)
+    await expect(searchInput).toBeVisible()
     await searchInput.fill('ver')
-    await page.waitForTimeout(200)
+
+    // Wait for Vercel option to appear before navigating with arrow keys
+    const vercelOption = page.locator('[data-testid="link-type-option-vercel"]')
+    await expect(vercelOption).toBeVisible()
 
     // Use arrow keys to navigate
     await page.keyboard.press('ArrowDown')

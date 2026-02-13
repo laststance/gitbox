@@ -39,7 +39,6 @@ test.describe('Sidebar Collapse', () => {
   }) => {
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500) // Wait for hydration
 
     // Get initial sidebar state (expanded = w-64)
     const sidebar = page.locator('aside')
@@ -50,9 +49,8 @@ test.describe('Sidebar Collapse', () => {
       name: /collapse sidebar/i,
     })
     await collapseButton.click()
-    await page.waitForTimeout(400) // Wait for transition (300ms + buffer)
 
-    // Verify sidebar is collapsed (w-16)
+    // Verify sidebar is collapsed (w-16) - Playwright auto-retries assertions
     await expect(sidebar).toHaveClass(/w-16/)
     await expect(sidebar).not.toHaveClass(/w-64/)
   })
@@ -62,7 +60,6 @@ test.describe('Sidebar Collapse', () => {
   }) => {
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
 
     // First collapse the sidebar
     const sidebar = page.locator('aside')
@@ -70,7 +67,6 @@ test.describe('Sidebar Collapse', () => {
       name: /collapse sidebar/i,
     })
     await collapseButton.click()
-    await page.waitForTimeout(400)
 
     // Verify collapsed state
     await expect(sidebar).toHaveClass(/w-16/)
@@ -79,9 +75,8 @@ test.describe('Sidebar Collapse', () => {
     const expandButton = page.getByRole('button', { name: /expand sidebar/i })
     await expect(expandButton).toBeVisible()
     await expandButton.click()
-    await page.waitForTimeout(400)
 
-    // Verify expanded state
+    // Verify expanded state - Playwright auto-retries assertions
     await expect(sidebar).toHaveClass(/w-64/)
     await expect(sidebar).not.toHaveClass(/w-16/)
   })
@@ -89,7 +84,6 @@ test.describe('Sidebar Collapse', () => {
   test('should hide text labels in collapsed state', async ({ page }) => {
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
 
     // Verify labels visible when expanded
     await expect(page.locator('aside').getByText('GitBox')).toBeVisible()
@@ -101,9 +95,8 @@ test.describe('Sidebar Collapse', () => {
       name: /collapse sidebar/i,
     })
     await collapseButton.click()
-    await page.waitForTimeout(400)
 
-    // Text labels should be hidden
+    // Text labels should be hidden - Playwright auto-retries assertions
     await expect(page.locator('aside').getByText('GitBox')).not.toBeVisible()
     // Sign out text hidden (only aria-label)
     await expect(page.locator('aside').getByText('Sign out')).not.toBeVisible()
@@ -112,21 +105,22 @@ test.describe('Sidebar Collapse', () => {
   test('should show tooltips on hover in collapsed state', async ({ page }) => {
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
 
     // Collapse sidebar
     const collapseButton = page.getByRole('button', {
       name: /collapse sidebar/i,
     })
     await collapseButton.click()
-    await page.waitForTimeout(400)
+
+    // Wait for collapsed state before hovering
+    const sidebar = page.locator('aside')
+    await expect(sidebar).toHaveClass(/w-16/)
 
     // Hover over a navigation link (use Settings since it's always visible)
     const settingsLink = page.locator('aside a[href="/settings"]')
     await settingsLink.hover()
-    await page.waitForTimeout(100)
 
-    // Tooltip should appear with "Settings" text
+    // Tooltip should appear with "Settings" text - Playwright auto-retries
     const tooltip = page.getByRole('tooltip', { name: 'Settings' })
     await expect(tooltip).toBeVisible()
   })
@@ -136,16 +130,17 @@ test.describe('Sidebar Collapse', () => {
   }) => {
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000) // Wait for hydration
 
     const sidebar = page.locator('aside')
 
-    // Collapse sidebar
+    // Wait for hydration by verifying interactive element is ready
     const collapseButton = page.getByRole('button', {
       name: /collapse sidebar/i,
     })
+    await expect(collapseButton).toBeVisible()
+
+    // Collapse sidebar
     await collapseButton.click()
-    await page.waitForTimeout(400)
 
     // Verify collapsed
     await expect(sidebar).toHaveClass(/w-16/)
@@ -156,7 +151,6 @@ test.describe('Sidebar Collapse', () => {
       .first()
     await boardLink.click()
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
 
     // Sidebar should still be collapsed (Redux state persists across client navigation)
     await expect(page.locator('aside')).toHaveClass(/w-16/)
@@ -173,21 +167,26 @@ test.describe('Sidebar Collapse', () => {
   }) => {
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000)
 
     const sidebar = page.locator('aside')
     const collapseButton = page.getByRole('button', {
       name: /collapse sidebar/i,
     })
+    await expect(collapseButton).toBeVisible()
     await collapseButton.click()
-    await page.waitForTimeout(500)
 
     await expect(sidebar).toHaveClass(/w-16/)
-    await page.waitForTimeout(500) // Wait for localStorage write
+
+    // Wait for localStorage write via polling
+    await expect(async () => {
+      const stored = await page.evaluate(() =>
+        localStorage.getItem('gitbox-state'),
+      )
+      expect(stored).not.toBeNull()
+    }).toPass({ timeout: 5000 })
 
     await page.reload()
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(1000)
 
     await expect(page.locator('aside')).toHaveClass(/w-16/)
   })
@@ -195,7 +194,6 @@ test.describe('Sidebar Collapse', () => {
   test('should have transition animation classes', async ({ page }) => {
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
 
     const sidebar = page.locator('aside')
 
@@ -209,7 +207,6 @@ test.describe('Sidebar Collapse', () => {
     // Navigate to a board page
     await page.goto(`/board/${BOARD_IDS.testBoard}`)
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
 
     const sidebar = page.locator('aside')
 
@@ -221,8 +218,8 @@ test.describe('Sidebar Collapse', () => {
 
     // Collapse should work
     await collapseButton.click()
-    await page.waitForTimeout(400)
 
+    // Verify collapsed state - Playwright auto-retries assertions
     await expect(sidebar).toHaveClass(/w-16/)
   })
 
@@ -234,14 +231,15 @@ test.describe('Sidebar Collapse', () => {
   }) => {
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
 
     // Collapse sidebar
     const collapseButton = page.getByRole('button', {
       name: /collapse sidebar/i,
     })
     await collapseButton.click()
-    await page.waitForTimeout(400)
+
+    // Wait for collapsed state
+    await expect(page.locator('aside')).toHaveClass(/w-16/)
 
     // Theme toggle should still be accessible
     // In collapsed mode, it's an icon button
@@ -263,7 +261,6 @@ test.describe('Sidebar Collapse', () => {
   test('should maintain expanded state by default', async ({ page }) => {
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
 
     const sidebar = page.locator('aside')
 

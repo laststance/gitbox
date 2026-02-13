@@ -94,16 +94,15 @@ test.describe('CDP Drag Helper Integration', () => {
         buttons: 0,
       })
 
-      await page.waitForTimeout(100)
-
-      // Verify events were received
-      const events = await page.evaluate(() => {
-        return (window as { __mouseEvents?: string[] }).__mouseEvents
-      })
-
-      expect(events).toContain('mousemove')
-      expect(events).toContain('mousedown')
-      expect(events).toContain('mouseup')
+      // Verify events were received (poll until events propagate)
+      await expect(async () => {
+        const events = await page.evaluate(() => {
+          return (window as { __mouseEvents?: string[] }).__mouseEvents
+        })
+        expect(events).toContain('mousemove')
+        expect(events).toContain('mousedown')
+        expect(events).toContain('mouseup')
+      }).toPass({ timeout: 5000 })
     } finally {
       await client.detach()
     }
@@ -140,8 +139,6 @@ test.describe('CDP Drag Helper Integration', () => {
         buttons: 1,
       })
 
-      await page.waitForTimeout(50)
-
       await client.send('Input.dispatchMouseEvent', {
         type: 'mouseReleased',
         x: 200,
@@ -151,13 +148,14 @@ test.describe('CDP Drag Helper Integration', () => {
         buttons: 0,
       })
 
-      const trustedValues = await page.evaluate(() => {
-        return (window as { __trustedEvents?: boolean[] }).__trustedEvents
-      })
-
-      // CDP events should be trusted
-      expect(trustedValues?.length).toBeGreaterThan(0)
-      expect(trustedValues?.[0]).toBe(true)
+      // Verify CDP events are trusted (poll until events propagate)
+      await expect(async () => {
+        const trustedValues = await page.evaluate(() => {
+          return (window as { __trustedEvents?: boolean[] }).__trustedEvents
+        })
+        expect(trustedValues?.length).toBeGreaterThan(0)
+        expect(trustedValues?.[0]).toBe(true)
+      }).toPass({ timeout: 5000 })
     } finally {
       await client.detach()
     }

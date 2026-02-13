@@ -242,8 +242,12 @@ test.describe('NoteModal (Authenticated)', () => {
     await expect(editorContent).toContainText('x')
     await page.keyboard.press(`${MOD}+a`)
     await page.keyboard.press('Backspace')
-    // Allow Slate editor to process the clear operation
-    await page.waitForTimeout(300)
+    // Poll until Slate editor finishes processing the clear operation
+    await expect(async () => {
+      const text = await editorContent.textContent()
+      // Editor should be empty or contain only placeholder text
+      expect(text?.replace(/\s/g, '')).toBe('')
+    }).toPass({ timeout: 3000 })
 
     await page.keyboard.type('/')
 

@@ -329,15 +329,17 @@ test.describe('Board Settings Dialog (Authenticated)', () => {
         .first()
       await renameButton.click()
 
-      // Wait for server action to complete
-      await page.waitForTimeout(1500)
+      // Wait for network to settle after rename action
+      await page.waitForLoadState('networkidle')
 
-      // Verify board name is updated in database
-      const board = await querySingle<{ name: string }>('board', {
-        id: boardId,
-      })
-      expect(board).not.toBeNull()
-      expect(board?.name).toBe(uniqueName)
+      // Poll database until board name is persisted (server action may be async)
+      await expect(async () => {
+        const board = await querySingle<{ name: string }>('board', {
+          id: boardId,
+        })
+        expect(board).not.toBeNull()
+        expect(board?.name).toBe(uniqueName)
+      }).toPass({ timeout: 10000 })
     })
   })
 

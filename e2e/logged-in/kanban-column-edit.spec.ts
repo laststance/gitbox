@@ -26,7 +26,6 @@ test.describe('Kanban Board Column Edit Dialog', () => {
   }) => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
 
     // Find and click on the first column options button
     const columnOptionsButton = page
@@ -68,7 +67,6 @@ test.describe('Kanban Board Column Edit Dialog', () => {
   }) => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
 
     // Open column edit dialog
     const columnOptionsButton = page
@@ -107,7 +105,11 @@ test.describe('Kanban Board Column Edit Dialog', () => {
   }) => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
+
+    // Wait for board to load
+    await expect(page.locator('.grid.gap-4.pb-4').first()).toBeVisible({
+      timeout: 10000,
+    })
 
     // Focus on the body (not in any input)
     await page.click('body')
@@ -135,7 +137,6 @@ test.describe('Kanban Board Column Edit Dialog', () => {
 
       await page.goto(BOARD_URL)
       await page.waitForLoadState('networkidle')
-      await page.waitForTimeout(500)
 
       // Open column edit dialog for the first column
       const columnOptionsButton = page
@@ -162,15 +163,17 @@ test.describe('Kanban Board Column Edit Dialog', () => {
       const saveButton = dialog.getByRole('button', { name: /save/i })
       await saveButton.click()
 
-      // Wait for server action to complete
-      await page.waitForTimeout(1500)
+      // Wait for dialog to close (confirms save was triggered)
+      await expect(dialog).not.toBeVisible({ timeout: 5000 })
 
-      // Verify column name is updated in database
-      const status = await querySingle<{ name: string }>('statuslist', {
-        id: statusId,
-      })
-      expect(status).not.toBeNull()
-      expect(status?.name).toBe(uniqueName)
+      // Poll database until column name is persisted (server action may be async)
+      await expect(async () => {
+        const status = await querySingle<{ name: string }>('statuslist', {
+          id: statusId,
+        })
+        expect(status).not.toBeNull()
+        expect(status?.name).toBe(uniqueName)
+      }).toPass({ timeout: 10000 })
     })
   })
 })
