@@ -14,6 +14,7 @@ import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 import { getGitHubTokenCookieName } from '@/lib/constants/cookies'
+import { logSecurityEvent } from '@/lib/security-events'
 import {
   createServerActionClient,
   createAdminClient,
@@ -80,6 +81,8 @@ export async function signOut() {
   const githubTokenCookieName = getGitHubTokenCookieName()
   cookieStore.delete(githubTokenCookieName)
 
+  logSecurityEvent('logout')
+
   redirect('/')
 }
 
@@ -122,6 +125,8 @@ export async function deleteAccount() {
     })
     throw new Error('Failed to delete account')
   }
+
+  logSecurityEvent('account_deleted', { userId: user.id })
 
   // Delete GitHub provider token cookie
   const githubTokenCookieName = getGitHubTokenCookieName()

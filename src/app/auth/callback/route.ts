@@ -15,6 +15,7 @@ import { NextResponse } from 'next/server'
 import { createFirstBoardIfNeeded } from '@/lib/actions/board'
 import { getGitHubTokenCookieName } from '@/lib/constants/cookies'
 import { createModuleLogger } from '@/lib/logger'
+import { logSecurityEvent } from '@/lib/security-events'
 import { createRouteHandlerClient } from '@/lib/supabase/server'
 
 const log = createModuleLogger('auth-callback')
@@ -58,6 +59,7 @@ export async function GET(request: Request) {
 
       if (error) {
         log.error({ error }, 'OAuth callback error')
+        logSecurityEvent('login_failure', { error: error.message })
         return NextResponse.redirect(
           `${origin}/login?error=auth_failed&message=${encodeURIComponent(error.message)}`,
         )
@@ -83,6 +85,7 @@ export async function GET(request: Request) {
 
       // Create "First Board" for new users (idempotent - safe on every login)
       if (data.session?.user?.id) {
+        logSecurityEvent('login_success', { userId: data.session.user.id })
         await createFirstBoardIfNeeded(data.session.user.id)
       }
 
