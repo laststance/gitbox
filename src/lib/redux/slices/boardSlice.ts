@@ -18,16 +18,12 @@ interface BoardState {
   activeBoard: SimplifiedBoard | null
   statusLists: StatusListDomain[]
   repoCards: RepoCardForRedux[]
-  loading: boolean
-  error: string | null
 }
 
 const initialState: BoardState = {
   activeBoard: null,
   statusLists: [],
   repoCards: [],
-  loading: false,
-  error: null,
 }
 
 export const boardSlice = createSlice({
@@ -59,12 +55,6 @@ export const boardSlice = createSlice({
         (card) => card.id !== action.payload,
       )
     },
-    /**
-     * Set error state (null to clear)
-     */
-    setBoardError: (state, action: PayloadAction<string | null>) => {
-      state.error = action.payload
-    },
   },
 })
 
@@ -74,7 +64,6 @@ export const {
   setRepoCards,
   addRepoCards,
   removeRepoCard,
-  setBoardError,
 } = boardSlice.actions
 
 export default boardSlice.reducer
@@ -84,7 +73,3 @@ export const selectStatusLists = (state: { board: BoardState }) =>
   state.board.statusLists
 export const selectRepoCards = (state: { board: BoardState }) =>
   state.board.repoCards
-export const selectBoardLoading = (state: { board: BoardState }) =>
-  state.board.loading
-export const selectBoardError = (state: { board: BoardState }) =>
-  state.board.error

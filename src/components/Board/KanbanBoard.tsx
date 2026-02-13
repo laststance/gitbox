@@ -25,7 +25,6 @@ import {
 } from '@dnd-kit/sortable'
 import * as Sentry from '@sentry/nextjs'
 import { motion, useReducedMotion } from 'framer-motion'
-import { AlertCircle } from 'lucide-react'
 import React, { useState, useEffect, memo, useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
 
@@ -50,8 +49,6 @@ import {
   setRepoCards,
   selectStatusLists,
   selectRepoCards,
-  selectBoardLoading,
-  selectBoardError,
 } from '@/lib/redux/slices/boardSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { CommentColor } from '@/lib/supabase/types'
@@ -156,20 +153,6 @@ const KanbanSkeleton = memo(() => {
 })
 KanbanSkeleton.displayName = 'KanbanSkeleton'
 
-// Error State Component
-const ErrorState = memo(({ message }: { message: string }) => {
-  return (
-    <div className="flex min-h-[400px] flex-col items-center justify-center p-8">
-      <AlertCircle className="text-destructive mb-4 h-16 w-16" />
-      <h3 className="text-foreground mb-2 text-xl font-semibold">
-        Something went wrong
-      </h3>
-      <p className="text-muted-foreground max-w-md text-center">{message}</p>
-    </div>
-  )
-})
-ErrorState.displayName = 'ErrorState'
-
 // Main Kanban Board Component
 export const KanbanBoard = memo<KanbanBoardProps>(
   ({
@@ -191,8 +174,6 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     const dispatch = useAppDispatch()
     const statuses = useAppSelector(selectStatusLists)
     const cards = useAppSelector(selectRepoCards)
-    const loading = useAppSelector(selectBoardLoading)
-    const error = useAppSelector(selectBoardError)
 
     // Local state (temporary state not migrated to Redux)
     const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null)
@@ -728,20 +709,11 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       }
     }
 
-    // Only show skeleton on initial load (no data yet)
-    // Not on subsequent refetches when data already exists (e.g., after note save)
-    if (loading && statuses.length === 0) {
+    // Show skeleton when no data loaded yet (e.g., initial hydration)
+    if (statuses.length === 0) {
       return (
         <div className="w-full p-6">
           <KanbanSkeleton />
-        </div>
-      )
-    }
-
-    if (error) {
-      return (
-        <div className="w-full p-6">
-          <ErrorState message={error} />
         </div>
       )
     }
