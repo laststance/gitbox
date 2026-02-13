@@ -12,8 +12,6 @@
  * }
  */
 
-import * as Sentry from '@sentry/nextjs'
-
 import { logSecurityEvent } from '@/lib/security-events'
 import { isTestMode } from '@/tests/isTestMode'
 
@@ -79,11 +77,6 @@ export function checkRateLimit(
     logSecurityEvent('rate_limited', {
       userId: identifier,
       path: key,
-    })
-    Sentry.captureMessage(`Rate limit hit: ${key}`, {
-      level: 'warning',
-      tags: { category: 'rate_limit', action: key },
-      extra: { identifier },
     })
 
     return {

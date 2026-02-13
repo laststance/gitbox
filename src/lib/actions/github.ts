@@ -24,12 +24,15 @@ const log = createModuleLogger('github')
 /**
  * Get client IP from request headers for rate limiting.
  * GitHub API functions don't use Supabase auth, so we use IP-based limiting.
+ * Logs a warning when x-forwarded-for is missing (proxy misconfiguration).
  */
 async function getClientIp(): Promise<string> {
   const headerStore = await headers()
-  return (
-    headerStore.get('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1'
-  )
+  const forwarded = headerStore.get('x-forwarded-for')?.split(',')[0]?.trim()
+  if (!forwarded) {
+    log.warn('x-forwarded-for header missing — falling back to 127.0.0.1')
+  }
+  return forwarded || '127.0.0.1'
 }
 
 export interface GitHubRepository {

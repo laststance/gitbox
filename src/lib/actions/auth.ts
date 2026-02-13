@@ -29,8 +29,14 @@ import {
 export async function signInWithGitHub() {
   // Rate limit by IP (user not yet authenticated)
   const headerStore = await headers()
-  const ip =
-    headerStore.get('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1'
+  const forwarded = headerStore.get('x-forwarded-for')?.split(',')[0]?.trim()
+  if (!forwarded) {
+    Sentry.captureMessage('signInWithGitHub: x-forwarded-for header missing', {
+      level: 'warning',
+      tags: { category: 'rate_limit' },
+    })
+  }
+  const ip = forwarded || '127.0.0.1'
   const rlResult = checkRateLimit('signInWithGitHub', ip)
   if (!rlResult.allowed) {
     redirect(
