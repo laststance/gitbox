@@ -49,17 +49,21 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for board to load (confirms localStorage is set)
-    await expect(page.locator('main').first()).toBeVisible({ timeout: 10000 })
+    // Wait for board columns to render (confirms board data loaded)
+    await expect(
+      page.locator('[data-testid^="status-column-"]').first(),
+    ).toBeVisible({ timeout: 10000 })
 
-    // Verify localStorage was set
-    const storedBoard = await page.evaluate(() => {
-      return localStorage.getItem('gitbox:lastVisitedBoard')
-    })
-    expect(storedBoard).not.toBeNull()
-    const parsedBoard = JSON.parse(storedBoard!)
-    expect(parsedBoard).toHaveProperty('id')
-    expect(parsedBoard).toHaveProperty('name')
+    // Poll for localStorage to be set (may be async via Redux middleware)
+    await expect(async () => {
+      const storedBoard = await page.evaluate(() =>
+        localStorage.getItem('gitbox:lastVisitedBoard'),
+      )
+      expect(storedBoard).not.toBeNull()
+      const parsedBoard = JSON.parse(storedBoard!)
+      expect(parsedBoard).toHaveProperty('id')
+      expect(parsedBoard).toHaveProperty('name')
+    }).toPass({ timeout: 5000 })
 
     // Navigate to maintenance page
     await page.goto(MAINTENANCE_URL)
@@ -80,15 +84,22 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for board to load
-    await expect(page.locator('main').first()).toBeVisible({ timeout: 10000 })
+    // Wait for board columns to render
+    await expect(
+      page.locator('[data-testid^="status-column-"]').first(),
+    ).toBeVisible({ timeout: 10000 })
 
-    // Get the board name from localStorage
-    const storedBoard = await page.evaluate(() => {
-      return localStorage.getItem('gitbox:lastVisitedBoard')
-    })
-    const parsedBoard = JSON.parse(storedBoard!)
-    const boardName = parsedBoard.name
+    // Poll for localStorage to be set
+    let boardName = ''
+    await expect(async () => {
+      const storedBoard = await page.evaluate(() =>
+        localStorage.getItem('gitbox:lastVisitedBoard'),
+      )
+      expect(storedBoard).not.toBeNull()
+      const parsedBoard = JSON.parse(storedBoard!)
+      boardName = parsedBoard.name
+      expect(boardName).toBeTruthy()
+    }).toPass({ timeout: 5000 })
 
     // Navigate to maintenance page
     await page.goto(MAINTENANCE_URL)
@@ -112,8 +123,10 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
 
-    // Wait for board to load
-    await expect(page.locator('main').first()).toBeVisible({ timeout: 10000 })
+    // Wait for board columns to render
+    await expect(
+      page.locator('[data-testid^="status-column-"]').first(),
+    ).toBeVisible({ timeout: 10000 })
 
     // Navigate to maintenance page
     await page.goto(MAINTENANCE_URL)
@@ -133,8 +146,10 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
     await expect(page).toHaveURL(new RegExp(BOARD_IDS.testBoard))
     await page.waitForLoadState('networkidle')
 
-    // Board should be visible
-    await expect(page.locator('main').first()).toBeVisible({ timeout: 10000 })
+    // Board columns should be visible
+    await expect(
+      page.locator('[data-testid^="status-column-"]').first(),
+    ).toBeVisible({ timeout: 10000 })
   })
 
   test('should update localStorage when visiting different boards', async ({
@@ -143,24 +158,32 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
     // Visit first board
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
-    await expect(page.locator('main').first()).toBeVisible({ timeout: 10000 })
+    await expect(
+      page.locator('[data-testid^="status-column-"]').first(),
+    ).toBeVisible({ timeout: 10000 })
 
-    // Check first board in localStorage
-    const firstBoard = await page.evaluate(() => {
-      return JSON.parse(localStorage.getItem('gitbox:lastVisitedBoard')!)
-    })
-    expect(firstBoard.id).toBe(BOARD_IDS.testBoard)
+    // Poll for first board in localStorage
+    await expect(async () => {
+      const firstBoard = await page.evaluate(() =>
+        JSON.parse(localStorage.getItem('gitbox:lastVisitedBoard')!),
+      )
+      expect(firstBoard.id).toBe(BOARD_IDS.testBoard)
+    }).toPass({ timeout: 5000 })
 
     // Visit second board
     await page.goto(`/board/${BOARD_IDS.workProjects}`)
     await page.waitForLoadState('networkidle')
-    await expect(page.locator('main').first()).toBeVisible({ timeout: 10000 })
+    await expect(
+      page.locator('[data-testid^="status-column-"]').first(),
+    ).toBeVisible({ timeout: 10000 })
 
-    // Check second board in localStorage
-    const secondBoard = await page.evaluate(() => {
-      return JSON.parse(localStorage.getItem('gitbox:lastVisitedBoard')!)
-    })
-    expect(secondBoard.id).toBe(BOARD_IDS.workProjects)
+    // Poll for second board in localStorage
+    await expect(async () => {
+      const secondBoard = await page.evaluate(() =>
+        JSON.parse(localStorage.getItem('gitbox:lastVisitedBoard')!),
+      )
+      expect(secondBoard.id).toBe(BOARD_IDS.workProjects)
+    }).toPass({ timeout: 5000 })
 
     // Navigate to maintenance and verify link goes to second board
     await page.goto(MAINTENANCE_URL)
@@ -182,7 +205,9 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
     // First, visit a board to set localStorage
     await page.goto(BOARD_URL)
     await page.waitForLoadState('networkidle')
-    await expect(page.locator('main').first()).toBeVisible({ timeout: 10000 })
+    await expect(
+      page.locator('[data-testid^="status-column-"]').first(),
+    ).toBeVisible({ timeout: 10000 })
 
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 })

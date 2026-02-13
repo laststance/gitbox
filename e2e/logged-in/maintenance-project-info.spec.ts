@@ -196,7 +196,8 @@ test.describe('Maintenance Comment Inline Edit (Authenticated)', () => {
     const emptyCount = await emptyState.count()
 
     // Should have at least one comment area (either display or empty state)
-    expect(commentCount + emptyCount).toBeGreaterThanOrEqual(0)
+    // Seed data ensures maintenance cards exist, so at least one area should be present
+    expect(commentCount + emptyCount).toBeGreaterThan(0)
   })
 
   test('should open inline edit when clicking comment area', async ({
