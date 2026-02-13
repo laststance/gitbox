@@ -25,7 +25,6 @@ import {
 } from '@dnd-kit/sortable'
 import * as Sentry from '@sentry/nextjs'
 import { motion, useReducedMotion } from 'framer-motion'
-import { AlertCircle } from 'lucide-react'
 import React, { useState, useEffect, memo, useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
 
@@ -50,8 +49,6 @@ import {
   setRepoCards,
   selectStatusLists,
   selectRepoCards,
-  selectBoardLoading,
-  selectBoardError,
 } from '@/lib/redux/slices/boardSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { CommentColor } from '@/lib/supabase/types'
@@ -156,20 +153,6 @@ const KanbanSkeleton = memo(() => {
 })
 KanbanSkeleton.displayName = 'KanbanSkeleton'
 
-// Error State Component
-const ErrorState = memo(({ message }: { message: string }) => {
-  return (
-    <div className="flex min-h-[400px] flex-col items-center justify-center p-8">
-      <AlertCircle className="text-destructive mb-4 h-16 w-16" />
-      <h3 className="text-foreground mb-2 text-xl font-semibold">
-        Something went wrong
-      </h3>
-      <p className="text-muted-foreground max-w-md text-center">{message}</p>
-    </div>
-  )
-})
-ErrorState.displayName = 'ErrorState'
-
 // Main Kanban Board Component
 export const KanbanBoard = memo<KanbanBoardProps>(
   ({
@@ -191,8 +174,6 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     const dispatch = useAppDispatch()
     const statuses = useAppSelector(selectStatusLists)
     const cards = useAppSelector(selectRepoCards)
-    const loading = useAppSelector(selectBoardLoading)
-    const error = useAppSelector(selectBoardError)
 
     // Local state (temporary state not migrated to Redux)
     const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null)
@@ -479,9 +460,140 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       }
     }
 
+    /** Save current column state to undo history (max 10 entries) */
+    const recordColumnHistory = useCallback(() => {
+      setColumnHistory((prev) => [...prev, statuses].slice(-10))
+    }, [statuses])
+
+    /** Handle column dropped on NewRowDropZone */
+    const handleNewRowDrop = useCallback(
+      async (
+        activeStatus: StatusListDomain,
+        targetRow: number,
+        targetCol: number,
+      ) => {
+        recordColumnHistory()
+
+        const updatedStatuses = statuses.map((status) =>
+          status.id === activeStatus.id
+            ? { ...status, gridRow: targetRow, gridCol: targetCol }
+            : status,
+        )
+        dispatch(setStatusLists(updatedStatuses))
+
+        try {
+          const { updateStatusListPosition } =
+            await import('@/lib/actions/board')
+          await updateStatusListPosition(activeStatus.id, targetRow, targetCol)
+        } catch (error) {
+          Sentry.captureException(error, {
+            tags: { action: 'moveColumnToNewRow' },
+          })
+          dispatch(setStatusLists(statuses))
+        }
+      },
+      [statuses, dispatch, recordColumnHistory],
+    )
+
+    /** Handle column dropped on ColumnInsertZone (empty grid position) */
+    const handleColumnInsertDrop = useCallback(
+      async (
+        activeStatus: StatusListDomain,
+        targetRow: number,
+        targetCol: number,
+      ) => {
+        if (
+          activeStatus.gridRow === targetRow &&
+          activeStatus.gridCol === targetCol
+        ) {
+          return
+        }
+
+        recordColumnHistory()
+
+        const updates: Array<{ id: string; gridRow: number; gridCol: number }> =
+          [{ id: activeStatus.id, gridRow: targetRow, gridCol: targetCol }]
+
+        // Shift columns at targetCol and beyond if position is occupied
+        const columnAtTarget = statuses.find(
+          (s) =>
+            s.id !== activeStatus.id &&
+            s.gridRow === targetRow &&
+            s.gridCol === targetCol,
+        )
+        if (columnAtTarget) {
+          for (const col of statuses.filter(
+            (s) =>
+              s.id !== activeStatus.id &&
+              s.gridRow === targetRow &&
+              s.gridCol >= targetCol,
+          )) {
+            updates.push({
+              id: col.id,
+              gridRow: col.gridRow,
+              gridCol: col.gridCol + 1,
+            })
+          }
+        }
+
+        const updateMap = new Map(updates.map((u) => [u.id, u]))
+        const updatedStatuses = statuses.map((status) => {
+          const update = updateMap.get(status.id)
+          return update
+            ? { ...status, gridRow: update.gridRow, gridCol: update.gridCol }
+            : status
+        })
+        dispatch(setStatusLists(updatedStatuses))
+
+        try {
+          await batchUpdateStatusListPositions(updates)
+        } catch (error) {
+          Sentry.captureException(error, { tags: { action: 'insertColumn' } })
+          dispatch(setStatusLists(statuses))
+        }
+      },
+      [statuses, dispatch, recordColumnHistory],
+    )
+
+    /** Handle column swap (drop on another column) */
+    const handleColumnSwap = useCallback(
+      async (activeStatus: StatusListDomain, overStatus: StatusListDomain) => {
+        recordColumnHistory()
+
+        const updatedStatuses = statuses.map((status) => {
+          if (status.id === activeStatus.id) {
+            return {
+              ...status,
+              gridRow: overStatus.gridRow,
+              gridCol: overStatus.gridCol,
+            }
+          }
+          if (status.id === overStatus.id) {
+            return {
+              ...status,
+              gridRow: activeStatus.gridRow,
+              gridCol: activeStatus.gridCol,
+            }
+          }
+          return status
+        })
+        dispatch(setStatusLists(updatedStatuses))
+
+        try {
+          await swapStatusListPositions(activeStatus.id, overStatus.id)
+        } catch (error) {
+          Sentry.captureException(error, {
+            tags: { action: 'swapColumnPositions' },
+          })
+          dispatch(setStatusLists(statuses))
+        }
+      },
+      [statuses, dispatch, recordColumnHistory],
+    )
+
     /**
      * Handle drag end event
-     * Processes both column and card reordering
+     * Dispatches to sub-handlers for column and card operations
      */
     const handleDragEnd = async (event: DragEndEvent) => {
       const { active, over } = event
@@ -490,228 +602,66 @@ export const KanbanBoard = memo<KanbanBoardProps>(
 
       if (!over) return
 
-      // Handle column position changes (2D grid)
+      // Column drag operations
       if (active.data.current?.type === COLUMN_DRAG_TYPE) {
         if (active.id === over.id) return
 
         const activeStatus = statuses.find((s) => s.id === active.id)
         const overData = over.data.current
 
-        // Check if dropped on NewRowDropZone
         if (overData?.type === NEW_ROW_DROP_TYPE && activeStatus) {
-          const targetRow = overData.gridRow as number
-          const targetCol = overData.gridCol as number
-
-          // Save current state to column history (max 10 entries)
-          setColumnHistory((prev) => {
-            const newHistory = [...prev, statuses]
-            return newHistory.slice(-10)
-          })
-
-          // Move column to new row
-          const updatedStatuses = statuses.map((status) => {
-            if (status.id === activeStatus.id) {
-              return {
-                ...status,
-                gridRow: targetRow,
-                gridCol: targetCol,
-              }
-            }
-            return status
-          })
-
-          // Optimistic UI update
-          dispatch(setStatusLists(updatedStatuses))
-
-          // Sync to Supabase (background)
-          try {
-            const { updateStatusListPosition } =
-              await import('@/lib/actions/board')
-            await updateStatusListPosition(
-              activeStatus.id,
-              targetRow,
-              targetCol,
-            )
-          } catch (error) {
-            Sentry.captureException(error, {
-              tags: { action: 'moveColumnToNewRow' },
-            })
-            // Revert on error
-            dispatch(setStatusLists(statuses))
-          }
-          return
-        }
-
-        // Check if dropped on ColumnInsertZone (empty grid position)
-        if (overData?.type === COLUMN_INSERT_DROP_TYPE && activeStatus) {
-          const targetRow = overData.gridRow as number
-          const targetCol = overData.gridCol as number
-
-          // Skip if dropping at same position
-          if (
-            activeStatus.gridRow === targetRow &&
-            activeStatus.gridCol === targetCol
-          ) {
-            return
-          }
-
-          // Save current state to column history (max 10 entries)
-          setColumnHistory((prev) => {
-            const newHistory = [...prev, statuses]
-            return newHistory.slice(-10)
-          })
-
-          // Build list of position updates
-          const updates: Array<{
-            id: string
-            gridRow: number
-            gridCol: number
-          }> = []
-
-          // Move the dragged column to the target position
-          updates.push({
-            id: activeStatus.id,
-            gridRow: targetRow,
-            gridCol: targetCol,
-          })
-
-          // Check if any column needs to shift (if target position is occupied)
-          const columnAtTarget = statuses.find(
-            (s) =>
-              s.id !== activeStatus.id &&
-              s.gridRow === targetRow &&
-              s.gridCol === targetCol,
+          await handleNewRowDrop(
+            activeStatus,
+            overData.gridRow as number,
+            overData.gridCol as number,
           )
-
-          if (columnAtTarget) {
-            // Shift all columns at targetCol and beyond in the same row
-            const columnsToShift = statuses.filter(
-              (s) =>
-                s.id !== activeStatus.id &&
-                s.gridRow === targetRow &&
-                s.gridCol >= targetCol,
-            )
-            for (const col of columnsToShift) {
-              updates.push({
-                id: col.id,
-                gridRow: col.gridRow,
-                gridCol: col.gridCol + 1,
-              })
-            }
-          }
-
-          // Apply optimistic UI update
-          const updateMap = new Map(updates.map((u) => [u.id, u]))
-          const updatedStatuses = statuses.map((status) => {
-            const update = updateMap.get(status.id)
-            if (update) {
-              return {
-                ...status,
-                gridRow: update.gridRow,
-                gridCol: update.gridCol,
-              }
-            }
-            return status
-          })
-
-          dispatch(setStatusLists(updatedStatuses))
-
-          // Sync to Supabase (background)
-          try {
-            await batchUpdateStatusListPositions(updates)
-          } catch (error) {
-            Sentry.captureException(error, {
-              tags: { action: 'insertColumn' },
-            })
-            // Revert on error
-            dispatch(setStatusLists(statuses))
-          }
+          return
+        }
+        if (overData?.type === COLUMN_INSERT_DROP_TYPE && activeStatus) {
+          await handleColumnInsertDrop(
+            activeStatus,
+            overData.gridRow as number,
+            overData.gridCol as number,
+          )
           return
         }
 
-        // Handle column swap (drop on another column)
         const overStatus = statuses.find((s) => s.id === over.id)
-
         if (activeStatus && overStatus) {
-          // Save current state to column history (max 10 entries)
-          setColumnHistory((prev) => {
-            const newHistory = [...prev, statuses]
-            return newHistory.slice(-10)
-          })
-
-          // Swap grid positions between the two columns
-          const updatedStatuses = statuses.map((status) => {
-            if (status.id === activeStatus.id) {
-              return {
-                ...status,
-                gridRow: overStatus.gridRow,
-                gridCol: overStatus.gridCol,
-              }
-            }
-            if (status.id === overStatus.id) {
-              return {
-                ...status,
-                gridRow: activeStatus.gridRow,
-                gridCol: activeStatus.gridCol,
-              }
-            }
-            return status
-          })
-
-          // Optimistic UI update
-          dispatch(setStatusLists(updatedStatuses))
-
-          // Sync to Supabase (background)
-          try {
-            await swapStatusListPositions(activeStatus.id, overStatus.id)
-          } catch (error) {
-            Sentry.captureException(error, {
-              tags: { action: 'swapColumnPositions' },
-            })
-            // Revert on error
-            dispatch(setStatusLists(statuses))
-          }
+          await handleColumnSwap(activeStatus, overStatus)
         }
         return
       }
 
-      // Handle card reordering
+      // Card drag operations
       const activeCard = cards.find((c) => c.id === active.id)
       if (!activeCard) return
 
-      // Determine target status ID from over element
+      // Resolve target column
       let targetStatusId: string
       const overData = over.data.current
-
       if (overData?.type === 'column' && overData?.statusId) {
-        // Dropped on a column droppable
         targetStatusId = overData.statusId
       } else {
-        // Dropped on a card or column
         const overCard = cards.find((c) => c.id === over.id)
         if (overCard) {
           targetStatusId = overCard.statusId
         } else {
-          // Check if dropped on droppable column
           const overId = over.id.toString()
           if (overId.startsWith('droppable-')) {
             targetStatusId = overId.replace('droppable-', '')
           } else {
-            // Assume it's a column ID directly
             const overStatus = statuses.find((s) => s.id === overId)
             targetStatusId = overStatus ? overId : activeCard.statusId
           }
         }
       }
 
-      // Save current state to history (max 10 entries)
-      setHistory((prev) => {
-        const newHistory = [...prev, cards]
-        return newHistory.slice(-10)
-      })
+      // Save card history for undo
+      setHistory((prev) => [...prev, cards].slice(-10))
 
       if (activeCard.statusId === targetStatusId) {
-        // Reordering within the same column
+        // Reorder within same column
         const columnCards = cardsByStatus[targetStatusId] ?? EMPTY_CARDS
         const oldIndex = columnCards.findIndex((c) => c.id === active.id)
         const newIndex = columnCards.findIndex((c) => c.id === over.id)
@@ -719,37 +669,29 @@ export const KanbanBoard = memo<KanbanBoardProps>(
         if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
           const reordered = arrayMove(columnCards, oldIndex, newIndex)
           const otherCards = cards.filter((c) => c.statusId !== targetStatusId)
-
-          // Optimistic UI update
           dispatch(setRepoCards([...otherCards, ...reordered]))
 
-          // Sync to Supabase (background)
           const updates = reordered.map((card, index) => ({
             id: card.id,
             statusId: targetStatusId,
             order: index,
           }))
-
           try {
             await batchUpdateRepoCardOrders(updates)
           } catch (error) {
             Sentry.captureException(error, {
               tags: { action: 'syncCardOrder' },
             })
-            // Revert on error (restore from history)
             dispatch(setRepoCards(cards))
           }
         }
       } else {
-        // Moving to a different column
+        // Move to different column
         const updatedCards = cards.map((c) =>
           c.id === activeCard.id ? { ...c, statusId: targetStatusId } : c,
         )
-
-        // Optimistic UI update
         dispatch(setRepoCards(updatedCards))
 
-        // Sync to Supabase (background)
         try {
           const targetColumnCards = updatedCards.filter(
             (c) => c.statusId === targetStatusId,
@@ -757,32 +699,21 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           const newOrder = targetColumnCards.findIndex(
             (c) => c.id === activeCard.id,
           )
-
           await updateRepoCardPosition(activeCard.id, targetStatusId, newOrder)
         } catch (error) {
           Sentry.captureException(error, {
             tags: { action: 'syncCardPosition' },
           })
-          // Revert on error
           dispatch(setRepoCards(cards))
         }
       }
     }
 
-    // Only show skeleton on initial load (no data yet)
-    // Not on subsequent refetches when data already exists (e.g., after note save)
-    if (loading && statuses.length === 0) {
+    // Show skeleton when no data loaded yet (e.g., initial hydration)
+    if (statuses.length === 0) {
       return (
         <div className="w-full p-6">
           <KanbanSkeleton />
-        </div>
-      )
-    }
-
-    if (error) {
-      return (
-        <div className="w-full p-6">
-          <ErrorState message={error} />
         </div>
       )
     }

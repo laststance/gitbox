@@ -40,10 +40,19 @@ function createMockStore() {
     preloadedState: {
       board: {
         activeBoard: null,
-        statusLists: [],
+        statusLists: [
+          {
+            id: 'status-1',
+            title: 'To Do',
+            color: '#6B7280',
+            gridRow: 0,
+            gridCol: 0,
+            boardId: 'board-1',
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
+        ],
         repoCards: [],
-        loading: false,
-        error: null,
         lastDragOperation: null,
         undoHistory: [],
       },
@@ -538,12 +547,12 @@ describe('StatusColumn Auto-Height Classes', () => {
  * - ErrorState rendering when error occurs
  * - Normal board rendering when data is available
  */
-describe('KanbanBoard Loading and Error States', () => {
+describe('KanbanBoard Loading States', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('should render loading skeleton when loading is true and no status lists', async () => {
+  it('should render skeleton when no status lists exist', async () => {
     const store = configureStore({
       reducer: {
         board: boardSlice,
@@ -553,8 +562,6 @@ describe('KanbanBoard Loading and Error States', () => {
           activeBoard: null,
           statusLists: [],
           repoCards: [],
-          loading: true,
-          error: null,
           lastDragOperation: null,
           undoHistory: [],
         },
@@ -575,42 +582,7 @@ describe('KanbanBoard Loading and Error States', () => {
     })
   })
 
-  it('should render error state when error exists', async () => {
-    const store = configureStore({
-      reducer: {
-        board: boardSlice,
-      },
-      preloadedState: {
-        board: {
-          activeBoard: null,
-          statusLists: [],
-          repoCards: [],
-          loading: false,
-          error: 'Failed to load board data',
-          lastDragOperation: null,
-          undoHistory: [],
-        },
-      },
-    })
-
-    const { container, getByText } = render(
-      <Provider store={store}>
-        <KanbanBoard boardId="test-board" initialComments={{}} />
-      </Provider>,
-    )
-
-    // Wait for error state to render
-    await waitFor(() => {
-      expect(getByText('Something went wrong')).toBeInTheDocument()
-      expect(getByText('Failed to load board data')).toBeInTheDocument()
-    })
-
-    // Check error icon is present
-    const errorIcon = container.querySelector('.text-destructive')
-    expect(errorIcon).toBeInTheDocument()
-  })
-
-  it('should not show skeleton when loading but status lists exist', async () => {
+  it('should not show skeleton when status lists exist', async () => {
     const store = configureStore({
       reducer: {
         board: boardSlice,
@@ -631,8 +603,6 @@ describe('KanbanBoard Loading and Error States', () => {
             },
           ],
           repoCards: [],
-          loading: true,
-          error: null,
           lastDragOperation: null,
           undoHistory: [],
         },
@@ -714,8 +684,6 @@ describe('KanbanBoard with Data', () => {
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
           ],
-          loading: false,
-          error: null,
           lastDragOperation: null,
           undoHistory: [],
         },
@@ -776,8 +744,6 @@ describe('KanbanBoard with Data', () => {
             },
           ],
           repoCards: [],
-          loading: false,
-          error: null,
           lastDragOperation: null,
           undoHistory: [],
         },
@@ -843,8 +809,6 @@ describe('KanbanBoard Callbacks', () => {
             },
           ],
           repoCards: [],
-          loading: false,
-          error: null,
           lastDragOperation: null,
           undoHistory: [],
         },
@@ -921,8 +885,6 @@ describe('KanbanBoard Initial Comments', () => {
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
           ],
-          loading: false,
-          error: null,
           lastDragOperation: null,
           undoHistory: [],
         },
@@ -981,8 +943,6 @@ describe('KanbanBoard Card Display Settings', () => {
             },
           ],
           repoCards: [],
-          loading: false,
-          error: null,
           lastDragOperation: null,
           undoHistory: [],
         },
@@ -1035,8 +995,6 @@ describe('KanbanBoard Card Display Settings', () => {
             },
           ],
           repoCards: [],
-          loading: false,
-          error: null,
           lastDragOperation: null,
           undoHistory: [],
         },
@@ -1102,8 +1060,6 @@ describe('KanbanBoard Undo Keyboard Shortcut', () => {
             },
           ],
           repoCards: [],
-          loading: false,
-          error: null,
           lastDragOperation: null,
           undoHistory: [],
         },
@@ -1153,8 +1109,6 @@ describe('KanbanBoard Undo Keyboard Shortcut', () => {
             },
           ],
           repoCards: [],
-          loading: false,
-          error: null,
           lastDragOperation: null,
           undoHistory: [],
         },
@@ -1213,8 +1167,6 @@ describe('KanbanBoard Undo Keyboard Shortcut', () => {
             },
           ],
           repoCards: [],
-          loading: false,
-          error: null,
           lastDragOperation: null,
           undoHistory: [],
         },
@@ -1289,8 +1241,6 @@ describe('KanbanBoard DndContext Configuration', () => {
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
           ],
-          loading: false,
-          error: null,
           lastDragOperation: null,
           undoHistory: [],
         },
@@ -1366,8 +1316,6 @@ describe('KanbanBoard Multi-Row Layout', () => {
             },
           ],
           repoCards: [],
-          loading: false,
-          error: null,
           lastDragOperation: null,
           undoHistory: [],
         },
@@ -1447,8 +1395,6 @@ describe('KanbanBoard Multi-Row Layout', () => {
             },
           ],
           repoCards: [],
-          loading: false,
-          error: null,
           lastDragOperation: null,
           undoHistory: [],
         },

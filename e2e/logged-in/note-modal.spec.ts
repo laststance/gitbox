@@ -197,16 +197,25 @@ test.describe('NoteModal (Authenticated)', () => {
     const saveButton = dialog.getByRole('button', { name: /save/i })
     await saveButton.click()
 
-    // Wait for server action to complete
-    await page.waitForTimeout(1500)
+    // Wait for toast to confirm save was triggered
+    const toastMessage = page.getByText(/project info saved/i)
+    await expect(toastMessage).toBeVisible({ timeout: 10000 })
 
-    // Verify note is persisted in database
-    const projectInfo = await querySingle<{ note: string }>('projectinfo', {
-      id: projectInfoId,
-    })
-    expect(projectInfo).not.toBeNull()
-    // Note content includes the text we typed (Plate stores as rich text JSON)
-    expect(projectInfo?.note).toContain(uniqueNote)
+    // Wait for dialog to close
+    await expect(dialog).not.toBeVisible({ timeout: 5000 })
+
+    // Wait for network to settle after save
+    await page.waitForLoadState('networkidle')
+
+    // Poll database until note is persisted (server action may be async)
+    await expect(async () => {
+      const projectInfo = await querySingle<{ note: string }>('projectinfo', {
+        id: projectInfoId,
+      })
+      expect(projectInfo).not.toBeNull()
+      // Note content includes the text we typed (Plate stores as rich text JSON)
+      expect(projectInfo?.note).toContain(uniqueNote)
+    }).toPass({ timeout: 10000 })
   })
 
   test('should trigger slash command menu on "/" key', async ({ page }) => {
@@ -227,12 +236,13 @@ test.describe('NoteModal (Authenticated)', () => {
     await page.keyboard.press(`${MOD}+a`)
     await page.keyboard.press('Backspace')
 
-    // Ensure editor is ready — type some text first, then clear and type /
-    // This guarantees the editor has focus and is accepting input
-    await page.keyboard.type('a')
-    await page.waitForTimeout(200)
+    // Ensure editor is ready and empty before typing slash command
+    // Type a character, wait for it to render, then clear and wait for editor to settle
+    await page.keyboard.type('x')
+    await expect(editorContent).toContainText('x')
     await page.keyboard.press(`${MOD}+a`)
     await page.keyboard.press('Backspace')
+    // Allow Slate editor to process the clear operation
     await page.waitForTimeout(300)
 
     await page.keyboard.type('/')
@@ -278,9 +288,9 @@ test.describe('NoteModal (Authenticated)', () => {
     // Click somewhere to deselect and make formatting visible
     await page.keyboard.press('End')
 
-    // Verify bold mark is applied (check for strong element)
-    // Note: Slate wraps text in complex DOM structures
-    const boldText = editorContent.locator('strong.slate-bold')
+    // Verify bold mark is applied (check for <strong> element)
+    // Plate renders bold text as semantic <strong> HTML elements
+    const boldText = editorContent.locator('strong')
     await expect(boldText).toHaveCount(1, { timeout: 3000 })
   })
 
@@ -324,8 +334,8 @@ test.describe('NoteModal (Authenticated)', () => {
     // The column header should remain visible immediately after save
     await expect(columnHeader).toBeVisible()
 
-    // Wait a moment for any potential revalidation to complete
-    await page.waitForTimeout(500)
+    // Wait for any potential revalidation to complete via network settling
+    await page.waitForLoadState('networkidle')
 
     // Board should still be visible (not replaced by skeleton)
     await expect(columnHeader).toBeVisible()
@@ -392,8 +402,8 @@ test.describe('NoteModal Editor Height & Scroll (Authenticated)', () => {
     ).join('\n')
     await page.keyboard.type(lines)
 
-    // Wait for content to render
-    await page.waitForTimeout(500)
+    // Wait for content to render by verifying last line is present
+    await expect(editorContent).toContainText('Line 20')
 
     // Get height after adding content
     const finalHeight = await editorContainer.evaluate(
@@ -448,8 +458,8 @@ test.describe('NoteModal Editor Height & Scroll (Authenticated)', () => {
 
     await page.keyboard.type('BOTTOM_MARKER_TEXT')
 
-    // Wait for content to render
-    await page.waitForTimeout(500)
+    // Wait for content to render by verifying marker text is present
+    await expect(editorContent).toContainText('BOTTOM_MARKER_TEXT')
 
     // The editor container should now have scrollable content
     const editorContainer = dialog.locator(
@@ -466,7 +476,6 @@ test.describe('NoteModal Editor Height & Scroll (Authenticated)', () => {
     await editorContainer.evaluate((el) => {
       el.scrollTop = 0
     })
-    await page.waitForTimeout(200)
 
     // TOP_MARKER_TEXT should be visible after scrolling to top
     await expect(editorContent).toContainText('TOP_MARKER_TEXT')
@@ -546,9 +555,9 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
     // Click somewhere to deselect and make formatting visible
     await page.keyboard.press('End')
 
-    // Verify italic mark is applied
-    // Note: Slate wraps text in complex DOM structures
-    const italicText = editorContent.locator('em.slate-italic')
+    // Verify italic mark is applied (check for <em> element)
+    // Plate renders italic text as semantic <em> HTML elements
+    const italicText = editorContent.locator('em')
     await expect(italicText).toHaveCount(1, { timeout: 3000 })
   })
 })
