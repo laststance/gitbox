@@ -12,11 +12,14 @@
  * }
  */
 
+import { createModuleLogger } from '@/lib/logger'
 import { logSecurityEvent } from '@/lib/security-events'
 import { isTestMode } from '@/tests/isTestMode'
 
 import { RATE_LIMIT_CONFIG, type RateLimitKey } from './config'
 import { SlidingWindowLimiter } from './memory'
+
+const log = createModuleLogger('rate-limit')
 
 export interface RateLimitResult {
   /** Whether the request is allowed */
@@ -63,6 +66,12 @@ export function checkRateLimit(
   key: RateLimitKey,
   identifier: string,
 ): RateLimitResult {
+  // Guard against empty identifier to avoid a shared rate-limit bucket
+  if (!identifier) {
+    log.warn(`Empty identifier for key "${key}", skipping rate limit`)
+    return { allowed: true }
+  }
+
   // Bypass in test mode (E2E + unit tests)
   if (isTestMode()) {
     return { allowed: true }
