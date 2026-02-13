@@ -83,16 +83,19 @@ test.describe('AddRepositoryCombobox - Pagination UI', () => {
       timeout: 10000,
     })
 
-    // Get initial count after options have loaded
-    const initialCount = await page.locator('[role="option"]').count()
-
     // Search for a specific term
     await searchInput.fill('private')
 
-    // Wait for filtered results to settle — count should change from initial
+    // Wait for search to filter — results should contain the search term
     await expect(async () => {
       const filteredCount = await page.locator('[role="option"]').count()
-      expect(filteredCount).not.toBe(initialCount)
+      expect(filteredCount).toBeGreaterThan(0)
+      // Verify the first visible option matches the search term
+      const firstOptionText = await page
+        .locator('[role="option"]')
+        .first()
+        .textContent()
+      expect(firstOptionText?.toLowerCase()).toContain('private')
     }).toPass({ timeout: 5000 })
   })
 
