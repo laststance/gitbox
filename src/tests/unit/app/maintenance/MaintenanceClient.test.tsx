@@ -33,6 +33,8 @@ vi.mock('@/lib/actions/maintenance-project-info', () => ({
   deleteMaintenanceComment: vi.fn().mockResolvedValue({}),
   getMaintenanceProjectInfo: vi.fn().mockResolvedValue(null),
   upsertMaintenanceProjectInfo: vi.fn().mockResolvedValue({}),
+  deleteMaintenanceItem: vi.fn().mockResolvedValue({ success: true }),
+  deleteMaintenanceItemAction: vi.fn().mockResolvedValue({ success: true }),
 }))
 
 vi.mock('@/lib/actions/repo-cards', () => ({

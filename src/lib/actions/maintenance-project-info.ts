@@ -16,6 +16,7 @@ import * as Sentry from '@sentry/nextjs'
 
 import type { CommentColor } from '@/lib/supabase/types'
 
+import { withAuthResultRateLimit } from './auth-guard'
 import {
   getProjectInfoCore,
   upsertProjectInfoCore,
@@ -234,4 +235,74 @@ export async function deleteMaintenanceComment(
         error instanceof Error ? error.message : 'Failed to delete comment',
     }
   }
+}
+
+/**
+ * Delete a maintenance item permanently
+ *
+ * Removes the maintenance record from the database.
+ * Associated projectinfo is automatically cleaned up via FK ON DELETE CASCADE.
+ * Protected by authentication and rate limiting.
+ *
+ * @param maintenanceId - Maintenance record ID to delete
+ * @returns
+ * - On success: `{ success: true, data: undefined }`
+ * - On error: `{ success: false, error: string }`
+ *
+ * @example
+ * const result = await deleteMaintenanceItem('maint-uuid-123')
+ * if (result.success) console.log('Deleted')
+ */
+export async function deleteMaintenanceItem(
+  maintenanceId: string,
+): Promise<ActionResult<void>> {
+  return withAuthResultRateLimit('boardCrud', async (supabase, user) => {
+    const { error: deleteError } = await supabase
+      .from('maintenance')
+      .delete()
+      .eq('id', maintenanceId)
+      .eq('user_id', user.id)
+
+    if (deleteError) {
+      Sentry.captureException(deleteError, {
+        extra: { context: 'deleteMaintenanceItem', maintenanceId },
+      })
+      throw new Error('Failed to delete maintenance item')
+    }
+  })
+}
+
+/**
+ * State type for deleteMaintenanceItemAction form action
+ */
+export type DeleteMaintenanceState = {
+  success?: boolean
+  error?: string
+}
+
+/**
+ * Form action wrapper for deleteMaintenanceItem (used with useActionState)
+ *
+ * @param _prevState - Previous form state (unused, required by useActionState)
+ * @param formData - FormData containing maintenanceId
+ * @returns Updated form state with success or error
+ *
+ * @example
+ * const [state, formAction, isPending] = useActionState(deleteMaintenanceItemAction, {})
+ */
+export async function deleteMaintenanceItemAction(
+  _prevState: DeleteMaintenanceState,
+  formData: FormData,
+): Promise<DeleteMaintenanceState> {
+  const maintenanceId = formData.get('maintenanceId') as string
+
+  if (!maintenanceId) {
+    return { error: 'Missing maintenance ID' }
+  }
+
+  const result = await deleteMaintenanceItem(maintenanceId)
+  if (result.success) {
+    return { success: true }
+  }
+  return { error: result.error }
 }

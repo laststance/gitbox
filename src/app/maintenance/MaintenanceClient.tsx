@@ -25,12 +25,14 @@ import {
   Calendar,
   Star,
   StickyNote,
+  Trash2,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState, memo, useMemo } from 'react'
+import { useState, memo, useMemo, useCallback } from 'react'
 
 import { CommentSection } from '@/components/Board/CommentSection'
+import { DeleteMaintenanceDialog } from '@/components/Modals/DeleteMaintenanceDialog'
 import { NoteModal } from '@/components/Modals/NoteModal'
 import { RestoreToBoardDialog } from '@/components/Modals/RestoreToBoardDialog'
 import { Button } from '@/components/ui/button'
@@ -38,6 +40,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
@@ -122,6 +125,38 @@ export const MaintenanceClient = memo(function MaintenanceClient({
     handleProjectInfoSave,
     closeNoteModal,
   } = useMaintenanceNoteModal({ comments })
+
+  // Delete dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [selectedRepoForDelete, setSelectedRepoForDelete] =
+    useState<MaintenanceRepo | null>(null)
+
+  /**
+   * Open delete confirmation dialog for a maintenance item
+   */
+  const handleDelete = useCallback((repo: MaintenanceRepo) => {
+    setSelectedRepoForDelete(repo)
+    setDeleteDialogOpen(true)
+  }, [])
+
+  /**
+   * Handle successful deletion by removing item from local state
+   */
+  const handleDeleteSuccess = useCallback(() => {
+    if (selectedRepoForDelete) {
+      setRepos((prev) => prev.filter((r) => r.id !== selectedRepoForDelete.id))
+      setSelectedRepoForDelete(null)
+    }
+    router.refresh()
+  }, [selectedRepoForDelete, router])
+
+  /**
+   * Close the delete confirmation dialog
+   */
+  const closeDeleteDialog = useCallback(() => {
+    setDeleteDialogOpen(false)
+    setSelectedRepoForDelete(null)
+  }, [])
 
   // Last visited board for navigation - lazy initialization from localStorage
   const [lastVisitedBoard] = useState<{
@@ -310,6 +345,14 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                             <RotateCcw className="mr-2 h-4 w-4" />
                             Restore to Board
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(repo)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
 
@@ -449,6 +492,15 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                           >
                             <RotateCcw className="h-4 w-4" />
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(repo)}
+                            className="text-destructive hover:text-destructive"
+                            aria-label={`Delete ${repo.repo_owner}/${repo.repo_name}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
 
@@ -501,6 +553,17 @@ export const MaintenanceClient = memo(function MaintenanceClient({
           initialNote={currentNote}
           initialLinks={currentLinks}
           cardTitle={`${selectedRepoForNote.repo_owner}/${selectedRepoForNote.repo_name}`}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {selectedRepoForDelete && (
+        <DeleteMaintenanceDialog
+          isOpen={deleteDialogOpen}
+          onClose={closeDeleteDialog}
+          onDeleteSuccess={handleDeleteSuccess}
+          maintenanceId={selectedRepoForDelete.id}
+          repoName={`${selectedRepoForDelete.repo_owner}/${selectedRepoForDelete.repo_name}`}
         />
       )}
     </div>
