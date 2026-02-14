@@ -264,10 +264,9 @@ export async function deleteMaintenanceItem(
       .eq('user_id', user.id)
 
     if (deleteError) {
-      Sentry.captureException(deleteError, {
-        extra: { context: 'deleteMaintenanceItem', maintenanceId },
+      throw Object.assign(new Error('Failed to delete maintenance item'), {
+        cause: deleteError,
       })
-      throw new Error('Failed to delete maintenance item')
     }
   })
 }

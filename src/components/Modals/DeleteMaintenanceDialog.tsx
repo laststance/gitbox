@@ -84,7 +84,12 @@ export const DeleteMaintenanceDialog = memo(function DeleteMaintenanceDialog({
   }, [state.success, state.error, repoName, onDeleteSuccess, onClose])
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={onClose}>
+    <AlertDialog
+      open={isOpen}
+      onOpenChange={() => {
+        if (!isPending) onClose()
+      }}
+    >
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Delete from Maintenance</AlertDialogTitle>
