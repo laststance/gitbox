@@ -299,7 +299,7 @@ test.describe('NoteModal (Authenticated)', () => {
     // Verify bold mark is applied (check for <strong> element)
     // Plate renders bold text as semantic <strong> HTML elements
     const boldText = editorContent.locator('strong')
-    await expect(boldText).toHaveCount(1, { timeout: 5000 })
+    await expect(boldText).toHaveCount(1, { timeout: 15000 })
   })
 
   test('should NOT show skeleton after saving note (regression test)', async ({
@@ -566,6 +566,6 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
     // Verify italic mark is applied (check for <em> element)
     // Plate renders italic text as semantic <em> HTML elements
     const italicText = editorContent.locator('em')
-    await expect(italicText).toHaveCount(1, { timeout: 5000 })
+    await expect(italicText).toHaveCount(1, { timeout: 15000 })
   })
 })

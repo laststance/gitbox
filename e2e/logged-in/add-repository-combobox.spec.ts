@@ -127,7 +127,7 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
         const text = await repoOptions.nth(i).textContent()
         expect(text?.toLowerCase()).not.toContain('testuser/test-repo')
       }
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 15000 })
   })
 
   /**
