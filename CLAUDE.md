@@ -11,6 +11,13 @@ This application requires GitHub authentication to access any functionality beyo
 | Local       | `http://localhost:3008`                | ✅ Yes     |
 | Production  | `https://gitbox-laststance.vercel.app` | ✅ Yes     |
 
+## ❌ Violations
+
+| Action                                   | Consequence                                    |
+| ---------------------------------------- | ---------------------------------------------- |
+| Use a non-`laststance` GitHub org        | Deploy to wrong repo, access permission errors |
+| Select a non-`Laststance` team on Vercel | Deploy to different account, billing issues    |
+
 **Limitation:** @dnd-kit drag operations cannot be tested via Claude Chrome (use Playwright instead in e2e).
 
 ---
