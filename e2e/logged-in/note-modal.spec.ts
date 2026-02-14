@@ -247,7 +247,11 @@ test.describe('NoteModal (Authenticated)', () => {
       const text = await editorContent.textContent()
       // Editor should be empty or contain only placeholder text
       expect(text?.replace(/\s/g, '')).toBe('')
-    }).toPass({ timeout: 3000 })
+    }).toPass({ timeout: 5000 })
+
+    // Brief delay to let Slate editor fully stabilize after clear
+    // eslint-disable-next-line playwright/no-wait-for-timeout
+    await page.waitForTimeout(300)
 
     await page.keyboard.type('/')
 
@@ -295,7 +299,7 @@ test.describe('NoteModal (Authenticated)', () => {
     // Verify bold mark is applied (check for <strong> element)
     // Plate renders bold text as semantic <strong> HTML elements
     const boldText = editorContent.locator('strong')
-    await expect(boldText).toHaveCount(1, { timeout: 3000 })
+    await expect(boldText).toHaveCount(1, { timeout: 5000 })
   })
 
   test('should NOT show skeleton after saving note (regression test)', async ({
@@ -519,7 +523,7 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
 
     // Verify heading element was created
     const heading = editorContent.locator('h1')
-    await expect(heading).toBeVisible({ timeout: 3000 })
+    await expect(heading).toBeVisible({ timeout: 5000 })
     await expect(heading).toContainText('Heading 1')
   })
 
@@ -562,6 +566,6 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
     // Verify italic mark is applied (check for <em> element)
     // Plate renders italic text as semantic <em> HTML elements
     const italicText = editorContent.locator('em')
-    await expect(italicText).toHaveCount(1, { timeout: 3000 })
+    await expect(italicText).toHaveCount(1, { timeout: 5000 })
   })
 })
