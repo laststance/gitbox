@@ -1,8 +1,9 @@
 /**
  * Settings Page E2E Tests
  *
- * Tests for the settings page (theme, language, etc.)
- * Requires authentication
+ * Tests for the settings page (display settings).
+ * Theme selection is handled via sidebar ThemeToggle, not the settings page.
+ * Requires authentication.
  */
 
 import { test, expect } from '../fixtures/coverage'
@@ -21,40 +22,22 @@ test.describe('Settings Page (Authenticated)', () => {
     await expect(heading).toBeVisible()
   })
 
-  test('should display theme options', async ({ page }) => {
+  test('should display display settings', async ({ page }) => {
     await page.goto('/settings')
 
-    // Look for theme section
-    const themeSection = page.getByText(/theme|appearance/i)
-    await expect(themeSection.first()).toBeVisible()
+    // Look for display section
+    const displaySection = page.getByText(/display/i)
+    await expect(displaySection.first()).toBeVisible()
 
-    // Should have theme selection options
-    const themeOptions = page.locator(
-      '[data-testid="theme-option"], button:has-text("midnight"), button:has-text("sunrise")',
-    )
-    await expect(themeOptions.first()).toBeVisible()
-  })
+    // Should have compact mode toggle
+    const compactToggle = page.getByRole('switch', { name: /compact mode/i })
+    await expect(compactToggle).toBeVisible()
 
-  test('should change theme when selecting option', async ({ page }) => {
-    await page.goto('/settings')
-
-    // Get initial body classes
-    const initialClasses = await page.locator('html').getAttribute('class')
-
-    // Click a different theme option
-    const themeButton = page.locator(
-      'button:has-text("midnight"), button:has-text("graphite"), [data-testid="theme-midnight"]',
-    )
-
-    if (await themeButton.first().isVisible()) {
-      await themeButton.first().click()
-
-      // Wait for theme change by verifying class attribute changes
-      await expect(async () => {
-        const newClasses = await page.locator('html').getAttribute('class')
-        expect(newClasses).not.toBe(initialClasses)
-      }).toPass({ timeout: 5000 })
-    }
+    // Should have show card metadata toggle
+    const metadataToggle = page.getByRole('switch', {
+      name: /show card metadata/i,
+    })
+    await expect(metadataToggle).toBeVisible()
   })
 
   test('should display language options', async ({ page }) => {

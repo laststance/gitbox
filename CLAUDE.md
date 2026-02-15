@@ -24,7 +24,8 @@ This application requires GitHub authentication to access any functionality beyo
 
 ## Critical Rules
 
-- 🔴 **Always run before ending session as parallel:** `pnpm test`, `pnpm lint`, `pnpm build`, `pnpm typecheck`, `pnpm e2e`
+- 🔴 **Always run before ending session as parallel:** `pnpm test`, `pnpm lint`, `pnpm build`, `pnpm typecheck`, `pnpm e2e:parallel`
+- 🔴 **E2E execution:** Use `pnpm e2e:parallel` (fast, parallel shards). Fallback to `pnpm e2e` only if parallel fails.
 - 🔴 **Vercel project:** Use ONLY `laststance/gitbox` (ID: `prj_M4T9K5HjwFx0e9PIueEhOFn1UmUM`)
 
 ---
@@ -310,7 +311,10 @@ app/
 ### Running E2E Tests
 
 ```bash
-# Run Playwright tests (MSW auto-enabled)
+# Run Playwright tests in parallel (fast, recommended)
+pnpm e2e:parallel
+
+# Fallback: sequential run (if parallel fails)
 pnpm e2e
 
 # Run with headed browser (add --headed flag)

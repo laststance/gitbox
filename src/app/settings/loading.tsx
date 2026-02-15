@@ -3,15 +3,8 @@ import { memo } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 
 /**
- * Theme card skeleton matching the theme grid layout.
- */
-const ThemeCardSkeleton = memo(function ThemeCardSkeleton() {
-  return <Skeleton className="h-20 w-full rounded-lg" />
-})
-
-/**
  * Loading skeleton for settings page.
- * Matches layout: header, then theme grid.
+ * Matches layout: header, then display settings card with 2 toggle rows.
  */
 const Loading = memo(function Loading() {
   return (
@@ -22,16 +15,26 @@ const Loading = memo(function Loading() {
         <Skeleton className="mt-2 h-4 w-56" />
       </div>
 
-      {/* Theme section */}
-      <div className="mb-4">
-        <Skeleton className="h-5 w-20" />
-      </div>
-
-      {/* Theme grid */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {Array.from({ length: 14 }).map((_, i) => (
-          <ThemeCardSkeleton key={i} />
-        ))}
+      {/* Display Settings card */}
+      <div className="space-y-4 rounded-lg border p-6">
+        <Skeleton className="h-5 w-24" />
+        <Skeleton className="mt-1 h-4 w-64" />
+        {/* Toggle row 1 */}
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="mt-1 h-3 w-56" />
+          </div>
+          <Skeleton className="h-6 w-11 rounded-full" />
+        </div>
+        {/* Toggle row 2 */}
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="mt-1 h-3 w-52" />
+          </div>
+          <Skeleton className="h-6 w-11 rounded-full" />
+        </div>
       </div>
     </div>
   )

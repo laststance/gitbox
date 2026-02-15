@@ -9,7 +9,6 @@ import {
   Archive,
   HelpCircle,
   LogOut,
-  Palette,
   Keyboard,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -101,13 +100,6 @@ export const CommandPalette = memo(function CommandPalette() {
         icon: <PlusCircle className="h-4 w-4" />,
         shortcut: 'N',
         action: () => router.push('/boards/new'),
-        category: 'actions',
-      },
-      {
-        id: 'change-theme',
-        label: 'Change Theme',
-        icon: <Palette className="h-4 w-4" />,
-        action: () => router.push('/settings'),
         category: 'actions',
       },
       // Settings
