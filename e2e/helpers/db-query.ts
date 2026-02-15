@@ -452,6 +452,57 @@ export async function resetRepoCards(): Promise<void> {
       )
     }
   }
+
+  // Re-insert projectinfo rows that were deleted by CASCADE when repocards
+  // were deleted above. Card5 intentionally has no projectinfo (seed.sql design).
+  const seedProjectInfos = [
+    {
+      id: PROJECT_INFO_IDS.projinfo1,
+      repo_card_id: CARD_IDS.card1,
+      note: 'Important project notes here',
+      comment: 'npmリリース完了、当分は機能追加予定なし',
+      comment_color: 'primary',
+      links: [
+        { title: 'Documentation', url: 'https://docs.example.com' },
+        { title: 'Staging', url: 'https://staging.example.com' },
+      ],
+    },
+    {
+      id: PROJECT_INFO_IDS.projinfo2,
+      repo_card_id: CARD_IDS.card2,
+      note: 'Another repo notes',
+      comment: 'プロトタイプ作ったけど微妙、差分表示エディタで苦戦中',
+      comment_color: 'primary',
+      links: [],
+    },
+    {
+      id: PROJECT_INFO_IDS.projinfo3,
+      repo_card_id: CARD_IDS.card3,
+      note: '',
+      comment: '',
+      comment_color: 'primary',
+      links: [],
+    },
+    {
+      id: PROJECT_INFO_IDS.projinfo4,
+      repo_card_id: CARD_IDS.card4,
+      note: 'CLI tool documentation',
+      comment: 'v2.0リリース準備中',
+      comment_color: 'primary',
+      links: [{ title: 'npm', url: 'https://www.npmjs.com/package/nsx' }],
+    },
+  ]
+
+  for (const info of seedProjectInfos) {
+    const { error } = await supabase
+      .from('projectinfo')
+      .upsert(info, { onConflict: 'id' })
+    if (error) {
+      throw new Error(
+        `resetRepoCards: projectinfo upsert failed for id=${info.id}: ${error.message}`,
+      )
+    }
+  }
 }
 
 /**
