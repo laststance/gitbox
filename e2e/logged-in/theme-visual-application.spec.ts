@@ -3,6 +3,7 @@
  *
  * Verifies that all 14 themes actually change the visual appearance
  * by checking computed CSS variables on the <html> element.
+ * Theme is selected via sidebar ThemeToggle dropdown.
  *
  * This catches the CSS specificity bug where data-theme attribute was set
  * but :root/:dark selectors overrode theme variables due to cascade order.
@@ -35,6 +36,37 @@ const THEMES = {
   ],
 } as const
 
+/**
+ * Helper: select a theme via the sidebar ThemeToggle dropdown.
+ * @param page - Playwright page
+ * @param themeName - Display name of the theme (e.g., "Midnight", "Sunrise")
+ */
+async function selectThemeFromSidebar(
+  page: import('@playwright/test').Page,
+  themeName: string,
+) {
+  const themeButton = page.locator('aside button:has-text("Theme")')
+  await expect(themeButton).toBeVisible()
+
+  // Ensure any previously open dropdown is closed before opening a new one
+  const existingMenu = page.locator('[role="menu"]')
+  if (await existingMenu.isVisible().catch(() => false)) {
+    await page.keyboard.press('Escape')
+    await expect(existingMenu).not.toBeVisible({ timeout: 3000 })
+  }
+
+  await themeButton.click()
+
+  const menuItem = page
+    .locator('[role="menuitem"]')
+    .filter({ hasText: themeName })
+  await expect(menuItem).toBeVisible({ timeout: 5000 })
+  await menuItem.click()
+
+  // Wait for dropdown to close after selection
+  await expect(existingMenu).not.toBeVisible({ timeout: 3000 })
+}
+
 test.describe('Theme Visual Application', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
@@ -64,23 +96,19 @@ test.describe('Theme Visual Application', () => {
     test(`light theme "${theme.name}" should visually change background`, async ({
       page,
     }) => {
-      await page.goto('/settings')
+      await page.goto('/boards')
       await page.waitForLoadState('networkidle')
 
-      // Wait for settings page to be fully rendered
-      await expect(
-        page.getByRole('heading', { name: /settings/i }),
-      ).toBeVisible({ timeout: 10000 })
+      // Wait for sidebar to be fully rendered
+      await expect(page.locator('aside button:has-text("Theme")')).toBeVisible({
+        timeout: 10000,
+      })
 
       // Capture initial (system default) background
       const initialBg = await getBodyBgColor(page)
 
-      // Select the theme
-      const themeButton = page.locator('button').filter({
-        has: page.locator(`span:text-is("${theme.name}")`),
-      })
-      await expect(themeButton).toBeVisible()
-      await themeButton.click()
+      // Select the theme via sidebar dropdown
+      await selectThemeFromSidebar(page, theme.name)
 
       // Verify data-theme attribute is set
       const html = page.locator('html')
@@ -106,23 +134,19 @@ test.describe('Theme Visual Application', () => {
     test(`dark theme "${theme.name}" should visually change background`, async ({
       page,
     }) => {
-      await page.goto('/settings')
+      await page.goto('/boards')
       await page.waitForLoadState('networkidle')
 
-      // Wait for settings page to be fully rendered
-      await expect(
-        page.getByRole('heading', { name: /settings/i }),
-      ).toBeVisible({ timeout: 10000 })
+      // Wait for sidebar to be fully rendered
+      await expect(page.locator('aside button:has-text("Theme")')).toBeVisible({
+        timeout: 10000,
+      })
 
       // Capture initial (system default) background
       const initialBg = await getBodyBgColor(page)
 
-      // Select the theme
-      const themeButton = page.locator('button').filter({
-        has: page.locator(`span:text-is("${theme.name}")`),
-      })
-      await expect(themeButton).toBeVisible()
-      await themeButton.click()
+      // Select the theme via sidebar dropdown
+      await selectThemeFromSidebar(page, theme.name)
 
       // Verify data-theme attribute is set
       const html = page.locator('html')
@@ -142,23 +166,19 @@ test.describe('Theme Visual Application', () => {
   test('each dark theme should have a unique background color', async ({
     page,
   }) => {
-    await page.goto('/settings')
+    await page.goto('/boards')
     await page.waitForLoadState('networkidle')
 
-    // Wait for settings page to be fully rendered
-    await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible({
+    // Wait for sidebar to be fully rendered
+    await expect(page.locator('aside button:has-text("Theme")')).toBeVisible({
       timeout: 10000,
     })
 
     const backgrounds: Record<string, string> = {}
 
     for (const theme of THEMES.dark) {
-      // Select theme
-      const themeButton = page.locator('button').filter({
-        has: page.locator(`span:text-is("${theme.name}")`),
-      })
-      await expect(themeButton).toBeVisible()
-      await themeButton.click()
+      // Select theme via sidebar dropdown
+      await selectThemeFromSidebar(page, theme.name)
 
       // Wait for theme to be applied
       await expect(page.locator('html')).toHaveAttribute(
@@ -181,23 +201,19 @@ test.describe('Theme Visual Application', () => {
   test('each light theme should have a unique background color', async ({
     page,
   }) => {
-    await page.goto('/settings')
+    await page.goto('/boards')
     await page.waitForLoadState('networkidle')
 
-    // Wait for settings page to be fully rendered
-    await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible({
+    // Wait for sidebar to be fully rendered
+    await expect(page.locator('aside button:has-text("Theme")')).toBeVisible({
       timeout: 10000,
     })
 
     const backgrounds: Record<string, string> = {}
 
     for (const theme of THEMES.light) {
-      // Select theme
-      const themeButton = page.locator('button').filter({
-        has: page.locator(`span:text-is("${theme.name}")`),
-      })
-      await expect(themeButton).toBeVisible()
-      await themeButton.click()
+      // Select theme via sidebar dropdown
+      await selectThemeFromSidebar(page, theme.name)
 
       // Wait for theme to be applied
       await expect(page.locator('html')).toHaveAttribute(

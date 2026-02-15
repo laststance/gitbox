@@ -177,7 +177,6 @@ describe('CommandPalette', () => {
       openPalette()
 
       expect(screen.getByText('Create New Board')).toBeInTheDocument()
-      expect(screen.getByText('Change Theme')).toBeInTheDocument()
     })
 
     it('should display settings commands', () => {

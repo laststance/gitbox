@@ -1,12 +1,12 @@
 /**
  * Settings Client Component
  *
- * Manages theme, typography, and display settings
+ * Manages display settings (compact mode, card metadata).
+ * Theme selection is handled via the sidebar ThemeToggle.
  */
 
 'use client'
 
-import { Check, Sun, Moon, Monitor } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { memo, useMemo, useCallback } from 'react'
@@ -21,13 +21,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { useTheme } from '@/hooks/use-theme'
-import {
-  type ThemeType,
-  LIGHT_THEMES,
-  DARK_THEMES,
-  THEME_INFO,
-} from '@/lib/constants/themes'
+import { useMounted } from '@/hooks/use-mounted'
 import {
   selectCompactMode,
   selectShowCardMetadata,
@@ -84,58 +78,10 @@ const Toggle = memo(function Toggle({
   )
 })
 
-/** Base styles for theme button */
-const THEME_BUTTON_BASE =
-  'relative flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all'
-const THEME_BUTTON_SELECTED =
-  'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
-const THEME_BUTTON_UNSELECTED =
-  'border-border hover:border-primary/50 hover:bg-muted/50'
-
-const ThemeButton = memo(function ThemeButton({
-  theme,
-  isSelected,
-  onClick,
-}: {
-  theme: ThemeType
-  isSelected: boolean
-  onClick: () => void
-}) {
-  const info = THEME_INFO[theme]
-
-  const buttonClassName = useMemo(
-    () =>
-      `${THEME_BUTTON_BASE} ${isSelected ? THEME_BUTTON_SELECTED : THEME_BUTTON_UNSELECTED}`,
-    [isSelected],
-  )
-
-  return (
-    <button type="button" onClick={onClick} className={buttonClassName}>
-      {theme === 'system' ? (
-        <div className="bg-muted flex h-10 w-10 items-center justify-center rounded-full">
-          <Monitor className="text-muted-foreground h-5 w-5" />
-        </div>
-      ) : (
-        <div
-          className={`h-10 w-10 rounded-full shadow-md ${info.needsBorder ? 'border border-gray-200' : ''}`}
-          style={{ backgroundColor: info.color }}
-        />
-      )}
-      <span className="text-sm font-medium">{info.name}</span>
-      <span className="text-muted-foreground text-xs">{info.description}</span>
-      {isSelected && (
-        <div className="bg-primary absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full">
-          <Check className="text-primary-foreground h-3 w-3" />
-        </div>
-      )}
-    </button>
-  )
-})
-
 export const SettingsClient = memo(function SettingsClient() {
   const router = useRouter()
   const dispatch = useAppDispatch()
-  const { theme, setTheme, mounted } = useTheme()
+  const mounted = useMounted()
 
   // Redux state for display settings
   const compactMode = useAppSelector(selectCompactMode)
@@ -196,69 +142,6 @@ export const SettingsClient = memo(function SettingsClient() {
       </div>
 
       <div className="space-y-6">
-        {/* Theme Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sun className="h-5 w-5" />
-              Theme
-            </CardTitle>
-            <CardDescription>
-              Choose a theme that matches your style. Light themes work best in
-              bright environments, dark themes reduce eye strain in low light.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* System Theme */}
-            <div>
-              <Label className="mb-3 block text-sm font-medium">System</Label>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <ThemeButton
-                  theme="system"
-                  isSelected={theme === 'system'}
-                  onClick={() => setTheme('system')}
-                />
-              </div>
-            </div>
-
-            {/* Light Themes */}
-            <div>
-              <Label className="mb-3 flex items-center gap-2 text-sm font-medium">
-                <Sun className="h-4 w-4" />
-                Light Themes
-              </Label>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                {LIGHT_THEMES.map((t) => (
-                  <ThemeButton
-                    key={t}
-                    theme={t}
-                    isSelected={theme === t}
-                    onClick={() => setTheme(t)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Dark Themes */}
-            <div>
-              <Label className="mb-3 flex items-center gap-2 text-sm font-medium">
-                <Moon className="h-4 w-4" />
-                Dark Themes
-              </Label>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                {DARK_THEMES.map((t) => (
-                  <ThemeButton
-                    key={t}
-                    theme={t}
-                    isSelected={theme === t}
-                    onClick={() => setTheme(t)}
-                  />
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Display Settings */}
         <Card>
           <CardHeader>

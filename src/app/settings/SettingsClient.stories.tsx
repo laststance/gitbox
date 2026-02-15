@@ -2,8 +2,8 @@
  * SettingsClient Component Stories
  *
  * A client component for the Settings page.
- * Allows users to customize theme (14 themes: 7 light + 7 dark),
- * language (English/Japanese), and other display preferences.
+ * Manages display preferences (compact mode, card metadata).
+ * Theme selection is handled via the sidebar ThemeToggle.
  * Uses Redux for state management and localStorage for persistence.
  */
 
