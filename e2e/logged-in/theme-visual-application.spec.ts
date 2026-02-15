@@ -51,6 +51,7 @@ async function selectThemeFromSidebar(
   // Ensure any previously open dropdown is closed before opening a new one
   const existingMenu = page.locator('[role="menu"]')
   if (await existingMenu.isVisible().catch(() => false)) {
+    await page.keyboard.press('Escape')
     await expect(existingMenu).not.toBeVisible({ timeout: 3000 })
   }
 
