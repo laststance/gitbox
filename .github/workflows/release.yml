@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate CalVer tag
+        id: calver
+        run: |
+          BASE=$(date -u +%Y.%-m.%-d)
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+
+          # Fetch all tags to check for existing releases today
+          git fetch --tags --force
+
+          # Find the next available tag
+          if ! git tag -l "$BASE" | grep -q .; then
+            TAG="$BASE"
+          else
+            # Find highest existing suffix
+            HIGHEST=$(git tag -l "${BASE}.*" | sed "s/${BASE}\.//" | sort -n | tail -1)
+            if [ -z "$HIGHEST" ]; then
+              TAG="${BASE}.1"
+            else
+              TAG="${BASE}.$(( HIGHEST + 1 ))"
+            fi
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Release tag: $TAG"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.calver.outputs.tag }}" \
+            --title "${{ steps.calver.outputs.tag }}" \
+            --generate-notes
