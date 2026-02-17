@@ -166,9 +166,12 @@ export const MaintenanceClient = memo(function MaintenanceClient({
    */
   const handleCardKeyDown = useCallback(
     (e: React.KeyboardEvent, repo: MaintenanceRepo) => {
-      if (e.key === '.' || e.key === 'Period') {
-        e.preventDefault()
-        setOpenMenuId((prev) => (prev === repo.id ? null : repo.id))
+      if (e.key === '.') {
+        // Only toggle menu in grid view where OverflowMenu is rendered
+        if (viewMode === 'grid') {
+          e.preventDefault()
+          setOpenMenuId((prev) => (prev === repo.id ? null : repo.id))
+        }
       }
       if (e.key === 'Enter') {
         e.preventDefault()
@@ -179,7 +182,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
         setOpenMenuId(null)
       }
     },
-    [openMenuId, openNoteModal],
+    [viewMode, openMenuId, openNoteModal],
   )
 
   // Last visited board for navigation - lazy initialization from localStorage
