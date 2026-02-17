@@ -117,6 +117,7 @@ for i in $(seq 0 $((SHARD_COUNT - 1))); do
   APP_ENV=test \
   NEXT_PUBLIC_ENABLE_MSW_MOCK=true \
   NEXT_PUBLIC_SUPABASE_URL="http://127.0.0.1:${postgrest_port}" \
+  SUPABASE_URL="http://127.0.0.1:${postgrest_port}" \
   NEXT_PUBLIC_SUPABASE_ANON_KEY="${LOCAL_SUPABASE_ANON_KEY}" \
   SUPABASE_SERVICE_ROLE_KEY="${LOCAL_SUPABASE_SERVICE_ROLE_KEY}" \
     pnpm exec next start -p "$port" > "/tmp/e2e-server-${port}.log" 2>&1 &
