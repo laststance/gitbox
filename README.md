@@ -22,19 +22,30 @@ When you have dozens (or hundreds) of repos from side projects, experiments, and
 ## Features
 
 - Kanban boards for GitHub repositories
-- Drag-and-drop organization
+- Drag-and-drop organization (cards, columns, boards)
 - GitHub OAuth-based access
-- Supabase-backed persistence
+- Supabase-backed persistence with RLS
+- Rich text project notes (Plate.js editor)
+- Project info links (55 built-in types + custom presets)
+- Inline comments on repo cards with color customization
+- Maintenance mode for archived projects
+- 14 themes (7 light + 7 dark) + system preference
+- Collapsible sidebar with state persistence
+- Command palette (⌘K)
+- Rate limiting and security headers
 - PWA-friendly experience
 
 ## Tech Stack
 
 - **Framework**: Next.js 16 (App Router)
-- **UI**: React 19, Tailwind CSS, shadcn/ui
-- **State**: Redux Toolkit
-- **Database**: Supabase
+- **UI**: React 19.2, Tailwind CSS 4, shadcn/ui
+- **State**: Redux Toolkit + @laststance/redux-storage-middleware
+- **Database**: Supabase (PostgreSQL + Auth + RLS)
+- **Rich Text**: Plate.js (Platejs 52)
 - **Drag & Drop**: @dnd-kit
-- **Testing**: Playwright (E2E), Vitest (Unit)
+- **Validation**: Zod 4
+- **Monitoring**: Sentry 10
+- **Testing**: Playwright (E2E), Vitest (Unit), Storybook 10
 
 ## Getting Started
 
@@ -78,11 +89,17 @@ When deploying to Vercel, the following are auto-injected:
 **Prerequisites:** Docker Desktop running
 
 ```bash
-# Start local Supabase (applies migrations automatically)
-supabase start
+# Start local Supabase (sources OAuth env vars + applies migrations)
+pnpm db:start
 
 # Check status and credentials
 supabase status
+
+# Stop when done
+pnpm db:stop
+
+# Reset database (re-apply all migrations)
+pnpm db:reset
 ```
 
 **Local URLs:**
@@ -119,13 +136,18 @@ Open `http://localhost:3008` in your browser.
 
 ## Scripts
 
-- `pnpm dev` - Start dev server
+- `pnpm dev` - Start dev server (port 3008)
 - `pnpm build` - Production build
-- `pnpm start` - Start production server
-- `pnpm lint` - Lint
+- `pnpm start` - Start production server (port 3008)
+- `pnpm lint` - ESLint (zero warnings)
 - `pnpm typecheck` - TypeScript type check
-- `pnpm test` - Unit tests
-- `pnpm e2e` - E2E tests
+- `pnpm test` - Unit tests (Vitest)
+- `pnpm e2e` - E2E tests (Playwright, sequential)
+- `pnpm e2e:parallel` - E2E tests (parallel shards, recommended)
+- `pnpm storybook` - Storybook dev server (port 6006)
+- `pnpm db:start` - Start local Supabase (Docker)
+- `pnpm db:stop` - Stop local Supabase
+- `pnpm db:reset` - Reset local database
 
 ## Security
 

@@ -1,4 +1,4 @@
-# GitBox — Specification v1.2 (2026-02-11)
+# GitBox — Specification v1.3 (2026-02-17)
 
 ## 1) Product Overview
 
@@ -154,6 +154,10 @@
 - **Click = Navigate to GitHub repo**
 - **⋯ menu** on card top-right
 - **Restore to Board** operation (via RestoreToBoardDialog)
+- **Delete from Maintenance** operation (via DeleteMaintenanceDialog)
+  - Confirmation AlertDialog with destructive warning
+  - CASCADE DELETE removes associated projectinfo (notes, links, comments)
+  - Protected by rate limiting (`boardCrud`)
 
 #### UI Reference
 
@@ -355,6 +359,91 @@ interface BoardSettings {
 - **Global Error** (`app/global-error.tsx`): Root-level error boundary
 - **Board Loading** (`app/board/[id]/loading.tsx`): Skeleton UI matching KanbanBoard layout
   - CardSkeleton, ColumnSkeleton components
+- **Per-Route Boundaries**: All route segments have dedicated `loading.tsx` and `error.tsx`
+  - Routes: `/boards`, `/board/[id]`, `/maintenance`, `/settings`, `/account`
+
+### 3.11 Rate Limiting
+
+#### Specifications
+
+- **Algorithm**: Sliding window, in-memory per-process
+- **Bypass**: Disabled in test mode (`APP_ENV=test`)
+- **Edge**: Fixed-window variant in `proxy.ts` for OAuth callback
+
+#### Rate Limit Configuration
+
+| Key                | Max Requests | Window | Scope                  |
+| ------------------ | ------------ | ------ | ---------------------- |
+| `auth/callback`    | 10           | 1 min  | OAuth callback (edge)  |
+| `signInWithGitHub` | 10           | 1 hour | GitHub OAuth login     |
+| `deleteAccount`    | 3            | 1 hour | Account deletion       |
+| `githubApi`        | 30           | 1 min  | GitHub API proxy       |
+| `addReposToBoard`  | 10           | 1 min  | Add repository         |
+| `batchDnD`         | 60           | 1 min  | D&D batch operations   |
+| `boardCrud`        | 20           | 1 min  | Board/maintenance CRUD |
+
+#### Integration
+
+- **Server Actions**: `withAuthResultRateLimit(key, action)` wrapper
+- **Edge (proxy.ts)**: `edgeRateLimit(ip, max, window)` → HTTP 429 + `Retry-After: 60`
+- **Identifier**: User ID (authenticated) or IP (unauthenticated)
+- **Error**: `"Too many {description} requests. Please try again later."`
+
+### 3.12 Security
+
+#### Security Headers (next.config.ts)
+
+| Header                                | Value                                                                        |
+| ------------------------------------- | ---------------------------------------------------------------------------- |
+| `Strict-Transport-Security`           | `max-age=63072000; includeSubDomains; preload`                               |
+| `X-Frame-Options`                     | `SAMEORIGIN`                                                                 |
+| `X-Content-Type-Options`              | `nosniff`                                                                    |
+| `Referrer-Policy`                     | `strict-origin-when-cross-origin`                                            |
+| `Permissions-Policy`                  | `camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=()` |
+| `Content-Security-Policy-Report-Only` | Report-only CSP (see below)                                                  |
+
+#### CSP Directives (Report-Only)
+
+```
+default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com;
+style-src 'self' 'unsafe-inline'; img-src 'self' https://avatars.githubusercontent.com https://github.com data: blob:;
+connect-src 'self' https://*.supabase.co http://127.0.0.1:* https://api.github.com https://*.ingest.us.sentry.io https://vitals.vercel-insights.com;
+font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+```
+
+#### Security Event Logging
+
+Sentry-based audit trail via `logSecurityEvent()` (`lib/security-events.ts`).
+
+| Event Type            | Level   | Trigger                                 |
+| --------------------- | ------- | --------------------------------------- |
+| `login_success`       | info    | Successful OAuth                        |
+| `login_failure`       | warning | Failed OAuth (code exchange error)      |
+| `logout`              | info    | User-initiated sign out                 |
+| `account_deleted`     | info    | Account permanently deleted             |
+| `unauthorized_access` | warning | Unauthenticated route access (proxy.ts) |
+| `rate_limited`        | warning | Request blocked by rate limiter         |
+
+### 3.13 Server Action Pattern
+
+#### ActionResult\<T\> Discriminated Union
+
+Standardized return type for client-consumed Server Actions (`lib/actions/types.ts`).
+
+```typescript
+type ActionResult<T> =
+  | { success: true; data: T }
+  | { success: false; error: string }
+```
+
+#### Auth Guard Wrappers (`lib/actions/auth-guard.ts`)
+
+| Wrapper                     | Auth | Rate Limit | Returns                         |
+| --------------------------- | ---- | ---------- | ------------------------------- |
+| `withAuth()`                | Yes  | No         | Throws on failure               |
+| `withAuthResult()`          | Yes  | No         | `ActionResult<T>`               |
+| `withAuthResultRateLimit()` | Yes  | Yes        | `ActionResult<T>` (recommended) |
+| `withAuthRateLimit()`       | Yes  | Yes        | Throws on failure               |
 
 ---
 
@@ -371,9 +460,10 @@ Open on GitHub
 Open Production URL
 Open Tracking dashboard
 Open Supabase dashboard
-Edit Project Info…   // Launch modal
-Move to Maintenance  // Board only
-Restore to Board     // Maintenance only
+Edit Project Info…      // Launch modal
+Move to Maintenance     // Board only
+Restore to Board        // Maintenance only
+Delete from Maintenance // Maintenance only (destructive, confirmation dialog)
 ```
 
 ### 4.2 Shortcuts (Unified)
@@ -747,6 +837,17 @@ interface RepoCardMeta {
 - Knip for dead code detection
 - ESLint with `react-you-might-not-need-an-effect` plugin
 - Storybook for component-level testing & visual review
+- `failOnFlakyTests: true` in Playwright config (strict reliability enforcement)
+- E2E timeout: 30 seconds (reduced from default)
+- Zero `waitForTimeout` in E2E tests (replaced with assertion-based waits)
+
+### 7.4 Security
+
+- Rate limiting on all authenticated Server Actions and edge routes
+- Security headers: HSTS, CSP (report-only), X-Frame-Options, Permissions-Policy
+- Security event audit trail via Sentry (`logSecurityEvent()`)
+- GitHub token cookie TTL aligned with OAuth token expiry, cleared on 401
+- Build-time guards prevent test env vars (`APP_ENV=test`, `ENABLE_MSW_MOCK=true`) in Vercel deployments
 
 ---
 
@@ -800,6 +901,15 @@ interface RepoCardMeta {
 - Board D&D reorder on /boards page ✅
 - Theme CSS variables validation script ✅
 - RLS re-enabled with optimized policies ✅
+- Rate limiting on auth and API endpoints ✅
+- Security headers (CSP, HSTS, Permissions-Policy) ✅
+- Security event logging via Sentry ✅
+- ActionResult\<T\> discriminated union for Server Actions ✅
+- Per-route loading.tsx and error.tsx boundaries ✅
+- Delete from Maintenance operation ✅
+- CalVer release workflow (GitHub Releases) ✅
+- failOnFlakyTests enforcement in Playwright ✅
+- Component decomposition (MaintenanceClient, Landing, AddRepositoryCombobox) ✅
 
 ---
 
@@ -1172,6 +1282,9 @@ export async function cdpBoardDragAndDrop(
 - **D&D**: CDP-based helpers (`e2e/helpers/cdp-drag.ts`)
 - **DB Reset**: `pnpm db:reset` via `e2e/global-setup.ts` before tests
 - **Workers**: 1 (for database state consistency)
+- **Timeout**: 30 seconds (test + expect)
+- **Flaky Tests**: `failOnFlakyTests: true` (strict enforcement, 2 retries)
+- **No `waitForTimeout`**: All waits use assertion-based patterns (`expect().toPass()`, `waitFor`)
 
 ### 12.3 Storybook
 
@@ -1196,6 +1309,7 @@ export async function cdpBoardDragAndDrop(
 | Board       | `create-board.spec.ts`                     | Board creation              |
 | Board       | `boards.spec.ts`                           | Board list                  |
 | Board       | `favorites.spec.ts`                        | Favorites feature           |
+| Account     | `account-deletion.spec.ts`                 | Account deletion flow       |
 | Repo        | `add-repository-combobox.spec.ts`          | Add repository combobox     |
 | Repo        | `add-repository-pagination.spec.ts`        | Repository pagination       |
 | Repo        | `repo-card-display.spec.ts`                | Card display                |
@@ -1219,6 +1333,26 @@ export async function cdpBoardDragAndDrop(
 | Unauth      | `login.spec.ts`                            | Login page                  |
 | Unauth      | `page-titles.spec.ts`                      | Unauthenticated page titles |
 | Unauth      | `ssr-hydration.spec.ts`                    | SSR hydration (unauth)      |
+
+---
+
+## 13) Release & CI/CD
+
+### 13.1 CalVer Release Workflow
+
+- **Format**: `YYYY.M.DD` (no zero-padding, no `v` prefix)
+- **Same-day suffix**: `2026.2.16`, `2026.2.16.1`, `2026.2.16.2`
+- **Trigger**: Every push to `main` (= every PR merge)
+- **Release notes**: Auto-generated from PR titles (`gh release create --generate-notes`)
+- **No package.json sync**: Version stays `0.2.0`, CalVer is tag-only (web app, not distributed)
+- **Workflow**: `.github/workflows/release.yml` (pure `gh` CLI, zero dependencies)
+
+### 13.2 Build-Time Safety Guards
+
+- `next.config.ts` throws `FATAL` error if test env vars are present in Vercel builds
+  - `APP_ENV=test` → blocks (would bypass all authentication)
+  - `NEXT_PUBLIC_ENABLE_MSW_MOCK=true` → blocks (would enable mock data)
+- Only guard `VERCEL` env (E2E CI intentionally uses `APP_ENV=test` + `next build`)
 
 ---
 

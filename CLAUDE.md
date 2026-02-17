@@ -223,26 +223,37 @@ app/
 ├── boards/page.tsx          # Board list
 ├── board/[id]/page.tsx      # Kanban board
 ├── maintenance/             # Archived projects
-└── settings/                # Theme settings
+├── settings/                # Display settings (Compact Mode, Card Metadata)
+├── account/                 # Profile, stats, account deletion
+├── privacy/                 # Privacy policy
+├── terms/                   # Terms of use
+└── login/                   # Login redirect
 ```
 
-### Database Schema (5 tables with RLS)
+### Database Schema (6 tables with RLS)
 
-- **board** - Kanban boards per user
-- **statuslist** - Columns (with WIP limits)
+- **board** - Kanban boards per user (position for D&D reorder)
+- **statuslist** - Columns (2D grid layout: gridRow, gridCol)
 - **repocard** - GitHub repos as cards
-- **projectinfo** - Extended card data (notes, links)
+- **projectinfo** - Extended card data (notes, links, comments)
 - **maintenance** - Archived repos
+- **user_link_presets** - User-defined custom link types
 
 ### Server Actions
 
 ```
 lib/actions/
-├── board.ts, board-data.ts   # Board CRUD
-├── repo-cards.ts             # RepoCard CRUD + D&D
-├── project-info.ts           # Notes, links
-├── auth.ts                   # Session management
-└── github.ts                 # GitHub API (uses provider_token cookie)
+├── types.ts                   # ActionResult<T> discriminated union
+├── auth-guard.ts              # withAuth, withAuthResult, withAuthResultRateLimit wrappers
+├── board.ts, board-data.ts    # Board CRUD + D&D reorder
+├── repo-cards.ts              # RepoCard CRUD + D&D
+├── project-info.ts            # Notes, links
+├── shared-project-info.ts     # Shared project info helpers
+├── maintenance-project-info.ts # Maintenance CRUD + delete
+├── user-presets.ts            # Custom link type presets
+├── mappers.ts                 # Data mapping utilities
+├── auth.ts                    # Session management
+└── github.ts                  # GitHub API (uses provider_token cookie)
 ```
 
 ---
@@ -259,6 +270,18 @@ lib/actions/
 ### GitHub OAuth Token
 
 Stored in httpOnly cookie `github_provider_token` (set in `app/auth/callback/route.ts`).
+
+### ActionResult\<T\> Pattern
+
+All client-consumed Server Actions return `ActionResult<T>` (`{ success: true, data: T } | { success: false, error: string }`). Use `withAuthResultRateLimit(key, action)` for mutations.
+
+### Rate Limiting
+
+Sliding window, in-memory per-process. Config in `lib/rate-limit/config.ts`. Bypassed in test mode. Edge variant in `proxy.ts`.
+
+### Security Event Logging
+
+`logSecurityEvent(type, context)` in `lib/security-events.ts`. Sentry-based audit trail for auth lifecycle events.
 
 ---
 
@@ -323,9 +346,10 @@ pnpm e2e --headed
 
 ### Test Configuration
 
-- **Auth State:** `tests/e2e/.auth/user.json` (gitignored)
-- **Setup File:** `tests/e2e/auth.setup.ts` (injects mock cookies)
+- **Auth State:** `e2e/.auth/user.json` (gitignored)
+- **Setup File:** `e2e/auth.setup.ts` (injects mock cookies)
 - **Config:** `playwright.config.ts`
+- **Timeout:** 30s (test + expect), `failOnFlakyTests: true`
 
 ### Local Authentication Bypass for Browser Verification
 
