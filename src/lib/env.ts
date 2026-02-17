@@ -29,6 +29,11 @@ export const env = createEnv({
       .enum(['development', 'test', 'production'])
       .optional()
       .default('development'),
+    // Runtime-overridable Supabase URL for server-side code.
+    // NEXT_PUBLIC_SUPABASE_URL is inlined at build time by Next.js,
+    // so it cannot be changed per-process at runtime.
+    // E2E parallel shards use this to point each server to its own PostgREST.
+    SUPABASE_URL: z.string().min(1).optional(),
     // Service role key for admin operations (e.g., user deletion)
     // This bypasses RLS and should only be used for privileged operations
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
@@ -58,6 +63,7 @@ export const env = createEnv({
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
     APP_ENV: process.env.APP_ENV,
+    SUPABASE_URL: process.env.SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,

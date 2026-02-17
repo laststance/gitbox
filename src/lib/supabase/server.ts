@@ -12,6 +12,18 @@ import { cookies } from 'next/headers'
 import type { Database } from './types'
 
 /**
+ * Get the Supabase URL, preferring runtime SUPABASE_URL over build-time NEXT_PUBLIC_SUPABASE_URL.
+ *
+ * NEXT_PUBLIC_* vars are inlined at build time by Next.js, so they can't be
+ * overridden per-process at runtime. For E2E parallel shards, each Next.js
+ * server needs its own PostgREST URL — SUPABASE_URL provides this.
+ *
+ * @returns Runtime SUPABASE_URL if set, otherwise build-time NEXT_PUBLIC_SUPABASE_URL
+ */
+const getSupabaseUrl = () =>
+  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!
+
+/**
  * Check if E2E test mode is enabled
  * When true, auth checks return mock data to bypass OAuth
  *
@@ -61,7 +73,7 @@ export async function createClient() {
   const testMode = isE2ETestMode()
 
   const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    getSupabaseUrl(),
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
@@ -175,7 +187,7 @@ export async function createRouteHandlerClient(_request: Request) {
   const cookieStore = await cookies()
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    getSupabaseUrl(),
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
@@ -220,7 +232,7 @@ export async function createServerActionClient() {
   const cookieStore = await cookies()
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    getSupabaseUrl(),
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
@@ -282,12 +294,12 @@ const MOCK_USER_FOR_E2E = {
  * ```
  */
 export function createAdminClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseUrl = getSupabaseUrl()
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !serviceRoleKey) {
     throw new Error(
-      'Missing SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL',
+      'Missing SUPABASE_SERVICE_ROLE_KEY or SUPABASE_URL/NEXT_PUBLIC_SUPABASE_URL',
     )
   }
 

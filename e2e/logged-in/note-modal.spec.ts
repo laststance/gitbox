@@ -50,7 +50,7 @@ test.describe('NoteModal (Authenticated)', () => {
     await expect(dialog).toBeVisible({ timeout: 5000 })
 
     // Dialog should have "Project Note" title
-    const title = dialog.getByText(/project note/i)
+    const title = dialog.getByRole('heading', { name: /project note/i })
     await expect(title).toBeVisible()
   })
 
@@ -83,9 +83,11 @@ test.describe('NoteModal (Authenticated)', () => {
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible({ timeout: 5000 })
 
-    // Focus on editor and type
+    // Focus on editor, clear existing content, and type
     const editorContent = dialog.locator('[data-slate-editor="true"]')
     await editorContent.click()
+    await page.keyboard.press(`${MOD}+a`)
+    await page.keyboard.press('Backspace')
     await page.keyboard.type('Hello, this is a test note!')
 
     // Verify text was typed

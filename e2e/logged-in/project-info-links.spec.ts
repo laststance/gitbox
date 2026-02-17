@@ -58,7 +58,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     const dialog = await openNoteModal(page)
 
     // Verify modal title (now "Project Note" after Issue #37 consolidation)
-    const title = dialog.getByText(/project note/i)
+    const title = dialog.getByRole('heading', { name: /project note/i })
     await expect(title).toBeVisible()
 
     // Verify modal has required elements
