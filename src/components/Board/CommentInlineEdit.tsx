@@ -18,6 +18,7 @@
 
 import { Check } from 'lucide-react'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -124,6 +125,10 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
         setIsSaving(true)
         try {
           await onSave(editValue, { closeOnSave })
+          // Show toast only on explicit save (Enter/button), not on blur auto-save
+          if (closeOnSave) {
+            toast.success('Comment saved')
+          }
         } finally {
           setIsSaving(false)
         }

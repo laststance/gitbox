@@ -33,10 +33,10 @@ html[data-theme='default'] {
   --border: oklch(0.86 0.018 80);
   --input: oklch(0.88 0.015 80);
   --ring: oklch(0.6 0.02 75);
-  --header: #ffffff;
+  --header: oklch(1 0 0);
   --header-foreground: oklch(0.18 0.01 70);
   --header-border: oklch(0.86 0.018 80);
-  --theme-accent: #f5f0e8;
+  --theme-accent: oklch(0.957 0.012 80);
 }
 
 /* Sunrise - Golden amber cream with rich warmth */
@@ -60,7 +60,7 @@ html[data-theme='sunrise'] {
   --border: oklch(0.84 0.045 70);
   --input: oklch(0.86 0.04 72);
   --ring: oklch(0.62 0.18 60);
-  --theme-accent: #f59e0b;
+  --theme-accent: oklch(0.769 0.165 70);
 }
 
 /* Sandstone - Natural earth tones with warm beige */
@@ -84,7 +84,7 @@ html[data-theme='sandstone'] {
   --border: oklch(0.84 0.035 50);
   --input: oklch(0.86 0.032 52);
   --ring: oklch(0.5 0.06 50);
-  --theme-accent: #c4b5a0;
+  --theme-accent: oklch(0.78 0.034 76);
 }
 
 /* Mint - Fresh sage green with botanical softness */
@@ -108,7 +108,7 @@ html[data-theme='mint'] {
   --border: oklch(0.84 0.045 150);
   --input: oklch(0.86 0.04 152);
   --ring: oklch(0.58 0.15 158);
-  --theme-accent: #10b981;
+  --theme-accent: oklch(0.696 0.149 163);
 }
 
 /* Sky - Serene powder blue with airy freshness */
@@ -132,7 +132,7 @@ html[data-theme='sky'] {
   --border: oklch(0.84 0.04 218);
   --input: oklch(0.86 0.035 218);
   --ring: oklch(0.55 0.16 220);
-  --theme-accent: #0ea5e9;
+  --theme-accent: oklch(0.685 0.148 237);
 }
 
 /* Lavender - Gentle violet with dreamy softness */
@@ -156,7 +156,7 @@ html[data-theme='lavender'] {
   --border: oklch(0.84 0.045 285);
   --input: oklch(0.86 0.04 288);
   --ring: oklch(0.58 0.18 285);
-  --theme-accent: #a78bfa;
+  --theme-accent: oklch(0.709 0.159 294);
 }
 
 /* Rose - Warm blush pink with romantic elegance */
@@ -180,7 +180,7 @@ html[data-theme='rose'] {
   --border: oklch(0.84 0.045 0);
   --input: oklch(0.86 0.04 2);
   --ring: oklch(0.55 0.2 5);
-  --theme-accent: #f43f5e;
+  --theme-accent: oklch(0.645 0.215 16);
 }
 
 /* ============================================
@@ -208,7 +208,7 @@ html[data-theme='dark'] {
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --theme-accent: #18181b;
+  --theme-accent: oklch(0.21 0.006 286);
 }
 
 /* Midnight - Deep blue */
@@ -232,7 +232,7 @@ html[data-theme='midnight'] {
   --border: oklch(0.25 0.03 258);
   --input: oklch(0.22 0.028 258);
   --ring: oklch(0.55 0.2 260);
-  --theme-accent: #1e40af;
+  --theme-accent: oklch(0.424 0.181 266);
 }
 
 /* Graphite - Dark gray */
@@ -256,7 +256,7 @@ html[data-theme='graphite'] {
   --border: oklch(0.28 0 0);
   --input: oklch(0.24 0 0);
   --ring: oklch(0.55 0.02 240);
-  --theme-accent: #374151;
+  --theme-accent: oklch(0.373 0.031 260);
 }
 
 /* Forest - Dark green */
@@ -280,7 +280,7 @@ html[data-theme='forest'] {
   --border: oklch(0.25 0.03 143);
   --input: oklch(0.22 0.028 143);
   --ring: oklch(0.5 0.14 145);
-  --theme-accent: #166534;
+  --theme-accent: oklch(0.448 0.108 151);
 }
 
 /* Ocean - Deep teal */
@@ -304,7 +304,7 @@ html[data-theme='ocean'] {
   --border: oklch(0.25 0.03 198);
   --input: oklch(0.22 0.028 198);
   --ring: oklch(0.52 0.12 200);
-  --theme-accent: #0c4a6e;
+  --theme-accent: oklch(0.391 0.085 241);
 }
 
 /* Plum - Rich purple */
@@ -328,7 +328,7 @@ html[data-theme='plum'] {
   --border: oklch(0.25 0.04 298);
   --input: oklch(0.22 0.038 298);
   --ring: oklch(0.52 0.22 300);
-  --theme-accent: #7e22ce;
+  --theme-accent: oklch(0.496 0.237 302);
 }
 
 /* Rust - Dark orange */
@@ -352,5 +352,5 @@ html[data-theme='rust'] {
   --border: oklch(0.25 0.03 38);
   --input: oklch(0.22 0.028 38);
   --ring: oklch(0.52 0.16 40);
-  --theme-accent: #9a3412;
+  --theme-accent: oklch(0.47 0.143 37);
 }

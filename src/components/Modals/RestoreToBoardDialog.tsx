@@ -15,6 +15,7 @@
 
 import { Loader2, LayoutGrid, Columns3 } from 'lucide-react'
 import { useState, useCallback, memo, useMemo } from 'react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -153,6 +154,10 @@ export const RestoreToBoardDialog = memo(function RestoreToBoardDialog({
     )
 
     if (result.success) {
+      const selectedBoard = boards.find((b) => b.id === effectiveBoardId)
+      toast.success('Repository restored', {
+        description: `"${repoName}" has been restored to ${selectedBoard?.name ?? 'board'}.`,
+      })
       // Reset selection state
       setSelectedBoardId('')
       setSelectedStatusId('')
@@ -163,7 +168,15 @@ export const RestoreToBoardDialog = memo(function RestoreToBoardDialog({
     }
 
     setIsRestoring(false)
-  }, [maintenanceId, effectiveBoardId, effectiveStatusId, onRestored, onClose])
+  }, [
+    maintenanceId,
+    effectiveBoardId,
+    effectiveStatusId,
+    onRestored,
+    onClose,
+    boards,
+    repoName,
+  ])
 
   // Handle dialog close
   const handleClose = useCallback(() => {
