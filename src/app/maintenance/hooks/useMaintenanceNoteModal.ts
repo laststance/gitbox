@@ -6,7 +6,7 @@
  *
  * @example
  * const { noteModalOpen, openNoteModal, handleProjectInfoSave } =
- *   useMaintenanceNoteModal({ comments })
+ *   useMaintenanceNoteModal()
  */
 
 import { useState, useCallback, useRef, useTransition } from 'react'
@@ -15,25 +15,16 @@ import { type ProjectLink } from '@/components/ui/editable-url-item'
 import {
   getMaintenanceProjectInfo,
   upsertMaintenanceProjectInfo,
-  type CommentData,
 } from '@/lib/actions/maintenance-project-info'
 
 import type { MaintenanceRepo } from '../MaintenanceClient'
 
-interface UseMaintenanceNoteModalProps {
-  /** Current comments state (needed to preserve comment on project info save) */
-  comments: Record<string, CommentData>
-}
-
 /**
  * Hook for managing the maintenance note modal
  *
- * @param props.comments - Current comments state for preserving on save
  * @returns Modal state, open/close handlers, and save handler
  */
-export function useMaintenanceNoteModal({
-  comments,
-}: UseMaintenanceNoteModalProps) {
+export function useMaintenanceNoteModal() {
   const [noteModalOpen, setNoteModalOpen] = useState(false)
   const [selectedRepoForNote, setSelectedRepoForNote] =
     useState<MaintenanceRepo | null>(null)
@@ -82,10 +73,8 @@ export function useMaintenanceNoteModal({
   const handleProjectInfoSave = useCallback(
     async (note: string, links: ProjectLink[]) => {
       if (!selectedRepoForNote) return
-      const currentComment = comments[selectedRepoForNote.id]?.comment || ''
       await upsertMaintenanceProjectInfo(selectedRepoForNote.id, {
         note,
-        comment: currentComment,
         links,
       })
       setNoteModalOpen(false)
@@ -93,7 +82,7 @@ export function useMaintenanceNoteModal({
       setCurrentNote('')
       setCurrentLinks([])
     },
-    [selectedRepoForNote, comments],
+    [selectedRepoForNote],
   )
 
   /**

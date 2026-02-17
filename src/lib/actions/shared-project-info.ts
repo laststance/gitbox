@@ -67,7 +67,7 @@ export interface ProjectLink {
  */
 export interface ProjectInfoData {
   note: string
-  comment: string
+  comment?: string
   links: ProjectLink[]
 }
 
@@ -274,7 +274,9 @@ export async function upsertProjectInfoCore(
 
   // Validation
   validateNote(data.note)
-  validateComment(data.comment)
+  if (data.comment !== undefined) {
+    validateComment(data.comment)
+  }
   data.links.forEach((link) => {
     if (link.url) {
       validateUrl(link.url)
@@ -288,7 +290,7 @@ export async function upsertProjectInfoCore(
   const upsertData = {
     [fk.column]: entityId,
     note: data.note,
-    comment: data.comment,
+    ...(data.comment !== undefined && { comment: data.comment }),
     links: linksArray,
   } as ProjectInfoInsert
 

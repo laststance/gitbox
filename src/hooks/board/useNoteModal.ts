@@ -122,7 +122,6 @@ export function useNoteModal({
 
       await upsertProjectInfo(cardId, {
         note,
-        comment: '',
         links,
       })
     },

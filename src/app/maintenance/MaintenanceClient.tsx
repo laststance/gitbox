@@ -18,7 +18,6 @@ import {
   Search,
   ExternalLink,
   RotateCcw,
-  MoreVertical,
   Archive,
   ArrowUpDown,
   ArrowLeft,
@@ -32,6 +31,7 @@ import { useRouter } from 'next/navigation'
 import { useState, memo, useMemo, useCallback } from 'react'
 
 import { CommentSection } from '@/components/Board/CommentSection'
+import { OverflowMenu } from '@/components/Board/OverflowMenu'
 import { DeleteMaintenanceDialog } from '@/components/Modals/DeleteMaintenanceDialog'
 import { NoteModal } from '@/components/Modals/NoteModal'
 import { RestoreToBoardDialog } from '@/components/Modals/RestoreToBoardDialog'
@@ -40,7 +40,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
@@ -124,7 +123,10 @@ export const MaintenanceClient = memo(function MaintenanceClient({
     openNoteModal,
     handleProjectInfoSave,
     closeNoteModal,
-  } = useMaintenanceNoteModal({ comments })
+  } = useMaintenanceNoteModal()
+
+  // Per-card menu state for OverflowMenu
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -157,6 +159,28 @@ export const MaintenanceClient = memo(function MaintenanceClient({
     setDeleteDialogOpen(false)
     setSelectedRepoForDelete(null)
   }, [])
+
+  /**
+   * Keyboard shortcut handler for maintenance cards.
+   * Follows the same pattern as RepoCard keyboard shortcuts.
+   */
+  const handleCardKeyDown = useCallback(
+    (e: React.KeyboardEvent, repo: MaintenanceRepo) => {
+      if (e.key === '.' || e.key === 'Period') {
+        e.preventDefault()
+        setOpenMenuId((prev) => (prev === repo.id ? null : repo.id))
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        openNoteModal(repo)
+      }
+      if (e.key === 'Escape' && openMenuId === repo.id) {
+        e.preventDefault()
+        setOpenMenuId(null)
+      }
+    },
+    [openMenuId, openNoteModal],
+  )
 
   // Last visited board for navigation - lazy initialization from localStorage
   const [lastVisitedBoard] = useState<{
@@ -321,40 +345,25 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                           : Math.min(index * 0.05, 0.5),
                         duration: prefersReducedMotion ? 0 : undefined,
                       }}
-                      className="group border-border bg-card hover:border-primary/50 relative rounded-lg border p-4 transition-all hover:shadow-md"
+                      className="group border-border bg-card hover:border-primary/50 focus-within:border-primary/50 relative rounded-lg border p-4 transition-all hover:shadow-md focus:outline-none"
+                      tabIndex={0}
+                      onKeyDown={(e) => handleCardKeyDown(e, repo)}
                     >
                       {/* Menu */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          asChild
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            type="button"
-                            className="hover:bg-muted absolute top-2 right-2 rounded-md p-1.5 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openGitHubUrl(repo)}>
-                            <ExternalLink className="mr-2 h-4 w-4" />
-                            Open on GitHub
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleRestore(repo)}>
-                            <RotateCcw className="mr-2 h-4 w-4" />
-                            Restore to Board
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(repo)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="absolute top-2 right-2 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+                        <OverflowMenu
+                          cardId={repo.id}
+                          repoOwner={repo.repo_owner}
+                          repoName={repo.repo_name}
+                          context="maintenance"
+                          onRestoreToBoard={() => handleRestore(repo)}
+                          onDelete={() => handleDelete(repo)}
+                          open={openMenuId === repo.id}
+                          onOpenChange={(isOpen) =>
+                            setOpenMenuId(isOpen ? repo.id : null)
+                          }
+                        />
+                      </div>
 
                       {/* Content */}
                       <div className="space-y-2">
@@ -434,7 +443,9 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                           : Math.min(index * 0.03, 0.3),
                         duration: prefersReducedMotion ? 0 : undefined,
                       }}
-                      className="group border-border bg-card hover:border-primary/50 rounded-lg border p-4 transition-all hover:shadow-sm"
+                      className="group border-border bg-card hover:border-primary/50 focus-within:border-primary/50 rounded-lg border p-4 transition-all hover:shadow-sm focus:outline-none"
+                      tabIndex={0}
+                      onKeyDown={(e) => handleCardKeyDown(e, repo)}
                     >
                       <div className="flex items-center gap-4">
                         <div

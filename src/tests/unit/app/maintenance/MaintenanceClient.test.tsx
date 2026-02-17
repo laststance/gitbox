@@ -435,10 +435,11 @@ describe('MaintenanceClient Handler Tests', () => {
     const menuItem = await screen.findByText('Open on GitHub')
     await userEvent.click(menuItem)
 
-    // Should open GitHub URL
+    // Should open GitHub URL (OverflowMenu adds noopener,noreferrer)
     expect(mockOpen).toHaveBeenCalledWith(
       'https://github.com/octocat/example-repo',
       '_blank',
+      'noopener,noreferrer',
     )
   })
 })
