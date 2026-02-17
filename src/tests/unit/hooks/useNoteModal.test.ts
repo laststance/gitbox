@@ -220,7 +220,6 @@ describe('useNoteModal', () => {
 
       expect(mockUpsertProjectInfo).toHaveBeenCalledWith('card-1', {
         note: 'New note content',
-        comment: '',
         links: newLinks,
       })
     })

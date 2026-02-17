@@ -41,6 +41,8 @@ interface OverflowMenuProps {
   onRestoreToBoard?: (id: string) => void
   /** Callback when repository is removed from board */
   onRemove?: (id: string) => void
+  /** Callback when maintenance item is permanently deleted */
+  onDelete?: (id: string) => void
   open?: boolean
   onOpenChange?: (open: boolean) => void
   /** Board or Maintenance context */
@@ -73,6 +75,7 @@ export const OverflowMenu = memo<OverflowMenuProps>(
     onMoveToMaintenance,
     onRestoreToBoard,
     onRemove,
+    onDelete,
     open,
     onOpenChange,
     context = 'board',
@@ -162,9 +165,10 @@ export const OverflowMenu = memo<OverflowMenuProps>(
 
             {/* Separator before actions */}
             {(githubUrl || productionUrl || trackingUrl || supabaseUrl) &&
-              (onMoveToMaintenance || onRestoreToBoard || onRemove) && (
-                <DropdownMenuSeparator />
-              )}
+              (onMoveToMaintenance ||
+                onRestoreToBoard ||
+                onRemove ||
+                onDelete) && <DropdownMenuSeparator />}
 
             {/* Move to Maintenance (Board context only) */}
             {context === 'board' && onMoveToMaintenance && (
@@ -201,6 +205,21 @@ export const OverflowMenu = memo<OverflowMenuProps>(
                 <RotateCcw className="mr-2 h-4 w-4" />
                 Restore to Board
               </DropdownMenuItem>
+            )}
+
+            {/* Delete (Maintenance context only) - Destructive action */}
+            {context === 'maintenance' && onDelete && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => onDelete(cardId)}
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                  data-testid={`delete-maintenance-${cardId}`}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
