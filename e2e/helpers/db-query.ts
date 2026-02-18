@@ -694,3 +694,31 @@ export async function resetProjectInfoLinks(): Promise<void> {
     }
   }
 }
+
+/**
+ * Reset user settings (boards page title/subtitle) to seed.sql values (NULL = defaults).
+ * Call this in beforeEach for boards page header inline edit tests.
+ *
+ * @example
+ * test.beforeEach(async () => {
+ *   await resetUserSettings()
+ * })
+ */
+export async function resetUserSettings(): Promise<void> {
+  const supabase = createLocalSupabaseClient()
+
+  // Upsert to handle case where row doesn't exist yet
+  const { error } = await supabase.from('user_settings').upsert(
+    {
+      user_id: TEST_USER_ID,
+      boards_page_title: null,
+      boards_page_subtitle: null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id' },
+  )
+
+  if (error) {
+    throw new Error(`resetUserSettings: ${error.message}`)
+  }
+}

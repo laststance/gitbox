@@ -23,6 +23,7 @@ import {
   mockProjectInfo,
   mockMaintenance,
   mockMaintenanceProjectInfo,
+  mockUserSettings,
   getSearchParams,
   filterByParams,
   updateMockBoard,
@@ -601,6 +602,49 @@ export const supabaseDbHandlers: HttpHandler[] = [
    */
   http.delete(`${SUPABASE_URL}/rest/v1/maintenance`, () => {
     return new HttpResponse(null, { status: 204 })
+  }),
+
+  // --------------------------------------------------------------------------
+  // User Settings table handlers
+  // --------------------------------------------------------------------------
+
+  /**
+   * GET /rest/v1/user_settings - Get user settings
+   *
+   * Supports .maybeSingle() (returns object or null via Accept header).
+   */
+  http.get(`${SUPABASE_URL}/rest/v1/user_settings`, ({ request }) => {
+    // .maybeSingle() sets Accept: application/vnd.pgrst.object+json
+    const acceptHeader = request.headers.get('Accept') ?? ''
+    if (acceptHeader.includes('application/vnd.pgrst.object+json')) {
+      return HttpResponse.json(mockUserSettings)
+    }
+    return HttpResponse.json([mockUserSettings])
+  }),
+
+  /**
+   * POST /rest/v1/user_settings - Upsert user settings
+   *
+   * Supabase upsert uses POST with Prefer: resolution=merge-duplicates.
+   */
+  http.post(`${SUPABASE_URL}/rest/v1/user_settings`, async ({ request }) => {
+    const body = (await request.json()) as Partial<typeof mockUserSettings>
+
+    // Merge into mock data
+    if (body.boards_page_title !== undefined) {
+      mockUserSettings.boards_page_title = body.boards_page_title
+    }
+    if (body.boards_page_subtitle !== undefined) {
+      mockUserSettings.boards_page_subtitle = body.boards_page_subtitle
+    }
+    mockUserSettings.updated_at = new Date().toISOString()
+
+    const preferHeader = request.headers.get('Prefer')
+    if (preferHeader?.includes('return=representation')) {
+      return HttpResponse.json(mockUserSettings, { status: 201 })
+    }
+
+    return new HttpResponse(null, { status: 201 })
   }),
 ]
 

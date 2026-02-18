@@ -196,8 +196,10 @@ export const InlineEditableText = memo<InlineEditableTextProps>(
     }
 
     // Display mode: render clickable text element
-    const displayText = value || placeholder
-    const isEmpty = !value
+    // Use editValue (state) for optimistic display after save,
+    // not value (prop) which only changes on parent re-render.
+    const displayText = editValue || placeholder
+    const isEmpty = !editValue
 
     return (
       <Element

@@ -64,5 +64,14 @@ export {
   validatePresetLabelWithSchema,
 } from './user-presets'
 
+// User settings schemas
+export {
+  BOARDS_PAGE_DEFAULTS,
+  BOARDS_PAGE_TITLE_MAX_LENGTH,
+  BOARDS_PAGE_SUBTITLE_MAX_LENGTH,
+  boardsPageTitleSchema,
+  boardsPageSubtitleSchema,
+} from './user-settings'
+
 // URL validation utility (for EditableUrlItem)
 export { MAX_URL_LENGTH, isValidUrl } from './url'

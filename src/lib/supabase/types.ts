@@ -273,6 +273,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          user_id: string
+          boards_page_title: string | null
+          boards_page_subtitle: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          user_id: string
+          boards_page_title?: string | null
+          boards_page_subtitle?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          user_id?: string
+          boards_page_title?: string | null
+          boards_page_subtitle?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

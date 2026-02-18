@@ -59,6 +59,13 @@ export const RATE_LIMIT_CONFIG = {
     windowMs: 60_000,
     description: 'board operation',
   },
+
+  // --- Low: User settings ---
+  userSettings: {
+    maxRequests: 20,
+    windowMs: 60_000,
+    description: 'user settings',
+  },
 } as const satisfies Record<string, RateLimitConfig>
 
 export type RateLimitKey = keyof typeof RATE_LIMIT_CONFIG

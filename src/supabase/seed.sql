@@ -370,3 +370,17 @@ VALUES
     '2024-12-31T00:00:00.000Z'::timestamptz
   )
 ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
+-- User Settings (per-user page customization)
+-- ============================================================================
+
+INSERT INTO user_settings (user_id, boards_page_title, boards_page_subtitle, created_at, updated_at)
+VALUES (
+  '00000000-0000-0000-0000-000000000001'::uuid,
+  NULL,
+  NULL,
+  '2024-01-01T00:00:00.000Z'::timestamptz,
+  '2024-01-01T00:00:00.000Z'::timestamptz
+)
+ON CONFLICT (user_id) DO NOTHING;
