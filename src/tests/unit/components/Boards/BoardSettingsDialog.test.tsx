@@ -89,11 +89,12 @@ describe('BoardSettingsDialog', () => {
   })
 
   describe('Tab Navigation', () => {
-    it('should display all three tabs', () => {
+    it('should display all four tabs', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       expect(screen.getByRole('tab', { name: /general/i })).toBeInTheDocument()
       expect(screen.getByRole('tab', { name: /cards/i })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: /sharing/i })).toBeInTheDocument()
       expect(
         screen.getByRole('tab', { name: /danger zone/i }),
       ).toBeInTheDocument()
@@ -348,8 +349,8 @@ describe('BoardSettingsDialog', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const tabs = screen.getAllByRole('tab')
-      // 3 tabs: General, Cards, Danger Zone
-      expect(tabs).toHaveLength(3)
+      // 4 tabs: General, Cards, Sharing, Danger Zone
+      expect(tabs).toHaveLength(4)
     })
 
     it('should have tabpanel role for content', () => {

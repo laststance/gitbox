@@ -8,7 +8,14 @@
 'use client'
 
 import * as Sentry from '@sentry/nextjs'
-import { Calendar, MoreHorizontal, Pencil, Star, Trash2 } from 'lucide-react'
+import {
+  Calendar,
+  Globe,
+  MoreHorizontal,
+  Pencil,
+  Star,
+  Trash2,
+} from 'lucide-react'
 import Link from 'next/link'
 import { memo, useCallback, useState, useTransition } from 'react'
 import { toast } from 'sonner'
@@ -203,8 +210,14 @@ export const BoardCard = memo(function BoardCard({
         </div>
 
         {/* Card content */}
-        <h3 className="text-foreground group-hover:text-primary pr-16 text-xl font-semibold transition-colors">
+        <h3 className="text-foreground group-hover:text-primary flex items-center gap-2 pr-16 text-xl font-semibold transition-colors">
           {board.name}
+          {board.is_public && (
+            <Globe
+              className="text-muted-foreground h-4 w-4 shrink-0"
+              aria-label="Public board"
+            />
+          )}
         </h3>
 
         <div className="text-muted-foreground mt-4 flex items-center text-sm">

@@ -285,6 +285,8 @@ describe('boardSlice', () => {
       settings: null,
       user_id: 'user-1',
       is_favorite: false,
+      is_public: false,
+      share_slug: null as string | null,
       position: 0,
       created_at: '2024-01-01T00:00:00.000Z',
       updated_at: '2024-01-01T00:00:00.000Z',
