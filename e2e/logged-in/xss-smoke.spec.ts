@@ -110,9 +110,10 @@ test.describe('XSS Prevention Smoke Tests (Authenticated)', () => {
       await dialog.dismiss()
     })
 
-    // Open the first card's note/project info modal
+    // Open the first card's note/project info modal via the Note button
     const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
-    await card.click()
+    const noteButton = card.getByRole('button', { name: 'Open note' })
+    await noteButton.click()
 
     // Wait for note modal to appear
     const modal = page.locator('[role="dialog"]')
