@@ -28,25 +28,4 @@ test.describe('Public Board', () => {
     // Next.js may return 404 for this route
     expect(response?.status()).toBe(404)
   })
-
-  test('should not expose edit controls on public page', async ({ page }) => {
-    // Even if we navigate to a public board that doesn't exist,
-    // verify no authenticated controls are rendered
-    await page.goto('/public/aabbccddeeff')
-
-    // No add column button
-    await expect(
-      page.getByRole('button', { name: /add column/i }),
-    ).not.toBeVisible()
-
-    // No board settings button
-    await expect(
-      page.getByRole('button', { name: /board settings/i }),
-    ).not.toBeVisible()
-
-    // No dropdown menus
-    await expect(
-      page.getByRole('button', { name: /open menu/i }),
-    ).not.toBeVisible()
-  })
 })

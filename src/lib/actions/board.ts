@@ -14,14 +14,10 @@ import {
   withAuthRateLimit,
   withAuthResultRateLimit,
 } from '@/lib/actions/auth-guard'
-import { toStatusListDomain } from '@/lib/actions/mappers'
-import type {
-  StatusListDomain,
-  RepoCardDomain,
-  RepoCardMeta,
-} from '@/lib/models/domain'
+import { toRepoCardDomain, toStatusListDomain } from '@/lib/actions/mappers'
+import type { StatusListDomain, RepoCardDomain } from '@/lib/models/domain'
 import { createClient } from '@/lib/supabase/server'
-import type { Tables, TablesInsert } from '@/lib/supabase/types'
+import type { TablesInsert } from '@/lib/supabase/types'
 import {
   boardNameSchema,
   boardSubtitleSchema,
@@ -34,8 +30,6 @@ import {
 } from '@/lib/validations/board'
 
 import type { ActionResult } from './types'
-
-type RepoCardRow = Tables<'repocard'>
 
 // ========================================
 // StatusList Operations
@@ -378,29 +372,7 @@ export async function getRepoCards(boardId: string): Promise<RepoCardDomain[]> {
   }
 
   // Convert DB rows to domain model
-  return (data || []).map((row: RepoCardRow) => {
-    const meta = (row.meta as RepoCardMeta) || {}
-    return {
-      id: row.id,
-      title: `${row.repo_owner}/${row.repo_name}`,
-      description: meta.description || '',
-      statusId: row.status_id,
-      boardId: row.board_id,
-      repoOwner: row.repo_owner,
-      repoName: row.repo_name,
-      order: row.order,
-      meta: {
-        stars: meta.stars,
-        updatedAt: meta.updatedAt,
-        visibility: meta.visibility,
-        language: meta.language,
-        topics: meta.topics,
-        description: meta.description,
-      },
-      createdAt: row.created_at ?? new Date().toISOString(),
-      updatedAt: row.updated_at ?? new Date().toISOString(),
-    }
-  })
+  return (data || []).map(toRepoCardDomain)
 }
 
 /**
@@ -1211,17 +1183,19 @@ export async function regenerateShareSlug(
 
     const newSlug = generateSlug()
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('board')
       .update({ share_slug: newSlug })
       .eq('id', idResult.data)
       .eq('user_id', user.id)
+      .select('share_slug')
+      .single()
 
-    if (error) {
-      Sentry.captureException(error, {
+    if (error || !data) {
+      Sentry.captureException(error ?? new Error('Board not found'), {
         extra: { context: 'Regenerate share slug', boardId: idResult.data },
       })
-      throw new Error('Failed to regenerate share link')
+      throw new Error('Board not found or failed to regenerate share link')
     }
 
     return { share_slug: newSlug }

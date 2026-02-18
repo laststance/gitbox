@@ -193,8 +193,18 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
   // Sharing state
   const [boardIsPublic, setBoardIsPublic] = useState(initialIsPublic)
   const [boardShareSlug, setBoardShareSlug] = useState(initialShareSlug)
+  const [lastIsPublic, setLastIsPublic] = useState(initialIsPublic)
+  const [lastShareSlug, setLastShareSlug] = useState(initialShareSlug)
   const [isTogglingPublic, setIsTogglingPublic] = useState(false)
   const [copied, setCopied] = useState(false)
+
+  // Sync sharing state from props
+  if (initialIsPublic !== lastIsPublic || initialShareSlug !== lastShareSlug) {
+    setLastIsPublic(initialIsPublic)
+    setLastShareSlug(initialShareSlug)
+    setBoardIsPublic(initialIsPublic)
+    setBoardShareSlug(initialShareSlug)
+  }
 
   /**
    * Toggle public visibility for the board.
@@ -220,13 +230,17 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
   }
 
   /** Copy share URL to clipboard */
-  function handleCopyShareLink() {
+  async function handleCopyShareLink() {
     if (!boardShareSlug) return
     const url = `${window.location.origin}/public/${boardShareSlug}`
-    navigator.clipboard.writeText(url)
-    setCopied(true)
-    toast.success('Link copied to clipboard')
-    setTimeout(() => setCopied(false), 2000)
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      toast.success('Link copied to clipboard')
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast.error('Failed to copy link')
+    }
   }
 
   // Delete form state

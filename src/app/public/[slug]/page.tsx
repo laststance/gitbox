@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { cache } from 'react'
 
 import { getPublicBoardBySlug } from '@/lib/actions/public-board'
 
@@ -8,6 +9,11 @@ import { PublicBoardClient } from './PublicBoardClient'
 interface PublicBoardPageProps {
   params: Promise<{ slug: string }>
 }
+
+/** Deduplicate fetches within the same request (generateMetadata + page) */
+const getCachedPublicBoard = cache(async (slug: string) =>
+  getPublicBoardBySlug(slug),
+)
 
 /**
  * Generate metadata for public board SEO.
@@ -19,7 +25,7 @@ export async function generateMetadata(
   props: PublicBoardPageProps,
 ): Promise<Metadata> {
   const { slug } = await props.params
-  const data = await getPublicBoardBySlug(slug)
+  const data = await getCachedPublicBoard(slug)
 
   if (!data) {
     return { title: 'Board Not Found' }
@@ -37,7 +43,7 @@ export async function generateMetadata(
  */
 export default async function PublicBoardPage(props: PublicBoardPageProps) {
   const { slug } = await props.params
-  const data = await getPublicBoardBySlug(slug)
+  const data = await getCachedPublicBoard(slug)
 
   if (!data) {
     notFound()

@@ -37,8 +37,9 @@ test.describe('XSS Prevention Smoke Tests (Authenticated)', () => {
   test('should escape script tags in comment text', async ({ page }) => {
     // Track any dialog/alert events — should never fire
     let alertFired = false
-    page.on('dialog', () => {
+    page.on('dialog', async (dialog) => {
       alertFired = true
+      await dialog.dismiss()
     })
 
     // Click on card-1 comment to enter edit mode
@@ -73,8 +74,9 @@ test.describe('XSS Prevention Smoke Tests (Authenticated)', () => {
     page,
   }) => {
     let alertFired = false
-    page.on('dialog', () => {
+    page.on('dialog', async (dialog) => {
       alertFired = true
+      await dialog.dismiss()
     })
 
     const commentDisplay = page.locator(
@@ -104,8 +106,9 @@ test.describe('XSS Prevention Smoke Tests (Authenticated)', () => {
     page,
   }) => {
     let alertFired = false
-    page.on('dialog', () => {
+    page.on('dialog', async (dialog) => {
       alertFired = true
+      await dialog.dismiss()
     })
 
     // Open the first card's note/project info modal
@@ -117,31 +120,36 @@ test.describe('XSS Prevention Smoke Tests (Authenticated)', () => {
     await expect(modal).toBeVisible({ timeout: 5000 })
 
     // Find a link edit button and click it
+    let enteredEditMode = false
     const editButton = modal.locator('[data-testid^="url-edit-"]').first()
     if (await editButton.isVisible({ timeout: 3000 }).catch(() => false)) {
       await editButton.click()
+      enteredEditMode = true
     } else {
       // If no existing link, look for "add link" button
       const addLink = modal.locator('button:has-text("Add")').first()
       if (await addLink.isVisible({ timeout: 3000 }).catch(() => false)) {
         await addLink.click()
+        enteredEditMode = true
       }
     }
 
+    // Ensure we actually found an edit/add button — test is meaningless otherwise
+    expect(enteredEditMode).toBe(true)
+
     // Try to enter javascript: URL
     const urlInput = modal.locator('[data-testid^="url-input-"]').first()
-    if (await urlInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await urlInput.fill(XSS_JS_URL)
-      await urlInput.press('Tab')
+    await expect(urlInput).toBeVisible({ timeout: 3000 })
+    await urlInput.fill(XSS_JS_URL)
+    await urlInput.press('Tab')
 
-      // Wait for validation
-      await page.waitForTimeout(500)
+    // Wait for validation
+    await page.waitForTimeout(500)
 
-      // Should show error — javascript: is not allowed
-      const error = modal.locator('[role="alert"]').first()
-      await expect(error).toBeVisible({ timeout: 3000 })
-      await expect(error).toContainText('http')
-    }
+    // Should show error — javascript: is not allowed
+    const error = modal.locator('[role="alert"]').first()
+    await expect(error).toBeVisible({ timeout: 3000 })
+    await expect(error).toContainText('http')
 
     expect(alertFired).toBe(false)
   })

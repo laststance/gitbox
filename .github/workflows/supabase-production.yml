@@ -28,7 +28,7 @@ jobs:
           version: latest
 
       - name: Link to Production Project
-        run: supabase link --project-ref $SUPABASE_PROJECT_REF
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 

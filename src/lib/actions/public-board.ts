@@ -10,21 +10,26 @@
 import * as Sentry from '@sentry/nextjs'
 import { headers } from 'next/headers'
 
-import { toStatusListDomain } from '@/lib/actions/mappers'
-import type {
-  StatusListDomain,
-  RepoCardDomain,
-  RepoCardMeta,
-} from '@/lib/models/domain'
+import { toRepoCardDomain, toStatusListDomain } from '@/lib/actions/mappers'
+import type { RepoCardDomain, StatusListDomain } from '@/lib/models/domain'
 import { checkRateLimit } from '@/lib/rate-limit/check'
 import { createClient } from '@/lib/supabase/server'
-import type { Board, Tables } from '@/lib/supabase/types'
 
-type RepoCardRow = Tables<'repocard'>
+/** Public-safe board fields (excludes user_id) */
+interface PublicBoard {
+  id: string
+  name: string
+  subtitle: string | null
+  created_at: string | null
+  updated_at: string | null
+  is_public: boolean
+  share_slug: string | null
+  settings: unknown
+}
 
 /** Data returned for a public board view */
 export interface PublicBoardData {
-  board: Board
+  board: PublicBoard
   statusLists: StatusListDomain[]
   repoCards: RepoCardDomain[]
 }
@@ -54,10 +59,12 @@ export async function getPublicBoardBySlug(
 
   const supabase = await createClient()
 
-  // Fetch the public board by slug
+  // Fetch the public board by slug (explicit columns — excludes user_id)
   const { data: board, error: boardError } = await supabase
     .from('board')
-    .select('*')
+    .select(
+      'id, name, subtitle, created_at, updated_at, is_public, share_slug, settings',
+    )
     .eq('share_slug', slug)
     .eq('is_public', true)
     .single()
@@ -94,29 +101,7 @@ export async function getPublicBoardBySlug(
   }
 
   const statusLists = (statusListsResult.data || []).map(toStatusListDomain)
-  const repoCards = (repoCardsResult.data || []).map((row: RepoCardRow) => {
-    const meta = (row.meta as RepoCardMeta) || {}
-    return {
-      id: row.id,
-      title: `${row.repo_owner}/${row.repo_name}`,
-      description: meta.description || '',
-      statusId: row.status_id,
-      boardId: row.board_id,
-      repoOwner: row.repo_owner,
-      repoName: row.repo_name,
-      order: row.order,
-      meta: {
-        stars: meta.stars,
-        updatedAt: meta.updatedAt,
-        visibility: meta.visibility,
-        language: meta.language,
-        topics: meta.topics,
-        description: meta.description,
-      },
-      createdAt: row.created_at ?? new Date().toISOString(),
-      updatedAt: row.updated_at ?? new Date().toISOString(),
-    } satisfies RepoCardDomain
-  })
+  const repoCards = (repoCardsResult.data || []).map(toRepoCardDomain)
 
   return { board, statusLists, repoCards }
 }

@@ -68,6 +68,8 @@ const nextConfig: NextConfig = {
               "base-uri 'self'",
               "form-action 'self'",
               "object-src 'none'",
+              // upgrade-insecure-requests: no-op in report-only mode;
+              // will take effect when policy is switched to enforcement.
               'upgrade-insecure-requests',
               // Sentry CSP reporting endpoint
               'report-uri https://o1245861.ingest.us.sentry.io/api/4510597804261376/security/?sentry_key=06b1775946774ab1527986b339ea85ed',

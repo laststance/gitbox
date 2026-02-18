@@ -215,6 +215,7 @@ export const BoardCard = memo(function BoardCard({
           {board.is_public && (
             <Globe
               className="text-muted-foreground h-4 w-4 shrink-0"
+              role="img"
               aria-label="Public board"
             />
           )}
