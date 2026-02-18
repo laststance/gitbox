@@ -252,6 +252,16 @@ test.describe('NoteModal (Authenticated)', () => {
     }).toPass({ timeout: 5000 })
 
     // Brief delay to let Slate editor fully stabilize after clear
+    // CI runners are slower — 500ms prevents slash command from being typed
+    // before Slate finishes processing the clear operation
+    // eslint-disable-next-line playwright/no-wait-for-timeout
+    await page.waitForTimeout(500)
+
+    // Re-type a test character to verify editor is accepting input before slash
+    await page.keyboard.type('x')
+    await expect(editorContent).toContainText('x')
+    await page.keyboard.press(`${MOD}+a`)
+    await page.keyboard.press('Backspace')
     // eslint-disable-next-line playwright/no-wait-for-timeout
     await page.waitForTimeout(300)
 
@@ -263,7 +273,7 @@ test.describe('NoteModal (Authenticated)', () => {
     const slashMenu = page
       .locator('.bg-popover')
       .filter({ hasText: /Heading 1/i })
-    await expect(slashMenu).toBeVisible({ timeout: 8000 })
+    await expect(slashMenu).toBeVisible({ timeout: 10000 })
   })
 
   test('should apply bold formatting via keyboard shortcut', async ({
@@ -282,9 +292,11 @@ test.describe('NoteModal (Authenticated)', () => {
     const editorContent = dialog.locator('[data-slate-editor="true"]')
     await editorContent.click()
 
-    // Clear existing content
+    // Clear existing content and wait for Slate to process
     await page.keyboard.press(`${MOD}+a`)
     await page.keyboard.press('Backspace')
+    // eslint-disable-next-line playwright/no-wait-for-timeout
+    await page.waitForTimeout(300)
 
     // Type some text
     await page.keyboard.type('Bold text')
@@ -515,17 +527,19 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
     const editorContent = dialog.locator('[data-slate-editor="true"]')
     await editorContent.click()
 
-    // Clear existing content
+    // Clear existing content and wait for Slate to process
     await page.keyboard.press(`${MOD}+a`)
     await page.keyboard.press('Backspace')
+    // eslint-disable-next-line playwright/no-wait-for-timeout
+    await page.waitForTimeout(300)
 
     // Type markdown heading - the space after # triggers autoformat
     await page.keyboard.type('# ')
     await page.keyboard.type('Heading 1')
 
-    // Verify heading element was created
+    // Verify heading element was created (generous timeout for slow CI)
     const heading = editorContent.locator('h1')
-    await expect(heading).toBeVisible({ timeout: 5000 })
+    await expect(heading).toBeVisible({ timeout: 10000 })
     await expect(heading).toContainText('Heading 1')
   })
 
@@ -549,9 +563,11 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
     const editorContent = dialog.locator('[data-slate-editor="true"]')
     await editorContent.click()
 
-    // Clear existing content
+    // Clear existing content and wait for Slate to process
     await page.keyboard.press(`${MOD}+a`)
     await page.keyboard.press('Backspace')
+    // eslint-disable-next-line playwright/no-wait-for-timeout
+    await page.waitForTimeout(300)
 
     // Type some text
     await page.keyboard.type('Italic text')
