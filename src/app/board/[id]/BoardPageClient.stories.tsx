@@ -35,10 +35,12 @@ const createMockBoard = (
   overrides?: Partial<{
     id: string
     name: string
+    subtitle: string | null
   }>,
 ): Board => ({
   id: overrides?.id ?? 'board-1',
   name: overrides?.name ?? 'My Kanban Board',
+  subtitle: overrides?.subtitle ?? null,
   settings: null,
   user_id: 'user-1',
   is_favorite: false,

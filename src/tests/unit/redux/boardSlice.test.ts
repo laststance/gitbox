@@ -281,6 +281,7 @@ describe('boardSlice', () => {
     const createMockBoard = (overrides = {}) => ({
       id: 'board-1',
       name: 'Test Board',
+      subtitle: null as string | null,
       settings: null,
       user_id: 'user-1',
       is_favorite: false,

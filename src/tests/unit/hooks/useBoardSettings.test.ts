@@ -33,6 +33,7 @@ describe('useBoardSettings', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: 'Test Board',
+          boardSubtitle: null,
           boardSettings: defaultBoardSettings,
         }),
       )
@@ -53,6 +54,7 @@ describe('useBoardSettings', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: 'Test Board',
+          boardSubtitle: null,
           boardSettings: null,
         }),
       )
@@ -67,6 +69,7 @@ describe('useBoardSettings', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: 'Test Board',
+          boardSubtitle: null,
           boardSettings: undefined,
         }),
       )
@@ -80,6 +83,7 @@ describe('useBoardSettings', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: 'Test Board',
+          boardSubtitle: null,
           boardSettings: 'invalid-json',
         }),
       )
@@ -95,6 +99,7 @@ describe('useBoardSettings', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: 'Test Board',
+          boardSubtitle: null,
           boardSettings: defaultBoardSettings,
         }),
       )
@@ -114,6 +119,7 @@ describe('useBoardSettings', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: 'Test Board',
+          boardSubtitle: null,
           boardSettings: defaultBoardSettings,
         }),
       )
@@ -137,6 +143,7 @@ describe('useBoardSettings', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: 'Original Name',
+          boardSubtitle: null,
           boardSettings: defaultBoardSettings,
         }),
       )
@@ -156,6 +163,7 @@ describe('useBoardSettings', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: 'Test Board',
+          boardSubtitle: null,
           boardSettings: defaultBoardSettings,
         }),
       )
@@ -182,6 +190,7 @@ describe('useBoardSettings', () => {
       const { result, rerender } = renderHook(() =>
         useBoardSettings({
           boardName: 'Test Board',
+          boardSubtitle: null,
           boardSettings: defaultBoardSettings,
         }),
       )
@@ -210,6 +219,7 @@ describe('useBoardSettings', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: '',
+          boardSubtitle: null,
           boardSettings: defaultBoardSettings,
         }),
       )
@@ -221,6 +231,7 @@ describe('useBoardSettings', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: 'Test Board',
+          boardSubtitle: null,
           boardSettings: {
             cardDisplay: {
               showGitHubDescription: false,

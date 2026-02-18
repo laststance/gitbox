@@ -18,6 +18,7 @@ const createMockBoard = (overrides: Partial<Board> = {}): Board => ({
   id: 'board-1',
   user_id: 'user-1',
   name: 'My Project Board',
+  subtitle: null,
   settings: null,
   position: 0,
   created_at: '2024-12-01T00:00:00Z',

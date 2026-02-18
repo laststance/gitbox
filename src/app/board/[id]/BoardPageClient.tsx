@@ -36,6 +36,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { InlineEditableText } from '@/components/ui/inline-editable-text'
 import {
   useBoardSettings,
   useStatusListDialog,
@@ -43,6 +44,7 @@ import {
   useAddRepositoryCombobox,
   useOptimisticCardAction,
 } from '@/hooks/board'
+import { renameBoardDirect, updateBoardSubtitle } from '@/lib/actions/board'
 import type { BoardInitialData } from '@/lib/actions/board-data'
 import {
   moveToMaintenance,
@@ -61,6 +63,10 @@ import {
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { Board } from '@/lib/supabase/types'
 import { parseBoardSettings } from '@/lib/types/board-settings'
+import {
+  BOARD_NAME_MAX_LENGTH,
+  BOARD_SUBTITLE_MAX_LENGTH,
+} from '@/lib/validations/board'
 
 interface BoardPageClientProps {
   /** Full board object from Supabase */
@@ -96,6 +102,7 @@ export const BoardPageClient = memo(function BoardPageClient({
   // Board Settings Dialog (3 states extracted)
   const boardSettings = useBoardSettings({
     boardName,
+    boardSubtitle: board.subtitle,
     boardSettings: board.settings,
   })
 
@@ -191,9 +198,45 @@ export const BoardPageClient = memo(function BoardPageClient({
         {/* Header */}
         <header className="border-border bg-background border-b px-6 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h1 className="text-foreground text-xl font-bold sm:text-2xl">
-              {boardSettings.displayName}
-            </h1>
+            <div className="flex flex-col gap-1">
+              {/* Board Title - inline editable */}
+              <InlineEditableText
+                value={boardSettings.displayName}
+                onSave={async (newName) => {
+                  const result = await renameBoardDirect(boardId, newName)
+                  if (!result.success) {
+                    toast.error(result.error)
+                    throw new Error(result.error)
+                  }
+                  boardSettings.handleRenameSuccess(result.data.name)
+                }}
+                maxLength={BOARD_NAME_MAX_LENGTH}
+                as="h1"
+                className="text-foreground text-xl font-bold sm:text-2xl"
+                inputClassName="text-foreground text-xl font-bold sm:text-2xl"
+                ariaLabel="Board title"
+                data-testid="board-title"
+              />
+              {/* Board Subtitle - inline editable */}
+              <InlineEditableText
+                value={boardSettings.displaySubtitle}
+                onSave={async (newSubtitle) => {
+                  const result = await updateBoardSubtitle(boardId, newSubtitle)
+                  if (!result.success) {
+                    toast.error(result.error)
+                    throw new Error(result.error)
+                  }
+                  boardSettings.handleSubtitleChange(result.data.subtitle)
+                }}
+                maxLength={BOARD_SUBTITLE_MAX_LENGTH}
+                placeholder="Add a subtitle..."
+                as="p"
+                className="text-muted-foreground text-sm"
+                inputClassName="text-muted-foreground text-sm"
+                ariaLabel="Board subtitle"
+                data-testid="board-subtitle"
+              />
+            </div>
 
             {/* Board operation buttons */}
             <div className="flex flex-wrap items-center gap-2">

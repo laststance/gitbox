@@ -40,7 +40,9 @@ export type Database = {
           id: string
           is_favorite: boolean
           name: string
+          position: number
           settings: Json | null
+          subtitle: string | null
           updated_at: string | null
           user_id: string
         }
@@ -49,7 +51,9 @@ export type Database = {
           id?: string
           is_favorite?: boolean
           name: string
+          position?: number
           settings?: Json | null
+          subtitle?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -58,7 +62,9 @@ export type Database = {
           id?: string
           is_favorite?: boolean
           name?: string
+          position?: number
           settings?: Json | null
+          subtitle?: string | null
           updated_at?: string | null
           user_id?: string
         }

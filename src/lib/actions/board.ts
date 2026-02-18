@@ -24,6 +24,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { Tables, TablesInsert } from '@/lib/supabase/types'
 import {
   boardNameSchema,
+  boardSubtitleSchema,
   boardIdSchema,
   boardSettingsSchema,
   boardPositionUpdatesSchema,
@@ -614,7 +615,7 @@ export async function deleteBoard(boardId: string): Promise<void> {
  */
 export async function updateBoard(
   boardId: string,
-  updates: { name?: string },
+  updates: { name?: string; subtitle?: string | null },
 ): Promise<void> {
   return withAuth(async (supabase) => {
     const { error } = await supabase
@@ -1018,4 +1019,111 @@ export async function updateBoardSettingsAction(
   }
 
   return { success: true }
+}
+
+// ============================================================================
+// Inline Edit Actions (direct call, not form-based)
+// ============================================================================
+
+/**
+ * Rename a board directly (non-form version for inline editing).
+ *
+ * @param boardId - UUID of the board to rename
+ * @param name - New board name (1-50 chars, trimmed)
+ * @returns
+ * - On success: { success: true, data: { name: string } }
+ * - On validation error: { success: false, error: string }
+ * - On server error: { success: false, error: 'Failed to rename board' }
+ *
+ * @example
+ * const result = await renameBoardDirect('board-123', 'New Name')
+ * if (result.success) {
+ *   handleRenameSuccess(result.data.name)
+ * }
+ */
+export async function renameBoardDirect(
+  boardId: string,
+  name: string,
+): Promise<ActionResult<{ name: string }>> {
+  const idResult = boardIdSchema.safeParse(boardId)
+  if (!idResult.success) {
+    return { success: false, error: 'Invalid board ID' }
+  }
+
+  const nameResult = boardNameSchema.safeParse(name)
+  if (!nameResult.success) {
+    return {
+      success: false,
+      error: nameResult.error.issues[0]?.message || 'Invalid board name',
+    }
+  }
+
+  return withAuthResultRateLimit('boardCrud', async (supabase) => {
+    const { error } = await supabase
+      .from('board')
+      .update({ name: nameResult.data })
+      .eq('id', idResult.data)
+
+    if (error) {
+      Sentry.captureException(error, {
+        extra: { context: 'Rename board (direct)', boardId: idResult.data },
+      })
+      throw new Error('Failed to rename board')
+    }
+
+    return { name: nameResult.data }
+  })
+}
+
+/**
+ * Update board subtitle (for inline editing in header).
+ *
+ * @param boardId - UUID of the board
+ * @param subtitle - New subtitle (0-100 chars, trimmed). Empty string clears subtitle.
+ * @returns
+ * - On success: { success: true, data: { subtitle: string } }
+ * - On validation error: { success: false, error: string }
+ * - On server error: { success: false, error: 'Failed to update subtitle' }
+ *
+ * @example
+ * const result = await updateBoardSubtitle('board-123', 'My awesome project')
+ * if (result.success) {
+ *   handleSubtitleChange(result.data.subtitle)
+ * }
+ */
+export async function updateBoardSubtitle(
+  boardId: string,
+  subtitle: string,
+): Promise<ActionResult<{ subtitle: string }>> {
+  const idResult = boardIdSchema.safeParse(boardId)
+  if (!idResult.success) {
+    return { success: false, error: 'Invalid board ID' }
+  }
+
+  const subtitleResult = boardSubtitleSchema.safeParse(subtitle)
+  if (!subtitleResult.success) {
+    return {
+      success: false,
+      error: subtitleResult.error.issues[0]?.message || 'Invalid subtitle',
+    }
+  }
+
+  // Store empty string as null in DB for cleaner querying
+  const dbValue = subtitleResult.data === '' ? null : subtitleResult.data
+
+  return withAuthResultRateLimit('boardCrud', async (supabase) => {
+    const { error } = await supabase
+      .from('board')
+      .update({ subtitle: dbValue })
+      .eq('id', idResult.data)
+
+    if (error) {
+      Sentry.captureException(error, {
+        extra: { context: 'Update board subtitle', boardId: idResult.data },
+      })
+      throw new Error('Failed to update subtitle')
+    }
+
+    return { subtitle: subtitleResult.data }
+  })
 }

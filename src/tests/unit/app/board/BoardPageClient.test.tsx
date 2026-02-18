@@ -54,10 +54,12 @@ vi.mock('@/hooks/board', () => ({
   useBoardSettings: () => ({
     isOpen: false,
     displayName: 'Test Board',
+    displaySubtitle: '',
     cardDisplaySettings: { showStars: true, showLanguage: true },
     open: vi.fn(),
     close: vi.fn(),
     handleRenameSuccess: vi.fn(),
+    handleSubtitleChange: vi.fn(),
     handleCardDisplayChange: vi.fn(),
   }),
   useProjectInfoModal: () => ({
@@ -166,6 +168,7 @@ function createMockBoard(overrides?: Partial<Board>): Board {
   return {
     id: 'board-1',
     name: 'Test Board',
+    subtitle: null,
     user_id: 'user-1',
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',

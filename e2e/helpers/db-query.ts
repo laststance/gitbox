@@ -543,6 +543,43 @@ export async function resetBoardNames(): Promise<void> {
 }
 
 /**
+ * Reset board subtitles to seed.sql initial values.
+ * Call this in afterEach for board subtitle tests to prevent cross-test contamination.
+ *
+ * @example
+ * test.afterEach(async () => {
+ *   await resetBoardSubtitles()
+ * })
+ */
+export async function resetBoardSubtitles(): Promise<void> {
+  const supabase = createLocalSupabaseClient()
+
+  const seedSubtitles: { id: string; subtitle: string | null }[] = [
+    { id: BOARD_IDS.testBoard, subtitle: 'Main testing board for E2E' },
+    { id: BOARD_IDS.workProjects, subtitle: null },
+  ]
+
+  for (const item of seedSubtitles) {
+    const { data, error } = await supabase
+      .from('board')
+      .update({ subtitle: item.subtitle })
+      .eq('id', item.id)
+      .select('id')
+    if (error) {
+      throw new Error(
+        `resetBoardSubtitles: failed for id=${item.id}: ${error.message}`,
+      )
+    }
+    if (!data || data.length === 0) {
+      throw new Error(
+        `resetBoardSubtitles: UPDATE matched 0 rows for id=${item.id}. ` +
+          `URL=${process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'}`,
+      )
+    }
+  }
+}
+
+/**
  * Reset status list (column) names to seed.sql initial values.
  * Call this in afterEach for column rename tests to prevent cross-test contamination.
  *

@@ -62,11 +62,12 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Board 1: Test Board (main board for most tests)
 -- position=1: second in list (created_at DESC puts newer board-2 first)
-INSERT INTO board (id, user_id, name, settings, is_favorite, position, created_at, updated_at)
+INSERT INTO board (id, user_id, name, subtitle, settings, is_favorite, position, created_at, updated_at)
 VALUES (
   '00000000-0000-0000-0000-000000000100'::uuid,
   '00000000-0000-0000-0000-000000000001'::uuid,
   'Test Board',
+  'Main testing board for E2E',
   '{}'::jsonb,
   false,
   1,
@@ -77,11 +78,12 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Board 2: Work Projects (secondary board)
 -- position=0: first in list (newer board appears first, matching created_at DESC legacy order)
-INSERT INTO board (id, user_id, name, settings, is_favorite, position, created_at, updated_at)
+INSERT INTO board (id, user_id, name, subtitle, settings, is_favorite, position, created_at, updated_at)
 VALUES (
   '00000000-0000-0000-0000-000000000101'::uuid,
   '00000000-0000-0000-0000-000000000001'::uuid,
   'Work Projects',
+  NULL,
   '{}'::jsonb,
   false,
   0,

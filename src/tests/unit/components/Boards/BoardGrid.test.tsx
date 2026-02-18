@@ -78,6 +78,7 @@ vi.mock('@/components/Boards/BoardCard', () => ({
 const createMockBoard = (overrides: Partial<Board> = {}): Board => ({
   id: 'board-1',
   name: 'Test Board',
+  subtitle: null,
   user_id: 'user-1',
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
