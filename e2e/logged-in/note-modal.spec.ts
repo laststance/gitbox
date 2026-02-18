@@ -18,6 +18,7 @@ import {
   PROJECT_INFO_IDS,
   BOARD_IDS,
   CARD_IDS,
+  resetProjectInfoNotes,
 } from '../helpers/db-query'
 
 /** Platform-aware modifier key: Cmd on macOS, Ctrl on Linux/Windows (CI) */
@@ -29,6 +30,9 @@ test.describe('NoteModal (Authenticated)', () => {
   const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   test.beforeEach(async ({ page }) => {
+    // Reset note content to seed values so each test starts with known state.
+    // This avoids flaky Ctrl+A+Backspace clears on slow CI runners.
+    await resetProjectInfoNotes()
     await page.goto(BOARD_URL)
     // Use networkidle to wait for all data fetches to complete
     // This prevents flakiness caused by cards not being rendered yet
@@ -379,6 +383,7 @@ test.describe('NoteModal Editor Height & Scroll (Authenticated)', () => {
   const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   test.beforeEach(async ({ page }) => {
+    await resetProjectInfoNotes()
     await page.goto(BOARD_URL)
     // Use networkidle to wait for all data fetches to complete
     // This prevents flakiness caused by cards not being rendered yet
@@ -513,6 +518,10 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
+
+  test.beforeEach(async () => {
+    await resetProjectInfoNotes()
+  })
 
   test('should support markdown autoformat for heading', async ({ page }) => {
     // Slate autoformat triggers are timing-sensitive on slow CI runners
