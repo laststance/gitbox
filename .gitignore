@@ -1,3 +1,6 @@
+# Trials (prototype experiments)
+_trials/
+
 # Dependencies
 node_modules/
 .pnp
