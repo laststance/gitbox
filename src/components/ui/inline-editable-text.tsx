@@ -137,8 +137,8 @@ export const InlineEditableText = memo<InlineEditableTextProps>(
           hasFocusedRef.current = false
           setIsEditing(false)
         } catch {
-          // onSave failed — revert to original
-          setEditValue(value)
+          // onSave failed — revert to current prop (not stale closure)
+          setEditValue(prevValueRef.current)
           hasFocusedRef.current = false
           setIsEditing(false)
         } finally {
@@ -201,7 +201,11 @@ export const InlineEditableText = memo<InlineEditableTextProps>(
 
     return (
       <Element
-        role="button"
+        role={
+          ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(Element)
+            ? undefined
+            : 'button'
+        }
         tabIndex={0}
         onClick={() => setIsEditing(true)}
         onKeyDown={(e) => {
