@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'src/supabase/migrations/**'
-      - 'src/supabase/config.toml'
+      - 'supabase/migrations/**'
+      - 'supabase/config.toml'
       - '.github/workflows/supabase-production.yml'
   workflow_dispatch:
 
@@ -28,23 +28,23 @@ jobs:
           version: latest
 
       - name: Link to Production Project
-        run: supabase link --project-ref $SUPABASE_PROJECT_REF --workdir src
+        run: supabase link --project-ref $SUPABASE_PROJECT_REF
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Show Pending Migrations
-        run: supabase migration list --workdir src
+        run: supabase migration list
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       # Note: Database backups are handled by Supabase Pro Plan's
       # automatic daily backups and Point-in-Time Recovery feature.
       - name: Apply Migrations
-        run: supabase db push --linked --workdir src
+        run: supabase db push --linked
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Verify Migration Status
-        run: supabase migration list --workdir src
+        run: supabase migration list
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

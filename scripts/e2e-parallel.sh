@@ -77,7 +77,7 @@ if curl -sf "${LOCAL_SUPABASE_URL}/rest/v1/" -H "apikey: ${LOCAL_SUPABASE_ANON_K
   echo "✅ Supabase is running"
 else
   echo "⚠️  Supabase not reachable at ${LOCAL_SUPABASE_URL}"
-  echo "   Start it with: cd src/supabase && supabase start"
+  echo "   Start it with: cd supabase && supabase start"
   exit 1
 fi
 

@@ -59,8 +59,9 @@ Thumbs.db
 
 # Supabase
 .supabase/
-src/supabase/.branches/
-src/supabase/.temp/
+supabase/.branches/
+supabase/.temp/
+supabase/.env
 
 # Storybook
 storybook-static/
@@ -88,6 +89,5 @@ blob-report/
 # Logs
 logs/
 
-supabase/
 .1code/
 claudedocs/

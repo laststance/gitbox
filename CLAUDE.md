@@ -85,7 +85,7 @@ await supabase.from('Board').select('*') // ❌ Wrong
 
 **Prerequisites:** Docker Desktop running
 
-**🔴 CRITICAL:** Always use the npm scripts to start/stop Supabase. Running bare `supabase start` from the project root will NOT load GitHub OAuth credentials (the `env()` substitution in `config.toml` requires shell env vars from `src/supabase/.env`).
+**🔴 CRITICAL:** Always use the npm scripts to start/stop Supabase. Running bare `supabase start` from the project root will NOT load GitHub OAuth credentials (the `env()` substitution in `config.toml` requires shell env vars from `supabase/.env`).
 
 ```bash
 # Start local Supabase (sources .env + applies migrations)
@@ -130,9 +130,9 @@ supabase db reset
 
 ### Local Supabase + GitHub OAuth Setup
 
-**🔴 CRITICAL:** Supabase CLI reads environment variables from `src/supabase/.env`, NOT from root `.env`.
+**🔴 CRITICAL:** Supabase CLI reads environment variables from `supabase/.env`, NOT from root `.env`.
 
-1. **config.toml** (`src/supabase/config.toml`) must have:
+1. **config.toml** (`supabase/config.toml`) must have:
 
    ```toml
    [auth.external.github]
@@ -142,7 +142,7 @@ supabase db reset
    redirect_uri = "http://127.0.0.1:54321/auth/v1/callback"
    ```
 
-2. **Create `src/supabase/.env`** with GitHub OAuth credentials:
+2. **Create `supabase/.env`** with GitHub OAuth credentials:
 
    ```bash
    GITHUB_CLIENT_ID="your_client_id"
@@ -154,7 +154,7 @@ supabase db reset
    supabase stop && supabase start
    ```
 
-**⚠️ Note:** `src/supabase/.env` is gitignored. Each developer must create their own from the GitHub OAuth App settings.
+**⚠️ Note:** `supabase/.env` is gitignored. Each developer must create their own from the GitHub OAuth App settings.
 
 ### Production Migration Procedure
 
