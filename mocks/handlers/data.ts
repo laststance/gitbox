@@ -614,3 +614,15 @@ export const mockMaintenanceProjectInfo = [
     updated_at: '2024-12-31T00:00:00.000Z',
   },
 ]
+
+/**
+ * Mock user settings (boards page customization)
+ * NULL values = use defaults ("My Boards", default subtitle)
+ */
+export const mockUserSettings = {
+  user_id: MOCK_USER_ID,
+  boards_page_title: null as string | null,
+  boards_page_subtitle: null as string | null,
+  created_at: '2024-01-01T00:00:00.000Z',
+  updated_at: '2024-01-01T00:00:00.000Z',
+}
