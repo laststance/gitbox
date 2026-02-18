@@ -62,6 +62,7 @@ export default defineConfig([
     './e2e/tablet-landscape/**',
     '.storybook/**',
     '**/.husky/**',
+    '_trials/**',
     'src/lib/supabase/types.ts',
     'src/lib/supabase/database.types.ts',
     'src/lib/github/api.ts',
@@ -92,6 +93,20 @@ export default defineConfig([
           name: 'fetch',
           message:
             'Use axios instead of fetch for MSW compatibility. Import from lib/axios.ts.',
+        },
+      ],
+      // Ban revalidatePath/revalidateTag - Supabase SDK doesn't use Next.js cache
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'next/cache',
+              importNames: ['revalidatePath', 'revalidateTag'],
+              message:
+                'Supabase SDK does not use Next.js cache. Use Redux optimistic updates instead.',
+            },
+          ],
         },
       ],
       // Ban console usage - use logger (server) or Sentry (client) instead
