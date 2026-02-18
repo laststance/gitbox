@@ -1154,6 +1154,7 @@ export async function toggleBoardPublic(
       .from('board')
       .update({ is_public: isPublic, share_slug: shareSlug })
       .eq('id', idResult.data)
+      .eq('user_id', user.id)
 
     if (updateError) {
       Sentry.captureException(updateError, {

@@ -57,17 +57,15 @@ test.describe('XSS Prevention Smoke Tests (Authenticated)', () => {
     await textarea.fill(XSS_SCRIPT_PAYLOAD)
     await textarea.press('Enter')
 
-    // Wait for save to process
-    await page.waitForTimeout(1000)
-
-    // Verify no alert fired
-    expect(alertFired).toBe(false)
-
     // Verify the XSS payload is rendered as escaped text, not executed
+    // (toContainText auto-waits for the save to complete)
     const commentText = page.locator(
       `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-text"]`,
     )
     await expect(commentText).toContainText('<script>')
+
+    // Verify no alert fired after DOM settled
+    expect(alertFired).toBe(false)
   })
 
   test('should escape img onerror payload in comment text', async ({
@@ -92,14 +90,15 @@ test.describe('XSS Prevention Smoke Tests (Authenticated)', () => {
     await textarea.fill(XSS_IMG_PAYLOAD)
     await textarea.press('Enter')
 
-    await page.waitForTimeout(1000)
-
-    expect(alertFired).toBe(false)
-
+    // Verify the XSS payload is rendered as escaped text, not executed
+    // (toContainText auto-waits for the save to complete)
     const commentText = page.locator(
       `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-text"]`,
     )
     await expect(commentText).toContainText('<img')
+
+    // Verify no alert fired after DOM settled
+    expect(alertFired).toBe(false)
   })
 
   test('should reject javascript: URL in project info link', async ({
