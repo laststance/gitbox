@@ -6,6 +6,7 @@ on:
     paths:
       - 'src/supabase/migrations/**'
       - 'src/supabase/config.toml'
+      - '.github/workflows/supabase-production.yml'
   workflow_dispatch:
 
 concurrency:
