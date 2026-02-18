@@ -14,14 +14,10 @@ import {
   withAuthRateLimit,
   withAuthResultRateLimit,
 } from '@/lib/actions/auth-guard'
-import { toStatusListDomain } from '@/lib/actions/mappers'
-import type {
-  StatusListDomain,
-  RepoCardDomain,
-  RepoCardMeta,
-} from '@/lib/models/domain'
+import { toRepoCardDomain, toStatusListDomain } from '@/lib/actions/mappers'
+import type { StatusListDomain, RepoCardDomain } from '@/lib/models/domain'
 import { createClient } from '@/lib/supabase/server'
-import type { Tables, TablesInsert } from '@/lib/supabase/types'
+import type { TablesInsert } from '@/lib/supabase/types'
 import {
   boardNameSchema,
   boardSubtitleSchema,
@@ -34,8 +30,6 @@ import {
 } from '@/lib/validations/board'
 
 import type { ActionResult } from './types'
-
-type RepoCardRow = Tables<'repocard'>
 
 // ========================================
 // StatusList Operations
@@ -378,29 +372,7 @@ export async function getRepoCards(boardId: string): Promise<RepoCardDomain[]> {
   }
 
   // Convert DB rows to domain model
-  return (data || []).map((row: RepoCardRow) => {
-    const meta = (row.meta as RepoCardMeta) || {}
-    return {
-      id: row.id,
-      title: `${row.repo_owner}/${row.repo_name}`,
-      description: meta.description || '',
-      statusId: row.status_id,
-      boardId: row.board_id,
-      repoOwner: row.repo_owner,
-      repoName: row.repo_name,
-      order: row.order,
-      meta: {
-        stars: meta.stars,
-        updatedAt: meta.updatedAt,
-        visibility: meta.visibility,
-        language: meta.language,
-        topics: meta.topics,
-        description: meta.description,
-      },
-      createdAt: row.created_at ?? new Date().toISOString(),
-      updatedAt: row.updated_at ?? new Date().toISOString(),
-    }
-  })
+  return (data || []).map(toRepoCardDomain)
 }
 
 /**
@@ -1125,5 +1097,108 @@ export async function updateBoardSubtitle(
     }
 
     return { subtitle: subtitleResult.data }
+  })
+}
+
+// ============================================================================
+// Public Board Sharing
+// ============================================================================
+
+/**
+ * Generate a 12-character hex slug for public board sharing.
+ *
+ * @returns A URL-safe slug like "a1b2c3d4e5f6"
+ * @example
+ * generateSlug() // => "f47ac10b58cc"
+ */
+function generateSlug(): string {
+  return crypto.randomUUID().replace(/-/g, '').slice(0, 12)
+}
+
+/**
+ * Toggle a board's public visibility and generate a share slug if needed.
+ *
+ * @param boardId - UUID of the board
+ * @param isPublic - Whether the board should be publicly visible
+ * @returns
+ * - On success: { success: true, data: { is_public, share_slug } }
+ * - On failure: { success: false, error: string }
+ *
+ * @example
+ * const result = await toggleBoardPublic("uuid", true)
+ * // { success: true, data: { is_public: true, share_slug: "a1b2c3d4e5f6" } }
+ */
+export async function toggleBoardPublic(
+  boardId: string,
+  isPublic: boolean,
+): Promise<ActionResult<{ is_public: boolean; share_slug: string | null }>> {
+  return withAuthResultRateLimit('boardCrud', async (supabase, user) => {
+    const idResult = boardIdSchema.safeParse(boardId)
+    if (!idResult.success) throw new Error('Invalid board ID')
+
+    // Verify ownership
+    const { data: board, error: fetchError } = await supabase
+      .from('board')
+      .select('share_slug')
+      .eq('id', idResult.data)
+      .eq('user_id', user.id)
+      .single()
+
+    if (fetchError || !board) throw new Error('Board not found')
+
+    // Generate slug on first enable (keep existing slug on re-enable)
+    const shareSlug =
+      isPublic && !board.share_slug ? generateSlug() : board.share_slug
+
+    const { error: updateError } = await supabase
+      .from('board')
+      .update({ is_public: isPublic, share_slug: shareSlug })
+      .eq('id', idResult.data)
+      .eq('user_id', user.id)
+
+    if (updateError) {
+      Sentry.captureException(updateError, {
+        extra: { context: 'Toggle board public', boardId: idResult.data },
+      })
+      throw new Error('Failed to update board visibility')
+    }
+
+    return { is_public: isPublic, share_slug: shareSlug }
+  })
+}
+
+/**
+ * Regenerate the share slug for a public board.
+ *
+ * @param boardId - UUID of the board
+ * @returns
+ * - On success: { success: true, data: { share_slug: string } }
+ * - On failure: { success: false, error: string }
+ */
+export async function regenerateShareSlug(
+  boardId: string,
+): Promise<ActionResult<{ share_slug: string }>> {
+  return withAuthResultRateLimit('boardCrud', async (supabase, user) => {
+    const idResult = boardIdSchema.safeParse(boardId)
+    if (!idResult.success) throw new Error('Invalid board ID')
+
+    const newSlug = generateSlug()
+
+    const { data, error } = await supabase
+      .from('board')
+      .update({ share_slug: newSlug })
+      .eq('id', idResult.data)
+      .eq('user_id', user.id)
+      .select('share_slug')
+      .single()
+
+    if (error || !data) {
+      Sentry.captureException(error ?? new Error('Board not found'), {
+        extra: { context: 'Regenerate share slug', boardId: idResult.data },
+      })
+      throw new Error('Board not found or failed to regenerate share link')
+    }
+
+    return { share_slug: newSlug }
   })
 }

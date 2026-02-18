@@ -51,7 +51,7 @@ jobs:
       # Start local Supabase (Docker is pre-installed on ubuntu-latest)
       - name: Start Supabase
         run: |
-          cd src/supabase
+          cd supabase
           supabase start
           # Apply seed data
           supabase db reset --local
@@ -79,7 +79,7 @@ jobs:
       - name: Stop Supabase
         if: always()
         run: |
-          cd src/supabase
+          cd supabase
           supabase stop || true
 
       - name: Upload blob report

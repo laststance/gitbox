@@ -85,6 +85,8 @@ const createMockBoard = (overrides: Partial<Board> = {}): Board => ({
   settings: null,
   position: 0,
   is_favorite: false,
+  is_public: false,
+  share_slug: null,
   ...overrides,
 })
 

@@ -52,11 +52,14 @@ const nextConfig: NextConfig = {
           },
           {
             // Report-Only mode: logs violations without blocking resources.
-            // Switch to Content-Security-Policy (enforcement) once stable.
+            // Once stable, switch to Content-Security-Policy (enforcement).
+            // Sentry receives violation reports via report-uri directive.
             key: 'Content-Security-Policy-Report-Only',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com",
+              // unsafe-inline needed for Next.js inline styles & Tailwind
+              // unsafe-eval removed — only dev tooling (code-inspector-plugin) needs it
+              "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' https://avatars.githubusercontent.com https://github.com data: blob:",
               "connect-src 'self' https://*.supabase.co http://127.0.0.1:* https://api.github.com https://*.ingest.us.sentry.io https://vitals.vercel-insights.com",
@@ -65,6 +68,11 @@ const nextConfig: NextConfig = {
               "base-uri 'self'",
               "form-action 'self'",
               "object-src 'none'",
+              // upgrade-insecure-requests: no-op in report-only mode;
+              // will take effect when policy is switched to enforcement.
+              'upgrade-insecure-requests',
+              // Sentry CSP reporting endpoint
+              'report-uri https://o1245861.ingest.us.sentry.io/api/4510597804261376/security/?sentry_key=06b1775946774ab1527986b339ea85ed',
             ].join('; '),
           },
           {

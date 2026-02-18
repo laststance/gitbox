@@ -66,6 +66,13 @@ export const RATE_LIMIT_CONFIG = {
     windowMs: 60_000,
     description: 'user settings',
   },
+
+  // --- Public: Unauthenticated endpoints ---
+  publicBoardView: {
+    maxRequests: 60,
+    windowMs: 60_000,
+    description: 'public board view',
+  },
 } as const satisfies Record<string, RateLimitConfig>
 
 export type RateLimitKey = keyof typeof RATE_LIMIT_CONFIG

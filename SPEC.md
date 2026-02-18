@@ -988,10 +988,10 @@ Each Supabase project requires its own GitHub OAuth App:
 
 #### Local Supabase + GitHub OAuth Setup
 
-Supabase CLI reads environment variables from `src/supabase/.env` (NOT root `.env`):
+Supabase CLI reads environment variables from `supabase/.env` (NOT root `.env`):
 
 ```bash
-# src/supabase/.env
+# supabase/.env
 GITHUB_CLIENT_ID=your_client_id
 GITHUB_CLIENT_SECRET=your_client_secret
 ```
@@ -1011,7 +1011,7 @@ additional_redirect_urls = [
 #### Migration Workflow
 
 1. Create migration: `supabase migration new <description>`
-2. Write SQL in `src/supabase/migrations/YYYYMMDDHHMMSS_<description>.sql`
+2. Write SQL in `supabase/migrations/YYYYMMDDHHMMSS_<description>.sql`
 3. Test on dev: `supabase link --project-ref jqtxjzdxczqwsrvevmyk` → `supabase db push --linked`
 4. Merge to `main` → Production deploys via GitHub Actions
 

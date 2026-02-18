@@ -109,9 +109,9 @@ pnpm db:reset
 
 ### GitHub OAuth for Local Development
 
-Supabase CLI reads OAuth credentials from `src/supabase/.env` (not root `.env`).
+Supabase CLI reads OAuth credentials from `supabase/.env` (not root `.env`).
 
-1. Create `src/supabase/.env`:
+1. Create `supabase/.env`:
 
 ```bash
 GITHUB_CLIENT_ID="your-github-oauth-client-id"
