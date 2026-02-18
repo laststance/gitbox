@@ -265,10 +265,13 @@ test.describe('NoteModal (Authenticated)', () => {
     // Slash menu renders via Portal at body level with class .bg-popover
     // It contains items like "Heading 1", "Text", "Bulleted list" etc.
     // The ariakit Combobox popover has role="listbox" and items with role="option"
+    // Use toPass() polling — Slate editor on CI runners can be slow to process keystrokes
     const slashMenu = page
       .locator('.bg-popover')
       .filter({ hasText: /Heading 1/i })
-    await expect(slashMenu).toBeVisible({ timeout: 10000 })
+    await expect(async () => {
+      await expect(slashMenu).toBeVisible()
+    }).toPass({ timeout: 15000 })
   })
 
   test('should apply bold formatting via keyboard shortcut', async ({
@@ -534,17 +537,22 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
     // Clear existing content and wait for Slate to process
     await page.keyboard.press(`${MOD}+a`)
     await page.keyboard.press('Backspace')
-    // eslint-disable-next-line playwright/no-wait-for-timeout
-    await page.waitForTimeout(300)
+    // Poll until editor is cleared — Slate on CI can be slow to process
+    await expect(async () => {
+      const text = await editorContent.textContent()
+      expect(text?.replace(/\s/g, '')).toBe('')
+    }).toPass({ timeout: 5000 })
 
     // Type markdown heading - the space after # triggers autoformat
     await page.keyboard.type('# ')
     await page.keyboard.type('Heading 1')
 
-    // Verify heading element was created (generous timeout for slow CI)
+    // Verify heading element was created — use toPass() polling for CI resilience
     const heading = editorContent.locator('h1')
-    await expect(heading).toBeVisible({ timeout: 10000 })
-    await expect(heading).toContainText('Heading 1')
+    await expect(async () => {
+      await expect(heading).toBeVisible()
+      await expect(heading).toContainText('Heading 1')
+    }).toPass({ timeout: 15000 })
   })
 
   test('should apply italic formatting via keyboard shortcut', async ({
