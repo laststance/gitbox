@@ -301,6 +301,46 @@ export async function resetProjectInfoComments(): Promise<void> {
 }
 
 /**
+ * Reset projectinfo notes to seed.sql initial values.
+ * Call this in beforeEach for tests that interact with the Plate editor
+ * to ensure a known starting state (avoids flaky Ctrl+A clear on CI).
+ *
+ * @example
+ * test.beforeEach(async () => {
+ *   await resetProjectInfoNotes()
+ * })
+ */
+export async function resetProjectInfoNotes(): Promise<void> {
+  const supabase = createLocalSupabaseClient()
+
+  const seedNotes = [
+    { id: PROJECT_INFO_IDS.projinfo1, note: 'Important project notes here' },
+    { id: PROJECT_INFO_IDS.projinfo2, note: 'Another repo notes' },
+    { id: PROJECT_INFO_IDS.projinfo3, note: '' },
+    { id: PROJECT_INFO_IDS.projinfo4, note: 'CLI tool documentation' },
+  ]
+
+  for (const item of seedNotes) {
+    const { data, error } = await supabase
+      .from('projectinfo')
+      .update({ note: item.note })
+      .eq('id', item.id)
+      .select('id, note')
+    if (error) {
+      throw new Error(
+        `resetProjectInfoNotes: failed for id=${item.id}: ${error.message}`,
+      )
+    }
+    if (!data || data.length === 0) {
+      throw new Error(
+        `resetProjectInfoNotes: UPDATE matched 0 rows for id=${item.id}. ` +
+          `URL=${process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'}`,
+      )
+    }
+  }
+}
+
+/**
  * Reset all repo card positions to seed.sql initial values.
  * Call this in beforeEach for DnD card tests to ensure clean state.
  *
