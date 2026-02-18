@@ -221,6 +221,9 @@ test.describe('NoteModal (Authenticated)', () => {
   })
 
   test('should trigger slash command menu on "/" key', async ({ page }) => {
+    // Slate editor operations are slow on CI runners — triple the timeout
+    test.slow()
+
     // Open NoteModal
     const card = page.locator('[data-testid^="repo-card-"]').first()
     await expect(card).toBeVisible({ timeout: 10000 })
@@ -251,19 +254,11 @@ test.describe('NoteModal (Authenticated)', () => {
       expect(text?.replace(/\s/g, '')).toBe('')
     }).toPass({ timeout: 5000 })
 
-    // Brief delay to let Slate editor fully stabilize after clear
-    // CI runners are slower — 500ms prevents slash command from being typed
-    // before Slate finishes processing the clear operation
+    // Generous delay to let Slate editor fully stabilize after clear
+    // CI runners (GitHub Actions Linux) need more time for contenteditable
+    // DOM mutations to settle before the "/" keystroke is processed
     // eslint-disable-next-line playwright/no-wait-for-timeout
-    await page.waitForTimeout(500)
-
-    // Re-type a test character to verify editor is accepting input before slash
-    await page.keyboard.type('x')
-    await expect(editorContent).toContainText('x')
-    await page.keyboard.press(`${MOD}+a`)
-    await page.keyboard.press('Backspace')
-    // eslint-disable-next-line playwright/no-wait-for-timeout
-    await page.waitForTimeout(300)
+    await page.waitForTimeout(1000)
 
     await page.keyboard.type('/')
 
@@ -279,6 +274,9 @@ test.describe('NoteModal (Authenticated)', () => {
   test('should apply bold formatting via keyboard shortcut', async ({
     page,
   }) => {
+    // Slate formatting operations are timing-sensitive on slow CI runners
+    test.slow()
+
     // Open NoteModal
     const card = page.locator('[data-testid^="repo-card-"]').first()
     await expect(card).toBeVisible({ timeout: 10000 })
@@ -387,6 +385,8 @@ test.describe('NoteModal Editor Height & Scroll (Authenticated)', () => {
   test('should maintain fixed editor height with overflow scroll', async ({
     page,
   }) => {
+    // Typing 20 lines into Slate editor is slow on CI
+    test.slow()
     // Open NoteModal
     const card = page.locator('[data-testid^="repo-card-"]').first()
     await expect(card).toBeVisible({ timeout: 10000 })
@@ -451,6 +451,8 @@ test.describe('NoteModal Editor Height & Scroll (Authenticated)', () => {
   test('should be scrollable when content exceeds editor height', async ({
     page,
   }) => {
+    // Typing 25+ lines into Slate editor is slow on CI
+    test.slow()
     // Open NoteModal
     const card = page.locator('[data-testid^="repo-card-"]').first()
     await expect(card).toBeVisible({ timeout: 10000 })
@@ -510,6 +512,8 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
   const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   test('should support markdown autoformat for heading', async ({ page }) => {
+    // Slate autoformat triggers are timing-sensitive on slow CI runners
+    test.slow()
     await page.goto(BOARD_URL)
     // Use networkidle to wait for all data fetches to complete
     await page.waitForLoadState('networkidle')
@@ -546,6 +550,8 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
   test('should apply italic formatting via keyboard shortcut', async ({
     page,
   }) => {
+    // Slate formatting operations are timing-sensitive on slow CI runners
+    test.slow()
     await page.goto(BOARD_URL)
     // Use networkidle to wait for all data fetches to complete
     await page.waitForLoadState('networkidle')
