@@ -146,6 +146,7 @@ export let mockBoards: MockBoard[] = INITIAL_MOCK_BOARDS.map((b) => ({ ...b }))
  */
 export function resetMockData(): void {
   mockBoards = INITIAL_MOCK_BOARDS.map((b) => ({ ...b }))
+  mockUserSettings = { ...INITIAL_MOCK_USER_SETTINGS }
 }
 
 /**
@@ -616,13 +617,19 @@ export const mockMaintenanceProjectInfo = [
 ]
 
 /**
- * Mock user settings (boards page customization)
- * NULL values = use defaults ("My Boards", default subtitle)
+ * Initial mock user settings (immutable reference for reset)
  */
-export const mockUserSettings = {
+const INITIAL_MOCK_USER_SETTINGS = {
   user_id: MOCK_USER_ID,
   boards_page_title: null as string | null,
   boards_page_subtitle: null as string | null,
   created_at: '2024-01-01T00:00:00.000Z',
   updated_at: '2024-01-01T00:00:00.000Z',
 }
+
+/**
+ * Mock user settings (boards page customization)
+ * NULL values = use defaults ("My Boards", default subtitle)
+ * Reset via resetMockData() between tests for isolation
+ */
+export let mockUserSettings = { ...INITIAL_MOCK_USER_SETTINGS }

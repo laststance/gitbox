@@ -613,9 +613,13 @@ export const supabaseDbHandlers: HttpHandler[] = [
    *
    * Supports .maybeSingle() (returns object or null via Accept header).
    */
-  http.get(`${SUPABASE_URL}/rest/v1/user_settings`, () => {
-    // .maybeSingle() sets this Accept header
-    return HttpResponse.json(mockUserSettings)
+  http.get(`${SUPABASE_URL}/rest/v1/user_settings`, ({ request }) => {
+    // .maybeSingle() sets Accept: application/vnd.pgrst.object+json
+    const acceptHeader = request.headers.get('Accept') ?? ''
+    if (acceptHeader.includes('application/vnd.pgrst.object+json')) {
+      return HttpResponse.json(mockUserSettings)
+    }
+    return HttpResponse.json([mockUserSettings])
   }),
 
   /**
