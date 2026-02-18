@@ -119,14 +119,13 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
     // The only other matching repo would be if there's another one with 'test-repo' in the name
     const repoOptions = page.locator('[role="option"]')
 
-    // Use polling to wait for filter to settle
+    // Use polling with atomic snapshot to wait for filter to settle
     await expect(async () => {
-      const count = await repoOptions.count()
-      // Check that 'testuser/test-repo' specifically is not in the list
-      for (let i = 0; i < count; i++) {
-        const text = await repoOptions.nth(i).textContent()
-        expect(text?.toLowerCase()).not.toContain('testuser/test-repo')
-      }
+      const allText = await repoOptions.allTextContents()
+      const hasExistingRepo = allText.some((t) =>
+        t.toLowerCase().includes('testuser/test-repo'),
+      )
+      expect(hasExistingRepo).toBe(false)
     }).toPass({ timeout: 15000 })
   })
 

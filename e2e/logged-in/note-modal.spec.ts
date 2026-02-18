@@ -534,14 +534,14 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
     const editorContent = dialog.locator('[data-slate-editor="true"]')
     await editorContent.click()
 
-    // Clear existing content and wait for Slate to process
-    await page.keyboard.press(`${MOD}+a`)
-    await page.keyboard.press('Backspace')
-    // Poll until editor is cleared — Slate on CI can be slow to process
+    // Clear existing content — retry Ctrl+A + Backspace inside polling loop
+    // because Slate on slow CI runners may not process the first attempt
     await expect(async () => {
+      await page.keyboard.press(`${MOD}+a`)
+      await page.keyboard.press('Backspace')
       const text = await editorContent.textContent()
       expect(text?.replace(/\s/g, '')).toBe('')
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 10000 })
 
     // Type markdown heading - the space after # triggers autoformat
     await page.keyboard.type('# ')
