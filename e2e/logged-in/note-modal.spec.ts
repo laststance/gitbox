@@ -241,22 +241,16 @@ test.describe('NoteModal (Authenticated)', () => {
     const editorContent = dialog.locator('[data-slate-editor="true"]')
     await editorContent.click()
 
-    // Clear existing content first
-    await page.keyboard.press(`${MOD}+a`)
-    await page.keyboard.press('Backspace')
-
-    // Ensure editor is ready and empty before typing slash command
-    // Type a character, wait for it to render, then clear and wait for editor to settle
-    await page.keyboard.type('x')
-    await expect(editorContent).toContainText('x')
-    await page.keyboard.press(`${MOD}+a`)
-    await page.keyboard.press('Backspace')
-    // Poll until Slate editor finishes processing the clear operation
+    // Clear existing content — retry inside polling loop for CI resilience
     await expect(async () => {
-      const text = await editorContent.textContent()
-      // Editor should be empty or contain only placeholder text
-      expect(text?.replace(/\s/g, '')).toBe('')
-    }).toPass({ timeout: 5000 })
+      await page.keyboard.press(`${MOD}+a`)
+      await page.keyboard.press('Backspace')
+      // When editor is empty, Plate shows a placeholder with data-slate-placeholder
+      const placeholder = editorContent.locator(
+        '[data-slate-placeholder="true"]',
+      )
+      await expect(placeholder).toBeVisible()
+    }).toPass({ timeout: 10000 })
 
     // Generous delay to let Slate editor fully stabilize after clear
     // CI runners (GitHub Actions Linux) need more time for contenteditable
@@ -548,8 +542,12 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
     await expect(async () => {
       await page.keyboard.press(`${MOD}+a`)
       await page.keyboard.press('Backspace')
-      const text = await editorContent.textContent()
-      expect(text?.replace(/\s/g, '')).toBe('')
+      // When editor is empty, Plate shows a placeholder (e.g. "Type / for commands...")
+      // which textContent() picks up. Check for placeholder element instead.
+      const placeholder = editorContent.locator(
+        '[data-slate-placeholder="true"]',
+      )
+      await expect(placeholder).toBeVisible()
     }).toPass({ timeout: 10000 })
 
     // Type markdown heading - the space after # triggers autoformat
