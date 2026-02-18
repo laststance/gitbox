@@ -42,6 +42,7 @@ export type Database = {
           name: string
           position: number
           settings: Json | null
+          subtitle: string | null
           updated_at: string | null
           user_id: string
         }
@@ -52,6 +53,7 @@ export type Database = {
           name: string
           position?: number
           settings?: Json | null
+          subtitle?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -62,6 +64,7 @@ export type Database = {
           name?: string
           position?: number
           settings?: Json | null
+          subtitle?: string | null
           updated_at?: string | null
           user_id?: string
         }

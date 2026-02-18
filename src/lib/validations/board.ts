@@ -33,6 +33,30 @@ export const boardNameSchema = z
   )
 
 // ========================================
+// Board Subtitle Schema
+// ========================================
+
+/** Maximum character limit for board subtitles */
+export const BOARD_SUBTITLE_MAX_LENGTH = 100
+
+/**
+ * Schema for validating board subtitles.
+ * Allows empty string (clears subtitle) or text up to 100 chars.
+ *
+ * @example
+ * boardSubtitleSchema.safeParse('My project board')  // => { success: true, data: 'My project board' }
+ * boardSubtitleSchema.safeParse('')                   // => { success: true, data: '' }
+ * boardSubtitleSchema.safeParse('x'.repeat(101))      // => { success: false, error: ... }
+ */
+export const boardSubtitleSchema = z
+  .string()
+  .trim()
+  .max(
+    BOARD_SUBTITLE_MAX_LENGTH,
+    `Subtitle must be ${BOARD_SUBTITLE_MAX_LENGTH} characters or less`,
+  )
+
+// ========================================
 // Board ID Schema
 // ========================================
 

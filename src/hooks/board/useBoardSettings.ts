@@ -4,6 +4,7 @@
  * Manages board settings dialog state including:
  * - Dialog open/close state
  * - Display name (for optimistic rename)
+ * - Display subtitle (for optimistic update)
  * - Card display settings
  *
  * Note: Theme is now managed globally via Redux and Sidebar ThemeToggle.
@@ -20,6 +21,8 @@ import {
 interface UseBoardSettingsParams {
   /** Initial board name */
   boardName: string
+  /** Initial board subtitle (null if not set) */
+  boardSubtitle: string | null
   /** Board settings JSON from database */
   boardSettings: unknown
 }
@@ -29,6 +32,8 @@ interface UseBoardSettingsReturn {
   isOpen: boolean
   /** Current display name (may differ from DB during optimistic update) */
   displayName: string
+  /** Current display subtitle (empty string if not set) */
+  displaySubtitle: string
   /** Card display settings */
   cardDisplaySettings: CardDisplaySettings
   /** Open the settings dialog */
@@ -37,6 +42,8 @@ interface UseBoardSettingsReturn {
   close: () => void
   /** Handle successful rename (optimistic update) */
   handleRenameSuccess: (newName: string) => void
+  /** Handle successful subtitle change (optimistic update) */
+  handleSubtitleChange: (newSubtitle: string) => void
   /** Handle card display settings change (optimistic update) */
   handleCardDisplayChange: (newSettings: CardDisplaySettings) => void
 }
@@ -50,6 +57,7 @@ interface UseBoardSettingsReturn {
  * @example
  * const settings = useBoardSettings({
  *   boardName: board.name,
+ *   boardSubtitle: board.subtitle,
  *   boardSettings: board.settings,
  * })
  *
@@ -64,10 +72,12 @@ interface UseBoardSettingsReturn {
  */
 export function useBoardSettings({
   boardName,
+  boardSubtitle,
   boardSettings,
 }: UseBoardSettingsParams): UseBoardSettingsReturn {
   const [isOpen, setIsOpen] = useState(false)
   const [displayName, setDisplayName] = useState(boardName)
+  const [displaySubtitle, setDisplaySubtitle] = useState(boardSubtitle ?? '')
   const [cardDisplaySettings, setCardDisplaySettings] =
     useState<CardDisplaySettings>(() => {
       const parsed = parseBoardSettings(boardSettings)
@@ -88,6 +98,10 @@ export function useBoardSettings({
     setDisplayName(newName)
   }, [])
 
+  const handleSubtitleChange = useCallback((newSubtitle: string) => {
+    setDisplaySubtitle(newSubtitle)
+  }, [])
+
   const handleCardDisplayChange = useCallback(
     (newSettings: CardDisplaySettings) => {
       setCardDisplaySettings(newSettings)
@@ -98,10 +112,12 @@ export function useBoardSettings({
   return {
     isOpen,
     displayName,
+    displaySubtitle,
     cardDisplaySettings,
     open,
     close,
     handleRenameSuccess,
+    handleSubtitleChange,
     handleCardDisplayChange,
   }
 }
