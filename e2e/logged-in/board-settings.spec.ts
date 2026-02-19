@@ -170,7 +170,7 @@ test.describe('Board Settings Dialog (Authenticated)', () => {
       await expect(dialog).toBeVisible({ timeout: 10000 })
 
       // Input should have current board name
-      const input = dialog.getByRole('textbox')
+      const input = dialog.getByRole('textbox', { name: 'Board name' })
       await expect(input).toBeVisible()
 
       // Value should not be empty
@@ -203,7 +203,7 @@ test.describe('Board Settings Dialog (Authenticated)', () => {
       await expect(dialog).toBeVisible({ timeout: 10000 })
 
       // Clear and type new name
-      const input = dialog.getByRole('textbox')
+      const input = dialog.getByRole('textbox', { name: 'Board name' })
       await input.fill('Test')
 
       // Character count should update to 4/50
@@ -223,7 +223,7 @@ test.describe('Board Settings Dialog (Authenticated)', () => {
       await expect(dialog).toBeVisible({ timeout: 10000 })
 
       // Clear name
-      const input = dialog.getByRole('textbox')
+      const input = dialog.getByRole('textbox', { name: 'Board name' })
       await input.fill('')
 
       // Rename button should be disabled (aria-label is "Rename board to [name]")
@@ -320,7 +320,7 @@ test.describe('Board Settings Dialog (Authenticated)', () => {
 
       // Type a unique new name
       const uniqueName = `Renamed Board ${Date.now()}`
-      const input = dialog.getByRole('textbox')
+      const input = dialog.getByRole('textbox', { name: 'Board name' })
       await input.fill(uniqueName)
 
       // Click Rename button

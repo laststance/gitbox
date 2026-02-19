@@ -36,6 +36,8 @@ interface UseBoardSettingsReturn {
   displaySubtitle: string
   /** Card display settings */
   cardDisplaySettings: CardDisplaySettings
+  /** Whether to show subtitle in the board header */
+  showSubtitle: boolean
   /** Open the settings dialog */
   open: () => void
   /** Close the settings dialog */
@@ -46,6 +48,8 @@ interface UseBoardSettingsReturn {
   handleSubtitleChange: (newSubtitle: string) => void
   /** Handle card display settings change (optimistic update) */
   handleCardDisplayChange: (newSettings: CardDisplaySettings) => void
+  /** Handle show subtitle toggle change (optimistic update) */
+  handleShowSubtitleChange: (show: boolean) => void
 }
 
 /**
@@ -83,6 +87,10 @@ export function useBoardSettings({
       const parsed = parseBoardSettings(boardSettings)
       return parsed.cardDisplay ?? DEFAULT_CARD_DISPLAY_SETTINGS
     })
+  const [showSubtitle, setShowSubtitle] = useState<boolean>(() => {
+    const parsed = parseBoardSettings(boardSettings)
+    return parsed.showSubtitle ?? true
+  })
 
   const open = useCallback(() => {
     setIsOpen(true)
@@ -109,15 +117,21 @@ export function useBoardSettings({
     [],
   )
 
+  const handleShowSubtitleChange = useCallback((show: boolean) => {
+    setShowSubtitle(show)
+  }, [])
+
   return {
     isOpen,
     displayName,
     displaySubtitle,
     cardDisplaySettings,
+    showSubtitle,
     open,
     close,
     handleRenameSuccess,
     handleSubtitleChange,
     handleCardDisplayChange,
+    handleShowSubtitleChange,
   }
 }

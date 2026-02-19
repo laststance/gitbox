@@ -217,25 +217,30 @@ export const BoardPageClient = memo(function BoardPageClient({
                 ariaLabel="Board title"
                 data-testid="board-title"
               />
-              {/* Board Subtitle - inline editable */}
-              <InlineEditableText
-                value={boardSettings.displaySubtitle}
-                onSave={async (newSubtitle) => {
-                  const result = await updateBoardSubtitle(boardId, newSubtitle)
-                  if (!result.success) {
-                    toast.error(result.error)
-                    throw new Error(result.error)
-                  }
-                  boardSettings.handleSubtitleChange(result.data.subtitle)
-                }}
-                maxLength={BOARD_SUBTITLE_MAX_LENGTH}
-                placeholder="Add a subtitle..."
-                as="p"
-                className="text-muted-foreground text-sm"
-                inputClassName="text-muted-foreground text-sm"
-                ariaLabel="Board subtitle"
-                data-testid="board-subtitle"
-              />
+              {/* Board Subtitle - inline editable (conditionally rendered) */}
+              {boardSettings.showSubtitle && (
+                <InlineEditableText
+                  value={boardSettings.displaySubtitle}
+                  onSave={async (newSubtitle) => {
+                    const result = await updateBoardSubtitle(
+                      boardId,
+                      newSubtitle,
+                    )
+                    if (!result.success) {
+                      toast.error(result.error)
+                      throw new Error(result.error)
+                    }
+                    boardSettings.handleSubtitleChange(result.data.subtitle)
+                  }}
+                  maxLength={BOARD_SUBTITLE_MAX_LENGTH}
+                  placeholder="Add a subtitle..."
+                  as="p"
+                  className="text-muted-foreground text-sm"
+                  inputClassName="text-muted-foreground text-sm"
+                  ariaLabel="Board subtitle"
+                  data-testid="board-subtitle"
+                />
+              )}
             </div>
 
             {/* Board operation buttons */}
@@ -354,6 +359,10 @@ export const BoardPageClient = memo(function BoardPageClient({
         boardSettings={parseBoardSettings(board.settings)}
         isPublic={board.is_public}
         shareSlug={board.share_slug}
+        boardSubtitle={boardSettings.displaySubtitle}
+        onSubtitleSuccess={boardSettings.handleSubtitleChange}
+        showSubtitle={boardSettings.showSubtitle}
+        onShowSubtitleChange={boardSettings.handleShowSubtitleChange}
         onRenameSuccess={boardSettings.handleRenameSuccess}
         onCardDisplayChange={boardSettings.handleCardDisplayChange}
         onDeleteSuccess={handleDeleteSuccess}

@@ -41,6 +41,8 @@ export interface CardDisplaySettings {
 export interface BoardSettings {
   /** Card display customization */
   cardDisplay?: CardDisplaySettings
+  /** Whether to show the board subtitle in the header (default: true) */
+  showSubtitle?: boolean
 }
 
 /**
@@ -65,6 +67,7 @@ export const DEFAULT_CARD_DISPLAY_SETTINGS: CardDisplaySettings = {
  */
 export const DEFAULT_BOARD_SETTINGS: BoardSettings = {
   cardDisplay: DEFAULT_CARD_DISPLAY_SETTINGS,
+  showSubtitle: true,
 }
 
 /**
@@ -105,5 +108,9 @@ export function parseBoardSettings(json: unknown): BoardSettings {
           DEFAULT_CARD_DISPLAY_SETTINGS.commentText.fontWeight,
       },
     },
+    showSubtitle:
+      typeof raw.showSubtitle === 'boolean'
+        ? raw.showSubtitle
+        : DEFAULT_BOARD_SETTINGS.showSubtitle,
   }
 }

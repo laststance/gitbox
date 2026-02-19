@@ -620,6 +620,40 @@ export async function resetBoardSubtitles(): Promise<void> {
 }
 
 /**
+ * Reset board settings JSON to empty object for both test boards.
+ * Call this in afterEach for board settings tests to prevent cross-test contamination.
+ *
+ * @example
+ * test.afterEach(async () => {
+ *   await resetBoardSettings()
+ * })
+ */
+export async function resetBoardSettings(): Promise<void> {
+  const supabase = createLocalSupabaseClient()
+
+  const boardIds = [BOARD_IDS.testBoard, BOARD_IDS.workProjects]
+
+  for (const id of boardIds) {
+    const { data, error } = await supabase
+      .from('board')
+      .update({ settings: {} })
+      .eq('id', id)
+      .select('id')
+    if (error) {
+      throw new Error(
+        `resetBoardSettings: failed for id=${id}: ${error.message}`,
+      )
+    }
+    if (!data || data.length === 0) {
+      throw new Error(
+        `resetBoardSettings: UPDATE matched 0 rows for id=${id}. ` +
+          `URL=${process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'}`,
+      )
+    }
+  }
+}
+
+/**
  * Reset status list (column) names to seed.sql initial values.
  * Call this in afterEach for column rename tests to prevent cross-test contamination.
  *

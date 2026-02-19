@@ -95,6 +95,7 @@ const cardDisplaySettingsSchema = z.object({
  */
 export const boardSettingsSchema = z.object({
   cardDisplay: cardDisplaySettingsSchema.optional(),
+  showSubtitle: z.boolean().optional(),
 })
 
 // ========================================

@@ -1100,6 +1100,65 @@ export async function updateBoardSubtitle(
   })
 }
 
+/**
+ * Toggle board subtitle visibility in board settings JSON.
+ *
+ * @param boardId - UUID of the board
+ * @param show - Whether to display the subtitle in the header
+ * @returns
+ * - On success: { success: true, data: { showSubtitle: boolean } }
+ * - On failure: { success: false, error: string }
+ *
+ * @example
+ * const result = await toggleBoardSubtitleVisibility('board-123', false)
+ * if (result.success) {
+ *   handleShowSubtitleChange(result.data.showSubtitle)
+ * }
+ */
+export async function toggleBoardSubtitleVisibility(
+  boardId: string,
+  show: boolean,
+): Promise<ActionResult<{ showSubtitle: boolean }>> {
+  const idResult = boardIdSchema.safeParse(boardId)
+  if (!idResult.success) {
+    return { success: false, error: 'Invalid board ID' }
+  }
+
+  return withAuthResultRateLimit('boardCrud', async (supabase) => {
+    // Read current settings
+    const { data: board, error: fetchError } = await supabase
+      .from('board')
+      .select('settings')
+      .eq('id', idResult.data)
+      .single()
+
+    if (fetchError || !board) {
+      throw new Error('Failed to fetch board settings')
+    }
+
+    // Merge showSubtitle into existing settings
+    const existing = (board.settings as Record<string, unknown>) || {}
+    const merged = { ...existing, showSubtitle: show }
+
+    const { error: updateError } = await supabase
+      .from('board')
+      .update({ settings: merged as unknown as Record<string, never> })
+      .eq('id', idResult.data)
+
+    if (updateError) {
+      Sentry.captureException(updateError, {
+        extra: {
+          context: 'Toggle board subtitle visibility',
+          boardId: idResult.data,
+        },
+      })
+      throw new Error('Failed to update subtitle visibility')
+    }
+
+    return { showSubtitle: show }
+  })
+}
+
 // ============================================================================
 // Public Board Sharing
 // ============================================================================

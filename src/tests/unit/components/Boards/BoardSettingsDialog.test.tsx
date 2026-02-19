@@ -27,6 +27,9 @@ vi.mock('@/lib/actions/board', () => ({
   renameBoardAction: vi.fn(),
   updateBoardSettingsAction: vi.fn(),
   deleteBoardAction: vi.fn(),
+  toggleBoardPublic: vi.fn(),
+  toggleBoardSubtitleVisibility: vi.fn(),
+  updateBoardSubtitle: vi.fn(),
 }))
 
 // Mock sonner toast
@@ -153,14 +156,14 @@ describe('BoardSettingsDialog', () => {
     it('should display the current board name in input', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
-      const input = screen.getByRole('textbox')
+      const input = screen.getByPlaceholderText('Board name')
       expect(input).toHaveValue('Test Board')
     })
 
     it('should update input value when typed', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
-      const input = screen.getByRole('textbox')
+      const input = screen.getByPlaceholderText('Board name')
       fireEvent.change(input, { target: { value: 'New Board Name' } })
 
       expect(input).toHaveValue('New Board Name')
@@ -176,7 +179,7 @@ describe('BoardSettingsDialog', () => {
     it('should update character count when typing', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
-      const input = screen.getByRole('textbox')
+      const input = screen.getByPlaceholderText('Board name')
       fireEvent.change(input, { target: { value: 'Short' } })
 
       expect(screen.getByText('5/50')).toBeInTheDocument()
@@ -185,7 +188,7 @@ describe('BoardSettingsDialog', () => {
     it('should show warning color when approaching character limit', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
-      const input = screen.getByRole('textbox')
+      const input = screen.getByPlaceholderText('Board name')
       const longName = 'a'.repeat(42) // 42 chars, within 10 of 50 limit
       fireEvent.change(input, { target: { value: longName } })
 
@@ -196,7 +199,7 @@ describe('BoardSettingsDialog', () => {
     it('should disable Rename button when name is empty', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
-      const input = screen.getByRole('textbox')
+      const input = screen.getByPlaceholderText('Board name')
       fireEvent.change(input, { target: { value: '' } })
 
       const renameButton = screen.getByRole('button', { name: /rename/i })
@@ -206,7 +209,7 @@ describe('BoardSettingsDialog', () => {
     it('should disable Rename button when name is only whitespace', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
-      const input = screen.getByRole('textbox')
+      const input = screen.getByPlaceholderText('Board name')
       fireEvent.change(input, { target: { value: '   ' } })
 
       const renameButton = screen.getByRole('button', { name: /rename/i })
@@ -216,7 +219,7 @@ describe('BoardSettingsDialog', () => {
     it('should enable Rename button when name is valid', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
-      const input = screen.getByRole('textbox')
+      const input = screen.getByPlaceholderText('Board name')
       fireEvent.change(input, { target: { value: 'Valid Name' } })
 
       const renameButton = screen.getByRole('button', { name: /rename/i })
@@ -226,7 +229,7 @@ describe('BoardSettingsDialog', () => {
     it('should have autoFocus on name input', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
-      const input = screen.getByRole('textbox')
+      const input = screen.getByPlaceholderText('Board name')
       // The autoFocus attribute is present on the Input component
       // In React, autoFocus is a prop that triggers focus behavior
       // We verify the input is in the document and can receive focus
@@ -386,7 +389,7 @@ describe('BoardSettingsDialog', () => {
     it('should have aria-invalid on name input when empty', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
-      const input = screen.getByRole('textbox')
+      const input = screen.getByPlaceholderText('Board name')
       fireEvent.change(input, { target: { value: '' } })
 
       // aria-invalid is set based on errors, which are only set after form submission
@@ -399,13 +402,17 @@ describe('BoardSettingsDialog', () => {
     it('should sync name when boardName prop changes', () => {
       const { rerender } = render(<BoardSettingsDialog {...defaultProps} />)
 
-      expect(screen.getByRole('textbox')).toHaveValue('Test Board')
+      expect(screen.getByPlaceholderText('Board name')).toHaveValue(
+        'Test Board',
+      )
 
       rerender(
         <BoardSettingsDialog {...defaultProps} boardName="Updated Board" />,
       )
 
-      expect(screen.getByRole('textbox')).toHaveValue('Updated Board')
+      expect(screen.getByPlaceholderText('Board name')).toHaveValue(
+        'Updated Board',
+      )
     })
   })
 
@@ -427,7 +434,7 @@ describe('BoardSettingsDialog', () => {
       const longName = 'A'.repeat(50) // Max is 50 characters
       render(<BoardSettingsDialog {...defaultProps} boardName={longName} />)
 
-      const input = screen.getByRole('textbox')
+      const input = screen.getByPlaceholderText('Board name')
       expect(input).toHaveValue(longName)
       expect(screen.getByText('50/50')).toBeInTheDocument()
     })
