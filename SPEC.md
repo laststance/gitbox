@@ -1,4 +1,4 @@
-# GitBox — Specification v1.3 (2026-02-17)
+# GitBox — Specification v1.4 (2026-02-19)
 
 ## 1) Product Overview
 
@@ -130,7 +130,14 @@
 - **Card**: repo name, quick note, optional meta (Stars/Updated/Visibility/Language/Topics)
 - **⋯ (Overflow menu)**: Launch **Project Info** modal
 - **Favorites**: Add board to favorites (star icon, prioritized in sidebar)
-- **Board Settings**: Board name, card display settings (theme is app-wide via Settings/Sidebar)
+- **Board Subtitle**: Optional description below board title (max 100 chars, inline editable)
+- **Inline Editable Header**: Board title and subtitle are click-to-edit (`InlineEditableText` component)
+- **Board Settings**: 4-tab dialog (General, Cards, Sharing, Danger Zone)
+  - **General**: Rename board, subtitle edit form, "Show Subtitle" visibility toggle
+  - **Cards**: Card display settings (description, comment, font size/weight)
+  - **Sharing**: Public board toggle, share link generation/copy
+  - **Danger Zone**: Delete board with confirmation
+- **Public Board Sharing**: Make boards publicly viewable via unique share slug (read-only for visitors)
 - **Board D&D Reorder**: Drag & drop board cards on `/boards` page to reorder (position persisted to DB)
   - GripVertical drag handle (visible on hover)
   - Optimistic UI with `useOptimistic` + `useState` dual pattern
@@ -276,6 +283,7 @@ interface BoardSettings {
       fontWeight: 'normal' | 'medium' | 'semibold' // default: 'normal'
     }
   }
+  showSubtitle?: boolean // default: true — controls subtitle visibility in header
 }
 ```
 
@@ -424,6 +432,13 @@ Sentry-based audit trail via `logSecurityEvent()` (`lib/security-events.ts`).
 | `unauthorized_access` | warning | Unauthenticated route access (proxy.ts) |
 | `rate_limited`        | warning | Request blocked by rate limiter         |
 
+#### XSS Prevention
+
+- **DOMPurify**: All rich text (Plate.js JSON) sanitized on render via `DOMPurify.sanitize()`
+- **Board subtitle/title**: Server-side length validation + client-side sanitization
+- **Open Redirect**: OAuth callback validates redirect URL against allowlist
+- **E2E Coverage**: `xss-smoke.spec.ts` verifies script injection is neutralized
+
 ### 3.13 Server Action Pattern
 
 #### ActionResult\<T\> Discriminated Union
@@ -549,8 +564,9 @@ Delete from Maintenance // Maintenance only (destructive, confirmation dialog)
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│ AI Experiments                                 ○ avatar   [?]       │
-│ [ Add Repositories ] [ Filter ] [ Compact ] [ Refresh ] [ ⌘K ]     │
+│ AI Experiments                                 ○ avatar   [?]       │  ← Click to edit title
+│ Exploring ML workflows and tooling                                   │  ← Subtitle (click to edit, toggleable)
+│ [ Add Repositories ] [ Add Column ] [ Board Settings ] [ Copy Link ] │
 │                                                                      │
 │ Pending           Planning            Focus Development  Production Release │
 │ ┌───────────────────────────┐   ┌───────────────────────────┐         │
@@ -703,9 +719,12 @@ board {
   id uuid PRIMARY KEY,
   user_id uuid REFERENCES auth.users,
   name text NOT NULL,
+  subtitle text,                      -- Optional description (max 100 chars)
   is_favorite boolean DEFAULT false,  -- Favorite board
   position integer DEFAULT 0,        -- Board order for D&D reordering on /boards
-  settings jsonb,                     -- Board-level settings (card display, etc.)
+  settings jsonb,                     -- Board-level settings (card display, showSubtitle, etc.)
+  is_public boolean DEFAULT false,   -- Public board visibility
+  share_slug text UNIQUE,            -- Unique URL slug for public sharing
   created_at, updated_at
 }
 
@@ -761,6 +780,14 @@ maintenance {
   user_id uuid REFERENCES auth.users,
   repo_owner text NOT NULL,
   repo_name text NOT NULL,
+  created_at, updated_at
+}
+
+-- UserSettings: Per-user Page Customization
+user_settings {
+  user_id uuid PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
+  boards_page_title text,     -- Custom /boards page title (NULL = default)
+  boards_page_subtitle text,  -- Custom /boards page subtitle (NULL = default)
   created_at, updated_at
 }
 ```
@@ -910,6 +937,12 @@ interface RepoCardMeta {
 - CalVer release workflow (GitHub Releases) ✅
 - failOnFlakyTests enforcement in Playwright ✅
 - Component decomposition (MaintenanceClient, Landing, AddRepositoryCombobox) ✅
+- Inline editable board title and subtitle ✅
+- Board subtitle edit form and visibility toggle in Board Settings ✅
+- Public board sharing (share slug, read-only public view) ✅
+- XSS prevention (DOMPurify sanitization, open redirect protection) ✅
+- Inline editable boards page header with DB persistence ✅
+- user_settings table for per-user page customization ✅
 
 ---
 
@@ -1294,45 +1327,49 @@ export async function cdpBoardDragAndDrop(
 
 ### 12.4 E2E Test Spec Files
 
-| Category    | File                                       | Description                 |
-| ----------- | ------------------------------------------ | --------------------------- |
-| Kanban D&D  | `kanban-dnd/card-dnd.spec.ts`              | Card drag & drop            |
-| Kanban D&D  | `kanban-dnd/column-dnd.spec.ts`            | Column drag & drop          |
-| Kanban      | `kanban-basic.spec.ts`                     | Basic kanban operations     |
-| Kanban      | `kanban-scroll.spec.ts`                    | Scroll behavior             |
-| Kanban      | `kanban-auto-height.spec.ts`               | Column auto-height          |
-| Kanban      | `kanban-column-width.spec.ts`              | Column width constraint     |
-| Kanban      | `kanban-column-edit.spec.ts`               | Column edit operations      |
-| Board       | `board-dnd.spec.ts`                        | Board card D&D reorder      |
-| Board       | `board-settings.spec.ts`                   | Board settings dialog       |
-| Board       | `board-settings-card-display.spec.ts`      | Card display settings       |
-| Board       | `create-board.spec.ts`                     | Board creation              |
-| Board       | `boards.spec.ts`                           | Board list                  |
-| Board       | `favorites.spec.ts`                        | Favorites feature           |
-| Account     | `account-deletion.spec.ts`                 | Account deletion flow       |
-| Repo        | `add-repository-combobox.spec.ts`          | Add repository combobox     |
-| Repo        | `add-repository-pagination.spec.ts`        | Repository pagination       |
-| Repo        | `repo-card-display.spec.ts`                | Card display                |
-| Repo        | `repo-card-description.spec.ts`            | Card description            |
-| Repo        | `remove-from-board.spec.ts`                | Remove card from board      |
-| Comment     | `comment-display.spec.ts`                  | Comment display             |
-| Comment     | `comment-inline-edit.spec.ts`              | Comment inline editing      |
-| Comment     | `comment-color-theme-independence.spec.ts` | Color theme independence    |
-| Note        | `note-modal.spec.ts`                       | Note modal (rich text)      |
-| Links       | `project-info-links.spec.ts`               | Project info links          |
-| Maintenance | `maintenance-back-to-board.spec.ts`        | Back to board               |
-| Maintenance | `maintenance-project-info.spec.ts`         | Maintenance project info    |
-| Settings    | `settings.spec.ts`                         | Settings page               |
-| Theme       | `sidebar-theme-toggle.spec.ts`             | Theme toggle                |
-| Theme       | `theme-persistence.spec.ts`                | Theme persistence           |
-| Theme       | `theme-visual-application.spec.ts`         | Theme visual application    |
-| Sidebar     | `sidebar-collapse.spec.ts`                 | Sidebar collapse            |
-| SSR         | `ssr-hydration-board.spec.ts`              | SSR hydration (board)       |
-| Page        | `page-titles.spec.ts`                      | Page titles                 |
-| Unauth      | `landing.spec.ts`                          | Landing page                |
-| Unauth      | `login.spec.ts`                            | Login page                  |
-| Unauth      | `page-titles.spec.ts`                      | Unauthenticated page titles |
-| Unauth      | `ssr-hydration.spec.ts`                    | SSR hydration (unauth)      |
+| Category    | File                                       | Description                  |
+| ----------- | ------------------------------------------ | ---------------------------- |
+| Kanban D&D  | `kanban-dnd/card-dnd.spec.ts`              | Card drag & drop             |
+| Kanban D&D  | `kanban-dnd/column-dnd.spec.ts`            | Column drag & drop           |
+| Kanban      | `kanban-basic.spec.ts`                     | Basic kanban operations      |
+| Kanban      | `kanban-scroll.spec.ts`                    | Scroll behavior              |
+| Kanban      | `kanban-auto-height.spec.ts`               | Column auto-height           |
+| Kanban      | `kanban-column-width.spec.ts`              | Column width constraint      |
+| Kanban      | `kanban-column-edit.spec.ts`               | Column edit operations       |
+| Board       | `board-dnd.spec.ts`                        | Board card D&D reorder       |
+| Board       | `board-settings.spec.ts`                   | Board settings dialog        |
+| Board       | `board-settings-card-display.spec.ts`      | Card display settings        |
+| Board       | `board-settings-subtitle.spec.ts`          | Subtitle edit & visibility   |
+| Board       | `board-header-inline-edit.spec.ts`         | Inline editable board header |
+| Board       | `boards-page-header-inline-edit.spec.ts`   | Boards page header edit      |
+| Board       | `create-board.spec.ts`                     | Board creation               |
+| Board       | `boards.spec.ts`                           | Board list                   |
+| Board       | `favorites.spec.ts`                        | Favorites feature            |
+| Account     | `account-deletion.spec.ts`                 | Account deletion flow        |
+| Repo        | `add-repository-combobox.spec.ts`          | Add repository combobox      |
+| Repo        | `add-repository-pagination.spec.ts`        | Repository pagination        |
+| Repo        | `repo-card-display.spec.ts`                | Card display                 |
+| Repo        | `repo-card-description.spec.ts`            | Card description             |
+| Repo        | `remove-from-board.spec.ts`                | Remove card from board       |
+| Comment     | `comment-display.spec.ts`                  | Comment display              |
+| Comment     | `comment-inline-edit.spec.ts`              | Comment inline editing       |
+| Comment     | `comment-color-theme-independence.spec.ts` | Color theme independence     |
+| Note        | `note-modal.spec.ts`                       | Note modal (rich text)       |
+| Links       | `project-info-links.spec.ts`               | Project info links           |
+| Maintenance | `maintenance-back-to-board.spec.ts`        | Back to board                |
+| Maintenance | `maintenance-project-info.spec.ts`         | Maintenance project info     |
+| Settings    | `settings.spec.ts`                         | Settings page                |
+| Theme       | `sidebar-theme-toggle.spec.ts`             | Theme toggle                 |
+| Theme       | `theme-persistence.spec.ts`                | Theme persistence            |
+| Theme       | `theme-visual-application.spec.ts`         | Theme visual application     |
+| Sidebar     | `sidebar-collapse.spec.ts`                 | Sidebar collapse             |
+| SSR         | `ssr-hydration-board.spec.ts`              | SSR hydration (board)        |
+| Page        | `page-titles.spec.ts`                      | Page titles                  |
+| Unauth      | `landing.spec.ts`                          | Landing page                 |
+| Unauth      | `login.spec.ts`                            | Login page                   |
+| Unauth      | `page-titles.spec.ts`                      | Unauthenticated page titles  |
+| Unauth      | `ssr-hydration.spec.ts`                    | SSR hydration (unauth)       |
+| Security    | `xss-smoke.spec.ts`                        | XSS injection prevention     |
 
 ---
 

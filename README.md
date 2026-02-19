@@ -28,6 +28,8 @@ When you have dozens (or hundreds) of repos from side projects, experiments, and
 - Rich text project notes (Plate.js editor)
 - Project info links (55 built-in types + custom presets)
 - Inline comments on repo cards with color customization
+- Inline editable board title and subtitle
+- Public board sharing with unique share links
 - Maintenance mode for archived projects
 - 14 themes (7 light + 7 dark) + system preference
 - Collapsible sidebar with state persistence
