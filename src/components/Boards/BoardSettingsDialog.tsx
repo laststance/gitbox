@@ -54,7 +54,9 @@ import {
   deleteBoardAction,
   renameBoardAction,
   toggleBoardPublic,
+  toggleBoardSubtitleVisibility,
   updateBoardSettingsAction,
+  updateBoardSubtitle,
   type DeleteBoardState,
   type RenameBoardState,
   type UpdateBoardSettingsState,
@@ -65,7 +67,10 @@ import {
   DEFAULT_CARD_DISPLAY_SETTINGS,
   parseBoardSettings,
 } from '@/lib/types/board-settings'
-import { BOARD_NAME_MAX_LENGTH } from '@/lib/validations/board'
+import {
+  BOARD_NAME_MAX_LENGTH,
+  BOARD_SUBTITLE_MAX_LENGTH,
+} from '@/lib/validations/board'
 
 /** Tab navigation options */
 type SettingsTab = 'general' | 'card-display' | 'sharing' | 'danger'
@@ -85,6 +90,14 @@ interface BoardSettingsDialogProps {
   isPublic?: boolean
   /** Current share slug (null if never shared) */
   shareSlug?: string | null
+  /** Current board subtitle text */
+  boardSubtitle?: string | null
+  /** Callback when subtitle text is saved (for optimistic update) */
+  onSubtitleSuccess?: (subtitle: string) => void
+  /** Whether subtitle is currently visible in header (default: true) */
+  showSubtitle?: boolean
+  /** Callback when subtitle visibility changes (for optimistic update) */
+  onShowSubtitleChange?: (show: boolean) => void
   /** Callback when rename succeeds (for optimistic update) */
   onRenameSuccess: (newName: string) => void
   /** Callback when card display settings change */
@@ -145,6 +158,10 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
   boardSettings,
   isPublic: initialIsPublic = false,
   shareSlug: initialShareSlug = null,
+  boardSubtitle: initialBoardSubtitle = null,
+  onSubtitleSuccess,
+  showSubtitle: initialShowSubtitle = true,
+  onShowSubtitleChange,
   onRenameSuccess,
   onCardDisplayChange,
   onPublicChange,
@@ -204,6 +221,72 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
     setLastShareSlug(initialShareSlug)
     setBoardIsPublic(initialIsPublic)
     setBoardShareSlug(initialShareSlug)
+  }
+
+  // Subtitle form state
+  const [subtitle, setSubtitle] = useState(initialBoardSubtitle ?? '')
+  const [lastBoardSubtitle, setLastBoardSubtitle] =
+    useState(initialBoardSubtitle)
+  const [isSavingSubtitle, setIsSavingSubtitle] = useState(false)
+
+  // Sync subtitle from props
+  if (initialBoardSubtitle !== lastBoardSubtitle) {
+    setLastBoardSubtitle(initialBoardSubtitle)
+    setSubtitle(initialBoardSubtitle ?? '')
+  }
+
+  // Subtitle visibility state
+  const [subtitleVisible, setSubtitleVisible] = useState(initialShowSubtitle)
+  const [lastShowSubtitle, setLastShowSubtitle] = useState(initialShowSubtitle)
+  const [isTogglingSubtitle, setIsTogglingSubtitle] = useState(false)
+
+  // Sync subtitle visibility from props
+  if (initialShowSubtitle !== lastShowSubtitle) {
+    setLastShowSubtitle(initialShowSubtitle)
+    setSubtitleVisible(initialShowSubtitle)
+  }
+
+  /**
+   * Save subtitle text via server action
+   */
+  async function handleSaveSubtitle() {
+    setIsSavingSubtitle(true)
+    try {
+      const result = await updateBoardSubtitle(boardId, subtitle)
+      if (result.success) {
+        onSubtitleSuccess?.(result.data.subtitle)
+        toast.success('Subtitle updated')
+      } else {
+        toast.error('Failed to update subtitle', {
+          description: result.error,
+        })
+      }
+    } finally {
+      setIsSavingSubtitle(false)
+    }
+  }
+
+  /**
+   * Toggle subtitle visibility via server action
+   */
+  async function handleToggleSubtitleVisibility(checked: boolean) {
+    setIsTogglingSubtitle(true)
+    try {
+      const result = await toggleBoardSubtitleVisibility(boardId, checked)
+      if (result.success) {
+        setSubtitleVisible(result.data.showSubtitle)
+        onShowSubtitleChange?.(result.data.showSubtitle)
+        toast.success(
+          checked ? 'Subtitle is now visible' : 'Subtitle is now hidden',
+        )
+      } else {
+        toast.error('Failed to update visibility', {
+          description: result.error,
+        })
+      }
+    } finally {
+      setIsTogglingSubtitle(false)
+    }
   }
 
   /**
@@ -494,6 +577,72 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                     {isRenamePending ? 'Renaming...' : 'Rename'}
                   </Button>
                 </form>
+
+                {/* Subtitle Edit Section */}
+                <div className="mt-8">
+                  <h3 className="mb-4 text-lg font-semibold">Board Subtitle</h3>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Input
+                        value={subtitle}
+                        onChange={(e) => setSubtitle(e.target.value)}
+                        placeholder="Add a subtitle..."
+                        maxLength={BOARD_SUBTITLE_MAX_LENGTH}
+                        aria-describedby="subtitle-char-count"
+                        autoComplete="off"
+                        data-1p-ignore
+                        data-lpignore="true"
+                        data-form-type="other"
+                        data-testid="subtitle-input"
+                      />
+                      <div className="flex items-center justify-between">
+                        <span />
+                        <p
+                          id="subtitle-char-count"
+                          className={
+                            subtitle.length >= BOARD_SUBTITLE_MAX_LENGTH - 10
+                              ? 'text-sm text-orange-500'
+                              : 'text-muted-foreground text-sm'
+                          }
+                        >
+                          {subtitle.length}/{BOARD_SUBTITLE_MAX_LENGTH}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      disabled={isSavingSubtitle}
+                      onClick={handleSaveSubtitle}
+                      data-testid="save-subtitle"
+                    >
+                      {isSavingSubtitle ? 'Saving...' : 'Save Subtitle'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Subtitle Visibility Toggle */}
+                <div className="mt-6">
+                  <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <Label
+                        htmlFor="show-subtitle"
+                        className="text-sm font-medium"
+                      >
+                        Show Subtitle
+                      </Label>
+                      <p className="text-muted-foreground text-xs">
+                        Display subtitle below board name in the header
+                      </p>
+                    </div>
+                    <Switch
+                      id="show-subtitle"
+                      checked={subtitleVisible}
+                      onCheckedChange={handleToggleSubtitleVisibility}
+                      disabled={isTogglingSubtitle}
+                      data-testid="toggle-show-subtitle"
+                    />
+                  </div>
+                </div>
               </div>
             )}
 

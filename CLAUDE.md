@@ -230,14 +230,15 @@ app/
 └── login/                   # Login redirect
 ```
 
-### Database Schema (6 tables with RLS)
+### Database Schema (7 tables with RLS)
 
-- **board** - Kanban boards per user (position for D&D reorder)
+- **board** - Kanban boards per user (position, subtitle, is_public, share_slug, settings JSONB)
 - **statuslist** - Columns (2D grid layout: gridRow, gridCol)
 - **repocard** - GitHub repos as cards
 - **projectinfo** - Extended card data (notes, links, comments)
 - **maintenance** - Archived repos
 - **user_link_presets** - User-defined custom link types
+- **user_settings** - Per-user page customization (boards page title/subtitle)
 
 ### Server Actions
 
