@@ -116,7 +116,8 @@ test.describe('Board Settings Subtitle (Authenticated)', () => {
         const board = await querySingle<{ subtitle: string }>('board', {
           id: BOARD_IDS.testBoard,
         })
-        expect(board.subtitle).toBe('Updated test subtitle')
+        expect(board).not.toBeNull()
+        expect(board?.subtitle).toBe('Updated test subtitle')
       }).toPass({ timeout: 10000 })
     })
   })
@@ -183,7 +184,8 @@ test.describe('Board Settings Subtitle (Authenticated)', () => {
         const board = await querySingle<{
           settings: { showSubtitle?: boolean }
         }>('board', { id: BOARD_IDS.testBoard })
-        expect(board.settings?.showSubtitle).toBe(false)
+        expect(board).not.toBeNull()
+        expect(board?.settings?.showSubtitle).toBe(false)
       }).toPass({ timeout: 10000 })
     })
 
