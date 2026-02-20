@@ -5,7 +5,7 @@ import { restrictToWindowEdges } from '@dnd-kit/modifiers'
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
 import * as Sentry from '@sentry/nextjs'
 import { motion, useReducedMotion } from 'framer-motion'
-import React, { useState, useEffect, memo, useCallback, useMemo } from 'react'
+import React, { useState, memo, useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
 
 import { Card, CardContent } from '@/components/ui/card'
@@ -14,11 +14,8 @@ import {
   forgivingCollisionDetection,
   useKanbanDnD,
 } from '@/hooks/board/useKanbanDnD'
+import { useKanbanUndo } from '@/hooks/board/useKanbanUndo'
 import { useMounted } from '@/hooks/use-mounted'
-import {
-  batchUpdateRepoCardOrders,
-  batchUpdateStatusListPositions,
-} from '@/lib/actions/board'
 import {
   updateComment,
   updateCommentColor,
@@ -27,8 +24,6 @@ import {
 } from '@/lib/actions/project-info'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import {
-  setStatusLists,
-  setRepoCards,
   selectStatusLists,
   selectRepoCards,
 } from '@/lib/redux/slices/boardSlice'
@@ -128,8 +123,6 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     const statuses = useAppSelector(selectStatusLists)
     const cards = useAppSelector(selectRepoCards)
 
-    // History stack for undo functionality (max 10 entries)
-    const [history, setHistory] = useState<RepoCardForRedux[][]>([])
     // Comments map: cardId → comment data (text + color) from projectinfo
     // Phase 4: Initialized with server-fetched data (no client-side fetch needed)
     const [comments, setComments] = useState<Record<string, CommentData>>(
@@ -139,7 +132,6 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     // Hydration-safe mounting state: prevents SSR/CSR mismatch for dynamic grid styles
     // Uses useSyncExternalStore-based hook for proper SSR support
     const isMounted = useMounted()
-    const [columnHistory, setColumnHistory] = useState<StatusListDomain[][]>([])
 
     // Memoize cards grouped by status to avoid re-creating arrays on every render.
     // Without this, each SortableColumn receives a new array ref, defeating memo().
@@ -152,14 +144,8 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       return grouped
     }, [cards])
 
-    // Undo history push callbacks (passed to useKanbanDnD)
-    const pushCardHistory = useCallback((snapshot: RepoCardForRedux[]) => {
-      setHistory((prev) => [...prev, snapshot].slice(-10))
-    }, [])
-
-    const pushColumnHistory = useCallback((snapshot: StatusListDomain[]) => {
-      setColumnHistory((prev) => [...prev, snapshot].slice(-10))
-    }, [])
+    // Undo hook: history stacks + Z-key shortcut (self-contained)
+    const { pushCardHistory, pushColumnHistory } = useKanbanUndo({ dispatch })
 
     // DnD hook: sensors, handlers, grid calculations
     const {
@@ -268,83 +254,6 @@ export const KanbanBoard = memo<KanbanBoardProps>(
         toast.error('Failed to delete comment')
       }
     }, [])
-
-    /**
-     * Undo functionality: Reverts the last drag & drop operation
-     * Supports both card and column operations
-     * Requirements: <200ms response time
-     */
-    const handleUndo = useCallback(() => {
-      // Try column undo first, then card undo
-      if (columnHistory.length > 0) {
-        const previousState = columnHistory[columnHistory.length - 1]
-        if (previousState) {
-          dispatch(setStatusLists(previousState))
-          setColumnHistory((prev) => prev.slice(0, -1))
-          toast.success('Column order restored')
-
-          // P1-8: Sync reverted column positions to DB
-          const updates = previousState.map((s) => ({
-            id: s.id,
-            gridRow: s.gridRow,
-            gridCol: s.gridCol,
-          }))
-          batchUpdateStatusListPositions(updates).catch((error) => {
-            Sentry.captureException(error, {
-              tags: { action: 'undoColumnPositions' },
-            })
-            toast.error('Failed to sync undo to database')
-          })
-        }
-        return
-      }
-
-      if (history.length > 0) {
-        const previousState = history[history.length - 1]
-        if (previousState) {
-          dispatch(setRepoCards(previousState))
-          setHistory((prev) => prev.slice(0, -1))
-          toast.success('Card operation undone')
-
-          // P1-8: Sync reverted card positions to DB
-          const updates = previousState.map((c, index) => ({
-            id: c.id,
-            statusId: c.statusId,
-            order: c.order ?? index,
-          }))
-          batchUpdateRepoCardOrders(updates).catch((error) => {
-            Sentry.captureException(error, {
-              tags: { action: 'undoCardPositions' },
-            })
-            toast.error('Failed to sync undo to database')
-          })
-        }
-      }
-    }, [history, columnHistory, dispatch])
-
-    // Keyboard shortcut: Z key to execute undo
-    useEffect(() => {
-      const handleKeyDown = (event: KeyboardEvent) => {
-        // Skip if user is typing in an input field, textarea, or contentEditable element
-        const target = event.target as HTMLElement
-        if (
-          target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable
-        ) {
-          return
-        }
-
-        // Z key (both uppercase and lowercase, no Cmd/Ctrl required)
-        if (event.key === 'z' || event.key === 'Z') {
-          event.preventDefault()
-          handleUndo()
-        }
-      }
-
-      window.addEventListener('keydown', handleKeyDown)
-      return () => window.removeEventListener('keydown', handleKeyDown)
-    }, [handleUndo]) // Depends on handleUndo
 
     // Show skeleton when no data loaded yet (e.g., initial hydration)
     if (statuses.length === 0) {
