@@ -83,8 +83,26 @@ fi
 
 # ─── Step 2: Reset database ───────────────────────────────────
 echo "🔄 Resetting database..."
-pnpm db:reset 2>&1 | tail -3
-echo "✅ Database reset complete"
+# db:reset may exit non-zero due to a transient PostgREST 502 during container
+# restart. Migrations apply before that step, so we tolerate the error and wait
+# for PostgREST to come back. Print full output so real failures remain visible.
+RESET_OUTPUT=$(pnpm db:reset 2>&1) || RESET_EXIT=$?
+echo "$RESET_OUTPUT" | tail -10
+if [ "${RESET_EXIT:-0}" -ne 0 ]; then
+  echo "⚠️  db:reset exited with ${RESET_EXIT} (may be transient PostgREST 502)"
+fi
+echo "⏳ Waiting for PostgREST to be ready..."
+for i in $(seq 1 30); do
+  if curl -sf "${LOCAL_SUPABASE_URL}/rest/v1/" -H "apikey: ${LOCAL_SUPABASE_ANON_KEY}" > /dev/null 2>&1; then
+    echo "✅ Database reset complete"
+    break
+  fi
+  if [ "$i" -eq 30 ]; then
+    echo "❌ PostgREST failed to start after 30 seconds"
+    exit 1
+  fi
+  sleep 1
+done
 
 # ─── Step 3: Setup shard databases + PostgREST ────────────────
 echo "🗄️  Setting up ${SHARD_COUNT} shard databases and PostgREST instances..."
