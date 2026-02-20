@@ -18,6 +18,15 @@ export const Footer = memo(function Footer() {
         </div>
         <div className="text-muted-foreground flex items-center gap-6 text-sm">
           <a
+            href="/privacy"
+            className="hover:text-foreground transition-colors"
+          >
+            Privacy
+          </a>
+          <a href="/terms" className="hover:text-foreground transition-colors">
+            Terms
+          </a>
+          <a
             href="https://github.com/laststance/gitbox"
             target="_blank"
             rel="noopener noreferrer"
@@ -28,7 +37,11 @@ export const Footer = memo(function Footer() {
           </a>
           <span>
             Made by{' '}
-            <a href="https://laststance.io/" target="_blank">
+            <a
+              href="https://laststance.io/"
+              target="_blank"
+              className="hover:text-foreground transition-colors"
+            >
               Laststance.io
             </a>
           </span>
