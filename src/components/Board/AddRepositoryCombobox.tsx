@@ -106,16 +106,17 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   // --- Extracted hooks ---
   const {
     searchQuery,
-    setSearchQuery,
+    updateSearch,
     deferredSearchQuery,
     selectedRepos,
-    setSelectedRepos,
     isAdding,
-    setIsAdding,
+    startAdding,
+    finishAdding,
     addError,
-    setAddError,
+    setAddingError,
     toggleRepoSelection,
     removeSelectedRepo,
+    clearSelection,
   } = useRepositorySearch()
 
   const { currentUser, filteredOrganizations, isLoadingOrgs, organizations } =
@@ -253,8 +254,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     if (selectedRepos.length === 0) return
 
     try {
-      setIsAdding(true)
-      setAddError(null)
+      startAdding()
 
       // Server Action: Add repositories to board with duplicate detection
       const result = await addRepositoriesToBoard(
@@ -264,7 +264,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       )
 
       if (!result.success) {
-        setAddError(result.errors?.join(', ') || 'Failed to add repositories')
+        setAddingError(
+          result.errors?.join(', ') || 'Failed to add repositories',
+        )
         return
       }
 
@@ -287,8 +289,8 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       )
 
       // Success: clear selection and close combobox
-      setSelectedRepos([])
-      setSearchQuery('')
+      clearSelection()
+      updateSearch('')
       // Close combobox (supports both controlled and uncontrolled modes)
       if (onOpenChange) {
         onOpenChange(false)
@@ -304,11 +306,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
         onQuickNoteFocus()
       }, 100)
     } catch (err) {
-      setAddError(
+      setAddingError(
         err instanceof Error ? err.message : 'Error adding repositories',
       )
     } finally {
-      setIsAdding(false)
+      finishAdding()
     }
   }
 
@@ -367,7 +369,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             ref={searchInputRef}
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => updateSearch(e.target.value)}
             placeholder="Search repositories..."
             className="border-input bg-background text-foreground focus:border-primary focus:ring-primary w-full rounded-md border px-3 py-2 text-sm focus:ring-1 focus:outline-none"
             aria-label="Search repositories"

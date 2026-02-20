@@ -4,36 +4,59 @@
  * Manages search query, multi-select state, and add-to-board operation state
  * for the AddRepositoryCombobox component.
  *
+ * All state mutations are exposed as semantic actions — no raw setState setters.
+ *
  * @example
  * const search = useRepositorySearch()
- * <input value={search.searchQuery} onChange={e => search.setSearchQuery(e.target.value)} />
+ * <input value={search.searchQuery} onChange={e => search.updateSearch(e.target.value)} />
+ * search.startAdding()
+ * search.finishAdding()
+ * search.clearSelection()
  */
 
-import { useState, useDeferredValue } from 'react'
+import { useCallback, useState, useDeferredValue } from 'react'
 
 import type { GitHubRepository } from '@/lib/actions/github'
 
 interface UseRepositorySearchReturn {
+  /** Current search query string */
   searchQuery: string
-  setSearchQuery: (query: string) => void
+  /** Update the search query */
+  updateSearch: (query: string) => void
   /** Deferred value for non-blocking filtering during heavy renders */
   deferredSearchQuery: string
+  /** Currently selected repositories */
   selectedRepos: GitHubRepository[]
-  setSelectedRepos: React.Dispatch<React.SetStateAction<GitHubRepository[]>>
-  isAdding: boolean
-  setIsAdding: (adding: boolean) => void
-  addError: string | null
-  setAddError: (error: string | null) => void
   /** Toggle a repository in/out of the selection */
   toggleRepoSelection: (repo: GitHubRepository) => void
   /** Remove a repository from the selection by id */
   removeSelectedRepo: (repoId: number) => void
+  /** Clear all selected repositories */
+  clearSelection: () => void
+  /** Whether an add operation is in progress */
+  isAdding: boolean
+  /** Mark the start of an add operation (sets isAdding=true, clears error) */
+  startAdding: () => void
+  /** Mark the end of an add operation (sets isAdding=false) */
+  finishAdding: () => void
+  /** Current error message from the add operation */
+  addError: string | null
+  /** Set an error message for the add operation */
+  setAddingError: (error: string) => void
+  /** Clear the add operation error */
+  clearError: () => void
 }
 
 /**
  * Hook for repository search, selection, and add operation state.
  *
  * @returns Search state, selection actions, and add operation state
+ *
+ * @example
+ * const { searchQuery, updateSearch, startAdding, finishAdding } = useRepositorySearch()
+ * // In handleAdd:
+ * startAdding()
+ * try { await addRepos(...) } finally { finishAdding() }
  */
 export function useRepositorySearch(): UseRepositorySearchReturn {
   const [searchQuery, setSearchQuery] = useState('')
@@ -42,7 +65,11 @@ export function useRepositorySearch(): UseRepositorySearchReturn {
   const [isAdding, setIsAdding] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
 
-  const toggleRepoSelection = (repo: GitHubRepository) => {
+  const updateSearch = useCallback((query: string) => {
+    setSearchQuery(query)
+  }, [])
+
+  const toggleRepoSelection = useCallback((repo: GitHubRepository) => {
     setSelectedRepos((prev) => {
       const isSelected = prev.some((r) => r.id === repo.id)
       if (isSelected) {
@@ -51,23 +78,46 @@ export function useRepositorySearch(): UseRepositorySearchReturn {
         return [...prev, repo]
       }
     })
-  }
+  }, [])
 
-  const removeSelectedRepo = (repoId: number) => {
+  const removeSelectedRepo = useCallback((repoId: number) => {
     setSelectedRepos((prev) => prev.filter((r) => r.id !== repoId))
-  }
+  }, [])
+
+  const clearSelection = useCallback(() => {
+    setSelectedRepos([])
+  }, [])
+
+  const startAdding = useCallback(() => {
+    setIsAdding(true)
+    setAddError(null)
+  }, [])
+
+  const finishAdding = useCallback(() => {
+    setIsAdding(false)
+  }, [])
+
+  const setAddingError = useCallback((error: string) => {
+    setAddError(error)
+  }, [])
+
+  const clearError = useCallback(() => {
+    setAddError(null)
+  }, [])
 
   return {
     searchQuery,
-    setSearchQuery,
+    updateSearch,
     deferredSearchQuery,
     selectedRepos,
-    setSelectedRepos,
-    isAdding,
-    setIsAdding,
-    addError,
-    setAddError,
     toggleRepoSelection,
     removeSelectedRepo,
+    clearSelection,
+    isAdding,
+    startAdding,
+    finishAdding,
+    addError,
+    setAddingError,
+    clearError,
   }
 }
