@@ -3,32 +3,25 @@
 import { DndContext, DragOverlay } from '@dnd-kit/core'
 import { restrictToWindowEdges } from '@dnd-kit/modifiers'
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
-import * as Sentry from '@sentry/nextjs'
 import { motion, useReducedMotion } from 'framer-motion'
-import React, { useState, memo, useCallback, useMemo } from 'react'
-import { toast } from 'sonner'
+import React, { memo, useMemo } from 'react'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useCommentState } from '@/hooks/board/useCommentState'
 import {
   forgivingCollisionDetection,
   useKanbanDnD,
 } from '@/hooks/board/useKanbanDnD'
 import { useKanbanUndo } from '@/hooks/board/useKanbanUndo'
 import { useMounted } from '@/hooks/use-mounted'
-import {
-  updateComment,
-  updateCommentColor,
-  deleteComment,
-  type CommentData,
-} from '@/lib/actions/project-info'
+import type { CommentData } from '@/lib/actions/project-info'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import {
   selectStatusLists,
   selectRepoCards,
 } from '@/lib/redux/slices/boardSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
-import type { CommentColor } from '@/lib/supabase/types'
 import type { CardDisplaySettings } from '@/lib/types/board-settings'
 
 import { ColumnInsertZone } from './ColumnInsertZone'
@@ -59,10 +52,9 @@ interface KanbanBoardProps {
  * Kanban Board Component
  *
  * The main Kanban board displaying status columns and repository cards.
- * - Drag-and-drop card reordering via @dnd-kit
- * - Board data loading from Supabase
- * - Optimistic UI updates with Supabase sync
- * - Undo functionality (Z key shortcut)
+ * - Drag-and-drop card reordering via @dnd-kit (useKanbanDnD)
+ * - Undo functionality with Z key shortcut (useKanbanUndo)
+ * - Comment CRUD with optimistic updates (useCommentState)
  * - Redux state management with localStorage sync
  */
 // Loading Skeleton Component
@@ -123,14 +115,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     const statuses = useAppSelector(selectStatusLists)
     const cards = useAppSelector(selectRepoCards)
 
-    // Comments map: cardId → comment data (text + color) from projectinfo
-    // Phase 4: Initialized with server-fetched data (no client-side fetch needed)
-    const [comments, setComments] = useState<Record<string, CommentData>>(
-      initialComments ?? {},
-    )
-
     // Hydration-safe mounting state: prevents SSR/CSR mismatch for dynamic grid styles
-    // Uses useSyncExternalStore-based hook for proper SSR support
     const isMounted = useMounted()
 
     // Memoize cards grouped by status to avoid re-creating arrays on every render.
@@ -143,6 +128,14 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       }
       return grouped
     }, [cards])
+
+    // Comment state: optimistic updates + DB persistence
+    const {
+      comments,
+      handleCommentChange,
+      handleCommentColorChange,
+      handleCommentDelete,
+    } = useCommentState({ initialComments: initialComments ?? {} })
 
     // Undo hook: history stacks + Z-key shortcut (self-contained)
     const { pushCardHistory, pushColumnHistory } = useKanbanUndo({ dispatch })
@@ -167,93 +160,6 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       pushCardHistory,
       pushColumnHistory,
     })
-
-    // Phase 4: Data fetching removed - now handled by Server Component
-    // BoardPage (Server) → fetchBoardInitialData() → BoardPageClient → useLayoutEffect hydrates Redux
-    // Comments are initialized via initialComments prop, no client-side fetch needed
-
-    /**
-     * Handle comment change from inline edit
-     * Performs optimistic update and persists to database
-     *
-     * @param cardId - The repo card ID
-     * @param newComment - The new comment text
-     */
-    const handleCommentChange = useCallback(
-      async (cardId: string, newComment: string) => {
-        // Optimistic update: Update local state immediately (preserve color)
-        setComments((prev) => ({
-          ...prev,
-          [cardId]: {
-            comment: newComment,
-            color: prev[cardId]?.color ?? 'primary',
-          },
-        }))
-
-        // Persist to database
-        const result = await updateComment(cardId, newComment)
-        if (!result.success) {
-          // Could implement rollback here if needed
-        }
-      },
-      [],
-    )
-
-    /**
-     * Handle comment color change from CommentActionsMenu
-     *
-     * @param cardId - The card ID to update
-     * @param color - The new color value
-     */
-    const handleCommentColorChange = useCallback(
-      async (cardId: string, color: CommentColor) => {
-        // Optimistic update: Update local state immediately
-        setComments((prev) => ({
-          ...prev,
-          [cardId]: {
-            comment: prev[cardId]?.comment ?? '',
-            color,
-          },
-        }))
-
-        // Persist to database
-        try {
-          await updateCommentColor(cardId, color)
-        } catch (error) {
-          Sentry.captureException(error, {
-            tags: { action: 'updateCommentColor' },
-          })
-          toast.error('Failed to update comment color')
-        }
-      },
-      [],
-    )
-
-    /**
-     * Handle comment delete from CommentActionsMenu
-     * Clears the comment text only, card remains
-     *
-     * @param cardId - The card ID to delete comment from
-     */
-    const handleCommentDelete = useCallback(async (cardId: string) => {
-      // Optimistic update: Clear comment text, reset color to default
-      setComments((prev) => ({
-        ...prev,
-        [cardId]: {
-          comment: '',
-          color: 'primary',
-        },
-      }))
-
-      // Persist to database
-      try {
-        await deleteComment(cardId)
-        toast.success('Comment deleted')
-      } catch (error) {
-        Sentry.captureException(error, { tags: { action: 'deleteComment' } })
-        toast.error('Failed to delete comment')
-      }
-    }, [])
 
     // Show skeleton when no data loaded yet (e.g., initial hydration)
     if (statuses.length === 0) {
