@@ -11,7 +11,6 @@
  * <SortableColumn comments={comments} onCommentChange={handleCommentChange} />
  */
 
-import * as Sentry from '@sentry/nextjs'
 import { useState, useCallback } from 'react'
 import { toast } from 'sonner'
 
@@ -71,6 +70,7 @@ export function useCommentState(
    */
   const handleCommentChange = useCallback(
     async (cardId: string, newComment: string) => {
+      const previous = comments[cardId]
       setComments((prev) => ({
         ...prev,
         [cardId]: {
@@ -81,10 +81,14 @@ export function useCommentState(
 
       const result = await updateComment(cardId, newComment)
       if (!result.success) {
-        // Could implement rollback here if needed
+        setComments((prev) => ({
+          ...prev,
+          [cardId]: previous ?? { comment: '', color: 'primary' },
+        }))
+        toast.error('Failed to save comment')
       }
     },
-    [],
+    [comments],
   )
 
   /**
@@ -96,6 +100,7 @@ export function useCommentState(
    */
   const handleCommentColorChange = useCallback(
     async (cardId: string, color: CommentColor) => {
+      const previous = comments[cardId]
       setComments((prev) => ({
         ...prev,
         [cardId]: {
@@ -104,16 +109,16 @@ export function useCommentState(
         },
       }))
 
-      try {
-        await updateCommentColor(cardId, color)
-      } catch (error) {
-        Sentry.captureException(error, {
-          tags: { action: 'updateCommentColor' },
-        })
+      const result = await updateCommentColor(cardId, color)
+      if (!result.success) {
+        setComments((prev) => ({
+          ...prev,
+          [cardId]: previous ?? { comment: '', color: 'primary' },
+        }))
         toast.error('Failed to update comment color')
       }
     },
-    [],
+    [comments],
   )
 
   /**
@@ -122,23 +127,30 @@ export function useCommentState(
    *
    * @param cardId - The card ID to delete comment from
    */
-  const handleCommentDelete = useCallback(async (cardId: string) => {
-    setComments((prev) => ({
-      ...prev,
-      [cardId]: {
-        comment: '',
-        color: 'primary',
-      },
-    }))
+  const handleCommentDelete = useCallback(
+    async (cardId: string) => {
+      const previous = comments[cardId]
+      setComments((prev) => ({
+        ...prev,
+        [cardId]: {
+          comment: '',
+          color: 'primary',
+        },
+      }))
 
-    try {
-      await deleteComment(cardId)
-      toast.success('Comment deleted')
-    } catch (error) {
-      Sentry.captureException(error, { tags: { action: 'deleteComment' } })
-      toast.error('Failed to delete comment')
-    }
-  }, [])
+      const result = await deleteComment(cardId)
+      if (result.success) {
+        toast.success('Comment deleted')
+      } else {
+        setComments((prev) => ({
+          ...prev,
+          [cardId]: previous ?? { comment: '', color: 'primary' },
+        }))
+        toast.error('Failed to delete comment')
+      }
+    },
+    [comments],
+  )
 
   return {
     comments,

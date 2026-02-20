@@ -133,8 +133,13 @@ export function useKanbanUndo(
         return
       }
 
-      // Z key (both uppercase and lowercase, no Cmd/Ctrl required)
-      if (event.key === 'z' || event.key === 'Z') {
+      // Bare Z key only (no Cmd/Ctrl/Alt modifiers to avoid conflict with browser undo)
+      if (
+        (event.key === 'z' || event.key === 'Z') &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
         event.preventDefault()
         handleUndo()
       }
