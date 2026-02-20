@@ -43,6 +43,7 @@ import {
   batchUpdateRepoCardOrders,
   swapStatusListPositions,
   batchUpdateStatusListPositions,
+  updateStatusListPosition,
 } from '@/lib/actions/board'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import { setStatusLists, setRepoCards } from '@/lib/redux/slices/boardSlice'
@@ -220,7 +221,6 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
       dispatch(setStatusLists(updatedStatuses))
 
       try {
-        const { updateStatusListPosition } = await import('@/lib/actions/board')
         await updateStatusListPosition(activeStatus.id, targetRow, targetCol)
       } catch (error) {
         Sentry.captureException(error, {
