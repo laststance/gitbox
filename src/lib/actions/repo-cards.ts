@@ -536,6 +536,17 @@ export async function moveCardToBoard(
   targetStatusId: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // Step 0: Validate UUID format
+    const UUID_RE =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (
+      !UUID_RE.test(cardId) ||
+      !UUID_RE.test(targetBoardId) ||
+      !UUID_RE.test(targetStatusId)
+    ) {
+      return { success: false, error: 'Invalid ID format' }
+    }
+
     const supabase = await createClient()
 
     // Get current user

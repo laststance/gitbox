@@ -16,10 +16,7 @@ import {
   querySingle,
   CARD_IDS,
   BOARD_IDS,
-  STATUS_IDS,
-  PROJECT_INFO_IDS,
   resetRepoCards,
-  resetRepoCardToOriginalBoard,
 } from '../helpers/db-query'
 
 test.describe('Move to Another Board Feature', () => {

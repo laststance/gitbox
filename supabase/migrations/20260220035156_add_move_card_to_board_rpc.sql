@@ -16,6 +16,14 @@ AS $$
 DECLARE
   v_next_order INTEGER;
 BEGIN
+  -- Validate that the target status belongs to the target board
+  IF NOT EXISTS (
+    SELECT 1 FROM statuslist
+    WHERE id = p_target_status_id AND board_id = p_target_board_id
+  ) THEN
+    RAISE EXCEPTION 'status % does not belong to board %', p_target_status_id, p_target_board_id;
+  END IF;
+
   -- Calculate next order position in target status column (atomic)
   SELECT COALESCE(MAX("order"), -1) + 1 INTO v_next_order
   FROM repocard WHERE status_id = p_target_status_id;

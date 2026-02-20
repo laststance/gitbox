@@ -810,11 +810,13 @@ export async function resetUserSettings(): Promise<void> {
  *
  * @param cardId - The card ID to restore
  * @param originalStatusId - The original status list ID (defaults to Planning)
- * @param originalOrder - The original order position (defaults to 0)
+ * @param originalOrder - The original order position (defaults to 0).
+ *   NOTE: The default order=0 may not match seeded data for some cards
+ *   (e.g. card5 is seeded at order=2). Pass the correct originalOrder when known.
  *
  * @example
  * test.afterEach(async () => {
- *   await resetRepoCardToOriginalBoard(CARD_IDS.card5)
+ *   await resetRepoCardToOriginalBoard(CARD_IDS.card5, STATUS_IDS.planning, 2)
  * })
  */
 export async function resetRepoCardToOriginalBoard(

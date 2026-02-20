@@ -110,16 +110,24 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
       setIsLoadingBoards(true)
       setBoardsError(null)
 
-      const result = await getUserBoardsWithStatusLists()
+      try {
+        const result = await getUserBoardsWithStatusLists()
 
-      if (cancelled) return
+        if (cancelled) return
 
-      if (result.success && result.boards) {
-        setBoards(result.boards)
-      } else {
-        setBoardsError(result.error || 'Failed to load boards')
+        if (result.success && result.boards) {
+          setBoards(result.boards)
+        } else {
+          setBoardsError(result.error || 'Failed to load boards')
+        }
+      } catch {
+        if (!cancelled) {
+          setBoardsError('Failed to load boards')
+        }
       }
-      setIsLoadingBoards(false)
+      if (!cancelled) {
+        setIsLoadingBoards(false)
+      }
     }
 
     fetchBoards()
