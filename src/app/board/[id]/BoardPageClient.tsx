@@ -148,6 +148,7 @@ export const BoardPageClient = memo(function BoardPageClient({
       executeCardAction(cardId, moveToMaintenance, {
         actionName: 'moveToMaintenance',
         errorMessage: 'Failed to move to maintenance',
+        successMessage: 'Moved to maintenance',
       }),
     [executeCardAction],
   )

@@ -172,7 +172,6 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     // Note: _boardId is no longer used for data fetching (Phase 4 refactoring)
     // Data is now fetched by Server Component and passed via props/Redux
     // Kept for backwards compatibility and potential future use (e.g., refresh)
-    const prefersReducedMotion = useReducedMotion()
     // Redux state (auto-synced to LocalStorage)
     const dispatch = useAppDispatch()
     const statuses = useAppSelector(selectStatusLists)
@@ -193,7 +192,6 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     // Uses useSyncExternalStore-based hook for proper SSR support
     const isMounted = useMounted()
     const [columnHistory, setColumnHistory] = useState<StatusListDomain[][]>([])
-    const [undoMessage, setUndoMessage] = useState<string | null>(null)
 
     // Memoized sorted statuses for consistent rendering (by gridRow, then gridCol)
     const sortedStatuses = useMemo(
@@ -325,7 +323,14 @@ export const KanbanBoard = memo<KanbanBoardProps>(
         }))
 
         // Persist to database
-        await updateCommentColor(cardId, color)
+        try {
+          await updateCommentColor(cardId, color)
+        } catch (error) {
+          Sentry.captureException(error, {
+            tags: { action: 'updateCommentColor' },
+          })
+          toast.error('Failed to update comment color')
+        }
       },
       [],
     )
@@ -347,7 +352,13 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       }))
 
       // Persist to database
-      await deleteComment(cardId)
+      try {
+        await deleteComment(cardId)
+        toast.success('Comment deleted')
+      } catch (error) {
+        Sentry.captureException(error, { tags: { action: 'deleteComment' } })
+        toast.error('Failed to delete comment')
+      }
     }, [])
 
     /**
@@ -362,8 +373,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
         if (previousState) {
           dispatch(setStatusLists(previousState))
           setColumnHistory((prev) => prev.slice(0, -1))
-          setUndoMessage('Column order restored')
-          setTimeout(() => setUndoMessage(null), 2000)
+          toast.success('Column order restored')
 
           // P1-8: Sync reverted column positions to DB
           const updates = previousState.map((s) => ({
@@ -386,8 +396,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
         if (previousState) {
           dispatch(setRepoCards(previousState))
           setHistory((prev) => prev.slice(0, -1))
-          setUndoMessage('Card operation undone')
-          setTimeout(() => setUndoMessage(null), 2000)
+          toast.success('Card operation undone')
 
           // P1-8: Sync reverted card positions to DB
           const updates = previousState.map((c, index) => ({
@@ -708,19 +717,6 @@ export const KanbanBoard = memo<KanbanBoardProps>(
 
     return (
       <div className="relative w-fit min-w-full p-6">
-        {/* Undo message display */}
-        {undoMessage && (
-          <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0 : undefined }}
-            className="bg-primary text-primary-foreground absolute top-4 left-1/2 z-50 -translate-x-1/2 transform rounded-lg px-4 py-2 shadow-lg"
-          >
-            {undoMessage}
-          </motion.div>
-        )}
-
         <DndContext
           sensors={sensors}
           collisionDetection={forgivingCollisionDetection}

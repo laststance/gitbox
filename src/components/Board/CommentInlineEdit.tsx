@@ -129,6 +129,8 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
           if (closeOnSave) {
             toast.success('Comment saved')
           }
+        } catch {
+          toast.error('Failed to save comment')
         } finally {
           setIsSaving(false)
         }
