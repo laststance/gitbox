@@ -508,6 +508,132 @@ export async function getUserBoardsWithStatusLists(): Promise<{
 }
 
 /**
+ * Move a RepoCard to another board
+ *
+ * Transfers a repository card from the current board to a different board.
+ * The card ID is preserved, so all projectinfo (notes, links, comments) remains intact.
+ *
+ * @param cardId - RepoCard ID to move
+ * @param targetBoardId - Destination board ID
+ * @param targetStatusId - Destination status column ID
+ * @returns
+ * - On success: `{ success: true }`
+ * - On auth error: `{ success: false, error: 'Authentication required' }`
+ * - On not found: `{ success: false, error: 'Card not found' }`
+ * - On ownership error: `{ success: false, error: 'Unauthorized' }`
+ * - On duplicate: `{ success: false, error: 'Repository already exists in target board' }`
+ * - On invalid status: `{ success: false, error: 'Status column does not belong to target board' }`
+ *
+ * @example
+ * const result = await moveCardToBoard('card-uuid', 'board-uuid', 'status-uuid')
+ * if (result.success) {
+ *   dispatch(removeRepoCard('card-uuid'))
+ * }
+ */
+export async function moveCardToBoard(
+  cardId: string,
+  targetBoardId: string,
+  targetStatusId: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient()
+
+    // Get current user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return { success: false, error: 'Authentication required' }
+    }
+
+    // Fetch card with board ownership check
+    const { data: card, error: cardError } = await supabase
+      .from('repocard')
+      .select('*, board:board_id(user_id)')
+      .eq('id', cardId)
+      .single()
+
+    if (cardError || !card) {
+      return { success: false, error: 'Card not found' }
+    }
+
+    // Verify ownership via board's user_id
+    const boardData = card.board as { user_id: string } | null
+    if (!boardData || boardData.user_id !== user.id) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    // Verify target board exists and user owns it
+    const { data: targetBoard, error: targetBoardError } = await supabase
+      .from('board')
+      .select('id')
+      .eq('id', targetBoardId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (targetBoardError || !targetBoard) {
+      return { success: false, error: 'Target board not found' }
+    }
+
+    // Verify target status belongs to target board
+    const { data: targetStatus, error: targetStatusError } = await supabase
+      .from('statuslist')
+      .select('id')
+      .eq('id', targetStatusId)
+      .eq('board_id', targetBoardId)
+      .single()
+
+    if (targetStatusError || !targetStatus) {
+      return {
+        success: false,
+        error: 'Status column does not belong to target board',
+      }
+    }
+
+    // Check for duplicate in target board
+    const { data: existing } = await supabase
+      .from('repocard')
+      .select('id')
+      .eq('board_id', targetBoardId)
+      .eq('repo_owner', card.repo_owner)
+      .eq('repo_name', card.repo_name)
+      .maybeSingle()
+
+    if (existing) {
+      return {
+        success: false,
+        error: 'Repository already exists in target board',
+      }
+    }
+
+    // Atomic move via RPC (calculates next order position)
+    const { error: rpcError } = await supabase.rpc('move_card_to_board', {
+      p_card_id: cardId,
+      p_target_board_id: targetBoardId,
+      p_target_status_id: targetStatusId,
+    })
+
+    if (rpcError) {
+      log.error({ error: rpcError }, 'move_card_to_board RPC error')
+      Sentry.captureException(rpcError, {
+        extra: { context: 'move_card_to_board RPC', cardId, targetBoardId },
+      })
+      return { success: false, error: 'Failed to move card' }
+    }
+
+    return { success: true }
+  } catch (error) {
+    log.error({ error }, 'Move card to board error')
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+    }
+  }
+}
+
+/**
  * Move a RepoCard to Maintenance mode
  *
  * Transfers a repository card from the active board to the maintenance archive.

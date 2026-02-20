@@ -160,6 +160,45 @@ VALUES
   )
 ON CONFLICT (id) DO NOTHING;
 
+-- Status lists for Work Projects board (board-2)
+-- Used by move-to-another-board E2E tests as a target board
+INSERT INTO statuslist (id, board_id, name, color, "order", grid_row, grid_col, created_at, updated_at)
+VALUES
+  (
+    '00000000-0000-0000-0000-000000000211'::uuid,
+    '00000000-0000-0000-0000-000000000101'::uuid,
+    'Backlog',
+    '#6B7280',
+    0,
+    0,
+    0,
+    '2024-01-02T00:00:00.000Z'::timestamptz,
+    '2024-01-02T00:00:00.000Z'::timestamptz
+  ),
+  (
+    '00000000-0000-0000-0000-000000000212'::uuid,
+    '00000000-0000-0000-0000-000000000101'::uuid,
+    'Active',
+    '#3B82F6',
+    1,
+    0,
+    1,
+    '2024-01-02T00:00:00.000Z'::timestamptz,
+    '2024-01-02T00:00:00.000Z'::timestamptz
+  ),
+  (
+    '00000000-0000-0000-0000-000000000213'::uuid,
+    '00000000-0000-0000-0000-000000000101'::uuid,
+    'Complete',
+    '#22C55E',
+    2,
+    0,
+    2,
+    '2024-01-02T00:00:00.000Z'::timestamptz,
+    '2024-01-02T00:00:00.000Z'::timestamptz
+  )
+ON CONFLICT (id) DO NOTHING;
+
 -- ============================================================================
 -- 4. Create Repo Cards
 -- ============================================================================
