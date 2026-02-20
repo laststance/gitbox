@@ -3,7 +3,7 @@
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { MoreHorizontal, Pencil, Trash2, Plus } from 'lucide-react'
+import { MoreHorizontal, Pencil, Trash2, Plus, Inbox } from 'lucide-react'
 import React, { memo } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -184,6 +184,16 @@ export const StatusColumn = memo<StatusColumnProps>(
                 </motion.div>
               ))}
             </AnimatePresence>
+
+            {/* Empty column guidance */}
+            {cards.length === 0 && (
+              <div className="flex flex-col items-center gap-2 py-8 text-center">
+                <Inbox className="text-muted-foreground/40 h-8 w-8" />
+                <p className="text-muted-foreground text-xs">
+                  Drop repos here or click &quot;Add Repo&quot; below
+                </p>
+              </div>
+            )}
           </div>
         </SortableContext>
 

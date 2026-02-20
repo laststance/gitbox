@@ -87,7 +87,7 @@ export const FeaturesSection = memo(function FeaturesSection() {
           {features.map((feature, index) => (
             <div
               key={index}
-              className="group border-border bg-background/50 hover:bg-background hover:border-primary/20 relative rounded-2xl border p-8 backdrop-blur-sm transition-all duration-300 hover:shadow-lg"
+              className="group border-border bg-background/50 hover:bg-background hover:border-primary/20 relative cursor-pointer rounded-2xl border p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
             >
               <div className="text-primary mb-4 transition-transform duration-300 group-hover:scale-110">
                 {feature.icon}

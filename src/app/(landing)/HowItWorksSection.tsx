@@ -49,9 +49,9 @@ export const HowItWorksSection = memo(function HowItWorksSection() {
           {steps.map((item, index) => (
             <div
               key={index}
-              className="border-border/50 bg-background/30 relative flex gap-4 rounded-xl border p-6"
+              className="group border-border/50 bg-background/30 hover:bg-background/60 hover:border-primary/20 relative flex cursor-pointer gap-4 rounded-xl border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
             >
-              <div className="bg-primary/10 text-primary flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-bold">
+              <div className="bg-primary/10 text-primary flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-bold transition-transform duration-300 group-hover:scale-110">
                 {item.step}
               </div>
               <div>
