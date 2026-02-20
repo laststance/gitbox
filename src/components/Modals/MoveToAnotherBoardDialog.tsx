@@ -181,28 +181,32 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
     setIsMoving(true)
     setError(null)
 
-    const result = await moveCardToBoard(
-      cardId,
-      effectiveBoardId,
-      effectiveStatusId,
-    )
-
-    if (result.success) {
-      const selectedBoard = availableBoards.find(
-        (b) => b.id === effectiveBoardId,
+    try {
+      const result = await moveCardToBoard(
+        cardId,
+        effectiveBoardId,
+        effectiveStatusId,
       )
-      toast.success('Card moved', {
-        description: `"${repoName}" has been moved to ${selectedBoard?.name ?? 'board'}.`,
-      })
-      setSelectedBoardId('')
-      setSelectedStatusId('')
-      onMoved(cardId)
-      onClose()
-    } else {
-      setError(result.error || 'Failed to move card')
-    }
 
-    setIsMoving(false)
+      if (result.success) {
+        const selectedBoard = availableBoards.find(
+          (b) => b.id === effectiveBoardId,
+        )
+        toast.success('Card moved', {
+          description: `"${repoName}" has been moved to ${selectedBoard?.name ?? 'board'}.`,
+        })
+        setSelectedBoardId('')
+        setSelectedStatusId('')
+        onMoved(cardId)
+        onClose()
+      } else {
+        setError(result.error || 'Failed to move card')
+      }
+    } catch {
+      setError('Failed to move card')
+    } finally {
+      setIsMoving(false)
+    }
   }, [
     cardId,
     effectiveBoardId,
