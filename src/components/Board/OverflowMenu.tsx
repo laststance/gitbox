@@ -7,6 +7,7 @@ import {
   BarChart2,
   Database,
   Archive,
+  ArrowRightLeft,
   RotateCcw,
   Trash2,
 } from 'lucide-react'
@@ -38,6 +39,7 @@ interface OverflowMenuProps {
   trackingUrl?: string
   supabaseUrl?: string
   onMoveToMaintenance?: (id: string) => void
+  onMoveToAnotherBoard?: (id: string) => void
   onRestoreToBoard?: (id: string) => void
   /** Callback when repository is removed from board */
   onRemove?: (id: string) => void
@@ -73,6 +75,7 @@ export const OverflowMenu = memo<OverflowMenuProps>(
     trackingUrl,
     supabaseUrl,
     onMoveToMaintenance,
+    onMoveToAnotherBoard,
     onRestoreToBoard,
     onRemove,
     onDelete,
@@ -178,6 +181,17 @@ export const OverflowMenu = memo<OverflowMenuProps>(
               >
                 <Archive className="mr-2 h-4 w-4" />
                 Move to Maintenance
+              </DropdownMenuItem>
+            )}
+
+            {/* Move to Another Board (Board context only) */}
+            {context === 'board' && onMoveToAnotherBoard && (
+              <DropdownMenuItem
+                onClick={() => onMoveToAnotherBoard(cardId)}
+                data-testid={`move-to-another-board-${cardId}`}
+              >
+                <ArrowRightLeft className="mr-2 h-4 w-4" />
+                Move to Another Board
               </DropdownMenuItem>
             )}
 

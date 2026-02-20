@@ -340,6 +340,14 @@ export type Database = {
         }
         Returns: string
       }
+      move_card_to_board: {
+        Args: {
+          p_card_id: string
+          p_target_board_id: string
+          p_target_status_id: string
+        }
+        Returns: undefined
+      }
       swap_statuslist_positions: {
         Args: { id_a: string; id_b: string }
         Returns: undefined

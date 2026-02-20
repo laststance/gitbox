@@ -18,12 +18,13 @@
 import * as Sentry from '@sentry/nextjs'
 import { Link, Plus, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useCallback, memo, useEffect, useLayoutEffect } from 'react'
+import { useState, useCallback, memo, useEffect, useLayoutEffect } from 'react'
 import { toast } from 'sonner'
 
 import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox'
 import { KanbanBoard } from '@/components/Board/KanbanBoard'
 import { BoardSettingsDialog } from '@/components/Boards/BoardSettingsDialog'
+import { MoveToAnotherBoardDialog } from '@/components/Modals/MoveToAnotherBoardDialog'
 import { NoteModal } from '@/components/Modals/NoteModal'
 import { StatusListDialog } from '@/components/Modals/StatusListDialog'
 import {
@@ -57,6 +58,7 @@ import {
   setRepoCards,
   setActiveBoard,
   addRepoCards,
+  removeRepoCard,
   selectStatusLists,
   selectRepoCards,
 } from '@/lib/redux/slices/boardSlice'
@@ -158,6 +160,24 @@ export const BoardPageClient = memo(function BoardPageClient({
         successMessage: 'Repository removed',
       }),
     [executeCardAction],
+  )
+
+  // ========================================
+  // Move to Another Board Handler
+  // ========================================
+
+  const [moveDialogCardId, setMoveDialogCardId] = useState<string | null>(null)
+
+  const handleMoveToAnotherBoard = useCallback((cardId: string) => {
+    setMoveDialogCardId(cardId)
+  }, [])
+
+  const handleMoveSuccess = useCallback(
+    (cardId: string) => {
+      dispatch(removeRepoCard(cardId))
+      setMoveDialogCardId(null)
+    },
+    [dispatch],
   )
 
   // ========================================
@@ -319,6 +339,7 @@ export const BoardPageClient = memo(function BoardPageClient({
             initialComments={initialData.comments}
             cardDisplaySettings={boardSettings.cardDisplaySettings}
             onMoveToMaintenance={handleMoveToMaintenance}
+            onMoveToAnotherBoard={handleMoveToAnotherBoard}
             onNote={noteModal.open}
             onRemove={handleRemoveFromBoard}
             onEditStatus={statusListDialog.openEdit}
@@ -367,6 +388,20 @@ export const BoardPageClient = memo(function BoardPageClient({
         onCardDisplayChange={boardSettings.handleCardDisplayChange}
         onDeleteSuccess={handleDeleteSuccess}
       />
+
+      {/* Move to Another Board Dialog */}
+      {moveDialogCardId && (
+        <MoveToAnotherBoardDialog
+          isOpen={!!moveDialogCardId}
+          onClose={() => setMoveDialogCardId(null)}
+          cardId={moveDialogCardId}
+          repoName={
+            repoCards.find((c) => c.id === moveDialogCardId)?.title ?? ''
+          }
+          currentBoardId={boardId}
+          onMoved={handleMoveSuccess}
+        />
+      )}
 
       {/* StatusList Delete Confirmation Dialog */}
       <AlertDialog

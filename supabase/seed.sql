@@ -10,6 +10,7 @@
 -- - board-1            → 00000000-0000-0000-0000-000000000100
 -- - board-2            → 00000000-0000-0000-0000-000000000101
 -- - status-1~5         → 00000000-0000-0000-0000-000000000201~205
+-- - status-211~213     → 00000000-0000-0000-0000-000000000211~213 (Work Projects)
 -- - card-1~5           → 00000000-0000-0000-0000-000000000301~305
 -- - projinfo-1~4       → 00000000-0000-0000-0000-000000000401~404
 -- - maintenance-1~2    → 00000000-0000-0000-0000-000000000501~502
@@ -157,6 +158,45 @@ VALUES
     4,
     '2024-01-01T00:00:00.000Z'::timestamptz,
     '2024-01-01T00:00:00.000Z'::timestamptz
+  )
+ON CONFLICT (id) DO NOTHING;
+
+-- Status lists for Work Projects board (board-2)
+-- Used by move-to-another-board E2E tests as a target board
+INSERT INTO statuslist (id, board_id, name, color, "order", grid_row, grid_col, created_at, updated_at)
+VALUES
+  (
+    '00000000-0000-0000-0000-000000000211'::uuid,
+    '00000000-0000-0000-0000-000000000101'::uuid,
+    'Backlog',
+    '#6B7280',
+    0,
+    0,
+    0,
+    '2024-01-02T00:00:00.000Z'::timestamptz,
+    '2024-01-02T00:00:00.000Z'::timestamptz
+  ),
+  (
+    '00000000-0000-0000-0000-000000000212'::uuid,
+    '00000000-0000-0000-0000-000000000101'::uuid,
+    'Active',
+    '#3B82F6',
+    1,
+    0,
+    1,
+    '2024-01-02T00:00:00.000Z'::timestamptz,
+    '2024-01-02T00:00:00.000Z'::timestamptz
+  ),
+  (
+    '00000000-0000-0000-0000-000000000213'::uuid,
+    '00000000-0000-0000-0000-000000000101'::uuid,
+    'Complete',
+    '#22C55E',
+    2,
+    0,
+    2,
+    '2024-01-02T00:00:00.000Z'::timestamptz,
+    '2024-01-02T00:00:00.000Z'::timestamptz
   )
 ON CONFLICT (id) DO NOTHING;
 
