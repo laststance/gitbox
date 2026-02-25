@@ -73,6 +73,8 @@ export const LinkManager = memo(function LinkManager({
    * Add a new empty URL entry and auto-enter edit mode
    */
   const handleAddUrl = useCallback(() => {
+    const nextIndex = links.length
+    setEditingUrlIndex(nextIndex)
     onLinksChange([...links, { url: '', type: 'vercel' }])
   }, [links, onLinksChange])
 
@@ -141,11 +143,15 @@ export const LinkManager = memo(function LinkManager({
   const handleUndoDelete = useCallback(() => {
     if (!deletedLink) return
     const { link, index } = deletedLink
+    const insertIndex = Math.min(index, links.length)
     const newLinks = [...links]
-    newLinks.splice(Math.min(index, links.length), 0, link)
+    newLinks.splice(insertIndex, 0, link)
+    if (editingUrlIndex !== null && insertIndex <= editingUrlIndex) {
+      setEditingUrlIndex(editingUrlIndex + 1)
+    }
     setDeletedLink(null)
     onLinksChange(newLinks)
-  }, [deletedLink, links, onLinksChange])
+  }, [deletedLink, editingUrlIndex, links, onLinksChange])
 
   return (
     <div className="space-y-4">

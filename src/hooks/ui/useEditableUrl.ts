@@ -268,7 +268,15 @@ export function useEditableUrl({
     const trimmedEdit = editValue.trim()
     const trimmedLink = link.url.trim()
 
-    if (trimmedEdit !== trimmedLink && !error && !isSavingRef.current) {
+    if (trimmedEdit !== trimmedLink && !isSavingRef.current) {
+      // Validate synchronously — debounced error state may be stale
+      const validation = isValidUrl(trimmedEdit)
+      if (!validation.valid) {
+        setEditValue(link.url)
+        setError(null)
+        setIsEditing(false)
+        return
+      }
       isSavingRef.current = true
       debouncedValidate.cancel()
       try {
