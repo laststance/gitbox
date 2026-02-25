@@ -50,10 +50,10 @@ export function useRestoreDialog({
     hasFetchedBoards.current = true
     startLoadingBoards(async () => {
       const result = await getUserBoardsWithStatusLists()
-      if (result.success && result.boards) {
-        setBoards(result.boards)
+      if (result.success && result.data) {
+        setBoards(result.data)
         setBoardsError(null)
-      } else {
+      } else if (!result.success) {
         setBoardsError(result.error || 'Failed to load boards')
       }
     })

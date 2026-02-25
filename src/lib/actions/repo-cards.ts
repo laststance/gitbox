@@ -12,10 +12,12 @@
 
 import * as Sentry from '@sentry/nextjs'
 
+import {
+  withAuthResult,
+  withAuthResultRateLimit,
+} from '@/lib/actions/auth-guard'
 import type { GitHubRepository } from '@/lib/actions/github'
 import { createModuleLogger } from '@/lib/logger'
-import { checkRateLimit } from '@/lib/rate-limit/check'
-import { createClient } from '@/lib/supabase/server'
 
 import type { ActionResult } from './types'
 
@@ -63,35 +65,14 @@ export async function addRepositoriesToBoard(
   boardId: string,
   statusId: string,
   repositories: GitHubRepository[],
-): Promise<{
-  success: boolean
-  addedCount: number
-  cards?: CreatedRepoCard[]
-  errors?: string[]
-}> {
-  try {
-    const supabase = await createClient()
-
-    // Get current user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      throw new Error('Authentication required')
-    }
-
-    // Rate limit add repository operations
-    const rlResult = checkRateLimit('addReposToBoard', user.id)
-    if (!rlResult.allowed) {
-      return {
-        success: false,
-        addedCount: 0,
-        errors: [rlResult.error!],
-      }
-    }
-
+): Promise<
+  ActionResult<{
+    addedCount: number
+    cards: CreatedRepoCard[]
+    duplicateWarnings?: string[]
+  }>
+> {
+  return withAuthResultRateLimit('addReposToBoard', async (supabase, user) => {
     // Check if board exists and user owns it
     const { data: board, error: boardError } = await supabase
       .from('board')
@@ -136,11 +117,7 @@ export async function addRepositoriesToBoard(
     })
 
     if (newRepos.length === 0) {
-      return {
-        success: false,
-        addedCount: 0,
-        errors: ['All repositories have already been added'],
-      }
+      throw new Error('All repositories have already been added')
     }
 
     // Get current maximum order value
@@ -204,27 +181,14 @@ export async function addRepositoriesToBoard(
     const duplicateCount = repositories.length - newRepos.length
 
     return {
-      success: true,
       addedCount: newRepos.length,
       cards: createdCards,
-      errors:
+      duplicateWarnings:
         duplicateCount > 0
           ? [`${duplicateCount} repositories were duplicates`]
           : undefined,
     }
-  } catch (error) {
-    log.error({ error }, 'Add repositories error')
-    Sentry.captureException(error, {
-      extra: { context: 'Add repositories', boardId },
-    })
-    return {
-      success: false,
-      addedCount: 0,
-      errors: [
-        error instanceof Error ? error.message : 'Unknown error occurred',
-      ],
-    }
-  }
+  })
 }
 
 /**
@@ -236,22 +200,7 @@ export async function addRepositoriesToBoard(
 export async function deleteRepoCard(
   cardId: string,
 ): Promise<ActionResult<void>> {
-  try {
-    const supabase = await createClient()
-
-    // Get current user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return {
-        success: false,
-        error: 'Authentication required',
-      }
-    }
-
+  return withAuthResultRateLimit('boardCrud', async (supabase) => {
     // Delete card (ownership check is done automatically by RLS policy)
     const { error: deleteError } = await supabase
       .from('repocard')
@@ -263,23 +212,9 @@ export async function deleteRepoCard(
       Sentry.captureException(deleteError, {
         extra: { context: 'Delete card', cardId },
       })
-      return {
-        success: false,
-        error: 'Failed to delete card',
-      }
+      throw new Error('Failed to delete card')
     }
-
-    return { success: true, data: undefined }
-  } catch (error) {
-    log.error({ error }, 'Delete card error')
-    Sentry.captureException(error, {
-      extra: { context: 'Delete card', cardId },
-    })
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-    }
-  }
+  })
 }
 
 /**
@@ -310,20 +245,8 @@ export async function restoreToBoard(
   maintenanceId: string,
   boardId: string,
   statusId: string,
-): Promise<{ success: boolean; cardId?: string; error?: string }> {
-  try {
-    const supabase = await createClient()
-
-    // Get current user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return { success: false, error: 'Authentication required' }
-    }
-
+): Promise<ActionResult<{ cardId: string }>> {
+  return withAuthResultRateLimit('boardCrud', async (supabase, user) => {
     // Fetch maintenance item with ownership check
     const { data: maintItem, error: maintError } = await supabase
       .from('maintenance')
@@ -333,7 +256,7 @@ export async function restoreToBoard(
       .single()
 
     if (maintError || !maintItem) {
-      return { success: false, error: 'Maintenance item not found' }
+      throw new Error('Maintenance item not found')
     }
 
     // Verify board ownership
@@ -345,7 +268,7 @@ export async function restoreToBoard(
       .single()
 
     if (boardError || !board) {
-      return { success: false, error: 'Board not found' }
+      throw new Error('Board not found')
     }
 
     // Check for duplicate in target board
@@ -358,10 +281,7 @@ export async function restoreToBoard(
       .maybeSingle()
 
     if (existing) {
-      return {
-        success: false,
-        error: 'Repository already exists in this board',
-      }
+      throw new Error('Repository already exists in this board')
     }
 
     // Get max order in target status
@@ -376,7 +296,6 @@ export async function restoreToBoard(
     const nextOrder = (maxOrderData?.order ?? -1) + 1
 
     // Atomic transaction: insert repocard → transfer projectinfo FK → delete maintenance
-    // All 3 steps run in a single PostgreSQL transaction — automatic rollback on failure
     const { data: cardId, error: rpcError } = await supabase.rpc(
       'restore_to_board',
       {
@@ -394,17 +313,11 @@ export async function restoreToBoard(
       Sentry.captureException(rpcError, {
         extra: { context: 'restore_to_board RPC', maintenanceId, boardId },
       })
-      return { success: false, error: 'Failed to restore repository' }
+      throw new Error('Failed to restore repository')
     }
 
-    return { success: true, cardId }
-  } catch (error) {
-    log.error({ error }, 'Restore to board error')
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-    }
-  }
+    return { cardId }
+  })
 }
 
 /**
@@ -424,32 +337,20 @@ export async function restoreToBoard(
  *   })
  * }
  */
-export async function getUserBoardsWithStatusLists(): Promise<{
-  success: boolean
-  boards?: Array<{
-    id: string
-    name: string
-    statusLists: Array<{
+export async function getUserBoardsWithStatusLists(): Promise<
+  ActionResult<
+    Array<{
       id: string
       name: string
-      color: string
+      statusLists: Array<{
+        id: string
+        name: string
+        color: string
+      }>
     }>
-  }>
-  error?: string
-}> {
-  try {
-    const supabase = await createClient()
-
-    // Get current user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return { success: false, error: 'Authentication required' }
-    }
-
+  >
+> {
+  return withAuthResult(async (supabase, user) => {
     // Fetch boards
     const { data: boards, error: boardsError } = await supabase
       .from('board')
@@ -459,11 +360,11 @@ export async function getUserBoardsWithStatusLists(): Promise<{
 
     if (boardsError) {
       log.error({ error: boardsError }, 'Failed to fetch boards')
-      return { success: false, error: 'Failed to fetch boards' }
+      throw new Error('Failed to fetch boards')
     }
 
     if (!boards || boards.length === 0) {
-      return { success: true, boards: [] }
+      return []
     }
 
     // Fetch status lists for all boards
@@ -476,7 +377,7 @@ export async function getUserBoardsWithStatusLists(): Promise<{
 
     if (statusError) {
       log.error({ error: statusError }, 'Failed to fetch status lists')
-      return { success: false, error: 'Failed to fetch status lists' }
+      throw new Error('Failed to fetch status lists')
     }
 
     // Group status lists by board
@@ -491,20 +392,12 @@ export async function getUserBoardsWithStatusLists(): Promise<{
     }
 
     // Build result
-    const result = boards.map((board) => ({
+    return boards.map((board) => ({
       id: board.id,
       name: board.name,
       statusLists: statusListsByBoard.get(board.id) || [],
     }))
-
-    return { success: true, boards: result }
-  } catch (error) {
-    log.error({ error }, 'Get user boards with status lists error')
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-    }
-  }
+  })
 }
 
 /**
@@ -534,31 +427,19 @@ export async function moveCardToBoard(
   cardId: string,
   targetBoardId: string,
   targetStatusId: string,
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    // Step 0: Validate UUID format
-    const UUID_RE =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (
-      !UUID_RE.test(cardId) ||
-      !UUID_RE.test(targetBoardId) ||
-      !UUID_RE.test(targetStatusId)
-    ) {
-      return { success: false, error: 'Invalid ID format' }
-    }
+): Promise<ActionResult<void>> {
+  // Step 0: Validate UUID format
+  const UUID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (
+    !UUID_RE.test(cardId) ||
+    !UUID_RE.test(targetBoardId) ||
+    !UUID_RE.test(targetStatusId)
+  ) {
+    return { success: false, error: 'Invalid ID format' }
+  }
 
-    const supabase = await createClient()
-
-    // Get current user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return { success: false, error: 'Authentication required' }
-    }
-
+  return withAuthResultRateLimit('boardCrud', async (supabase, user) => {
     // Fetch card with board ownership check
     const { data: card, error: cardError } = await supabase
       .from('repocard')
@@ -567,13 +448,13 @@ export async function moveCardToBoard(
       .single()
 
     if (cardError || !card) {
-      return { success: false, error: 'Card not found' }
+      throw new Error('Card not found')
     }
 
     // Verify ownership via board's user_id
     const boardData = card.board as { user_id: string } | null
     if (!boardData || boardData.user_id !== user.id) {
-      return { success: false, error: 'Unauthorized' }
+      throw new Error('Unauthorized')
     }
 
     // Verify target board exists and user owns it
@@ -585,7 +466,7 @@ export async function moveCardToBoard(
       .single()
 
     if (targetBoardError || !targetBoard) {
-      return { success: false, error: 'Target board not found' }
+      throw new Error('Target board not found')
     }
 
     // Verify target status belongs to target board
@@ -597,10 +478,7 @@ export async function moveCardToBoard(
       .single()
 
     if (targetStatusError || !targetStatus) {
-      return {
-        success: false,
-        error: 'Status column does not belong to target board',
-      }
+      throw new Error('Status column does not belong to target board')
     }
 
     // Check for duplicate in target board
@@ -613,10 +491,7 @@ export async function moveCardToBoard(
       .maybeSingle()
 
     if (existing) {
-      return {
-        success: false,
-        error: 'Repository already exists in target board',
-      }
+      throw new Error('Repository already exists in target board')
     }
 
     // Atomic move via RPC (calculates next order position)
@@ -631,17 +506,9 @@ export async function moveCardToBoard(
       Sentry.captureException(rpcError, {
         extra: { context: 'move_card_to_board RPC', cardId, targetBoardId },
       })
-      return { success: false, error: 'Failed to move card' }
+      throw new Error('Failed to move card')
     }
-
-    return { success: true }
-  } catch (error) {
-    log.error({ error }, 'Move card to board error')
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-    }
-  }
+  })
 }
 
 /**
@@ -669,20 +536,8 @@ export async function moveCardToBoard(
  */
 export async function moveToMaintenance(
   cardId: string,
-): Promise<{ success: boolean; maintenanceId?: string; error?: string }> {
-  try {
-    const supabase = await createClient()
-
-    // Get current user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return { success: false, error: 'Authentication required' }
-    }
-
+): Promise<ActionResult<{ maintenanceId: string }>> {
+  return withAuthResultRateLimit('boardCrud', async (supabase, user) => {
     // Fetch card with board ownership check
     const { data: card, error: cardError } = await supabase
       .from('repocard')
@@ -691,13 +546,13 @@ export async function moveToMaintenance(
       .single()
 
     if (cardError || !card) {
-      return { success: false, error: 'Card not found' }
+      throw new Error('Card not found')
     }
 
     // Verify ownership via board's user_id
     const boardData = card.board as { user_id: string } | null
     if (!boardData || boardData.user_id !== user.id) {
-      return { success: false, error: 'Unauthorized' }
+      throw new Error('Unauthorized')
     }
 
     // Check if already in maintenance
@@ -710,11 +565,10 @@ export async function moveToMaintenance(
       .maybeSingle()
 
     if (existing) {
-      return { success: false, error: 'Repository already in maintenance' }
+      throw new Error('Repository already in maintenance')
     }
 
     // Atomic transaction: insert maintenance → transfer projectinfo FK → delete repocard
-    // All 3 steps run in a single PostgreSQL transaction — automatic rollback on failure
     const { data: maintId, error: rpcError } = await supabase.rpc(
       'move_to_maintenance',
       {
@@ -730,15 +584,9 @@ export async function moveToMaintenance(
       Sentry.captureException(rpcError, {
         extra: { context: 'move_to_maintenance RPC', cardId },
       })
-      return { success: false, error: 'Failed to move to maintenance' }
+      throw new Error('Failed to move to maintenance')
     }
 
-    return { success: true, maintenanceId: maintId }
-  } catch (error) {
-    log.error({ error }, 'Move to maintenance error')
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-    }
-  }
+    return { maintenanceId: maintId }
+  })
 }

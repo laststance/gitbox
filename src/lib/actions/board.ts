@@ -10,7 +10,6 @@
 import * as Sentry from '@sentry/nextjs'
 
 import {
-  withAuth,
   withAuthRateLimit,
   withAuthResultRateLimit,
 } from '@/lib/actions/auth-guard'
@@ -196,7 +195,7 @@ export async function updateStatusList(
   if (updates.name !== undefined) statusListNameSchema.parse(updates.name)
   if (updates.color !== undefined) statusListColorSchema.parse(updates.color)
 
-  return withAuth(async (supabase) => {
+  return withAuthRateLimit('boardCrud', async (supabase) => {
     const updateData: Record<string, unknown> = {}
     if (updates.name !== undefined) updateData.name = updates.name
     if (updates.color !== undefined) updateData.color = updates.color
@@ -222,25 +221,19 @@ export async function deleteStatusList(
   statusId: string,
   boardId: string,
 ): Promise<void> {
-  const supabase = await createClient()
+  return withAuthRateLimit('boardCrud', async (supabase) => {
+    const { error } = await supabase
+      .from('statuslist')
+      .delete()
+      .eq('id', statusId)
 
-  // Auth check (P1-5)
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('Authentication required')
-
-  const { error } = await supabase
-    .from('statuslist')
-    .delete()
-    .eq('id', statusId)
-
-  if (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'Delete status list', statusId, boardId },
-    })
-    throw new Error('Failed to delete status list')
-  }
+    if (error) {
+      Sentry.captureException(error, {
+        extra: { context: 'Delete status list', statusId, boardId },
+      })
+      throw new Error('Failed to delete status list')
+    }
+  })
 }
 
 /**
@@ -259,7 +252,7 @@ export async function updateStatusListPosition(
   // Validate grid position (P2-4)
   gridPositionSchema.parse({ gridRow, gridCol })
 
-  return withAuth(async (supabase) => {
+  return withAuthRateLimit('batchDnD', async (supabase) => {
     const { error } = await supabase
       .from('statuslist')
       .update({
@@ -384,7 +377,7 @@ export async function updateRepoCardPosition(
   statusId: string,
   order: number,
 ): Promise<void> {
-  return withAuth(async (supabase) => {
+  return withAuthRateLimit('batchDnD', async (supabase) => {
     const { error } = await supabase
       .from('repocard')
       .update({
@@ -566,44 +559,6 @@ export async function updateBoardPositions(
   })
 }
 
-/**
- * Delete a board
- */
-export async function deleteBoard(boardId: string): Promise<void> {
-  return withAuthRateLimit('boardCrud', async (supabase) => {
-    const { error } = await supabase.from('board').delete().eq('id', boardId)
-
-    if (error) {
-      Sentry.captureException(error, {
-        extra: { context: 'Delete board', boardId },
-      })
-      throw new Error('Failed to delete board')
-    }
-  })
-}
-
-/**
- * Update board settings
- */
-export async function updateBoard(
-  boardId: string,
-  updates: { name?: string; subtitle?: string | null },
-): Promise<void> {
-  return withAuth(async (supabase) => {
-    const { error } = await supabase
-      .from('board')
-      .update(updates)
-      .eq('id', boardId)
-
-    if (error) {
-      Sentry.captureException(error, {
-        extra: { context: 'Update board', boardId, updates },
-      })
-      throw new Error('Failed to update board')
-    }
-  })
-}
-
 // ========================================
 // Board Rename/Delete Actions (useActionState compatible)
 // ========================================
@@ -657,12 +612,28 @@ export async function renameBoardAction(
     return { errors: { name: result.error.issues.map((i) => i.message) } }
   }
 
-  try {
-    await updateBoard(boardId, { name: result.data })
-    return { success: true, newName: result.data }
-  } catch {
-    return { errors: { name: ['Failed to rename board'] } }
+  const actionResult = await withAuthResultRateLimit(
+    'boardCrud',
+    async (supabase) => {
+      const { error } = await supabase
+        .from('board')
+        .update({ name: result.data })
+        .eq('id', boardId)
+
+      if (error) {
+        Sentry.captureException(error, {
+          extra: { context: 'Rename board', boardId, name: result.data },
+        })
+        throw new Error('Failed to rename board')
+      }
+    },
+  )
+
+  if (!actionResult.success) {
+    return { errors: { name: [actionResult.error] } }
   }
+
+  return { success: true, newName: result.data }
 }
 
 /**
@@ -695,12 +666,28 @@ export async function deleteBoardAction(
     return { error: 'Invalid board ID' }
   }
 
-  try {
-    await deleteBoard(idResult.data)
-    return { success: true }
-  } catch {
-    return { error: 'Failed to delete board' }
+  const actionResult = await withAuthResultRateLimit(
+    'boardCrud',
+    async (supabase) => {
+      const { error } = await supabase
+        .from('board')
+        .delete()
+        .eq('id', idResult.data)
+
+      if (error) {
+        Sentry.captureException(error, {
+          extra: { context: 'Delete board', boardId: idResult.data },
+        })
+        throw new Error('Failed to delete board')
+      }
+    },
+  )
+
+  if (!actionResult.success) {
+    return { error: actionResult.error }
   }
+
+  return { success: true }
 }
 
 // ========================================
