@@ -1,7 +1,7 @@
 'use client'
 
 import { cva, type VariantProps } from 'class-variance-authority'
-import React, { memo, useMemo } from 'react'
+import React, { memo } from 'react'
 
 import { cn } from '@/lib/utils'
 
@@ -49,21 +49,15 @@ export const Glow = memo(function Glow({
   ref,
   ...props
 }: GlowProps & { ref?: React.Ref<HTMLDivElement> }) {
-  const outerGlowClassName = useMemo(
-    () =>
-      variant === 'center'
-        ? `${GLOW_OUTER_BASE} ${GLOW_CENTER_TRANSLATE}`
-        : GLOW_OUTER_BASE,
-    [variant],
-  )
+  const outerGlowClassName =
+    variant === 'center'
+      ? `${GLOW_OUTER_BASE} ${GLOW_CENTER_TRANSLATE}`
+      : GLOW_OUTER_BASE
 
-  const innerGlowClassName = useMemo(
-    () =>
-      variant === 'center'
-        ? `${GLOW_INNER_BASE} ${GLOW_CENTER_TRANSLATE}`
-        : GLOW_INNER_BASE,
-    [variant],
-  )
+  const innerGlowClassName =
+    variant === 'center'
+      ? `${GLOW_INNER_BASE} ${GLOW_CENTER_TRANSLATE}`
+      : GLOW_INNER_BASE
 
   return (
     <div

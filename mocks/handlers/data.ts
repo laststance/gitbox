@@ -142,16 +142,9 @@ export type MockBoard = (typeof INITIAL_MOCK_BOARDS)[number]
  * Mock boards data (mutable to allow state persistence in tests)
  * Reset via POST /__msw__/reset endpoint between tests
  */
-export let mockBoards: MockBoard[] = INITIAL_MOCK_BOARDS.map((b) => ({ ...b }))
-
-/**
- * Reset mock data to initial state (called between tests for isolation)
- * Exported for use by the /__msw__/reset API route
- */
-export function resetMockData(): void {
-  mockBoards = INITIAL_MOCK_BOARDS.map((b) => ({ ...b }))
-  mockUserSettings = { ...INITIAL_MOCK_USER_SETTINGS }
-}
+export const mockBoards: MockBoard[] = INITIAL_MOCK_BOARDS.map((b) => ({
+  ...b,
+}))
 
 /**
  * Update a board in the mock data array
@@ -636,4 +629,4 @@ const INITIAL_MOCK_USER_SETTINGS = {
  * NULL values = use defaults ("My Boards", default subtitle)
  * Reset via resetMockData() between tests for isolation
  */
-export let mockUserSettings = { ...INITIAL_MOCK_USER_SETTINGS }
+export const mockUserSettings = { ...INITIAL_MOCK_USER_SETTINGS }

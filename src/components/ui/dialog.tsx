@@ -156,7 +156,6 @@ const DialogDescription = React.memo(function DialogDescription({
 export {
   Dialog,
   DialogPortal,
-  DialogOverlay,
   DialogClose,
   DialogTrigger,
   DialogContent,

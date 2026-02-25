@@ -44,6 +44,18 @@ vi.mock('framer-motion', () => ({
       [key: string]: unknown
     }) => <div {...props}>{children}</div>,
   },
+  m: {
+    div: ({
+      children,
+      ...props
+    }: {
+      children: React.ReactNode
+      [key: string]: unknown
+    }) => <div {...props}>{children}</div>,
+  },
+  LazyMotion: ({ children }: { children: React.ReactNode }): React.ReactNode =>
+    children,
+  domAnimation: {},
   AnimatePresence: ({
     children,
   }: {

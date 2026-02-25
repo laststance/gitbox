@@ -99,6 +99,7 @@ function CodeBlockCombobox() {
           variant="ghost"
           className="text-muted-foreground h-6 justify-between gap-1 px-2 text-xs select-none"
           aria-expanded={open}
+          aria-controls="code-block-language-list"
           role="combobox"
         >
           {languages.find((language) => language.value === value)?.label ??
@@ -118,7 +119,10 @@ function CodeBlockCombobox() {
           />
           <CommandEmpty>No language found.</CommandEmpty>
 
-          <CommandList className="h-[344px] overflow-y-auto">
+          <CommandList
+            id="code-block-language-list"
+            className="h-[344px] overflow-y-auto"
+          >
             <CommandGroup>
               {items.map((language) => (
                 <CommandItem

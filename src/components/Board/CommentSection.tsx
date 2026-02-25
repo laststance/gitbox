@@ -84,16 +84,14 @@ export const CommentSection = memo<CommentSectionProps>(
             style={mergedStyle}
             showEmptyState={true}
             renderActions={
-              comment
-                ? () => (
-                    <CommentActionsMenu
-                      onEdit={onStartEdit}
-                      onColorChange={onColorChange}
-                      onDelete={onDelete}
-                      currentColor={color}
-                    />
-                  )
-                : undefined
+              comment ? (
+                <CommentActionsMenu
+                  onEdit={onStartEdit}
+                  onColorChange={onColorChange}
+                  onDelete={onDelete}
+                  currentColor={color}
+                />
+              ) : undefined
             }
           />
         </Activity>

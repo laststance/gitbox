@@ -1225,39 +1225,3 @@ export async function toggleBoardPublic(
     return { is_public: isPublic, share_slug: shareSlug }
   })
 }
-
-/**
- * Regenerate the share slug for a public board.
- *
- * @param boardId - UUID of the board
- * @returns
- * - On success: { success: true, data: { share_slug: string } }
- * - On failure: { success: false, error: string }
- */
-export async function regenerateShareSlug(
-  boardId: string,
-): Promise<ActionResult<{ share_slug: string }>> {
-  return withAuthResultRateLimit('boardCrud', async (supabase, user) => {
-    const idResult = boardIdSchema.safeParse(boardId)
-    if (!idResult.success) throw new Error('Invalid board ID')
-
-    const newSlug = generateSlug()
-
-    const { data, error } = await supabase
-      .from('board')
-      .update({ share_slug: newSlug })
-      .eq('id', idResult.data)
-      .eq('user_id', user.id)
-      .select('share_slug')
-      .single()
-
-    if (error || !data) {
-      Sentry.captureException(error ?? new Error('Board not found'), {
-        extra: { context: 'Regenerate share slug', boardId: idResult.data },
-      })
-      throw new Error('Board not found or failed to regenerate share link')
-    }
-
-    return { share_slug: newSlug }
-  })
-}

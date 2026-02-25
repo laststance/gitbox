@@ -112,40 +112,6 @@ export async function querySingle<T>(
   return data as T
 }
 
-/**
- * Count records in Supabase table with optional filters.
- *
- * @param table - Table name to query
- * @param filters - Optional key-value filters to apply
- * @returns Number of matching records
- *
- * @example
- * const cardCount = await countRecords('repocard', { board_id: 'board-123' })
- * expect(cardCount).toBe(5)
- */
-export async function countRecords(
-  table: string,
-  filters?: Record<string, string | number | boolean>,
-): Promise<number> {
-  const supabase = createLocalSupabaseClient()
-
-  let query = supabase.from(table).select('*', { count: 'exact', head: true })
-
-  if (filters) {
-    for (const [key, value] of Object.entries(filters)) {
-      query = query.eq(key, value)
-    }
-  }
-
-  const { count, error } = await query
-
-  if (error) {
-    throw new Error(`Supabase count failed on ${table}: ${error.message}`)
-  }
-
-  return count ?? 0
-}
-
 // ============================================================================
 // Test Data UUIDs (matching seed.sql)
 // ============================================================================
@@ -168,13 +134,6 @@ export const STATUS_IDS = {
   productionRelease: '00000000-0000-0000-0000-000000000205',
 } as const
 
-/** Work Projects board status list UUIDs */
-export const WORK_PROJECT_STATUS_IDS = {
-  backlog: '00000000-0000-0000-0000-000000000211',
-  active: '00000000-0000-0000-0000-000000000212',
-  complete: '00000000-0000-0000-0000-000000000213',
-} as const
-
 /** Repo card UUIDs */
 export const CARD_IDS = {
   card1: '00000000-0000-0000-0000-000000000301',
@@ -191,16 +150,6 @@ export const PROJECT_INFO_IDS = {
   projinfo3: '00000000-0000-0000-0000-000000000403',
   projinfo4: '00000000-0000-0000-0000-000000000404',
 } as const
-
-/** Maintenance item UUIDs */
-export const MAINTENANCE_IDS = {
-  maintenance1: '00000000-0000-0000-0000-000000000501',
-  maintenance2: '00000000-0000-0000-0000-000000000502',
-} as const
-
-/** Maintenance project info UUID */
-export const MAINTENANCE_PROJECT_INFO_ID =
-  '00000000-0000-0000-0000-000000000601'
 
 // ============================================================================
 // State Reset Helpers (for test isolation with real DB)
@@ -801,50 +750,5 @@ export async function resetUserSettings(): Promise<void> {
 
   if (error) {
     throw new Error(`resetUserSettings: ${error.message}`)
-  }
-}
-
-/**
- * Reset a moved repo card back to its original board (testBoard).
- * Call this in afterEach for move-to-another-board tests to ensure clean state.
- *
- * @param cardId - The card ID to restore
- * @param originalStatusId - The original status list ID (defaults to Planning)
- * @param originalOrder - The original order position (defaults to 0).
- *   NOTE: The default order=0 may not match seeded data for some cards
- *   (e.g. card5 is seeded at order=2). Pass the correct originalOrder when known.
- *
- * @example
- * test.afterEach(async () => {
- *   await resetRepoCardToOriginalBoard(CARD_IDS.card5, STATUS_IDS.planning, 2)
- * })
- */
-export async function resetRepoCardToOriginalBoard(
-  cardId: string,
-  originalStatusId: string = STATUS_IDS.planning,
-  originalOrder: number = 0,
-): Promise<void> {
-  const supabase = createLocalSupabaseClient()
-
-  const { data, error } = await supabase
-    .from('repocard')
-    .update({
-      board_id: BOARD_IDS.testBoard,
-      status_id: originalStatusId,
-      order: originalOrder,
-    })
-    .eq('id', cardId)
-    .select('id')
-
-  if (error) {
-    throw new Error(
-      `resetRepoCardToOriginalBoard: failed for id=${cardId}: ${error.message}`,
-    )
-  }
-  if (!data || data.length === 0) {
-    throw new Error(
-      `resetRepoCardToOriginalBoard: UPDATE matched 0 rows for id=${cardId}. ` +
-        `URL=${process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'}`,
-    )
   }
 }

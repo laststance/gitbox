@@ -76,8 +76,8 @@ const Loading = memo(function Loading() {
 
       {/* Kanban columns skeleton */}
       <div className="flex flex-1 gap-4 overflow-x-auto p-4">
-        {columnCardCounts.map((count, i) => (
-          <ColumnSkeleton key={i} cardCount={count} />
+        {columnCardCounts.map((count) => (
+          <ColumnSkeleton key={count} cardCount={count} />
         ))}
       </div>
     </div>

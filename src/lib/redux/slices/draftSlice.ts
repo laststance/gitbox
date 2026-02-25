@@ -108,16 +108,3 @@ type DraftRootState = { draft: DraftState }
  */
 export const selectDraftNote = (cardId: string) => (state: DraftRootState) =>
   state.draft.notes[cardId] ?? null
-
-/**
- * Select draft links for a specific card
- *
- * @param cardId - The card ID to get draft links for
- * @returns Selector function returning links array or empty array
- * @example
- * const links = useAppSelector(selectDraftLinks('card-123'))
- */
-export const selectDraftLinks =
-  (cardId: string) =>
-  (state: DraftRootState): ProjectLink[] =>
-    state.draft.notes[cardId]?.links ?? []

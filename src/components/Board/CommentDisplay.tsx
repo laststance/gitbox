@@ -96,8 +96,8 @@ interface CommentDisplayProps {
   showEmptyState?: boolean
   /** Custom class name */
   className?: string
-  /** Render function for action buttons (e.g., CommentActionsMenu) */
-  renderActions?: () => ReactNode
+  /** Action buttons to render (e.g., CommentActionsMenu) */
+  renderActions?: ReactNode
 }
 
 /**
@@ -217,7 +217,7 @@ export const CommentDisplay = memo<CommentDisplayProps>(
 
         {/* Action buttons (appears on hover) */}
         {renderActions && (
-          <div className="absolute right-2 bottom-2">{renderActions()}</div>
+          <div className="absolute right-2 bottom-2">{renderActions}</div>
         )}
       </div>
     )

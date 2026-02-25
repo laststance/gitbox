@@ -9,7 +9,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { memo, useMemo, useCallback } from 'react'
+import { memo, useCallback } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -54,15 +54,9 @@ const Toggle = memo(function Toggle({
   checked: boolean
   onCheckedChange: (checked: boolean) => void
 }) {
-  const containerClassName = useMemo(
-    () => `${TOGGLE_BASE} ${checked ? 'bg-primary' : 'bg-input'}`,
-    [checked],
-  )
+  const containerClassName = `${TOGGLE_BASE} ${checked ? 'bg-primary' : 'bg-input'}`
 
-  const knobClassName = useMemo(
-    () => `${TOGGLE_KNOB_BASE} ${checked ? 'translate-x-6' : 'translate-x-1'}`,
-    [checked],
-  )
+  const knobClassName = `${TOGGLE_KNOB_BASE} ${checked ? 'translate-x-6' : 'translate-x-1'}`
 
   return (
     <button

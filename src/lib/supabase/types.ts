@@ -445,7 +445,7 @@ export type TablesUpdate<
       : never
     : never
 
-export type Enums<
+type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema['Enums']
     | { schema: keyof DatabaseWithoutInternals },
@@ -462,7 +462,7 @@ export type Enums<
     ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
     : never
 
-export type CompositeTypes<
+type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema['CompositeTypes']
     | { schema: keyof DatabaseWithoutInternals },
@@ -479,7 +479,7 @@ export type CompositeTypes<
     ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
     : never
 
-export const Constants = {
+const Constants = {
   graphql_public: {
     Enums: {},
   },

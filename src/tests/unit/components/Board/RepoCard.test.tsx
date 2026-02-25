@@ -66,11 +66,11 @@ vi.mock('@/components/Board/CommentDisplay', () => ({
   }: {
     comment?: string
     onClick?: () => void
-    renderActions?: () => React.ReactNode
+    renderActions?: React.ReactNode
   }) => (
     <div data-testid="comment-display" onClick={onClick}>
       {comment || 'No comment'}
-      {renderActions && renderActions()}
+      {renderActions && renderActions}
     </div>
   ),
   COMMENT_CARD_COLORS: {

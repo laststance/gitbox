@@ -190,9 +190,9 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
                     </tr>
                   </thead>
                   <tbody className="divide-border divide-y">
-                    {items.map((shortcut, index) => (
+                    {items.map((shortcut) => (
                       <tr
-                        key={`${category}-${index}`}
+                        key={shortcut.key}
                         className="hover:bg-muted/50 transition-colors"
                       >
                         <td className="w-12 px-4 py-3">

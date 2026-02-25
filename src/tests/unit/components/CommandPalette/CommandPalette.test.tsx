@@ -32,6 +32,17 @@ vi.mock('framer-motion', () => ({
       <div {...filterDomProps(props)}>{children}</div>
     ),
   },
+  m: {
+    div: ({
+      children,
+      ...props
+    }: React.PropsWithChildren<Record<string, unknown>>) => (
+      <div {...filterDomProps(props)}>{children}</div>
+    ),
+  },
+  LazyMotion: ({ children }: React.PropsWithChildren): React.ReactNode =>
+    children,
+  domAnimation: {},
   AnimatePresence: ({ children }: React.PropsWithChildren): React.ReactNode =>
     children,
   useReducedMotion: () => false,

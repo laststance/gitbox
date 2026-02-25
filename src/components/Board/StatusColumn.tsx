@@ -2,7 +2,7 @@
 
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { m, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { MoreHorizontal, Pencil, Trash2, Plus, Inbox } from 'lucide-react'
 import React, { memo } from 'react'
 
@@ -155,7 +155,7 @@ export const StatusColumn = memo<StatusColumnProps>(
           >
             <AnimatePresence>
               {cards.map((card) => (
-                <motion.div
+                <m.div
                   key={card.id}
                   initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -181,7 +181,7 @@ export const StatusColumn = memo<StatusColumnProps>(
                     onCommentColorChange={onCommentColorChange}
                     onCommentDelete={onCommentDelete}
                   />
-                </motion.div>
+                </m.div>
               ))}
             </AnimatePresence>
 

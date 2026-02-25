@@ -1,6 +1,12 @@
 'use client'
 
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import {
+  LazyMotion,
+  m,
+  domAnimation,
+  AnimatePresence,
+  useReducedMotion,
+} from 'framer-motion'
 import {
   Search,
   Home,
@@ -271,113 +277,117 @@ export const CommandPalette = memo(function CommandPalette() {
   }
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0 : undefined }}
-            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
-            data-testid="command-palette-backdrop"
-            onClick={handleClose}
-          />
+    <LazyMotion features={domAnimation}>
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <m.div
+              initial={prefersReducedMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: prefersReducedMotion ? 0 : undefined }}
+              className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+              data-testid="command-palette-backdrop"
+              onClick={handleClose}
+            />
 
-          {/* Palette */}
-          <motion.div
-            initial={
-              prefersReducedMotion ? false : { opacity: 0, scale: 0.95, y: -20 }
-            }
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={
-              prefersReducedMotion
-                ? { opacity: 0 }
-                : { opacity: 0, scale: 0.95, y: -20 }
-            }
-            transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
-            className="border-border bg-background fixed top-[20%] left-1/2 z-50 w-full max-w-lg -translate-x-1/2 rounded-xl border shadow-2xl"
-          >
-            {/* Search Input */}
-            <div className="border-border flex items-center gap-3 border-b px-4">
-              <Search className="text-muted-foreground h-5 w-5" />
-              <input
-                ref={inputRef}
-                type="text"
-                value={search}
-                onChange={handleSearchChange}
-                onKeyDown={handleInputKeyDown}
-                placeholder="Search commands..."
-                className="text-foreground placeholder:text-muted-foreground h-14 flex-1 bg-transparent focus:outline-none"
-                autoFocus
-              />
-              <kbd className="bg-muted text-muted-foreground hidden rounded px-2 py-1 text-xs sm:inline-block">
-                ESC
-              </kbd>
-            </div>
-
-            {/* Command List */}
-            <div ref={listRef} className="max-h-80 overflow-y-auto p-2">
-              {flatCommands.length === 0 ? (
-                <div className="text-muted-foreground py-8 text-center">
-                  No commands found
-                </div>
-              ) : (
-                Object.entries(groupedCommands).map(([category, cmds]) => (
-                  <div key={category} className="mb-2">
-                    <div className="text-muted-foreground mb-1 px-2 text-xs font-medium">
-                      {categoryLabels[category]}
-                    </div>
-                    {cmds.map((cmd) => {
-                      const globalIndex = flatCommands.findIndex(
-                        (c) => c.id === cmd.id,
-                      )
-                      const styles = commandStyles.get(cmd.id)
-                      return (
-                        <button
-                          type="button"
-                          key={cmd.id}
-                          data-index={globalIndex}
-                          onClick={() => {
-                            cmd.action()
-                            setIsOpen(false)
-                          }}
-                          className={styles?.button}
-                        >
-                          <span className={styles?.icon}>{cmd.icon}</span>
-                          <span className="flex-1">{cmd.label}</span>
-                          {cmd.shortcut && (
-                            <kbd className={styles?.kbd}>{cmd.shortcut}</kbd>
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="border-border border-t px-4 py-2">
-              <div className="text-muted-foreground flex items-center gap-4 text-xs">
-                <span className="flex items-center gap-1">
-                  <kbd className="bg-muted rounded px-1.5 py-0.5">↑↓</kbd>
-                  Navigate
-                </span>
-                <span className="flex items-center gap-1">
-                  <kbd className="bg-muted rounded px-1.5 py-0.5">↵</kbd>
-                  Select
-                </span>
-                <span className="flex items-center gap-1">
-                  <kbd className="bg-muted rounded px-1.5 py-0.5">esc</kbd>
-                  Close
-                </span>
+            {/* Palette */}
+            <m.div
+              initial={
+                prefersReducedMotion
+                  ? false
+                  : { opacity: 0, scale: 0.95, y: -20 }
+              }
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={
+                prefersReducedMotion
+                  ? { opacity: 0 }
+                  : { opacity: 0, scale: 0.95, y: -20 }
+              }
+              transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
+              className="border-border bg-background fixed top-[20%] left-1/2 z-50 w-full max-w-lg -translate-x-1/2 rounded-xl border shadow-2xl"
+            >
+              {/* Search Input */}
+              <div className="border-border flex items-center gap-3 border-b px-4">
+                <Search className="text-muted-foreground h-5 w-5" />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={search}
+                  onChange={handleSearchChange}
+                  onKeyDown={handleInputKeyDown}
+                  placeholder="Search commands..."
+                  className="text-foreground placeholder:text-muted-foreground h-14 flex-1 bg-transparent focus:outline-none"
+                  autoFocus
+                />
+                <kbd className="bg-muted text-muted-foreground hidden rounded px-2 py-1 text-xs sm:inline-block">
+                  ESC
+                </kbd>
               </div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+
+              {/* Command List */}
+              <div ref={listRef} className="max-h-80 overflow-y-auto p-2">
+                {flatCommands.length === 0 ? (
+                  <div className="text-muted-foreground py-8 text-center">
+                    No commands found
+                  </div>
+                ) : (
+                  Object.entries(groupedCommands).map(([category, cmds]) => (
+                    <div key={category} className="mb-2">
+                      <div className="text-muted-foreground mb-1 px-2 text-xs font-medium">
+                        {categoryLabels[category]}
+                      </div>
+                      {cmds.map((cmd) => {
+                        const globalIndex = flatCommands.findIndex(
+                          (c) => c.id === cmd.id,
+                        )
+                        const styles = commandStyles.get(cmd.id)
+                        return (
+                          <button
+                            type="button"
+                            key={cmd.id}
+                            data-index={globalIndex}
+                            onClick={() => {
+                              cmd.action()
+                              setIsOpen(false)
+                            }}
+                            className={styles?.button}
+                          >
+                            <span className={styles?.icon}>{cmd.icon}</span>
+                            <span className="flex-1">{cmd.label}</span>
+                            {cmd.shortcut && (
+                              <kbd className={styles?.kbd}>{cmd.shortcut}</kbd>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="border-border border-t px-4 py-2">
+                <div className="text-muted-foreground flex items-center gap-4 text-xs">
+                  <span className="flex items-center gap-1">
+                    <kbd className="bg-muted rounded px-1.5 py-0.5">↑↓</kbd>
+                    Navigate
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <kbd className="bg-muted rounded px-1.5 py-0.5">↵</kbd>
+                    Select
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <kbd className="bg-muted rounded px-1.5 py-0.5">esc</kbd>
+                    Close
+                  </span>
+                </div>
+              </div>
+            </m.div>
+          </>
+        )}
+      </AnimatePresence>
+    </LazyMotion>
   )
 })

@@ -222,6 +222,7 @@ export const LinkTypeCombobox = memo(function LinkTypeCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-controls="link-type-combobox-list"
           aria-label="Select link type"
           className={cn('w-[180px] justify-between', className)}
           disabled={disabled}
@@ -255,6 +256,7 @@ export const LinkTypeCombobox = memo(function LinkTypeCombobox({
           )}
 
           <CommandList
+            id="link-type-combobox-list"
             ref={listRef}
             onWheel={handleWheel}
             className="max-h-[300px]"

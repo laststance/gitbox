@@ -97,16 +97,22 @@ export const WithForm: Story = {
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div>
-            <label className="text-sm font-medium">Name</label>
+            <label htmlFor="dialog-name" className="text-sm font-medium">
+              Name
+            </label>
             <input
+              id="dialog-name"
               type="text"
               className="mt-1 w-full rounded-md border px-3 py-2"
               placeholder="Enter name"
             />
           </div>
           <div>
-            <label className="text-sm font-medium">Description</label>
+            <label htmlFor="dialog-description" className="text-sm font-medium">
+              Description
+            </label>
             <textarea
+              id="dialog-description"
               className="mt-1 w-full rounded-md border px-3 py-2"
               placeholder="Enter description"
               rows={3}

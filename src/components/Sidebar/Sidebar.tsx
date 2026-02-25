@@ -32,6 +32,12 @@ import { signOut } from '@/lib/actions/auth'
 import { openShortcutsHelp } from '@/lib/events'
 import { cn } from '@/lib/utils'
 
+const ICON_LAYOUT_DASHBOARD = <LayoutDashboard className="h-4 w-4" />
+const ICON_STAR = <Star className="h-4 w-4" />
+const ICON_ARCHIVE = <Archive className="h-4 w-4" />
+const ICON_SETTINGS = <Settings className="h-4 w-4" />
+const ICON_KEYBOARD = <Keyboard className="h-4 w-4" />
+
 /** Base styles for navigation item */
 const NAV_ITEM_BASE =
   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors'
@@ -268,14 +274,14 @@ export const Sidebar = memo(function Sidebar({
                 <div className="mt-1 ml-2 space-y-1">
                   <NavItem
                     href="/boards"
-                    icon={<LayoutDashboard className="h-4 w-4" />}
+                    icon={ICON_LAYOUT_DASHBOARD}
                     label="All Boards"
                     isActive={pathname === '/boards'}
                     isCollapsed={mounted && isCollapsed}
                   />
                   <NavItem
                     href="/boards/favorites"
-                    icon={<Star className="h-4 w-4" />}
+                    icon={ICON_STAR}
                     label="Favorites"
                     isActive={pathname === '/boards/favorites'}
                     isCollapsed={mounted && isCollapsed}
@@ -291,14 +297,14 @@ export const Sidebar = memo(function Sidebar({
             <div className="mb-4 space-y-1">
               <NavItem
                 href="/boards"
-                icon={<LayoutDashboard className="h-4 w-4" />}
+                icon={ICON_LAYOUT_DASHBOARD}
                 label="All Boards"
                 isActive={pathname === '/boards'}
                 isCollapsed={mounted && isCollapsed}
               />
               <NavItem
                 href="/boards/favorites"
-                icon={<Star className="h-4 w-4" />}
+                icon={ICON_STAR}
                 label="Favorites"
                 isActive={pathname === '/boards/favorites'}
                 isCollapsed={mounted && isCollapsed}
@@ -312,7 +318,7 @@ export const Sidebar = memo(function Sidebar({
           {/* Maintenance Mode */}
           <NavItem
             href="/maintenance"
-            icon={<Archive className="h-4 w-4" />}
+            icon={ICON_ARCHIVE}
             label="Maintenance Mode"
             isActive={
               pathname === '/maintenance' ||
@@ -327,7 +333,7 @@ export const Sidebar = memo(function Sidebar({
           {/* Settings */}
           <NavItem
             href="/settings"
-            icon={<Settings className="h-4 w-4" />}
+            icon={ICON_SETTINGS}
             label="Settings"
             isActive={pathname === '/settings'}
             isCollapsed={mounted && isCollapsed}
@@ -335,7 +341,7 @@ export const Sidebar = memo(function Sidebar({
 
           {/* Shortcuts - button that opens ShortcutsHelp modal */}
           <NavButton
-            icon={<Keyboard className="h-4 w-4" />}
+            icon={ICON_KEYBOARD}
             label="Shortcuts"
             onClick={openShortcutsHelp}
             isCollapsed={mounted && isCollapsed}

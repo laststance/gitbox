@@ -1,7 +1,8 @@
 'use client'
 
 import { Columns3, Github } from 'lucide-react'
-import React, { memo } from 'react'
+import Link from 'next/link'
+import { memo } from 'react'
 
 /**
  * Simple footer with logo, GitHub link, and credits.
@@ -17,15 +18,18 @@ export const Footer = memo(function Footer() {
           <span className="text-foreground text-sm font-medium">GitBox</span>
         </div>
         <div className="text-muted-foreground flex items-center gap-6 text-sm">
-          <a
+          <Link
             href="/privacy"
             className="hover:text-foreground transition-colors"
           >
             Privacy
-          </a>
-          <a href="/terms" className="hover:text-foreground transition-colors">
+          </Link>
+          <Link
+            href="/terms"
+            className="hover:text-foreground transition-colors"
+          >
             Terms
-          </a>
+          </Link>
           <a
             href="https://github.com/laststance/gitbox"
             target="_blank"

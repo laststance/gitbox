@@ -133,16 +133,14 @@ const CommentEditingWorkflow = memo<CommentEditingWorkflowProps>(
             style={{ borderColor: color }}
             showEmptyState={true}
             renderActions={
-              comment
-                ? () => (
-                    <CommentActionsMenu
-                      onEdit={handleCommentClick}
-                      onColorChange={handleColorChange}
-                      onDelete={handleDelete}
-                      currentColor={color}
-                    />
-                  )
-                : undefined
+              comment ? (
+                <CommentActionsMenu
+                  onEdit={handleCommentClick}
+                  onColorChange={handleColorChange}
+                  onDelete={handleDelete}
+                  currentColor={color}
+                />
+              ) : undefined
             }
           />
         </Activity>

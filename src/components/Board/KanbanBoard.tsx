@@ -3,7 +3,7 @@
 import { DndContext, DragOverlay } from '@dnd-kit/core'
 import { restrictToWindowEdges } from '@dnd-kit/modifiers'
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
-import { motion, useReducedMotion } from 'framer-motion'
+import { LazyMotion, m, domAnimation, useReducedMotion } from 'framer-motion'
 import React, { memo, useMemo } from 'react'
 
 import { Card, CardContent } from '@/components/ui/card'
@@ -73,7 +73,7 @@ const KanbanSkeleton = memo(() => {
           </div>
           <div className="space-y-3">
             {[...Array(2)].map((_, cardIndex) => (
-              <motion.div
+              <m.div
                 key={cardIndex}
                 initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -83,7 +83,7 @@ const KanbanSkeleton = memo(() => {
                 }}
               >
                 <Skeleton className="h-32 w-full rounded-lg" />
-              </motion.div>
+              </m.div>
             ))}
           </div>
         </div>
@@ -164,117 +164,121 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     // Show skeleton when no data loaded yet (e.g., initial hydration)
     if (statuses.length === 0) {
       return (
-        <div className="w-full p-6">
-          <KanbanSkeleton />
-        </div>
+        <LazyMotion features={domAnimation}>
+          <div className="w-full p-6">
+            <KanbanSkeleton />
+          </div>
+        </LazyMotion>
       )
     }
 
     const activeCard = cards.find((c) => c.id === activeId)
 
     return (
-      <div className="relative w-fit min-w-full p-6">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={forgivingCollisionDetection}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          modifiers={[restrictToWindowEdges]}
-        >
-          {/* Column-level SortableContext for 2D grid reordering */}
-          <SortableContext items={columnIds} strategy={rectSortingStrategy}>
-            <div
-              className="grid w-fit min-w-full gap-4 pb-4"
-              suppressHydrationWarning
-              style={
-                isMounted
-                  ? {
-                      // Add extra column when dragging to allow insertion at end
-                      gridTemplateColumns: `repeat(${gridDimensions.maxCol + 1 + (activeDragType === 'column' ? 1 : 0)}, minmax(280px, var(--column-width)))`,
-                      // Use minmax(min-content, auto) for auto-height expansion (columns grow to fit cards)
-                      gridTemplateRows: `repeat(${gridDimensions.maxRow + 1 + (activeDragType === 'column' ? 1 : 0)}, minmax(min-content, auto))`,
-                    }
-                  : {
-                      // Stable initial styles for SSR hydration
-                      gridTemplateColumns:
-                        'repeat(1, minmax(280px, var(--column-width)))',
-                      gridTemplateRows: 'repeat(1, auto)',
-                    }
-              }
-            >
-              {/* Render columns only after hydration to prevent SSR mismatch */}
-              {isMounted &&
-                sortedStatuses.map((status) => (
-                  <SortableColumn
-                    key={status.id}
-                    status={status}
-                    cards={cardsByStatus[status.id] ?? EMPTY_CARDS}
-                    comments={comments}
-                    cardDisplaySettings={cardDisplaySettings}
-                    onMaintenance={onMoveToMaintenance}
-                    onMoveToBoard={onMoveToAnotherBoard}
-                    onNote={onNote}
-                    onRemove={onRemove}
-                    onCommentChange={handleCommentChange}
-                    onCommentColorChange={handleCommentColorChange}
-                    onCommentDelete={handleCommentDelete}
-                    onEditStatus={onEditStatus}
-                    onDeleteStatus={onDeleteStatus}
-                    onAddCard={onAddCard}
-                    gridStyle={{
-                      gridRow: status.gridRow + 1, // CSS grid is 1-indexed
-                      gridColumn: status.gridCol + 1,
-                    }}
+      <LazyMotion features={domAnimation}>
+        <div className="relative w-fit min-w-full p-6">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={forgivingCollisionDetection}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            modifiers={[restrictToWindowEdges]}
+          >
+            {/* Column-level SortableContext for 2D grid reordering */}
+            <SortableContext items={columnIds} strategy={rectSortingStrategy}>
+              <div
+                className="grid w-fit min-w-full gap-4 pb-4"
+                suppressHydrationWarning
+                style={
+                  isMounted
+                    ? {
+                        // Add extra column when dragging to allow insertion at end
+                        gridTemplateColumns: `repeat(${gridDimensions.maxCol + 1 + (activeDragType === 'column' ? 1 : 0)}, minmax(280px, var(--column-width)))`,
+                        // Use minmax(min-content, auto) for auto-height expansion (columns grow to fit cards)
+                        gridTemplateRows: `repeat(${gridDimensions.maxRow + 1 + (activeDragType === 'column' ? 1 : 0)}, minmax(min-content, auto))`,
+                      }
+                    : {
+                        // Stable initial styles for SSR hydration
+                        gridTemplateColumns:
+                          'repeat(1, minmax(280px, var(--column-width)))',
+                        gridTemplateRows: 'repeat(1, auto)',
+                      }
+                }
+              >
+                {/* Render columns only after hydration to prevent SSR mismatch */}
+                {isMounted &&
+                  sortedStatuses.map((status) => (
+                    <SortableColumn
+                      key={status.id}
+                      status={status}
+                      cards={cardsByStatus[status.id] ?? EMPTY_CARDS}
+                      comments={comments}
+                      cardDisplaySettings={cardDisplaySettings}
+                      onMaintenance={onMoveToMaintenance}
+                      onMoveToBoard={onMoveToAnotherBoard}
+                      onNote={onNote}
+                      onRemove={onRemove}
+                      onCommentChange={handleCommentChange}
+                      onCommentColorChange={handleCommentColorChange}
+                      onCommentDelete={handleCommentDelete}
+                      onEditStatus={onEditStatus}
+                      onDeleteStatus={onDeleteStatus}
+                      onAddCard={onAddCard}
+                      gridStyle={{
+                        gridRow: status.gridRow + 1, // CSS grid is 1-indexed
+                        gridColumn: status.gridCol + 1,
+                      }}
+                    />
+                  ))}
+
+                {/* Column Insert Zones - empty grid positions during column drag */}
+                {isMounted &&
+                  insertionZones.map((zone) => (
+                    <ColumnInsertZone
+                      key={`insert-${zone.gridRow}-${zone.gridCol}`}
+                      gridRow={zone.gridRow}
+                      gridCol={zone.gridCol}
+                      activeColumnId={activeId?.toString()}
+                    />
+                  ))}
+
+                {/* New Row Drop Zone - only visible during column drag */}
+                {isMounted && activeDragType === 'column' && (
+                  <NewRowDropZone
+                    targetRow={gridDimensions.maxRow + 1}
+                    columnCount={gridDimensions.maxCol + 1 + 1} // +1 for expanded grid
                   />
-                ))}
-
-              {/* Column Insert Zones - empty grid positions during column drag */}
-              {isMounted &&
-                insertionZones.map((zone) => (
-                  <ColumnInsertZone
-                    key={`insert-${zone.gridRow}-${zone.gridCol}`}
-                    gridRow={zone.gridRow}
-                    gridCol={zone.gridCol}
-                    activeColumnId={activeId?.toString()}
-                  />
-                ))}
-
-              {/* New Row Drop Zone - only visible during column drag */}
-              {isMounted && activeDragType === 'column' && (
-                <NewRowDropZone
-                  targetRow={gridDimensions.maxRow + 1}
-                  columnCount={gridDimensions.maxCol + 1 + 1} // +1 for expanded grid
-                />
-              )}
-            </div>
-          </SortableContext>
-
-          {/* DragOverlay for both column and card previews */}
-          <DragOverlay>
-            {activeDragType === 'column' && activeId ? (
-              // Column drag preview for 2D grid layout
-              <div className="bg-background/80 border-primary w-70 max-w-full rotate-2 rounded-xl border-2 p-4 opacity-90 shadow-2xl backdrop-blur-sm">
-                <h3 className="text-foreground font-semibold">
-                  {sortedStatuses.find((s) => s.id === activeId)?.title}
-                </h3>
-                <p className="text-muted-foreground mt-1 text-xs">
-                  {(cardsByStatus[activeId as string] ?? EMPTY_CARDS).length}{' '}
-                  cards
-                </p>
+                )}
               </div>
-            ) : activeCard ? (
-              // Card drag preview
-              <Card className="rotate-3 cursor-grabbing opacity-90 shadow-2xl">
-                <CardContent className="p-4">
-                  <h4 className="text-foreground font-semibold">
-                    {activeCard.title}
-                  </h4>
-                </CardContent>
-              </Card>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-      </div>
+            </SortableContext>
+
+            {/* DragOverlay for both column and card previews */}
+            <DragOverlay>
+              {activeDragType === 'column' && activeId ? (
+                // Column drag preview for 2D grid layout
+                <div className="bg-background/80 border-primary w-70 max-w-full rotate-2 rounded-xl border-2 p-4 opacity-90 shadow-2xl backdrop-blur-sm">
+                  <h3 className="text-foreground font-semibold">
+                    {sortedStatuses.find((s) => s.id === activeId)?.title}
+                  </h3>
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    {(cardsByStatus[activeId as string] ?? EMPTY_CARDS).length}{' '}
+                    cards
+                  </p>
+                </div>
+              ) : activeCard ? (
+                // Card drag preview
+                <Card className="rotate-3 cursor-grabbing opacity-90 shadow-2xl">
+                  <CardContent className="p-4">
+                    <h4 className="text-foreground font-semibold">
+                      {activeCard.title}
+                    </h4>
+                  </CardContent>
+                </Card>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        </div>
+      </LazyMotion>
     )
   },
 )

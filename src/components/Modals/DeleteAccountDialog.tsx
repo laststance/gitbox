@@ -10,7 +10,7 @@
 'use client'
 
 import { AlertTriangle } from 'lucide-react'
-import { memo, useCallback, useState, useTransition, useMemo } from 'react'
+import { memo, useCallback, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -41,10 +41,7 @@ export const DeleteAccountDialog = memo(function DeleteAccountDialog({
   const [confirmationInput, setConfirmationInput] = useState('')
   const [isPending, startTransition] = useTransition()
 
-  const isConfirmed = useMemo(
-    () => confirmationInput === CONFIRMATION_TEXT,
-    [confirmationInput],
-  )
+  const isConfirmed = confirmationInput === CONFIRMATION_TEXT
 
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

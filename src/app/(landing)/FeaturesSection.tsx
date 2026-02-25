@@ -84,9 +84,9 @@ export const FeaturesSection = memo(function FeaturesSection() {
         </div>
 
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-          {features.map((feature, index) => (
+          {features.map((feature) => (
             <div
-              key={index}
+              key={feature.title}
               className="group border-border bg-background/50 hover:bg-background hover:border-primary/20 relative cursor-pointer rounded-2xl border p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
             >
               <div className="text-primary mb-4 transition-transform duration-300 group-hover:scale-110">

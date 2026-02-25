@@ -214,6 +214,9 @@ export function ToolbarSplitButtonSecondary({
         className,
       )}
       onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') e.stopPropagation()
+      }}
       role="button"
       {...props}
     >

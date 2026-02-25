@@ -65,56 +65,6 @@ export async function withAuth<T>(
 }
 
 /**
- * Wraps a Server Action with authentication, returning ActionResult<T>
- * instead of throwing on failure.
- *
- * Use this for client-consumed Server Actions where the caller expects
- * a result object rather than handling exceptions.
- *
- * @param action - Async function receiving authenticated supabase client and user
- * @returns ActionResult<T> with success/data or error
- *
- * @example
- * export const createPreset = (label: string) =>
- *   withAuthResult(async (supabase, user) => {
- *     const { data, error } = await supabase
- *       .from('presets')
- *       .insert({ label, user_id: user.id })
- *       .select()
- *       .single()
- *     if (error) throw error
- *     return data
- *   })
- */
-export async function withAuthResult<T>(
-  action: (supabase: SupabaseClient<Database>, user: User) => Promise<T>,
-): Promise<ActionResult<T>> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) {
-    return { success: false, error: 'Authentication required' }
-  }
-
-  try {
-    const data = await action(supabase, user)
-    return { success: true, data }
-  } catch (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'withAuthResult' },
-    })
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : 'An unexpected error occurred',
-    }
-  }
-}
-
-/**
  * Wraps a Server Action with authentication AND rate limiting.
  * Returns ActionResult<T> (does not throw).
  *
