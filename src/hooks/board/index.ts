@@ -8,6 +8,7 @@
 export { useBoardSettings } from './useBoardSettings'
 export { useStatusListDialog } from './useStatusListDialog'
 export { useNoteModal } from './useNoteModal'
+export { useNoteModalDraft } from './useNoteModalDraft'
 export { useAddRepositoryCombobox } from './useAddRepositoryCombobox'
 export { useOptimisticCardAction } from './useOptimisticCardAction'
 export { useOrganizationData } from './useOrganizationData'
