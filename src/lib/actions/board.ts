@@ -615,16 +615,25 @@ export async function renameBoardAction(
   const actionResult = await withAuthResultRateLimit(
     'boardCrud',
     async (supabase) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('board')
         .update({ name: result.data })
         .eq('id', boardId)
+        .select('id')
 
       if (error) {
         Sentry.captureException(error, {
           extra: { context: 'Rename board', boardId, name: result.data },
         })
         throw new Error('Failed to rename board')
+      }
+
+      if (!data || data.length === 0) {
+        Sentry.captureMessage('Rename board: no rows updated', {
+          level: 'warning',
+          extra: { boardId, name: result.data },
+        })
+        throw new Error('Board not found')
       }
     },
   )
@@ -669,16 +678,25 @@ export async function deleteBoardAction(
   const actionResult = await withAuthResultRateLimit(
     'boardCrud',
     async (supabase) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('board')
         .delete()
         .eq('id', idResult.data)
+        .select('id')
 
       if (error) {
         Sentry.captureException(error, {
           extra: { context: 'Delete board', boardId: idResult.data },
         })
         throw new Error('Failed to delete board')
+      }
+
+      if (!data || data.length === 0) {
+        Sentry.captureMessage('Delete board: no rows deleted', {
+          level: 'warning',
+          extra: { boardId: idResult.data },
+        })
+        throw new Error('Board not found')
       }
     },
   )
