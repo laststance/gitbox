@@ -1,8 +1,19 @@
 /**
  * Global Styles
  *
- * Define CSS Variables and global styles
- * Themes are managed with CSS Variables and can be switched from JavaScript
+ * CSS Variable Architecture (dual-source design):
+ *
+ * 1. :root / .dark (this file)
+ *    shadcn/ui neutral defaults — achromatic, no hue.
+ *    Active when "system" theme is selected (no data-theme attribute).
+ *    Also serves as fallback before client hydration.
+ *
+ * 2. html[data-theme='xxx'] (themes.css)
+ *    14 named themes with personality — warm/cool tinted OKLCH values.
+ *    Higher specificity (0,1,1) always overrides :root (0,1,0) when active.
+ *
+ * Some variables (e.g. --destructive) share the same value in both sources.
+ * This is intentional — do NOT remove either definition.
  */
 /*---break---
  */

@@ -1,11 +1,18 @@
 /**
  * Theme CSS Variables (14 Themes)
  *
- * PRD 2.2 Design Tokens (14 Themes)
- * OKLCH-based color system with WCAG AA contrast compliance
+ * PRD 2.2 Design Tokens — OKLCH-based color system with WCAG AA contrast compliance.
  *
- * Light Themes: Default / Sunrise / Sandstone / Mint / Sky / Lavender / Rose
- * Dark Themes: Dark / Midnight / Graphite / Forest / Ocean / Plum / Rust
+ * Light: Default / Sunrise / Sandstone / Mint / Sky / Lavender / Rose
+ * Dark:  Dark / Midnight / Graphite / Forest / Ocean / Plum / Rust
+ *
+ * These selectors (html[data-theme='xxx']) override the neutral :root/.dark
+ * defaults in globals.css when a named theme is active.
+ * When "system" theme is selected, no data-theme is set and globals.css
+ * :root/.dark values are used instead (see globals.css header for details).
+ *
+ * Some variables (e.g. --destructive) intentionally share the same value
+ * as globals.css. Update BOTH files when changing shared values.
  */
 
 /* ============================================
