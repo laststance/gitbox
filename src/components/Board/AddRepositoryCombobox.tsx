@@ -264,27 +264,28 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       )
 
       if (!result.success) {
-        setAddingError(
-          result.errors?.join(', ') || 'Failed to add repositories',
-        )
+        setAddingError(result.error || 'Failed to add repositories')
         return
       }
 
       // Show warning if some repositories were duplicates
-      if (result.errors && result.errors.length > 0) {
+      if (
+        result.data.duplicateWarnings &&
+        result.data.duplicateWarnings.length > 0
+      ) {
         toast.warning('Some repositories already exist', {
-          description: result.errors.join(', '),
+          description: result.data.duplicateWarnings.join(', '),
         })
       }
 
       // Show success toast
       toast.success(
-        `${result.addedCount} ${result.addedCount === 1 ? 'repository' : 'repositories'} added`,
+        `${result.data.addedCount} ${result.data.addedCount === 1 ? 'repository' : 'repositories'} added`,
         {
           description:
-            result.addedCount === 1 && selectedRepos[0]
+            result.data.addedCount === 1 && selectedRepos[0]
               ? `"${selectedRepos[0].full_name}" has been added to the board.`
-              : `${result.addedCount} repositories have been added to the board.`,
+              : `${result.data.addedCount} repositories have been added to the board.`,
         },
       )
 
@@ -299,7 +300,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       }
 
       // Pass created cards for optimistic UI update (no page reload needed)
-      onRepositoriesAdded(result.cards || [])
+      onRepositoriesAdded(result.data.cards || [])
 
       // Auto-focus to Quick note field (T046)
       setTimeout(() => {

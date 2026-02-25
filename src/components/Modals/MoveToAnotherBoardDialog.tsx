@@ -115,9 +115,9 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
 
         if (cancelled) return
 
-        if (result.success && result.boards) {
-          setBoards(result.boards)
-        } else {
+        if (result.success && result.data) {
+          setBoards(result.data)
+        } else if (!result.success) {
           setBoardsError(result.error || 'Failed to load boards')
         }
       } catch {

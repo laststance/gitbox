@@ -9,8 +9,11 @@
 
 import * as Sentry from '@sentry/nextjs'
 
+import {
+  withAuthResult,
+  withAuthResultRateLimit,
+} from '@/lib/actions/auth-guard'
 import { labelToValue } from '@/lib/constants/link-presets'
-import { createClient } from '@/lib/supabase/server'
 import type { TablesInsert } from '@/lib/supabase/types'
 import {
   presetValueSchema,
@@ -42,38 +45,27 @@ export interface UserPreset {
  * // Returns: [{ id: '...', value: 'my-service', label: 'My Service', icon: 'Link' }, ...]
  */
 export async function getUserPresets(): Promise<ActionResult<UserPreset[]>> {
-  const supabase = await createClient()
+  return withAuthResult(async (supabase, user) => {
+    const { data, error } = await supabase
+      .from('user_link_presets')
+      .select('id, value, label, icon')
+      .eq('user_id', user.id)
+      .order('label', { ascending: true })
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    if (error) {
+      Sentry.captureException(error, {
+        extra: { context: 'Get user presets', userId: user.id },
+      })
+      throw new Error('Failed to fetch custom presets')
+    }
 
-  if (!user) {
-    return { success: true, data: [] }
-  }
-
-  const { data, error } = await supabase
-    .from('user_link_presets')
-    .select('id, value, label, icon')
-    .eq('user_id', user.id)
-    .order('label', { ascending: true })
-
-  if (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'Get user presets', userId: user.id },
-    })
-    return { success: false, error: 'Failed to fetch custom presets' }
-  }
-
-  return {
-    success: true,
-    data: (data || []).map((row) => ({
+    return (data || []).map((row) => ({
       id: row.id,
       value: row.value,
       label: row.label,
       icon: row.icon || 'Link',
-    })),
-  }
+    }))
+  })
 }
 
 /**
@@ -92,17 +84,7 @@ export async function createUserPreset(
   label: string,
   icon?: string,
 ): Promise<ActionResult<UserPreset>> {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { success: false, error: 'Authentication required' }
-  }
-
-  // Validate inputs
+  // Validate inputs before auth (fast fail)
   const labelResult = presetLabelSchema.safeParse(label)
   if (!labelResult.success) {
     return {
@@ -119,66 +101,64 @@ export async function createUserPreset(
     }
   }
 
-  // Check preset limit
-  const { count, error: countError } = await supabase
-    .from('user_link_presets')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
+  return withAuthResultRateLimit('userSettings', async (supabase, user) => {
+    // Check preset limit
+    const { count, error: countError } = await supabase
+      .from('user_link_presets')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
 
-  if (countError) {
-    Sentry.captureException(countError, {
-      extra: { context: 'Count user presets', userId: user.id },
-    })
-    return { success: false, error: 'Failed to check preset limit' }
-  }
-
-  if ((count || 0) >= MAX_CUSTOM_PRESETS) {
-    return {
-      success: false,
-      error: `Maximum of ${MAX_CUSTOM_PRESETS} custom presets reached. Delete some to add more.`,
+    if (countError) {
+      Sentry.captureException(countError, {
+        extra: { context: 'Count user presets', userId: user.id },
+      })
+      throw new Error('Failed to check preset limit')
     }
-  }
 
-  // Check for duplicate value
-  const { data: existing } = await supabase
-    .from('user_link_presets')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('value', value)
-    .single()
+    if ((count || 0) >= MAX_CUSTOM_PRESETS) {
+      throw new Error(
+        `Maximum of ${MAX_CUSTOM_PRESETS} custom presets reached. Delete some to add more.`,
+      )
+    }
 
-  if (existing) {
-    return { success: false, error: 'A preset with this name already exists' }
-  }
+    // Check for duplicate value
+    const { data: existing } = await supabase
+      .from('user_link_presets')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('value', value)
+      .single()
 
-  // Create preset
-  const insertData: UserLinkPresetInsert = {
-    user_id: user.id,
-    value,
-    label: label.trim(),
-    icon: icon || 'Link',
-  }
+    if (existing) {
+      throw new Error('A preset with this name already exists')
+    }
 
-  const { data, error } = await supabase
-    .from('user_link_presets')
-    .insert(insertData)
-    .select('id, value, label, icon')
-    .single()
+    // Create preset
+    const insertData: UserLinkPresetInsert = {
+      user_id: user.id,
+      value,
+      label: label.trim(),
+      icon: icon || 'Link',
+    }
 
-  if (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'Create user preset', userId: user.id, label },
-    })
-    return { success: false, error: 'Failed to create custom preset' }
-  }
+    const { data, error } = await supabase
+      .from('user_link_presets')
+      .insert(insertData)
+      .select('id, value, label, icon')
+      .single()
 
-  return {
-    success: true,
-    data: {
+    if (error) {
+      Sentry.captureException(error, {
+        extra: { context: 'Create user preset', userId: user.id, label },
+      })
+      throw new Error('Failed to create custom preset')
+    }
+
+    return {
       id: data.id,
       value: data.value,
       label: data.label,
       icon: data.icon || 'Link',
-    },
-  }
+    }
+  })
 }

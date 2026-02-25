@@ -245,7 +245,7 @@ app/
 ```
 lib/actions/
 ├── types.ts                   # ActionResult<T> discriminated union
-├── auth-guard.ts              # withAuth, withAuthResult, withAuthResultRateLimit wrappers
+├── auth-guard.ts              # withAuthResult, withAuthResultRateLimit, withAuthRateLimit wrappers
 ├── board.ts, board-data.ts    # Board CRUD + D&D reorder
 ├── repo-cards.ts              # RepoCard CRUD + D&D
 ├── project-info.ts            # Notes, links
@@ -274,7 +274,7 @@ Stored in httpOnly cookie `github_provider_token` (set in `app/auth/callback/rou
 
 ### ActionResult\<T\> Pattern
 
-All client-consumed Server Actions return `ActionResult<T>` (`{ success: true, data: T } | { success: false, error: string }`). Use `withAuthResultRateLimit(key, action)` for mutations.
+All client-consumed Server Actions return `ActionResult<T>` (`{ success: true, data: T } | { success: false, error: string }`). Use `withAuthResult(action)` for reads, `withAuthResultRateLimit(key, action)` for mutations, `withAuthRateLimit(key, action)` for DnD (throws).
 
 ### Rate Limiting
 
