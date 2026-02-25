@@ -16,8 +16,6 @@ interface UseEditableUrlParams {
   onDelete: () => void
   /** Callback for undo delete (enables undo toast) */
   onUndoDelete?: () => void
-  /** Disable all interactions */
-  disabled?: boolean
   /** Auto-enter edit mode (for newly added items) */
   autoEdit?: boolean
   /** Callback when edit mode starts (for single-edit coordination) */

@@ -127,6 +127,8 @@ export const LinkManager = memo(function LinkManager({
       const newLinks = links.filter((_, i) => i !== index)
       if (editingUrlIndex === index) {
         setEditingUrlIndex(null)
+      } else if (editingUrlIndex !== null && index < editingUrlIndex) {
+        setEditingUrlIndex(editingUrlIndex - 1)
       }
       onLinksChange(newLinks)
     },

@@ -112,7 +112,6 @@ export const EditableUrlItem = memo(function EditableUrlItem({
     onUrlChange,
     onDelete,
     onUndoDelete,
-    disabled,
     autoEdit,
     onEditStart,
     forceExitEdit,

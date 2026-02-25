@@ -43,7 +43,7 @@ export const NoteSection = memo(function NoteSection({
 }: NoteSectionProps) {
   return (
     <div className="space-y-2">
-      <Label htmlFor="note">Note</Label>
+      <Label id="note-label">Note</Label>
       <PlateEditor
         initialValue={note}
         onChange={onNoteChange}
