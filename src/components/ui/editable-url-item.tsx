@@ -18,10 +18,8 @@
 
 'use client'
 
-import debounce from 'lodash/debounce.js'
 import { Check, Loader2, Pencil, X } from 'lucide-react'
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { toast } from 'sonner'
+import { memo } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,8 +34,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useEditableUrl } from '@/hooks/ui/useEditableUrl'
 import { cn } from '@/lib/utils'
-import { isValidUrl } from '@/lib/validations'
 
 // ============================================
 // Types
@@ -93,313 +91,32 @@ export const EditableUrlItem = memo(function EditableUrlItem({
   onEditStart,
   forceExitEdit = false,
 }: EditableUrlItemProps) {
-  // ----------------------------------------
-  // State
-  // ----------------------------------------
-  const [isEditing, setIsEditing] = useState(autoEdit)
-  const [editValue, setEditValue] = useState(link.url)
-  const [error, setError] = useState<string | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
-  const [showSaveSuccess, setShowSaveSuccess] = useState(false)
-
-  // Single announcement state for consolidated aria-live region
-  const [announcement, setAnnouncement] = useState('')
-
-  // ----------------------------------------
-  // Refs for race condition prevention
-  // ----------------------------------------
-  const isCancellingRef = useRef(false)
-  const isMountedRef = useRef(true)
-  const isSavingRef = useRef(false)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const penButtonRef = useRef<HTMLButtonElement>(null)
-  const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // ----------------------------------------
-  // Debounced validation
-  // ----------------------------------------
-  const debouncedValidate = useMemo(
-    () =>
-      debounce((value: string) => {
-        if (!isMountedRef.current) return
-        const result = isValidUrl(value)
-        setError(result.error ?? null)
-      }, 300),
-    [],
-  )
-
-  // ----------------------------------------
-  // Cleanup on unmount
-  // ----------------------------------------
-  useEffect(() => {
-    isMountedRef.current = true
-    return () => {
-      isMountedRef.current = false
-      debouncedValidate.cancel()
-      isCancellingRef.current = false
-      isSavingRef.current = false
-      if (successTimeoutRef.current) {
-        clearTimeout(successTimeoutRef.current)
-      }
-    }
-  }, [debouncedValidate])
-
-  // ----------------------------------------
-  // Imperative focus management (v3.2)
-  // React 19+ pattern: useEffect for imperative focus is recommended
-  // because autoFocus doesn't work on conditional renders
-  // ----------------------------------------
-  useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-event-handler -- Imperative DOM focus requires effect
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus()
-      inputRef.current.select()
-    }
-  }, [isEditing])
-
-  // ----------------------------------------
-  // Sync editValue when link.url changes externally
-  // This is a controlled component pattern - sync internal state with props
-  // ----------------------------------------
-  /* eslint-disable react-you-might-not-need-an-effect/no-event-handler, react-you-might-not-need-an-effect/no-chain-state-updates */
-  useEffect(() => {
-    if (!isEditing) {
-      setEditValue(link.url)
-    }
-  }, [link.url, isEditing])
-  /* eslint-enable react-you-might-not-need-an-effect/no-event-handler, react-you-might-not-need-an-effect/no-chain-state-updates */
-
-  // ----------------------------------------
-  // Announce mode changes for screen readers
-  // This is intentional: sync aria-live announcement with state changes
-  // ----------------------------------------
-  useEffect(() => {
-    /* eslint-disable react-you-might-not-need-an-effect/no-event-handler, react-you-might-not-need-an-effect/no-chain-state-updates -- Accessibility announcement requires effect */
-    if (isEditing) {
-      setAnnouncement(`Editing ${link.type || 'URL'}`)
-    }
-    /* eslint-enable react-you-might-not-need-an-effect/no-event-handler, react-you-might-not-need-an-effect/no-chain-state-updates */
-  }, [isEditing, link.type])
-
-  // ----------------------------------------
-  // Focus restoration helper
-  // ----------------------------------------
-  const restoreFocus = useCallback(() => {
-    requestAnimationFrame(() => {
-      if (isMountedRef.current && penButtonRef.current) {
-        penButtonRef.current.focus()
-      }
-    })
-  }, [])
-
-  // ----------------------------------------
-  // Save handler
-  // ----------------------------------------
-  const handleSave = useCallback(() => {
-    if (error || isSaving || isSavingRef.current) return
-
-    isSavingRef.current = true
-    debouncedValidate.cancel()
-
-    const trimmedValue = editValue.trim()
-
-    // Final validation
-    const result = isValidUrl(trimmedValue)
-    if (!result.valid) {
-      setError(result.error ?? 'Invalid URL')
-      isSavingRef.current = false
-      return
-    }
-
-    // Skip save if unchanged
-    if (trimmedValue === link.url.trim()) {
-      setIsEditing(false)
-      restoreFocus()
-      isSavingRef.current = false
-      return
-    }
-
-    setIsSaving(true)
-    setAnnouncement('Saving...')
-
-    try {
-      onUrlChange(trimmedValue)
-      if (!isMountedRef.current) return
-
-      setShowSaveSuccess(true)
-      setAnnouncement('URL saved successfully')
-      setIsEditing(false)
-      restoreFocus()
-
-      // Clean up previous timeout
-      if (successTimeoutRef.current) {
-        clearTimeout(successTimeoutRef.current)
-      }
-      successTimeoutRef.current = setTimeout(() => {
-        if (isMountedRef.current) {
-          setShowSaveSuccess(false)
-          setAnnouncement('')
-        }
-      }, 2000)
-    } finally {
-      if (isMountedRef.current) {
-        setIsSaving(false)
-        isSavingRef.current = false
-      }
-    }
-  }, [
+  const {
+    isEditing,
+    editValue,
     error,
     isSaving,
-    editValue,
-    link.url,
+    showSaveSuccess,
+    announcement,
+    inputRef,
+    penButtonRef,
+    handleInputChange,
+    handleSave,
+    handleEditStart,
+    handleKeyDown,
+    handleBlur,
+    handleSavePointerDown,
+    handleDelete,
+  } = useEditableUrl({
+    link,
     onUrlChange,
-    debouncedValidate,
-    restoreFocus,
-  ])
+    onDelete,
+    onUndoDelete,
+    autoEdit,
+    onEditStart,
+    forceExitEdit,
+  })
 
-  // ----------------------------------------
-  // Cancel handler
-  // ----------------------------------------
-  const handleCancel = useCallback(() => {
-    debouncedValidate.cancel()
-    setEditValue(link.url)
-    setError(null)
-    setIsEditing(false)
-    setAnnouncement('Edit cancelled')
-    restoreFocus()
-  }, [link.url, debouncedValidate, restoreFocus])
-
-  // ----------------------------------------
-  // Force exit effect (for single-edit coordination)
-  // This effect responds to prop changes for coordinating multiple editors
-  // Uses try/finally pattern consistent with handleSave for ref cleanup
-  // ----------------------------------------
-  useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-event-handler -- Prop-driven coordination requires effect
-    if (!forceExitEdit || !isEditing) return
-
-    const trimmedEdit = editValue.trim()
-    const trimmedLink = link.url.trim()
-
-    if (trimmedEdit !== trimmedLink && !error && !isSavingRef.current) {
-      isSavingRef.current = true
-      debouncedValidate.cancel()
-      try {
-        onUrlChange(trimmedEdit)
-        if (!isMountedRef.current) return
-        setIsEditing(false)
-        setAnnouncement('URL saved')
-      } finally {
-        if (isMountedRef.current) {
-          isSavingRef.current = false
-        }
-      }
-    } else {
-      setEditValue(link.url)
-      setError(null)
-      setIsEditing(false)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forceExitEdit]) // Intentionally minimal - snapshot values when forceExitEdit triggers
-
-  // ----------------------------------------
-  // Edit start handler
-  // ----------------------------------------
-  const handleEditStart = useCallback(() => {
-    setEditValue(link.url)
-    setError(null)
-    setShowSaveSuccess(false)
-    setIsEditing(true)
-    onEditStart?.()
-  }, [link.url, onEditStart])
-
-  // ----------------------------------------
-  // Keyboard handler
-  // ----------------------------------------
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      e.stopPropagation()
-
-      if (e.key === 'Enter') {
-        // Check IME composition
-        if (e.nativeEvent.isComposing) return
-        e.preventDefault()
-        handleSave()
-      } else if (e.key === 'Escape') {
-        e.preventDefault()
-        handleCancel()
-      }
-    },
-    [handleSave, handleCancel],
-  )
-
-  // ----------------------------------------
-  // Blur handler with relatedTarget check
-  // Prevents auto-save when focus moves to other controls within the same item
-  // ----------------------------------------
-  const handleBlur = useCallback(
-    (e: React.FocusEvent<HTMLInputElement>) => {
-      if (isCancellingRef.current) {
-        isCancellingRef.current = false
-        return
-      }
-      const relatedTarget = e.relatedTarget as HTMLElement | null
-      // Check if focus moved to save button
-      if (relatedTarget?.closest('[data-role="url-save-button"]')) {
-        return
-      }
-      // Check if focus moved to combobox or its popover
-      // This prevents exit when user clicks combobox to change link type
-      if (
-        relatedTarget?.closest('[role="combobox"]') ||
-        relatedTarget?.closest('[role="listbox"]') ||
-        relatedTarget?.closest('[data-radix-popper-content-wrapper]')
-      ) {
-        return
-      }
-      // Check if focus moved to other buttons in the same item (delete button)
-      const itemContainer = e.currentTarget.closest(
-        '[data-testid^="url-"]',
-      )?.parentElement
-      if (relatedTarget && itemContainer?.contains(relatedTarget)) {
-        return
-      }
-      handleSave()
-    },
-    [handleSave],
-  )
-
-  // ----------------------------------------
-  // Save button pointer down (for blur race condition)
-  // ----------------------------------------
-  const handleSavePointerDown = useCallback((e: React.PointerEvent) => {
-    e.stopPropagation()
-    isCancellingRef.current = true
-  }, [])
-
-  // ----------------------------------------
-  // Delete handler with undo toast
-  // ----------------------------------------
-  const handleDelete = useCallback(() => {
-    onDelete()
-
-    if (onUndoDelete) {
-      toast(`Link deleted`, {
-        description: link.type ? `${link.type} link removed` : 'Link removed',
-        duration: 8000,
-        action: {
-          label: 'Undo',
-          onClick: () => {
-            onUndoDelete()
-          },
-        },
-      })
-    }
-  }, [onDelete, onUndoDelete, link.type])
-
-  // ----------------------------------------
-  // Render
-  // ----------------------------------------
   return (
     <div className="space-y-1">
       {/* Single consolidated live region */}
@@ -432,10 +149,7 @@ export const EditableUrlItem = memo(function EditableUrlItem({
             id={`url-input-${index}`}
             type="url"
             value={editValue}
-            onChange={(e) => {
-              setEditValue(e.target.value)
-              debouncedValidate(e.target.value)
-            }}
+            onChange={(e) => handleInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={handleBlur}
             placeholder="https://example.com"
