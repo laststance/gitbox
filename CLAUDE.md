@@ -217,11 +217,15 @@ Next.js v16 renamed `middleware.ts` to `proxy.ts`:
 ### App Router Structure
 
 ```
-app/
+src/app/
 ├── page.tsx                 # Landing page
+├── (landing)/               # Landing page components (route group)
 ├── auth/callback/route.ts   # GitHub OAuth callback
 ├── boards/page.tsx          # Board list
+├── boards/favorites/page.tsx # Favorite boards
+├── boards/new/page.tsx      # New board creation
 ├── board/[id]/page.tsx      # Kanban board
+├── public/[slug]/page.tsx   # Public board (read-only, unauthenticated)
 ├── maintenance/             # Archived projects
 ├── settings/                # Display settings (Compact Mode, Card Metadata)
 ├── account/                 # Profile, stats, account deletion
@@ -243,7 +247,7 @@ app/
 ### Server Actions
 
 ```
-lib/actions/
+src/lib/actions/
 ├── types.ts                   # ActionResult<T> discriminated union
 ├── auth-guard.ts              # withAuthResult, withAuthResultRateLimit, withAuthRateLimit wrappers
 ├── board.ts, board-data.ts    # Board CRUD + D&D reorder
@@ -251,7 +255,9 @@ lib/actions/
 ├── project-info.ts            # Notes, links
 ├── shared-project-info.ts     # Shared project info helpers
 ├── maintenance-project-info.ts # Maintenance CRUD + delete
+├── public-board.ts            # Public board sharing (read-only view)
 ├── user-presets.ts            # Custom link type presets
+├── user-settings.ts           # Boards page title/subtitle customization
 ├── mappers.ts                 # Data mapping utilities
 ├── auth.ts                    # Session management
 └── github.ts                  # GitHub API (uses provider_token cookie)
@@ -270,19 +276,19 @@ lib/actions/
 
 ### GitHub OAuth Token
 
-Stored in httpOnly cookie `github_provider_token` (set in `app/auth/callback/route.ts`).
+Stored in httpOnly cookie `github_provider_token` (set in `src/app/auth/callback/route.ts`).
 
 ### ActionResult\<T\> Pattern
 
-All client-consumed Server Actions return `ActionResult<T>` (`{ success: true, data: T } | { success: false, error: string }`). Use `withAuthResult(action)` for reads, `withAuthResultRateLimit(key, action)` for mutations, `withAuthRateLimit(key, action)` for DnD (throws).
+All client-consumed Server Actions return `ActionResult<T>` (`{ success: true, data: T } | { success: false, error: string }`). Three auth guard wrappers: `withAuthResult(action)` for reads, `withAuthResultRateLimit(key, action)` for mutations, `withAuthRateLimit(key, action)` for DnD (throws).
 
 ### Rate Limiting
 
-Sliding window, in-memory per-process. Config in `lib/rate-limit/config.ts`. Bypassed in test mode. Edge variant in `proxy.ts`.
+Sliding window, in-memory per-process. Config in `src/lib/rate-limit/config.ts`. Bypassed in test mode. Edge variant in `src/proxy.ts`.
 
 ### Security Event Logging
 
-`logSecurityEvent(type, context)` in `lib/security-events.ts`. Sentry-based audit trail for auth lifecycle events.
+`logSecurityEvent(type, context)` in `src/lib/security-events.ts`. Sentry-based audit trail for auth lifecycle events.
 
 ---
 
@@ -309,7 +315,7 @@ MSW is configured following [next-msw-integration](https://github.com/laststance
 ### Activation Logic (Asymmetric)
 
 ```typescript
-// lib/utils/isMSWEnabled.ts
+// src/lib/utils/isMSWEnabled.ts
 // Client: Only checks NEXT_PUBLIC_ENABLE_MSW_MOCK
 // Server: Also requires APP_ENV='test' (safety measure)
 ```
@@ -320,14 +326,18 @@ MSW is configured following [next-msw-integration](https://github.com/laststance
 mocks/
 ├── browser.ts      # Browser worker setup
 ├── server.ts       # Node.js server setup
-└── handlers.ts     # Request handlers (Supabase + GitHub API)
+└── handlers/       # Request handlers
+    ├── index.ts    # Handler aggregator
+    ├── data.ts     # Mock data definitions
+    ├── github.ts   # GitHub API handlers
+    └── supabase.ts # Supabase API handlers
 
-lib/
+src/lib/
 ├── env.ts          # t3-env validation (@t3-oss/env-nextjs)
 └── utils/
     └── isMSWEnabled.ts
 
-app/
+src/app/
 ├── layout.tsx      # Server-side MSW init + MSWProvider wrapper
 └── msw-provider.tsx # Client component for browser MSW
 ```
@@ -448,7 +458,7 @@ Key project-specific rules:
 
 - **Type-only fixes:** Don't alter runtime behavior when fixing TS errors
 - **React 19.2:** Use `useOptimistic`, `useActionState`, `use` API, Form Actions
-- **UI Components:** Reuse from `/components/ui` (shadcn/ui)
+- **UI Components:** Reuse from `src/components/ui` (shadcn/ui)
 - **Helper Functions:** Extract as pure functions below component definition
 
 ---
