@@ -9,11 +9,7 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
-import {
-  PUBLIC_BOARD_SLUG,
-  BOARD_IDS,
-  resetBoardPublicState,
-} from '../helpers/db-query'
+import { PUBLIC_BOARD_SLUG, resetBoardPublicState } from '../helpers/db-query'
 
 const PUBLIC_BOARD_URL = `/public/${PUBLIC_BOARD_SLUG}`
 

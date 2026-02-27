@@ -78,7 +78,9 @@ test.describe('Keyboard Shortcuts (Authenticated)', () => {
 
     // Dismiss any open modals first
     await page.keyboard.press('Escape')
-    await page.waitForTimeout(300)
+    await expect(page.getByRole('dialog'))
+      .not.toBeVisible({ timeout: 5000 })
+      .catch(() => {})
 
     // Focus on an input element (Board Settings dialog has a textbox)
     const settingsButton = page.getByRole('button', {

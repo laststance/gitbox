@@ -149,6 +149,7 @@ export const PROJECT_INFO_IDS = {
   projinfo2: '00000000-0000-0000-0000-000000000402',
   projinfo3: '00000000-0000-0000-0000-000000000403',
   projinfo4: '00000000-0000-0000-0000-000000000404',
+  maintenanceProjinfo1: '00000000-0000-0000-0000-000000000601',
 } as const
 
 /** Maintenance item UUIDs */
@@ -831,7 +832,7 @@ export async function resetMaintenanceItems(): Promise<void> {
   // Re-insert projectinfo for maintenance-1 (may have been cascade-deleted)
   const { error: piError } = await supabase.from('projectinfo').upsert(
     {
-      id: '00000000-0000-0000-0000-000000000601',
+      id: PROJECT_INFO_IDS.maintenanceProjinfo1,
       maintenance_id: MAINTENANCE_IDS.maintenance1,
       note: 'Maintenance notes for dashboard project',
       comment: 'Archived - no active development',
