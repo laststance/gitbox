@@ -23,6 +23,7 @@ When you have dozens (or hundreds) of repos from side projects, experiments, and
 
 - Kanban boards for GitHub repositories
 - Drag-and-drop organization (cards, columns, boards)
+- Move cards between boards
 - GitHub OAuth-based access
 - Supabase-backed persistence with RLS
 - Rich text project notes (Plate.js editor)

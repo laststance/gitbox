@@ -1,4 +1,4 @@
-# GitBox — Specification v1.4 (2026-02-19)
+# GitBox — Specification v1.5 (2026-02-27)
 
 ## 1) Product Overview
 
@@ -138,6 +138,7 @@
   - **Sharing**: Public board toggle, share link generation/copy
   - **Danger Zone**: Delete board with confirmation
 - **Public Board Sharing**: Make boards publicly viewable via unique share slug (read-only for visitors)
+- **Move to Another Board**: Move repo cards between boards via dialog (DB RPC `move_card_to_board`)
 - **Board D&D Reorder**: Drag & drop board cards on `/boards` page to reorder (position persisted to DB)
   - GripVertical drag handle (visible on hover)
   - Optimistic UI with `useOptimistic` + `useState` dual pattern
@@ -362,10 +363,10 @@ interface BoardSettings {
 
 #### Specifications
 
-- **Error Boundary** (`app/error.tsx`): Global error boundary with Sentry integration
+- **Error Boundary** (`src/app/error.tsx`): Global error boundary with Sentry integration
   - Retry and "Go to Boards" recovery actions
-- **Global Error** (`app/global-error.tsx`): Root-level error boundary
-- **Board Loading** (`app/board/[id]/loading.tsx`): Skeleton UI matching KanbanBoard layout
+- **Global Error** (`src/app/global-error.tsx`): Root-level error boundary
+- **Board Loading** (`src/app/board/[id]/loading.tsx`): Skeleton UI matching KanbanBoard layout
   - CardSkeleton, ColumnSkeleton components
 - **Per-Route Boundaries**: All route segments have dedicated `loading.tsx` and `error.tsx`
   - Routes: `/boards`, `/board/[id]`, `/maintenance`, `/settings`, `/account`
@@ -421,7 +422,7 @@ font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; ob
 
 #### Security Event Logging
 
-Sentry-based audit trail via `logSecurityEvent()` (`lib/security-events.ts`).
+Sentry-based audit trail via `logSecurityEvent()` (`src/lib/security-events.ts`).
 
 | Event Type            | Level   | Trigger                                 |
 | --------------------- | ------- | --------------------------------------- |
@@ -443,7 +444,7 @@ Sentry-based audit trail via `logSecurityEvent()` (`lib/security-events.ts`).
 
 #### ActionResult\<T\> Discriminated Union
 
-Standardized return type for client-consumed Server Actions (`lib/actions/types.ts`).
+Standardized return type for client-consumed Server Actions (`src/lib/actions/types.ts`).
 
 ```typescript
 type ActionResult<T> =
@@ -451,11 +452,10 @@ type ActionResult<T> =
   | { success: false; error: string }
 ```
 
-#### Auth Guard Wrappers (`lib/actions/auth-guard.ts`)
+#### Auth Guard Wrappers (`src/lib/actions/auth-guard.ts`)
 
 | Wrapper                     | Auth | Rate Limit | Returns                         |
 | --------------------------- | ---- | ---------- | ------------------------------- |
-| `withAuth()`                | Yes  | No         | Throws on failure               |
 | `withAuthResult()`          | Yes  | No         | `ActionResult<T>`               |
 | `withAuthResultRateLimit()` | Yes  | Yes        | `ActionResult<T>` (recommended) |
 | `withAuthRateLimit()`       | Yes  | Yes        | Throws on failure               |
@@ -476,6 +476,7 @@ Open Production URL
 Open Tracking dashboard
 Open Supabase dashboard
 Edit Project Info…      // Launch modal
+Move to Another Board   // Board only (dialog with board selector)
 Move to Maintenance     // Board only
 Restore to Board        // Maintenance only
 Delete from Maintenance // Maintenance only (destructive, confirmation dialog)
@@ -943,6 +944,13 @@ interface RepoCardMeta {
 - XSS prevention (DOMPurify sanitization, open redirect protection) ✅
 - Inline editable boards page header with DB persistence ✅
 - user_settings table for per-user page customization ✅
+- Move to Another Board feature (dialog with board selector) ✅
+- Auth guard unification (withAuth removed, 3 wrappers remain) ✅
+- NoteModal decomposition (NoteSection, LinkManager, useNoteModalDraft) ✅
+- KanbanBoard God Component decomposition into focused hooks ✅
+- Postgres best practices hardening migration ✅
+- 404 page, empty states, and hover state UX improvements ✅
+- Toast feedback for silent success operations ✅
 
 ---
 
@@ -954,17 +962,17 @@ interface RepoCardMeta {
 
 Social media preview images and metadata.
 
-| Item             | File                      | Size     |
-| ---------------- | ------------------------- | -------- |
-| OG Image         | `app/opengraph-image.tsx` | 1200×630 |
-| Twitter Card     | `app/twitter-image.tsx`   | 1200×600 |
-| Favicon          | `app/icon.svg`            | SVG      |
-| Apple Touch Icon | `app/apple-icon.tsx`      | 180×180  |
+| Item             | File                          | Size     |
+| ---------------- | ----------------------------- | -------- |
+| OG Image         | `src/app/opengraph-image.tsx` | 1200×630 |
+| Twitter Card     | `src/app/twitter-image.tsx`   | 1200×600 |
+| Favicon          | `src/app/icon.svg`            | SVG      |
+| Apple Touch Icon | `src/app/apple-icon.tsx`      | 180×180  |
 
 #### Metadata Configuration
 
 ```typescript
-// app/layout.tsx
+// src/app/layout.tsx
 export const metadata: Metadata = {
   title: {
     default: 'GitBox - GitHub Repository Manager',
@@ -980,7 +988,7 @@ export const metadata: Metadata = {
 
 #### PWA Manifest
 
-`app/manifest.ts` enables PWA installation (dynamic manifest generation).
+`src/app/manifest.ts` enables PWA installation (dynamic manifest generation).
 
 ### 10.2 Hosting (Vercel)
 
@@ -1265,7 +1273,6 @@ Row 1: [   ] [   ] [ B ]   →     Row 1: [ A ] [   ] [   ]
 
 ```typescript
 // e2e/helpers/cdp-drag.ts
-export async function cdpDragAndDrop(page, source, target, options?)
 export async function cdpColumnDragAndDrop(page, sourceId, targetId, options?)
 export async function cdpCardDragAndDrop(page, sourceId, targetId, options?)
 export async function cdpCardToColumnDragAndDrop(
@@ -1278,13 +1285,6 @@ export async function cdpColumnToNewRowDragAndDrop(
   page,
   columnId,
   row,
-  options?,
-)
-export async function cdpColumnToGridPosition(
-  page,
-  columnId,
-  row,
-  col,
   options?,
 )
 export async function cdpColumnToInsertZone(page, columnId, row, col, options?)
@@ -1351,6 +1351,7 @@ export async function cdpBoardDragAndDrop(
 | Repo        | `repo-card-display.spec.ts`                | Card display                 |
 | Repo        | `repo-card-description.spec.ts`            | Card description             |
 | Repo        | `remove-from-board.spec.ts`                | Remove card from board       |
+| Repo        | `move-to-another-board.spec.ts`            | Move card between boards     |
 | Comment     | `comment-display.spec.ts`                  | Comment display              |
 | Comment     | `comment-inline-edit.spec.ts`              | Comment inline editing       |
 | Comment     | `comment-color-theme-independence.spec.ts` | Color theme independence     |
@@ -1368,6 +1369,7 @@ export async function cdpBoardDragAndDrop(
 | Unauth      | `landing.spec.ts`                          | Landing page                 |
 | Unauth      | `login.spec.ts`                            | Login page                   |
 | Unauth      | `page-titles.spec.ts`                      | Unauthenticated page titles  |
+| Unauth      | `public-board.spec.ts`                     | Public board (read-only)     |
 | Unauth      | `ssr-hydration.spec.ts`                    | SSR hydration (unauth)       |
 | Security    | `xss-smoke.spec.ts`                        | XSS injection prevention     |
 

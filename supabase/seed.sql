@@ -63,7 +63,8 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Board 1: Test Board (main board for most tests)
 -- position=1: second in list (created_at DESC puts newer board-2 first)
-INSERT INTO board (id, user_id, name, subtitle, settings, is_favorite, position, created_at, updated_at)
+-- is_public + share_slug: enables public board E2E tests
+INSERT INTO board (id, user_id, name, subtitle, settings, is_favorite, position, is_public, share_slug, created_at, updated_at)
 VALUES (
   '00000000-0000-0000-0000-000000000100'::uuid,
   '00000000-0000-0000-0000-000000000001'::uuid,
@@ -72,6 +73,8 @@ VALUES (
   '{}'::jsonb,
   false,
   1,
+  true,
+  'a1b2c3d4e5f6',
   '2024-01-01T00:00:00.000Z'::timestamptz,
   '2024-01-01T00:00:00.000Z'::timestamptz
 )

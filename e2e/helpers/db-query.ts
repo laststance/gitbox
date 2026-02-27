@@ -149,7 +149,17 @@ export const PROJECT_INFO_IDS = {
   projinfo2: '00000000-0000-0000-0000-000000000402',
   projinfo3: '00000000-0000-0000-0000-000000000403',
   projinfo4: '00000000-0000-0000-0000-000000000404',
+  maintenanceProjinfo1: '00000000-0000-0000-0000-000000000601',
 } as const
+
+/** Maintenance item UUIDs */
+export const MAINTENANCE_IDS = {
+  maintenance1: '00000000-0000-0000-0000-000000000501',
+  maintenance2: '00000000-0000-0000-0000-000000000502',
+} as const
+
+/** Public board share slug (matches seed.sql) */
+export const PUBLIC_BOARD_SLUG = 'a1b2c3d4e5f6'
 
 // ============================================================================
 // State Reset Helpers (for test isolation with real DB)
@@ -750,5 +760,90 @@ export async function resetUserSettings(): Promise<void> {
 
   if (error) {
     throw new Error(`resetUserSettings: ${error.message}`)
+  }
+}
+
+/**
+ * Reset board public state to seed.sql initial values.
+ * Call this in afterEach for public board sharing tests.
+ *
+ * @example
+ * test.afterEach(async () => {
+ *   await resetBoardPublicState()
+ * })
+ */
+export async function resetBoardPublicState(): Promise<void> {
+  const supabase = createLocalSupabaseClient()
+
+  const { data, error } = await supabase
+    .from('board')
+    .update({ is_public: true, share_slug: PUBLIC_BOARD_SLUG })
+    .eq('id', BOARD_IDS.testBoard)
+    .select('id')
+  if (error) {
+    throw new Error(`resetBoardPublicState: ${error.message}`)
+  }
+  if (!data || data.length === 0) {
+    throw new Error(
+      `resetBoardPublicState: UPDATE matched 0 rows for id=${BOARD_IDS.testBoard}. ` +
+        `URL=${process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'}`,
+    )
+  }
+}
+
+/**
+ * Reset maintenance items to seed.sql initial values.
+ * Re-creates items that may have been deleted by tests.
+ *
+ * @example
+ * test.afterEach(async () => {
+ *   await resetMaintenanceItems()
+ * })
+ */
+export async function resetMaintenanceItems(): Promise<void> {
+  const supabase = createLocalSupabaseClient()
+
+  const seedItems = [
+    {
+      id: MAINTENANCE_IDS.maintenance1,
+      user_id: TEST_USER_ID,
+      repo_owner: 'laststance',
+      repo_name: 'claude-plugin-dashboard',
+    },
+    {
+      id: MAINTENANCE_IDS.maintenance2,
+      user_id: TEST_USER_ID,
+      repo_owner: 'laststance',
+      repo_name: 'old-project',
+    },
+  ]
+
+  for (const item of seedItems) {
+    const { error } = await supabase
+      .from('maintenance')
+      .upsert(item, { onConflict: 'id' })
+    if (error) {
+      throw new Error(
+        `resetMaintenanceItems: upsert failed for id=${item.id}: ${error.message}`,
+      )
+    }
+  }
+
+  // Re-insert projectinfo for maintenance-1 (may have been cascade-deleted)
+  const { error: piError } = await supabase.from('projectinfo').upsert(
+    {
+      id: PROJECT_INFO_IDS.maintenanceProjinfo1,
+      maintenance_id: MAINTENANCE_IDS.maintenance1,
+      note: 'Maintenance notes for dashboard project',
+      comment: 'Archived - no active development',
+      comment_color: 'neutral',
+      links: [],
+    },
+    { onConflict: 'id' },
+  )
+  if (piError) {
+    throw new Error(
+      `resetMaintenanceItems: projectinfo upsert failed: ${piError.message}`,
+    )
   }
 }
