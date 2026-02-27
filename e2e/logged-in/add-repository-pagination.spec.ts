@@ -15,12 +15,19 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
-import { BOARD_IDS } from '../helpers/db-query'
+import { BOARD_IDS, resetRepoCards } from '../helpers/db-query'
 
 test.describe('AddRepositoryCombobox - Pagination UI', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
+
+  // Reset repo cards before each test to ensure the combobox has repos to show.
+  // Combobox filters out repos already on the board, so leftover cards from
+  // prior tests (e.g., optimistic update tests) can cause zero available repos.
+  test.beforeEach(async () => {
+    await resetRepoCards()
+  })
 
   /**
    * Verifies the combobox loads and displays available repositories
@@ -47,10 +54,10 @@ test.describe('AddRepositoryCombobox - Pagination UI', () => {
     const searchInput = page.getByPlaceholder(/search repositories/i)
     await expect(searchInput).toBeVisible({ timeout: 10000 })
 
-    // Wait for repository list to load
-    await expect(page.locator('[role="option"]').first()).toBeVisible({
-      timeout: 10000,
-    })
+    // Wait for repository list to load (repos fetched via server action)
+    // Use the same pattern as working add-repository-combobox tests
+    const repoOptions = page.locator('[role="option"]')
+    await expect(repoOptions.first()).toBeVisible({ timeout: 15000 })
   })
 
   /**
@@ -78,23 +85,19 @@ test.describe('AddRepositoryCombobox - Pagination UI', () => {
     const searchInput = page.getByPlaceholder(/search repositories/i)
     await expect(searchInput).toBeVisible({ timeout: 10000 })
 
-    // Wait for repository list to load (at least one option should appear)
-    await expect(page.locator('[role="option"]').first()).toBeVisible({
-      timeout: 10000,
-    })
+    // Wait for repository list to load
+    const repoOptions = page.locator('[role="option"]')
+    await expect(repoOptions.first()).toBeVisible({ timeout: 15000 })
 
     // Search for a specific term
     await searchInput.fill('private')
 
     // Wait for search to filter — results should contain the search term
     await expect(async () => {
-      const filteredCount = await page.locator('[role="option"]').count()
+      const filteredCount = await repoOptions.count()
       expect(filteredCount).toBeGreaterThan(0)
       // Verify the first visible option matches the search term
-      const firstOptionText = await page
-        .locator('[role="option"]')
-        .first()
-        .textContent()
+      const firstOptionText = await repoOptions.first().textContent()
       expect(firstOptionText?.toLowerCase()).toContain('private')
     }).toPass({ timeout: 5000 })
   })
@@ -155,23 +158,16 @@ test.describe('AddRepositoryCombobox - Pagination UI', () => {
     const searchInput = page.getByPlaceholder(/search repositories/i)
     await expect(searchInput).toBeVisible({ timeout: 10000 })
 
-    // Wait for repository list to load (at least one option should appear)
-    await expect(page.locator('[role="option"]').first()).toBeVisible({
-      timeout: 10000,
-    })
-
-    // Get all repository options
+    // Wait for repository list to load
     const repoOptions = page.locator('[role="option"]')
-    const optionCount = await repoOptions.count()
+    await expect(repoOptions.first()).toBeVisible({ timeout: 15000 })
 
-    if (optionCount > 0) {
-      // Click the first available option
-      await repoOptions.first().click()
+    // Click the first available option
+    await repoOptions.first().click()
 
-      // Verify the Add button shows a count
-      const addButton = page.getByRole('button', { name: /add \(\d+\)/i })
-      await expect(addButton).toBeVisible({ timeout: 5000 })
-    }
+    // Verify the Add button shows a count
+    const addButton = page.getByRole('button', { name: /add \(\d+\)/i })
+    await expect(addButton).toBeVisible({ timeout: 5000 })
   })
 
   /**
