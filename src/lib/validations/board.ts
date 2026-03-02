@@ -7,6 +7,7 @@
 import { z } from 'zod'
 
 import { PRESET_IDS } from '@/lib/constants/board-presets'
+import { HEX_COLOR_CODE } from '@/lib/constants/regex'
 
 import { uuidSchema } from './common'
 
@@ -145,7 +146,7 @@ export const statusListNameSchema = z
  */
 export const statusListColorSchema = z
   .string()
-  .regex(/^#[0-9A-Fa-f]{6}$/, 'Color must be a valid hex color (e.g., #6B7280)')
+  .regex(HEX_COLOR_CODE, 'Color must be a valid hex color (e.g., #6B7280)')
 
 /**
  * Schema for validating grid positions (non-negative integers).
