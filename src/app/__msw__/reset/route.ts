@@ -6,7 +6,7 @@
  * each shard has its own isolated database.
  *
  * @example
- * await page.request.post('http://localhost:3008/__msw__/reset')
+ * await page.request.post('htp://localhost:3008/__msw__/reset')
  */
 
 import { NextResponse } from 'next/server'
