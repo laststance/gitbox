@@ -64,6 +64,44 @@ test.describe('Create Board Page (Authenticated)', () => {
     })
   })
 
+  test.describe('Preset Selection', () => {
+    test('should show Web App preset pre-selected', async ({ page }) => {
+      // Web App card should have selected styling (border-primary)
+      const webAppCard = page.getByRole('radio', { name: /web app/i })
+      await expect(webAppCard).toBeVisible({ timeout: 10000 })
+      await expect(webAppCard).toBeChecked()
+    })
+
+    test('should display all 6 preset cards', async ({ page }) => {
+      const presetLabels = [
+        'Software Release',
+        'Web App',
+        'Electron Desktop',
+        'CLI Tool',
+        'Mobile',
+        'macOS',
+      ]
+      for (const label of presetLabels) {
+        await expect(page.getByText(label, { exact: true })).toBeVisible()
+      }
+    })
+
+    test('should switch preset on click', async ({ page }) => {
+      // Click CLI Tool preset
+      const cliCard = page.getByRole('radio', { name: /cli tool/i })
+      await cliCard.click()
+      await expect(cliCard).toBeChecked()
+
+      // Verify CLI Tool column names are visible
+      await expect(page.getByText('Command', { exact: true })).toBeVisible()
+      await expect(page.getByText('Linter', { exact: true })).toBeVisible()
+
+      // Web App should no longer be checked
+      const webAppCard = page.getByRole('radio', { name: /web app/i })
+      await expect(webAppCard).not.toBeChecked()
+    })
+  })
+
   test.describe('Navigation', () => {
     test('should go back when Cancel is clicked', async ({ page }) => {
       // Navigate to boards first, then to create

@@ -1,8 +1,9 @@
 /**
  * Create Board Form Component
  *
- * Client Component for board creation
+ * Client Component for board creation.
  * - Name input with validation
+ * - Preset selector for status list column templates
  */
 
 'use client'
@@ -15,12 +16,16 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createBoard } from '@/lib/actions/board'
+import { DEFAULT_PRESET_ID, type PresetId } from '@/lib/constants/board-presets'
 import { boardNameSchema } from '@/lib/validations/board'
+
+import { PresetSelector } from './PresetSelector'
 
 export const CreateBoardForm = memo(function CreateBoardForm() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [name, setName] = useState('')
+  const [presetId, setPresetId] = useState<PresetId>(DEFAULT_PRESET_ID)
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -37,7 +42,7 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
     const validatedName = result.data
 
     startTransition(async () => {
-      const result = await createBoard(validatedName)
+      const result = await createBoard(validatedName, presetId)
       if (result.success) {
         toast.success('Board created', {
           description: `"${validatedName}" has been created.`,
@@ -69,6 +74,19 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
         <p className="text-muted-foreground text-xs">
           {name.length}/50 characters
         </p>
+      </div>
+
+      {/* Preset Selection */}
+      <div className="space-y-2">
+        <Label>Column Preset</Label>
+        <p className="text-muted-foreground text-xs">
+          Choose how to organize your repos
+        </p>
+        <PresetSelector
+          value={presetId}
+          onChange={setPresetId}
+          disabled={isPending}
+        />
       </div>
 
       {/* Error Message */}
