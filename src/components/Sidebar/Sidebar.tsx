@@ -153,7 +153,7 @@ const SidebarToggleButton = memo(function SidebarToggleButton({
           variant="ghost"
           size="icon"
           onClick={onToggle}
-          className="h-8 w-8 flex-shrink-0"
+          className="h-8 w-8 shrink-0"
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? (
@@ -228,7 +228,7 @@ export const Sidebar = memo(function Sidebar({
               mounted && isCollapsed && 'justify-center',
             )}
           >
-            <Github className="text-sidebar-primary h-6 w-6 flex-shrink-0" />
+            <Github className="text-sidebar-primary h-6 w-6 shrink-0" />
             {(!mounted || !isCollapsed) && (
               <span className="text-lg font-semibold">GitBox</span>
             )}
