@@ -24,7 +24,8 @@ import { expect, waitFor } from 'storybook/test'
 
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import { setStatusLists, setRepoCards } from '@/lib/redux/slices/boardSlice'
-import { mockStatusLists, mockRepoCards } from '@/mocks/handlers/data'
+
+import { mockStatusLists, mockRepoCards } from '../../../mocks/handlers/data'
 
 import { KanbanBoard } from './KanbanBoard'
 
