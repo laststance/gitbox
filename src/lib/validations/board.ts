@@ -6,6 +6,8 @@
 
 import { z } from 'zod'
 
+import { PRESET_IDS } from '@/lib/constants/board-presets'
+
 import { uuidSchema } from './common'
 
 // ========================================
@@ -31,6 +33,19 @@ export const boardNameSchema = z
     BOARD_NAME_MAX_LENGTH,
     `Board name must be ${BOARD_NAME_MAX_LENGTH} characters or less`,
   )
+
+// ========================================
+// Board Preset ID Schema
+// ========================================
+
+/**
+ * Schema for validating board preset IDs.
+ *
+ * @example
+ * presetIdSchema.safeParse('web-app')    // => { success: true, data: 'web-app' }
+ * presetIdSchema.safeParse('unknown')    // => { success: false, error: ... }
+ */
+export const presetIdSchema = z.enum(PRESET_IDS)
 
 // ========================================
 // Board Subtitle Schema

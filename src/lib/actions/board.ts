@@ -14,6 +14,11 @@ import {
   withAuthResultRateLimit,
 } from '@/lib/actions/auth-guard'
 import { toRepoCardDomain, toStatusListDomain } from '@/lib/actions/mappers'
+import {
+  getPresetById,
+  DEFAULT_PRESET_ID,
+  type PresetId,
+} from '@/lib/constants/board-presets'
 import type { StatusListDomain, RepoCardDomain } from '@/lib/models/domain'
 import { createClient } from '@/lib/supabase/server'
 import type { TablesInsert } from '@/lib/supabase/types'
@@ -23,6 +28,7 @@ import {
   boardIdSchema,
   boardSettingsSchema,
   boardPositionUpdatesSchema,
+  presetIdSchema,
   statusListNameSchema,
   statusListColorSchema,
   gridPositionSchema,
@@ -62,71 +68,64 @@ export async function getStatusLists(
 }
 
 /**
- * Create default status lists for a new board
- * Called when a board has no status lists
- * All columns start in row 0 (single row layout)
+ * Create status lists from a preset definition.
+ * Maps preset columns to database rows with grid positioning.
+ *
+ * @param boardId - Target board UUID
+ * @param presetId - Preset identifier from PRESET_IDS
+ * @returns Created StatusListDomain array
+ * @example
+ * await createStatusListsFromPreset(boardId, 'web-app')
+ * // Creates: Frontend, Backend, Fullstack, Library, Infrastructure
  */
-export async function createDefaultStatusLists(
+async function createStatusListsFromPreset(
   boardId: string,
+  presetId: PresetId,
 ): Promise<StatusListDomain[]> {
   const supabase = await createClient()
+  const preset = getPresetById(presetId)
 
-  const defaultLists: TablesInsert<'statuslist'>[] = [
-    {
+  const statusLists: TablesInsert<'statuslist'>[] = preset.columns.map(
+    (col, index) => ({
       board_id: boardId,
-      name: 'Pending',
-      color: '#8B7355',
-      order: 0,
+      name: col.name,
+      color: col.color,
+      order: index,
       grid_row: 0,
-      grid_col: 0,
-    },
-    {
-      board_id: boardId,
-      name: 'Planning',
-      color: '#6B8E23',
-      order: 1,
-      grid_row: 0,
-      grid_col: 1,
-    },
-    {
-      board_id: boardId,
-      name: 'Focus Development',
-      color: '#CD853F',
-      order: 2,
-      grid_row: 0,
-      grid_col: 2,
-    },
-    {
-      board_id: boardId,
-      name: 'MVP Release',
-      color: '#4682B4',
-      order: 3,
-      grid_row: 0,
-      grid_col: 3,
-    },
-    {
-      board_id: boardId,
-      name: 'Production Release',
-      color: '#556B2F',
-      order: 4,
-      grid_row: 0,
-      grid_col: 4,
-    },
-  ]
+      grid_col: index,
+    }),
+  )
 
   const { data, error } = await supabase
     .from('statuslist')
-    .insert(defaultLists)
+    .insert(statusLists)
     .select()
 
   if (error) {
     Sentry.captureException(error, {
-      extra: { context: 'Create default status lists', boardId },
+      extra: { context: 'Create status lists from preset', boardId, presetId },
     })
-    throw new Error('Failed to create default status lists')
+    throw new Error('Failed to create status lists')
   }
 
   return (data || []).map(toStatusListDomain)
+}
+
+/**
+ * Create default status lists for a new board.
+ * Delegates to the Software Release preset.
+ * Called by getBoardData (fallback) and createFirstBoardIfNeeded.
+ *
+ * @param boardId - Target board UUID
+ * @returns Created StatusListDomain array
+ * @example
+ * await createDefaultStatusLists(boardId)
+ * // Creates: Pending, Planning, Focus Development, MVP Release, Production Release
+ */
+export async function createDefaultStatusLists(
+  boardId: string,
+): Promise<StatusListDomain[]> {
+  return createStatusListsFromPreset(boardId, 'software-release')
 }
 
 /**
@@ -473,16 +472,34 @@ export async function getBoardData(boardId: string): Promise<{
  *   router.push(`/board/${result.data.id}`)
  * }
  */
+/**
+ * Create a new board with status lists from a preset.
+ *
+ * @param name - Board display name (1-50 chars)
+ * @param presetId - Status list preset to apply (defaults to 'web-app')
+ * @returns ActionResult with created board id and name
+ * @example
+ * await createBoard('Side Projects', 'cli-tool')
+ * // => { success: true, data: { id: 'uuid', name: 'Side Projects' } }
+ */
 export async function createBoard(
   name: string,
+  presetId?: string,
 ): Promise<ActionResult<{ id: string; name: string }>> {
   // Validate board name (P2-3)
-  const validation = boardNameSchema.safeParse(name)
-  if (!validation.success) {
+  const nameValidation = boardNameSchema.safeParse(name)
+  if (!nameValidation.success) {
     return {
       success: false,
-      error: validation.error.issues[0]?.message || 'Invalid board name',
+      error: nameValidation.error.issues[0]?.message || 'Invalid board name',
     }
+  }
+
+  // Validate preset ID (default to 'web-app' if omitted)
+  const resolvedPresetId = presetId ?? DEFAULT_PRESET_ID
+  const presetValidation = presetIdSchema.safeParse(resolvedPresetId)
+  if (!presetValidation.success) {
+    return { success: false, error: 'Invalid preset selection' }
   }
 
   return withAuthResultRateLimit('boardCrud', async (supabase, user) => {
@@ -511,8 +528,8 @@ export async function createBoard(
       throw new Error('Failed to create board')
     }
 
-    // Create default status lists for the new board
-    await createDefaultStatusLists(data.id)
+    // Create status lists from selected preset
+    await createStatusListsFromPreset(data.id, presetValidation.data)
 
     return { id: data.id, name: data.name }
   })

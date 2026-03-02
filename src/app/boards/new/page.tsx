@@ -33,12 +33,12 @@ export default async function NewBoardPage() {
   return (
     <div className="bg-background min-h-screen">
       <div className="container mx-auto px-4 py-16">
-        <div className="mx-auto max-w-lg">
+        <div className="mx-auto max-w-2xl">
           <h1 className="text-foreground text-center text-3xl font-bold">
             Create New Board
           </h1>
           <p className="text-muted-foreground mt-2 text-center">
-            Give your board a name and choose a theme
+            Give your board a name and choose a template
           </p>
 
           <div className="mt-8">
