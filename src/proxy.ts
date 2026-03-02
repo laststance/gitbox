@@ -17,7 +17,13 @@ import { logSecurityEvent } from '@/lib/security-events'
 import { isTestMode } from '@/tests/isTestMode'
 
 // Public paths that don't require authentication
-const publicPaths = ['/', '/login', '/auth/callback']
+export const publicPaths = [
+  '/',
+  '/login',
+  '/auth/callback',
+  '/privacy',
+  '/terms',
+]
 
 export async function proxy(request: NextRequest) {
   // In E2E test mode, bypass authentication and allow all requests

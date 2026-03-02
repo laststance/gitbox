@@ -48,17 +48,18 @@ describe('Middleware (middleware.ts)', () => {
   })
 
   describe('Public Paths Configuration', () => {
-    it('should define public paths', () => {
-      // Public paths should include:
-      // - Root path /
-      // - Auth callback /auth/callback
-      // - Login page /login
-
-      const expectedPublicPaths = ['/', '/auth/callback']
+    it('should include legal and auth-related public paths', async () => {
+      const { publicPaths } = await import('@/proxy')
+      const expectedPublicPaths = [
+        '/',
+        '/auth/callback',
+        '/login',
+        '/privacy',
+        '/terms',
+      ]
 
       expectedPublicPaths.forEach((path) => {
-        expect(path).toBeDefined()
-        expect(typeof path).toBe('string')
+        expect(publicPaths).toContain(path)
       })
     })
   })
