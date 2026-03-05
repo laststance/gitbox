@@ -8,6 +8,7 @@
 'use server'
 
 import * as Sentry from '@sentry/nextjs'
+import { destr } from 'destr'
 
 import {
   withAuthRateLimit,
@@ -929,19 +930,17 @@ export async function updateBoardSettingsAction(
   }
 
   // Parse and validate settings using Zod schema
-  let newSettings: Record<string, unknown>
-  try {
-    const parsed = JSON.parse(settingsJson)
-    const settingsResult = boardSettingsSchema.safeParse(parsed)
-    if (!settingsResult.success) {
-      return {
-        error: settingsResult.error.issues.map((i) => i.message).join(', '),
-      }
-    }
-    newSettings = settingsResult.data as Record<string, unknown>
-  } catch {
+  const parsed = destr(settingsJson)
+  if (typeof parsed === 'string') {
     return { error: 'Invalid settings format' }
   }
+  const settingsResult = boardSettingsSchema.safeParse(parsed)
+  if (!settingsResult.success) {
+    return {
+      error: settingsResult.error.issues.map((i) => i.message).join(', '),
+    }
+  }
+  const newSettings = settingsResult.data as Record<string, unknown>
 
   const supabase = await createClient()
 

@@ -195,9 +195,7 @@ describe('updateSettingsFormSchema', () => {
     })
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.issues[0]!.message).toContain(
-        'Invalid settings format',
-      )
+      expect(result.error.issues[0]!.message).toContain('Invalid JSON format')
     }
   })
 
