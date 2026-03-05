@@ -79,10 +79,7 @@ const createTestStore = (statusLists: StatusListDomain[] = []) => {
         activeBoard: null,
         statusLists,
         repoCards: [],
-        loading: false,
-        error: null,
-        lastDragOperation: null,
-        undoHistory: [],
+        lastVisitedBoard: null,
       },
     },
   })

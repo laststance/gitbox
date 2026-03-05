@@ -188,7 +188,15 @@ export default defineConfig([
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       // localStorage checks in tests are acceptable for verification.
-      'no-restricted-globals': 'off',
+      // Keep fetch banned for axios/MSW consistency.
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'fetch',
+          message:
+            'Use axios instead of fetch for MSW compatibility. Import from lib/axios.ts.',
+        },
+      ],
       'no-restricted-properties': 'off',
     },
   },

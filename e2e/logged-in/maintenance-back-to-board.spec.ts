@@ -24,10 +24,16 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
     page.evaluate(() => {
       const raw = localStorage.getItem('gitbox-state')
       if (!raw) return null
-      const parsed = JSON.parse(raw) as {
-        state?: { board?: { lastVisitedBoard?: { id: string; name: string } } }
+      try {
+        const parsed = JSON.parse(raw) as {
+          state?: {
+            board?: { lastVisitedBoard?: { id: string; name: string } }
+          }
+        }
+        return parsed.state?.board?.lastVisitedBoard ?? null
+      } catch {
+        return null
       }
-      return parsed.state?.board?.lastVisitedBoard ?? null
     })
 
   test('should not show Back to Board link when no board has been visited', async ({
