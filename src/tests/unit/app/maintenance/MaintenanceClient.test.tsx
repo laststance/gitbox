@@ -18,6 +18,8 @@ import {
   type MaintenanceRepo,
 } from '@/app/maintenance/MaintenanceClient'
 
+let mockLastVisitedBoard: { id: string; name: string } | null = null
+
 // Mock dependencies
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -42,6 +44,10 @@ vi.mock('@/lib/actions/repo-cards', () => ({
     success: true,
     boards: [],
   }),
+}))
+
+vi.mock('@/lib/redux/store', () => ({
+  useAppSelector: vi.fn(() => mockLastVisitedBoard),
 }))
 
 // Mock window.open
@@ -80,6 +86,7 @@ describe('MaintenanceClient Component', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    mockLastVisitedBoard = null
   })
 
   describe('Rendering', () => {
@@ -281,10 +288,7 @@ describe('MaintenanceClient Component', () => {
 
   describe('Back Button', () => {
     it('should show back button when lastVisitedBoard is set', async () => {
-      localStorage.setItem(
-        'gitbox:lastVisitedBoard',
-        JSON.stringify({ id: 'board-1', name: 'My Board' }),
-      )
+      mockLastVisitedBoard = { id: 'board-1', name: 'My Board' }
 
       render(<MaintenanceClient repos={[createMockRepo()]} />)
 
@@ -307,6 +311,7 @@ describe('MaintenanceClient Sorting Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    mockLastVisitedBoard = null
   })
 
   it('should sort by name alphabetically', async () => {
