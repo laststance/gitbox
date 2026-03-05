@@ -53,8 +53,7 @@ function createMockStore() {
           },
         ],
         repoCards: [],
-        lastDragOperation: null,
-        undoHistory: [],
+        lastVisitedBoard: null,
       },
     },
   })
@@ -562,8 +561,7 @@ describe('KanbanBoard Loading States', () => {
           activeBoard: null,
           statusLists: [],
           repoCards: [],
-          lastDragOperation: null,
-          undoHistory: [],
+          lastVisitedBoard: null,
         },
       },
     })
@@ -603,8 +601,7 @@ describe('KanbanBoard Loading States', () => {
             },
           ],
           repoCards: [],
-          lastDragOperation: null,
-          undoHistory: [],
+          lastVisitedBoard: null,
         },
       },
     })
@@ -684,8 +681,7 @@ describe('KanbanBoard with Data', () => {
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
           ],
-          lastDragOperation: null,
-          undoHistory: [],
+          lastVisitedBoard: null,
         },
       },
     })
@@ -744,8 +740,7 @@ describe('KanbanBoard with Data', () => {
             },
           ],
           repoCards: [],
-          lastDragOperation: null,
-          undoHistory: [],
+          lastVisitedBoard: null,
         },
       },
     })
@@ -809,8 +804,7 @@ describe('KanbanBoard Callbacks', () => {
             },
           ],
           repoCards: [],
-          lastDragOperation: null,
-          undoHistory: [],
+          lastVisitedBoard: null,
         },
       },
     })
@@ -885,8 +879,7 @@ describe('KanbanBoard Initial Comments', () => {
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
           ],
-          lastDragOperation: null,
-          undoHistory: [],
+          lastVisitedBoard: null,
         },
       },
     })
@@ -943,8 +936,7 @@ describe('KanbanBoard Card Display Settings', () => {
             },
           ],
           repoCards: [],
-          lastDragOperation: null,
-          undoHistory: [],
+          lastVisitedBoard: null,
         },
       },
     })
@@ -995,8 +987,7 @@ describe('KanbanBoard Card Display Settings', () => {
             },
           ],
           repoCards: [],
-          lastDragOperation: null,
-          undoHistory: [],
+          lastVisitedBoard: null,
         },
       },
     })
@@ -1060,8 +1051,7 @@ describe('KanbanBoard Undo Keyboard Shortcut', () => {
             },
           ],
           repoCards: [],
-          lastDragOperation: null,
-          undoHistory: [],
+          lastVisitedBoard: null,
         },
       },
     })
@@ -1109,8 +1099,7 @@ describe('KanbanBoard Undo Keyboard Shortcut', () => {
             },
           ],
           repoCards: [],
-          lastDragOperation: null,
-          undoHistory: [],
+          lastVisitedBoard: null,
         },
       },
     })
@@ -1167,8 +1156,7 @@ describe('KanbanBoard Undo Keyboard Shortcut', () => {
             },
           ],
           repoCards: [],
-          lastDragOperation: null,
-          undoHistory: [],
+          lastVisitedBoard: null,
         },
       },
     })
@@ -1241,8 +1229,7 @@ describe('KanbanBoard DndContext Configuration', () => {
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
           ],
-          lastDragOperation: null,
-          undoHistory: [],
+          lastVisitedBoard: null,
         },
       },
     })
@@ -1316,8 +1303,7 @@ describe('KanbanBoard Multi-Row Layout', () => {
             },
           ],
           repoCards: [],
-          lastDragOperation: null,
-          undoHistory: [],
+          lastVisitedBoard: null,
         },
       },
     })
@@ -1395,8 +1381,7 @@ describe('KanbanBoard Multi-Row Layout', () => {
             },
           ],
           repoCards: [],
-          lastDragOperation: null,
-          undoHistory: [],
+          lastVisitedBoard: null,
         },
       },
     })

@@ -5,6 +5,7 @@
  * with backward compatibility for legacy plain text storage.
  */
 
+import { destr } from 'destr'
 import type { Descendant, Element, Text, Value } from 'platejs'
 
 /**
@@ -48,17 +49,13 @@ export function parseSlateValue(data: string | null | undefined): SlateValue {
 
   const trimmed = data.trim()
 
-  // Attempt JSON parse if it looks like JSON array
+  // Attempt safe parse if it looks like JSON array
   if (trimmed.startsWith('[')) {
-    try {
-      const parsed = JSON.parse(trimmed) as SlateValue
+    const parsed = destr<SlateValue>(trimmed)
 
-      // Validate it's an array with at least one element
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed
-      }
-    } catch {
-      // JSON parse failed, fall through to plain text handling
+    // Validate it's an array with at least one element
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed
     }
   }
 

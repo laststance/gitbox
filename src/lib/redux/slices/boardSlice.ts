@@ -18,12 +18,14 @@ interface BoardState {
   activeBoard: SimplifiedBoard | null
   statusLists: StatusListDomain[]
   repoCards: RepoCardForRedux[]
+  lastVisitedBoard: { id: string; name: string } | null
 }
 
 const initialState: BoardState = {
   activeBoard: null,
   statusLists: [],
   repoCards: [],
+  lastVisitedBoard: null,
 }
 
 export const boardSlice = createSlice({
@@ -32,6 +34,12 @@ export const boardSlice = createSlice({
   reducers: {
     setActiveBoard: (state, action: PayloadAction<SimplifiedBoard | null>) => {
       state.activeBoard = action.payload
+      if (action.payload) {
+        state.lastVisitedBoard = {
+          id: action.payload.id,
+          name: action.payload.name,
+        }
+      }
     },
     setStatusLists: (state, action: PayloadAction<StatusListDomain[]>) => {
       state.statusLists = action.payload
@@ -73,3 +81,5 @@ export const selectStatusLists = (state: { board: BoardState }) =>
   state.board.statusLists
 export const selectRepoCards = (state: { board: BoardState }) =>
   state.board.repoCards
+export const selectLastVisitedBoard = (state: { board: BoardState }) =>
+  state.board.lastVisitedBoard

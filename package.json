@@ -94,6 +94,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "destr": "^2.0.5",
     "framer-motion": "^12.34.3",
     "lodash": "^4.17.23",
     "lowlight": "^3.3.0",

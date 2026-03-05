@@ -3,7 +3,7 @@
  *
  * Test targets:
  * - Redux store hydration via useLayoutEffect
- * - localStorage updates
+ * - lastVisitedBoard updates in Redux
  * - Handler functions (moveToMaintenance, removeFromBoard)
  * - Component rendering with mocked hooks
  */
@@ -152,10 +152,7 @@ function createMockStore() {
         activeBoard: null,
         statusLists: [],
         repoCards: [],
-        loading: false,
-        error: null,
-        lastDragOperation: null,
-        undoHistory: [],
+        lastVisitedBoard: null,
       },
     },
   })
@@ -360,8 +357,8 @@ describe('BoardPageClient Component', () => {
     })
   })
 
-  describe('localStorage', () => {
-    it('should save lastVisitedBoard to localStorage', async () => {
+  describe('lastVisitedBoard', () => {
+    it('should save lastVisitedBoard to Redux state', async () => {
       const board = createMockBoard()
       const initialData = createMockInitialData()
 
@@ -372,11 +369,11 @@ describe('BoardPageClient Component', () => {
       )
 
       await waitFor(() => {
-        const saved = localStorage.getItem('gitbox:lastVisitedBoard')
-        expect(saved).not.toBeNull()
-        const parsed = JSON.parse(saved!)
-        expect(parsed.id).toBe('board-1')
-        expect(parsed.name).toBe('Test Board')
+        const state = store.getState()
+        expect(state.board.lastVisitedBoard).toEqual({
+          id: 'board-1',
+          name: 'Test Board',
+        })
       })
     })
   })

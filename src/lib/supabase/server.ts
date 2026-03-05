@@ -7,6 +7,7 @@
 
 import { createServerClient } from '@supabase/ssr'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { destr } from 'destr'
 import { cookies } from 'next/headers'
 
 import type { Database } from './types'
@@ -92,13 +93,12 @@ export async function createClient() {
               cookie.name.startsWith('sb-') &&
               cookie.name.endsWith('-auth-token')
             ) {
-              try {
-                const session = JSON.parse(cookie.value)
+              const session = destr<Record<string, unknown>>(cookie.value)
+              if (typeof session === 'object' && session !== null) {
                 session.access_token = E2E_TEST_JWT
                 return { ...cookie, value: JSON.stringify(session) }
-              } catch {
-                return cookie
               }
+              return cookie
             }
             return cookie
           })

@@ -86,13 +86,38 @@ export default defineConfig([
   // Project-specific rules
   {
     rules: {
-      // Ban global fetch - use axios instead for MSW compatibility
       'no-restricted-globals': [
         'error',
+        {
+          name: 'localStorage',
+          message:
+            'Do not use localStorage directly. Use redux-storage-middleware.',
+        },
         {
           name: 'fetch',
           message:
             'Use axios instead of fetch for MSW compatibility. Import from lib/axios.ts.',
+        },
+      ],
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'window',
+          property: 'localStorage',
+          message:
+            'Do not use window.localStorage directly. Use redux-storage-middleware.',
+        },
+        {
+          object: 'globalThis',
+          property: 'localStorage',
+          message:
+            'Do not use globalThis.localStorage directly. Use redux-storage-middleware.',
+        },
+        {
+          object: 'JSON',
+          property: 'parse',
+          message:
+            "Use destr() from 'destr' instead of JSON.parse for safe parsing.",
         },
       ],
       // Ban revalidatePath/revalidateTag - Supabase SDK doesn't use Next.js cache
@@ -168,6 +193,18 @@ export default defineConfig([
     ],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
+      // localStorage and JSON.parse checks in tests are acceptable for verification.
+      // Keep fetch banned for axios/MSW consistency.
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'fetch',
+          message:
+            'Use axios instead of fetch for MSW compatibility. Import from lib/axios.ts.',
+        },
+      ],
+      // Allow localStorage and JSON.parse in tests (E2E page.evaluate can't import destr).
+      'no-restricted-properties': 'off',
     },
   },
 

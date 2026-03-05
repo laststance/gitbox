@@ -49,6 +49,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import { selectLastVisitedBoard } from '@/lib/redux/slices/boardSlice'
+import { useAppSelector } from '@/lib/redux/store'
 
 import { useMaintenanceComments } from './hooks/useMaintenanceComments'
 import { useMaintenanceNoteModal } from './hooks/useMaintenanceNoteModal'
@@ -86,6 +88,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
   const router = useRouter()
   const prefersReducedMotion = useReducedMotion()
   const [repos, setRepos] = useState<MaintenanceRepo[]>(initialRepos)
+  const lastVisitedBoard = useAppSelector(selectLastVisitedBoard)
 
   // Custom hooks for each concern
   const {
@@ -190,21 +193,6 @@ export const MaintenanceClient = memo(function MaintenanceClient({
     },
     [viewMode, openMenuId, openNoteModal],
   )
-
-  // Last visited board for navigation - lazy initialization from localStorage
-  const [lastVisitedBoard] = useState<{
-    id: string
-    name: string
-  } | null>(() => {
-    if (typeof window === 'undefined') return null
-    const stored = localStorage.getItem('gitbox:lastVisitedBoard')
-    if (!stored) return null
-    try {
-      return JSON.parse(stored) as { id: string; name: string }
-    } catch {
-      return null
-    }
-  })
 
   /**
    * Open GitHub page for repository
