@@ -4,6 +4,7 @@
  * Zod schemas for validating board-related form inputs.
  */
 
+import { destr } from 'destr'
 import { z } from 'zod'
 
 import { PRESET_IDS } from '@/lib/constants/board-presets'
@@ -230,23 +231,23 @@ export const deleteBoardFormSchema = z.object({
 export const updateSettingsFormSchema = z.object({
   boardId: boardIdSchema,
   settings: z.string().transform((val, ctx) => {
-    try {
-      const parsed = JSON.parse(val)
-      const result = boardSettingsSchema.safeParse(parsed)
-      if (!result.success) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: result.error.issues.map((i) => i.message).join(', '),
-        })
-        return z.NEVER
-      }
-      return result.data
-    } catch {
+    const parsed = destr(val)
+    if (typeof parsed === 'string') {
+      // destr returns original string on invalid JSON
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Invalid settings format',
+        message: 'Invalid JSON format',
       })
       return z.NEVER
     }
+    const result = boardSettingsSchema.safeParse(parsed)
+    if (!result.success) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: result.error.issues.map((i) => i.message).join(', '),
+      })
+      return z.NEVER
+    }
+    return result.data
   }),
 })

@@ -127,16 +127,6 @@ export const BoardPageClient = memo(function BoardPageClient({
     }
   }, [dispatch, board])
 
-  // Save last visited board to localStorage for navigation from Maintenance page
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(
-        'gitbox:lastVisitedBoard',
-        JSON.stringify({ id: boardId, name: boardName }),
-      )
-    }
-  }, [boardId, boardName])
-
   // ========================================
   // Card Action Handlers (via shared optimistic hook)
   // ========================================
