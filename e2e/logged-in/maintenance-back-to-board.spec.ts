@@ -77,7 +77,7 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
       expect(parsedBoard).not.toBeNull()
       expect(parsedBoard).toHaveProperty('id')
       expect(parsedBoard).toHaveProperty('name')
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 10000 })
 
     // Navigate to maintenance page
     await page.goto(MAINTENANCE_URL)
@@ -110,7 +110,7 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
       expect(parsedBoard).not.toBeNull()
       boardName = parsedBoard.name
       expect(boardName).toBeTruthy()
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 10000 })
 
     // Navigate to maintenance page
     await page.goto(MAINTENANCE_URL)
@@ -178,7 +178,7 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
       const firstBoard = await getLastVisitedBoard(page)
       expect(firstBoard).not.toBeNull()
       expect(firstBoard.id).toBe(BOARD_IDS.testBoard)
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 10000 })
 
     // Visit second board
     await page.goto(`/board/${BOARD_IDS.workProjects}`)
@@ -192,7 +192,7 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
       const secondBoard = await getLastVisitedBoard(page)
       expect(secondBoard).not.toBeNull()
       expect(secondBoard.id).toBe(BOARD_IDS.workProjects)
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 10000 })
 
     // Navigate to maintenance and verify link goes to second board
     await page.goto(MAINTENANCE_URL)

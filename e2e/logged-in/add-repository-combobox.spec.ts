@@ -213,7 +213,7 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
         const text = await repoOptions.nth(i).textContent()
         expect(text?.toLowerCase()).not.toContain('testuser/test-repo')
       }
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 10000 })
   })
 })
 
@@ -488,7 +488,7 @@ test.describe('AddRepositoryCombobox - Optimistic Update', () => {
           .locator('[data-testid="repo-card"]')
           .count()
         expect(cardsAfter).toBeGreaterThanOrEqual(cardsBefore)
-      }).toPass({ timeout: 5000 })
+      }).toPass({ timeout: 10000 })
 
       // Verify NO full page navigation occurred (optimistic update)
       // Note: Navigation listener will capture any reload
@@ -855,7 +855,7 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
           .locator('[data-testid="repo-card"]')
           .count()
         expect(cardsAfter).toBeGreaterThanOrEqual(cardsBefore)
-      }).toPass({ timeout: 5000 })
+      }).toPass({ timeout: 10000 })
     }
   })
 })

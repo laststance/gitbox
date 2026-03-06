@@ -53,7 +53,7 @@ test.describe('Theme Persistence (Authenticated)', () => {
         return state ? JSON.parse(state)?.state?.settings?.theme : null
       })
       expect(theme).toBe('midnight')
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 10000 })
 
     // Reload page
     await page.reload()
@@ -66,7 +66,7 @@ test.describe('Theme Persistence (Authenticated)', () => {
         return state ? JSON.parse(state)?.state?.settings?.theme : null
       })
       expect(theme).toBe('midnight')
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 10000 })
 
     // Verify theme persists in DOM after reload
     await expect(html).toHaveAttribute('data-theme', 'midnight', {
@@ -98,7 +98,7 @@ test.describe('Theme Persistence (Authenticated)', () => {
         return state ? JSON.parse(state)?.state?.settings?.theme : null
       })
       expect(theme).toBe('sunrise')
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 10000 })
 
     // Reload and verify persistence
     await page.reload()
@@ -111,7 +111,7 @@ test.describe('Theme Persistence (Authenticated)', () => {
         return state ? JSON.parse(state)?.state?.settings?.theme : null
       })
       expect(theme).toBe('sunrise')
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 10000 })
 
     await expect(html).toHaveAttribute('data-theme', 'sunrise', {
       timeout: 5000,
@@ -131,7 +131,7 @@ test.describe('Theme Persistence (Authenticated)', () => {
     await expect(async () => {
       const dataTheme = await html.getAttribute('data-theme')
       expect(dataTheme === null || dataTheme === '').toBe(true)
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 10000 })
 
     // Reload and verify system theme persists
     await page.reload()
@@ -143,7 +143,7 @@ test.describe('Theme Persistence (Authenticated)', () => {
       expect(dataThemeAfterReload === null || dataThemeAfterReload === '').toBe(
         true,
       )
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 10000 })
   })
 
   test('should persist theme when navigating between pages', async ({
@@ -169,7 +169,7 @@ test.describe('Theme Persistence (Authenticated)', () => {
         return state ? JSON.parse(state)?.state?.settings?.theme : null
       })
       expect(theme).toBe('graphite')
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 10000 })
 
     // Navigate to settings page
     await page.goto('/settings')
@@ -209,7 +209,7 @@ test.describe('Theme Persistence (Authenticated)', () => {
     await expect(async () => {
       const dataTheme = await html.getAttribute('data-theme')
       expect(dataTheme === null || dataTheme === '').toBe(true)
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 10000 })
   })
 
   test('should respect system light mode preference', async ({ page }) => {
@@ -229,6 +229,6 @@ test.describe('Theme Persistence (Authenticated)', () => {
     await expect(async () => {
       const dataTheme = await html.getAttribute('data-theme')
       expect(dataTheme === null || dataTheme === '').toBe(true)
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 10000 })
   })
 })

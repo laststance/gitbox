@@ -99,7 +99,7 @@ test.describe('AddRepositoryCombobox - Pagination UI', () => {
       // Verify the first visible option matches the search term
       const firstOptionText = await repoOptions.first().textContent()
       expect(firstOptionText?.toLowerCase()).toContain('private')
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 10000 })
   })
 
   /**

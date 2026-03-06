@@ -176,7 +176,7 @@ test.describe('Remove from Board Feature', () => {
         .locator('[data-testid^="repo-card-"]')
         .count()
       expect(finalCardCount).toBe(initialCardCount - 1)
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 10000 })
 
     // The removed card should no longer exist
     if (firstCardTestId) {

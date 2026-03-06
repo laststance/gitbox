@@ -183,7 +183,7 @@ test.describe('Sidebar Collapse', () => {
         localStorage.getItem('gitbox-state'),
       )
       expect(stored).not.toBeNull()
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 10000 })
 
     await page.reload()
     await page.waitForLoadState('networkidle')

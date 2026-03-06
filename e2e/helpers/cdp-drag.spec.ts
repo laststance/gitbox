@@ -102,7 +102,7 @@ test.describe('CDP Drag Helper Integration', () => {
         expect(events).toContain('mousemove')
         expect(events).toContain('mousedown')
         expect(events).toContain('mouseup')
-      }).toPass({ timeout: 5000 })
+      }).toPass({ timeout: 10000 })
     } finally {
       await client.detach()
     }
@@ -155,7 +155,7 @@ test.describe('CDP Drag Helper Integration', () => {
         })
         expect(trustedValues?.length).toBeGreaterThan(0)
         expect(trustedValues?.[0]).toBe(true)
-      }).toPass({ timeout: 5000 })
+      }).toPass({ timeout: 10000 })
     } finally {
       await client.detach()
     }

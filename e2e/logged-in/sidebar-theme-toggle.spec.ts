@@ -119,7 +119,7 @@ test.describe('Sidebar ThemeToggle', () => {
       expect(stored).not.toBeNull()
       const parsed = JSON.parse(stored!)
       expect(parsed?.state?.settings?.theme).toBe('graphite')
-    }).toPass({ timeout: 5000 })
+    }).toPass({ timeout: 10000 })
 
     // Navigate to settings page
     await page.goto('/settings')

@@ -113,9 +113,9 @@ export function useNoteModalDraft({
     }
     if (didInitRef.current) return
     didInitRef.current = true
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-pass-data-to-parent, react-you-might-not-need-an-effect/no-derived-state
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setNote(draft?.content ?? initialNote)
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-pass-data-to-parent, react-you-might-not-need-an-effect/no-derived-state
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setLinks(draft?.links ?? initialLinks)
   }, [isOpen, initialNote, initialLinks, draft?.content, draft?.links])
 

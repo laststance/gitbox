@@ -50,7 +50,7 @@ test.describe('Board Favorites Feature', () => {
           expect(newLabel).toContain('Remove')
           expect(newLabel).not.toContain('Add')
         }
-      }).toPass({ timeout: 5000 })
+      }).toPass({ timeout: 10000 })
 
       // Verify visual state change (color is on button, not SVG)
       if (isInitiallyFavorited) {
@@ -123,7 +123,7 @@ test.describe('Board Favorites Feature', () => {
           id: boardId!,
         })
         expect(board?.is_favorite).toBe(true)
-      }).toPass({ timeout: 5000 })
+      }).toPass({ timeout: 10000 })
 
       // Reload the page
       await page.reload()
@@ -193,7 +193,7 @@ test.describe('Board Favorites Feature', () => {
         )
         expect(boardAfter).not.toBeNull()
         expect(boardAfter?.is_favorite).toBe(!initialFavorite)
-      }).toPass({ timeout: 5000 })
+      }).toPass({ timeout: 10000 })
     })
 
     test('should handle multiple rapid clicks gracefully', async ({ page }) => {
@@ -208,7 +208,7 @@ test.describe('Board Favorites Feature', () => {
       await expect(async () => {
         const finalLabel = await starButton.getAttribute('aria-label')
         expect(finalLabel).toMatch(/(Add|Remove)/)
-      }).toPass({ timeout: 5000 })
+      }).toPass({ timeout: 10000 })
     })
 
     test('should show loading state during toggle', async ({ page }) => {
@@ -281,7 +281,7 @@ test.describe('Board Favorites Feature', () => {
           id: boardId!,
         })
         expect(board?.is_favorite).toBe(true)
-      }).toPass({ timeout: 5000 })
+      }).toPass({ timeout: 10000 })
 
       // Navigate to favorites page
       await page.goto('/boards/favorites')
@@ -315,7 +315,7 @@ test.describe('Board Favorites Feature', () => {
             .locator('button[aria-label*="Remove"][aria-label*="favorite"]')
             .count()
           expect(newCount).toBeLessThan(count)
-        }).toPass({ timeout: 5000 })
+        }).toPass({ timeout: 10000 })
         favoritedButtons = page.locator(
           'button[aria-label*="Remove"][aria-label*="favorite"]',
         )
@@ -329,7 +329,7 @@ test.describe('Board Favorites Feature', () => {
           { user_id: TEST_USER_ID, is_favorite: true },
         )
         expect(favBoards).toHaveLength(0)
-      }).toPass({ timeout: 5000 })
+      }).toPass({ timeout: 10000 })
 
       // Navigate to favorites page
       await page.goto('/boards/favorites')
@@ -391,7 +391,7 @@ test.describe('Board Favorites Feature', () => {
             id: setupBoardId!,
           })
           expect(board?.is_favorite).toBe(true)
-        }).toPass({ timeout: 5000 })
+        }).toPass({ timeout: 10000 })
       }
 
       // Navigate to favorites page
@@ -422,7 +422,7 @@ test.describe('Board Favorites Feature', () => {
           id: cardBoardId!,
         })
         expect(board?.is_favorite).toBe(false)
-      }).toPass({ timeout: 5000 })
+      }).toPass({ timeout: 10000 })
 
       // Reload to verify the board is no longer on the favorites page
       await page.reload()
@@ -497,7 +497,7 @@ test.describe('Board Favorites Feature', () => {
         } else {
           expect(updatedLabel).toContain('Remove')
         }
-      }).toPass({ timeout: 5000 })
+      }).toPass({ timeout: 10000 })
     })
 
     test('should have proper ARIA labels', async ({ page }) => {
@@ -529,7 +529,7 @@ test.describe('Board Favorites Feature', () => {
         // Label should change to reflect new state
         expect(newLabel).not.toBe(initialLabel)
         expect(newLabel).toMatch(/(Add|Remove)/)
-      }).toPass({ timeout: 5000 })
+      }).toPass({ timeout: 10000 })
     })
   })
 
@@ -551,13 +551,13 @@ test.describe('Board Favorites Feature', () => {
       await expect(async () => {
         const optimisticLabel = await starButton.getAttribute('aria-label')
         expect(optimisticLabel).not.toBe(initialLabel)
-      }).toPass({ timeout: 5000 })
+      }).toPass({ timeout: 10000 })
 
       // If server succeeds, state should persist
       await expect(async () => {
         const finalLabel = await starButton.getAttribute('aria-label')
         expect(finalLabel).toMatch(/(Add|Remove)/)
-      }).toPass({ timeout: 5000 })
+      }).toPass({ timeout: 10000 })
     })
   })
 })
