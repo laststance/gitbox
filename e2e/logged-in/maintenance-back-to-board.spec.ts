@@ -218,6 +218,13 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
       page.locator('[data-testid^="status-column-"]').first(),
     ).toBeVisible({ timeout: 10000 })
 
+    // Poll for persisted lastVisitedBoard to be set before navigating away
+    await expect(async () => {
+      const parsedBoard = await getLastVisitedBoard(page)
+      expect(parsedBoard).not.toBeNull()
+      expect(parsedBoard).toHaveProperty('id')
+    }).toPass({ timeout: 10000 })
+
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 })
 
@@ -231,7 +238,7 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
 
     // On mobile, should show just "Back" (the sm:hidden span is hidden)
     const backLink = page.getByRole('link', { name: /back/i })
-    await expect(backLink).toBeVisible()
+    await expect(backLink).toBeVisible({ timeout: 10000 })
 
     // The link should contain "Back" text
     await expect(backLink).toContainText('Back')
