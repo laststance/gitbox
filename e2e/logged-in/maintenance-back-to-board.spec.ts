@@ -90,7 +90,7 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
 
     // Back to Board link should be visible
     const backLink = page.getByRole('link', { name: /back/i })
-    await expect(backLink).toBeVisible()
+    await expect(backLink).toBeVisible({ timeout: 10000 })
   })
 
   test('should display board name in Back to Board link', async ({ page }) => {
@@ -124,7 +124,7 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
     // On desktop, link should include board name
     // Check for "Back to {boardName}" text
     const backToText = page.getByText(new RegExp(`Back to ${boardName}`, 'i'))
-    await expect(backToText).toBeVisible()
+    await expect(backToText).toBeVisible({ timeout: 10000 })
   })
 
   test('should navigate to board when clicking Back to Board link', async ({
@@ -139,6 +139,13 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
       page.locator('[data-testid^="status-column-"]').first(),
     ).toBeVisible({ timeout: 10000 })
 
+    // Poll for persisted lastVisitedBoard to be set before navigating away
+    await expect(async () => {
+      const parsedBoard = await getLastVisitedBoard(page)
+      expect(parsedBoard).not.toBeNull()
+      expect(parsedBoard).toHaveProperty('id')
+    }).toPass({ timeout: 10000 })
+
     // Navigate to maintenance page
     await page.goto(MAINTENANCE_URL)
     await page.waitForLoadState('networkidle')
@@ -150,7 +157,7 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
 
     // Click the Back to Board link
     const backLink = page.getByRole('link', { name: /back/i })
-    await expect(backLink).toBeVisible()
+    await expect(backLink).toBeVisible({ timeout: 10000 })
     await backLink.click()
 
     // Should navigate to the board page
@@ -204,6 +211,7 @@ test.describe('Maintenance Page - Back to Board Navigation', () => {
 
     // Click back link
     const backLink = page.getByRole('link', { name: /back/i })
+    await expect(backLink).toBeVisible({ timeout: 10000 })
     await backLink.click()
 
     // Should navigate to second board
