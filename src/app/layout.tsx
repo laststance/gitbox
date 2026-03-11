@@ -72,7 +72,6 @@ export const metadata: Metadata = {
 // Server-side MSW initialization (runs at module load time)
 // Uses require() to avoid bundling issues with Next.js SSR
 if (process.env.NEXT_RUNTIME === 'nodejs' && isMSWEnabled()) {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { server } = require('../../mocks/server')
   server.listen({ onUnhandledRequest: 'bypass' })
 }

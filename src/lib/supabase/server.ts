@@ -152,12 +152,10 @@ export async function createClient() {
             get(authTarget, authProp) {
               if (authProp === 'getUser') return mockedAuth.getUser
               if (authProp === 'getSession') return mockedAuth.getSession
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               return (authTarget as any)[authProp]
             },
           })
         }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (target as any)[prop]
       },
     }) as typeof supabase

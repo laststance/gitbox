@@ -1,42 +1,16 @@
 // For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
 import { defineConfig, globalIgnores } from 'eslint/config'
-import nextVitals from 'eslint-config-next/core-web-vitals'
-import nextTs from 'eslint-config-next/typescript'
+import nextPlugin from '@next/eslint-plugin-next'
+import eslintPluginReactHooks from 'eslint-plugin-react-hooks'
+import jsxA11y from 'eslint-plugin-jsx-a11y'
+import globals from 'globals'
 import laststanceReactNextPlugin from '@laststance/react-next-eslint-plugin'
 import tsPrefixer from 'eslint-config-ts-prefixer'
 import reactYouMightNotNeedAnEffect from 'eslint-plugin-react-you-might-not-need-an-effect'
 
-/**
- * Merge multiple config arrays and deduplicate plugins.
- * Required because eslint-config-next and eslint-config-ts-prefixer
- * both define 'import' and '@typescript-eslint' plugins.
- */
-function dedupePlugins(...configArrays) {
-  const merged = []
-  const plugins = {}
-
-  for (const configs of configArrays) {
-    for (const config of configs) {
-      if (config.plugins) {
-        Object.assign(plugins, config.plugins)
-        const { plugins: _, ...rest } = config
-        if (Object.keys(rest).length > 0) merged.push(rest)
-      } else {
-        merged.push(config)
-      }
-    }
-  }
-
-  if (Object.keys(plugins).length > 0) {
-    merged.unshift({ plugins })
-  }
-
-  return merged
-}
-
 export default defineConfig([
-  // Core configs - dedupePlugins merges duplicate plugins (import, @typescript-eslint)
-  ...dedupePlugins(nextVitals, nextTs, tsPrefixer),
+  // ts-prefixer: @typescript-eslint + import-x + parser
+  ...tsPrefixer,
 
   // React "You Might Not Need an Effect" rules
   reactYouMightNotNeedAnEffect.configs.recommended,
@@ -82,6 +56,64 @@ export default defineConfig([
     // Package benchmarks use console.log for output
     '**/packages/**/benchmarks/**',
   ]),
+
+  // react-hooks + @next/next plugins
+  {
+    files: ['**/*.{js,jsx,mjs,ts,tsx,mts,cts}'],
+    plugins: {
+      'react-hooks': eslintPluginReactHooks,
+      'jsx-a11y': jsxA11y,
+      '@next/next': nextPlugin,
+    },
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
+    },
+    rules: {
+      // ── react-hooks (individual, no recommended) ──
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'error',
+
+      // ── jsx-a11y (individual, no recommended) ──
+      'jsx-a11y/alt-text': [
+        'error',
+        {
+          elements: ['img'],
+          img: ['Image'],
+        },
+      ],
+      'jsx-a11y/aria-props': 'error',
+      'jsx-a11y/aria-proptypes': 'error',
+      'jsx-a11y/aria-unsupported-elements': 'error',
+      'jsx-a11y/role-has-required-aria-props': 'error',
+      'jsx-a11y/role-supports-aria-props': 'error',
+
+      // ── @next/next (ALL 21 rules as error) ──
+      '@next/next/google-font-display': 'error',
+      '@next/next/google-font-preconnect': 'error',
+      '@next/next/inline-script-id': 'error',
+      '@next/next/next-script-for-ga': 'error',
+      '@next/next/no-assign-module-variable': 'error',
+      '@next/next/no-async-client-component': 'error',
+      '@next/next/no-before-interactive-script-outside-document': 'error',
+      '@next/next/no-css-tags': 'error',
+      '@next/next/no-document-import-in-page': 'error',
+      '@next/next/no-duplicate-head': 'error',
+      '@next/next/no-head-element': 'error',
+      '@next/next/no-head-import-in-document': 'error',
+      '@next/next/no-html-link-for-pages': 'error',
+      '@next/next/no-img-element': 'error',
+      '@next/next/no-page-custom-font': 'error',
+      '@next/next/no-script-component-in-head': 'error',
+      '@next/next/no-styled-jsx-in-document': 'error',
+      '@next/next/no-sync-scripts': 'error',
+      '@next/next/no-title-in-document-head': 'error',
+      '@next/next/no-typos': 'error',
+      '@next/next/no-unwanted-polyfillio': 'error',
+    },
+  },
 
   // Project-specific rules
   {
@@ -145,9 +177,6 @@ export default defineConfig([
       '@laststance/react-next': laststanceReactNextPlugin,
     },
     rules: {
-      'react/jsx-no-useless-fragment': 'error',
-      'react/display-name': 'error',
-      'react/button-has-type': 'error',
       '@laststance/react-next/no-forward-ref': 'error',
       '@laststance/react-next/no-context-provider': 'error',
       '@laststance/react-next/no-missing-key': 'error',
@@ -161,8 +190,6 @@ export default defineConfig([
       ],
       '@laststance/react-next/no-deopt-use-callback': 'error',
       '@laststance/react-next/prefer-stable-context-value': 'error',
-      // Turn Off eslint-config-next/typescript defaults
-      'import/no-anonymous-default-export': 'off',
     },
   },
 
@@ -246,10 +273,6 @@ export default defineConfig([
     ],
     rules: {
       '@laststance/react-next/all-memo': 'off',
-      'react/display-name': 'off',
-      'react/jsx-no-useless-fragment': 'off',
-      'import/no-cycle': 'off',
-      'import/order': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/promise-function-async': 'off',
       '@next/next/no-img-element': 'off',
@@ -262,20 +285,7 @@ export default defineConfig([
     },
   },
 
-  // SSR hydration hooks - PHASE 1 COMPLETE (2025-12-31)
-  // The following files were refactored to use useSyncExternalStore pattern:
-  // - hooks/use-mounted.ts → useSyncExternalStore (server: false, client: true)
-  // - components/Board/KanbanBoard.tsx → uses useMounted() hook
-  // - app/page.tsx FeaturesSection → useSyncExternalStore for random subtitle
-  // The no-initialize-state rule is now ENABLED for these files to enforce the pattern.
-
-  // Phase 4 COMPLETE (2025-12-31): KanbanBoard data fetching exception REMOVED
-  // Data is now fetched in Server Component (BoardPage) and passed to
-  // BoardPageClient via props, eliminating the child-to-parent data flow.
-
-  // BoardPageClient - PHASE 3 COMPLETE (2025-12-31)
-  // Refactored: useLayoutEffect for theme, useMemo for derived addRepoStatusId
-  // Remaining exception: theme application on change is still a side effect
+  // BoardPageClient - theme application exception
   {
     files: ['**/src/app/board/*/BoardPageClient.tsx'],
     rules: {
@@ -284,26 +294,20 @@ export default defineConfig([
     },
   },
 
-  // Combobox/Dialog patterns - PHASE 2 & 3 COMPLETE (2025-12-31)
-  // AddRepositoryCombobox: useEffectEvent for data fetching separation (Phase 2)
-  // MaintenanceClient: event-driven data fetching in handleRestore (Phase 3)
+  // Combobox/Dialog patterns
   {
     files: [
       'src/components/Board/AddRepositoryCombobox.tsx',
       'src/app/maintenance/MaintenanceClient.tsx',
     ],
     rules: {
-      // AddRepositoryCombobox: useEffect for isOpen triggers data fetching
       'react-you-might-not-need-an-effect/no-event-handler': 'off',
       'react-you-might-not-need-an-effect/no-derived-state': 'off',
-      // Chain pattern: fetch orgs first, then repos (intentional dependency)
       'react-you-might-not-need-an-effect/no-chain-state-updates': 'off',
     },
   },
 
-  // Command palette - PHASE 3 COMPLETE (2025-12-31)
-  // Refactored: autoFocus replaces focus useEffect, useLayoutEffect for scroll-into-view
-  // Remaining exception: global ⌘K keyboard handler useEffect is intentional
+  // Command palette - global keyboard handler exception
   {
     files: ['src/components/CommandPalette/CommandPalette.tsx'],
     rules: {
