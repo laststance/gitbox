@@ -310,13 +310,4 @@ export default defineConfig([
       'react-you-might-not-need-an-effect/no-event-handler': 'off',
     },
   },
-
-  // Package internal code - allow structured logging for library consumers
-  {
-    files: ['packages/**/src/**/*.ts'],
-    rules: {
-      // Library code uses console.error for consumer-facing error messages
-      'no-console': ['error', { allow: ['error'] }],
-    },
-  },
 ])
