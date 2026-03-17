@@ -1,0 +1,43 @@
+diff --git a/dist/plugins/next-image/alias/next-image.cjs b/dist/plugins/next-image/alias/next-image.cjs
+index 5084a6b198071ddd91f755789c08a9223ca64344..a6ca66e8aab0eefb1602b8324896fc5f220eeb1a 100644
+--- a/dist/plugins/next-image/alias/next-image.cjs
++++ b/dist/plugins/next-image/alias/next-image.cjs
+@@ -31,7 +31,9 @@ var NextImageNamespace__namespace = /*#__PURE__*/_interopNamespace(NextImageName
+ var React__default = /*#__PURE__*/_interopDefault(React);
+ 
+ // src/plugins/next-image/alias/next-image.tsx
+-var OriginalNextImage = NextImageNamespace__namespace.default;
++// Workaround for Vite 8 (Rolldown) CJS-to-ESM interop
++var _rawCjs = NextImageNamespace__namespace.default;
++var OriginalNextImage = (typeof _rawCjs === 'function' || (_rawCjs && _rawCjs.$$typeof)) ? _rawCjs : _rawCjs?.default;
+ var { getImageProps: originalGetImageProps } = NextImageNamespace__namespace;
+ var MockedNextImage = React__default.default.forwardRef(({ loader, ...props }, ref) => {
+   const imageParameters = React__default.default.useContext(imageContext.ImageContext);
+diff --git a/dist/plugins/next-image/alias/next-image.js b/dist/plugins/next-image/alias/next-image.js
+index 53352cf64268ea4c90095c307a2951b7a1f9c045..dbe7330cb434b3d2a302c279d76b50535fb8a46b 100644
+--- a/dist/plugins/next-image/alias/next-image.js
++++ b/dist/plugins/next-image/alias/next-image.js
+@@ -4,7 +4,10 @@ import { ImageContext } from 'sb-original/image-context';
+ import React from 'next/dist/compiled/react';
+ 
+ // src/plugins/next-image/alias/next-image.tsx
+-var OriginalNextImage = NextImageNamespace.default;
++// Workaround for Vite 8 (Rolldown) CJS-to-ESM interop:
++// NextImageNamespace.default may be the module namespace object instead of the component
++var _raw = NextImageNamespace.default;
++var OriginalNextImage = (typeof _raw === 'function' || (_raw && _raw.$$typeof)) ? _raw : _raw?.default;
+ var { getImageProps: originalGetImageProps } = NextImageNamespace;
+ var MockedNextImage = React.forwardRef(({ loader, ...props }, ref) => {
+   const imageParameters = React.useContext(ImageContext);
+diff --git a/dist/plugins/next-image/alias/next-legacy-image.js b/dist/plugins/next-image/alias/next-legacy-image.js
+index 4eacd8a7eb778a69cde78c499ba2e2f03ad011e0..867596fc55131a95d37d9137c6690f8b5d27ad6a 100644
+--- a/dist/plugins/next-image/alias/next-legacy-image.js
++++ b/dist/plugins/next-image/alias/next-legacy-image.js
+@@ -1,4 +1,6 @@
+-import OriginalNextLegacyImage from 'next/legacy/image';
++import _rawLegacyImage from 'next/legacy/image';
++// Workaround for Vite 8 (Rolldown) CJS-to-ESM interop
++var OriginalNextLegacyImage = (typeof _rawLegacyImage === 'function' || (_rawLegacyImage && _rawLegacyImage.$$typeof)) ? _rawLegacyImage : _rawLegacyImage?.default;
+ import { defaultLoader } from 'sb-original/default-loader';
+ import { ImageContext } from 'sb-original/image-context';
+ import React from 'next/dist/compiled/react';
