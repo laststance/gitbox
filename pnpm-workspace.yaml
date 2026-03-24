@@ -4,6 +4,3 @@ onlyBuiltDependencies:
   - msw
   - sharp
   - unrs-resolver
-
-patchedDependencies:
-  vite-plugin-storybook-nextjs@3.2.3: patches/vite-plugin-storybook-nextjs@3.2.3.patch
