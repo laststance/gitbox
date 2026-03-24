@@ -1,8 +1,10 @@
 'use client'
 
-import { Columns3, Github } from 'lucide-react'
+import { Columns3 } from 'lucide-react'
 import Link from 'next/link'
 import { memo } from 'react'
+
+import { GithubIcon } from '@/components/icons/GithubIcon'
 
 /**
  * Simple footer with logo, GitHub link, and credits.
@@ -36,7 +38,7 @@ export const Footer = memo(function Footer() {
             rel="noopener noreferrer"
             className="hover:text-foreground flex items-center gap-1 transition-colors"
           >
-            <Github className="h-4 w-4" />
+            <GithubIcon className="h-4 w-4" />
             GitHub
           </a>
           <span>

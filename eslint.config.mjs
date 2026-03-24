@@ -7,10 +7,22 @@ import globals from 'globals'
 import laststanceReactNextPlugin from '@laststance/react-next-eslint-plugin'
 import tsPrefixer from 'eslint-config-ts-prefixer'
 import reactYouMightNotNeedAnEffect from 'eslint-plugin-react-you-might-not-need-an-effect'
+import { createTypeScriptImportResolver } from 'eslint-import-resolver-typescript'
 
 export default defineConfig([
   // ts-prefixer: @typescript-eslint + import-x + parser
   ...tsPrefixer,
+
+  // Override ts-prefixer legacy resolver with new import-x/resolver-next format
+  {
+    settings: {
+      'import-x/resolver-next': [
+        createTypeScriptImportResolver({
+          alwaysTryTypes: true,
+        }),
+      ],
+    },
+  },
 
   // React "You Might Not Need an Effect" rules
   reactYouMightNotNeedAnEffect.configs.recommended,

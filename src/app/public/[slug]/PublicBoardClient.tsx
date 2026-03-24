@@ -1,8 +1,9 @@
 'use client'
 
-import { ExternalLink, Github, Globe, Star } from 'lucide-react'
+import { ExternalLink, Globe, Star } from 'lucide-react'
 import { memo, useMemo } from 'react'
 
+import { GithubIcon } from '@/components/icons/GithubIcon'
 import { Card, CardContent } from '@/components/ui/card'
 import type { PublicBoardData } from '@/lib/actions/public-board'
 import type { RepoCardDomain, StatusListDomain } from '@/lib/models/domain'
@@ -165,7 +166,7 @@ const PublicRepoCard = memo(function PublicRepoCard({
               rel="noopener noreferrer"
               className="text-foreground group-hover:text-primary inline-flex items-center gap-1 text-sm font-medium"
             >
-              <Github className="h-3.5 w-3.5 shrink-0" />
+              <GithubIcon className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate">{card.title}</span>
               <ExternalLink className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
             </a>

@@ -10,7 +10,6 @@ import {
   LogOut,
   ChevronDown,
   ChevronRight,
-  Github,
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react'
@@ -19,6 +18,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import React, { useState, memo, useMemo } from 'react'
 
+import { GithubIcon } from '@/components/icons/GithubIcon'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { Button } from '@/components/ui/button'
 import {
@@ -228,7 +228,7 @@ export const Sidebar = memo(function Sidebar({
               mounted && isCollapsed && 'justify-center',
             )}
           >
-            <Github className="text-sidebar-primary h-6 w-6 shrink-0" />
+            <GithubIcon className="text-sidebar-primary h-6 w-6 shrink-0" />
             {(!mounted || !isCollapsed) && (
               <span className="text-lg font-semibold">GitBox</span>
             )}

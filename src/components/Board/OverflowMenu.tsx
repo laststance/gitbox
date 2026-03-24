@@ -2,7 +2,6 @@
 
 import {
   MoreHorizontal,
-  Github,
   ExternalLink,
   BarChart2,
   Database,
@@ -13,6 +12,7 @@ import {
 } from 'lucide-react'
 import React, { memo, useState } from 'react'
 
+import { GithubIcon } from '@/components/icons/GithubIcon'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -128,7 +128,7 @@ export const OverflowMenu = memo<OverflowMenuProps>(
                 onClick={() => handleOpenUrl(githubUrl)}
                 data-testid={`open-github-${cardId}`}
               >
-                <Github className="mr-2 h-4 w-4" />
+                <GithubIcon className="mr-2 h-4 w-4" />
                 Open on GitHub
               </DropdownMenuItem>
             )}

@@ -9,17 +9,12 @@
 
 'use client'
 
-import {
-  Github,
-  LayoutDashboard,
-  FileText,
-  Archive,
-  LogOut,
-} from 'lucide-react'
+import { LayoutDashboard, FileText, Archive, LogOut } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { memo, useCallback, useState, useTransition } from 'react'
 
+import { GithubIcon } from '@/components/icons/GithubIcon'
 import { DeleteAccountDialog } from '@/components/Modals/DeleteAccountDialog'
 import { Button } from '@/components/ui/button'
 import {
@@ -88,7 +83,7 @@ export const AccountClient = memo(function AccountClient({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Github className="h-5 w-5" />
+              <GithubIcon className="h-5 w-5" />
               Profile
             </CardTitle>
             <CardDescription>Your GitHub account information</CardDescription>
@@ -105,7 +100,7 @@ export const AccountClient = memo(function AccountClient({
                 />
               ) : (
                 <div className="bg-muted flex h-16 w-16 items-center justify-center rounded-full">
-                  <Github className="text-muted-foreground h-8 w-8" />
+                  <GithubIcon className="text-muted-foreground h-8 w-8" />
                 </div>
               )}
               <div>

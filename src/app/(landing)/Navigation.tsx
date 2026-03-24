@@ -1,9 +1,10 @@
 'use client'
 
-import { ExternalLink, Github, Menu, X, Columns3 } from 'lucide-react'
+import { ExternalLink, Menu, X, Columns3 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { memo, useState } from 'react'
 
+import { GithubIcon } from '@/components/icons/GithubIcon'
 import { Button } from '@/components/ui/button'
 
 /**
@@ -56,7 +57,7 @@ export const Navigation = memo(function Navigation() {
 
           <div className="hidden items-center gap-4 md:flex">
             <Button variant="github" size="default" onClick={handleSignIn}>
-              <Github className="mr-2 h-4 w-4" />
+              <GithubIcon className="mr-2 h-4 w-4" />
               Sign in with GitHub
             </Button>
           </div>
@@ -103,7 +104,7 @@ export const Navigation = memo(function Navigation() {
                 className="w-full"
                 onClick={handleSignIn}
               >
-                <Github className="mr-2 h-4 w-4" />
+                <GithubIcon className="mr-2 h-4 w-4" />
                 Sign in with GitHub
               </Button>
             </div>

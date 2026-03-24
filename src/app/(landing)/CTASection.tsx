@@ -1,9 +1,10 @@
 'use client'
 
-import { ArrowRight, Github } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { memo } from 'react'
 
+import { GithubIcon } from '@/components/icons/GithubIcon'
 import { Button } from '@/components/ui/button'
 
 import { Glow } from './Glow'
@@ -34,7 +35,7 @@ export const CTASection = memo(function CTASection() {
             className="min-h-14 gap-2"
             onClick={() => router.push('/login')}
           >
-            <Github className="h-5 w-5" />
+            <GithubIcon className="h-5 w-5" />
             Get Started with GitHub
             <ArrowRight className="h-5 w-5" />
           </Button>

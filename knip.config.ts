@@ -86,7 +86,6 @@ const config: KnipConfig = {
     types: 'warn',
     duplicates: 'error',
     enumMembers: 'off',
-    classMembers: 'warn',
   },
 
   ignoreExportsUsedInFile: true,
