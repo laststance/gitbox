@@ -30,17 +30,18 @@ export default defineConfig([
       'react-you-might-not-need-an-effect': reactYouMightNotNeedAnEffect,
     },
     rules: {
-      'react-you-might-not-need-an-effect/no-empty-effect': 'warn',
+      'react-you-might-not-need-an-effect/no-empty-effect': 'error',
       'react-you-might-not-need-an-effect/no-adjust-state-on-prop-change':
-        'warn',
+        'error',
       'react-you-might-not-need-an-effect/no-reset-all-state-on-prop-change':
-        'warn',
-      'react-you-might-not-need-an-effect/no-event-handler': 'warn',
-      'react-you-might-not-need-an-effect/no-pass-live-state-to-parent': 'warn',
-      'react-you-might-not-need-an-effect/no-pass-data-to-parent': 'warn',
-      'react-you-might-not-need-an-effect/no-initialize-state': 'warn',
-      'react-you-might-not-need-an-effect/no-chain-state-updates': 'warn',
-      'react-you-might-not-need-an-effect/no-derived-state': 'warn',
+        'error',
+      'react-you-might-not-need-an-effect/no-event-handler': 'error',
+      'react-you-might-not-need-an-effect/no-pass-live-state-to-parent':
+        'error',
+      'react-you-might-not-need-an-effect/no-pass-data-to-parent': 'error',
+      'react-you-might-not-need-an-effect/no-initialize-state': 'error',
+      'react-you-might-not-need-an-effect/no-chain-state-updates': 'error',
+      'react-you-might-not-need-an-effect/no-derived-state': 'error',
     },
   },
 
