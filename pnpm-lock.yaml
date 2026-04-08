@@ -29,8 +29,8 @@ importers:
         specifier: ^3.2.2
         version: 3.2.2(react@19.2.4)
       '@laststance/redux-storage-middleware':
-        specifier: ^0.3.0
-        version: 0.3.0(@reduxjs/toolkit@2.11.2(react-redux@9.2.0(@types/react@19.2.14)(react@19.2.4)(redux@5.0.1))(react@19.2.4))(react-redux@9.2.0(@types/react@19.2.14)(react@19.2.4)(redux@5.0.1))
+        specifier: ^0.3.1
+        version: 0.3.1(@reduxjs/toolkit@2.11.2(react-redux@9.2.0(@types/react@19.2.14)(react@19.2.4)(redux@5.0.1))(react@19.2.4))(react-redux@9.2.0(@types/react@19.2.14)(react@19.2.4)(redux@5.0.1))
       '@platejs/autoformat':
         specifier: ^52.3.10
         version: 52.3.10(platejs@52.3.21(@types/react@19.2.14)(immer@11.1.4)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(scheduler@0.27.0)(use-sync-external-store@1.6.0(react@19.2.4)))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -996,8 +996,8 @@ packages:
     peerDependencies:
       eslint: ^9.0.0 || ^10.0.0
 
-  '@laststance/redux-storage-middleware@0.3.0':
-    resolution: {integrity: sha512-k7rG/98FozVTpji+D5YkONbmt8JNLps/HC8CNr5l+xpTofctRXhvPcZ/I2HrhIO2eHtHFzgAKaJLkqwoGtEIWg==}
+  '@laststance/redux-storage-middleware@0.3.1':
+    resolution: {integrity: sha512-7ybLxpDbpaKBsese180DIBkEYp2IFQvBHGxoeFLZnFuYCZs9uIJh2I97r4u2qg7oS5ahrT9+j2RN0eA2jhAFeA==}
     peerDependencies:
       '@reduxjs/toolkit': ^2.0.0
       react-redux: ^9.0.0
@@ -7053,7 +7053,7 @@ snapshots:
     dependencies:
       eslint: 10.2.0(jiti@2.6.1)
 
-  '@laststance/redux-storage-middleware@0.3.0(@reduxjs/toolkit@2.11.2(react-redux@9.2.0(@types/react@19.2.14)(react@19.2.4)(redux@5.0.1))(react@19.2.4))(react-redux@9.2.0(@types/react@19.2.14)(react@19.2.4)(redux@5.0.1))':
+  '@laststance/redux-storage-middleware@0.3.1(@reduxjs/toolkit@2.11.2(react-redux@9.2.0(@types/react@19.2.14)(react@19.2.4)(redux@5.0.1))(react@19.2.4))(react-redux@9.2.0(@types/react@19.2.14)(react@19.2.4)(redux@5.0.1))':
     dependencies:
       '@reduxjs/toolkit': 2.11.2(react-redux@9.2.0(@types/react@19.2.14)(react@19.2.4)(redux@5.0.1))(react@19.2.4)
       react-redux: 9.2.0(@types/react@19.2.14)(react@19.2.4)(redux@5.0.1)
