@@ -22,7 +22,7 @@ import {
 } from '@/lib/constants/board-presets'
 import type { StatusListDomain, RepoCardDomain } from '@/lib/models/domain'
 import { createClient } from '@/lib/supabase/server'
-import type { TablesInsert } from '@/lib/supabase/types'
+import type { TablesInsert, TablesUpdate } from '@/lib/supabase/types'
 import {
   boardNameSchema,
   boardSubtitleSchema,
@@ -196,7 +196,7 @@ export async function updateStatusList(
   if (updates.color !== undefined) statusListColorSchema.parse(updates.color)
 
   return withAuthRateLimit('boardCrud', async (supabase) => {
-    const updateData: Record<string, unknown> = {}
+    const updateData: TablesUpdate<'statuslist'> = {}
     if (updates.name !== undefined) updateData.name = updates.name
     if (updates.color !== undefined) updateData.color = updates.color
 
