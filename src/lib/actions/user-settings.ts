@@ -15,28 +15,23 @@ import type { ActionResult } from './types'
  * Uses upsert to create the user_settings row on first edit.
  * Empty string is stored as NULL (reverts to default on next load).
  *
- * @param title - The new title to save
- * @returns ActionResult with the saved title
  * @example
  * const result = await updateBoardsPageTitle('My Projects')
  * // => { success: true, data: { title: 'My Projects' } }
- *
- * const result = await updateBoardsPageTitle('')
- * // => { success: true, data: { title: '' } } (stored as NULL in DB)
  */
 export async function updateBoardsPageTitle(
   title: string,
 ): Promise<ActionResult<{ title: string }>> {
-  const titleResult = boardsPageTitleSchema.safeParse(title)
-  if (!titleResult.success) {
+  const parsed = boardsPageTitleSchema.safeParse(title)
+  if (!parsed.success) {
     return {
       success: false,
-      error: titleResult.error.issues[0]?.message || 'Invalid title',
+      error: parsed.error.issues[0]?.message || 'Invalid title',
     }
   }
 
   // Store empty string as null in DB for cleaner querying
-  const dbValue = titleResult.data === '' ? null : titleResult.data
+  const dbValue = parsed.data === '' ? null : parsed.data
 
   return withAuthResultRateLimit('userSettings', async (supabase, user) => {
     const { error } = await supabase.from('user_settings').upsert(
@@ -55,7 +50,7 @@ export async function updateBoardsPageTitle(
       throw new Error('Failed to update title')
     }
 
-    return { title: titleResult.data }
+    return { title: parsed.data }
   })
 }
 
@@ -64,8 +59,6 @@ export async function updateBoardsPageTitle(
  * Uses upsert to create the user_settings row on first edit.
  * Empty string is stored as NULL (reverts to default on next load).
  *
- * @param subtitle - The new subtitle to save
- * @returns ActionResult with the saved subtitle
  * @example
  * const result = await updateBoardsPageSubtitle('Track my open-source work')
  * // => { success: true, data: { subtitle: 'Track my open-source work' } }
@@ -73,16 +66,16 @@ export async function updateBoardsPageTitle(
 export async function updateBoardsPageSubtitle(
   subtitle: string,
 ): Promise<ActionResult<{ subtitle: string }>> {
-  const subtitleResult = boardsPageSubtitleSchema.safeParse(subtitle)
-  if (!subtitleResult.success) {
+  const parsed = boardsPageSubtitleSchema.safeParse(subtitle)
+  if (!parsed.success) {
     return {
       success: false,
-      error: subtitleResult.error.issues[0]?.message || 'Invalid subtitle',
+      error: parsed.error.issues[0]?.message || 'Invalid subtitle',
     }
   }
 
   // Store empty string as null in DB for cleaner querying
-  const dbValue = subtitleResult.data === '' ? null : subtitleResult.data
+  const dbValue = parsed.data === '' ? null : parsed.data
 
   return withAuthResultRateLimit('userSettings', async (supabase, user) => {
     const { error } = await supabase.from('user_settings').upsert(
@@ -101,6 +94,6 @@ export async function updateBoardsPageSubtitle(
       throw new Error('Failed to update subtitle')
     }
 
-    return { subtitle: subtitleResult.data }
+    return { subtitle: parsed.data }
   })
 }

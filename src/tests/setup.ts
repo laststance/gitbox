@@ -13,10 +13,9 @@ import * as matchers from '@testing-library/jest-dom/matchers'
 import { cleanup } from '@testing-library/react'
 import { expect, afterEach, vi } from 'vitest'
 
-// Extend Vitest's expect with Testing Library matchers
 expect.extend(matchers)
 
-// Mock localStorage for happy-dom compatibility
+// Mocked because happy-dom's localStorage implementation doesn't reset between tests
 const localStorageMock = (() => {
   let store: Record<string, string> = {}
   return {
@@ -42,13 +41,12 @@ Object.defineProperty(globalThis, 'localStorage', {
   writable: true,
 })
 
-// Cleanup after each test
 afterEach(() => {
   cleanup()
   localStorageMock.clear()
 })
 
-// Mock next/navigation
+// Mocked because next/navigation hooks require a Next.js runtime not present in Vitest
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),
@@ -63,7 +61,7 @@ vi.mock('next/navigation', () => ({
   redirect: vi.fn(),
 }))
 
-// Mock next/headers
+// Mocked because next/headers requires a Next.js request context unavailable in Vitest
 vi.mock('next/headers', () => ({
   cookies: () => ({
     get: vi.fn(),

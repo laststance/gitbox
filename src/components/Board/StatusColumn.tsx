@@ -17,16 +17,17 @@ import type { CommentData } from '@/lib/actions/project-info'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import type { CommentColor } from '@/lib/supabase/types'
 import type { CardDisplaySettings } from '@/lib/types/board-settings'
+import type { RepoCardId, StatusListId } from '@/lib/types/brands'
 
 import { RepoCard } from './RepoCard'
 
 /**
- * Drag type identifier for cards
- * Used to distinguish card drags from column drags in DndContext
+ * Drag type identifiers used by DndContext to distinguish column vs. card drags.
+ * Kept together so both data-attribute sites can import from one place.
  */
 export const CARD_DRAG_TYPE = 'card'
+export const COLUMN_DRAG_TYPE = 'column'
 
-// Types: Using Domain types for type-safe state management
 interface StatusColumnProps {
   status: StatusListDomain
   cards: RepoCardForRedux[]
@@ -34,22 +35,22 @@ interface StatusColumnProps {
   comments?: Record<string, CommentData>
   /** Card display settings from board.settings */
   cardDisplaySettings?: CardDisplaySettings
-  onMaintenance?: (id: string) => void
+  onMaintenance?: (id: RepoCardId) => void
   /** Callback when card is moved to another board */
-  onMoveToBoard?: (id: string) => void
+  onMoveToBoard?: (id: RepoCardId) => void
   /** Callback when Note button is clicked (opens unified NoteModal) */
-  onNote?: (id: string) => void
+  onNote?: (id: RepoCardId) => void
   /** Callback when repository is removed from board */
-  onRemove?: (id: string) => void
+  onRemove?: (id: RepoCardId) => void
   /** Callback when comment is updated (for optimistic updates) */
-  onCommentChange?: (cardId: string, newComment: string) => void
+  onCommentChange?: (cardId: RepoCardId, newComment: string) => void
   /** Callback when comment color is changed */
-  onCommentColorChange?: (cardId: string, color: CommentColor) => void
+  onCommentColorChange?: (cardId: RepoCardId, color: CommentColor) => void
   /** Callback when comment is deleted */
-  onCommentDelete?: (cardId: string) => void
+  onCommentDelete?: (cardId: RepoCardId) => void
   onEditStatus?: (status: StatusListDomain) => void
-  onDeleteStatus?: (statusId: string) => void
-  onAddCard?: (statusId: string) => void
+  onDeleteStatus?: (statusId: StatusListId) => void
+  onAddCard?: (statusId: StatusListId) => void
   /** Drag attributes from SortableColumn for column reordering */
   dragAttributes?: React.HTMLAttributes<HTMLDivElement>
   /** Drag listeners from SortableColumn for column reordering */
@@ -91,7 +92,7 @@ export const StatusColumn = memo<StatusColumnProps>(
     const { setNodeRef, isOver } = useDroppable({
       id: `droppable-${status.id}`,
       data: {
-        type: 'column',
+        type: COLUMN_DRAG_TYPE,
         statusId: status.id,
       },
     })

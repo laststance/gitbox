@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { cache } from 'react'
 
 import { getPublicBoardBySlug } from '@/lib/actions/public-board'
+import { toPublicBoardSlug } from '@/lib/types/brands'
 
 import { PublicBoardClient } from './PublicBoardClient'
 
@@ -12,7 +13,7 @@ interface PublicBoardPageProps {
 
 /** Deduplicate fetches within the same request (generateMetadata + page) */
 const getCachedPublicBoard = cache(async (slug: string) =>
-  getPublicBoardBySlug(slug),
+  getPublicBoardBySlug(toPublicBoardSlug(slug)),
 )
 
 /**

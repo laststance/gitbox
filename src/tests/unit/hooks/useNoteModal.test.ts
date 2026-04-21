@@ -14,6 +14,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useNoteModal } from '@/hooks/board/useNoteModal'
 import { getProjectInfo, upsertProjectInfo } from '@/lib/actions/project-info'
 import type { RepoCardForRedux } from '@/lib/models/domain'
+import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
 
 // Mock server actions
 vi.mock('@/lib/actions/project-info', () => ({
@@ -27,11 +28,11 @@ const mockUpsertProjectInfo = vi.mocked(upsertProjectInfo)
 describe('useNoteModal', () => {
   const mockRepoCards: RepoCardForRedux[] = [
     {
-      id: 'card-1',
+      id: toRepoCardId('card-1'),
       title: 'test/repo-1',
       description: 'Test repository 1',
-      statusId: 'status-1',
-      boardId: 'board-1',
+      statusId: toStatusListId('status-1'),
+      boardId: toBoardId('board-1'),
       repoOwner: 'test',
       repoName: 'repo-1',
       order: 0,
@@ -40,11 +41,11 @@ describe('useNoteModal', () => {
       updatedAt: '2024-01-01T00:00:00.000Z',
     },
     {
-      id: 'card-2',
+      id: toRepoCardId('card-2'),
       title: 'test/repo-2',
       description: 'Test repository 2',
-      statusId: 'status-1',
-      boardId: 'board-1',
+      statusId: toStatusListId('status-1'),
+      boardId: toBoardId('board-1'),
       repoOwner: 'test',
       repoName: 'repo-2',
       order: 1,
@@ -88,7 +89,7 @@ describe('useNoteModal', () => {
       )
 
       await act(async () => {
-        await result.current.open('card-1')
+        await result.current.open(toRepoCardId('card-1'))
       })
 
       expect(result.current.isOpen).toBe(true)
@@ -112,7 +113,7 @@ describe('useNoteModal', () => {
       )
 
       await act(async () => {
-        await result.current.open('card-1')
+        await result.current.open(toRepoCardId('card-1'))
       })
 
       expect(result.current.isOpen).toBe(true)
@@ -131,7 +132,7 @@ describe('useNoteModal', () => {
       )
 
       await act(async () => {
-        await result.current.open('card-1')
+        await result.current.open(toRepoCardId('card-1'))
       })
 
       expect(result.current.isOpen).toBe(true)
@@ -145,7 +146,7 @@ describe('useNoteModal', () => {
       )
 
       await act(async () => {
-        await result.current.open('non-existent-card')
+        await result.current.open(toRepoCardId('non-existent-card'))
       })
 
       expect(result.current.isOpen).toBe(false)
@@ -170,7 +171,7 @@ describe('useNoteModal', () => {
 
       // Open first
       await act(async () => {
-        await result.current.open('card-1')
+        await result.current.open(toRepoCardId('card-1'))
       })
 
       expect(result.current.isOpen).toBe(true)
@@ -209,7 +210,7 @@ describe('useNoteModal', () => {
 
       // Open modal first
       await act(async () => {
-        await result.current.open('card-1')
+        await result.current.open(toRepoCardId('card-1'))
       })
 
       // Save note with links

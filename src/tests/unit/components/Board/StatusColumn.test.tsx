@@ -16,6 +16,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { StatusColumn, CARD_DRAG_TYPE } from '@/components/Board/StatusColumn'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
+import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
 
 // Mock @dnd-kit/core
 vi.mock('@dnd-kit/core', () => ({
@@ -95,23 +96,23 @@ describe('StatusColumn', () => {
   const mockOnAddCard = vi.fn()
 
   const defaultStatus: StatusListDomain = {
-    id: 'status-1',
+    id: toStatusListId('status-1'),
     title: 'In Progress',
     color: '#3b82f6',
     gridRow: 1,
     gridCol: 1,
-    boardId: 'board-1',
+    boardId: toBoardId('board-1'),
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2024-01-01T00:00:00.000Z',
   }
 
   const defaultCards: RepoCardForRedux[] = [
     {
-      id: 'card-1',
+      id: toRepoCardId('card-1'),
       title: 'test-repo-1',
       description: 'Test description 1',
-      statusId: 'status-1',
-      boardId: 'board-1',
+      statusId: toStatusListId('status-1'),
+      boardId: toBoardId('board-1'),
       repoOwner: 'laststance',
       repoName: 'test-repo-1',
       order: 0,
@@ -120,11 +121,11 @@ describe('StatusColumn', () => {
       updatedAt: '2024-01-01T00:00:00.000Z',
     },
     {
-      id: 'card-2',
+      id: toRepoCardId('card-2'),
       title: 'test-repo-2',
       description: 'Test description 2',
-      statusId: 'status-1',
-      boardId: 'board-1',
+      statusId: toStatusListId('status-1'),
+      boardId: toBoardId('board-1'),
       repoOwner: 'laststance',
       repoName: 'test-repo-2',
       order: 1,
@@ -442,12 +443,12 @@ describe('StatusColumn', () => {
   describe('Edge Cases', () => {
     it('should handle status with empty color', () => {
       const minimalStatus: StatusListDomain = {
-        id: 'minimal',
+        id: toStatusListId('minimal'),
         title: 'Minimal',
         color: '',
         gridRow: 1,
         gridCol: 1,
-        boardId: 'board-1',
+        boardId: toBoardId('board-1'),
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
       }
@@ -461,10 +462,10 @@ describe('StatusColumn', () => {
       const manyCards: RepoCardForRedux[] = Array.from(
         { length: 50 },
         (_, i) => ({
-          id: `card-${i}`,
+          id: toRepoCardId(`card-${i}`),
           title: `Repo ${i}`,
-          statusId: 'status-1',
-          boardId: 'board-1',
+          statusId: toStatusListId('status-1'),
+          boardId: toBoardId('board-1'),
           repoOwner: 'laststance',
           repoName: `repo-${i}`,
           order: i,

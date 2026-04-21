@@ -58,8 +58,12 @@ export function edgeRateLimit(
  */
 export function getClientIp(request: Request): string {
   const forwarded = request.headers.get('x-forwarded-for')
-  if (forwarded) return forwarded.split(',')[0]?.trim() ?? '127.0.0.1'
-  const realIp = request.headers.get('x-real-ip')
-  if (realIp) return realIp
-  return '127.0.0.1'
+  const forwardedIp = forwarded?.split(',')[0]?.trim()
+  if (forwardedIp) return forwardedIp
+
+  // `??` would pass through an empty-string header; use `||` so blank
+  // values fall back to the loopback address instead of becoming the
+  // rate-limit key for every request.
+  const realIp = request.headers.get('x-real-ip')?.trim()
+  return realIp || '127.0.0.1'
 }

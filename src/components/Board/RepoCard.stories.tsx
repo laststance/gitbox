@@ -11,6 +11,8 @@ import { DndContext } from '@dnd-kit/core'
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 import { expect, userEvent, waitFor, fn, within } from 'storybook/test'
 
+import { toRepoCardId, toStatusListId } from '@/lib/types/brands'
+
 import { RepoCard } from './RepoCard'
 
 const meta = {
@@ -35,7 +37,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 const mockCard = {
-  id: '1',
+  id: toRepoCardId('1'),
   title: 'example-repo',
   description: 'An example repository for testing purposes',
   priority: 'medium' as const,
@@ -47,7 +49,7 @@ const mockCard = {
   dueDate: '2024-12-31',
   attachments: 3,
   comments: 5,
-  statusId: 'status-1',
+  statusId: toStatusListId('status-1'),
   repoOwner: 'octocat',
   repoName: 'example-repo',
 }
@@ -88,9 +90,9 @@ export const WithoutAssignee: Story = {
 export const Minimal: Story = {
   args: {
     card: {
-      id: '2',
+      id: toRepoCardId('2'),
       title: 'minimal-repo',
-      statusId: 'status-1',
+      statusId: toStatusListId('status-1'),
       repoOwner: 'octocat',
       repoName: 'minimal-repo',
     },

@@ -17,6 +17,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { KanbanBoard } from '@/components/Board/KanbanBoard'
 import boardSlice from '@/lib/redux/slices/boardSlice'
+import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
 
 // Mock the board actions
 // Phase 4: getBoardData removed - data now fetched by Server Component
@@ -42,12 +43,12 @@ function createMockStore() {
         activeBoard: null,
         statusLists: [
           {
-            id: 'status-1',
+            id: toStatusListId('status-1'),
             title: 'To Do',
             color: '#6B7280',
             gridRow: 0,
             gridCol: 0,
-            boardId: 'board-1',
+            boardId: toBoardId('board-1'),
             createdAt: '2024-01-01T00:00:00.000Z',
             updatedAt: '2024-01-01T00:00:00.000Z',
           },
@@ -590,12 +591,12 @@ describe('KanbanBoard Loading States', () => {
           activeBoard: null,
           statusLists: [
             {
-              id: 'status-1',
+              id: toStatusListId('status-1'),
               title: 'To Do',
               color: '#6B7280',
               gridRow: 0,
               gridCol: 0,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
@@ -647,35 +648,35 @@ describe('KanbanBoard with Data', () => {
           activeBoard: null,
           statusLists: [
             {
-              id: 'status-1',
+              id: toStatusListId('status-1'),
               title: 'To Do',
               color: '#6B7280',
               gridRow: 0,
               gridCol: 0,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
             {
-              id: 'status-2',
+              id: toStatusListId('status-2'),
               title: 'In Progress',
               color: '#3B82F6',
               gridRow: 0,
               gridCol: 1,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
           ],
           repoCards: [
             {
-              id: 'card-1',
+              id: toRepoCardId('card-1'),
               title: 'react',
               repoOwner: 'facebook',
               repoName: 'react',
-              statusId: 'status-1',
+              statusId: toStatusListId('status-1'),
               order: 0,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               meta: { stars: 200000, language: 'JavaScript' },
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
@@ -709,32 +710,32 @@ describe('KanbanBoard with Data', () => {
           activeBoard: null,
           statusLists: [
             {
-              id: 'status-3',
+              id: toStatusListId('status-3'),
               title: 'Done',
               color: '#22C55E',
               gridRow: 1,
               gridCol: 0,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
             {
-              id: 'status-1',
+              id: toStatusListId('status-1'),
               title: 'To Do',
               color: '#6B7280',
               gridRow: 0,
               gridCol: 0,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
             {
-              id: 'status-2',
+              id: toStatusListId('status-2'),
               title: 'In Progress',
               color: '#3B82F6',
               gridRow: 0,
               gridCol: 1,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
@@ -793,12 +794,12 @@ describe('KanbanBoard Callbacks', () => {
           activeBoard: null,
           statusLists: [
             {
-              id: 'status-1',
+              id: toStatusListId('status-1'),
               title: 'To Do',
               color: '#6B7280',
               gridRow: 0,
               gridCol: 0,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
@@ -855,25 +856,25 @@ describe('KanbanBoard Initial Comments', () => {
           activeBoard: null,
           statusLists: [
             {
-              id: 'status-1',
+              id: toStatusListId('status-1'),
               title: 'To Do',
               color: '#6B7280',
               gridRow: 0,
               gridCol: 0,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
           ],
           repoCards: [
             {
-              id: 'card-1',
+              id: toRepoCardId('card-1'),
               title: 'react',
               repoOwner: 'facebook',
               repoName: 'react',
-              statusId: 'status-1',
+              statusId: toStatusListId('status-1'),
               order: 0,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               meta: { stars: 200000, language: 'JavaScript' },
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
@@ -925,12 +926,12 @@ describe('KanbanBoard Card Display Settings', () => {
           activeBoard: null,
           statusLists: [
             {
-              id: 'status-1',
+              id: toStatusListId('status-1'),
               title: 'To Do',
               color: '#6B7280',
               gridRow: 0,
               gridCol: 0,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
@@ -976,12 +977,12 @@ describe('KanbanBoard Card Display Settings', () => {
           activeBoard: null,
           statusLists: [
             {
-              id: 'status-1',
+              id: toStatusListId('status-1'),
               title: 'To Do',
               color: '#6B7280',
               gridRow: 0,
               gridCol: 0,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
@@ -1040,12 +1041,12 @@ describe('KanbanBoard Undo Keyboard Shortcut', () => {
           activeBoard: null,
           statusLists: [
             {
-              id: 'status-1',
+              id: toStatusListId('status-1'),
               title: 'To Do',
               color: '#6B7280',
               gridRow: 0,
               gridCol: 0,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
@@ -1088,12 +1089,12 @@ describe('KanbanBoard Undo Keyboard Shortcut', () => {
           activeBoard: null,
           statusLists: [
             {
-              id: 'status-1',
+              id: toStatusListId('status-1'),
               title: 'To Do',
               color: '#6B7280',
               gridRow: 0,
               gridCol: 0,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
@@ -1145,12 +1146,12 @@ describe('KanbanBoard Undo Keyboard Shortcut', () => {
           activeBoard: null,
           statusLists: [
             {
-              id: 'status-1',
+              id: toStatusListId('status-1'),
               title: 'To Do',
               color: '#6B7280',
               gridRow: 0,
               gridCol: 0,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
@@ -1205,25 +1206,25 @@ describe('KanbanBoard DndContext Configuration', () => {
           activeBoard: null,
           statusLists: [
             {
-              id: 'status-1',
+              id: toStatusListId('status-1'),
               title: 'To Do',
               color: '#6B7280',
               gridRow: 0,
               gridCol: 0,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
           ],
           repoCards: [
             {
-              id: 'card-1',
+              id: toRepoCardId('card-1'),
               title: 'react',
               repoOwner: 'facebook',
               repoName: 'react',
-              statusId: 'status-1',
+              statusId: toStatusListId('status-1'),
               order: 0,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               meta: { stars: 200000, language: 'JavaScript' },
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
@@ -1272,32 +1273,32 @@ describe('KanbanBoard Multi-Row Layout', () => {
           activeBoard: null,
           statusLists: [
             {
-              id: 'status-1',
+              id: toStatusListId('status-1'),
               title: 'To Do',
               color: '#6B7280',
               gridRow: 0,
               gridCol: 0,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
             {
-              id: 'status-2',
+              id: toStatusListId('status-2'),
               title: 'In Progress',
               color: '#3B82F6',
               gridRow: 0,
               gridCol: 1,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
             {
-              id: 'status-3',
+              id: toStatusListId('status-3'),
               title: 'Done',
               color: '#22C55E',
               gridRow: 1,
               gridCol: 0,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
@@ -1340,42 +1341,42 @@ describe('KanbanBoard Multi-Row Layout', () => {
           activeBoard: null,
           statusLists: [
             {
-              id: 'status-1',
+              id: toStatusListId('status-1'),
               title: 'Col 0,0',
               color: '#6B7280',
               gridRow: 0,
               gridCol: 0,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
             {
-              id: 'status-2',
+              id: toStatusListId('status-2'),
               title: 'Col 0,1',
               color: '#3B82F6',
               gridRow: 0,
               gridCol: 1,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
             {
-              id: 'status-3',
+              id: toStatusListId('status-3'),
               title: 'Col 1,0',
               color: '#22C55E',
               gridRow: 1,
               gridCol: 0,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
             {
-              id: 'status-4',
+              id: toStatusListId('status-4'),
               title: 'Col 1,1',
               color: '#EF4444',
               gridRow: 1,
               gridCol: 1,
-              boardId: 'board-1',
+              boardId: toBoardId('board-1'),
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
@@ -1417,9 +1418,9 @@ describe('Grid Dimension Calculation', () => {
   it('should calculate maxRow and maxCol correctly', () => {
     // Simulate the calculation logic
     const statuses = [
-      { id: 'status-1', gridRow: 0, gridCol: 0 },
-      { id: 'status-2', gridRow: 0, gridCol: 1 },
-      { id: 'status-3', gridRow: 1, gridCol: 0 },
+      { id: toStatusListId('status-1'), gridRow: 0, gridCol: 0 },
+      { id: toStatusListId('status-2'), gridRow: 0, gridCol: 1 },
+      { id: toStatusListId('status-3'), gridRow: 1, gridCol: 0 },
     ]
 
     const maxRow = Math.max(...statuses.map((s) => s.gridRow))
@@ -1439,9 +1440,9 @@ describe('Grid Dimension Calculation', () => {
   it('should handle sparse grid positions', () => {
     // Columns might not fill every grid cell
     const statuses = [
-      { id: 'status-1', gridRow: 0, gridCol: 0 },
-      { id: 'status-2', gridRow: 0, gridCol: 2 }, // Skip col 1
-      { id: 'status-3', gridRow: 2, gridCol: 0 }, // Skip row 1
+      { id: toStatusListId('status-1'), gridRow: 0, gridCol: 0 },
+      { id: toStatusListId('status-2'), gridRow: 0, gridCol: 2 }, // Skip col 1
+      { id: toStatusListId('status-3'), gridRow: 2, gridCol: 0 }, // Skip row 1
     ]
 
     const maxRow = Math.max(...statuses.map((s) => s.gridRow))

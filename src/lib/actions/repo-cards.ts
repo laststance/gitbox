@@ -18,32 +18,65 @@ import {
 } from '@/lib/actions/auth-guard'
 import type { GitHubRepository } from '@/lib/actions/github'
 import { createModuleLogger } from '@/lib/logger'
+import {
+  toBoardId,
+  toRepoCardId,
+  toStatusListId,
+  type BoardId,
+  type RepoCardId,
+  type StatusListId,
+} from '@/lib/types/brands'
+import type { ISOTimestamp, Visibility } from '@/lib/types/domain-primitives'
 
 import type { ActionResult } from './types'
 
 const log = createModuleLogger('repo-cards')
 
 /**
- * Created card data returned from addRepositoriesToBoard
- * Used for optimistic UI updates in the client
+ * Server-authored card data returned from {@link addRepositoriesToBoard}.
+ * Shaped for direct consumption by Redux optimistic updates (see
+ * `BoardPageClient`'s `onRepositoriesAdded`), which maps these into
+ * `RepoCardForRedux` items.
+ *
+ * @example
+ * {
+ *   id: 'uuid' as RepoCardId,
+ *   boardId: 'uuid' as BoardId,
+ *   statusId: 'uuid' as StatusListId,
+ *   repoOwner: 'laststance',
+ *   repoName: 'gitbox',
+ *   order: 0,
+ *   meta: { stars: 42, language: 'TypeScript', visibility: 'public' },
+ *   createdAt: '2026-04-21T12:00:00Z',
+ *   updatedAt: '2026-04-21T12:00:00Z',
+ * }
  */
 export interface CreatedRepoCard {
-  id: string
-  boardId: string
-  statusId: string
+  /** Newly-inserted {@link RepoCardId}. */
+  id: RepoCardId
+  /** Parent {@link BoardId}. */
+  boardId: BoardId
+  /** Initial column (`statuslist.id`) the card lives in. */
+  statusId: StatusListId
+  /** GitHub repository owner login. */
   repoOwner: string
+  /** GitHub repository name. */
   repoName: string
+  /** Display order within the column (0-indexed). */
   order: number
+  /** Snapshot of GitHub metadata (subset of `RepoCardMeta`). */
   meta: {
     stars?: number
     language?: string | null
     topics?: string[]
-    visibility?: string
+    visibility?: Visibility
     description?: string | null
-    updatedAt?: string
+    updatedAt?: ISOTimestamp
   }
-  createdAt: string
-  updatedAt: string
+  /** Creation timestamp (ISO-8601 UTC). */
+  createdAt: ISOTimestamp
+  /** Last update timestamp (ISO-8601 UTC). */
+  updatedAt: ISOTimestamp
 }
 
 /**
@@ -166,9 +199,9 @@ export async function addRepositoriesToBoard(
     // Transform database response to CreatedRepoCard format
     const createdCards: CreatedRepoCard[] = (insertedCards || []).map(
       (card) => ({
-        id: card.id,
-        boardId: card.board_id,
-        statusId: card.status_id,
+        id: toRepoCardId(card.id),
+        boardId: toBoardId(card.board_id),
+        statusId: toStatusListId(card.status_id),
         repoOwner: card.repo_owner,
         repoName: card.repo_name,
         order: card.order,

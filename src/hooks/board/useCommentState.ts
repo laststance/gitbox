@@ -11,6 +11,7 @@
  * <SortableColumn comments={comments} onCommentChange={handleCommentChange} />
  */
 
+import * as Sentry from '@sentry/nextjs'
 import { useState, useCallback } from 'react'
 import { toast } from 'sonner'
 
@@ -21,6 +22,8 @@ import {
   type CommentData,
 } from '@/lib/actions/project-info'
 import type { CommentColor } from '@/lib/supabase/types'
+
+const DEFAULT_COMMENT: CommentData = { comment: '', color: 'primary' }
 
 interface UseCommentStateParams {
   /** Initial comments fetched by Server Component (Phase 4) */
@@ -61,95 +64,76 @@ export function useCommentState(
   const [comments, setComments] =
     useState<Record<string, CommentData>>(initialComments)
 
-  /**
-   * Handle comment change from inline edit.
-   * Optimistic update preserving existing color.
-   *
-   * @param cardId - The repo card ID
-   * @param newComment - The new comment text
-   */
+  const applyOptimisticUpdate = useCallback(
+    async (
+      cardId: string,
+      optimistic: (prev: CommentData | undefined) => CommentData,
+      persist: () => Promise<{ success: boolean }>,
+      errorMessage: string,
+      successMessage?: string,
+    ) => {
+      const previous = comments[cardId]
+      setComments((prev) => ({ ...prev, [cardId]: optimistic(prev[cardId]) }))
+
+      // Rollback helper — used both on `{success:false}` and thrown errors so
+      // a network rejection doesn't leave the UI showing un-persisted state.
+      const rollback = () => {
+        setComments((prev) => ({
+          ...prev,
+          [cardId]: previous ?? DEFAULT_COMMENT,
+        }))
+        toast.error(errorMessage)
+      }
+
+      try {
+        const result = await persist()
+        if (!result.success) {
+          rollback()
+          return
+        }
+        if (successMessage) toast.success(successMessage)
+      } catch (error) {
+        Sentry.captureException(error, {
+          extra: { context: 'useCommentState.applyOptimisticUpdate', cardId },
+        })
+        rollback()
+      }
+    },
+    [comments],
+  )
+
   const handleCommentChange = useCallback(
-    async (cardId: string, newComment: string) => {
-      const previous = comments[cardId]
-      setComments((prev) => ({
-        ...prev,
-        [cardId]: {
-          comment: newComment,
-          color: prev[cardId]?.color ?? 'primary',
-        },
-      }))
-
-      const result = await updateComment(cardId, newComment)
-      if (!result.success) {
-        setComments((prev) => ({
-          ...prev,
-          [cardId]: previous ?? { comment: '', color: 'primary' },
-        }))
-        toast.error('Failed to save comment')
-      }
-    },
-    [comments],
+    async (cardId: string, newComment: string) =>
+      applyOptimisticUpdate(
+        cardId,
+        (prev) => ({ comment: newComment, color: prev?.color ?? 'primary' }),
+        async () => updateComment(cardId, newComment),
+        'Failed to save comment',
+      ),
+    [applyOptimisticUpdate],
   )
 
-  /**
-   * Handle comment color change from CommentActionsMenu.
-   * Optimistic update with Sentry error tracking.
-   *
-   * @param cardId - The card ID to update
-   * @param color - The new color value
-   */
   const handleCommentColorChange = useCallback(
-    async (cardId: string, color: CommentColor) => {
-      const previous = comments[cardId]
-      setComments((prev) => ({
-        ...prev,
-        [cardId]: {
-          comment: prev[cardId]?.comment ?? '',
-          color,
-        },
-      }))
-
-      const result = await updateCommentColor(cardId, color)
-      if (!result.success) {
-        setComments((prev) => ({
-          ...prev,
-          [cardId]: previous ?? { comment: '', color: 'primary' },
-        }))
-        toast.error('Failed to update comment color')
-      }
-    },
-    [comments],
+    async (cardId: string, color: CommentColor) =>
+      applyOptimisticUpdate(
+        cardId,
+        (prev) => ({ comment: prev?.comment ?? '', color }),
+        async () => updateCommentColor(cardId, color),
+        'Failed to update comment color',
+      ),
+    [applyOptimisticUpdate],
   )
 
-  /**
-   * Handle comment delete from CommentActionsMenu.
-   * Clears comment text and resets color to default.
-   *
-   * @param cardId - The card ID to delete comment from
-   */
   const handleCommentDelete = useCallback(
-    async (cardId: string) => {
-      const previous = comments[cardId]
-      setComments((prev) => ({
-        ...prev,
-        [cardId]: {
-          comment: '',
-          color: 'primary',
-        },
-      }))
-
-      const result = await deleteComment(cardId)
-      if (result.success) {
-        toast.success('Comment deleted')
-      } else {
-        setComments((prev) => ({
-          ...prev,
-          [cardId]: previous ?? { comment: '', color: 'primary' },
-        }))
-        toast.error('Failed to delete comment')
-      }
-    },
-    [comments],
+    async (cardId: string) =>
+      applyOptimisticUpdate(
+        cardId,
+        () => DEFAULT_COMMENT,
+        async () => deleteComment(cardId),
+        'Failed to delete comment',
+        'Comment deleted',
+      ),
+    [applyOptimisticUpdate],
   )
 
   return {

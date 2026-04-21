@@ -9,7 +9,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { memo, useCallback } from 'react'
+import { memo } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -77,42 +77,15 @@ export const SettingsClient = memo(function SettingsClient() {
   const dispatch = useAppDispatch()
   const mounted = useMounted()
 
-  // Redux state for display settings
   const compactMode = useAppSelector(selectCompactMode)
   const showCardMetadata = useAppSelector(selectShowCardMetadata)
 
-  /**
-   * Handles compact mode toggle change.
-   * Dispatches Redux action to update and persist the setting.
-   */
-  const handleCompactModeChange = useCallback(
-    (value: boolean) => {
-      dispatch(setCompactMode(value))
-    },
-    [dispatch],
-  )
-
-  /**
-   * Handles show card metadata toggle change.
-   * Dispatches Redux action to update and persist the setting.
-   */
-  const handleShowCardMetadataChange = useCallback(
-    (value: boolean) => {
-      dispatch(setShowCardMetadata(value))
-    },
-    [dispatch],
-  )
-
-  /**
-   * Handles the save settings action.
-   * Shows a success toast and navigates to the boards page.
-   */
-  const handleSaveSettings = useCallback(() => {
+  const handleSaveSettings = () => {
     toast.success('Settings saved', {
       description: 'Your preferences have been updated.',
     })
     router.push('/boards')
-  }, [router])
+  }
 
   if (!mounted) {
     return (
@@ -155,7 +128,7 @@ export const SettingsClient = memo(function SettingsClient() {
               <Toggle
                 id="compact-mode"
                 checked={compactMode}
-                onCheckedChange={handleCompactModeChange}
+                onCheckedChange={(value) => dispatch(setCompactMode(value))}
               />
             </div>
             <div className="flex items-center justify-between">
@@ -168,7 +141,9 @@ export const SettingsClient = memo(function SettingsClient() {
               <Toggle
                 id="show-card-metadata"
                 checked={showCardMetadata}
-                onCheckedChange={handleShowCardMetadataChange}
+                onCheckedChange={(value) =>
+                  dispatch(setShowCardMetadata(value))
+                }
               />
             </div>
           </CardContent>

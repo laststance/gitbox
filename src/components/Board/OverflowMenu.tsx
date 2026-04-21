@@ -30,21 +30,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import type { CardIdentifier, RepoCardId } from '@/lib/types/brands'
 
-interface OverflowMenuProps {
-  cardId: string
+interface OverflowMenuProps<TId extends CardIdentifier = RepoCardId> {
+  cardId: TId
   repoOwner?: string
   repoName?: string
   productionUrl?: string
   trackingUrl?: string
   supabaseUrl?: string
-  onMoveToMaintenance?: (id: string) => void
-  onMoveToAnotherBoard?: (id: string) => void
-  onRestoreToBoard?: (id: string) => void
+  onMoveToMaintenance?: (id: TId) => void
+  onMoveToAnotherBoard?: (id: TId) => void
+  onRestoreToBoard?: (id: TId) => void
   /** Callback when repository is removed from board */
-  onRemove?: (id: string) => void
+  onRemove?: (id: TId) => void
   /** Callback when maintenance item is permanently deleted */
-  onDelete?: (id: string) => void
+  onDelete?: (id: TId) => void
   open?: boolean
   onOpenChange?: (open: boolean) => void
   /** Board or Maintenance context */
@@ -66,207 +67,209 @@ interface OverflowMenuProps {
  *
  * Note: "Edit Project Info" was consolidated into NoteModal (Issue #37)
  */
-export const OverflowMenu = memo<OverflowMenuProps>(
-  ({
-    cardId,
-    repoOwner,
-    repoName,
-    productionUrl,
-    trackingUrl,
-    supabaseUrl,
-    onMoveToMaintenance,
-    onMoveToAnotherBoard,
-    onRestoreToBoard,
-    onRemove,
-    onDelete,
-    open,
-    onOpenChange,
-    context = 'board',
-  }) => {
-    const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+// Wrapped with memo at export; cannot use `memo(function…)` because the
+// generic parameter is erased. See export below.
+// eslint-disable-next-line @laststance/react-next/all-memo
+function OverflowMenuInner<TId extends CardIdentifier>({
+  cardId,
+  repoOwner,
+  repoName,
+  productionUrl,
+  trackingUrl,
+  supabaseUrl,
+  onMoveToMaintenance,
+  onMoveToAnotherBoard,
+  onRestoreToBoard,
+  onRemove,
+  onDelete,
+  open,
+  onOpenChange,
+  context = 'board',
+}: OverflowMenuProps<TId>) {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
-    const githubUrl =
-      repoOwner && repoName
-        ? `https://github.com/${repoOwner}/${repoName}`
-        : null
+  const githubUrl =
+    repoOwner && repoName ? `https://github.com/${repoOwner}/${repoName}` : null
 
-    /**
-     * Opens a URL in a new tab securely.
-     * @param url - The URL to open
-     */
-    const handleOpenUrl = (url: string) => {
-      window.open(url, '_blank', 'noopener,noreferrer')
-    }
+  /**
+   * Opens a URL in a new tab securely.
+   * @param url - The URL to open
+   */
+  const handleOpenUrl = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
 
-    /**
-     * Handles the remove confirmation action.
-     * Calls onRemove callback and closes the dialog.
-     */
-    const handleConfirmRemove = () => {
-      onRemove?.(cardId)
-      setShowDeleteDialog(false)
-    }
+  /**
+   * Handles the remove confirmation action.
+   * Calls onRemove callback and closes the dialog.
+   */
+  const handleConfirmRemove = () => {
+    onRemove?.(cardId)
+    setShowDeleteDialog(false)
+  }
 
-    return (
-      <>
-        <DropdownMenu open={open} onOpenChange={onOpenChange}>
-          <DropdownMenuTrigger
-            className="hover:bg-accent hover:text-accent-foreground focus:ring-ring rounded-md p-1 focus:ring-2 focus:ring-offset-2 focus:outline-none"
-            data-testid={`overflow-menu-trigger-${cardId}`}
-          >
-            <MoreHorizontal className="h-4 w-4" />
-            <span className="sr-only">Open menu</span>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="w-56"
-            data-testid="overflow-menu"
-          >
-            {/* Open on GitHub */}
-            {githubUrl && (
+  return (
+    <>
+      <DropdownMenu open={open} onOpenChange={onOpenChange}>
+        <DropdownMenuTrigger
+          className="hover:bg-accent hover:text-accent-foreground focus:ring-ring rounded-md p-1 focus:ring-2 focus:ring-offset-2 focus:outline-none"
+          data-testid={`overflow-menu-trigger-${cardId}`}
+        >
+          <MoreHorizontal className="h-4 w-4" />
+          <span className="sr-only">Open menu</span>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          className="w-56"
+          data-testid="overflow-menu"
+        >
+          {/* Open on GitHub */}
+          {githubUrl && (
+            <DropdownMenuItem
+              onClick={() => handleOpenUrl(githubUrl)}
+              data-testid={`open-github-${cardId}`}
+            >
+              <GithubIcon className="mr-2 h-4 w-4" />
+              Open on GitHub
+            </DropdownMenuItem>
+          )}
+
+          {/* Open Production URL */}
+          {productionUrl && (
+            <DropdownMenuItem
+              onClick={() => handleOpenUrl(productionUrl)}
+              data-testid={`open-production-${cardId}`}
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Open Production URL
+            </DropdownMenuItem>
+          )}
+
+          {/* Open Tracking dashboard */}
+          {trackingUrl && (
+            <DropdownMenuItem
+              onClick={() => handleOpenUrl(trackingUrl)}
+              data-testid={`open-tracking-${cardId}`}
+            >
+              <BarChart2 className="mr-2 h-4 w-4" />
+              Open Tracking dashboard
+            </DropdownMenuItem>
+          )}
+
+          {/* Open Supabase dashboard */}
+          {supabaseUrl && (
+            <DropdownMenuItem
+              onClick={() => handleOpenUrl(supabaseUrl)}
+              data-testid={`open-supabase-${cardId}`}
+            >
+              <Database className="mr-2 h-4 w-4" />
+              Open Supabase dashboard
+            </DropdownMenuItem>
+          )}
+
+          {/* Separator before actions */}
+          {(githubUrl || productionUrl || trackingUrl || supabaseUrl) &&
+            (onMoveToMaintenance ||
+              onRestoreToBoard ||
+              onRemove ||
+              onDelete) && <DropdownMenuSeparator />}
+
+          {/* Move to Maintenance (Board context only) */}
+          {context === 'board' && onMoveToMaintenance && (
+            <DropdownMenuItem
+              onClick={() => onMoveToMaintenance(cardId)}
+              data-testid={`move-to-maintenance-${cardId}`}
+            >
+              <Archive className="mr-2 h-4 w-4" />
+              Move to Maintenance
+            </DropdownMenuItem>
+          )}
+
+          {/* Move to Another Board (Board context only) */}
+          {context === 'board' && onMoveToAnotherBoard && (
+            <DropdownMenuItem
+              onClick={() => onMoveToAnotherBoard(cardId)}
+              data-testid={`move-to-another-board-${cardId}`}
+            >
+              <ArrowRightLeft className="mr-2 h-4 w-4" />
+              Move to Another Board
+            </DropdownMenuItem>
+          )}
+
+          {/* Remove from Board (Board context only) - Destructive action */}
+          {context === 'board' && onRemove && (
+            <>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => handleOpenUrl(githubUrl)}
-                data-testid={`open-github-${cardId}`}
+                onClick={() => setShowDeleteDialog(true)}
+                className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                data-testid={`remove-from-board-${cardId}`}
               >
-                <GithubIcon className="mr-2 h-4 w-4" />
-                Open on GitHub
+                <Trash2 className="mr-2 h-4 w-4" />
+                Remove from Board
               </DropdownMenuItem>
-            )}
+            </>
+          )}
 
-            {/* Open Production URL */}
-            {productionUrl && (
+          {/* Restore to Board (Maintenance context only) */}
+          {context === 'maintenance' && onRestoreToBoard && (
+            <DropdownMenuItem
+              onClick={() => onRestoreToBoard(cardId)}
+              data-testid={`restore-to-board-${cardId}`}
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Restore to Board
+            </DropdownMenuItem>
+          )}
+
+          {/* Delete (Maintenance context only) - Destructive action */}
+          {context === 'maintenance' && onDelete && (
+            <>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => handleOpenUrl(productionUrl)}
-                data-testid={`open-production-${cardId}`}
+                onClick={() => onDelete(cardId)}
+                className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                data-testid={`delete-maintenance-${cardId}`}
               >
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Open Production URL
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
               </DropdownMenuItem>
-            )}
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-            {/* Open Tracking dashboard */}
-            {trackingUrl && (
-              <DropdownMenuItem
-                onClick={() => handleOpenUrl(trackingUrl)}
-                data-testid={`open-tracking-${cardId}`}
-              >
-                <BarChart2 className="mr-2 h-4 w-4" />
-                Open Tracking dashboard
-              </DropdownMenuItem>
-            )}
+      {/* Remove Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Repository from Board?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove{' '}
+              <span className="text-foreground font-semibold">
+                {repoOwner}/{repoName}
+              </span>{' '}
+              from this board. The repository itself will not be deleted from
+              GitHub. You can always add it back later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmRemove}
+              className="bg-destructive hover:bg-destructive/90 text-white"
+              data-testid={`confirm-remove-${cardId}`}
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}
 
-            {/* Open Supabase dashboard */}
-            {supabaseUrl && (
-              <DropdownMenuItem
-                onClick={() => handleOpenUrl(supabaseUrl)}
-                data-testid={`open-supabase-${cardId}`}
-              >
-                <Database className="mr-2 h-4 w-4" />
-                Open Supabase dashboard
-              </DropdownMenuItem>
-            )}
-
-            {/* Separator before actions */}
-            {(githubUrl || productionUrl || trackingUrl || supabaseUrl) &&
-              (onMoveToMaintenance ||
-                onRestoreToBoard ||
-                onRemove ||
-                onDelete) && <DropdownMenuSeparator />}
-
-            {/* Move to Maintenance (Board context only) */}
-            {context === 'board' && onMoveToMaintenance && (
-              <DropdownMenuItem
-                onClick={() => onMoveToMaintenance(cardId)}
-                data-testid={`move-to-maintenance-${cardId}`}
-              >
-                <Archive className="mr-2 h-4 w-4" />
-                Move to Maintenance
-              </DropdownMenuItem>
-            )}
-
-            {/* Move to Another Board (Board context only) */}
-            {context === 'board' && onMoveToAnotherBoard && (
-              <DropdownMenuItem
-                onClick={() => onMoveToAnotherBoard(cardId)}
-                data-testid={`move-to-another-board-${cardId}`}
-              >
-                <ArrowRightLeft className="mr-2 h-4 w-4" />
-                Move to Another Board
-              </DropdownMenuItem>
-            )}
-
-            {/* Remove from Board (Board context only) - Destructive action */}
-            {context === 'board' && onRemove && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => setShowDeleteDialog(true)}
-                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                  data-testid={`remove-from-board-${cardId}`}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Remove from Board
-                </DropdownMenuItem>
-              </>
-            )}
-
-            {/* Restore to Board (Maintenance context only) */}
-            {context === 'maintenance' && onRestoreToBoard && (
-              <DropdownMenuItem
-                onClick={() => onRestoreToBoard(cardId)}
-                data-testid={`restore-to-board-${cardId}`}
-              >
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Restore to Board
-              </DropdownMenuItem>
-            )}
-
-            {/* Delete (Maintenance context only) - Destructive action */}
-            {context === 'maintenance' && onDelete && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => onDelete(cardId)}
-                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                  data-testid={`delete-maintenance-${cardId}`}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Remove Confirmation Dialog */}
-        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Remove Repository from Board?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will permanently remove{' '}
-                <span className="text-foreground font-semibold">
-                  {repoOwner}/{repoName}
-                </span>{' '}
-                from this board. The repository itself will not be deleted from
-                GitHub. You can always add it back later.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleConfirmRemove}
-                className="bg-destructive hover:bg-destructive/90 text-white"
-                data-testid={`confirm-remove-${cardId}`}
-              >
-                Remove
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </>
-    )
-  },
-)
-
-OverflowMenu.displayName = 'OverflowMenu'
+// `memo` strips the type parameter; the cast reattaches it so each call site
+// keeps its own `TId` (e.g. `RepoCardId` from `RepoCard`, `MaintenanceId` from
+// `MaintenanceClient`). Callbacks therefore stay strictly typed end-to-end.
+export const OverflowMenu = memo(OverflowMenuInner) as typeof OverflowMenuInner

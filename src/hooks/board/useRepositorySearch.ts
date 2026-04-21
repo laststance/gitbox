@@ -71,12 +71,10 @@ export function useRepositorySearch(): UseRepositorySearchReturn {
 
   const toggleRepoSelection = useCallback((repo: GitHubRepository) => {
     setSelectedRepos((prev) => {
-      const isSelected = prev.some((r) => r.id === repo.id)
-      if (isSelected) {
+      if (prev.some((r) => r.id === repo.id)) {
         return prev.filter((r) => r.id !== repo.id)
-      } else {
-        return [...prev, repo]
       }
+      return [...prev, repo]
     })
   }, [])
 

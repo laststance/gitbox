@@ -73,51 +73,46 @@ export function useKanbanUndo(
    * Syncs reverted state to database.
    */
   const handleUndo = useCallback(() => {
-    // Try column undo first, then card undo
     if (columnHistory.length > 0) {
-      const previousState = columnHistory[columnHistory.length - 1]
-      if (previousState) {
-        dispatch(setStatusLists(previousState))
-        setColumnHistory((prev) => prev.slice(0, -1))
-        toast.success('Column order restored')
+      // Non-null: `length > 0` guarantees the last entry exists; runtime
+      // `!previousState` was redundant since `columnHistory` only holds
+      // `StatusListDomain[]` snapshots pushed by `pushColumnHistory`.
+      const previousState = columnHistory[columnHistory.length - 1]!
+      dispatch(setStatusLists(previousState))
+      setColumnHistory((prev) => prev.slice(0, -1))
+      toast.success('Column order restored')
 
-        // P1-8: Sync reverted column positions to DB
-        const updates = previousState.map((s) => ({
-          id: s.id,
-          gridRow: s.gridRow,
-          gridCol: s.gridCol,
-        }))
-        batchUpdateStatusListPositions(updates).catch((error) => {
-          Sentry.captureException(error, {
-            tags: { action: 'undoColumnPositions' },
-          })
-          toast.error('Failed to sync undo to database')
+      const updates = previousState.map((s) => ({
+        id: s.id,
+        gridRow: s.gridRow,
+        gridCol: s.gridCol,
+      }))
+      batchUpdateStatusListPositions(updates).catch((error) => {
+        Sentry.captureException(error, {
+          tags: { action: 'undoColumnPositions' },
         })
-      }
+        toast.error('Failed to sync undo to database')
+      })
       return
     }
 
-    if (history.length > 0) {
-      const previousState = history[history.length - 1]
-      if (previousState) {
-        dispatch(setRepoCards(previousState))
-        setHistory((prev) => prev.slice(0, -1))
-        toast.success('Card operation undone')
+    if (history.length === 0) return
+    const previousState = history[history.length - 1]!
+    dispatch(setRepoCards(previousState))
+    setHistory((prev) => prev.slice(0, -1))
+    toast.success('Card operation undone')
 
-        // P1-8: Sync reverted card positions to DB
-        const updates = previousState.map((c, index) => ({
-          id: c.id,
-          statusId: c.statusId,
-          order: c.order ?? index,
-        }))
-        batchUpdateRepoCardOrders(updates).catch((error) => {
-          Sentry.captureException(error, {
-            tags: { action: 'undoCardPositions' },
-          })
-          toast.error('Failed to sync undo to database')
-        })
-      }
-    }
+    const updates = previousState.map((c, index) => ({
+      id: c.id,
+      statusId: c.statusId,
+      order: c.order ?? index,
+    }))
+    batchUpdateRepoCardOrders(updates).catch((error) => {
+      Sentry.captureException(error, {
+        tags: { action: 'undoCardPositions' },
+      })
+      toast.error('Failed to sync undo to database')
+    })
   }, [history, columnHistory, dispatch])
 
   // Keyboard shortcut: Z key to execute undo

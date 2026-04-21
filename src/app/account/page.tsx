@@ -8,9 +8,10 @@
  */
 
 import type { Metadata } from 'next'
-import { redirect } from 'next/navigation'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/require-user'
+import { toUserId, type UserId } from '@/lib/types/brands'
+import type { ISOTimestamp } from '@/lib/types/domain-primitives'
 
 import { AccountClient } from './AccountClient'
 
@@ -26,23 +27,14 @@ export interface AccountData {
 }
 
 export interface UserProfile {
-  id: string
+  id: UserId
   userName: string
   userAvatar?: string
-  linkedSince: string
+  linkedSince: ISOTimestamp
 }
 
 export default async function AccountPage() {
-  const supabase = await createClient()
-
-  // Get current user
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
+  const { supabase, user } = await requireUser()
 
   // Fetch account data counts in parallel
   const [boardsResult, cardsResult, maintenanceResult] = await Promise.all([
@@ -67,7 +59,7 @@ export default async function AccountPage() {
   }
 
   const userProfile: UserProfile = {
-    id: user.id,
+    id: toUserId(user.id),
     userName:
       user.user_metadata?.user_name ||
       user.user_metadata?.preferred_username ||

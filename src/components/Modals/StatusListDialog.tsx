@@ -31,6 +31,15 @@ const PRESET_COLORS = [
 
 const DEFAULT_COLOR = '#6B7280'
 
+/**
+ * Returns the submit button label based on saving state and mode.
+ */
+function getSubmitLabel(isSaving: boolean, mode: 'create' | 'edit'): string {
+  if (isSaving) return 'Saving...'
+  if (mode === 'create') return 'Add Column'
+  return 'Save Changes'
+}
+
 interface StatusListFormProps {
   mode: 'create' | 'edit'
   initialName: string
@@ -167,11 +176,7 @@ const StatusListForm = memo(function StatusListForm({
             Cancel
           </Button>
           <Button type="submit" disabled={isSaving}>
-            {isSaving
-              ? 'Saving...'
-              : mode === 'create'
-                ? 'Add Column'
-                : 'Save Changes'}
+            {getSubmitLabel(isSaving, mode)}
           </Button>
         </DialogFooter>
       </form>

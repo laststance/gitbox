@@ -13,6 +13,7 @@ import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 
 import type { BoardInitialData } from '@/lib/actions/board-data'
 import type { Board } from '@/lib/supabase/types'
+import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
 
 import { BoardPageClient } from './BoardPageClient'
 
@@ -57,32 +58,32 @@ const createMockBoard = (
 const createMockInitialData = (): BoardInitialData => ({
   statusLists: [
     {
-      id: 'status-1',
+      id: toStatusListId('status-1'),
       title: 'To Do',
       color: '#6B7280',
       gridRow: 0,
       gridCol: 0,
-      boardId: 'board-1',
+      boardId: toBoardId('board-1'),
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-01-01T00:00:00.000Z',
     },
     {
-      id: 'status-2',
+      id: toStatusListId('status-2'),
       title: 'In Progress',
       color: '#3B82F6',
       gridRow: 0,
       gridCol: 1,
-      boardId: 'board-1',
+      boardId: toBoardId('board-1'),
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-01-01T00:00:00.000Z',
     },
     {
-      id: 'status-3',
+      id: toStatusListId('status-3'),
       title: 'Done',
       color: '#22C55E',
       gridRow: 0,
       gridCol: 2,
-      boardId: 'board-1',
+      boardId: toBoardId('board-1'),
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-01-01T00:00:00.000Z',
     },
@@ -132,25 +133,25 @@ export const WithRepoCards: Story = {
       ...createMockInitialData(),
       repoCards: [
         {
-          id: 'card-1',
+          id: toRepoCardId('card-1'),
           title: 'react',
           repoOwner: 'facebook',
           repoName: 'react',
-          statusId: 'status-1',
+          statusId: toStatusListId('status-1'),
           order: 0,
-          boardId: 'board-1',
+          boardId: toBoardId('board-1'),
           meta: { stars: 200000, language: 'JavaScript' },
           createdAt: '2024-01-01T00:00:00.000Z',
           updatedAt: '2024-01-01T00:00:00.000Z',
         },
         {
-          id: 'card-2',
+          id: toRepoCardId('card-2'),
           title: 'next.js',
           repoOwner: 'vercel',
           repoName: 'next.js',
-          statusId: 'status-2',
+          statusId: toStatusListId('status-2'),
           order: 0,
-          boardId: 'board-1',
+          boardId: toBoardId('board-1'),
           meta: { stars: 100000, language: 'TypeScript' },
           createdAt: '2024-01-01T00:00:00.000Z',
           updatedAt: '2024-01-01T00:00:00.000Z',

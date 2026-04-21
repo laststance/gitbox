@@ -16,6 +16,8 @@
 import { DndContext } from '@dnd-kit/core'
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 
+import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
+
 import { SortableColumn } from './SortableColumn'
 
 const meta = {
@@ -40,8 +42,8 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 const mockStatus = {
-  id: 'status-1',
-  boardId: 'board-1',
+  id: toStatusListId('status-1'),
+  boardId: toBoardId('board-1'),
   title: 'Planning',
   color: '#3b82f6',
   gridRow: 0,
@@ -52,9 +54,9 @@ const mockStatus = {
 
 const mockCards = [
   {
-    id: 'card-1',
-    statusId: 'status-1',
-    boardId: 'board-1',
+    id: toRepoCardId('card-1'),
+    statusId: toStatusListId('status-1'),
+    boardId: toBoardId('board-1'),
     repoOwner: 'octocat',
     repoName: 'example-repo',
     title: 'example-repo',
@@ -72,9 +74,9 @@ const mockCards = [
     updatedAt: '2024-01-15T00:00:00Z',
   },
   {
-    id: 'card-2',
-    statusId: 'status-1',
-    boardId: 'board-1',
+    id: toRepoCardId('card-2'),
+    statusId: toStatusListId('status-1'),
+    boardId: toBoardId('board-1'),
     repoOwner: 'octocat',
     repoName: 'another-repo',
     title: 'another-repo',
@@ -143,7 +145,7 @@ export const InProgress: Story = {
   args: {
     status: {
       ...mockStatus,
-      id: 'status-2',
+      id: toStatusListId('status-2'),
       title: 'In Progress',
       color: '#f59e0b',
       gridCol: 1,
@@ -161,7 +163,7 @@ export const Done: Story = {
   args: {
     status: {
       ...mockStatus,
-      id: 'status-3',
+      id: toStatusListId('status-3'),
       title: 'Done',
       color: '#22c55e',
       gridCol: 2,
@@ -199,7 +201,7 @@ export const MultipleColumns: Story = {
       <SortableColumn
         status={{
           ...mockStatus,
-          id: 'status-1',
+          id: toStatusListId('status-1'),
           title: 'To Do',
           color: '#3b82f6',
           gridCol: 0,
@@ -209,7 +211,7 @@ export const MultipleColumns: Story = {
       <SortableColumn
         status={{
           ...mockStatus,
-          id: 'status-2',
+          id: toStatusListId('status-2'),
           title: 'In Progress',
           color: '#f59e0b',
           gridCol: 1,
@@ -219,7 +221,7 @@ export const MultipleColumns: Story = {
       <SortableColumn
         status={{
           ...mockStatus,
-          id: 'status-3',
+          id: toStatusListId('status-3'),
           title: 'Done',
           color: '#22c55e',
           gridCol: 2,

@@ -13,7 +13,8 @@ const DISABLED_HOSTNAMES = ['localhost', '127.0.0.1'] as const
  * - Vercel preview/development deployments
  * - localhost development
  * - 127.0.0.1 (local IP)
- * - Local network addresses (192.168.x.x, 10.x.x.x)
+ * - All RFC 1918 private IPv4 ranges (10/8, 172.16/12, 192.168/16)
+ * - Environments where NEXT_PUBLIC_VERCEL_ENV is missing (fail-closed)
  *
  * @returns {boolean} Whether Sentry should be enabled
  *
@@ -22,35 +23,32 @@ const DISABLED_HOSTNAMES = ['localhost', '127.0.0.1'] as const
  * // On Vercel preview deployment -> false
  * // On gitbox-laststance.vercel.app (production) -> true
  */
-const isSentryEnabled = (): boolean => {
-  // Server-side rendering check
-  if (typeof window === 'undefined') {
-    return false
-  }
+function isSentryEnabled(): boolean {
+  if (typeof window === 'undefined') return false
 
-  // Check Vercel environment first (most reliable)
-  // NEXT_PUBLIC_VERCEL_ENV is automatically set by Vercel: 'production' | 'preview' | 'development'
-  const vercelEnv = process.env.NEXT_PUBLIC_VERCEL_ENV
-  if (vercelEnv) {
-    return vercelEnv === 'production'
-  }
-
+  // Hostname guards run before the Vercel env check so dev sessions on
+  // localhost/private networks never emit telemetry even when
+  // NEXT_PUBLIC_VERCEL_ENV is set to 'production'.
   const hostname = window.location.hostname
-
-  // Disable on localhost and local IP addresses
   if (
     DISABLED_HOSTNAMES.includes(hostname as (typeof DISABLED_HOSTNAMES)[number])
   ) {
     return false
   }
-
-  // Disable on any local network address (192.168.x.x, 10.x.x.x, etc.)
-  if (hostname.startsWith('192.168.') || hostname.startsWith('10.')) {
+  // Disable on all RFC 1918 private IPv4 ranges. 172.16.0.0/12 covers
+  // 172.16.* – 172.31.*, which is the default Docker bridge range.
+  const isPrivateIpv4 =
+    hostname.startsWith('10.') ||
+    hostname.startsWith('192.168.') ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)
+  if (isPrivateIpv4) {
     return false
   }
 
-  // Fallback: only enable for production-like domains
-  return true
+  // Fail closed: only enable when NEXT_PUBLIC_VERCEL_ENV is explicitly
+  // 'production'. If the variable is missing (misconfigured build, non-Vercel
+  // host), we'd rather skip telemetry than leak events.
+  return process.env.NEXT_PUBLIC_VERCEL_ENV === 'production'
 }
 
 Sentry.init({

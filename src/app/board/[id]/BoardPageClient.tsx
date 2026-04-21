@@ -65,6 +65,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { Board } from '@/lib/supabase/types'
 import { parseBoardSettings } from '@/lib/types/board-settings'
+import { toBoardId, type RepoCardId } from '@/lib/types/brands'
 import {
   BOARD_NAME_MAX_LENGTH,
   BOARD_SUBTITLE_MAX_LENGTH,
@@ -82,7 +83,7 @@ export const BoardPageClient = memo(function BoardPageClient({
   initialData,
 }: BoardPageClientProps) {
   // Extract board properties
-  const boardId = board.id
+  const boardId = toBoardId(board.id)
   const boardName = board.name
 
   const router = useRouter()
@@ -134,7 +135,7 @@ export const BoardPageClient = memo(function BoardPageClient({
   const executeCardAction = useOptimisticCardAction()
 
   const handleMoveToMaintenance = useCallback(
-    async (cardId: string) =>
+    async (cardId: RepoCardId) =>
       executeCardAction(cardId, moveToMaintenance, {
         actionName: 'moveToMaintenance',
         errorMessage: 'Failed to move to maintenance',
@@ -144,7 +145,7 @@ export const BoardPageClient = memo(function BoardPageClient({
   )
 
   const handleRemoveFromBoard = useCallback(
-    async (cardId: string) =>
+    async (cardId: RepoCardId) =>
       executeCardAction(cardId, deleteRepoCard, {
         actionName: 'removeFromBoard',
         errorMessage: 'Failed to remove from board',
@@ -157,14 +158,16 @@ export const BoardPageClient = memo(function BoardPageClient({
   // Move to Another Board Handler
   // ========================================
 
-  const [moveDialogCardId, setMoveDialogCardId] = useState<string | null>(null)
+  const [moveDialogCardId, setMoveDialogCardId] = useState<RepoCardId | null>(
+    null,
+  )
 
-  const handleMoveToAnotherBoard = useCallback((cardId: string) => {
+  const handleMoveToAnotherBoard = useCallback((cardId: RepoCardId) => {
     setMoveDialogCardId(cardId)
   }, [])
 
   const handleMoveSuccess = useCallback(
-    (cardId: string) => {
+    (cardId: RepoCardId) => {
       dispatch(removeRepoCard(cardId))
       setMoveDialogCardId(null)
     },
@@ -259,30 +262,21 @@ export const BoardPageClient = memo(function BoardPageClient({
               {/* Add Repositories - PRD 3.1 */}
               <AddRepositoryCombobox
                 boardId={boardId}
-                statusId={addRepoCombobox.statusId || statusLists[0]?.id || ''}
+                statusId={addRepoCombobox.statusId}
                 isOpen={addRepoCombobox.isOpen}
                 onOpenChange={addRepoCombobox.handleOpenChange}
                 maintenanceRepoIdentifiers={
                   initialData.maintenanceRepoIdentifiers
                 }
                 onRepositoriesAdded={(createdCards: CreatedRepoCard[]) => {
-                  // Optimistic UI update: Add cards to Redux state immediately
-                  // No page reload needed - cards appear instantly
+                  // Optimistic UI update: cards appear instantly without a reload.
                   const newCards: RepoCardForRedux[] = createdCards.map(
                     (card) => ({
-                      id: card.id,
+                      ...card,
                       title: `${card.repoOwner}/${card.repoName}`,
                       description:
                         (card.meta as { description?: string })?.description ||
                         '',
-                      statusId: card.statusId,
-                      boardId: card.boardId,
-                      repoOwner: card.repoOwner,
-                      repoName: card.repoName,
-                      order: card.order,
-                      meta: card.meta,
-                      createdAt: card.createdAt,
-                      updatedAt: card.updatedAt,
                     }),
                   )
                   dispatch(addRepoCards(newCards))
@@ -403,19 +397,16 @@ export const BoardPageClient = memo(function BoardPageClient({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Column</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete &quot;
-              {statusListDialog.pendingDeleteStatusTitle}
-              &quot;?
               {(() => {
                 const cardCount = repoCards.filter(
                   (c) => c.statusId === statusListDialog.pendingDeleteStatusId,
                 ).length
-                if (cardCount > 0) {
-                  return ` This will also remove ${cardCount} card${cardCount !== 1 ? 's' : ''} in this column.`
-                }
-                return ''
-              })()}{' '}
-              This action cannot be undone.
+                const cardSuffix =
+                  cardCount > 0
+                    ? ` This will also remove ${cardCount} card${cardCount !== 1 ? 's' : ''} in this column.`
+                    : ''
+                return `Are you sure you want to delete "${statusListDialog.pendingDeleteStatusTitle}"?${cardSuffix} This action cannot be undone.`
+              })()}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

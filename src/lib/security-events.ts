@@ -64,19 +64,18 @@ interface SecurityEventContext {
  * // Unauthorized access blocked by proxy
  * logSecurityEvent('unauthorized_access', { path: '/board/123' })
  */
+const WARNING_EVENTS = new Set<SecurityEventType>([
+  'login_failure',
+  'unauthorized_access',
+  'rate_limited',
+])
+
 export function logSecurityEvent(
   type: SecurityEventType,
   context: SecurityEventContext = {},
 ) {
-  const level =
-    type === 'login_failure' ||
-    type === 'unauthorized_access' ||
-    type === 'rate_limited'
-      ? ('warning' as const)
-      : ('info' as const)
-
   Sentry.captureMessage(`security: ${type}`, {
-    level,
+    level: WARNING_EVENTS.has(type) ? 'warning' : 'info',
     tags: {
       category: 'security',
       security_event: type,

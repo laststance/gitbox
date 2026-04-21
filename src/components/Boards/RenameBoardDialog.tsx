@@ -91,6 +91,9 @@ export const RenameBoardDialog = memo(function RenameBoardDialog({
   const charCount = name.length
   const isNearLimit = charCount >= BOARD_NAME_MAX_LENGTH - 10
   const hasError = state.errors?.name && state.errors.name.length > 0
+  const charCountClass = isNearLimit
+    ? 'text-sm text-orange-500'
+    : 'text-muted-foreground text-sm'
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -133,14 +136,7 @@ export const RenameBoardDialog = memo(function RenameBoardDialog({
               ) : (
                 <span />
               )}
-              <p
-                id="name-char-count"
-                className={
-                  isNearLimit
-                    ? 'text-sm text-orange-500'
-                    : 'text-muted-foreground text-sm'
-                }
-              >
+              <p id="name-char-count" className={charCountClass}>
                 {charCount}/{BOARD_NAME_MAX_LENGTH}
               </p>
             </div>

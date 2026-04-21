@@ -14,6 +14,7 @@ import { expect, userEvent, waitFor, fn } from 'storybook/test'
 
 import { updateDraftNote } from '@/lib/redux/slices/draftSlice'
 import { useAppDispatch } from '@/lib/redux/store'
+import { toRepoCardId } from '@/lib/types/brands'
 
 import { NoteModal } from './NoteModal'
 
@@ -40,7 +41,7 @@ export const Default: Story = {
       console.log('Saved note:', note, 'links:', links)
       await new Promise((resolve) => setTimeout(resolve, 500))
     },
-    cardId: 'card-123',
+    cardId: toRepoCardId('card-123'),
     initialNote:
       'This is a sample project note.\n\nIt can contain multiple paragraphs and formatting.',
     initialLinks: [],
@@ -59,7 +60,7 @@ export const Empty: Story = {
       console.log('Saved note:', note, 'links:', links)
       await new Promise((resolve) => setTimeout(resolve, 500))
     },
-    cardId: 'card-empty',
+    cardId: toRepoCardId('card-empty'),
     initialNote: '',
     initialLinks: [],
     cardTitle: 'facebook/react',
@@ -78,7 +79,7 @@ export const LongNote: Story = {
       console.log('Saved note length:', note.length, 'links:', links)
       await new Promise((resolve) => setTimeout(resolve, 500))
     },
-    cardId: 'card-long',
+    cardId: toRepoCardId('card-long'),
     initialNote:
       'This is a very long note that approaches the character limit. '.repeat(
         300,
@@ -102,7 +103,7 @@ const WithDraftDecorator = memo(function WithDraftDecorator({
     // Set up draft state for the card
     dispatch(
       updateDraftNote({
-        cardId: 'card-draft',
+        cardId: toRepoCardId('card-draft'),
         content:
           'This is an unsaved draft that was auto-saved.\n\nThe original note was different.',
         links: [],
@@ -125,7 +126,7 @@ export const WithDraft: Story = {
       console.log('Saved note:', note, 'links:', links)
       await new Promise((resolve) => setTimeout(resolve, 500))
     },
-    cardId: 'card-draft',
+    cardId: toRepoCardId('card-draft'),
     initialNote: 'Original note content from Supabase.',
     initialLinks: [],
     cardTitle: 'microsoft/typescript',
@@ -147,7 +148,7 @@ export const ModalRenders: Story = {
     isOpen: true,
     onClose: fn(),
     onSave: fn(),
-    cardId: 'card-test',
+    cardId: toRepoCardId('card-test'),
     initialNote: 'Test note content',
     initialLinks: [],
     cardTitle: 'test/repo',
@@ -172,7 +173,7 @@ export const CancelCloses: Story = {
     isOpen: true,
     onClose: fn(),
     onSave: fn(),
-    cardId: 'card-test',
+    cardId: toRepoCardId('card-test'),
     initialNote: 'Test note',
     initialLinks: [],
     cardTitle: 'test/repo',
@@ -207,7 +208,7 @@ export const SaveTriggers: Story = {
     isOpen: true,
     onClose: fn(),
     onSave: fn().mockResolvedValue(undefined),
-    cardId: 'card-test',
+    cardId: toRepoCardId('card-test'),
     initialNote: 'Test note',
     initialLinks: [],
     cardTitle: 'test/repo',
@@ -237,7 +238,7 @@ export const CharacterCountDisplays: Story = {
     isOpen: true,
     onClose: fn(),
     onSave: fn(),
-    cardId: 'card-test',
+    cardId: toRepoCardId('card-test'),
     initialNote: 'Short note',
     initialLinks: [],
     cardTitle: 'test/repo',

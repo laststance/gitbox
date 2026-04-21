@@ -11,6 +11,8 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 import { expect, waitFor, within } from 'storybook/test'
 
+import { toUserId } from '@/lib/types/brands'
+
 import { AccountClient } from './AccountClient'
 
 const meta = {
@@ -31,7 +33,7 @@ type Story = StoryObj<typeof meta>
 export const Default: Story = {
   args: {
     userProfile: {
-      id: 'user-1',
+      id: toUserId('user-1'),
       userName: 'testuser',
       userAvatar: 'https://avatars.githubusercontent.com/u/12345?v=4',
       linkedSince: '2024-01-01T00:00:00.000Z',
@@ -63,7 +65,7 @@ export const Default: Story = {
 export const NoAvatar: Story = {
   args: {
     userProfile: {
-      id: 'user-2',
+      id: toUserId('user-2'),
       userName: 'noavatar-user',
       userAvatar: '',
       linkedSince: '2024-06-15T00:00:00.000Z',
@@ -96,7 +98,7 @@ export const NoAvatar: Story = {
 export const EmptyStats: Story = {
   args: {
     userProfile: {
-      id: 'user-3',
+      id: toUserId('user-3'),
       userName: 'newuser',
       userAvatar: 'https://avatars.githubusercontent.com/u/99999?v=4',
       linkedSince: '2025-12-01T00:00:00.000Z',
@@ -129,7 +131,7 @@ export const EmptyStats: Story = {
 export const HighStats: Story = {
   args: {
     userProfile: {
-      id: 'user-4',
+      id: toUserId('user-4'),
       userName: 'poweruser',
       userAvatar: 'https://avatars.githubusercontent.com/u/11111?v=4',
       linkedSince: '2023-03-10T00:00:00.000Z',

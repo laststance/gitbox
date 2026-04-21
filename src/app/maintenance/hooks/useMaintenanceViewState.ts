@@ -9,6 +9,7 @@
  */
 
 import { useState, useMemo } from 'react'
+import { match } from 'ts-pattern'
 
 import type { MaintenanceRepo } from '../MaintenanceClient'
 
@@ -44,29 +45,27 @@ export function useMaintenanceViewState({
     [repos, search],
   )
 
-  // Sort repos
-  const sortedRepos = useMemo(() => {
-    const sorted = [...filteredRepos].sort((a, b) => {
-      let comparison = 0
-      switch (sortBy) {
-        case 'name':
-          comparison = `${a.repo_owner}/${a.repo_name}`.localeCompare(
-            `${b.repo_owner}/${b.repo_name}`,
+  const sortedRepos = useMemo(
+    () =>
+      [...filteredRepos].sort((a, b) => {
+        const comparison = match(sortBy)
+          .with('name', () =>
+            `${a.repo_owner}/${a.repo_name}`.localeCompare(
+              `${b.repo_owner}/${b.repo_name}`,
+            ),
           )
-          break
-        case 'updated':
-          comparison =
-            new Date(b.updated_at || 0).getTime() -
-            new Date(a.updated_at || 0).getTime()
-          break
-        case 'stars':
-          comparison = (b.meta?.stars || 0) - (a.meta?.stars || 0)
-          break
-      }
-      return sortAsc ? -comparison : comparison
-    })
-    return sorted
-  }, [filteredRepos, sortBy, sortAsc])
+          .with(
+            'updated',
+            () =>
+              new Date(b.updated_at || 0).getTime() -
+              new Date(a.updated_at || 0).getTime(),
+          )
+          .with('stars', () => (b.meta?.stars || 0) - (a.meta?.stars || 0))
+          .exhaustive()
+        return sortAsc ? -comparison : comparison
+      }),
+    [filteredRepos, sortBy, sortAsc],
+  )
 
   return {
     viewMode,

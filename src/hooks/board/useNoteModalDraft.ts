@@ -10,6 +10,7 @@ import {
   updateDraftNote,
 } from '@/lib/redux/slices/draftSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
+import type { CardIdentifier, RepoCardId } from '@/lib/types/brands'
 import { getSlateTextLength, parseSlateValue } from '@/lib/utils/slate-utils'
 import { isValidUrl } from '@/lib/validations'
 
@@ -18,9 +19,9 @@ export const NOTE_MAX_LENGTH = 20000
 /** Warning threshold for character count display */
 export const NOTE_WARNING_THRESHOLD = 18000
 
-interface UseNoteModalDraftParams {
+interface UseNoteModalDraftParams<TId extends CardIdentifier = RepoCardId> {
   /** Card ID for draft state management */
-  cardId: string
+  cardId: TId
   /** Initial note value from Supabase */
   initialNote: string
   /** Initial links value from Supabase */
@@ -73,7 +74,7 @@ interface UseNoteModalDraftReturn {
  *
  * @example
  * const draft = useNoteModalDraft({
- *   cardId: 'abc-123',
+ *   cardId: card.id, // RepoCardId from RepoCardForRedux
  *   initialNote: '',
  *   initialLinks: [],
  *   isOpen: true,
@@ -82,7 +83,7 @@ interface UseNoteModalDraftReturn {
  *   cardTitle: 'laststance/gitbox',
  * })
  */
-export function useNoteModalDraft({
+export function useNoteModalDraft<TId extends CardIdentifier = RepoCardId>({
   cardId,
   initialNote,
   initialLinks,
@@ -90,7 +91,7 @@ export function useNoteModalDraft({
   onSave,
   onClose,
   cardTitle,
-}: UseNoteModalDraftParams): UseNoteModalDraftReturn {
+}: UseNoteModalDraftParams<TId>): UseNoteModalDraftReturn {
   const dispatch = useAppDispatch()
   const draft = useAppSelector(selectDraftNote(cardId))
 

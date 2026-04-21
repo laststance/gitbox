@@ -37,10 +37,6 @@ import {
 import { useEditableUrl } from '@/hooks/ui/useEditableUrl'
 import { cn } from '@/lib/utils'
 
-// ============================================
-// Types
-// ============================================
-
 export interface ProjectLink {
   type: string
   url: string
@@ -72,10 +68,6 @@ export interface EditableUrlItemProps {
   /** Force exit edit mode (when another item starts editing) */
   forceExitEdit?: boolean
 }
-
-// ============================================
-// Component
-// ============================================
 
 export const EditableUrlItem = memo(function EditableUrlItem({
   link,
@@ -130,7 +122,6 @@ export const EditableUrlItem = memo(function EditableUrlItem({
       </div>
 
       {isEditing ? (
-        // EDIT MODE
         <div className="flex items-center gap-2">
           <LinkTypeCombobox
             value={link.type}
@@ -193,7 +184,6 @@ export const EditableUrlItem = memo(function EditableUrlItem({
           </Button>
         </div>
       ) : (
-        // DISPLAY MODE
         <div className="flex items-center gap-2">
           <LinkTypeCombobox
             value={link.type}

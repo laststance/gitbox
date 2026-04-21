@@ -40,6 +40,7 @@ import {
   moveCardToBoard,
   getUserBoardsWithStatusLists,
 } from '@/lib/actions/repo-cards'
+import type { RepoCardId } from '@/lib/types/brands'
 
 import type { BoardOption } from './RestoreToBoardDialog'
 
@@ -49,13 +50,13 @@ interface MoveToAnotherBoardDialogProps {
   /** Callback when dialog should close */
   onClose: () => void
   /** RepoCard ID to move */
-  cardId: string
+  cardId: RepoCardId
   /** Repository display name (owner/name) */
   repoName: string
   /** Current board ID (excluded from target list) */
   currentBoardId: string
   /** Callback after successful move */
-  onMoved: (cardId: string) => void
+  onMoved: (cardId: RepoCardId) => void
 }
 
 /**
@@ -242,102 +243,115 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {isLoadingBoards ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
-            <span className="text-muted-foreground ml-2 text-sm">
-              Loading boards...
-            </span>
-          </div>
-        ) : boardsError ? (
-          <div className="py-8 text-center">
-            <p className="text-destructive text-sm">{boardsError}</p>
-          </div>
-        ) : availableBoards.length === 0 ? (
-          <div className="py-8 text-center">
-            <LayoutGrid className="text-muted-foreground/50 mx-auto h-12 w-12" />
-            <p className="text-muted-foreground mt-4 text-sm">
-              No other boards available. Create another board first.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4 py-2">
-            {/* Board Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="board-select" className="flex items-center gap-2">
-                <LayoutGrid className="text-muted-foreground h-4 w-4" />
-                Board
-              </Label>
-              <Select
-                value={effectiveBoardId}
-                onValueChange={handleBoardChange}
-              >
-                <SelectTrigger id="board-select" className="w-full">
-                  <SelectValue placeholder="Select a board" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableBoards.map((board) => (
-                    <SelectItem key={board.id} value={board.id}>
-                      {board.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        {(() => {
+          if (isLoadingBoards) {
+            return (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+                <span className="text-muted-foreground ml-2 text-sm">
+                  Loading boards...
+                </span>
+              </div>
+            )
+          }
+          if (boardsError) {
+            return (
+              <div className="py-8 text-center">
+                <p className="text-destructive text-sm">{boardsError}</p>
+              </div>
+            )
+          }
+          if (availableBoards.length === 0) {
+            return (
+              <div className="py-8 text-center">
+                <LayoutGrid className="text-muted-foreground/50 mx-auto h-12 w-12" />
+                <p className="text-muted-foreground mt-4 text-sm">
+                  No other boards available. Create another board first.
+                </p>
+              </div>
+            )
+          }
+          return (
+            <div className="space-y-4 py-2">
+              {/* Board Selection */}
+              <div className="space-y-2">
+                <Label
+                  htmlFor="board-select"
+                  className="flex items-center gap-2"
+                >
+                  <LayoutGrid className="text-muted-foreground h-4 w-4" />
+                  Board
+                </Label>
+                <Select
+                  value={effectiveBoardId}
+                  onValueChange={handleBoardChange}
+                >
+                  <SelectTrigger id="board-select" className="w-full">
+                    <SelectValue placeholder="Select a board" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableBoards.map((board) => (
+                      <SelectItem key={board.id} value={board.id}>
+                        {board.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {/* Status (Column) Selection */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="status-select"
-                className="flex items-center gap-2"
-              >
-                <Columns3 className="text-muted-foreground h-4 w-4" />
-                Column
-              </Label>
-              <Select
-                value={effectiveStatusId}
-                onValueChange={setSelectedStatusId}
-                disabled={statusLists.length === 0}
-              >
-                <SelectTrigger id="status-select" className="w-full">
-                  <SelectValue
-                    placeholder={
-                      statusLists.length === 0
-                        ? 'No columns available'
-                        : 'Select a column'
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusLists.map((status) => (
-                    <SelectItem key={status.id} value={status.id}>
-                      <span className="flex items-center gap-2">
-                        <span
-                          className="inline-block h-3 w-3 rounded-full"
-                          style={{ backgroundColor: status.color }}
-                          aria-hidden="true"
-                        />
-                        {status.name}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {statusLists.length === 0 && effectiveBoardId && (
-                <p className="text-muted-foreground text-xs">
-                  This board has no columns. Add columns to the board first.
+              {/* Status (Column) Selection */}
+              <div className="space-y-2">
+                <Label
+                  htmlFor="status-select"
+                  className="flex items-center gap-2"
+                >
+                  <Columns3 className="text-muted-foreground h-4 w-4" />
+                  Column
+                </Label>
+                <Select
+                  value={effectiveStatusId}
+                  onValueChange={setSelectedStatusId}
+                  disabled={statusLists.length === 0}
+                >
+                  <SelectTrigger id="status-select" className="w-full">
+                    <SelectValue
+                      placeholder={
+                        statusLists.length === 0
+                          ? 'No columns available'
+                          : 'Select a column'
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusLists.map((status) => (
+                      <SelectItem key={status.id} value={status.id}>
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="inline-block h-3 w-3 rounded-full"
+                            style={{ backgroundColor: status.color }}
+                            aria-hidden="true"
+                          />
+                          {status.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {statusLists.length === 0 && effectiveBoardId && (
+                  <p className="text-muted-foreground text-xs">
+                    This board has no columns. Add columns to the board first.
+                  </p>
+                )}
+              </div>
+
+              {error && (
+                <p className="text-destructive text-sm" role="alert">
+                  {error}
                 </p>
               )}
             </div>
-
-            {/* Error Display */}
-            {error && (
-              <p className="text-destructive text-sm" role="alert">
-                {error}
-              </p>
-            )}
-          </div>
-        )}
+          )
+        })()}
 
         <DialogFooter>
           <Button

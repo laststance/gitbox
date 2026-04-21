@@ -10,6 +10,7 @@
 import { useState, useCallback, useMemo } from 'react'
 
 import type { StatusListDomain } from '@/lib/models/domain'
+import type { StatusListId } from '@/lib/types/brands'
 
 interface UseAddRepositoryComboboxParams {
   /** Status lists from Redux store */
@@ -19,10 +20,10 @@ interface UseAddRepositoryComboboxParams {
 interface UseAddRepositoryComboboxReturn {
   /** Whether the combobox is open */
   isOpen: boolean
-  /** Derived status ID: user selection or first available column */
-  statusId: string
+  /** Derived status ID: user selection or first available column (null when no columns) */
+  statusId: StatusListId | null
   /** Open combobox for a specific column */
-  openForStatus: (statusId: string) => void
+  openForStatus: (statusId: StatusListId) => void
   /** Handle open state changes (resets to default when closing) */
   handleOpenChange: (open: boolean) => void
 }
@@ -57,17 +58,13 @@ export function useAddRepositoryCombobox({
   statusLists,
 }: UseAddRepositoryComboboxParams): UseAddRepositoryComboboxReturn {
   // User-selected status ID (null = use default first column)
-  const [userSelectedStatusId, setUserSelectedStatusId] = useState<
-    string | null
-  >(null)
+  const [userSelectedStatusId, setUserSelectedStatusId] =
+    useState<StatusListId | null>(null)
   const [isOpen, setIsOpen] = useState(false)
 
-  // Derived: user selection or first available column
-  // No useEffect needed - computed directly from state
-  const statusId = useMemo(() => {
+  const statusId = useMemo<StatusListId | null>(() => {
     if (userSelectedStatusId) return userSelectedStatusId
-    if (statusLists.length > 0) return statusLists[0]?.id ?? ''
-    return ''
+    return statusLists[0]?.id ?? null
   }, [userSelectedStatusId, statusLists])
 
   /**
@@ -75,7 +72,7 @@ export function useAddRepositoryCombobox({
    *
    * @param targetStatusId - The status list ID where new repos will be added
    */
-  const openForStatus = useCallback((targetStatusId: string) => {
+  const openForStatus = useCallback((targetStatusId: StatusListId) => {
     setUserSelectedStatusId(targetStatusId)
     setIsOpen(true)
   }, [])

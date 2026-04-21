@@ -16,8 +16,9 @@ import {
 } from '@/components/ui/dialog'
 import { type ProjectLink } from '@/components/ui/editable-url-item'
 import { useNoteModalDraft } from '@/hooks/board/useNoteModalDraft'
+import type { CardIdentifier, RepoCardId } from '@/lib/types/brands'
 
-interface NoteModalProps {
+interface NoteModalProps<TId extends CardIdentifier = RepoCardId> {
   /** Whether the modal is open */
   isOpen: boolean
   /** Callback when modal is closed */
@@ -25,7 +26,7 @@ interface NoteModalProps {
   /** Callback to save note and links to Supabase */
   onSave: (note: string, links: ProjectLink[]) => Promise<void>
   /** Card ID for draft state management */
-  cardId: string
+  cardId: TId
   /** Initial note value from Supabase */
   initialNote: string
   /** Initial links value from Supabase */
@@ -54,7 +55,10 @@ interface NoteModalProps {
  *   cardTitle="laststance/gitbox"
  * />
  */
-export const NoteModal = memo(function NoteModal({
+// Wrapped with memo at export; cannot use `memo(function…)` because the
+// generic parameter is erased. See export below.
+// eslint-disable-next-line @laststance/react-next/all-memo
+function NoteModalInner<TId extends CardIdentifier>({
   isOpen,
   onClose,
   onSave,
@@ -62,7 +66,7 @@ export const NoteModal = memo(function NoteModal({
   initialNote,
   initialLinks,
   cardTitle,
-}: NoteModalProps) {
+}: NoteModalProps<TId>) {
   const {
     note,
     links,
@@ -143,4 +147,8 @@ export const NoteModal = memo(function NoteModal({
       </DialogContent>
     </Dialog>
   )
-})
+}
+
+// Reattach the generic parameter that `memo` erases so callers keep their
+// branded `TId` (RepoCardId on boards, MaintenanceId on /maintenance).
+export const NoteModal = memo(NoteModalInner) as typeof NoteModalInner

@@ -5,6 +5,12 @@
  * Users can also create custom presets stored in user_link_presets table.
  */
 
+import type {
+  LinkPresetLabel,
+  LinkPresetValue,
+  LucideIconName,
+} from '@/lib/types/domain-primitives'
+
 /**
  * Category definitions for organizing link type presets
  */
@@ -31,11 +37,11 @@ export type LinkTypeCategory = (typeof LINK_TYPE_CATEGORIES)[number]
  */
 export interface LinkTypePreset {
   /** Unique identifier (kebab-case) */
-  value: string
+  value: LinkPresetValue
   /** Display name */
-  label: string
+  label: LinkPresetLabel
   /** Lucide icon name */
-  icon: string
+  icon: LucideIconName
   /** Category for grouping in dropdown */
   category: LinkTypeCategory
 }
@@ -290,7 +296,7 @@ export const LINK_TYPE_PRESETS: readonly LinkTypePreset[] = [
 /**
  * Map of preset values to their definitions for O(1) lookup
  */
-export const LINK_TYPE_PRESETS_MAP = new Map<string, LinkTypePreset>(
+export const LINK_TYPE_PRESETS_MAP = new Map<LinkPresetValue, LinkTypePreset>(
   LINK_TYPE_PRESETS.map((preset) => [preset.value, preset]),
 )
 
@@ -322,7 +328,9 @@ export function getPresetsByCategory(): Record<
  * @param value - The preset value to find
  * @returns The preset if found, undefined otherwise
  */
-export function findPresetByValue(value: string): LinkTypePreset | undefined {
+export function findPresetByValue(
+  value: LinkPresetValue,
+): LinkTypePreset | undefined {
   return LINK_TYPE_PRESETS_MAP.get(value)
 }
 
@@ -332,7 +340,7 @@ export function findPresetByValue(value: string): LinkTypePreset | undefined {
  * @param value - The value to check
  * @returns true if the value is a built-in preset
  */
-export function isBuiltInPreset(value: string): boolean {
+export function isBuiltInPreset(value: LinkPresetValue): boolean {
   return LINK_TYPE_PRESETS_MAP.has(value)
 }
 
@@ -345,7 +353,7 @@ export function isBuiltInPreset(value: string): boolean {
  * @example
  * labelToValue("My Custom Service") // => "my-custom-service"
  */
-export function labelToValue(label: string): string {
+export function labelToValue(label: LinkPresetLabel): LinkPresetValue {
   return label
     .toLowerCase()
     .trim()

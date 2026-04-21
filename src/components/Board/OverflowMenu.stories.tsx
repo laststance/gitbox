@@ -9,6 +9,8 @@
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 
+import { toRepoCardId } from '@/lib/types/brands'
+
 import { OverflowMenu } from './OverflowMenu'
 
 const meta = {
@@ -25,7 +27,7 @@ type Story = StoryObj<typeof meta>
 
 export const BoardContext: Story = {
   args: {
-    cardId: 'card-1',
+    cardId: toRepoCardId('card-1'),
     repoOwner: 'octocat',
     repoName: 'example-repo',
     productionUrl: 'https://example.com',
@@ -39,7 +41,7 @@ export const BoardContext: Story = {
 
 export const MaintenanceContext: Story = {
   args: {
-    cardId: 'card-2',
+    cardId: toRepoCardId('card-2'),
     repoOwner: 'octocat',
     repoName: 'example-repo',
     context: 'maintenance',
@@ -49,7 +51,7 @@ export const MaintenanceContext: Story = {
 
 export const Minimal: Story = {
   args: {
-    cardId: 'card-3',
+    cardId: toRepoCardId('card-3'),
     repoOwner: 'octocat',
     repoName: 'example-repo',
     context: 'board',
@@ -58,7 +60,7 @@ export const Minimal: Story = {
 
 export const WithAllUrls: Story = {
   args: {
-    cardId: 'card-4',
+    cardId: toRepoCardId('card-4'),
     repoOwner: 'octocat',
     repoName: 'example-repo',
     productionUrl: 'https://production.example.com',
@@ -76,7 +78,7 @@ export const WithAllUrls: Story = {
  */
 export const WithRemoveAction: Story = {
   args: {
-    cardId: 'card-5',
+    cardId: toRepoCardId('card-5'),
     repoOwner: 'laststance',
     repoName: 'gitbox',
     context: 'board',

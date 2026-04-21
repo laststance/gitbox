@@ -47,31 +47,16 @@ export function useTheme() {
     if (!mounted) return
 
     const root = document.documentElement
-
-    // Remove previous theme attribute
     root.removeAttribute('data-theme')
 
+    let shouldBeDark: boolean
     if (theme === 'system') {
-      // Use system preference
-      const prefersDark = window.matchMedia(
-        '(prefers-color-scheme: dark)',
-      ).matches
-      if (prefersDark) {
-        root.classList.add('dark')
-      } else {
-        root.classList.remove('dark')
-      }
+      shouldBeDark = window.matchMedia('(prefers-color-scheme: dark)').matches
     } else {
-      // Apply custom theme
       root.setAttribute('data-theme', theme)
-
-      // Set dark class for dark themes
-      if (isDarkTheme(theme)) {
-        root.classList.add('dark')
-      } else {
-        root.classList.remove('dark')
-      }
+      shouldBeDark = isDarkTheme(theme)
     }
+    root.classList.toggle('dark', shouldBeDark)
   }, [theme, mounted])
 
   const setTheme = useCallback(

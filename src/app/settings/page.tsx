@@ -7,9 +7,8 @@
  */
 
 import type { Metadata } from 'next'
-import { redirect } from 'next/navigation'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/require-user'
 
 import { SettingsClient } from './SettingsClient'
 
@@ -19,15 +18,6 @@ export const metadata: Metadata = {
 }
 
 export default async function SettingsPage() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
+  await requireUser()
   return <SettingsClient />
 }

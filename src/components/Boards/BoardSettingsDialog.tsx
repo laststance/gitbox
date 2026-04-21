@@ -133,6 +133,22 @@ const FONT_WEIGHT_LABELS: Record<keyof typeof COMMENT_FONT_WEIGHTS, string> = {
   semibold: 'Bold',
 }
 
+/** CSS class for character counter; turns orange near the limit. */
+function charCountClass(count: number, max: number): string {
+  return count >= max - 10
+    ? 'text-sm text-orange-500'
+    : 'text-muted-foreground text-sm'
+}
+
+/** CSS class for a toggle button in the comment-style picker. */
+function toggleButtonClass(isSelected: boolean): string {
+  const base =
+    'rounded-md border-2 px-3 py-1.5 text-xs font-medium transition-all'
+  return isSelected
+    ? `${base} border-primary bg-primary/10 text-primary`
+    : `${base} border-border hover:border-primary/50`
+}
+
 /**
  * Board Settings Dialog
  *
@@ -439,7 +455,6 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
   }, [])
 
   const charCount = name.length
-  const isNearLimit = charCount >= BOARD_NAME_MAX_LENGTH - 10
   const hasRenameError =
     renameState.errors?.name && renameState.errors.name.length > 0
 
@@ -558,11 +573,10 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                       )}
                       <p
                         id="name-char-count"
-                        className={
-                          isNearLimit
-                            ? 'text-sm text-orange-500'
-                            : 'text-muted-foreground text-sm'
-                        }
+                        className={charCountClass(
+                          charCount,
+                          BOARD_NAME_MAX_LENGTH,
+                        )}
                       >
                         {charCount}/{BOARD_NAME_MAX_LENGTH}
                       </p>
@@ -599,11 +613,10 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                         <span />
                         <p
                           id="subtitle-char-count"
-                          className={
-                            subtitle.length >= BOARD_SUBTITLE_MAX_LENGTH - 10
-                              ? 'text-sm text-orange-500'
-                              : 'text-muted-foreground text-sm'
-                          }
+                          className={charCountClass(
+                            subtitle.length,
+                            BOARD_SUBTITLE_MAX_LENGTH,
+                          )}
                         >
                           {subtitle.length}/{BOARD_SUBTITLE_MAX_LENGTH}
                         </p>
@@ -736,11 +749,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                               key={size}
                               type="button"
                               onClick={() => handleTextChange('fontSize', size)}
-                              className={`rounded-md border-2 px-3 py-1.5 text-xs font-medium transition-all ${
-                                isSelected
-                                  ? 'border-primary bg-primary/10 text-primary'
-                                  : 'border-border hover:border-primary/50'
-                              }`}
+                              className={toggleButtonClass(isSelected)}
                               aria-pressed={isSelected}
                               data-testid={`font-size-${size}`}
                             >
@@ -771,11 +780,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                               onClick={() =>
                                 handleTextChange('fontWeight', weight)
                               }
-                              className={`rounded-md border-2 px-3 py-1.5 text-xs font-medium transition-all ${
-                                isSelected
-                                  ? 'border-primary bg-primary/10 text-primary'
-                                  : 'border-border hover:border-primary/50'
-                              }`}
+                              className={toggleButtonClass(isSelected)}
                               aria-pressed={isSelected}
                               data-testid={`font-weight-${weight}`}
                             >

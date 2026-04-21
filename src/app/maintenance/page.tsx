@@ -9,10 +9,10 @@
  */
 
 import type { Metadata } from 'next'
-import { redirect } from 'next/navigation'
 
+import { requireUser } from '@/lib/auth/require-user'
 import { createModuleLogger } from '@/lib/logger'
-import { createClient } from '@/lib/supabase/server'
+import { toMaintenanceId } from '@/lib/types/brands'
 
 import { MaintenanceClient, type MaintenanceRepo } from './MaintenanceClient'
 
@@ -24,15 +24,7 @@ export const metadata: Metadata = {
 const log = createModuleLogger('maintenance')
 
 export default async function MaintenancePage() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
+  const { supabase, user } = await requireUser()
 
   // Fetch maintenance repos from the maintenance table
   const { data: maintenanceData, error } = await supabase
@@ -47,7 +39,7 @@ export default async function MaintenancePage() {
 
   // Map maintenance data to MaintenanceRepo format
   const repos: MaintenanceRepo[] = (maintenanceData || []).map((item) => ({
-    id: item.id,
+    id: toMaintenanceId(item.id),
     repo_owner: item.repo_owner,
     repo_name: item.repo_name,
     meta: null, // Maintenance table doesn't have meta

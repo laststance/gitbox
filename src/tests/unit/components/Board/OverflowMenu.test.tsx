@@ -15,6 +15,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { OverflowMenu } from '@/components/Board/OverflowMenu'
+import { toRepoCardId } from '@/lib/types/brands'
 
 describe('OverflowMenu', () => {
   const mockOnMoveToMaintenance = vi.fn()
@@ -31,7 +32,7 @@ describe('OverflowMenu', () => {
   })
 
   const defaultProps = {
-    cardId: 'card-1',
+    cardId: toRepoCardId('card-1'),
     repoOwner: 'laststance',
     repoName: 'gitbox',
     open: false,

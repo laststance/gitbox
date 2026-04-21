@@ -23,6 +23,8 @@ import { cn } from '@/lib/utils'
 
 type EditableElement = 'h1' | 'h2' | 'h3' | 'p' | 'span'
 
+const HEADING_ELEMENTS = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+
 interface InlineEditableTextProps {
   /** Current display value */
   value: string
@@ -56,32 +58,6 @@ interface InlineEditableTextProps {
   'data-testid'?: string
 }
 
-/**
- * InlineEditableText Component
- *
- * Renders text that becomes an input field on click. Saves on Enter or blur,
- * cancels on Escape. Handles IME input and blur/Enter race conditions.
- *
- * @param value - Current text to display
- * @param onSave - Async callback to persist the new value (throw to revert)
- * @param placeholder - Text shown when value is empty
- * @param maxLength - Character limit for the input
- * @param as - HTML element type for display mode (default: 'span')
- * @param className - CSS classes for the display element
- * @param inputClassName - CSS classes for the input element
- * @param ariaLabel - Accessible label for the input field
- * @returns Inline editable text UI
- *
- * @example
- * <InlineEditableText
- *   value={boardName}
- *   onSave={async (v) => await renameBoardDirect(boardId, v)}
- *   maxLength={50}
- *   as="h1"
- *   className="text-xl font-bold"
- *   ariaLabel="Board title"
- * />
- */
 export const InlineEditableText = memo<InlineEditableTextProps>(
   ({
     value,
@@ -111,17 +87,13 @@ export const InlineEditableText = memo<InlineEditableTextProps>(
       }
     }
 
-    // Edit mode: render input
     if (isEditing) {
-      // Plain async function — not useCallback because it's only called
-      // from inline handlers on intrinsic <input> (useCallback would be pointless)
       const save = async () => {
         if (isSavingRef.current) return
         isSavingRef.current = true
 
         const trimmed = editValue.trim()
 
-        // No change — just exit
         if (trimmed === value) {
           setEditValue(value)
           hasFocusedRef.current = false
@@ -132,16 +104,13 @@ export const InlineEditableText = memo<InlineEditableTextProps>(
 
         try {
           await onSave(trimmed)
-          // onSave succeeded — keep the new value
           setEditValue(trimmed)
-          hasFocusedRef.current = false
-          setIsEditing(false)
         } catch {
-          // onSave failed — revert to current prop (not stale closure)
+          // Revert to current prop (not stale closure) on failure
           setEditValue(prevValueRef.current)
+        } finally {
           hasFocusedRef.current = false
           setIsEditing(false)
-        } finally {
           isSavingRef.current = false
         }
       }
@@ -195,19 +164,15 @@ export const InlineEditableText = memo<InlineEditableTextProps>(
       )
     }
 
-    // Display mode: render clickable text element
     // Use editValue (state) for optimistic display after save,
     // not value (prop) which only changes on parent re-render.
     const displayText = editValue || placeholder
     const isEmpty = !editValue
+    const isHeading = HEADING_ELEMENTS.has(Element)
 
     return (
       <Element
-        role={
-          ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(Element)
-            ? undefined
-            : 'button'
-        }
+        role={isHeading ? undefined : 'button'}
         tabIndex={0}
         onClick={() => setIsEditing(true)}
         onKeyDown={(e) => {

@@ -24,6 +24,7 @@ import { expect, waitFor } from 'storybook/test'
 
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import { setStatusLists, setRepoCards } from '@/lib/redux/slices/boardSlice'
+import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
 
 import { mockStatusLists, mockRepoCards } from '../../../mocks/handlers/data'
 
@@ -33,22 +34,22 @@ import { KanbanBoard } from './KanbanBoard'
  * Transform mock database data to domain models for Redux
  */
 const transformedStatusLists: StatusListDomain[] = mockStatusLists.map((s) => ({
-  id: s.id,
+  id: toStatusListId(s.id),
   title: s.name,
   color: s.color,
   gridRow: s.grid_row,
   gridCol: s.grid_col,
-  boardId: s.board_id,
+  boardId: toBoardId(s.board_id),
   createdAt: s.created_at,
   updatedAt: s.updated_at,
 }))
 
 const transformedRepoCards: RepoCardForRedux[] = mockRepoCards.map((c) => ({
-  id: c.id,
+  id: toRepoCardId(c.id),
   title: c.repo_name,
   description: c.meta?.description,
-  statusId: c.status_id,
-  boardId: c.board_id,
+  statusId: toStatusListId(c.status_id),
+  boardId: toBoardId(c.board_id),
   repoOwner: c.repo_owner,
   repoName: c.repo_name,
   order: c.order,
@@ -98,7 +99,7 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {
-    boardId: 'board-1',
+    boardId: toBoardId('board-1'),
     onNote: (id) => console.log('Edit project info:', id),
     onMoveToMaintenance: (id) => console.log('Move to maintenance:', id),
     onEditStatus: (status) => console.log('Edit status:', status),
@@ -109,7 +110,7 @@ export const Default: Story = {
 
 export const WithCallbacks: Story = {
   args: {
-    boardId: 'board-1',
+    boardId: toBoardId('board-1'),
     onNote: (id) => {
       console.log('Opening project info modal for:', id)
     },
@@ -133,7 +134,7 @@ export const WithCallbacks: Story = {
  */
 export const LoadingState: Story = {
   args: {
-    boardId: 'board-1',
+    boardId: toBoardId('board-1'),
     onNote: () => {},
     onMoveToMaintenance: () => {},
     onEditStatus: () => {},
@@ -159,7 +160,7 @@ export const LoadingState: Story = {
  */
 export const WithCardDisplaySettings: Story = {
   args: {
-    boardId: 'board-1',
+    boardId: toBoardId('board-1'),
     cardDisplaySettings: {
       showGitHubDescription: true,
       showComment: true,
@@ -191,7 +192,7 @@ export const WithCardDisplaySettings: Story = {
  */
 export const WithInitialComments: Story = {
   args: {
-    boardId: 'board-1',
+    boardId: toBoardId('board-1'),
     initialComments: {
       'card-1': { comment: 'Test comment', color: 'primary' },
       'card-2': { comment: 'Another comment', color: 'neutral' },
@@ -219,7 +220,7 @@ export const WithInitialComments: Story = {
  */
 export const WithCommentTextSettings: Story = {
   args: {
-    boardId: 'board-1',
+    boardId: toBoardId('board-1'),
     cardDisplaySettings: {
       showGitHubDescription: true,
       showComment: true,
@@ -250,7 +251,7 @@ export const WithCommentTextSettings: Story = {
  */
 export const DndContextActive: Story = {
   args: {
-    boardId: 'board-1',
+    boardId: toBoardId('board-1'),
     onNote: () => {},
     onMoveToMaintenance: () => {},
     onEditStatus: () => {},
@@ -275,7 +276,7 @@ export const DndContextActive: Story = {
  */
 export const WithShowComment: Story = {
   args: {
-    boardId: 'board-1',
+    boardId: toBoardId('board-1'),
     cardDisplaySettings: {
       showGitHubDescription: true,
       showComment: true,
@@ -306,7 +307,7 @@ export const WithShowComment: Story = {
  */
 export const WithoutShowComment: Story = {
   args: {
-    boardId: 'board-1',
+    boardId: toBoardId('board-1'),
     cardDisplaySettings: {
       showGitHubDescription: true,
       showComment: false,

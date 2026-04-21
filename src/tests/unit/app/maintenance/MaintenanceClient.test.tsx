@@ -17,6 +17,7 @@ import {
   MaintenanceClient,
   type MaintenanceRepo,
 } from '@/app/maintenance/MaintenanceClient'
+import { toMaintenanceId } from '@/lib/types/brands'
 
 let mockLastVisitedBoard: { id: string; name: string } | null = null
 
@@ -65,7 +66,7 @@ Object.defineProperty(window, 'open', {
  */
 function createMockRepo(overrides?: Partial<MaintenanceRepo>): MaintenanceRepo {
   return {
-    id: 'repo-1',
+    id: toMaintenanceId('repo-1'),
     repo_owner: 'octocat',
     repo_name: 'example-repo',
     meta: {
@@ -103,8 +104,11 @@ describe('MaintenanceClient Component', () => {
 
     it('should render header with correct item count', async () => {
       const repos = [
-        createMockRepo({ id: 'repo-1' }),
-        createMockRepo({ id: 'repo-2', repo_name: 'second-repo' }),
+        createMockRepo({ id: toMaintenanceId('repo-1') }),
+        createMockRepo({
+          id: toMaintenanceId('repo-2'),
+          repo_name: 'second-repo',
+        }),
       ]
 
       render(<MaintenanceClient repos={repos} />)
@@ -173,8 +177,8 @@ describe('MaintenanceClient Component', () => {
   describe('Search Functionality', () => {
     it('should filter repos by name', async () => {
       const repos = [
-        createMockRepo({ id: 'repo-1', repo_name: 'react' }),
-        createMockRepo({ id: 'repo-2', repo_name: 'vue' }),
+        createMockRepo({ id: toMaintenanceId('repo-1'), repo_name: 'react' }),
+        createMockRepo({ id: toMaintenanceId('repo-2'), repo_name: 'vue' }),
       ]
       render(<MaintenanceClient repos={repos} />)
 
@@ -189,8 +193,11 @@ describe('MaintenanceClient Component', () => {
 
     it('should filter repos by owner', async () => {
       const repos = [
-        createMockRepo({ id: 'repo-1', repo_owner: 'facebook' }),
-        createMockRepo({ id: 'repo-2', repo_owner: 'google' }),
+        createMockRepo({
+          id: toMaintenanceId('repo-1'),
+          repo_owner: 'facebook',
+        }),
+        createMockRepo({ id: toMaintenanceId('repo-2'), repo_owner: 'google' }),
       ]
       render(<MaintenanceClient repos={repos} />)
 
@@ -204,7 +211,9 @@ describe('MaintenanceClient Component', () => {
     })
 
     it('should be case-insensitive', async () => {
-      const repos = [createMockRepo({ id: 'repo-1', repo_name: 'MyRepo' })]
+      const repos = [
+        createMockRepo({ id: toMaintenanceId('repo-1'), repo_name: 'MyRepo' }),
+      ]
       render(<MaintenanceClient repos={repos} />)
 
       const searchInput = screen.getByPlaceholderText('Search repositories...')
@@ -316,8 +325,8 @@ describe('MaintenanceClient Sorting Tests', () => {
 
   it('should sort by name alphabetically', async () => {
     const repos = [
-      createMockRepo({ id: 'repo-1', repo_name: 'zebra' }),
-      createMockRepo({ id: 'repo-2', repo_name: 'apple' }),
+      createMockRepo({ id: toMaintenanceId('repo-1'), repo_name: 'zebra' }),
+      createMockRepo({ id: toMaintenanceId('repo-2'), repo_name: 'apple' }),
     ]
     render(<MaintenanceClient repos={repos} />)
 
@@ -341,8 +350,8 @@ describe('MaintenanceClient Sorting Tests', () => {
 
   it('should sort by stars', async () => {
     const repos = [
-      createMockRepo({ id: 'repo-1', meta: { stars: 10 } }),
-      createMockRepo({ id: 'repo-2', meta: { stars: 1000 } }),
+      createMockRepo({ id: toMaintenanceId('repo-1'), meta: { stars: 10 } }),
+      createMockRepo({ id: toMaintenanceId('repo-2'), meta: { stars: 1000 } }),
     ]
     render(<MaintenanceClient repos={repos} />)
 

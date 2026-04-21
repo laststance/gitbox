@@ -6,13 +6,12 @@
  */
 
 import * as Sentry from '@sentry/nextjs'
-import { Star } from 'lucide-react'
+import { ArrowLeft, Star } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
 
 import { BoardGrid } from '@/components/Boards'
-import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/require-user'
 import type { Tables } from '@/lib/supabase/types'
 
 export const metadata: Metadata = {
@@ -21,18 +20,7 @@ export const metadata: Metadata = {
 }
 
 export default async function FavoritesPage() {
-  const supabase = await createClient()
-
-  // Authentication check (also done in middleware, but double-check)
-  // IMPORTANT: Use getUser() not getSession() for secure server-side validation
-  // getSession() reads from cookies without verification, getUser() validates with Auth server
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/')
-  }
+  const { supabase, user } = await requireUser()
 
   // Fetch favorite boards
   const { data: boards, error } = (await supabase
@@ -101,20 +89,7 @@ function FavoritesEmptyState() {
         href="/boards"
         className="mt-8 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-white transition-colors hover:bg-blue-700"
       >
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
+        <ArrowLeft className="h-5 w-5" aria-hidden="true" />
         Go to All Boards
       </Link>
     </div>

@@ -14,16 +14,22 @@ import { toRepoCardDomain, toStatusListDomain } from '@/lib/actions/mappers'
 import type { RepoCardDomain, StatusListDomain } from '@/lib/models/domain'
 import { checkRateLimit } from '@/lib/rate-limit/check'
 import { createClient } from '@/lib/supabase/server'
+import {
+  toBoardId,
+  type BoardId,
+  type PublicBoardSlug,
+} from '@/lib/types/brands'
+import type { ISOTimestamp, ShareSlug } from '@/lib/types/domain-primitives'
 
 /** Public-safe board fields (excludes user_id) */
 interface PublicBoard {
-  id: string
+  id: BoardId
   name: string
   subtitle: string | null
-  created_at: string | null
-  updated_at: string | null
+  created_at: ISOTimestamp | null
+  updated_at: ISOTimestamp | null
   is_public: boolean
-  share_slug: string | null
+  share_slug: ShareSlug
   settings: unknown
 }
 
@@ -45,7 +51,7 @@ export interface PublicBoardData {
  * // { board: {...}, statusLists: [...], repoCards: [...] }
  */
 export async function getPublicBoardBySlug(
-  slug: string,
+  slug: PublicBoardSlug,
 ): Promise<PublicBoardData | null> {
   // Rate limit by IP
   const headerStore = await headers()
@@ -103,5 +109,16 @@ export async function getPublicBoardBySlug(
   const statusLists = (statusListsResult.data || []).map(toStatusListDomain)
   const repoCards = (repoCardsResult.data || []).map(toRepoCardDomain)
 
-  return { board, statusLists, repoCards }
+  const publicBoard: PublicBoard = {
+    id: toBoardId(board.id),
+    name: board.name,
+    subtitle: board.subtitle,
+    created_at: board.created_at,
+    updated_at: board.updated_at,
+    is_public: board.is_public,
+    share_slug: board.share_slug,
+    settings: board.settings,
+  }
+
+  return { board: publicBoard, statusLists, repoCards }
 }
