@@ -23,6 +23,7 @@ import {
 } from '@/lib/redux/slices/boardSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { CardDisplaySettings } from '@/lib/types/board-settings'
+import type { RepoCardId, StatusListId } from '@/lib/types/brands'
 
 import { ColumnInsertZone } from './ColumnInsertZone'
 import { NewRowDropZone } from './NewRowDropZone'
@@ -36,16 +37,16 @@ interface KanbanBoardProps {
   initialComments?: Record<string, CommentData>
   /** Card display settings from board.settings JSON */
   cardDisplaySettings?: CardDisplaySettings
-  onMoveToMaintenance?: (cardId: string) => void
+  onMoveToMaintenance?: (cardId: RepoCardId) => void
   /** Callback when card is moved to another board */
-  onMoveToAnotherBoard?: (cardId: string) => void
+  onMoveToAnotherBoard?: (cardId: RepoCardId) => void
   /** Callback when Note button is clicked (opens unified NoteModal with notes + links) */
-  onNote?: (cardId: string) => void
+  onNote?: (cardId: RepoCardId) => void
   /** Callback when repository is removed from board */
-  onRemove?: (cardId: string) => void
+  onRemove?: (cardId: RepoCardId) => void
   onEditStatus?: (status: StatusListDomain) => void
-  onDeleteStatus?: (statusId: string) => void
-  onAddCard?: (statusId: string) => void
+  onDeleteStatus?: (statusId: StatusListId) => void
+  onAddCard?: (statusId: StatusListId) => void
 }
 
 // Main Kanban Board Component

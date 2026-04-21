@@ -1,8 +1,15 @@
 /**
  * Domain Model Mappers
  *
- * Converts Supabase database rows to domain models used in the application.
- * Centralizes mapping logic to avoid duplication across server actions.
+ * The trust boundary between Supabase rows and the application's domain
+ * layer. Every mapper:
+ * 1. camelCases snake_case columns,
+ * 2. brands the ID fields via `src/lib/types/brands.ts` factories,
+ * 3. coerces nullable timestamps/colors into safe defaults.
+ *
+ * Keeping the `as BoardId` / `as RepoCardId` casts confined to this file
+ * means the rest of the codebase can enjoy nominal IDs without scattered
+ * escape hatches.
  */
 
 import type {
@@ -11,51 +18,55 @@ import type {
   StatusListDomain,
 } from '@/lib/models/domain'
 import type { Tables } from '@/lib/supabase/types'
+import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
 
 type StatusListRow = Tables<'statuslist'>
 type RepoCardRow = Tables<'repocard'>
 
 /**
- * Convert a Supabase statuslist row to the application domain model.
+ * Convert a raw Supabase `statuslist` row into a {@link StatusListDomain}.
+ * Applies safe defaults for nullable columns (color, timestamps).
  *
- * @param row - Raw database row from the statuslist table
- * @returns StatusListDomain with fallback defaults for nullable columns
+ * @param row - Raw row from `supabase.from('statuslist').select(...)`
+ * @returns Fully-populated domain object with branded IDs
  *
  * @example
  * const domain = toStatusListDomain(row)
- * // => { id: '...', title: 'Todo', color: '#6B7280', gridRow: 0, gridCol: 0, ... }
+ * // { id: 'uuid' as StatusListId, title: 'Todo', color: '#6B7280', gridRow: 0, ... }
  */
 export function toStatusListDomain(row: StatusListRow): StatusListDomain {
   return {
-    id: row.id,
+    id: toStatusListId(row.id),
     title: row.name,
     color: row.color ?? '#6B7280',
     gridRow: row.grid_row ?? 0,
     gridCol: row.grid_col ?? 0,
-    boardId: row.board_id,
+    boardId: toBoardId(row.board_id),
     createdAt: row.created_at ?? new Date().toISOString(),
     updatedAt: row.updated_at ?? new Date().toISOString(),
   }
 }
 
 /**
- * Convert a Supabase repocard row to the application domain model.
+ * Convert a raw Supabase `repocard` row into a {@link RepoCardDomain}.
+ * Parses the JSON `meta` blob (cast-based; older rows may omit fields) and
+ * derives the display title from `${repo_owner}/${repo_name}`.
  *
- * @param row - Raw database row from the repocard table
- * @returns RepoCardDomain with parsed meta and fallback defaults
+ * @param row - Raw row from `supabase.from('repocard').select(...)`
+ * @returns Fully-populated domain object with branded IDs
  *
  * @example
  * const domain = toRepoCardDomain(row)
- * // => { id: '...', title: 'owner/repo', statusId: '...', meta: { stars: 42 }, ... }
+ * // { id: 'uuid' as RepoCardId, title: 'owner/repo', meta: { stars: 42 }, ... }
  */
 export function toRepoCardDomain(row: RepoCardRow): RepoCardDomain {
   const meta = (row.meta as RepoCardMeta) || {}
   return {
-    id: row.id,
+    id: toRepoCardId(row.id),
     title: `${row.repo_owner}/${row.repo_name}`,
     description: meta.description || '',
-    statusId: row.status_id,
-    boardId: row.board_id,
+    statusId: toStatusListId(row.status_id),
+    boardId: toBoardId(row.board_id),
     repoOwner: row.repo_owner,
     repoName: row.repo_name,
     order: row.order,

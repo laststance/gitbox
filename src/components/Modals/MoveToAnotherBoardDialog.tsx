@@ -40,6 +40,7 @@ import {
   moveCardToBoard,
   getUserBoardsWithStatusLists,
 } from '@/lib/actions/repo-cards'
+import type { RepoCardId } from '@/lib/types/brands'
 
 import type { BoardOption } from './RestoreToBoardDialog'
 
@@ -49,13 +50,13 @@ interface MoveToAnotherBoardDialogProps {
   /** Callback when dialog should close */
   onClose: () => void
   /** RepoCard ID to move */
-  cardId: string
+  cardId: RepoCardId
   /** Repository display name (owner/name) */
   repoName: string
   /** Current board ID (excluded from target list) */
   currentBoardId: string
   /** Callback after successful move */
-  onMoved: (cardId: string) => void
+  onMoved: (cardId: RepoCardId) => void
 }
 
 /**

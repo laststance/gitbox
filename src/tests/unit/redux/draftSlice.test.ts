@@ -14,6 +14,7 @@ import draftSlice, {
   deleteDraftNote,
   selectDraftNote,
 } from '@/lib/redux/slices/draftSlice'
+import { toRepoCardId, type RepoCardId } from '@/lib/types/brands'
 
 describe('draftSlice', () => {
   // Mock Date.now for consistent timestamps
@@ -30,14 +31,14 @@ describe('draftSlice', () => {
 
   // Type for draft slice state (matches the slice's internal state)
   interface DraftNote {
-    cardId: string
+    cardId: RepoCardId
     content: string
     links: { url: string; type: string }[]
     lastModified: number
   }
 
   interface DraftState {
-    notes: Record<string, DraftNote>
+    notes: Record<RepoCardId, DraftNote>
   }
 
   const initialState: DraftState = {
@@ -47,15 +48,15 @@ describe('draftSlice', () => {
   describe('updateDraftNote action', () => {
     it('should create a new draft note for a card', () => {
       const action = updateDraftNote({
-        cardId: 'card-123',
+        cardId: toRepoCardId('card-123'),
         content: 'My draft content',
         links: [],
       })
 
       const nextState = draftSlice(initialState, action)
 
-      expect(nextState.notes['card-123']).toEqual({
-        cardId: 'card-123',
+      expect(nextState.notes[toRepoCardId('card-123')]).toEqual({
+        cardId: toRepoCardId('card-123'),
         content: 'My draft content',
         links: [],
         lastModified: mockNow,
@@ -66,8 +67,8 @@ describe('draftSlice', () => {
       const stateWithDraft = {
         ...initialState,
         notes: {
-          'card-123': {
-            cardId: 'card-123',
+          [toRepoCardId('card-123')]: {
+            cardId: toRepoCardId('card-123'),
             content: 'Old content',
             links: [],
             lastModified: mockNow - 1000,
@@ -76,18 +77,22 @@ describe('draftSlice', () => {
       }
 
       const action = updateDraftNote({
-        cardId: 'card-123',
+        cardId: toRepoCardId('card-123'),
         content: 'Updated content',
         links: [{ url: 'https://example.com', type: 'vercel' }],
       })
 
       const nextState = draftSlice(stateWithDraft, action)
 
-      expect(nextState.notes['card-123']!.content).toBe('Updated content')
-      expect(nextState.notes['card-123']!.links).toEqual([
+      expect(nextState.notes[toRepoCardId('card-123')]!.content).toBe(
+        'Updated content',
+      )
+      expect(nextState.notes[toRepoCardId('card-123')]!.links).toEqual([
         { url: 'https://example.com', type: 'vercel' },
       ])
-      expect(nextState.notes['card-123']!.lastModified).toBe(mockNow)
+      expect(nextState.notes[toRepoCardId('card-123')]!.lastModified).toBe(
+        mockNow,
+      )
     })
 
     it('should handle multiple drafts for different cards', () => {
@@ -95,46 +100,60 @@ describe('draftSlice', () => {
 
       state = draftSlice(
         state,
-        updateDraftNote({ cardId: 'card-1', content: 'Content 1', links: [] }),
+        updateDraftNote({
+          cardId: toRepoCardId('card-1'),
+          content: 'Content 1',
+          links: [],
+        }),
       )
       state = draftSlice(
         state,
-        updateDraftNote({ cardId: 'card-2', content: 'Content 2', links: [] }),
+        updateDraftNote({
+          cardId: toRepoCardId('card-2'),
+          content: 'Content 2',
+          links: [],
+        }),
       )
       state = draftSlice(
         state,
-        updateDraftNote({ cardId: 'card-3', content: 'Content 3', links: [] }),
+        updateDraftNote({
+          cardId: toRepoCardId('card-3'),
+          content: 'Content 3',
+          links: [],
+        }),
       )
 
       expect(Object.keys(state.notes)).toHaveLength(3)
-      expect(state.notes['card-1']!.content).toBe('Content 1')
-      expect(state.notes['card-2']!.content).toBe('Content 2')
-      expect(state.notes['card-3']!.content).toBe('Content 3')
+      expect(state.notes[toRepoCardId('card-1')]!.content).toBe('Content 1')
+      expect(state.notes[toRepoCardId('card-2')]!.content).toBe('Content 2')
+      expect(state.notes[toRepoCardId('card-3')]!.content).toBe('Content 3')
     })
 
     it('should handle empty content', () => {
       const action = updateDraftNote({
-        cardId: 'card-123',
+        cardId: toRepoCardId('card-123'),
         content: '',
         links: [],
       })
 
       const nextState = draftSlice(initialState, action)
 
-      expect(nextState.notes['card-123']!.content).toBe('')
+      expect(nextState.notes[toRepoCardId('card-123')]!.content).toBe('')
     })
 
     it('should handle very long content', () => {
       const longContent = 'x'.repeat(10000)
       const action = updateDraftNote({
-        cardId: 'card-123',
+        cardId: toRepoCardId('card-123'),
         content: longContent,
         links: [],
       })
 
       const nextState = draftSlice(initialState, action)
 
-      expect(nextState.notes['card-123']!.content).toBe(longContent)
+      expect(nextState.notes[toRepoCardId('card-123')]!.content).toBe(
+        longContent,
+      )
     })
   })
 
@@ -143,8 +162,8 @@ describe('draftSlice', () => {
       const stateWithDraft = {
         ...initialState,
         notes: {
-          'card-123': {
-            cardId: 'card-123',
+          [toRepoCardId('card-123')]: {
+            cardId: toRepoCardId('card-123'),
             content: 'Some content',
             links: [],
             lastModified: mockNow,
@@ -152,25 +171,25 @@ describe('draftSlice', () => {
         },
       }
 
-      const action = deleteDraftNote('card-123')
+      const action = deleteDraftNote(toRepoCardId('card-123'))
 
       const nextState = draftSlice(stateWithDraft, action)
 
-      expect(nextState.notes['card-123']).toBeUndefined()
+      expect(nextState.notes[toRepoCardId('card-123')]).toBeUndefined()
     })
 
     it('should not affect other drafts', () => {
       const stateWithMultipleDrafts = {
         ...initialState,
         notes: {
-          'card-1': {
-            cardId: 'card-1',
+          [toRepoCardId('card-1')]: {
+            cardId: toRepoCardId('card-1'),
             content: 'Content 1',
             links: [],
             lastModified: mockNow,
           },
-          'card-2': {
-            cardId: 'card-2',
+          [toRepoCardId('card-2')]: {
+            cardId: toRepoCardId('card-2'),
             content: 'Content 2',
             links: [],
             lastModified: mockNow,
@@ -178,16 +197,16 @@ describe('draftSlice', () => {
         },
       }
 
-      const action = deleteDraftNote('card-1')
+      const action = deleteDraftNote(toRepoCardId('card-1'))
 
       const nextState = draftSlice(stateWithMultipleDrafts, action)
 
-      expect(nextState.notes['card-1']).toBeUndefined()
-      expect(nextState.notes['card-2']).toBeDefined()
+      expect(nextState.notes[toRepoCardId('card-1')]).toBeUndefined()
+      expect(nextState.notes[toRepoCardId('card-2')]).toBeDefined()
     })
 
     it('should handle deleting non-existent draft gracefully', () => {
-      const action = deleteDraftNote('non-existent')
+      const action = deleteDraftNote(toRepoCardId('non-existent'))
 
       const nextState = draftSlice(initialState, action)
 
@@ -199,18 +218,18 @@ describe('draftSlice', () => {
     describe('selectDraftNote', () => {
       it('should return draft for specific card', () => {
         const draftNote = {
-          cardId: 'card-123',
+          cardId: toRepoCardId('card-123'),
           content: 'Test content',
           links: [],
           lastModified: mockNow,
         }
         const rootState = {
           draft: {
-            notes: { 'card-123': draftNote },
+            notes: { [toRepoCardId('card-123')]: draftNote },
           },
         }
 
-        const selector = selectDraftNote('card-123')
+        const selector = selectDraftNote(toRepoCardId('card-123'))
         const result = selector(rootState)
 
         expect(result).toEqual(draftNote)
@@ -219,7 +238,7 @@ describe('draftSlice', () => {
       it('should return null for non-existent card', () => {
         const rootState = { draft: initialState }
 
-        const selector = selectDraftNote('non-existent')
+        const selector = selectDraftNote(toRepoCardId('non-existent'))
         const result = selector(rootState)
 
         expect(result).toBeNull()

@@ -16,6 +16,10 @@ import { headers } from 'next/headers'
 import { createGitHubAxios, hasGitHubToken } from '@/lib/axios-github'
 import { createModuleLogger } from '@/lib/logger'
 import { checkRateLimit } from '@/lib/rate-limit/check'
+import type {
+  GitHubAccountType,
+  Visibility,
+} from '@/lib/types/domain-primitives'
 
 import type { ActionResult } from './types'
 
@@ -35,6 +39,24 @@ async function getClientIp(): Promise<string> {
   return forwarded || '127.0.0.1'
 }
 
+/**
+ * Subset of the GitHub REST `Repository` object that GitBox consumes.
+ *
+ * Only the fields used by the repo picker and card metadata are modelled —
+ * the full GitHub response is much larger.
+ *
+ * @see https://docs.github.com/en/rest/repos/repos
+ * @example
+ * {
+ *   id: 12345678,
+ *   name: 'gitbox',
+ *   full_name: 'laststance/gitbox',
+ *   owner: { login: 'laststance', avatar_url: '…' },
+ *   visibility: 'public',
+ *   stargazers_count: 42,
+ *   …
+ * }
+ */
 export interface GitHubRepository {
   id: number
   node_id: string
@@ -51,24 +73,32 @@ export interface GitHubRepository {
   watchers_count: number
   language: string | null
   topics: string[]
-  visibility: 'public' | 'private'
+  visibility: Visibility
   updated_at: string
   created_at: string
 }
 
 /**
- * GitHub User type
+ * Subset of the GitHub REST `User` object that GitBox consumes.
+ *
+ * @see https://docs.github.com/en/rest/users/users
+ * @example
+ * { id: 1234, login: 'octocat', avatar_url: '…', name: 'The Octocat', type: 'User' }
  */
 export interface GitHubUser {
   id: number
   login: string
   avatar_url: string
   name: string | null
-  type: 'User' | 'Organization'
+  type: GitHubAccountType
 }
 
 /**
- * GitHub Organization type
+ * Subset of the GitHub REST `Organization` object that GitBox consumes.
+ *
+ * @see https://docs.github.com/en/rest/orgs/orgs
+ * @example
+ * { id: 999, login: 'laststance', avatar_url: '…', description: '…' }
  */
 export interface GitHubOrganization {
   id: number

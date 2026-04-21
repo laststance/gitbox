@@ -10,6 +10,8 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 import { expect, userEvent, waitFor, fn } from 'storybook/test'
 
+import { toBoardId, toStatusListId } from '@/lib/types/brands'
+
 import { AddRepositoryCombobox } from './AddRepositoryCombobox'
 
 const meta = {
@@ -26,8 +28,8 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {
-    boardId: 'board-1',
-    statusId: 'status-1',
+    boardId: toBoardId('board-1'),
+    statusId: toStatusListId('status-1'),
     onRepositoriesAdded: () => console.log('Repositories added'),
     onQuickNoteFocus: () => console.log('Quick note focused'),
   },
@@ -35,8 +37,8 @@ export const Default: Story = {
 
 export const WithCallbacks: Story = {
   args: {
-    boardId: 'board-1',
-    statusId: 'status-1',
+    boardId: toBoardId('board-1'),
+    statusId: toStatusListId('status-1'),
     onRepositoriesAdded: () => {
       console.log('Repositories added successfully')
     },
@@ -51,8 +53,8 @@ export const WithCallbacks: Story = {
  */
 export const OpenPopover: Story = {
   args: {
-    boardId: 'board-1',
-    statusId: 'status-1',
+    boardId: toBoardId('board-1'),
+    statusId: toStatusListId('status-1'),
     onRepositoriesAdded: fn(),
     onQuickNoteFocus: fn(),
   },
@@ -89,8 +91,8 @@ export const OpenPopover: Story = {
  */
 export const SearchInput: Story = {
   args: {
-    boardId: 'board-1',
-    statusId: 'status-1',
+    boardId: toBoardId('board-1'),
+    statusId: toStatusListId('status-1'),
     onRepositoriesAdded: fn(),
     onQuickNoteFocus: fn(),
   },
@@ -136,8 +138,8 @@ export const SearchInput: Story = {
  */
 export const CancelButton: Story = {
   args: {
-    boardId: 'board-1',
-    statusId: 'status-1',
+    boardId: toBoardId('board-1'),
+    statusId: toStatusListId('status-1'),
     onRepositoriesAdded: fn(),
     onQuickNoteFocus: fn(),
   },

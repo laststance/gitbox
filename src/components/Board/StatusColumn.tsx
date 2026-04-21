@@ -17,6 +17,7 @@ import type { CommentData } from '@/lib/actions/project-info'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import type { CommentColor } from '@/lib/supabase/types'
 import type { CardDisplaySettings } from '@/lib/types/board-settings'
+import type { RepoCardId, StatusListId } from '@/lib/types/brands'
 
 import { RepoCard } from './RepoCard'
 
@@ -34,22 +35,22 @@ interface StatusColumnProps {
   comments?: Record<string, CommentData>
   /** Card display settings from board.settings */
   cardDisplaySettings?: CardDisplaySettings
-  onMaintenance?: (id: string) => void
+  onMaintenance?: (id: RepoCardId) => void
   /** Callback when card is moved to another board */
-  onMoveToBoard?: (id: string) => void
+  onMoveToBoard?: (id: RepoCardId) => void
   /** Callback when Note button is clicked (opens unified NoteModal) */
-  onNote?: (id: string) => void
+  onNote?: (id: RepoCardId) => void
   /** Callback when repository is removed from board */
-  onRemove?: (id: string) => void
+  onRemove?: (id: RepoCardId) => void
   /** Callback when comment is updated (for optimistic updates) */
-  onCommentChange?: (cardId: string, newComment: string) => void
+  onCommentChange?: (cardId: RepoCardId, newComment: string) => void
   /** Callback when comment color is changed */
-  onCommentColorChange?: (cardId: string, color: CommentColor) => void
+  onCommentColorChange?: (cardId: RepoCardId, color: CommentColor) => void
   /** Callback when comment is deleted */
-  onCommentDelete?: (cardId: string) => void
+  onCommentDelete?: (cardId: RepoCardId) => void
   onEditStatus?: (status: StatusListDomain) => void
-  onDeleteStatus?: (statusId: string) => void
-  onAddCard?: (statusId: string) => void
+  onDeleteStatus?: (statusId: StatusListId) => void
+  onAddCard?: (statusId: StatusListId) => void
   /** Drag attributes from SortableColumn for column reordering */
   dragAttributes?: React.HTMLAttributes<HTMLDivElement>
   /** Drag listeners from SortableColumn for column reordering */

@@ -21,6 +21,7 @@ import {
 import type { StatusListDomain } from '@/lib/models/domain'
 import { setStatusLists } from '@/lib/redux/slices/boardSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
+import type { StatusListId } from '@/lib/types/brands'
 
 type DialogMode = 'create' | 'edit'
 
@@ -39,7 +40,7 @@ interface UseStatusListDialogReturn {
   /** Whether delete confirmation dialog is open */
   isDeleteConfirmOpen: boolean
   /** Status ID pending deletion */
-  pendingDeleteStatusId: string | null
+  pendingDeleteStatusId: StatusListId | null
   /** Status title for delete confirmation (computed from pendingDeleteStatusId) */
   pendingDeleteStatusTitle: string | undefined
   /** Open dialog in create mode */
@@ -51,7 +52,7 @@ interface UseStatusListDialogReturn {
   /** Save status (create or update based on mode) */
   save: (data: { name: string; color: string }) => Promise<void>
   /** Request deletion (opens confirmation dialog) */
-  requestDelete: (statusId: string) => void
+  requestDelete: (statusId: StatusListId) => void
   /** Cancel delete (closes confirmation dialog) */
   cancelDelete: () => void
   /** Confirm and execute delete */
@@ -104,9 +105,8 @@ export function useStatusListDialog({
 
   // Delete confirmation state
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
-  const [pendingDeleteStatusId, setPendingDeleteStatusId] = useState<
-    string | null
-  >(null)
+  const [pendingDeleteStatusId, setPendingDeleteStatusId] =
+    useState<StatusListId | null>(null)
 
   // Computed: title of the status pending deletion
   const pendingDeleteStatusTitle = statusLists.find(
@@ -195,7 +195,7 @@ export function useStatusListDialog({
   /**
    * Request deletion - opens confirmation dialog
    */
-  const requestDelete = useCallback((statusId: string) => {
+  const requestDelete = useCallback((statusId: StatusListId) => {
     setPendingDeleteStatusId(statusId)
     setIsDeleteConfirmOpen(true)
   }, [])

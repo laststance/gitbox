@@ -17,6 +17,7 @@ import {
   selectRepoCards,
 } from '@/lib/redux/slices/boardSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
+import type { RepoCardId } from '@/lib/types/brands'
 
 /**
  * Server action result shape (matches moveToMaintenance / deleteRepoCard)
@@ -48,7 +49,7 @@ interface CardActionOptions {
  * const executeCardAction = useOptimisticCardAction()
  *
  * const handleRemove = useCallback(
- *   (cardId: string) => executeCardAction(cardId, deleteRepoCard, {
+ *   (cardId: RepoCardId) => executeCardAction(cardId, deleteRepoCard, {
  *     actionName: 'removeFromBoard',
  *     errorMessage: 'Failed to remove from board',
  *     successMessage: 'Repository removed',
@@ -62,7 +63,7 @@ export function useOptimisticCardAction() {
 
   const executeCardAction = useCallback(
     async (
-      cardId: string,
+      cardId: RepoCardId,
       serverAction: (id: string) => Promise<CardActionResult>,
       options: CardActionOptions,
     ) => {

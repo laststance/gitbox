@@ -65,6 +65,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { Board } from '@/lib/supabase/types'
 import { parseBoardSettings } from '@/lib/types/board-settings'
+import { toBoardId, toStatusListId, type RepoCardId } from '@/lib/types/brands'
 import {
   BOARD_NAME_MAX_LENGTH,
   BOARD_SUBTITLE_MAX_LENGTH,
@@ -82,7 +83,7 @@ export const BoardPageClient = memo(function BoardPageClient({
   initialData,
 }: BoardPageClientProps) {
   // Extract board properties
-  const boardId = board.id
+  const boardId = toBoardId(board.id)
   const boardName = board.name
 
   const router = useRouter()
@@ -134,7 +135,7 @@ export const BoardPageClient = memo(function BoardPageClient({
   const executeCardAction = useOptimisticCardAction()
 
   const handleMoveToMaintenance = useCallback(
-    async (cardId: string) =>
+    async (cardId: RepoCardId) =>
       executeCardAction(cardId, moveToMaintenance, {
         actionName: 'moveToMaintenance',
         errorMessage: 'Failed to move to maintenance',
@@ -144,7 +145,7 @@ export const BoardPageClient = memo(function BoardPageClient({
   )
 
   const handleRemoveFromBoard = useCallback(
-    async (cardId: string) =>
+    async (cardId: RepoCardId) =>
       executeCardAction(cardId, deleteRepoCard, {
         actionName: 'removeFromBoard',
         errorMessage: 'Failed to remove from board',
@@ -157,14 +158,16 @@ export const BoardPageClient = memo(function BoardPageClient({
   // Move to Another Board Handler
   // ========================================
 
-  const [moveDialogCardId, setMoveDialogCardId] = useState<string | null>(null)
+  const [moveDialogCardId, setMoveDialogCardId] = useState<RepoCardId | null>(
+    null,
+  )
 
-  const handleMoveToAnotherBoard = useCallback((cardId: string) => {
+  const handleMoveToAnotherBoard = useCallback((cardId: RepoCardId) => {
     setMoveDialogCardId(cardId)
   }, [])
 
   const handleMoveSuccess = useCallback(
-    (cardId: string) => {
+    (cardId: RepoCardId) => {
       dispatch(removeRepoCard(cardId))
       setMoveDialogCardId(null)
     },
@@ -259,7 +262,11 @@ export const BoardPageClient = memo(function BoardPageClient({
               {/* Add Repositories - PRD 3.1 */}
               <AddRepositoryCombobox
                 boardId={boardId}
-                statusId={addRepoCombobox.statusId || statusLists[0]?.id || ''}
+                statusId={
+                  addRepoCombobox.statusId ||
+                  statusLists[0]?.id ||
+                  toStatusListId('')
+                }
                 isOpen={addRepoCombobox.isOpen}
                 onOpenChange={addRepoCombobox.handleOpenChange}
                 maintenanceRepoIdentifiers={

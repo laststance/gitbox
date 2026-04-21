@@ -10,6 +10,7 @@ import {
   updateDraftNote,
 } from '@/lib/redux/slices/draftSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
+import type { RepoCardId } from '@/lib/types/brands'
 import { getSlateTextLength, parseSlateValue } from '@/lib/utils/slate-utils'
 import { isValidUrl } from '@/lib/validations'
 
@@ -20,7 +21,7 @@ export const NOTE_WARNING_THRESHOLD = 18000
 
 interface UseNoteModalDraftParams {
   /** Card ID for draft state management */
-  cardId: string
+  cardId: RepoCardId
   /** Initial note value from Supabase */
   initialNote: string
   /** Initial links value from Supabase */
@@ -73,7 +74,7 @@ interface UseNoteModalDraftReturn {
  *
  * @example
  * const draft = useNoteModalDraft({
- *   cardId: 'abc-123',
+ *   cardId: card.id, // RepoCardId from RepoCardForRedux
  *   initialNote: '',
  *   initialLinks: [],
  *   isOpen: true,

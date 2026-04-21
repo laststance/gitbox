@@ -48,6 +48,7 @@ import {
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import { setStatusLists, setRepoCards } from '@/lib/redux/slices/boardSlice'
 import type { AppDispatch } from '@/lib/redux/store'
+import type { StatusListId } from '@/lib/types/brands'
 
 /**
  * Custom collision detection algorithm for more forgiving column swap.
@@ -386,10 +387,12 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
       if (!activeCard) return
 
       // Resolve target column
-      let targetStatusId: string
+      // Target statuses come from several untyped sources (`over.data.current`,
+      // stringified drop IDs), so we brand once here and trust it downstream.
+      let targetStatusId: StatusListId
       const overData = over.data.current
       if (overData?.type === 'column' && overData?.statusId) {
-        targetStatusId = overData.statusId
+        targetStatusId = overData.statusId as StatusListId
       } else {
         const overCard = cards.find((c) => c.id === over.id)
         if (overCard) {
@@ -397,10 +400,12 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
         } else {
           const overId = over.id.toString()
           if (overId.startsWith('droppable-')) {
-            targetStatusId = overId.replace('droppable-', '')
+            targetStatusId = overId.replace('droppable-', '') as StatusListId
           } else {
             const overStatus = statuses.find((s) => s.id === overId)
-            targetStatusId = overStatus ? overId : activeCard.statusId
+            targetStatusId = overStatus
+              ? (overId as StatusListId)
+              : activeCard.statusId
           }
         }
       }

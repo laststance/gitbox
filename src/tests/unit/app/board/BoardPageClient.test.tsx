@@ -17,6 +17,7 @@ import { BoardPageClient } from '@/app/board/[id]/BoardPageClient'
 import type { BoardInitialData } from '@/lib/actions/board-data'
 import boardSlice from '@/lib/redux/slices/boardSlice'
 import type { Board } from '@/lib/supabase/types'
+import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
 
 // Mock dependencies
 const mockPush = vi.fn()
@@ -187,9 +188,9 @@ function createMockInitialData(
   return {
     statusLists: [
       {
-        id: 'status-1',
+        id: toStatusListId('status-1'),
         title: 'To Do',
-        boardId: 'board-1',
+        boardId: toBoardId('board-1'),
         gridRow: 0,
         gridCol: 0,
         color: '#6366f1',
@@ -197,9 +198,9 @@ function createMockInitialData(
         updatedAt: '2024-01-01T00:00:00Z',
       },
       {
-        id: 'status-2',
+        id: toStatusListId('status-2'),
         title: 'Done',
-        boardId: 'board-1',
+        boardId: toBoardId('board-1'),
         gridRow: 0,
         gridCol: 1,
         color: '#22c55e',
@@ -209,11 +210,11 @@ function createMockInitialData(
     ],
     repoCards: [
       {
-        id: 'card-1',
+        id: toRepoCardId('card-1'),
         title: 'octocat/repo1',
         description: 'Test repo',
-        statusId: 'status-1',
-        boardId: 'board-1',
+        statusId: toStatusListId('status-1'),
+        boardId: toBoardId('board-1'),
         repoOwner: 'octocat',
         repoName: 'repo1',
         order: 0,

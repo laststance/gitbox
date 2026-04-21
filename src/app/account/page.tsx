@@ -11,6 +11,12 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
 import { createClient } from '@/lib/supabase/server'
+import { toUserId, type UserId } from '@/lib/types/brands'
+import type {
+  AvatarUrl,
+  GitHubLogin,
+  ISOTimestamp,
+} from '@/lib/types/domain-primitives'
 
 import { AccountClient } from './AccountClient'
 
@@ -26,10 +32,10 @@ export interface AccountData {
 }
 
 export interface UserProfile {
-  id: string
-  userName: string
-  userAvatar?: string
-  linkedSince: string
+  id: UserId
+  userName: GitHubLogin
+  userAvatar?: AvatarUrl
+  linkedSince: ISOTimestamp
 }
 
 export default async function AccountPage() {
@@ -67,7 +73,7 @@ export default async function AccountPage() {
   }
 
   const userProfile: UserProfile = {
-    id: user.id,
+    id: toUserId(user.id),
     userName:
       user.user_metadata?.user_name ||
       user.user_metadata?.preferred_username ||

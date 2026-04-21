@@ -9,6 +9,8 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 import { expect, userEvent, waitFor, fn } from 'storybook/test'
 
+import { toBoardId, toStatusListId } from '@/lib/types/brands'
+
 import { StatusListDialog } from './StatusListDialog'
 
 const meta = {
@@ -24,8 +26,8 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 const mockStatusList = {
-  id: 'status-1',
-  boardId: 'board-1',
+  id: toStatusListId('status-1'),
+  boardId: toBoardId('board-1'),
   title: 'In Progress',
   color: '#4682B4',
   gridRow: 0,

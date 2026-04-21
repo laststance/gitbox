@@ -13,15 +13,22 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice } from '@reduxjs/toolkit'
 
 import type { ThemeType } from '@/lib/constants/themes'
+import type { OrganizationFilter } from '@/lib/types/domain-primitives'
 
+/** Shape of the `state.settings` Redux slice. */
 interface SettingsState {
+  /** Active theme (one of the 14 themes or `'system'`). */
   theme: ThemeType
+  /** Compact-mode toggle — denser spacing/typography when `true`. */
   compactMode: boolean
-  /** Display stars, language, and last updated on cards */
+  /** Display stars, language, and last-updated chips on repo cards. */
   showCardMetadata: boolean
-  /** Organization filter for AddRepositoryCombobox ('all' or organization login name) */
-  organizationFilter: string
-  /** Whether the sidebar is collapsed to icon-only view */
+  /**
+   * Current filter in the "Add repository" picker.
+   * Either `'all'` (no filter) or a GitHub org login.
+   */
+  organizationFilter: OrganizationFilter
+  /** `true` when the sidebar is collapsed to icon-only view. */
   sidebarCollapsed: boolean
 }
 
@@ -46,7 +53,10 @@ export const settingsSlice = createSlice({
     setShowCardMetadata: (state, action: PayloadAction<boolean>) => {
       state.showCardMetadata = action.payload
     },
-    setOrganizationFilter: (state, action: PayloadAction<string>) => {
+    setOrganizationFilter: (
+      state,
+      action: PayloadAction<OrganizationFilter>,
+    ) => {
       state.organizationFilter = action.payload
     },
     setSidebarCollapsed: (state, action: PayloadAction<boolean>) => {

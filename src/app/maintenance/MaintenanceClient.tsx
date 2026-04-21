@@ -51,6 +51,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { selectLastVisitedBoard } from '@/lib/redux/slices/boardSlice'
 import { useAppSelector } from '@/lib/redux/store'
+import { toRepoCardId } from '@/lib/types/brands'
 
 import { useMaintenanceComments } from './hooks/useMaintenanceComments'
 import { useMaintenanceNoteModal } from './hooks/useMaintenanceNoteModal'
@@ -342,7 +343,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                         {/* Menu */}
                         <div className="absolute top-2 right-2 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
                           <OverflowMenu
-                            cardId={repo.id}
+                            cardId={toRepoCardId(repo.id)}
                             repoOwner={repo.repo_owner}
                             repoName={repo.repo_name}
                             context="maintenance"
@@ -558,7 +559,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
             isOpen={noteModalOpen}
             onClose={closeNoteModal}
             onSave={handleProjectInfoSave}
-            cardId={selectedRepoForNote.id}
+            cardId={toRepoCardId(selectedRepoForNote.id)}
             initialNote={currentNote}
             initialLinks={currentLinks}
             cardTitle={`${selectedRepoForNote.repo_owner}/${selectedRepoForNote.repo_name}`}

@@ -20,6 +20,7 @@
 
 import type { StatusListDomain, RepoCardDomain } from '@/lib/models/domain'
 import { createClient } from '@/lib/supabase/server'
+import type { RepoIdentifier } from '@/lib/types/domain-primitives'
 
 import { getBoardData } from './board'
 import { getCommentsForCards, type CommentData } from './project-info'
@@ -38,7 +39,7 @@ export interface BoardInitialData {
   /** Map of cardId → comment data (text + color) from projectinfo */
   comments: Record<string, CommentData>
   /** Lowercase "owner/repo" identifiers of repos in maintenance mode */
-  maintenanceRepoIdentifiers: string[]
+  maintenanceRepoIdentifiers: RepoIdentifier[]
 }
 
 /**
@@ -53,7 +54,9 @@ export interface BoardInitialData {
  * const identifiers = await getUserMaintenanceRepoIdentifiers()
  * // Returns: ["facebook/react", "vercel/next.js"]
  */
-export async function getUserMaintenanceRepoIdentifiers(): Promise<string[]> {
+export async function getUserMaintenanceRepoIdentifiers(): Promise<
+  RepoIdentifier[]
+> {
   const supabase = await createClient()
   const {
     data: { user },

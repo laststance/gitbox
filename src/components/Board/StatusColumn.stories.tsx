@@ -12,6 +12,8 @@
 import { DndContext } from '@dnd-kit/core'
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 
+import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
+
 import { StatusColumn } from './StatusColumn'
 
 const meta = {
@@ -36,8 +38,8 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 const mockStatus = {
-  id: 'status-1',
-  boardId: 'board-1',
+  id: toStatusListId('status-1'),
+  boardId: toBoardId('board-1'),
   title: 'Planning',
   color: '#3b82f6',
   gridRow: 0,
@@ -48,9 +50,9 @@ const mockStatus = {
 
 const mockCards = [
   {
-    id: 'card-1',
-    statusId: 'status-1',
-    boardId: 'board-1',
+    id: toRepoCardId('card-1'),
+    statusId: toStatusListId('status-1'),
+    boardId: toBoardId('board-1'),
     repoOwner: 'octocat',
     repoName: 'example-repo',
     title: 'example-repo',
@@ -68,9 +70,9 @@ const mockCards = [
     updatedAt: '2024-01-15T00:00:00Z',
   },
   {
-    id: 'card-2',
-    statusId: 'status-1',
-    boardId: 'board-1',
+    id: toRepoCardId('card-2'),
+    statusId: toStatusListId('status-1'),
+    boardId: toBoardId('board-1'),
     repoOwner: 'octocat',
     repoName: 'another-repo',
     title: 'another-repo',

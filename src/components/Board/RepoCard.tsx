@@ -11,6 +11,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import type { CommentData } from '@/lib/actions/project-info'
 import type { CommentColor } from '@/lib/supabase/types'
 import type { CommentTextSettings } from '@/lib/types/board-settings'
+import type { RepoCardId, StatusListId } from '@/lib/types/brands'
+import type { Priority } from '@/lib/types/domain-primitives'
 
 import { type CommentSaveOptions } from './CommentInlineEdit'
 import { CommentSection } from './CommentSection'
@@ -18,10 +20,10 @@ import { OverflowMenu } from './OverflowMenu'
 
 // Types
 interface RepoCardData {
-  id: string
+  id: RepoCardId
   title: string
   description?: string
-  priority?: 'low' | 'medium' | 'high'
+  priority?: Priority
   assignee?: {
     name: string
     avatar: string
@@ -31,7 +33,7 @@ interface RepoCardData {
   attachments?: number
   /** @deprecated Use comment prop instead */
   comments?: number
-  statusId: string
+  statusId: StatusListId
   /** GitHub repository owner */
   repoOwner?: string
   /** GitHub repository name */
@@ -46,21 +48,21 @@ interface RepoCardProps {
   commentText?: CommentTextSettings
   /** Whether to show the comment section */
   showComment?: boolean
-  onMaintenance?: (id: string) => void
+  onMaintenance?: (id: RepoCardId) => void
   /** Callback when card is moved to another board */
-  onMoveToBoard?: (id: string) => void
+  onMoveToBoard?: (id: RepoCardId) => void
   /** Callback when Note button is clicked (opens unified NoteModal with notes + links) */
-  onNote?: (id: string) => void
+  onNote?: (id: RepoCardId) => void
   /** Callback when repository is removed from board */
-  onRemove?: (id: string) => void
+  onRemove?: (id: RepoCardId) => void
   /** Callback when comment area is clicked (for editing) - deprecated, editing is now built-in */
-  onCommentClick?: (id: string) => void
+  onCommentClick?: (id: RepoCardId) => void
   /** Callback when comment is updated (for optimistic updates in parent) */
-  onCommentChange?: (id: string, newComment: string) => void
+  onCommentChange?: (id: RepoCardId, newComment: string) => void
   /** Callback when comment color is changed */
-  onCommentColorChange?: (id: string, color: CommentColor) => void
+  onCommentColorChange?: (id: RepoCardId, color: CommentColor) => void
   /** Callback when comment is deleted */
-  onCommentDelete?: (id: string) => void
+  onCommentDelete?: (id: RepoCardId) => void
 }
 
 /**

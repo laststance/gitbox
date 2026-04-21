@@ -24,10 +24,12 @@ import {
   setOrganizationFilter,
 } from '@/lib/redux/slices/settingsSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
+import type { BoardId, StatusListId } from '@/lib/types/brands'
+import type { RepoIdentifier } from '@/lib/types/domain-primitives'
 
 interface AddRepositoryComboboxProps {
-  boardId: string
-  statusId: string // Initial status (column) ID
+  boardId: BoardId
+  statusId: StatusListId // Initial status (column) ID
   /**
    * Callback when repositories are successfully added
    * @param cards - The created repo cards for optimistic UI update
@@ -48,7 +50,7 @@ interface AddRepositoryComboboxProps {
    * Lowercase "owner/repo" identifiers of repos in maintenance mode.
    * These repos will be filtered out from the combobox options.
    */
-  maintenanceRepoIdentifiers?: string[]
+  maintenanceRepoIdentifiers?: RepoIdentifier[]
 }
 
 /**

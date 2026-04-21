@@ -16,6 +16,7 @@ import {
   type ProjectLink,
 } from '@/lib/actions/project-info'
 import type { RepoCardForRedux } from '@/lib/models/domain'
+import type { RepoCardId } from '@/lib/types/brands'
 
 interface UseNoteModalParams {
   /** Repository cards from Redux store (for looking up card titles) */
@@ -26,7 +27,7 @@ interface UseNoteModalReturn {
   /** Whether the modal is open */
   isOpen: boolean
   /** Currently selected card ID */
-  cardId: string | null
+  cardId: RepoCardId | null
   /** Card title for display */
   cardTitle: string
   /** Initial note content */
@@ -34,7 +35,7 @@ interface UseNoteModalReturn {
   /** Initial links from database */
   initialLinks: ProjectLink[]
   /** Open modal for a specific card */
-  open: (cardId: string) => Promise<void>
+  open: (cardId: RepoCardId) => Promise<void>
   /** Close modal and reset state */
   close: () => void
   /** Save note and links to database */
@@ -70,7 +71,7 @@ export function useNoteModal({
   repoCards,
 }: UseNoteModalParams): UseNoteModalReturn {
   const [isOpen, setIsOpen] = useState(false)
-  const [cardId, setCardId] = useState<string | null>(null)
+  const [cardId, setCardId] = useState<RepoCardId | null>(null)
   const [cardTitle, setCardTitle] = useState('')
   const [initialNote, setInitialNote] = useState('')
   const [initialLinks, setInitialLinks] = useState<ProjectLink[]>([])
@@ -80,7 +81,7 @@ export function useNoteModal({
    * Fetches current note and links from Supabase
    */
   const open = useCallback(
-    async (targetCardId: string) => {
+    async (targetCardId: RepoCardId) => {
       const card = repoCards.find((c) => c.id === targetCardId)
       if (!card) return
 

@@ -15,6 +15,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { RepoCard } from '@/components/Board/RepoCard'
+import { toRepoCardId, toStatusListId } from '@/lib/types/brands'
 
 // Mock @dnd-kit/sortable
 vi.mock('@dnd-kit/sortable', () => ({
@@ -138,10 +139,10 @@ describe('RepoCard', () => {
   const mockOnCommentDelete = vi.fn()
 
   const defaultCard = {
-    id: 'card-1',
+    id: toRepoCardId('card-1'),
     title: 'test-repo',
     description: 'A test repository',
-    statusId: 'status-1',
+    statusId: toStatusListId('status-1'),
     repoOwner: 'laststance',
     repoName: 'gitbox',
     tags: ['typescript', 'react'],
@@ -478,9 +479,9 @@ describe('RepoCard', () => {
 
     it('should handle minimal card data', () => {
       const minimalCard = {
-        id: 'card-min',
+        id: toRepoCardId('card-min'),
         title: 'Minimal',
-        statusId: 'status-1',
+        statusId: toStatusListId('status-1'),
       }
       render(<RepoCard card={minimalCard} />)
 

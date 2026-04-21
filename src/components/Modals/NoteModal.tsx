@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog'
 import { type ProjectLink } from '@/components/ui/editable-url-item'
 import { useNoteModalDraft } from '@/hooks/board/useNoteModalDraft'
+import type { RepoCardId } from '@/lib/types/brands'
 
 interface NoteModalProps {
   /** Whether the modal is open */
@@ -25,7 +26,7 @@ interface NoteModalProps {
   /** Callback to save note and links to Supabase */
   onSave: (note: string, links: ProjectLink[]) => Promise<void>
   /** Card ID for draft state management */
-  cardId: string
+  cardId: RepoCardId
   /** Initial note value from Supabase */
   initialNote: string
   /** Initial links value from Supabase */

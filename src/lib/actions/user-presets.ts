@@ -15,6 +15,12 @@ import {
 } from '@/lib/actions/auth-guard'
 import { labelToValue } from '@/lib/constants/link-presets'
 import type { TablesInsert } from '@/lib/supabase/types'
+import { toUserLinkPresetId, type UserLinkPresetId } from '@/lib/types/brands'
+import type {
+  LinkPresetLabel,
+  LinkPresetValue,
+  LucideIconName,
+} from '@/lib/types/domain-primitives'
 import {
   presetValueSchema,
   presetLabelSchema,
@@ -29,10 +35,10 @@ type UserLinkPresetInsert = TablesInsert<'user_link_presets'>
  * User preset data returned by getUserPresets
  */
 export interface UserPreset {
-  id: string
-  value: string
-  label: string
-  icon: string
+  id: UserLinkPresetId
+  value: LinkPresetValue
+  label: LinkPresetLabel
+  icon: LucideIconName
 }
 
 /**
@@ -60,7 +66,7 @@ export async function getUserPresets(): Promise<ActionResult<UserPreset[]>> {
     }
 
     return (data || []).map((row) => ({
-      id: row.id,
+      id: toUserLinkPresetId(row.id),
       value: row.value,
       label: row.label,
       icon: row.icon || 'Link',
@@ -81,8 +87,8 @@ export async function getUserPresets(): Promise<ActionResult<UserPreset[]>> {
  * // Returns: { id: '...', value: 'my-custom-service', label: 'My Custom Service', icon: 'Star' }
  */
 export async function createUserPreset(
-  label: string,
-  icon?: string,
+  label: LinkPresetLabel,
+  icon?: LucideIconName,
 ): Promise<ActionResult<UserPreset>> {
   // Validate inputs before auth (fast fail)
   const labelResult = presetLabelSchema.safeParse(label)
@@ -155,7 +161,7 @@ export async function createUserPreset(
     }
 
     return {
-      id: data.id,
+      id: toUserLinkPresetId(data.id),
       value: data.value,
       label: data.label,
       icon: data.icon || 'Link',

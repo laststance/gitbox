@@ -30,21 +30,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import type { RepoCardId } from '@/lib/types/brands'
 
 interface OverflowMenuProps {
-  cardId: string
+  cardId: RepoCardId
   repoOwner?: string
   repoName?: string
   productionUrl?: string
   trackingUrl?: string
   supabaseUrl?: string
-  onMoveToMaintenance?: (id: string) => void
-  onMoveToAnotherBoard?: (id: string) => void
-  onRestoreToBoard?: (id: string) => void
+  onMoveToMaintenance?: (id: RepoCardId) => void
+  onMoveToAnotherBoard?: (id: RepoCardId) => void
+  onRestoreToBoard?: (id: RepoCardId) => void
   /** Callback when repository is removed from board */
-  onRemove?: (id: string) => void
+  onRemove?: (id: RepoCardId) => void
   /** Callback when maintenance item is permanently deleted */
-  onDelete?: (id: string) => void
+  onDelete?: (id: RepoCardId) => void
   open?: boolean
   onOpenChange?: (open: boolean) => void
   /** Board or Maintenance context */
