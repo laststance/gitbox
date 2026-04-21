@@ -40,6 +40,9 @@ import { SortableBoardCard } from './SortableBoardCard'
 
 type Board = Tables<'board'>
 
+const updateBoardById = (boards: Board[], id: string, patch: Partial<Board>) =>
+  boards.map((b) => (b.id === id ? { ...b, ...patch } : b))
+
 /**
  * Action types for optimistic updates
  */
@@ -83,15 +86,13 @@ export const BoardGrid = memo(function BoardGrid({
     (state: Board[], action: OptimisticAction): Board[] =>
       match(action)
         .with({ type: 'rename' }, ({ boardId, newName }) =>
-          state.map((b) => (b.id === boardId ? { ...b, name: newName } : b)),
+          updateBoardById(state, boardId, { name: newName }),
         )
         .with({ type: 'delete' }, ({ boardId }) =>
           state.filter((b) => b.id !== boardId),
         )
         .with({ type: 'toggleFavorite' }, ({ boardId, isFavorite }) =>
-          state.map((b) =>
-            b.id === boardId ? { ...b, is_favorite: isFavorite } : b,
-          ),
+          updateBoardById(state, boardId, { is_favorite: isFavorite }),
         )
         .with({ type: 'reorder' }, ({ boards }) => boards)
         .exhaustive(),
@@ -121,7 +122,7 @@ export const BoardGrid = memo(function BoardGrid({
     (boardId: string, newName: string) => {
       updateOptimisticBoards({ type: 'rename', boardId, newName })
       setLocalBoards((prev) =>
-        prev.map((b) => (b.id === boardId ? { ...b, name: newName } : b)),
+        updateBoardById(prev, boardId, { name: newName }),
       )
     },
     [updateOptimisticBoards],
@@ -139,9 +140,7 @@ export const BoardGrid = memo(function BoardGrid({
     (boardId: string, isFavorite: boolean) => {
       updateOptimisticBoards({ type: 'toggleFavorite', boardId, isFavorite })
       setLocalBoards((prev) =>
-        prev.map((b) =>
-          b.id === boardId ? { ...b, is_favorite: isFavorite } : b,
-        ),
+        updateBoardById(prev, boardId, { is_favorite: isFavorite }),
       )
     },
     [updateOptimisticBoards],
