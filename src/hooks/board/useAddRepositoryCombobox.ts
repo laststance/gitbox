@@ -62,12 +62,9 @@ export function useAddRepositoryCombobox({
     useState<StatusListId | null>(null)
   const [isOpen, setIsOpen] = useState(false)
 
-  // Derived: user selection or first available column
-  // No useEffect needed - computed directly from state
   const statusId = useMemo<StatusListId | ''>(() => {
     if (userSelectedStatusId) return userSelectedStatusId
-    if (statusLists.length > 0) return statusLists[0]?.id ?? ''
-    return ''
+    return statusLists[0]?.id ?? ''
   }, [userSelectedStatusId, statusLists])
 
   /**

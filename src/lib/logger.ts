@@ -16,57 +16,16 @@
 
 import pino from 'pino'
 
-/**
- * Determines if the logger should use pretty printing.
- * Uses human-readable format in development, JSON in production.
- *
- * @returns {boolean} Whether to use pretty printing
- */
-const isDevelopment = (): boolean => {
-  return process.env.NODE_ENV === 'development'
-}
-
-/**
- * Creates a Pino logger instance with appropriate configuration.
- *
- * @returns {pino.Logger} Configured Pino logger
- *
- * @example
- * // Log levels available:
- * logger.debug({ data }, 'Debug message')    // Level 20
- * logger.info({ data }, 'Info message')      // Level 30
- * logger.warn({ data }, 'Warning message')   // Level 40
- * logger.error({ error }, 'Error message')   // Level 50
- * logger.fatal({ error }, 'Fatal error')     // Level 60
- */
-const createLogger = (): pino.Logger => {
-  // Note: pino-pretty transport doesn't work with Next.js Turbopack
-  // Use JSON format for all environments, pipe to pino-pretty CLI if needed:
-  // `pnpm dev 2>&1 | pnpm exec pino-pretty`
-  return pino({
-    level: isDevelopment() ? 'debug' : 'info',
-    formatters: {
-      level: (label) => ({ level: label }),
-    },
-    timestamp: pino.stdTimeFunctions.isoTime,
-  })
-}
-
-/**
- * Main logger instance for server-side code.
- *
- * @example
- * // Basic usage
- * logger.info('Server started')
- *
- * // With context object
- * logger.error({ error, userId }, 'Failed to process request')
- *
- * // Creating child logger with bound context
- * const childLogger = logger.child({ module: 'board' })
- * childLogger.info({ boardId }, 'Board loaded')
- */
-export const logger = createLogger()
+// Note: pino-pretty transport doesn't work with Next.js Turbopack.
+// Use JSON format for all environments, pipe to pino-pretty CLI if needed:
+// `pnpm dev 2>&1 | pnpm exec pino-pretty`
+export const logger = pino({
+  level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
+  formatters: {
+    level: (label) => ({ level: label }),
+  },
+  timestamp: pino.stdTimeFunctions.isoTime,
+})
 
 /**
  * Creates a child logger with module context.

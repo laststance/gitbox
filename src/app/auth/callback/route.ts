@@ -89,20 +89,14 @@ export async function GET(request: Request) {
         await createFirstBoardIfNeeded(data.session.user.id)
       }
 
-      // Session established successfully - redirect to Boards screen
+      // Session established successfully - redirect to Boards screen.
+      // In production, honor x-forwarded-host (e.g., behind Vercel proxy) so the
+      // redirect targets the public host rather than the internal origin.
       const forwardedHost = request.headers.get('x-forwarded-host')
       const isLocalEnv = process.env.NODE_ENV === 'development'
-
-      if (isLocalEnv) {
-        // Redirect to localhost in local environment
-        return NextResponse.redirect(`${origin}${next}`)
-      } else if (forwardedHost) {
-        // Use x-forwarded-host in production environment
-        return NextResponse.redirect(`https://${forwardedHost}${next}`)
-      } else {
-        // Fallback
-        return NextResponse.redirect(`${origin}${next}`)
-      }
+      const base =
+        !isLocalEnv && forwardedHost ? `https://${forwardedHost}` : origin
+      return NextResponse.redirect(`${base}${next}`)
     } catch (error) {
       log.error({ error }, 'Unexpected error in OAuth callback')
       return NextResponse.redirect(`${origin}/login?error=unexpected_error`)

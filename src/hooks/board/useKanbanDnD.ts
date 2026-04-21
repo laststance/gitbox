@@ -333,13 +333,9 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const { active } = event
     setActiveId(active.id)
-
-    const dragData = active.data.current
-    if (dragData?.type === COLUMN_DRAG_TYPE) {
-      setActiveDragType('column')
-    } else {
-      setActiveDragType('card')
-    }
+    setActiveDragType(
+      active.data.current?.type === COLUMN_DRAG_TYPE ? 'column' : 'card',
+    )
   }, [])
 
   /** Handle drag end — dispatches to column/card sub-handlers */
@@ -386,29 +382,24 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
       const activeCard = cards.find((c) => c.id === active.id)
       if (!activeCard) return
 
-      // Resolve target column
-      // Target statuses come from several untyped sources (`over.data.current`,
-      // stringified drop IDs), so we brand once here and trust it downstream.
-      let targetStatusId: StatusListId
+      // Resolve target column. Target statuses come from several untyped sources
+      // (`over.data.current`, stringified drop IDs), so we brand once and trust it downstream.
       const overData = over.data.current
-      if (overData?.type === 'column' && overData?.statusId) {
-        targetStatusId = overData.statusId as StatusListId
-      } else {
-        const overCard = cards.find((c) => c.id === over.id)
-        if (overCard) {
-          targetStatusId = overCard.statusId
-        } else {
-          const overId = over.id.toString()
-          if (overId.startsWith('droppable-')) {
-            targetStatusId = overId.replace('droppable-', '') as StatusListId
-          } else {
-            const overStatus = statuses.find((s) => s.id === overId)
-            targetStatusId = overStatus
-              ? (overId as StatusListId)
-              : activeCard.statusId
-          }
+      const resolveTargetStatusId = (): StatusListId => {
+        if (overData?.type === 'column' && overData?.statusId) {
+          return overData.statusId as StatusListId
         }
+        const overCard = cards.find((c) => c.id === over.id)
+        if (overCard) return overCard.statusId
+
+        const overId = over.id.toString()
+        if (overId.startsWith('droppable-')) {
+          return overId.replace('droppable-', '') as StatusListId
+        }
+        const overStatus = statuses.find((s) => s.id === overId)
+        return overStatus ? (overId as StatusListId) : activeCard.statusId
       }
+      const targetStatusId = resolveTargetStatusId()
 
       // Save card history for undo
       pushCardHistory(cards)

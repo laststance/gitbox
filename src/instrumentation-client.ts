@@ -22,34 +22,23 @@ const DISABLED_HOSTNAMES = ['localhost', '127.0.0.1'] as const
  * // On Vercel preview deployment -> false
  * // On gitbox-laststance.vercel.app (production) -> true
  */
-const isSentryEnabled = (): boolean => {
-  // Server-side rendering check
-  if (typeof window === 'undefined') {
-    return false
-  }
+function isSentryEnabled(): boolean {
+  if (typeof window === 'undefined') return false
 
-  // Check Vercel environment first (most reliable)
-  // NEXT_PUBLIC_VERCEL_ENV is automatically set by Vercel: 'production' | 'preview' | 'development'
+  // NEXT_PUBLIC_VERCEL_ENV is automatically set by Vercel
   const vercelEnv = process.env.NEXT_PUBLIC_VERCEL_ENV
-  if (vercelEnv) {
-    return vercelEnv === 'production'
-  }
+  if (vercelEnv) return vercelEnv === 'production'
 
   const hostname = window.location.hostname
-
-  // Disable on localhost and local IP addresses
   if (
     DISABLED_HOSTNAMES.includes(hostname as (typeof DISABLED_HOSTNAMES)[number])
   ) {
     return false
   }
-
-  // Disable on any local network address (192.168.x.x, 10.x.x.x, etc.)
+  // Disable on local network addresses (192.168.x.x, 10.x.x.x)
   if (hostname.startsWith('192.168.') || hostname.startsWith('10.')) {
     return false
   }
-
-  // Fallback: only enable for production-like domains
   return true
 }
 

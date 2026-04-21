@@ -18,7 +18,6 @@ import { type CommentSaveOptions } from './CommentInlineEdit'
 import { CommentSection } from './CommentSection'
 import { OverflowMenu } from './OverflowMenu'
 
-// Types
 interface RepoCardData {
   id: RepoCardId
   title: string

@@ -18,6 +18,13 @@ import { getGitHubTokenCookieName } from '@/lib/constants/cookies'
 
 const GITHUB_API_BASE_URL = 'https://api.github.com'
 
+function isE2ETestMode(): boolean {
+  return (
+    process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK === 'true' &&
+    (process.env.APP_ENV === 'test' || process.env.NODE_ENV === 'test')
+  )
+}
+
 /**
  * Creates an axios instance configured for GitHub API requests.
  *
@@ -58,10 +65,7 @@ export function createGitHubAxios(): AxiosInstance {
       config: InternalAxiosRequestConfig,
     ): Promise<InternalAxiosRequestConfig> => {
       // E2E test mode: Use mock token for MSW interception
-      if (
-        process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK === 'true' &&
-        (process.env.APP_ENV === 'test' || process.env.NODE_ENV === 'test')
-      ) {
+      if (isE2ETestMode()) {
         config.headers.Authorization =
           'Bearer mock-github-provider-token-for-testing'
         return config
@@ -120,12 +124,7 @@ export function createGitHubAxios(): AxiosInstance {
  */
 export async function hasGitHubToken(): Promise<boolean> {
   // E2E test mode: Always has token (mock)
-  if (
-    process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK === 'true' &&
-    (process.env.APP_ENV === 'test' || process.env.NODE_ENV === 'test')
-  ) {
-    return true
-  }
+  if (isE2ETestMode()) return true
 
   const cookieStore = await cookies()
   const cookieName = getGitHubTokenCookieName()

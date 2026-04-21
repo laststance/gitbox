@@ -109,51 +109,24 @@ const IconRenderer = memo(function IconRenderer({
 })
 
 /**
- * Get display label for a value
- *
- * @param value - The value to look up
- * @param userPresets - User-defined presets to check
- * @returns Display label or the value itself if not found
+ * Resolve display label and icon name for a value from built-in or user presets.
+ * Falls back to Title Case label and 'Link' icon when no preset matches.
  */
-function getDisplayLabel(
+function resolvePresetDisplay(
   value: string,
   userPresets: UserPresetOption[] = [],
-): string {
-  // Check built-in presets
+): { label: string; icon: string } {
   const builtIn = findPresetByValue(value)
-  if (builtIn) return builtIn.label
+  if (builtIn) return { label: builtIn.label, icon: builtIn.icon }
 
-  // Check user presets
   const userPreset = userPresets.find((p) => p.value === value)
-  if (userPreset) return userPreset.label
+  if (userPreset) return { label: userPreset.label, icon: userPreset.icon }
 
-  // Fallback: convert kebab-case to Title Case
-  return value
+  const fallbackLabel = value
     .split('-')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')
-}
-
-/**
- * Get icon name for a value
- *
- * @param value - The value to look up
- * @param userPresets - User-defined presets to check
- * @returns Icon name or 'Link' as default
- */
-function getIconName(
-  value: string,
-  userPresets: UserPresetOption[] = [],
-): string {
-  // Check built-in presets
-  const builtIn = findPresetByValue(value)
-  if (builtIn) return builtIn.icon
-
-  // Check user presets
-  const userPreset = userPresets.find((p) => p.value === value)
-  if (userPreset) return userPreset.icon
-
-  return 'Link'
+  return { label: fallbackLabel, icon: 'Link' }
 }
 
 /**
@@ -179,16 +152,10 @@ export const LinkTypeCombobox = memo(function LinkTypeCombobox({
 }: LinkTypeComboboxProps) {
   const [open, setOpen] = useState(false)
 
-  // Memoize grouped presets
   const presetsByCategory = useMemo(() => getPresetsByCategory(), [])
 
-  // Get current selection display
-  const displayLabel = useMemo(
-    () => getDisplayLabel(value, userPresets),
-    [value, userPresets],
-  )
-  const iconName = useMemo(
-    () => getIconName(value, userPresets),
+  const { label: displayLabel, icon: iconName } = useMemo(
+    () => resolvePresetDisplay(value, userPresets),
     [value, userPresets],
   )
 
@@ -200,7 +167,6 @@ export const LinkTypeCombobox = memo(function LinkTypeCombobox({
     [onValueChange],
   )
 
-  // Ref for CommandList to enable manual scroll
   const listRef = useRef<HTMLDivElement>(null)
 
   /**

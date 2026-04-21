@@ -58,10 +58,12 @@ import { useMaintenanceNoteModal } from './hooks/useMaintenanceNoteModal'
 import { useMaintenanceViewState } from './hooks/useMaintenanceViewState'
 import { useRestoreDialog } from './hooks/useRestoreDialog'
 
-/** Base styles for view mode toggle button */
-const VIEW_TOGGLE_BASE = 'rounded-md p-2 transition-colors'
-const VIEW_TOGGLE_SELECTED = 'bg-primary text-primary-foreground'
-const VIEW_TOGGLE_UNSELECTED = 'hover:bg-muted'
+/** Styles for view mode toggle button, indexed by selected state. */
+const VIEW_TOGGLE_CLASS = {
+  selected:
+    'rounded-md p-2 transition-colors bg-primary text-primary-foreground',
+  unselected: 'rounded-md p-2 transition-colors hover:bg-muted',
+} as const
 
 export interface MaintenanceRepo {
   id: string
@@ -205,9 +207,10 @@ export const MaintenanceClient = memo(function MaintenanceClient({
     )
   }
 
-  const gridToggleClassName = `${VIEW_TOGGLE_BASE} ${viewMode === 'grid' ? VIEW_TOGGLE_SELECTED : VIEW_TOGGLE_UNSELECTED}`
-
-  const listToggleClassName = `${VIEW_TOGGLE_BASE} ${viewMode === 'list' ? VIEW_TOGGLE_SELECTED : VIEW_TOGGLE_UNSELECTED}`
+  const gridToggleClassName =
+    VIEW_TOGGLE_CLASS[viewMode === 'grid' ? 'selected' : 'unselected']
+  const listToggleClassName =
+    VIEW_TOGGLE_CLASS[viewMode === 'list' ? 'selected' : 'unselected']
 
   return (
     <LazyMotion features={domAnimation}>

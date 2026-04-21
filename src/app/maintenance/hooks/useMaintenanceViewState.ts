@@ -45,27 +45,27 @@ export function useMaintenanceViewState({
     [repos, search],
   )
 
-  // Sort repos
-  const sortedRepos = useMemo(() => {
-    const sorted = [...filteredRepos].sort((a, b) => {
-      const comparison = match(sortBy)
-        .with('name', () =>
-          `${a.repo_owner}/${a.repo_name}`.localeCompare(
-            `${b.repo_owner}/${b.repo_name}`,
-          ),
-        )
-        .with(
-          'updated',
-          () =>
-            new Date(b.updated_at || 0).getTime() -
-            new Date(a.updated_at || 0).getTime(),
-        )
-        .with('stars', () => (b.meta?.stars || 0) - (a.meta?.stars || 0))
-        .exhaustive()
-      return sortAsc ? -comparison : comparison
-    })
-    return sorted
-  }, [filteredRepos, sortBy, sortAsc])
+  const sortedRepos = useMemo(
+    () =>
+      [...filteredRepos].sort((a, b) => {
+        const comparison = match(sortBy)
+          .with('name', () =>
+            `${a.repo_owner}/${a.repo_name}`.localeCompare(
+              `${b.repo_owner}/${b.repo_name}`,
+            ),
+          )
+          .with(
+            'updated',
+            () =>
+              new Date(b.updated_at || 0).getTime() -
+              new Date(a.updated_at || 0).getTime(),
+          )
+          .with('stars', () => (b.meta?.stars || 0) - (a.meta?.stars || 0))
+          .exhaustive()
+        return sortAsc ? -comparison : comparison
+      }),
+    [filteredRepos, sortBy, sortAsc],
+  )
 
   return {
     viewMode,

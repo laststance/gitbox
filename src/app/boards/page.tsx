@@ -10,11 +10,10 @@ import * as Sentry from '@sentry/nextjs'
 import { Plus } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
 
 import { BoardGrid } from '@/components/Boards'
 import { Button } from '@/components/ui/button'
-import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/require-user'
 
 import { BoardsPageHeader } from './BoardsPageHeader'
 
@@ -24,18 +23,7 @@ export const metadata: Metadata = {
 }
 
 export default async function BoardsPage() {
-  const supabase = await createClient()
-
-  // Authentication check (also done in middleware, but double-check)
-  // IMPORTANT: Use getUser() not getSession() for secure server-side validation
-  // getSession() reads from cookies without verification, getUser() validates with Auth server
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
+  const { supabase, user } = await requireUser()
 
   // Fetch boards and user settings in parallel
   const [boardsResult, settingsResult] = await Promise.all([

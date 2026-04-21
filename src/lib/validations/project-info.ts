@@ -184,25 +184,10 @@ const legacyLinksSchema = z.object({
 function normalizeLegacyLinks(
   legacy: z.infer<typeof legacyLinksSchema>,
 ): ProjectLinkInput[] {
-  const result: ProjectLinkInput[] = []
-
-  if (legacy.production) {
-    for (const url of legacy.production) {
-      result.push({ type: 'production', url })
-    }
-  }
-  if (legacy.tracking) {
-    for (const url of legacy.tracking) {
-      result.push({ type: 'tracking', url })
-    }
-  }
-  if (legacy.supabase) {
-    for (const url of legacy.supabase) {
-      result.push({ type: 'supabase', url })
-    }
-  }
-
-  return result
+  const types = ['production', 'tracking', 'supabase'] as const
+  return types.flatMap((type) =>
+    (legacy[type] ?? []).map((url) => ({ type, url })),
+  )
 }
 
 /**
@@ -233,74 +218,38 @@ export const linksInputSchema = z
 // Validation Helper Functions
 // ========================================
 
-/**
- * Validate note content and return result.
- * Drop-in replacement for the old validateNote function.
- *
- * @param note - Note content to validate
- * @returns Validation result with success/error
- */
-export function validateNoteWithSchema(note: string): {
+interface ValidationResult {
   success: boolean
   error?: string
-} {
-  const result = noteSchema.safeParse(note)
-  if (result.success) {
-    return { success: true }
-  }
+}
+
+function runSchemaValidation(
+  schema: z.ZodTypeAny,
+  value: unknown,
+): ValidationResult {
+  const result = schema.safeParse(value)
+  if (result.success) return { success: true }
   return { success: false, error: result.error.issues[0]?.message }
 }
 
-/**
- * Validate comment content and return result.
- * Drop-in replacement for the old validateComment function.
- *
- * @param comment - Comment content to validate
- * @returns Validation result with success/error
- */
-export function validateCommentWithSchema(comment: string): {
-  success: boolean
-  error?: string
-} {
-  const result = commentSchema.safeParse(comment)
-  if (result.success) {
-    return { success: true }
-  }
-  return { success: false, error: result.error.issues[0]?.message }
+/** Validate note content (rich text). */
+export function validateNoteWithSchema(note: string): ValidationResult {
+  return runSchemaValidation(noteSchema, note)
 }
 
-/**
- * Validate comment color and return result.
- * Drop-in replacement for the old validateCommentColor function.
- *
- * @param color - Color to validate
- * @returns Validation result with success/error
- */
-export function validateCommentColorWithSchema(color: string): {
-  success: boolean
-  error?: string
-} {
-  const result = commentColorSchema.safeParse(color)
-  if (result.success) {
-    return { success: true }
-  }
-  return { success: false, error: result.error.issues[0]?.message }
+/** Validate comment content (plain text). */
+export function validateCommentWithSchema(comment: string): ValidationResult {
+  return runSchemaValidation(commentSchema, comment)
 }
 
-/**
- * Validate URL and return result.
- * Drop-in replacement for the old validateUrl function.
- *
- * @param url - URL to validate
- * @returns Validation result with success/error
- */
-export function validateUrlWithSchema(url: string): {
-  success: boolean
-  error?: string
-} {
-  const result = projectLinkUrlSchema.safeParse(url)
-  if (result.success) {
-    return { success: true }
-  }
-  return { success: false, error: result.error.issues[0]?.message }
+/** Validate comment color. */
+export function validateCommentColorWithSchema(
+  color: string,
+): ValidationResult {
+  return runSchemaValidation(commentColorSchema, color)
+}
+
+/** Validate project link URL. */
+export function validateUrlWithSchema(url: string): ValidationResult {
+  return runSchemaValidation(projectLinkUrlSchema, url)
 }

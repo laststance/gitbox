@@ -9,10 +9,9 @@
  */
 
 import type { Metadata } from 'next'
-import { redirect } from 'next/navigation'
 
+import { requireUser } from '@/lib/auth/require-user'
 import { createModuleLogger } from '@/lib/logger'
-import { createClient } from '@/lib/supabase/server'
 
 import { MaintenanceClient, type MaintenanceRepo } from './MaintenanceClient'
 
@@ -24,15 +23,7 @@ export const metadata: Metadata = {
 const log = createModuleLogger('maintenance')
 
 export default async function MaintenancePage() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
+  const { supabase, user } = await requireUser()
 
   // Fetch maintenance repos from the maintenance table
   const { data: maintenanceData, error } = await supabase

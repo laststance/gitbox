@@ -7,9 +7,8 @@
  */
 
 import type { Metadata } from 'next'
-import { redirect } from 'next/navigation'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/require-user'
 
 import { CreateBoardForm } from './CreateBoardForm'
 
@@ -19,16 +18,7 @@ export const metadata: Metadata = {
 }
 
 export default async function NewBoardPage() {
-  const supabase = await createClient()
-
-  // Authentication check
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
+  await requireUser()
 
   return (
     <div className="bg-background min-h-screen">

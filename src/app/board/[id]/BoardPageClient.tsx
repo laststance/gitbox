@@ -273,23 +273,14 @@ export const BoardPageClient = memo(function BoardPageClient({
                   initialData.maintenanceRepoIdentifiers
                 }
                 onRepositoriesAdded={(createdCards: CreatedRepoCard[]) => {
-                  // Optimistic UI update: Add cards to Redux state immediately
-                  // No page reload needed - cards appear instantly
+                  // Optimistic UI update: cards appear instantly without a reload.
                   const newCards: RepoCardForRedux[] = createdCards.map(
                     (card) => ({
-                      id: card.id,
+                      ...card,
                       title: `${card.repoOwner}/${card.repoName}`,
                       description:
                         (card.meta as { description?: string })?.description ||
                         '',
-                      statusId: card.statusId,
-                      boardId: card.boardId,
-                      repoOwner: card.repoOwner,
-                      repoName: card.repoName,
-                      order: card.order,
-                      meta: card.meta,
-                      createdAt: card.createdAt,
-                      updatedAt: card.updatedAt,
                     }),
                   )
                   dispatch(addRepoCards(newCards))
@@ -410,19 +401,16 @@ export const BoardPageClient = memo(function BoardPageClient({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Column</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete &quot;
-              {statusListDialog.pendingDeleteStatusTitle}
-              &quot;?
               {(() => {
                 const cardCount = repoCards.filter(
                   (c) => c.statusId === statusListDialog.pendingDeleteStatusId,
                 ).length
-                if (cardCount > 0) {
-                  return ` This will also remove ${cardCount} card${cardCount !== 1 ? 's' : ''} in this column.`
-                }
-                return ''
-              })()}{' '}
-              This action cannot be undone.
+                const cardSuffix =
+                  cardCount > 0
+                    ? ` This will also remove ${cardCount} card${cardCount !== 1 ? 's' : ''} in this column.`
+                    : ''
+                return `Are you sure you want to delete "${statusListDialog.pendingDeleteStatusTitle}"?${cardSuffix} This action cannot be undone.`
+              })()}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -13,23 +13,13 @@ import * as Sentry from '@sentry/nextjs'
  *
  * @returns {boolean} Whether Sentry should be enabled
  */
-const isSentryEnabled = (): boolean => {
+function isSentryEnabled(): boolean {
   // Vercel provides VERCEL_ENV: 'production' | 'preview' | 'development'
   if (process.env.VERCEL_ENV) {
     return process.env.VERCEL_ENV === 'production'
   }
-
-  // Local development or E2E tests
-  if (process.env.NODE_ENV === 'development') {
-    return false
-  }
-
-  // E2E test environment (APP_ENV=test with production build)
-  if (process.env.APP_ENV === 'test') {
-    return false
-  }
-
-  // Fallback: only enable if NODE_ENV is production
+  // Disable for local dev and E2E test builds (APP_ENV=test on production build)
+  if (process.env.APP_ENV === 'test') return false
   return process.env.NODE_ENV === 'production'
 }
 

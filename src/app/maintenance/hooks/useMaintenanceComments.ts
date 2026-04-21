@@ -57,21 +57,15 @@ export function useMaintenanceComments({
     setEditingCommentId(repoId)
   }, [])
 
-  /**
-   * Handle saving a comment with optimistic update
-   */
   const handleCommentSave = useCallback(
     async (repoId: string, newComment: string, options: CommentSaveOptions) => {
-      setComments((prev) => {
-        const existing = prev[repoId]
-        return {
-          ...prev,
-          [repoId]: {
-            comment: newComment,
-            color: existing?.color ?? 'neutral',
-          },
-        }
-      })
+      setComments((prev) => ({
+        ...prev,
+        [repoId]: {
+          comment: newComment,
+          color: prev[repoId]?.color ?? 'neutral',
+        },
+      }))
       await updateMaintenanceComment(repoId, newComment)
       if (options.closeOnSave) {
         setEditingCommentId(null)
@@ -80,33 +74,21 @@ export function useMaintenanceComments({
     [],
   )
 
-  /**
-   * Handle cancelling comment edit
-   */
   const handleCommentCancel = useCallback(() => {
     setEditingCommentId(null)
   }, [])
 
-  /**
-   * Handle color change with optimistic update
-   */
   const handleColorChange = useCallback(
     async (repoId: string, color: CommentColor) => {
-      setComments((prev) => {
-        const existing = prev[repoId]
-        return {
-          ...prev,
-          [repoId]: { color, comment: existing?.comment ?? '' },
-        }
-      })
+      setComments((prev) => ({
+        ...prev,
+        [repoId]: { color, comment: prev[repoId]?.comment ?? '' },
+      }))
       await updateMaintenanceCommentColor(repoId, color)
     },
     [],
   )
 
-  /**
-   * Handle delete with optimistic update
-   */
   const handleCommentDelete = useCallback(async (repoId: string) => {
     setComments((prev) => ({
       ...prev,

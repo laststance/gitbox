@@ -34,42 +34,41 @@ export function useMaintenanceNoteModal() {
   // Guard for async project info fetch - prevents stale data on repo switch
   const activeNoteRepoId = useRef<string | null>(null)
 
+  const resetNoteContent = useCallback(() => {
+    setCurrentNote('')
+    setCurrentLinks([])
+  }, [])
+
   /**
    * Open note modal for a specific repo.
    * Uses activeNoteRepoId ref to guard against stale data on repo switch.
    */
-  const openNoteModal = useCallback((repo: MaintenanceRepo) => {
-    activeNoteRepoId.current = repo.id
-    setSelectedRepoForNote(repo)
-    setNoteModalOpen(true)
-    // Reset state before async load to prevent showing stale data
-    setCurrentNote('')
-    setCurrentLinks([])
-    // Lazy load project info with guard
-    startLoadingProjectInfo(async () => {
-      try {
-        const result = await getMaintenanceProjectInfo(repo.id)
-        // Guard: only update if this repo is still active
-        if (activeNoteRepoId.current !== repo.id) return
-        if (result.success && result.data) {
-          setCurrentNote(result.data.note || '')
-          setCurrentLinks(result.data.links || [])
-        } else {
-          setCurrentNote('')
-          setCurrentLinks([])
-        }
-      } catch {
-        // Guard: only reset if this repo is still active
-        if (activeNoteRepoId.current !== repo.id) return
-        setCurrentNote('')
-        setCurrentLinks([])
-      }
-    })
-  }, [])
+  const openNoteModal = useCallback(
+    (repo: MaintenanceRepo) => {
+      activeNoteRepoId.current = repo.id
+      setSelectedRepoForNote(repo)
+      setNoteModalOpen(true)
+      resetNoteContent()
 
-  /**
-   * Handle saving project info from modal
-   */
+      startLoadingProjectInfo(async () => {
+        try {
+          const result = await getMaintenanceProjectInfo(repo.id)
+          if (activeNoteRepoId.current !== repo.id) return
+          if (result.success && result.data) {
+            setCurrentNote(result.data.note || '')
+            setCurrentLinks(result.data.links || [])
+          } else {
+            resetNoteContent()
+          }
+        } catch {
+          if (activeNoteRepoId.current !== repo.id) return
+          resetNoteContent()
+        }
+      })
+    },
+    [resetNoteContent],
+  )
+
   const handleProjectInfoSave = useCallback(
     async (note: string, links: ProjectLink[]) => {
       if (!selectedRepoForNote) return
@@ -79,22 +78,17 @@ export function useMaintenanceNoteModal() {
       })
       setNoteModalOpen(false)
       setSelectedRepoForNote(null)
-      setCurrentNote('')
-      setCurrentLinks([])
+      resetNoteContent()
     },
-    [selectedRepoForNote],
+    [selectedRepoForNote, resetNoteContent],
   )
 
-  /**
-   * Close the note modal and reset state
-   */
   const closeNoteModal = useCallback(() => {
     setNoteModalOpen(false)
     setSelectedRepoForNote(null)
     activeNoteRepoId.current = null
-    setCurrentNote('')
-    setCurrentLinks([])
-  }, [])
+    resetNoteContent()
+  }, [resetNoteContent])
 
   return {
     noteModalOpen,

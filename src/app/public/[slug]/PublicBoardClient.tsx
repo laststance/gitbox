@@ -187,14 +187,12 @@ const PublicRepoCard = memo(function PublicRepoCard({
                 {card.meta.language}
               </span>
             )}
-            {card.meta.stars !== null &&
-              card.meta.stars !== undefined &&
-              card.meta.stars > 0 && (
-                <span className="flex items-center gap-0.5">
-                  <Star className="h-3 w-3" />
-                  {card.meta.stars.toLocaleString()}
-                </span>
-              )}
+            {typeof card.meta.stars === 'number' && card.meta.stars > 0 && (
+              <span className="flex items-center gap-0.5">
+                <Star className="h-3 w-3" />
+                {card.meta.stars.toLocaleString()}
+              </span>
+            )}
           </div>
         )}
       </CardContent>

@@ -16,104 +16,71 @@ import {
   mockGitHubOrgs,
 } from './data'
 
-// ============================================================================
-// GitHub API Handlers
-// ============================================================================
+/**
+ * Returns a 401 response matching GitHub's shape when no Bearer token is present.
+ * Returns null when the request is authenticated.
+ */
+function requireBearerAuth(request: Request) {
+  const authHeader = request.headers.get('Authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return HttpResponse.json(
+      { message: 'Requires authentication' },
+      { status: 401 },
+    )
+  }
+  return null
+}
 
 export const githubApiHandlers: HttpHandler[] = [
-  /**
-   * GET /user - Get authenticated GitHub user
-   */
   http.get(`${GITHUB_API_URL}/user`, ({ request }) => {
-    const authHeader = request.headers.get('Authorization')
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return HttpResponse.json(
-        { message: 'Requires authentication' },
-        { status: 401 },
-      )
-    }
-
+    const unauthorized = requireBearerAuth(request)
+    if (unauthorized) return unauthorized
     return HttpResponse.json(mockGitHubUser)
   }),
 
-  /**
-   * GET /user/repos - Get authenticated user's repositories
-   */
   http.get(`${GITHUB_API_URL}/user/repos`, ({ request }) => {
-    const authHeader = request.headers.get('Authorization')
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return HttpResponse.json(
-        { message: 'Requires authentication' },
-        { status: 401 },
-      )
-    }
+    const unauthorized = requireBearerAuth(request)
+    if (unauthorized) return unauthorized
 
     const params = getSearchParams(request)
     const sort = params.get('sort') || 'updated'
     const perPage = parseInt(params.get('per_page') || '30', 10)
     const page = parseInt(params.get('page') || '1', 10)
 
-    let repos = [...mockGitHubRepos]
+    const repos = [...mockGitHubRepos]
 
-    // Sort repositories
-    if (sort === 'updated') {
-      repos.sort(
-        (a, b) =>
-          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
-      )
-    } else if (sort === 'created') {
-      repos.sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      )
-    } else if (sort === 'pushed') {
-      repos.sort(
-        (a, b) =>
-          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
-      )
-    } else if (sort === 'full_name') {
-      repos.sort((a, b) => a.full_name.localeCompare(b.full_name))
+    switch (sort) {
+      case 'updated':
+      case 'pushed':
+        repos.sort(
+          (a, b) =>
+            new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+        )
+        break
+      case 'created':
+        repos.sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        )
+        break
+      case 'full_name':
+        repos.sort((a, b) => a.full_name.localeCompare(b.full_name))
+        break
     }
 
-    // Paginate
     const start = (page - 1) * perPage
-    repos = repos.slice(start, start + perPage)
-
-    return HttpResponse.json(repos)
+    return HttpResponse.json(repos.slice(start, start + perPage))
   }),
 
-  /**
-   * GET /user/orgs - Get authenticated user's organizations
-   */
   http.get(`${GITHUB_API_URL}/user/orgs`, ({ request }) => {
-    const authHeader = request.headers.get('Authorization')
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return HttpResponse.json(
-        { message: 'Requires authentication' },
-        { status: 401 },
-      )
-    }
-
+    const unauthorized = requireBearerAuth(request)
+    if (unauthorized) return unauthorized
     return HttpResponse.json(mockGitHubOrgs)
   }),
 
-  /**
-   * GET /orgs/:org/repos - Get organization repositories
-   *
-   * @see https://docs.github.com/en/rest/repos/repos#list-organization-repositories
-   */
   http.get(`${GITHUB_API_URL}/orgs/:org/repos`, ({ params, request }) => {
-    const authHeader = request.headers.get('Authorization')
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return HttpResponse.json(
-        { message: 'Requires authentication' },
-        { status: 401 },
-      )
-    }
+    const unauthorized = requireBearerAuth(request)
+    if (unauthorized) return unauthorized
 
     const { org } = params
     const searchParams = getSearchParams(request)
@@ -121,30 +88,18 @@ export const githubApiHandlers: HttpHandler[] = [
     const page = parseInt(searchParams.get('page') || '1', 10)
 
     const orgRepos = mockGitHubRepos.filter((repo) => repo.owner.login === org)
-
     const start = (page - 1) * perPage
-    const paged = orgRepos.slice(start, start + perPage)
-
-    return HttpResponse.json(paged)
+    return HttpResponse.json(orgRepos.slice(start, start + perPage))
   }),
 
-  /**
-   * GET /repos/:owner/:repo - Get a specific repository
-   */
   http.get(`${GITHUB_API_URL}/repos/:owner/:repo`, ({ params, request }) => {
-    const authHeader = request.headers.get('Authorization')
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return HttpResponse.json(
-        { message: 'Requires authentication' },
-        { status: 401 },
-      )
-    }
+    const unauthorized = requireBearerAuth(request)
+    if (unauthorized) return unauthorized
 
     const { owner, repo } = params
-    const fullName = `${owner}/${repo}`
-
-    const foundRepo = mockGitHubRepos.find((r) => r.full_name === fullName)
+    const foundRepo = mockGitHubRepos.find(
+      (r) => r.full_name === `${owner}/${repo}`,
+    )
 
     if (!foundRepo) {
       return HttpResponse.json({ message: 'Not Found' }, { status: 404 })
@@ -153,18 +108,9 @@ export const githubApiHandlers: HttpHandler[] = [
     return HttpResponse.json(foundRepo)
   }),
 
-  /**
-   * GET /search/repositories - Search repositories
-   */
   http.get(`${GITHUB_API_URL}/search/repositories`, ({ request }) => {
-    const authHeader = request.headers.get('Authorization')
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return HttpResponse.json(
-        { message: 'Requires authentication' },
-        { status: 401 },
-      )
-    }
+    const unauthorized = requireBearerAuth(request)
+    if (unauthorized) return unauthorized
 
     const params = getSearchParams(request)
     const query = params.get('q') || ''

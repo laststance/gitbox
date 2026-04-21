@@ -28,8 +28,7 @@ import type { RepoCardId, StatusListId } from '@/lib/types/brands'
 import { ColumnInsertZone } from './ColumnInsertZone'
 import { NewRowDropZone } from './NewRowDropZone'
 import { SortableColumn } from './SortableColumn'
-
-// Types: Using Domain types for type-safe state management
+import { COLUMN_DRAG_TYPE } from './StatusColumn'
 
 interface KanbanBoardProps {
   boardId?: string
@@ -49,7 +48,6 @@ interface KanbanBoardProps {
   onAddCard?: (statusId: StatusListId) => void
 }
 
-// Main Kanban Board Component
 export const KanbanBoard = memo<KanbanBoardProps>(
   ({
     boardId: _boardId = 'default-board',
@@ -129,6 +127,18 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     }
 
     const activeCard = cards.find((c) => c.id === activeId)
+    const isDraggingColumn = activeDragType === COLUMN_DRAG_TYPE
+
+    // Stable SSR styles avoid hydration mismatch; real grid dimensions apply after mount.
+    const gridStyle: React.CSSProperties = isMounted
+      ? {
+          gridTemplateColumns: `repeat(${gridDimensions.maxCol + 1 + (isDraggingColumn ? 1 : 0)}, minmax(280px, var(--column-width)))`,
+          gridTemplateRows: `repeat(${gridDimensions.maxRow + 1 + (isDraggingColumn ? 1 : 0)}, minmax(min-content, auto))`,
+        }
+      : {
+          gridTemplateColumns: 'repeat(1, minmax(280px, var(--column-width)))',
+          gridTemplateRows: 'repeat(1, auto)',
+        }
 
     return (
       <LazyMotion features={domAnimation}>
@@ -145,21 +155,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
               <div
                 className="grid w-fit min-w-full gap-4 pb-4"
                 suppressHydrationWarning
-                style={
-                  isMounted
-                    ? {
-                        // Add extra column when dragging to allow insertion at end
-                        gridTemplateColumns: `repeat(${gridDimensions.maxCol + 1 + (activeDragType === 'column' ? 1 : 0)}, minmax(280px, var(--column-width)))`,
-                        // Use minmax(min-content, auto) for auto-height expansion (columns grow to fit cards)
-                        gridTemplateRows: `repeat(${gridDimensions.maxRow + 1 + (activeDragType === 'column' ? 1 : 0)}, minmax(min-content, auto))`,
-                      }
-                    : {
-                        // Stable initial styles for SSR hydration
-                        gridTemplateColumns:
-                          'repeat(1, minmax(280px, var(--column-width)))',
-                        gridTemplateRows: 'repeat(1, auto)',
-                      }
-                }
+                style={gridStyle}
               >
                 {/* Render columns only after hydration to prevent SSR mismatch */}
                 {isMounted &&
@@ -199,10 +195,10 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                   ))}
 
                 {/* New Row Drop Zone - only visible during column drag */}
-                {isMounted && activeDragType === 'column' && (
+                {isMounted && isDraggingColumn && (
                   <NewRowDropZone
                     targetRow={gridDimensions.maxRow + 1}
-                    columnCount={gridDimensions.maxCol + 1 + 1} // +1 for expanded grid
+                    columnCount={gridDimensions.maxCol + 2} // +1 end column, +1 0-indexed
                   />
                 )}
               </div>
@@ -210,8 +206,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
 
             {/* DragOverlay for both column and card previews */}
             <DragOverlay>
-              {activeDragType === 'column' && activeId ? (
-                // Column drag preview for 2D grid layout
+              {activeDragType === COLUMN_DRAG_TYPE && activeId && (
                 <div className="bg-background/80 border-primary w-70 max-w-full rotate-2 rounded-xl border-2 p-4 opacity-90 shadow-2xl backdrop-blur-sm">
                   <h3 className="text-foreground font-semibold">
                     {sortedStatuses.find((s) => s.id === activeId)?.title}
@@ -221,8 +216,8 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                     cards
                   </p>
                 </div>
-              ) : activeCard ? (
-                // Card drag preview
+              )}
+              {activeDragType !== 'column' && activeCard && (
                 <Card className="rotate-3 cursor-grabbing opacity-90 shadow-2xl">
                   <CardContent className="p-4">
                     <h4 className="text-foreground font-semibold">
@@ -230,7 +225,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                     </h4>
                   </CardContent>
                 </Card>
-              ) : null}
+              )}
             </DragOverlay>
           </DndContext>
         </div>

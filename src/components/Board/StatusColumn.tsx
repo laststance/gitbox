@@ -22,12 +22,12 @@ import type { RepoCardId, StatusListId } from '@/lib/types/brands'
 import { RepoCard } from './RepoCard'
 
 /**
- * Drag type identifier for cards
- * Used to distinguish card drags from column drags in DndContext
+ * Drag type identifiers used by DndContext to distinguish column vs. card drags.
+ * Kept together so both data-attribute sites can import from one place.
  */
 export const CARD_DRAG_TYPE = 'card'
+export const COLUMN_DRAG_TYPE = 'column'
 
-// Types: Using Domain types for type-safe state management
 interface StatusColumnProps {
   status: StatusListDomain
   cards: RepoCardForRedux[]
@@ -92,7 +92,7 @@ export const StatusColumn = memo<StatusColumnProps>(
     const { setNodeRef, isOver } = useDroppable({
       id: `droppable-${status.id}`,
       data: {
-        type: 'column',
+        type: COLUMN_DRAG_TYPE,
         statusId: status.id,
       },
     })

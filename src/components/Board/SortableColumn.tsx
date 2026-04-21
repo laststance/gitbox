@@ -10,13 +10,10 @@ import type { CommentColor } from '@/lib/supabase/types'
 import type { CardDisplaySettings } from '@/lib/types/board-settings'
 import type { RepoCardId, StatusListId } from '@/lib/types/brands'
 
-import { StatusColumn } from './StatusColumn'
+import { COLUMN_DRAG_TYPE, StatusColumn } from './StatusColumn'
 
-/**
- * Drag type identifier for columns
- * Used to distinguish column drags from card drags in DndContext
- */
-export const COLUMN_DRAG_TYPE = 'column'
+// Re-export so existing consumers (useKanbanDnD) keep working.
+export { COLUMN_DRAG_TYPE }
 
 interface SortableColumnProps {
   status: StatusListDomain

@@ -8,9 +8,8 @@
  */
 
 import type { Metadata } from 'next'
-import { redirect } from 'next/navigation'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/require-user'
 import { toUserId, type UserId } from '@/lib/types/brands'
 import type {
   AvatarUrl,
@@ -39,16 +38,7 @@ export interface UserProfile {
 }
 
 export default async function AccountPage() {
-  const supabase = await createClient()
-
-  // Get current user
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
+  const { supabase, user } = await requireUser()
 
   // Fetch account data counts in parallel
   const [boardsResult, cardsResult, maintenanceResult] = await Promise.all([

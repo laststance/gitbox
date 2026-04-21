@@ -109,36 +109,26 @@ export const updatePresetSchema = z.object({
 // Validation Helper Functions (backward compatibility)
 // ========================================
 
-/**
- * Validate preset value and return result.
- *
- * @param value - Value to validate
- * @returns Validation result with success/error
- */
-export function validatePresetValueWithSchema(value: string): {
+interface ValidationResult {
   success: boolean
   error?: string
-} {
-  const result = presetValueSchema.safeParse(value)
-  if (result.success) {
-    return { success: true }
-  }
+}
+
+function runSchemaValidation(
+  schema: z.ZodTypeAny,
+  value: unknown,
+): ValidationResult {
+  const result = schema.safeParse(value)
+  if (result.success) return { success: true }
   return { success: false, error: result.error.issues[0]?.message }
 }
 
-/**
- * Validate preset label and return result.
- *
- * @param label - Label to validate
- * @returns Validation result with success/error
- */
-export function validatePresetLabelWithSchema(label: string): {
-  success: boolean
-  error?: string
-} {
-  const result = presetLabelSchema.safeParse(label)
-  if (result.success) {
-    return { success: true }
-  }
-  return { success: false, error: result.error.issues[0]?.message }
+/** Validate preset value (kebab-case identifier). */
+export function validatePresetValueWithSchema(value: string): ValidationResult {
+  return runSchemaValidation(presetValueSchema, value)
+}
+
+/** Validate preset label (display name). */
+export function validatePresetLabelWithSchema(label: string): ValidationResult {
+  return runSchemaValidation(presetLabelSchema, label)
 }
