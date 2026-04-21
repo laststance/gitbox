@@ -52,9 +52,27 @@ jobs:
       - name: Start Supabase
         run: |
           cd supabase
-          supabase start
-          # Apply seed data
-          supabase db reset --local
+          MAX_SUPABASE_START_ATTEMPTS=3
+          current_attempt=1
+
+          while [ "$current_attempt" -le "$MAX_SUPABASE_START_ATTEMPTS" ]; do
+            echo "Starting Supabase (attempt ${current_attempt}/${MAX_SUPABASE_START_ATTEMPTS})"
+
+            if supabase start && supabase db reset --local; then
+              echo "Supabase started and reset completed successfully"
+              exit 0
+            fi
+
+            if [ "$current_attempt" -eq "$MAX_SUPABASE_START_ATTEMPTS" ]; then
+              echo "Supabase failed to start after ${MAX_SUPABASE_START_ATTEMPTS} attempts"
+              exit 1
+            fi
+
+            echo "Supabase startup failed. Stopping services and retrying..."
+            supabase stop || true
+            sleep $((current_attempt * 10))
+            current_attempt=$((current_attempt + 1))
+          done
 
       - name: Build application
         run: pnpm build
