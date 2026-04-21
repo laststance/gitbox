@@ -51,10 +51,31 @@ jobs:
       # Start local Supabase (Docker is pre-installed on ubuntu-latest)
       - name: Start Supabase
         run: |
+          set -euo pipefail
           cd supabase
           supabase start
-          # Apply seed data
-          supabase db reset --local
+
+          # Supabase can intermittently timeout while restarting API services
+          # during db reset on busy CI runners. Retry with a clean restart.
+          max_attempts=3
+          for attempt in $(seq 1 "$max_attempts"); do
+            echo "Running 'supabase db reset --local' (attempt ${attempt}/${max_attempts})..."
+            if supabase db reset --local; then
+              echo "Supabase reset succeeded."
+              break
+            fi
+
+            if [ "$attempt" -eq "$max_attempts" ]; then
+              echo "Supabase reset failed after ${max_attempts} attempts."
+              exit 1
+            fi
+
+            echo "Supabase reset failed. Restarting local Supabase and retrying..."
+            supabase stop || true
+            sleep 5
+            supabase start
+            sleep 5
+          done
 
       - name: Build application
         run: pnpm build
