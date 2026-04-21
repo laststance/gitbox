@@ -647,7 +647,12 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             <button
               type="button"
               onClick={handleAddRepositories}
-              disabled={selectedRepos.length === 0 || isLoading}
+              disabled={selectedRepos.length === 0 || isLoading || !statusId}
+              title={
+                !statusId
+                  ? 'Add a column before adding repositories'
+                  : undefined
+              }
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Add ({selectedRepos.length})

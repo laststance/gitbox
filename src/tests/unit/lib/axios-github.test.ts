@@ -160,7 +160,10 @@ describe('axios-github', () => {
         // Vitest/Jest default NODE_ENV to 'test' — trusting it as a signal
         // would accidentally enable the mock-token path in unit tests that
         // run against production code. Gate must require APP_ENV=test too.
-        process.env.APP_ENV = undefined
+        //
+        // `delete` is required: assigning `undefined` coerces to the string
+        // 'undefined' and leaves the key present on process.env.
+        delete process.env.APP_ENV
         ;(process.env as Record<string, string | undefined>).NODE_ENV = 'test'
 
         const mockCookieStore = {
