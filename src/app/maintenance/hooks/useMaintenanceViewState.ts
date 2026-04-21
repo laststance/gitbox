@@ -9,6 +9,7 @@
  */
 
 import { useState, useMemo } from 'react'
+import { match } from 'ts-pattern'
 
 import type { MaintenanceRepo } from '../MaintenanceClient'
 
@@ -47,22 +48,20 @@ export function useMaintenanceViewState({
   // Sort repos
   const sortedRepos = useMemo(() => {
     const sorted = [...filteredRepos].sort((a, b) => {
-      let comparison = 0
-      switch (sortBy) {
-        case 'name':
-          comparison = `${a.repo_owner}/${a.repo_name}`.localeCompare(
+      const comparison = match(sortBy)
+        .with('name', () =>
+          `${a.repo_owner}/${a.repo_name}`.localeCompare(
             `${b.repo_owner}/${b.repo_name}`,
-          )
-          break
-        case 'updated':
-          comparison =
+          ),
+        )
+        .with(
+          'updated',
+          () =>
             new Date(b.updated_at || 0).getTime() -
-            new Date(a.updated_at || 0).getTime()
-          break
-        case 'stars':
-          comparison = (b.meta?.stars || 0) - (a.meta?.stars || 0)
-          break
-      }
+            new Date(a.updated_at || 0).getTime(),
+        )
+        .with('stars', () => (b.meta?.stars || 0) - (a.meta?.stars || 0))
+        .exhaustive()
       return sortAsc ? -comparison : comparison
     })
     return sorted

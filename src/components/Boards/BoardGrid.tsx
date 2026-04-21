@@ -29,6 +29,7 @@ import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import { memo, useCallback, useMemo, useOptimistic, useState } from 'react'
 import { toast } from 'sonner'
+import { match } from 'ts-pattern'
 
 import { Button } from '@/components/ui/button'
 import { updateBoardPositions } from '@/lib/actions/board'
@@ -79,28 +80,21 @@ export const BoardGrid = memo(function BoardGrid({
 
   const [optimisticBoards, updateOptimisticBoards] = useOptimistic(
     localBoards,
-    (state: Board[], action: OptimisticAction): Board[] => {
-      switch (action.type) {
-        case 'rename':
-          return state.map((board) =>
-            board.id === action.boardId
-              ? { ...board, name: action.newName }
-              : board,
-          )
-        case 'delete':
-          return state.filter((board) => board.id !== action.boardId)
-        case 'toggleFavorite':
-          return state.map((board) =>
-            board.id === action.boardId
-              ? { ...board, is_favorite: action.isFavorite }
-              : board,
-          )
-        case 'reorder':
-          return action.boards
-        default:
-          return state
-      }
-    },
+    (state: Board[], action: OptimisticAction): Board[] =>
+      match(action)
+        .with({ type: 'rename' }, ({ boardId, newName }) =>
+          state.map((b) => (b.id === boardId ? { ...b, name: newName } : b)),
+        )
+        .with({ type: 'delete' }, ({ boardId }) =>
+          state.filter((b) => b.id !== boardId),
+        )
+        .with({ type: 'toggleFavorite' }, ({ boardId, isFavorite }) =>
+          state.map((b) =>
+            b.id === boardId ? { ...b, is_favorite: isFavorite } : b,
+          ),
+        )
+        .with({ type: 'reorder' }, ({ boards }) => boards)
+        .exhaustive(),
   )
 
   // DnD state: track which board is currently being dragged
