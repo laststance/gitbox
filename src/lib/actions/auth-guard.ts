@@ -59,8 +59,11 @@ async function getAuthedContext(): Promise<{
   return { supabase, user }
 }
 
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'An unexpected error occurred'
+// Always return a generic message to clients — Sentry.captureException
+// preserves the original error for debugging without leaking stack traces,
+// internal table names, or DB error strings to the browser.
+function toErrorMessage(): string {
+  return 'An unexpected error occurred'
 }
 
 /**
@@ -80,7 +83,7 @@ export async function withAuthResult<T>(
     return { success: true, data }
   } catch (error) {
     Sentry.captureException(error, { extra: { context: 'withAuthResult' } })
-    return { success: false, error: toErrorMessage(error) }
+    return { success: false, error: toErrorMessage() }
   }
 }
 
@@ -110,7 +113,7 @@ export async function withAuthResultRateLimit<T>(
     Sentry.captureException(error, {
       extra: { context: `withAuthResultRateLimit:${rateLimitKey}` },
     })
-    return { success: false, error: toErrorMessage(error) }
+    return { success: false, error: toErrorMessage() }
   }
 }
 

@@ -51,7 +51,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { selectLastVisitedBoard } from '@/lib/redux/slices/boardSlice'
 import { useAppSelector } from '@/lib/redux/store'
-import { toRepoCardId } from '@/lib/types/brands'
+import type { MaintenanceId } from '@/lib/types/brands'
 
 import { useMaintenanceComments } from './hooks/useMaintenanceComments'
 import { useMaintenanceNoteModal } from './hooks/useMaintenanceNoteModal'
@@ -66,7 +66,7 @@ const VIEW_TOGGLE_CLASS = {
 } as const
 
 export interface MaintenanceRepo {
-  id: string
+  id: MaintenanceId
   repo_owner: string
   repo_name: string
   meta: {
@@ -138,7 +138,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
   } = useMaintenanceNoteModal()
 
   // Per-card menu state for OverflowMenu
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [openMenuId, setOpenMenuId] = useState<MaintenanceId | null>(null)
 
   // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -346,7 +346,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
                         {/* Menu */}
                         <div className="absolute top-2 right-2 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
                           <OverflowMenu
-                            cardId={toRepoCardId(repo.id)}
+                            cardId={repo.id}
                             repoOwner={repo.repo_owner}
                             repoName={repo.repo_name}
                             context="maintenance"
@@ -562,7 +562,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
             isOpen={noteModalOpen}
             onClose={closeNoteModal}
             onSave={handleProjectInfoSave}
-            cardId={toRepoCardId(selectedRepoForNote.id)}
+            cardId={selectedRepoForNote.id}
             initialNote={currentNote}
             initialLinks={currentLinks}
             cardTitle={`${selectedRepoForNote.repo_owner}/${selectedRepoForNote.repo_name}`}

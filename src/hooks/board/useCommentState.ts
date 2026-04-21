@@ -11,6 +11,7 @@
  * <SortableColumn comments={comments} onCommentChange={handleCommentChange} />
  */
 
+import * as Sentry from '@sentry/nextjs'
 import { useState, useCallback } from 'react'
 import { toast } from 'sonner'
 
@@ -74,16 +75,29 @@ export function useCommentState(
       const previous = comments[cardId]
       setComments((prev) => ({ ...prev, [cardId]: optimistic(prev[cardId]) }))
 
-      const result = await persist()
-      if (!result.success) {
+      // Rollback helper — used both on `{success:false}` and thrown errors so
+      // a network rejection doesn't leave the UI showing un-persisted state.
+      const rollback = () => {
         setComments((prev) => ({
           ...prev,
           [cardId]: previous ?? DEFAULT_COMMENT,
         }))
         toast.error(errorMessage)
-        return
       }
-      if (successMessage) toast.success(successMessage)
+
+      try {
+        const result = await persist()
+        if (!result.success) {
+          rollback()
+          return
+        }
+        if (successMessage) toast.success(successMessage)
+      } catch (error) {
+        Sentry.captureException(error, {
+          extra: { context: 'useCommentState.applyOptimisticUpdate', cardId },
+        })
+        rollback()
+      }
     },
     [comments],
   )

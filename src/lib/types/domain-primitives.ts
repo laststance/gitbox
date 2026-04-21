@@ -13,9 +13,13 @@
  * GitHub repository visibility — mirrors `Repository.visibility` from the
  * GitHub REST API. Stored on a `RepoCard` under `meta.visibility`.
  *
+ * `'internal'` is the GitHub Enterprise Cloud visibility (repos visible to
+ * all org members but not the public). Treated like `'private'` for access
+ * checks but tagged distinctly in the UI.
+ *
  * @example 'public'
  */
-export type Visibility = 'public' | 'private'
+export type Visibility = 'public' | 'private' | 'internal'
 
 /**
  * Card priority hint (UI-only, not persisted to the DB today).

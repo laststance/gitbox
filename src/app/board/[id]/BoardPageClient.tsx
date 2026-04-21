@@ -65,7 +65,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { Board } from '@/lib/supabase/types'
 import { parseBoardSettings } from '@/lib/types/board-settings'
-import { toBoardId, toStatusListId, type RepoCardId } from '@/lib/types/brands'
+import { toBoardId, type RepoCardId } from '@/lib/types/brands'
 import {
   BOARD_NAME_MAX_LENGTH,
   BOARD_SUBTITLE_MAX_LENGTH,
@@ -262,11 +262,7 @@ export const BoardPageClient = memo(function BoardPageClient({
               {/* Add Repositories - PRD 3.1 */}
               <AddRepositoryCombobox
                 boardId={boardId}
-                statusId={
-                  addRepoCombobox.statusId ||
-                  statusLists[0]?.id ||
-                  toStatusListId('')
-                }
+                statusId={addRepoCombobox.statusId}
                 isOpen={addRepoCombobox.isOpen}
                 onOpenChange={addRepoCombobox.handleOpenChange}
                 maintenanceRepoIdentifiers={

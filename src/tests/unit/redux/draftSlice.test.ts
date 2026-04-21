@@ -14,7 +14,7 @@ import draftSlice, {
   deleteDraftNote,
   selectDraftNote,
 } from '@/lib/redux/slices/draftSlice'
-import { toRepoCardId, type RepoCardId } from '@/lib/types/brands'
+import { toRepoCardId, type CardIdentifier } from '@/lib/types/brands'
 
 describe('draftSlice', () => {
   // Mock Date.now for consistent timestamps
@@ -29,16 +29,19 @@ describe('draftSlice', () => {
     vi.useRealTimers()
   })
 
-  // Type for draft slice state (matches the slice's internal state)
+  // Type for draft slice state (matches the slice's internal state).
+  // Slice keys are the `CardIdentifier` union (board + maintenance) because
+  // draft state is shared across both contexts. Individual drafts are typed
+  // as CardIdentifier too; tests still construct them with RepoCardId values.
   interface DraftNote {
-    cardId: RepoCardId
+    cardId: CardIdentifier
     content: string
     links: { url: string; type: string }[]
     lastModified: number
   }
 
   interface DraftState {
-    notes: Record<RepoCardId, DraftNote>
+    notes: Record<CardIdentifier, DraftNote>
   }
 
   const initialState: DraftState = {

@@ -19,9 +19,12 @@ import { getGitHubTokenCookieName } from '@/lib/constants/cookies'
 const GITHUB_API_BASE_URL = 'https://api.github.com'
 
 function isE2ETestMode(): boolean {
+  // Require BOTH flags to be set explicitly. NODE_ENV is not a reliable
+  // signal — Vitest/Jest default NODE_ENV to 'test' and would otherwise
+  // turn on the mock-token path unintentionally.
   return (
     process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK === 'true' &&
-    (process.env.APP_ENV === 'test' || process.env.NODE_ENV === 'test')
+    process.env.APP_ENV === 'test'
   )
 }
 

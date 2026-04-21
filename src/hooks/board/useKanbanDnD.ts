@@ -383,21 +383,31 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
       if (!activeCard) return
 
       // Resolve target column. Target statuses come from several untyped sources
-      // (`over.data.current`, stringified drop IDs), so we brand once and trust it downstream.
+      // (`over.data.current`, stringified drop IDs), so each branch validates the
+      // resolved ID against the known `statuses` list before branding it.
       const overData = over.data.current
       const resolveTargetStatusId = (): StatusListId => {
-        if (overData?.type === 'column' && overData?.statusId) {
-          return overData.statusId as StatusListId
+        const matchStatus = (id: string): StatusListId | null => {
+          const status = statuses.find((s) => s.id === id)
+          return status ? status.id : null
         }
+
+        if (
+          overData?.type === 'column' &&
+          typeof overData.statusId === 'string'
+        ) {
+          const matched = matchStatus(overData.statusId)
+          if (matched) return matched
+        }
+
         const overCard = cards.find((c) => c.id === over.id)
         if (overCard) return overCard.statusId
 
         const overId = over.id.toString()
-        if (overId.startsWith('droppable-')) {
-          return overId.replace('droppable-', '') as StatusListId
-        }
-        const overStatus = statuses.find((s) => s.id === overId)
-        return overStatus ? (overId as StatusListId) : activeCard.statusId
+        const stripped = overId.startsWith('droppable-')
+          ? overId.slice('droppable-'.length)
+          : overId
+        return matchStatus(stripped) ?? activeCard.statusId
       }
       const targetStatusId = resolveTargetStatusId()
 

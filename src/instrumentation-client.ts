@@ -25,10 +25,9 @@ const DISABLED_HOSTNAMES = ['localhost', '127.0.0.1'] as const
 function isSentryEnabled(): boolean {
   if (typeof window === 'undefined') return false
 
-  // NEXT_PUBLIC_VERCEL_ENV is automatically set by Vercel
-  const vercelEnv = process.env.NEXT_PUBLIC_VERCEL_ENV
-  if (vercelEnv) return vercelEnv === 'production'
-
+  // Hostname guards run before the Vercel env check so dev sessions on
+  // localhost/private networks never emit telemetry even when
+  // NEXT_PUBLIC_VERCEL_ENV is set to 'production'.
   const hostname = window.location.hostname
   if (
     DISABLED_HOSTNAMES.includes(hostname as (typeof DISABLED_HOSTNAMES)[number])
@@ -39,6 +38,11 @@ function isSentryEnabled(): boolean {
   if (hostname.startsWith('192.168.') || hostname.startsWith('10.')) {
     return false
   }
+
+  // NEXT_PUBLIC_VERCEL_ENV is automatically set by Vercel
+  const vercelEnv = process.env.NEXT_PUBLIC_VERCEL_ENV
+  if (vercelEnv) return vercelEnv === 'production'
+
   return true
 }
 

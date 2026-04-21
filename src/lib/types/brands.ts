@@ -82,6 +82,22 @@ export type UserId = Brand<string, 'UserId'>
 export type UserLinkPresetId = Brand<string, 'UserLinkPresetId'>
 
 /**
+ * Union of identifier brands that can appear in shared card UI
+ * (e.g. {@link ./../../components/Board/OverflowMenu.tsx OverflowMenu},
+ * {@link ./../../components/Modals/NoteModal.tsx NoteModal}, draft slice).
+ *
+ * Components that render or forward a card ID through callbacks shouldn't
+ * care whether the card is on a board ({@link RepoCardId}) or archived
+ * ({@link MaintenanceId}) — they just need a stable string key. Callers that
+ * *act* on the ID continue to use the narrower brand (`RepoCardId` inside
+ * board code, `MaintenanceId` inside maintenance code).
+ *
+ * @example
+ * const cardIds: CardIdentifier[] = [toRepoCardId(row.id), toMaintenanceId(row.id)]
+ */
+export type CardIdentifier = RepoCardId | MaintenanceId
+
+/**
  * URL-safe public share slug for a board (`board.share_slug` when not null).
  *
  * Distinct from {@link BoardId} because it travels through the URL path

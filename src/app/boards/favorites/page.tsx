@@ -12,7 +12,6 @@ import Link from 'next/link'
 
 import { BoardGrid } from '@/components/Boards'
 import { requireUser } from '@/lib/auth/require-user'
-import { ROUTES } from '@/lib/constants/routes'
 import type { Tables } from '@/lib/supabase/types'
 
 export const metadata: Metadata = {
@@ -21,7 +20,7 @@ export const metadata: Metadata = {
 }
 
 export default async function FavoritesPage() {
-  const { supabase, user } = await requireUser(ROUTES.HOME)
+  const { supabase, user } = await requireUser()
 
   // Fetch favorite boards
   const { data: boards, error } = (await supabase

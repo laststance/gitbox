@@ -11,11 +11,7 @@ import type { Metadata } from 'next'
 
 import { requireUser } from '@/lib/auth/require-user'
 import { toUserId, type UserId } from '@/lib/types/brands'
-import type {
-  AvatarUrl,
-  GitHubLogin,
-  ISOTimestamp,
-} from '@/lib/types/domain-primitives'
+import type { ISOTimestamp } from '@/lib/types/domain-primitives'
 
 import { AccountClient } from './AccountClient'
 
@@ -32,8 +28,8 @@ export interface AccountData {
 
 export interface UserProfile {
   id: UserId
-  userName: GitHubLogin
-  userAvatar?: AvatarUrl
+  userName: string
+  userAvatar?: string
   linkedSince: ISOTimestamp
 }
 

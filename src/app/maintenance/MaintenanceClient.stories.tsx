@@ -10,7 +10,9 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 import { expect, within, userEvent, waitFor } from 'storybook/test'
 
-import { MaintenanceClient } from './MaintenanceClient'
+import { toMaintenanceId } from '@/lib/types/brands'
+
+import { MaintenanceClient, type MaintenanceRepo } from './MaintenanceClient'
 
 const meta = {
   title: 'Pages/MaintenanceClient',
@@ -24,12 +26,11 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-const mockRepos = [
+const mockRepos: MaintenanceRepo[] = [
   {
-    id: 'repo-1',
+    id: toMaintenanceId('repo-1'),
     repo_owner: 'octocat',
     repo_name: 'example-repo',
-    note: 'Completed project',
     meta: {
       stars: 100,
       language: 'TypeScript',
@@ -42,10 +43,9 @@ const mockRepos = [
     },
   },
   {
-    id: 'repo-2',
+    id: toMaintenanceId('repo-2'),
     repo_owner: 'octocat',
     repo_name: 'another-repo',
-    note: null,
     meta: {
       stars: 200,
       language: 'JavaScript',
@@ -71,20 +71,22 @@ export const Empty: Story = {
 
 export const ManyRepos: Story = {
   args: {
-    repos: Array.from({ length: 20 }, (_, i) => ({
-      id: `repo-${i}`,
-      repo_owner: 'octocat',
-      repo_name: `repo-${i}`,
-      note: i % 2 === 0 ? `Note for repo ${i}` : null,
-      meta: {
-        stars: i * 10,
-        language: i % 2 === 0 ? 'TypeScript' : 'JavaScript',
-        lastUpdated: new Date(2024, 0, i + 1).toISOString(),
-      },
-      created_at: new Date(2023, 0, i + 1).toISOString(),
-      updated_at: new Date(2024, 0, i + 1).toISOString(),
-      board: i % 3 === 0 ? { name: `Board ${i}` } : null,
-    })),
+    repos: Array.from(
+      { length: 20 },
+      (_, i): MaintenanceRepo => ({
+        id: toMaintenanceId(`repo-${i}`),
+        repo_owner: 'octocat',
+        repo_name: `repo-${i}`,
+        meta: {
+          stars: i * 10,
+          language: i % 2 === 0 ? 'TypeScript' : 'JavaScript',
+          lastUpdated: new Date(2024, 0, i + 1).toISOString(),
+        },
+        created_at: new Date(2023, 0, i + 1).toISOString(),
+        updated_at: new Date(2024, 0, i + 1).toISOString(),
+        board: i % 3 === 0 ? { name: `Board ${i}` } : null,
+      }),
+    ),
   },
 }
 

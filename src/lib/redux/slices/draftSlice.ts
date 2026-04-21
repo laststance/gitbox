@@ -20,17 +20,17 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice } from '@reduxjs/toolkit'
 
 import type { ProjectLink } from '@/lib/actions/project-info'
-import type { RepoCardId } from '@/lib/types/brands'
+import type { CardIdentifier } from '@/lib/types/brands'
 
 /**
- * In-progress note content for a single repo card.
+ * In-progress note content for a single card (board repo *or* maintenance).
  *
  * @example
  * { cardId: 'c1' as RepoCardId, content: 'WIP…', links: [], lastModified: 1700000000000 }
  */
 interface DraftNote {
-  /** The {@link RepoCardId} this draft belongs to. */
-  cardId: RepoCardId
+  /** The {@link CardIdentifier} this draft belongs to. */
+  cardId: CardIdentifier
   /** Draft content (may differ from what's saved in Supabase). */
   content: string
   /** Draft external links (may differ from saved links). */
@@ -41,8 +41,8 @@ interface DraftNote {
 
 /** Shape of the `state.draft` Redux slice. */
 interface DraftState {
-  /** Keyed lookup of drafts by {@link RepoCardId}. */
-  notes: Record<RepoCardId, DraftNote>
+  /** Keyed lookup of drafts by {@link CardIdentifier}. */
+  notes: Record<CardIdentifier, DraftNote>
 }
 
 const initialState: DraftState = {
@@ -62,7 +62,7 @@ export const draftSlice = createSlice({
     updateDraftNote: (
       state,
       action: PayloadAction<{
-        cardId: RepoCardId
+        cardId: CardIdentifier
         content: string
         links?: ProjectLink[]
       }>,
@@ -82,9 +82,9 @@ export const draftSlice = createSlice({
      * Delete a draft note (typically after successful save)
      *
      * @param state - Current state
-     * @param action - {@link RepoCardId} to delete draft for
+     * @param action - {@link CardIdentifier} to delete draft for
      */
-    deleteDraftNote: (state, action: PayloadAction<RepoCardId>) => {
+    deleteDraftNote: (state, action: PayloadAction<CardIdentifier>) => {
       delete state.notes[action.payload]
     },
   },
@@ -103,11 +103,11 @@ type DraftRootState = { draft: DraftState }
 /**
  * Select draft note for a specific card
  *
- * @param cardId - The {@link RepoCardId} to get draft for
+ * @param cardId - The {@link CardIdentifier} to get draft for
  * @returns Selector function
  * @example
  * const draft = useAppSelector(selectDraftNote(card.id))
  */
 export const selectDraftNote =
-  (cardId: RepoCardId) => (state: DraftRootState) =>
+  (cardId: CardIdentifier) => (state: DraftRootState) =>
     state.draft.notes[cardId] ?? null

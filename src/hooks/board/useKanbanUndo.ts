@@ -74,8 +74,10 @@ export function useKanbanUndo(
    */
   const handleUndo = useCallback(() => {
     if (columnHistory.length > 0) {
-      const previousState = columnHistory[columnHistory.length - 1]
-      if (!previousState) return
+      // Non-null: `length > 0` guarantees the last entry exists; runtime
+      // `!previousState` was redundant since `columnHistory` only holds
+      // `StatusListDomain[]` snapshots pushed by `pushColumnHistory`.
+      const previousState = columnHistory[columnHistory.length - 1]!
       dispatch(setStatusLists(previousState))
       setColumnHistory((prev) => prev.slice(0, -1))
       toast.success('Column order restored')
@@ -95,8 +97,7 @@ export function useKanbanUndo(
     }
 
     if (history.length === 0) return
-    const previousState = history[history.length - 1]
-    if (!previousState) return
+    const previousState = history[history.length - 1]!
     dispatch(setRepoCards(previousState))
     setHistory((prev) => prev.slice(0, -1))
     toast.success('Card operation undone')

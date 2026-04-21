@@ -317,7 +317,7 @@ describe('boardSlice', () => {
       }
 
       const newBoard = createMockBoard({
-        id: toRepoCardId('new-board'),
+        id: toBoardId('new-board'),
         name: 'New Board',
       })
       const nextState = boardSlice(initialState, setActiveBoard(newBoard))

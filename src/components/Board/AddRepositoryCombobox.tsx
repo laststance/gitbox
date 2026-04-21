@@ -29,7 +29,12 @@ import type { RepoIdentifier } from '@/lib/types/domain-primitives'
 
 interface AddRepositoryComboboxProps {
   boardId: BoardId
-  statusId: StatusListId // Initial status (column) ID
+  /**
+   * Initial status (column) ID. `null` when the board has no columns yet —
+   * adding is disabled in that case. Using `null` instead of a fake empty
+   * string prevents invalid branded IDs from flowing into the server action.
+   */
+  statusId: StatusListId | null
   /**
    * Callback when repositories are successfully added
    * @param cards - The created repo cards for optimistic UI update
@@ -254,6 +259,10 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   // Add selected repositories to board
   const handleAddRepositories = async () => {
     if (selectedRepos.length === 0) return
+    if (!statusId) {
+      setAddingError('Add a column before adding repositories')
+      return
+    }
 
     try {
       startAdding()

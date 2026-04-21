@@ -51,13 +51,13 @@ describe('useAddRepositoryCombobox', () => {
       expect(result.current.statusId).toBe('status-1')
     })
 
-    it('should have empty statusId when no status lists', () => {
+    it('should have null statusId when no status lists', () => {
       const { result } = renderHook(() =>
         useAddRepositoryCombobox({ statusLists: [] }),
       )
 
       expect(result.current.isOpen).toBe(false)
-      expect(result.current.statusId).toBe('')
+      expect(result.current.statusId).toBeNull()
     })
   })
 

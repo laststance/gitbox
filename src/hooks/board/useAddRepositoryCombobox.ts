@@ -20,8 +20,8 @@ interface UseAddRepositoryComboboxParams {
 interface UseAddRepositoryComboboxReturn {
   /** Whether the combobox is open */
   isOpen: boolean
-  /** Derived status ID: user selection or first available column (empty string when no columns) */
-  statusId: StatusListId | ''
+  /** Derived status ID: user selection or first available column (null when no columns) */
+  statusId: StatusListId | null
   /** Open combobox for a specific column */
   openForStatus: (statusId: StatusListId) => void
   /** Handle open state changes (resets to default when closing) */
@@ -62,9 +62,9 @@ export function useAddRepositoryCombobox({
     useState<StatusListId | null>(null)
   const [isOpen, setIsOpen] = useState(false)
 
-  const statusId = useMemo<StatusListId | ''>(() => {
+  const statusId = useMemo<StatusListId | null>(() => {
     if (userSelectedStatusId) return userSelectedStatusId
-    return statusLists[0]?.id ?? ''
+    return statusLists[0]?.id ?? null
   }, [userSelectedStatusId, statusLists])
 
   /**

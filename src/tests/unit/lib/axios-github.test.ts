@@ -156,15 +156,25 @@ describe('axios-github', () => {
         expect(result).toBe(true)
       })
 
-      it('should return true with NODE_ENV=test', async () => {
+      it('should NOT treat NODE_ENV=test alone as test mode (requires APP_ENV=test)', async () => {
+        // Vitest/Jest default NODE_ENV to 'test' — trusting it as a signal
+        // would accidentally enable the mock-token path in unit tests that
+        // run against production code. Gate must require APP_ENV=test too.
         process.env.APP_ENV = undefined
         ;(process.env as Record<string, string | undefined>).NODE_ENV = 'test'
+
+        const mockCookieStore = {
+          get: vi.fn().mockReturnValue(undefined),
+        }
+        vi.mocked(cookies).mockResolvedValue(mockCookieStore as any)
+
         vi.resetModules()
         const { hasGitHubToken } = await import('@/lib/axios-github')
 
         const result = await hasGitHubToken()
 
-        expect(result).toBe(true)
+        expect(result).toBe(false)
+        expect(mockCookieStore.get).toHaveBeenCalled()
       })
     })
 

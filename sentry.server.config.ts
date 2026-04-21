@@ -14,12 +14,15 @@ import * as Sentry from '@sentry/nextjs'
  * @returns {boolean} Whether Sentry should be enabled
  */
 function isSentryEnabled(): boolean {
+  // Disable E2E/test builds before honoring deployment environment.
+  // Must come before the VERCEL_ENV check so a production Vercel build
+  // with APP_ENV=test (our E2E runner) never emits telemetry.
+  if (process.env.APP_ENV === 'test') return false
+
   // Vercel provides VERCEL_ENV: 'production' | 'preview' | 'development'
   if (process.env.VERCEL_ENV) {
     return process.env.VERCEL_ENV === 'production'
   }
-  // Disable for local dev and E2E test builds (APP_ENV=test on production build)
-  if (process.env.APP_ENV === 'test') return false
   return process.env.NODE_ENV === 'production'
 }
 

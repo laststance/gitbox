@@ -12,6 +12,7 @@ import type { Metadata } from 'next'
 
 import { requireUser } from '@/lib/auth/require-user'
 import { createModuleLogger } from '@/lib/logger'
+import { toMaintenanceId } from '@/lib/types/brands'
 
 import { MaintenanceClient, type MaintenanceRepo } from './MaintenanceClient'
 
@@ -38,7 +39,7 @@ export default async function MaintenancePage() {
 
   // Map maintenance data to MaintenanceRepo format
   const repos: MaintenanceRepo[] = (maintenanceData || []).map((item) => ({
-    id: item.id,
+    id: toMaintenanceId(item.id),
     repo_owner: item.repo_owner,
     repo_name: item.repo_name,
     meta: null, // Maintenance table doesn't have meta
