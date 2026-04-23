@@ -328,6 +328,32 @@ describe('RepoCard', () => {
         'closed',
       )
     })
+
+    /**
+     * Regression: previously the Card swallowed every Enter key bubbling up
+     * through the React tree, including ones forwarded from descendants such
+     * as the OverflowMenu's portal-rendered DropdownMenuItem. Pressing Enter
+     * on "Move to Maintenance" therefore opened the Note modal instead of
+     * triggering the menu action.
+     *
+     * The handler now ignores events whose target differs from the Card
+     * itself. This test pins the new contract so the bug cannot quietly
+     * return.
+     */
+    it('should ignore Enter events that bubbled up from a descendant', () => {
+      render(<RepoCard card={defaultCard} onNote={mockOnNote} />)
+
+      const cardContent = screen
+        .getByTestId('repo-card-card-1')
+        .querySelector('[tabIndex="0"]')!
+
+      // Simulate Enter coming from a descendant (e.g. a Radix menu item):
+      // the event's target is a child node, but the handler runs on the Card.
+      const innerChild = cardContent.querySelector('[data-testid="repo-name"]')!
+      fireEvent.keyDown(innerChild, { key: 'Enter', bubbles: true })
+
+      expect(mockOnNote).not.toHaveBeenCalled()
+    })
   })
 
   describe('Callback Invocations', () => {

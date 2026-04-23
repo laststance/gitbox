@@ -429,4 +429,116 @@ describe('OverflowMenu', () => {
       expect(separators.length).toBeGreaterThan(0)
     })
   })
+
+  /**
+   * Regression coverage for the dnd-kit + Radix Portal interaction bug.
+   *
+   * Background:
+   * - `RepoCard` spreads `useSortable` `attributes` and `listeners` on its
+   *   wrapper div, making the entire card a drag handle.
+   * - Radix renders menu items inside a Portal. React still bubbles synthetic
+   *   events from those portal children up through the React tree, so without
+   *   isolation `pointerdown` from a menu item would reach `MouseSensor`.
+   *   `MouseSensor` would then start a drag on small cursor jitter and
+   *   suppress the trailing `click`, leaving the menu item's `onClick`
+   *   silently unfired.
+   *
+   * `OverflowMenu` mounts a `display: contents` wrapper that stops bubbling
+   * for pointer / mouse / click / key events. These tests pin that contract.
+   */
+  describe('Event Propagation Isolation (dnd-kit guard)', () => {
+    it('should render an isolation wrapper that catches bubbling events', () => {
+      render(
+        <OverflowMenu
+          {...defaultProps}
+          open={true}
+          context="board"
+          onMoveToMaintenance={mockOnMoveToMaintenance}
+        />,
+      )
+
+      const isolation = screen.getByTestId('overflow-menu-isolation-card-1')
+      expect(isolation).toBeInTheDocument()
+      expect(isolation).toHaveClass('contents')
+    })
+
+    it('should stop click bubbling from menu items reaching draggable ancestor', async () => {
+      const ancestorClickSpy = vi.fn()
+      const ancestorPointerDownSpy = vi.fn()
+      const ancestorMouseDownSpy = vi.fn()
+      const user = userEvent.setup()
+
+      render(
+        // Simulates the draggable wrapper that `useSortable` injects on
+        // `RepoCard`. If isolation regresses, these spies will fire.
+        <div
+          data-testid="draggable-ancestor"
+          onClick={ancestorClickSpy}
+          onPointerDown={ancestorPointerDownSpy}
+          onMouseDown={ancestorMouseDownSpy}
+        >
+          <OverflowMenu
+            {...defaultProps}
+            open={true}
+            context="board"
+            onMoveToMaintenance={mockOnMoveToMaintenance}
+          />
+        </div>,
+      )
+
+      await user.click(screen.getByTestId('move-to-maintenance-card-1'))
+
+      expect(mockOnMoveToMaintenance).toHaveBeenCalledWith('card-1')
+      expect(ancestorClickSpy).not.toHaveBeenCalled()
+      expect(ancestorPointerDownSpy).not.toHaveBeenCalled()
+      expect(ancestorMouseDownSpy).not.toHaveBeenCalled()
+    })
+
+    it('should stop click bubbling when opening menu via the trigger', async () => {
+      const ancestorClickSpy = vi.fn()
+      const ancestorPointerDownSpy = vi.fn()
+      const user = userEvent.setup()
+
+      render(
+        <div
+          data-testid="draggable-ancestor"
+          onClick={ancestorClickSpy}
+          onPointerDown={ancestorPointerDownSpy}
+        >
+          <OverflowMenu
+            {...defaultProps}
+            context="board"
+            onMoveToMaintenance={mockOnMoveToMaintenance}
+          />
+        </div>,
+      )
+
+      await user.click(screen.getByTestId('overflow-menu-trigger-card-1'))
+
+      expect(mockOnOpenChange).toHaveBeenCalledWith(true)
+      expect(ancestorClickSpy).not.toHaveBeenCalled()
+      expect(ancestorPointerDownSpy).not.toHaveBeenCalled()
+    })
+
+    it('should stop keyboard events bubbling from the menu trigger', async () => {
+      const ancestorKeyDownSpy = vi.fn()
+      const user = userEvent.setup()
+
+      render(
+        <div data-testid="draggable-ancestor" onKeyDown={ancestorKeyDownSpy}>
+          <OverflowMenu
+            {...defaultProps}
+            context="board"
+            onMoveToMaintenance={mockOnMoveToMaintenance}
+          />
+        </div>,
+      )
+
+      const trigger = screen.getByTestId('overflow-menu-trigger-card-1')
+      trigger.focus()
+      await user.keyboard('{Enter}')
+
+      expect(ancestorKeyDownSpy).not.toHaveBeenCalled()
+    })
+  })
 })
