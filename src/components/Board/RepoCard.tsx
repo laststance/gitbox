@@ -171,9 +171,19 @@ export const RepoCard = memo<RepoCardProps>(
      * Keyboard navigation handler
      * Requirements: Full keyboard navigation support
      *
+     * Defensive guard: only react to keys that originated on the Card itself.
+     * Without this, keystrokes from descendants rendered via Portal (e.g. the
+     * `OverflowMenu` `DropdownMenuItem`s) would bubble through the React tree
+     * and accidentally open the Note modal when the user pressed Enter on a
+     * focused menu item.
+     *
      * @param e - KeyboardEvent
      */
     const handleKeyDown = (e: React.KeyboardEvent) => {
+      // Ignore events forwarded from a portal child (menu item, dialog, etc.)
+      // so the card's shortcuts never fire while a child has focus.
+      if (e.target !== e.currentTarget) return
+
       // Enter: Open NoteModal (unified notes + links)
       if (e.key === 'Enter' && onNote) {
         e.preventDefault()

@@ -108,8 +108,46 @@ function OverflowMenuInner<TId extends CardIdentifier>({
     setShowDeleteDialog(false)
   }
 
+  /**
+   * Stop propagation of pointer / mouse / click / keyboard events so they
+   * never reach a draggable ancestor (e.g. a `useSortable` wrapper on
+   * `RepoCard`).
+   *
+   * Why this is needed:
+   * - Radix UI renders `DropdownMenuContent` and `AlertDialogContent` inside
+   *   a Portal, but React replays synthetic events through the React tree —
+   *   not the DOM tree.
+   * - When a menu item is clicked, the synthetic event bubbles back up
+   *   through `OverflowMenu` to whatever ancestor mounted it.
+   * - If that ancestor has `dnd-kit` listeners (`{...listeners}` spread on
+   *   the wrapper), `MouseSensor` records the pointerdown and may trigger a
+   *   drag if the cursor moves more than `activationConstraint.distance`
+   *   between pointerdown and pointerup. Once a drag starts, dnd-kit
+   *   suppresses the trailing `click`, so the menu item's `onClick` never
+   *   fires.
+   * - Stopping propagation here lets Radix's own handlers run first (they
+   *   are deeper in the React tree) and then short-circuits bubbling so the
+   *   draggable parent never sees the event.
+   *
+   * @example
+   * // Without this guard, "Move to Maintenance" silently does nothing on
+   * // production: the menu closes, the action never executes.
+   */
+  const stopPointerBubble = (
+    event: React.PointerEvent | React.MouseEvent | React.KeyboardEvent,
+  ) => {
+    event.stopPropagation()
+  }
+
   return (
-    <>
+    <div
+      className="contents"
+      onPointerDown={stopPointerBubble}
+      onMouseDown={stopPointerBubble}
+      onClick={stopPointerBubble}
+      onKeyDown={stopPointerBubble}
+      data-testid={`overflow-menu-isolation-${cardId}`}
+    >
       <DropdownMenu open={open} onOpenChange={onOpenChange}>
         <DropdownMenuTrigger
           className="hover:bg-accent hover:text-accent-foreground focus:ring-ring rounded-md p-1 focus:ring-2 focus:ring-offset-2 focus:outline-none"
@@ -265,7 +303,7 @@ function OverflowMenuInner<TId extends CardIdentifier>({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   )
 }
 
