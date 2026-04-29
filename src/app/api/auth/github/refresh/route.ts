@@ -35,47 +35,21 @@ import { createModuleLogger } from '@/lib/logger'
 import { checkRateLimit } from '@/lib/rate-limit/check'
 import { logSecurityEvent } from '@/lib/security-events'
 import { createRouteHandlerClient } from '@/lib/supabase/server'
+import { getForwardedClientIp } from '@/lib/utils/get-client-ip'
 import { sanitizeNextPath } from '@/lib/utils/sanitize-next'
 
 const log = createModuleLogger('github-token-refresh')
 
 /**
- * Maximum allowed `attempt` value before giving up.
- *
- * The client increments `attempt` each time it triggers a silent refresh.
- * On `attempt=2` (the second visit), this route fails to `/login` so the
- * user does not get stuck in a redirect loop when OAuth keeps failing to
- * land a usable provider token.
- *
- * One retry covers transient cookie write issues; a second visit means the
- * underlying issue is persistent (e.g., GitHub OAuth grant revoked) and
- * deserves a hard error instead of another silent attempt.
+ * Cap on silent refresh retries before forcing a hard `/login`. One retry
+ * covers transient cookie write failures; persistent failures (e.g., revoked
+ * OAuth grant) should surface to the user instead of looping.
  */
 const MAX_REFRESH_ATTEMPTS = 1
 
-/**
- * Handle silent GitHub token refresh.
- *
- * @param request - The inbound `Request`. Read for `x-forwarded-for` (IP for
- *   rate limiting) and the URL search params (`next`, `attempt`).
- * @returns A 302 `NextResponse.redirect`. Possible destinations:
- *   - GitHub OAuth URL (happy path)
- *   - `/login?next=<safe path>` when there is no Supabase session
- *   - `/login?error=token_refresh_failed` when the attempt cap is exceeded
- *   - `/login?error=oauth_failed&...` when `signInWithOAuth` errors
- *   - `/login?error=rate_limited&...` when the per-IP limit is exceeded
- *   - `/login?error=unexpected_error` for unhandled exceptions
- *
- * @example
- *   // GET /api/auth/github/refresh?next=/board/abc → 302 to GitHub OAuth
- *   // GET /api/auth/github/refresh?next=//evil.com → next coerced to /boards
- *   // GET /api/auth/github/refresh?attempt=2 → 302 /login?error=token_refresh_failed
- */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
 
-  // Sanitize `next` — only allow safe relative paths.
-  // Shared with src/app/auth/callback/route.ts via sanitizeNextPath.
   const next = sanitizeNextPath(searchParams.get('next'), '/boards')
 
   // Bail if the attempt count exceeds the cap (prevents infinite loops).
@@ -94,14 +68,11 @@ export async function GET(request: Request) {
   // Rate limit by IP. Reuses the `signInWithGitHub` bucket since each refresh
   // triggers a full GitHub OAuth round-trip — same upstream cost as a fresh
   // sign-in.
-  const forwarded = request.headers
-    .get('x-forwarded-for')
-    ?.split(',')[0]
-    ?.trim()
+  const forwarded = getForwardedClientIp(request.headers)
   if (!forwarded) {
     log.warn('x-forwarded-for header missing — falling back to 127.0.0.1')
   }
-  const clientIp = forwarded || '127.0.0.1'
+  const clientIp = forwarded ?? '127.0.0.1'
   const rateLimitResult = checkRateLimit('signInWithGitHub', clientIp)
   if (!rateLimitResult.allowed) {
     log.warn({ ip: clientIp }, 'Refresh rate limit exceeded')
@@ -165,8 +136,6 @@ export async function GET(request: Request) {
       )
     }
 
-    // The path 'silent_token_refresh' identifies this login_success entry as
-    // a silent re-auth (vs. initial OAuth in /auth/callback) for audit trails.
     logSecurityEvent('login_success', {
       userId: user.id,
       path: 'silent_token_refresh',

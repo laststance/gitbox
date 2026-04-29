@@ -124,10 +124,10 @@ describe('useRepositoryData', () => {
       expect(handleGitHubTokenMissing).toHaveBeenCalledTimes(1)
     })
 
-    // Org repos are never queried because the hook returned early.
     expect(getOrganizationRepositories).not.toHaveBeenCalled()
     expect(clearGitHubRefreshAttempts).not.toHaveBeenCalled()
-    // No reposError set — refresh redirect supersedes the error UI.
+    // Refresh redirect owns the UX — surfacing reposError on top would flash
+    // an error toast right before the page navigates away.
     expect(result.current.reposError).toBeNull()
     expect(result.current.userRepos).toEqual([])
   })
@@ -166,10 +166,10 @@ describe('useRepositoryData', () => {
       expect(handleGitHubTokenMissing).toHaveBeenCalledTimes(1)
     })
 
-    // Counter was reset by the successful initial call before the org batch
-    // discovered the stale token — that's intentional.
+    // Counter reset is intentional: the initial /user/repos call proved the
+    // token was alive at that moment, so the loop-protection counter SHOULD
+    // forget any earlier failure before the org batch discovers staleness.
     expect(clearGitHubRefreshAttempts).toHaveBeenCalledTimes(1)
-    // No partial data written because the redirect handler claimed ownership.
     expect(result.current.userRepos).toEqual([])
     expect(result.current.reposError).toBeNull()
   })

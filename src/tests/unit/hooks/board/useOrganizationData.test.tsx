@@ -60,7 +60,6 @@ const mockOrgs: GitHubOrganization[] = [
 describe('useOrganizationData', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // Default: handler claims redirect ownership (real-world happy path).
     vi.mocked(handleGitHubTokenMissing).mockReturnValue(true)
   })
 
@@ -92,7 +91,7 @@ describe('useOrganizationData', () => {
 
     expect(result.current.currentUser).toEqual(mockUser)
     expect(result.current.organizations).toEqual(mockOrgs)
-    // octocat (id 11) is dropped because it matches the current user login.
+    // The hook strips orgs whose login matches the current user.
     expect(result.current.filteredOrganizations).toEqual([mockOrgs[0]])
     expect(clearGitHubRefreshAttempts).toHaveBeenCalledTimes(1)
     expect(handleGitHubTokenMissing).not.toHaveBeenCalled()
@@ -116,7 +115,6 @@ describe('useOrganizationData', () => {
       expect(handleGitHubTokenMissing).toHaveBeenCalledTimes(1)
     })
 
-    // Hook returned early — no state was applied, no counter reset fired.
     expect(result.current.currentUser).toBeNull()
     expect(result.current.organizations).toEqual([])
     expect(clearGitHubRefreshAttempts).not.toHaveBeenCalled()
@@ -138,7 +136,9 @@ describe('useOrganizationData', () => {
     await waitFor(() => {
       expect(handleGitHubTokenMissing).toHaveBeenCalledTimes(1)
     })
-    // Even partial token-missing aborts the state writes — we wait for refresh.
+    // Partial token-missing must still suppress the counter reset — once the
+    // refresh redirect kicks in, treating the user fetch as "success" would
+    // wipe the attempt cap and risk an infinite loop.
     expect(clearGitHubRefreshAttempts).not.toHaveBeenCalled()
   })
 
@@ -160,10 +160,10 @@ describe('useOrganizationData', () => {
       expect(result.current.isLoadingOrgs).toBe(false)
     })
 
-    // User came back, orgs did not — UI should still render the user data.
     expect(result.current.currentUser).toEqual(mockUser)
     expect(result.current.organizations).toEqual([])
-    // Counter resets because the user fetch confirmed the token is alive.
+    // Counter resets because the successful user fetch proves the token is
+    // alive even though the orgs call still reports it missing.
     expect(clearGitHubRefreshAttempts).toHaveBeenCalledTimes(1)
   })
 

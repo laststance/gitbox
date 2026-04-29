@@ -24,24 +24,8 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
 
-  /**
-   * Post-authentication redirect destination.
-   *
-   * The `next` query parameter allows redirecting users back to their original
-   * destination after successful authentication. This enables a "return to
-   * original page" flow for protected routes.
-   *
-   * @example Intended usage flow (not yet implemented in middleware):
-   * 1. User visits /board/123 (unauthenticated)
-   * 2. Middleware redirects to /login?next=/board/123
-   * 3. Login page initiates OAuth with redirectTo: /auth/callback?next=/board/123
-   * 4. After successful auth, user is redirected to /board/123
-   *
-   * @default '/boards' - If `next` is not provided, redirects to the main boards page
-   * @note Set by /api/auth/github/refresh on silent re-auth (refresh/route.ts:142). Also reserved for future link sources (e.g., middleware redirects on protected routes).
-   */
-  // Sanitize `next` — only allow safe relative paths.
-  // Shared with src/app/api/auth/github/refresh/route.ts via sanitizeNextPath.
+  // Set by /api/auth/github/refresh on silent re-auth and reserved for future
+  // middleware-driven "return to original page" flows on protected routes.
   const next = sanitizeNextPath(searchParams.get('next'), '/boards')
 
   if (code) {

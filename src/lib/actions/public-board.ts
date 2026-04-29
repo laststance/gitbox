@@ -20,6 +20,7 @@ import {
   type PublicBoardSlug,
 } from '@/lib/types/brands'
 import type { ISOTimestamp, ShareSlug } from '@/lib/types/domain-primitives'
+import { getForwardedClientIp } from '@/lib/utils/get-client-ip'
 
 /** Public-safe board fields (excludes user_id) */
 interface PublicBoard {
@@ -53,10 +54,9 @@ export interface PublicBoardData {
 export async function getPublicBoardBySlug(
   slug: PublicBoardSlug,
 ): Promise<PublicBoardData | null> {
-  // Rate limit by IP
-  const headerStore = await headers()
-  const ip =
-    headerStore.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  // Rate limit by IP — anonymous endpoint, so 'unknown' (not loopback) is the
+  // semantically correct fallback when there is no proxy header.
+  const ip = getForwardedClientIp(await headers()) ?? 'unknown'
   const rl = checkRateLimit('publicBoardView', ip)
   if (!rl.allowed) return null
 

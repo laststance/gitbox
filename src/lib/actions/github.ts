@@ -20,6 +20,7 @@ import type {
   GitHubAccountType,
   Visibility,
 } from '@/lib/types/domain-primitives'
+import { getForwardedClientIp } from '@/lib/utils/get-client-ip'
 
 import type { ActionResult } from './types'
 
@@ -35,17 +36,15 @@ const log = createModuleLogger('github')
 const TOKEN_MISSING_ERROR_MSG = 'GitHub token not found. Please sign in again.'
 
 /**
- * Get client IP from request headers for rate limiting.
- * GitHub API functions don't use Supabase auth, so we use IP-based limiting.
- * Logs a warning when x-forwarded-for is missing (proxy misconfiguration).
+ * Resolve client IP for IP-based rate limiting (GitHub Server Actions skip
+ * Supabase auth). Warns once per call when the proxy did not set the header.
  */
 async function getClientIp(): Promise<string> {
-  const headerStore = await headers()
-  const forwarded = headerStore.get('x-forwarded-for')?.split(',')[0]?.trim()
-  if (!forwarded) {
+  const ip = getForwardedClientIp(await headers())
+  if (!ip) {
     log.warn('x-forwarded-for header missing — falling back to 127.0.0.1')
   }
-  return forwarded || '127.0.0.1'
+  return ip ?? '127.0.0.1'
 }
 
 /**

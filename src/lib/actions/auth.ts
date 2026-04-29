@@ -20,6 +20,7 @@ import {
   createServerActionClient,
   createAdminClient,
 } from '@/lib/supabase/server'
+import { getForwardedClientIp } from '@/lib/utils/get-client-ip'
 
 /**
  * Sign in with GitHub OAuth
@@ -29,14 +30,14 @@ import {
 export async function signInWithGitHub() {
   // Rate limit by IP (user not yet authenticated)
   const headerStore = await headers()
-  const forwarded = headerStore.get('x-forwarded-for')?.split(',')[0]?.trim()
+  const forwarded = getForwardedClientIp(headerStore)
   if (!forwarded) {
     Sentry.captureMessage('signInWithGitHub: x-forwarded-for header missing', {
       level: 'warning',
       tags: { category: 'rate_limit' },
     })
   }
-  const ip = forwarded || '127.0.0.1'
+  const ip = forwarded ?? '127.0.0.1'
   const rlResult = checkRateLimit('signInWithGitHub', ip)
   if (!rlResult.allowed) {
     redirect(
