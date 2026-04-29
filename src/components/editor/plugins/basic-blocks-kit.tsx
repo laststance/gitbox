@@ -1,5 +1,6 @@
 'use client'
 
+import { HeadingRules } from '@platejs/basic-nodes'
 import {
   BlockquotePlugin,
   H1Plugin,
@@ -10,6 +11,7 @@ import {
   H6Plugin,
   HorizontalRulePlugin,
 } from '@platejs/basic-nodes/react'
+import { KEYS } from 'platejs'
 import { ParagraphPlugin } from 'platejs/react'
 
 import { BlockquoteElement } from '@/components/ui/blockquote-node'
@@ -24,6 +26,17 @@ import {
 import { HrElement } from '@/components/ui/hr-node'
 import { ParagraphElement } from '@/components/ui/paragraph-node'
 
+// Disable heading shortcuts inside code blocks (preserves v52 query behavior).
+const isNotInCodeBlock = (context: {
+  editor: {
+    api: { some: (options: { match: { type: string } }) => boolean }
+    getType: (key: string) => string
+  }
+}) =>
+  !context.editor.api.some({
+    match: { type: context.editor.getType(KEYS.codeBlock) },
+  })
+
 export const BasicBlocksKit = [
   ParagraphPlugin.withComponent(ParagraphElement),
   H1Plugin.configure({
@@ -34,6 +47,7 @@ export const BasicBlocksKit = [
       break: { empty: 'reset' },
     },
     shortcuts: { toggle: { keys: 'mod+alt+1' } },
+    inputRules: [HeadingRules.markdown({ enabled: isNotInCodeBlock })],
   }),
   H2Plugin.configure({
     node: {
@@ -43,6 +57,7 @@ export const BasicBlocksKit = [
       break: { empty: 'reset' },
     },
     shortcuts: { toggle: { keys: 'mod+alt+2' } },
+    inputRules: [HeadingRules.markdown({ enabled: isNotInCodeBlock })],
   }),
   H3Plugin.configure({
     node: {
@@ -52,6 +67,7 @@ export const BasicBlocksKit = [
       break: { empty: 'reset' },
     },
     shortcuts: { toggle: { keys: 'mod+alt+3' } },
+    inputRules: [HeadingRules.markdown({ enabled: isNotInCodeBlock })],
   }),
   H4Plugin.configure({
     node: {
@@ -61,6 +77,7 @@ export const BasicBlocksKit = [
       break: { empty: 'reset' },
     },
     shortcuts: { toggle: { keys: 'mod+alt+4' } },
+    inputRules: [HeadingRules.markdown({ enabled: isNotInCodeBlock })],
   }),
   H5Plugin.configure({
     node: {
@@ -70,6 +87,7 @@ export const BasicBlocksKit = [
       break: { empty: 'reset' },
     },
     shortcuts: { toggle: { keys: 'mod+alt+5' } },
+    inputRules: [HeadingRules.markdown({ enabled: isNotInCodeBlock })],
   }),
   H6Plugin.configure({
     node: {
@@ -79,6 +97,7 @@ export const BasicBlocksKit = [
       break: { empty: 'reset' },
     },
     shortcuts: { toggle: { keys: 'mod+alt+6' } },
+    inputRules: [HeadingRules.markdown({ enabled: isNotInCodeBlock })],
   }),
   BlockquotePlugin.configure({
     node: { component: BlockquoteElement },

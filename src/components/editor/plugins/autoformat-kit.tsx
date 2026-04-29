@@ -4,7 +4,6 @@ import {
   BlockquoteRules,
   BoldRules,
   CodeRules,
-  HeadingRules,
   HighlightRules,
   HorizontalRuleRules,
   ItalicRules,
@@ -37,7 +36,6 @@ export const AutoformatKit = [
   createSlatePlugin({
     key: 'markdownShortcuts',
     inputRules: [
-      HeadingRules.markdown({ enabled: isNotInCodeBlock }),
       BlockquoteRules.markdown({ enabled: isNotInCodeBlock }),
       HorizontalRuleRules.markdown({ variant: '-', enabled: isNotInCodeBlock }),
       HorizontalRuleRules.markdown({ variant: '_', enabled: isNotInCodeBlock }),
