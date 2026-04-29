@@ -44,7 +44,7 @@ When you have dozens (or hundreds) of repos from side projects, experiments, and
 - **UI**: React 19.2, Tailwind CSS 4, shadcn/ui
 - **State**: Redux Toolkit + @laststance/redux-storage-middleware
 - **Database**: Supabase (PostgreSQL + Auth + RLS)
-- **Rich Text**: Plate.js (Platejs 52)
+- **Rich Text**: Plate.js (Platejs 53)
 - **Drag & Drop**: @dnd-kit
 - **Validation**: Zod 4
 - **Monitoring**: Sentry 10
