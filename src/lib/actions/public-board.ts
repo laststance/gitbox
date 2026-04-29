@@ -20,6 +20,7 @@ import {
   type PublicBoardSlug,
 } from '@/lib/types/brands'
 import type { ISOTimestamp, ShareSlug } from '@/lib/types/domain-primitives'
+import { getForwardedClientIp } from '@/lib/utils/get-client-ip'
 
 /** Public-safe board fields (excludes user_id) */
 interface PublicBoard {
@@ -53,10 +54,11 @@ export interface PublicBoardData {
 export async function getPublicBoardBySlug(
   slug: PublicBoardSlug,
 ): Promise<PublicBoardData | null> {
-  // Rate limit by IP
-  const headerStore = await headers()
-  const ip =
-    headerStore.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  // Rate limit by IP — anonymous endpoint. When there is no proxy header
+  // (rare in production), fall back to a per-request UUID so headerless
+  // traffic does not collapse into a single shared bucket where one client
+  // can throttle every other anonymous viewer.
+  const ip = getForwardedClientIp(await headers()) ?? crypto.randomUUID()
   const rl = checkRateLimit('publicBoardView', ip)
   if (!rl.allowed) return null
 

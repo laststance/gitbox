@@ -14,7 +14,10 @@ import axios, {
 } from 'axios'
 import { cookies } from 'next/headers'
 
-import { getGitHubTokenCookieName } from '@/lib/constants/cookies'
+import {
+  deleteGitHubTokenCookie,
+  getGitHubTokenCookieName,
+} from '@/lib/constants/cookies'
 
 const GITHUB_API_BASE_URL = 'https://api.github.com'
 
@@ -98,9 +101,7 @@ export function createGitHubAxios(): AxiosInstance {
   instance.interceptors.response.use(undefined, async (error) => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       try {
-        const cookieStore = await cookies()
-        const cookieName = getGitHubTokenCookieName()
-        cookieStore.delete(cookieName)
+        await deleteGitHubTokenCookie()
       } catch {
         // Cookie deletion may fail in certain Next.js contexts (e.g., static
         // generation). Silently ignore — the token will expire naturally.

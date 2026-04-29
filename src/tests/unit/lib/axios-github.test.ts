@@ -4,15 +4,32 @@
  * Tests for GitHub API Axios instance and token utilities:
  * - createGitHubAxios (axios instance creation)
  * - hasGitHubToken (token availability check)
+ * - 401 response interceptor (clears stale cookie via deleteGitHubTokenCookie)
  */
 
+import axios from 'axios'
 import { cookies } from 'next/headers'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
+import { deleteGitHubTokenCookie } from '@/lib/constants/cookies'
+import type * as CookiesModule from '@/lib/constants/cookies'
 
 // Mock next/headers before importing the module
 vi.mock('next/headers', () => ({
   cookies: vi.fn(),
 }))
+
+// Mock the cookie helper so we can spy on the delete call without touching
+// the real Next cookie store (which is not available in this test runtime).
+vi.mock('@/lib/constants/cookies', async () => {
+  const actual = await vi.importActual<typeof CookiesModule>(
+    '@/lib/constants/cookies',
+  )
+  return {
+    ...actual,
+    deleteGitHubTokenCookie: vi.fn().mockResolvedValue(undefined),
+  }
+})
 
 describe('axios-github', () => {
   const originalEnv = process.env
@@ -230,6 +247,97 @@ describe('axios-github', () => {
 
         expect(result).toBe(false)
       })
+    })
+  })
+
+  describe('response interceptor: 401 cookie cleanup', () => {
+    beforeEach(() => {
+      process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK = 'false'
+      process.env.APP_ENV = 'production'
+      vi.mocked(deleteGitHubTokenCookie).mockClear()
+    })
+
+    /**
+     * Helper: Build a structurally-valid AxiosError so the interceptor's
+     * `axios.isAxiosError(error)` guard passes.
+     *
+     * Constructing via `new axios.AxiosError(...)` guarantees the prototype
+     * chain matches what `isAxiosError` checks for — a plain `{ isAxiosError:
+     * true, ... }` object would fail that check.
+     */
+    function makeAxiosError(status: number) {
+      return new axios.AxiosError(
+        'Request failed',
+        'ERR_BAD_REQUEST',
+        undefined,
+        undefined,
+        {
+          status,
+          data: {},
+          statusText: 'Error',
+          headers: {},
+          config: { headers: {} as never },
+        } as never,
+      )
+    }
+
+    it('clears the GitHub cookie when the API responds 401', async () => {
+      vi.resetModules()
+      const { createGitHubAxios } = await import('@/lib/axios-github')
+      const instance = createGitHubAxios()
+
+      const rejectedHandler = (instance.interceptors.response as any)
+        .handlers[0].rejected
+
+      await expect(rejectedHandler(makeAxiosError(401))).rejects.toBeDefined()
+
+      expect(deleteGitHubTokenCookie).toHaveBeenCalledTimes(1)
+    })
+
+    it('does NOT clear the cookie on non-401 errors (403, 404, 500)', async () => {
+      vi.resetModules()
+      const { createGitHubAxios } = await import('@/lib/axios-github')
+      const instance = createGitHubAxios()
+
+      const rejectedHandler = (instance.interceptors.response as any)
+        .handlers[0].rejected
+
+      for (const status of [403, 404, 500]) {
+        await expect(
+          rejectedHandler(makeAxiosError(status)),
+        ).rejects.toBeDefined()
+      }
+
+      expect(deleteGitHubTokenCookie).not.toHaveBeenCalled()
+    })
+
+    it('does NOT clear the cookie on non-axios errors (network drop, timeout)', async () => {
+      vi.resetModules()
+      const { createGitHubAxios } = await import('@/lib/axios-github')
+      const instance = createGitHubAxios()
+
+      const rejectedHandler = (instance.interceptors.response as any)
+        .handlers[0].rejected
+
+      const plainError = new Error('Network down')
+      await expect(rejectedHandler(plainError)).rejects.toBe(plainError)
+
+      expect(deleteGitHubTokenCookie).not.toHaveBeenCalled()
+    })
+
+    it('still rejects the original error when cookie deletion throws', async () => {
+      vi.mocked(deleteGitHubTokenCookie).mockRejectedValueOnce(
+        new Error('cookie store unavailable in static generation'),
+      )
+      vi.resetModules()
+      const { createGitHubAxios } = await import('@/lib/axios-github')
+      const instance = createGitHubAxios()
+
+      const rejectedHandler = (instance.interceptors.response as any)
+        .handlers[0].rejected
+
+      const original = makeAxiosError(401)
+      await expect(rejectedHandler(original)).rejects.toBe(original)
     })
   })
 })

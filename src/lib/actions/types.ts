@@ -31,15 +31,29 @@
  */
 
 /**
+ * Machine-readable error codes for Server Action failures.
+ *
+ * Use sparingly — only add a code when the client needs to branch on it
+ * (e.g., trigger silent re-auth on `GITHUB_TOKEN_MISSING`). The human-readable
+ * `error` field remains the source of UI copy.
+ *
+ * @example
+ * if (!result.success && result.errorCode === 'GITHUB_TOKEN_MISSING') {
+ *   handleGitHubTokenMissing(window.location.pathname)
+ * }
+ */
+export type ActionErrorCode = 'GITHUB_TOKEN_MISSING'
+
+/**
  * Discriminated union for Server Action results.
  *
  * @param T - The data type on success
- * @returns Either `{ success: true, data: T }` or `{ success: false, error: string }`
+ * @returns Either `{ success: true, data: T }` or `{ success: false, error: string, errorCode?: ActionErrorCode }`
  *
  * @example
  * type Result = ActionResult<User[]>
- * // => { success: true; data: User[] } | { success: false; error: string }
+ * // => { success: true; data: User[] } | { success: false; error: string; errorCode?: ActionErrorCode }
  */
 export type ActionResult<T> =
   | { success: true; data: T }
-  | { success: false; error: string }
+  | { success: false; error: string; errorCode?: ActionErrorCode }

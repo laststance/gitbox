@@ -9,14 +9,14 @@
  * - Redirects to Boards screen
  */
 
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 import { createFirstBoardIfNeeded } from '@/lib/actions/board'
-import { getGitHubTokenCookieName } from '@/lib/constants/cookies'
+import { setGitHubTokenCookie } from '@/lib/constants/cookies'
 import { createModuleLogger } from '@/lib/logger'
 import { logSecurityEvent } from '@/lib/security-events'
 import { createRouteHandlerClient } from '@/lib/supabase/server'
+import { sanitizeNextPath } from '@/lib/utils/sanitize-next'
 
 const log = createModuleLogger('auth-callback')
 
@@ -24,31 +24,9 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
 
-  /**
-   * Post-authentication redirect destination.
-   *
-   * The `next` query parameter allows redirecting users back to their original
-   * destination after successful authentication. This enables a "return to
-   * original page" flow for protected routes.
-   *
-   * @example Intended usage flow (not yet implemented in middleware):
-   * 1. User visits /board/123 (unauthenticated)
-   * 2. Middleware redirects to /login?next=/board/123
-   * 3. Login page initiates OAuth with redirectTo: /auth/callback?next=/board/123
-   * 4. After successful auth, user is redirected to /board/123
-   *
-   * @default '/boards' - If `next` is not provided, redirects to the main boards page
-   * @note Currently, no code sets this parameter; it exists for future extensibility
-   */
-  const rawNext = searchParams.get('next') ?? '/boards'
-  // Prevent open redirect: only allow relative paths, block protocol-relative URLs
-  // Also block backslash variants (/\evil.com) — WHATWG URL Standard normalizes \ to / for http/https
-  const next =
-    rawNext.startsWith('/') &&
-    !rawNext.startsWith('//') &&
-    !rawNext.includes('\\')
-      ? rawNext
-      : '/boards'
+  // Set by /api/auth/github/refresh on silent re-auth and reserved for future
+  // middleware-driven "return to original page" flows on protected routes.
+  const next = sanitizeNextPath(searchParams.get('next'), '/boards')
 
   if (code) {
     const supabase = await createRouteHandlerClient(request)
@@ -68,15 +46,7 @@ export async function GET(request: Request) {
       // Retrieve provider_token and save to cookie (for GitHub API access)
       const providerToken = data.session?.provider_token
       if (providerToken) {
-        const cookieStore = await cookies()
-        const cookieName = getGitHubTokenCookieName()
-        cookieStore.set(cookieName, providerToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 8, // 8 hours — aligned with GitHub fine-grained token default TTL
-          path: '/',
-        })
+        await setGitHubTokenCookie(providerToken)
       } else {
         log.warn(
           'No provider_token in session - GitHub API access may be limited',

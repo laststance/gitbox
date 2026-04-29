@@ -10,16 +10,17 @@
 'use server'
 
 import * as Sentry from '@sentry/nextjs'
-import { cookies, headers } from 'next/headers'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-import { getGitHubTokenCookieName } from '@/lib/constants/cookies'
+import { deleteGitHubTokenCookie } from '@/lib/constants/cookies'
 import { checkRateLimit } from '@/lib/rate-limit/check'
 import { logSecurityEvent } from '@/lib/security-events'
 import {
   createServerActionClient,
   createAdminClient,
 } from '@/lib/supabase/server'
+import { getForwardedClientIp } from '@/lib/utils/get-client-ip'
 
 /**
  * Sign in with GitHub OAuth
@@ -29,14 +30,14 @@ import {
 export async function signInWithGitHub() {
   // Rate limit by IP (user not yet authenticated)
   const headerStore = await headers()
-  const forwarded = headerStore.get('x-forwarded-for')?.split(',')[0]?.trim()
+  const forwarded = getForwardedClientIp(headerStore)
   if (!forwarded) {
     Sentry.captureMessage('signInWithGitHub: x-forwarded-for header missing', {
       level: 'warning',
       tags: { category: 'rate_limit' },
     })
   }
-  const ip = forwarded || '127.0.0.1'
+  const ip = forwarded ?? '127.0.0.1'
   const rlResult = checkRateLimit('signInWithGitHub', ip)
   if (!rlResult.allowed) {
     redirect(
@@ -85,7 +86,6 @@ export async function signInWithGitHub() {
  */
 export async function signOut() {
   const supabase = await createServerActionClient()
-  const cookieStore = await cookies()
 
   const { error } = await supabase.auth.signOut()
 
@@ -94,9 +94,7 @@ export async function signOut() {
     throw new Error(error.message)
   }
 
-  // Delete GitHub provider token cookie
-  const githubTokenCookieName = getGitHubTokenCookieName()
-  cookieStore.delete(githubTokenCookieName)
+  await deleteGitHubTokenCookie()
 
   logSecurityEvent('logout')
 
@@ -115,7 +113,6 @@ export async function signOut() {
  */
 export async function deleteAccount() {
   const supabase = await createServerActionClient()
-  const cookieStore = await cookies()
 
   // Get current user
   const {
@@ -151,10 +148,7 @@ export async function deleteAccount() {
 
   logSecurityEvent('account_deleted', { userId: user.id })
 
-  // Delete GitHub provider token cookie
-  const githubTokenCookieName = getGitHubTokenCookieName()
-  cookieStore.delete(githubTokenCookieName)
+  await deleteGitHubTokenCookie()
 
-  // Redirect to landing page
   redirect('/')
 }

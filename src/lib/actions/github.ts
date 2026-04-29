@@ -20,23 +20,31 @@ import type {
   GitHubAccountType,
   Visibility,
 } from '@/lib/types/domain-primitives'
+import { getForwardedClientIp } from '@/lib/utils/get-client-ip'
 
 import type { ActionResult } from './types'
 
 const log = createModuleLogger('github')
 
 /**
- * Get client IP from request headers for rate limiting.
- * GitHub API functions don't use Supabase auth, so we use IP-based limiting.
- * Logs a warning when x-forwarded-for is missing (proxy misconfiguration).
+ * User-facing message shown when the GitHub provider_token cookie is missing.
+ *
+ * Paired with `errorCode: 'GITHUB_TOKEN_MISSING'` so the client can trigger
+ * silent re-auth via `/api/auth/github/refresh` instead of surfacing this
+ * to the UI as an error.
+ */
+const TOKEN_MISSING_ERROR_MSG = 'GitHub token not found. Please sign in again.'
+
+/**
+ * Resolve client IP for IP-based rate limiting (GitHub Server Actions skip
+ * Supabase auth). Warns once per call when the proxy did not set the header.
  */
 async function getClientIp(): Promise<string> {
-  const headerStore = await headers()
-  const forwarded = headerStore.get('x-forwarded-for')?.split(',')[0]?.trim()
-  if (!forwarded) {
+  const ip = getForwardedClientIp(await headers())
+  if (!ip) {
     log.warn('x-forwarded-for header missing — falling back to 127.0.0.1')
   }
-  return forwarded || '127.0.0.1'
+  return ip ?? '127.0.0.1'
 }
 
 /**
@@ -169,7 +177,8 @@ export async function getAuthenticatedUserRepositories(params?: {
   if (!(await hasGitHubToken())) {
     return {
       success: false,
-      error: 'GitHub token not found. Please sign in again.',
+      error: TOKEN_MISSING_ERROR_MSG,
+      errorCode: 'GITHUB_TOKEN_MISSING',
     }
   }
 
@@ -251,7 +260,8 @@ export async function getAuthenticatedUser(): Promise<
   if (!(await hasGitHubToken())) {
     return {
       success: false,
-      error: 'GitHub token not found. Please sign in again.',
+      error: TOKEN_MISSING_ERROR_MSG,
+      errorCode: 'GITHUB_TOKEN_MISSING',
     }
   }
 
@@ -299,7 +309,8 @@ export async function getOrganizationRepositories(
   if (!(await hasGitHubToken())) {
     return {
       success: false,
-      error: 'GitHub token not found. Please sign in again.',
+      error: TOKEN_MISSING_ERROR_MSG,
+      errorCode: 'GITHUB_TOKEN_MISSING',
     }
   }
 
@@ -383,7 +394,8 @@ export async function getAuthenticatedUserOrganizations(): Promise<
   if (!(await hasGitHubToken())) {
     return {
       success: false,
-      error: 'GitHub token not found. Please sign in again.',
+      error: TOKEN_MISSING_ERROR_MSG,
+      errorCode: 'GITHUB_TOKEN_MISSING',
     }
   }
 
