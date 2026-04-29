@@ -21,7 +21,6 @@ import {
   NoteFloatingToolbarButtons,
 } from '../note-toolbar-buttons'
 
-import { AutoformatKit } from './autoformat-kit'
 import { BasicBlocksKit } from './basic-blocks-kit'
 import { BasicMarksKit } from './basic-marks-kit'
 import { CodeBlockKit } from './code-block-kit'
@@ -108,9 +107,6 @@ export const EditorPlugins = [
 
   // Lists (bullet, numbered, todo) with indentation
   ...ListKit,
-
-  // Markdown autoformat rules
-  ...AutoformatKit,
 
   // Slash command menu
   ...SlashKit,
