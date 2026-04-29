@@ -12,7 +12,12 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import type { Page } from '@playwright/test'
 import { BOARD_IDS, resetRepoCards } from '../helpers/db-query'
+
+const BOARD_DATA_TIMEOUT_MS = 15000
+const COMBOBOX_TIMEOUT_MS = 10000
+const SEEDED_EXISTING_REPO_NAME = 'test-repo'
 
 /**
  * AddRepositoryCombobox E2E Tests - Existing Repo Filtering
@@ -26,6 +31,28 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
+
+  /**
+   * Waits until both board columns and seeded cards are visible.
+   *
+   * The combobox duplicate filter reads repo cards from Redux, so seeing only
+   * the column title is not enough; cards can still be loading at that point.
+   *
+   * @example
+   * await waitForSeededBoardData(page)
+   * await page.getByRole('button', { name: /add repositories/i }).click()
+   */
+  async function waitForSeededBoardData(page: Page) {
+    await expect(page.getByText('Pending')).toBeVisible({
+      timeout: BOARD_DATA_TIMEOUT_MS,
+    })
+    await expect(
+      page
+        .locator('[data-testid="repo-card"]')
+        .filter({ hasText: SEEDED_EXISTING_REPO_NAME })
+        .first(),
+    ).toBeVisible({ timeout: BOARD_DATA_TIMEOUT_MS })
+  }
 
   /**
    * Verifies that repositories already on the board do NOT appear in the combobox
@@ -46,22 +73,24 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
 
     // Wait for Kanban board to load (column names indicate data is ready)
     // This ensures Redux store has repoCards populated before we open the combobox
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await waitForSeededBoardData(page)
 
     // Open AddRepositoryCombobox
     const addRepoButton = page.getByRole('button', {
       name: /add repositories/i,
     })
-    await expect(addRepoButton).toBeVisible({ timeout: 10000 })
+    await expect(addRepoButton).toBeVisible({ timeout: COMBOBOX_TIMEOUT_MS })
     await addRepoButton.click()
 
     // Wait for the combobox panel to be visible
     const searchInput = page.getByPlaceholder(/search repositories/i)
-    await expect(searchInput).toBeVisible({ timeout: 10000 })
+    await expect(searchInput).toBeVisible({ timeout: COMBOBOX_TIMEOUT_MS })
 
     // Wait for repository list to load by asserting options appear
     const repoOptions = page.locator('[role="option"]')
-    await expect(repoOptions.first()).toBeVisible({ timeout: 10000 })
+    await expect(repoOptions.first()).toBeVisible({
+      timeout: COMBOBOX_TIMEOUT_MS,
+    })
 
     // Get all visible repository options
     const optionTexts: string[] = []
@@ -93,22 +122,22 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
     await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load (column names indicate data is ready)
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await waitForSeededBoardData(page)
 
     // Open AddRepositoryCombobox
     const addRepoButton = page.getByRole('button', {
       name: /add repositories/i,
     })
-    await expect(addRepoButton).toBeVisible({ timeout: 10000 })
+    await expect(addRepoButton).toBeVisible({ timeout: COMBOBOX_TIMEOUT_MS })
     await addRepoButton.click()
 
     // Wait for the combobox panel to be visible
     const searchInput = page.getByPlaceholder(/search repositories/i)
-    await expect(searchInput).toBeVisible({ timeout: 10000 })
+    await expect(searchInput).toBeVisible({ timeout: COMBOBOX_TIMEOUT_MS })
 
     // Wait for initial repo options to load
     await expect(page.locator('[role="option"]').first()).toBeVisible({
-      timeout: 10000,
+      timeout: COMBOBOX_TIMEOUT_MS,
     })
 
     // Search for a repo that's already on the board
@@ -140,22 +169,24 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
     await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load (column names indicate data is ready)
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await waitForSeededBoardData(page)
 
     // Open AddRepositoryCombobox
     const addRepoButton = page.getByRole('button', {
       name: /add repositories/i,
     })
-    await expect(addRepoButton).toBeVisible({ timeout: 10000 })
+    await expect(addRepoButton).toBeVisible({ timeout: COMBOBOX_TIMEOUT_MS })
     await addRepoButton.click()
 
     // Wait for the combobox panel to be visible
     const searchInput = page.getByPlaceholder(/search repositories/i)
-    await expect(searchInput).toBeVisible({ timeout: 10000 })
+    await expect(searchInput).toBeVisible({ timeout: COMBOBOX_TIMEOUT_MS })
 
     // Wait for repository list to load by asserting options appear
     const repoOptions = page.locator('[role="option"]')
-    await expect(repoOptions.first()).toBeVisible({ timeout: 10000 })
+    await expect(repoOptions.first()).toBeVisible({
+      timeout: COMBOBOX_TIMEOUT_MS,
+    })
 
     // 'testuser/private-project' is in mockGitHubRepos but NOT on the board
     // It should appear in the combobox
@@ -183,22 +214,22 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
     await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load (column names indicate data is ready)
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await waitForSeededBoardData(page)
 
     // Open AddRepositoryCombobox
     const addRepoButton = page.getByRole('button', {
       name: /add repositories/i,
     })
-    await expect(addRepoButton).toBeVisible({ timeout: 10000 })
+    await expect(addRepoButton).toBeVisible({ timeout: COMBOBOX_TIMEOUT_MS })
     await addRepoButton.click()
 
     // Wait for the combobox panel to be visible
     const searchInput = page.getByPlaceholder(/search repositories/i)
-    await expect(searchInput).toBeVisible({ timeout: 10000 })
+    await expect(searchInput).toBeVisible({ timeout: COMBOBOX_TIMEOUT_MS })
 
     // Wait for repository list to load by asserting options appear
     await expect(page.locator('[role="option"]').first()).toBeVisible({
-      timeout: 10000,
+      timeout: COMBOBOX_TIMEOUT_MS,
     })
 
     // Search with different case - 'TEST-REPO' should still not show 'testuser/test-repo'
@@ -207,13 +238,12 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
     // Wait for filter to apply and verify results
     const repoOptions = page.locator('[role="option"]')
     await expect(async () => {
-      const count = await repoOptions.count()
-      // Verify testuser/test-repo is not in results (case-insensitive match)
-      for (let i = 0; i < count; i++) {
-        const text = await repoOptions.nth(i).textContent()
-        expect(text?.toLowerCase()).not.toContain('testuser/test-repo')
-      }
-    }).toPass({ timeout: 10000 })
+      const optionTexts = await repoOptions.allTextContents()
+      const hasExistingRepo = optionTexts.some((text) =>
+        text.toLowerCase().includes('testuser/test-repo'),
+      )
+      expect(hasExistingRepo).toBe(false)
+    }).toPass({ timeout: COMBOBOX_TIMEOUT_MS })
   })
 })
 
