@@ -216,7 +216,7 @@ describe('GET /api/auth/github/refresh', () => {
   })
 
   // ─────────────────────────────────────── Branch C: rate limit
-  it('redirects to /login?error=rate_limited when checkRateLimit denies', async () => {
+  it('redirects to /login?error=rate_limited when checkRateLimit denies (no error message reflected in URL)', async () => {
     vi.mocked(checkRateLimit).mockReturnValue({
       allowed: false,
       error: 'Too many sign-in requests. Please try again later.',
@@ -227,7 +227,9 @@ describe('GET /api/auth/github/refresh', () => {
 
     const location = response.headers.get('location') ?? ''
     expect(location).toContain('/login?error=rate_limited')
-    expect(location).toContain('message=')
+    // Raw rate-limit error text must NOT be reflected back into the redirect
+    // URL — keeps internal error strings out of the open-redirect surface.
+    expect(location).not.toContain('message=')
   })
 
   // ─────────────────────────────────────── Branch D: no Supabase session
@@ -255,7 +257,7 @@ describe('GET /api/auth/github/refresh', () => {
   })
 
   // ─────────────────────────────────────── Branch F: signInWithOAuth error
-  it('redirects to /login?error=oauth_failed when signInWithOAuth returns an error', async () => {
+  it('redirects to /login?error=oauth_failed when signInWithOAuth returns an error (provider message stays server-side)', async () => {
     vi.mocked(createRouteHandlerClient).mockResolvedValue(
       buildSupabaseMock({
         signInWithOAuth: async () => ({
@@ -270,7 +272,13 @@ describe('GET /api/auth/github/refresh', () => {
 
     const location = response.headers.get('location') ?? ''
     expect(location).toContain('/login?error=oauth_failed')
-    expect(location).toContain('message=github%20unreachable')
+    // Provider error message must NOT leak into the redirect URL — Sentry
+    // and the security audit log retain the full detail server-side.
+    expect(location).not.toContain('message=')
+    expect(logSecurityEvent).toHaveBeenCalledWith('login_failure', {
+      error: 'github unreachable',
+      path: 'silent_token_refresh',
+    })
   })
 
   // ─────────────────────────────────────── Branch G: missing data.url

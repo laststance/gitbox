@@ -54,9 +54,11 @@ export interface PublicBoardData {
 export async function getPublicBoardBySlug(
   slug: PublicBoardSlug,
 ): Promise<PublicBoardData | null> {
-  // Rate limit by IP — anonymous endpoint, so 'unknown' (not loopback) is the
-  // semantically correct fallback when there is no proxy header.
-  const ip = getForwardedClientIp(await headers()) ?? 'unknown'
+  // Rate limit by IP — anonymous endpoint. When there is no proxy header
+  // (rare in production), fall back to a per-request UUID so headerless
+  // traffic does not collapse into a single shared bucket where one client
+  // can throttle every other anonymous viewer.
+  const ip = getForwardedClientIp(await headers()) ?? crypto.randomUUID()
   const rl = checkRateLimit('publicBoardView', ip)
   if (!rl.allowed) return null
 

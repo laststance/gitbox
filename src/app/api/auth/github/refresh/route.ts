@@ -47,6 +47,27 @@ const log = createModuleLogger('github-token-refresh')
  */
 const MAX_REFRESH_ATTEMPTS = 1
 
+/**
+ * Route handler for `GET /api/auth/github/refresh`.
+ *
+ * Performs the silent re-authentication flow described in the file-level
+ * docblock above: enforces an attempt cap, applies per-IP rate limiting,
+ * verifies the Supabase session is still alive, then re-initiates GitHub
+ * OAuth and 302-redirects the browser to GitHub. On any failure the user
+ * lands on `/login?error=<code>` with a stable error code (no raw error
+ * messages are reflected into the URL).
+ *
+ * @param request - Incoming `Request` from Next.js. Read query params
+ *   (`next`, `attempt`) and the `x-real-ip` / `x-forwarded-for` headers.
+ * @returns A `NextResponse` redirect — either to GitHub's OAuth URL on
+ *   success, or to `/login?error=<code>` on failure (`token_refresh_failed`,
+ *   `rate_limited`, `oauth_failed`, `unexpected_error`).
+ *
+ * @example
+ *   // Client-side trigger
+ *   window.location.href =
+ *     `/api/auth/github/refresh?next=${encodeURIComponent('/board/abc')}`
+ */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
 
@@ -67,18 +88,22 @@ export async function GET(request: Request) {
 
   // Rate limit by IP. Reuses the `signInWithGitHub` bucket since each refresh
   // triggers a full GitHub OAuth round-trip — same upstream cost as a fresh
-  // sign-in.
+  // sign-in. Prefer `x-real-ip` (Vercel sets it to the trusted edge IP) over
+  // the first hop of `x-forwarded-for`, which is client-controllable when the
+  // proxy *appends* rather than replaces the header (Vercel's behavior).
+  const realIp = request.headers.get('x-real-ip')?.trim()
   const forwarded = getForwardedClientIp(request.headers)
-  if (!forwarded) {
-    log.warn('x-forwarded-for header missing — falling back to 127.0.0.1')
+  const clientIp = realIp || forwarded || '127.0.0.1'
+  if (!realIp && !forwarded) {
+    log.warn('No trusted client IP header found — falling back to 127.0.0.1')
   }
-  const clientIp = forwarded ?? '127.0.0.1'
   const rateLimitResult = checkRateLimit('signInWithGitHub', clientIp)
   if (!rateLimitResult.allowed) {
-    log.warn({ ip: clientIp }, 'Refresh rate limit exceeded')
-    return NextResponse.redirect(
-      `${origin}/login?error=rate_limited&message=${encodeURIComponent(rateLimitResult.error!)}`,
+    log.warn(
+      { ip: clientIp, error: rateLimitResult.error },
+      'Refresh rate limit exceeded',
     )
+    return NextResponse.redirect(`${origin}/login?error=rate_limited`)
   }
 
   const supabase = await createRouteHandlerClient(request)
@@ -95,6 +120,10 @@ export async function GET(request: Request) {
 
     if (userError || !user) {
       log.info({ next }, 'No Supabase session — redirecting to login')
+      logSecurityEvent('login_failure', {
+        error: 'no_session',
+        path: 'silent_token_refresh',
+      })
       return NextResponse.redirect(
         `${origin}/login?next=${encodeURIComponent(next)}`,
       )
@@ -120,9 +149,11 @@ export async function GET(request: Request) {
       Sentry.captureException(oauthError, {
         extra: { context: 'GitHub token refresh' },
       })
-      return NextResponse.redirect(
-        `${origin}/login?error=oauth_failed&message=${encodeURIComponent(oauthError.message)}`,
-      )
+      logSecurityEvent('login_failure', {
+        error: oauthError.message,
+        path: 'silent_token_refresh',
+      })
+      return NextResponse.redirect(`${origin}/login?error=oauth_failed`)
     }
 
     if (!data.url) {
@@ -131,9 +162,11 @@ export async function GET(request: Request) {
         'GitHub OAuth refresh: No redirect URL returned',
         'error',
       )
-      return NextResponse.redirect(
-        `${origin}/login?error=oauth_failed&message=No%20redirect%20URL%20returned`,
-      )
+      logSecurityEvent('login_failure', {
+        error: 'no_redirect_url',
+        path: 'silent_token_refresh',
+      })
+      return NextResponse.redirect(`${origin}/login?error=oauth_failed`)
     }
 
     logSecurityEvent('login_success', {
@@ -145,6 +178,13 @@ export async function GET(request: Request) {
     log.error({ error: unexpectedError }, 'Unexpected error in token refresh')
     Sentry.captureException(unexpectedError, {
       extra: { context: 'GitHub token refresh' },
+    })
+    logSecurityEvent('login_failure', {
+      error:
+        unexpectedError instanceof Error
+          ? unexpectedError.message
+          : 'unexpected_error',
+      path: 'silent_token_refresh',
     })
     return NextResponse.redirect(`${origin}/login?error=unexpected_error`)
   }

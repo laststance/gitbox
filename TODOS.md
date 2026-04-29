@@ -4,7 +4,7 @@ Follow-up items surfaced during code review. Not ship-blockers — captured here
 
 ## Silent GitHub Token Refresh — P2 follow-ups
 
-From the `/ship` adversarial review of `feat/silent-github-token-refresh` (PR #TBD).
+From the `/ship` adversarial review of `feat/silent-github-token-refresh` (PR #176).
 
 ### UX
 
