@@ -18,6 +18,10 @@ import {
   type GitHubRepository,
   type GitHubOrganization,
 } from '@/lib/actions/github'
+import {
+  clearGitHubRefreshAttempts,
+  handleGitHubTokenMissing,
+} from '@/lib/utils/handle-github-token-missing'
 
 interface UseRepositoryDataReturn {
   userRepos: GitHubRepository[]
@@ -54,10 +58,18 @@ export function useRepositoryData(
       })
 
       if (!result.success) {
+        if (result.errorCode === 'GITHUB_TOKEN_MISSING') {
+          const wasHandledByRefresh = handleGitHubTokenMissing(
+            window.location.pathname,
+          )
+          if (wasHandledByRefresh) return
+        }
         setReposError(result.error)
         setUserRepos([])
         return
       }
+
+      clearGitHubRefreshAttempts()
 
       const allRepos = [...result.data]
 
@@ -67,6 +79,25 @@ export function useRepositoryData(
           getOrganizationRepositories(org.login, { fetchAll: true }),
         )
         const orgResults = await Promise.all(orgRepoPromises)
+
+        // If any org call surfaced a missing token, the cookie went stale
+        // mid-batch — trigger silent refresh and abort the merge.
+        const hasOrgTokenMissing = orgResults.some(
+          (orgResult) =>
+            !orgResult.success &&
+            orgResult.errorCode === 'GITHUB_TOKEN_MISSING',
+        )
+        if (hasOrgTokenMissing) {
+          const wasHandledByRefresh = handleGitHubTokenMissing(
+            window.location.pathname,
+          )
+          if (wasHandledByRefresh) return
+          // Iframe context: keep the user repos we already fetched and surface
+          // an auth error so the UI shows something rather than blanking out.
+          setReposError('GitHub authentication required. Please sign in again.')
+          setUserRepos(allRepos)
+          return
+        }
 
         const existingIds = new Set(allRepos.map((repo) => repo.id))
         for (const orgResult of orgResults) {

@@ -9,14 +9,14 @@
  * - Redirects to Boards screen
  */
 
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 import { createFirstBoardIfNeeded } from '@/lib/actions/board'
-import { getGitHubTokenCookieName } from '@/lib/constants/cookies'
+import { setGitHubTokenCookie } from '@/lib/constants/cookies'
 import { createModuleLogger } from '@/lib/logger'
 import { logSecurityEvent } from '@/lib/security-events'
 import { createRouteHandlerClient } from '@/lib/supabase/server'
+import { sanitizeNextPath } from '@/lib/utils/sanitize-next'
 
 const log = createModuleLogger('auth-callback')
 
@@ -38,17 +38,11 @@ export async function GET(request: Request) {
    * 4. After successful auth, user is redirected to /board/123
    *
    * @default '/boards' - If `next` is not provided, redirects to the main boards page
-   * @note Currently, no code sets this parameter; it exists for future extensibility
+   * @note Set by /api/auth/github/refresh on silent re-auth (refresh/route.ts:142). Also reserved for future link sources (e.g., middleware redirects on protected routes).
    */
-  const rawNext = searchParams.get('next') ?? '/boards'
-  // Prevent open redirect: only allow relative paths, block protocol-relative URLs
-  // Also block backslash variants (/\evil.com) — WHATWG URL Standard normalizes \ to / for http/https
-  const next =
-    rawNext.startsWith('/') &&
-    !rawNext.startsWith('//') &&
-    !rawNext.includes('\\')
-      ? rawNext
-      : '/boards'
+  // Sanitize `next` — only allow safe relative paths.
+  // Shared with src/app/api/auth/github/refresh/route.ts via sanitizeNextPath.
+  const next = sanitizeNextPath(searchParams.get('next'), '/boards')
 
   if (code) {
     const supabase = await createRouteHandlerClient(request)
@@ -68,15 +62,7 @@ export async function GET(request: Request) {
       // Retrieve provider_token and save to cookie (for GitHub API access)
       const providerToken = data.session?.provider_token
       if (providerToken) {
-        const cookieStore = await cookies()
-        const cookieName = getGitHubTokenCookieName()
-        cookieStore.set(cookieName, providerToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 8, // 8 hours — aligned with GitHub fine-grained token default TTL
-          path: '/',
-        })
+        await setGitHubTokenCookie(providerToken)
       } else {
         log.warn(
           'No provider_token in session - GitHub API access may be limited',

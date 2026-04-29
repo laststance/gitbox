@@ -19,6 +19,10 @@ import {
   type GitHubUser,
   type GitHubOrganization,
 } from '@/lib/actions/github'
+import {
+  clearGitHubRefreshAttempts,
+  handleGitHubTokenMissing,
+} from '@/lib/utils/handle-github-token-missing'
 
 interface UseOrganizationDataReturn {
   currentUser: GitHubUser | null
@@ -50,12 +54,35 @@ export function useOrganizationData(
         getAuthenticatedUserOrganizations(),
       ])
 
+      // If either call surfaces a missing token, fire silent refresh once.
+      // The handler is idempotent, so duplicate calls from this hook + the
+      // sibling useRepositoryData hook collapse into a single redirect.
+      const hasTokenMissing =
+        (!userResult.success &&
+          userResult.errorCode === 'GITHUB_TOKEN_MISSING') ||
+        (!orgsResult.success && orgsResult.errorCode === 'GITHUB_TOKEN_MISSING')
+      if (hasTokenMissing) {
+        const wasHandledByRefresh = handleGitHubTokenMissing(
+          window.location.pathname,
+        )
+        if (wasHandledByRefresh) return
+        // Iframe context: the handler can't navigate, so fall through to
+        // populate whichever calls succeeded. The combobox renders the
+        // partial data; useRepositoryData surfaces the auth error.
+      }
+
       if (userResult.success) {
         setCurrentUser(userResult.data)
       }
 
       if (orgsResult.success) {
         setOrganizations(orgsResult.data)
+      }
+
+      // At least one call succeeded means the token is alive — reset the
+      // refresh attempt counter so a future expiry starts fresh from 1.
+      if (userResult.success || orgsResult.success) {
+        clearGitHubRefreshAttempts()
       }
     } catch (error) {
       Sentry.captureException(error, { tags: { action: 'fetchOrganizations' } })
