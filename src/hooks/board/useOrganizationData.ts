@@ -91,13 +91,13 @@ export function useOrganizationData(
     }
   })
 
-  /* eslint-disable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change -- data fetching on open is a valid effect */
+  /* eslint-disable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change, react-you-might-not-need-an-effect/no-event-handler -- data fetching on open is a valid effect */
   useEffect(() => {
     if (isOpen) {
       fetchOrganizations()
     }
   }, [isOpen])
-  /* eslint-enable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change */
+  /* eslint-enable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change, react-you-might-not-need-an-effect/no-event-handler */
 
   const filteredOrganizations = useMemo(
     () =>

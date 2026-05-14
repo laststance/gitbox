@@ -107,6 +107,7 @@ export function useNoteModalDraft<TId extends CardIdentifier = RepoCardId>({
 
   // Sync state when modal opens (not on every draft update).
   // Note: setNote/setLinks are this hook's own state — not "passing data to parents".
+  /* eslint-disable react-you-might-not-need-an-effect/no-event-handler -- one-shot init on modal open is a valid effect, not a derived event handler */
   useEffect(() => {
     if (!isOpen) {
       didInitRef.current = false
@@ -119,6 +120,7 @@ export function useNoteModalDraft<TId extends CardIdentifier = RepoCardId>({
     // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setLinks(draft?.links ?? initialLinks)
   }, [isOpen, initialNote, initialLinks, draft?.content, draft?.links])
+  /* eslint-enable react-you-might-not-need-an-effect/no-event-handler */
 
   /**
    * Calculate text length from the current note (JSON format).

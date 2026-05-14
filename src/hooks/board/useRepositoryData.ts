@@ -123,13 +123,13 @@ export function useRepositoryData(
     }
   })
 
-  /* eslint-disable react-you-might-not-need-an-effect/no-pass-data-to-parent, react-you-might-not-need-an-effect/no-derived-state -- data fetching after org load is a valid effect */
+  /* eslint-disable react-you-might-not-need-an-effect/no-pass-data-to-parent, react-you-might-not-need-an-effect/no-derived-state, react-you-might-not-need-an-effect/no-event-handler -- data fetching after org load is a valid effect */
   useEffect(() => {
     if (isOpen && !isLoadingOrgs) {
       fetchRepositories()
     }
   }, [isOpen, isLoadingOrgs])
-  /* eslint-enable react-you-might-not-need-an-effect/no-pass-data-to-parent, react-you-might-not-need-an-effect/no-derived-state */
+  /* eslint-enable react-you-might-not-need-an-effect/no-pass-data-to-parent, react-you-might-not-need-an-effect/no-derived-state, react-you-might-not-need-an-effect/no-event-handler */
 
   return { userRepos, isLoadingRepos, reposError }
 }

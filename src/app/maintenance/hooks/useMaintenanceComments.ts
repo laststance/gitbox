@@ -40,7 +40,7 @@ export function useMaintenanceComments({
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
 
   // Load comments on mount (data fetching, not parent data passing)
-  /* eslint-disable react-you-might-not-need-an-effect/no-pass-data-to-parent */
+  /* eslint-disable react-you-might-not-need-an-effect/no-pass-data-to-parent, react-you-might-not-need-an-effect/no-event-handler -- data fetching when initialRepos changes is a valid effect, not a derived event handler */
   useEffect(() => {
     if (initialRepos.length === 0) return
     const ids = initialRepos.map((r) => r.id)
@@ -48,7 +48,7 @@ export function useMaintenanceComments({
       if (result.success) setComments(result.data)
     })
   }, [initialRepos])
-  /* eslint-enable react-you-might-not-need-an-effect/no-pass-data-to-parent */
+  /* eslint-enable react-you-might-not-need-an-effect/no-pass-data-to-parent, react-you-might-not-need-an-effect/no-event-handler */
 
   /**
    * Handle click on comment area to start editing

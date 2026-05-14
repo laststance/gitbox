@@ -209,6 +209,7 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
     )
 
     // Auto-focus on mount
+    /* eslint-disable react-you-might-not-need-an-effect/no-event-handler -- focusing imperatively on mount is a valid effect, not a derived event handler */
     useEffect(() => {
       if (autoFocus && textareaRef.current) {
         textareaRef.current.focus()
@@ -217,6 +218,7 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
         textareaRef.current.selectionEnd = textareaRef.current.value.length
       }
     }, [autoFocus])
+    /* eslint-enable react-you-might-not-need-an-effect/no-event-handler */
 
     return (
       <div

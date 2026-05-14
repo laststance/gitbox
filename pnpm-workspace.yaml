@@ -1,12 +1,5 @@
-onlyBuiltDependencies:
-  - '@sentry/cli'
-  - esbuild
-  - msw
-  - sharp
-  - unrs-resolver
-
 patchedDependencies:
-  vite-plugin-storybook-nextjs@3.2.4: patches/vite-plugin-storybook-nextjs@3.2.4.patch
+  vite-plugin-storybook-nextjs@3.2.5: patches/vite-plugin-storybook-nextjs@3.2.5.patch
 
 # Supply-chain security (migrated from .npmrc 2026-05-07)
 minimumReleaseAge: 1440
@@ -30,3 +23,9 @@ minimumReleaseAgeExclude:
   - '@laststance/redux-storage-middleware'
   - '@laststance/react-next-eslint-plugin'
 verifyStoreIntegrity: true
+allowBuilds:
+  '@sentry/cli': true
+  esbuild: true
+  msw: true
+  sharp: true
+  unrs-resolver: true

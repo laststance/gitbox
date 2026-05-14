@@ -83,6 +83,7 @@ const InlineCombobox = ({
   const cursorState = useHTMLInputCursorState(inputRef)
 
   const [valueState, setValueState] = React.useState('')
+  // eslint-disable-next-line react-you-might-not-need-an-effect/no-event-handler -- standard controlled/uncontrolled component pattern, not an effect-based event handler
   const hasValueProp = valueProp !== undefined
   const value = hasValueProp ? valueProp : valueState
 
@@ -97,6 +98,7 @@ const InlineCombobox = ({
     return elementUserId === currentUserId
   }, [editor.meta.userId, element])
 
+  /* eslint-disable react-you-might-not-need-an-effect/no-event-handler -- forwarding to a parent setter prop is the documented controlled-component contract */
   const setValue = React.useCallback(
     (newValue: string) => {
       setValueProp?.(newValue)
@@ -107,6 +109,7 @@ const InlineCombobox = ({
     },
     [setValueProp, hasValueProp],
   )
+  /* eslint-enable react-you-might-not-need-an-effect/no-event-handler */
 
   /**
    * Track the point just before the input element so we know where to
