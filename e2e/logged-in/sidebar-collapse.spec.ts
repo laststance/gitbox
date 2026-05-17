@@ -19,9 +19,12 @@ test.describe('Sidebar Collapse', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
   test.beforeEach(async ({ page }) => {
-    // Clear localStorage to start with default (expanded) state
+    // Clear persisted state only once per test context, not on full page reloads.
     await page.addInitScript(() => {
+      if (sessionStorage.getItem('gitbox-e2e-storage-cleared')) return
+
       localStorage.removeItem('gitbox-state')
+      sessionStorage.setItem('gitbox-e2e-storage-cleared', 'true')
     })
   })
 
@@ -156,15 +159,7 @@ test.describe('Sidebar Collapse', () => {
     await expect(page.locator('aside')).toHaveClass(/w-16/)
   })
 
-  /**
-   * Note: Persistence across full page reload is handled by Redux Storage Middleware
-   * with debounced writes. This test is skipped in E2E because the timing between
-   * state change → localStorage write → page reload is sensitive to debounce delay.
-   * The persistence is verified manually and in unit tests.
-   */
-  test.skip('should persist collapsed state after page reload', async ({
-    page,
-  }) => {
+  test('should persist collapsed state after page reload', async ({ page }) => {
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
 
@@ -177,12 +172,15 @@ test.describe('Sidebar Collapse', () => {
 
     await expect(sidebar).toHaveClass(/w-16/)
 
-    // Wait for localStorage write via polling
+    // Poll the debounced Redux storage write before forcing a full reload.
     await expect(async () => {
-      const stored = await page.evaluate(() =>
-        localStorage.getItem('gitbox-state'),
-      )
-      expect(stored).not.toBeNull()
+      const isPersisted = await page.evaluate(() => {
+        const stored = localStorage.getItem('gitbox-state')
+        if (!stored) return false
+
+        return JSON.parse(stored)?.state?.settings?.sidebarCollapsed === true
+      })
+      expect(isPersisted).toBe(true)
     }).toPass({ timeout: 10000 })
 
     await page.reload()

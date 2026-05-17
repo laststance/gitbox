@@ -31,7 +31,6 @@ export const Default: Story = {
     boardId: toBoardId('board-1'),
     statusId: toStatusListId('status-1'),
     onRepositoriesAdded: () => console.log('Repositories added'),
-    onQuickNoteFocus: () => console.log('Quick note focused'),
   },
 }
 
@@ -41,9 +40,6 @@ export const WithCallbacks: Story = {
     statusId: toStatusListId('status-1'),
     onRepositoriesAdded: () => {
       console.log('Repositories added successfully')
-    },
-    onQuickNoteFocus: () => {
-      console.log('Focus moved to quick note')
     },
   },
 }
@@ -56,7 +52,6 @@ export const OpenPopover: Story = {
     boardId: toBoardId('board-1'),
     statusId: toStatusListId('status-1'),
     onRepositoriesAdded: fn(),
-    onQuickNoteFocus: fn(),
   },
   play: async () => {
     // Wait for component to render
@@ -94,7 +89,6 @@ export const SearchInput: Story = {
     boardId: toBoardId('board-1'),
     statusId: toStatusListId('status-1'),
     onRepositoriesAdded: fn(),
-    onQuickNoteFocus: fn(),
   },
   play: async () => {
     // Wait for component to render
@@ -141,7 +135,6 @@ export const CancelButton: Story = {
     boardId: toBoardId('board-1'),
     statusId: toStatusListId('status-1'),
     onRepositoriesAdded: fn(),
-    onQuickNoteFocus: fn(),
   },
   play: async () => {
     // Wait for component to render

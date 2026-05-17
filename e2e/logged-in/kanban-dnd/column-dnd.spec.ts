@@ -1736,24 +1736,16 @@ test.describe('10.3 Column Drag & Drop', () => {
         dropDelay: 350,
       })
 
-      // Wait for server action to complete
-      await page.waitForTimeout(1500)
-
-      // Verify column position is updated in database
-      const statusAfter = await querySingle<{
-        grid_row: number
-        grid_col: number
-      }>('statuslist', { id: statusId })
-      expect(statusAfter).not.toBeNull()
-
-      // CDP drag is inherently flaky — skip DB assertions if drag didn't register
-      // (the visual DnD tests already cover the drag interaction itself)
-      test.skip(
-        statusAfter?.grid_row === initialRow,
-        'CDP drag did not register — skipping DB verification (DnD flakiness)',
-      )
-      expect(statusAfter?.grid_row).not.toBe(initialRow)
-      expect(statusAfter?.grid_col).toBe(0) // First (only) column in new row — 0-indexed
+      await expect(async () => {
+        const statusAfter = await querySingle<{
+          grid_row: number
+          grid_col: number
+        }>('statuslist', { id: statusId })
+        expect(statusAfter).not.toBeNull()
+        expect(statusAfter?.grid_row).not.toBe(initialRow)
+        // First column in the newly created row uses zero-indexed DB coordinates.
+        expect(statusAfter?.grid_col).toBe(0)
+      }).toPass({ timeout: 10000 })
     })
   })
 })

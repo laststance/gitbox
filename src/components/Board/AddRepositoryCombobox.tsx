@@ -40,7 +40,6 @@ interface AddRepositoryComboboxProps {
    * @param cards - The created repo cards for optimistic UI update
    */
   onRepositoriesAdded: (cards: CreatedRepoCard[]) => void
-  onQuickNoteFocus: () => void
   /**
    * Controlled mode: External open state
    * When provided, the component uses this value instead of internal state
@@ -68,13 +67,11 @@ interface AddRepositoryComboboxProps {
  * - Performance optimized (<1s response)
  * - WCAG AA accessibility compliance
  * - Duplicate detection
- * - Auto-focus to Quick note after adding
  */
 export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   boardId,
   statusId,
   onRepositoriesAdded,
-  onQuickNoteFocus,
   isOpen: controlledIsOpen,
   onOpenChange,
   maintenanceRepoIdentifiers,
@@ -312,11 +309,6 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
       // Pass created cards for optimistic UI update (no page reload needed)
       onRepositoriesAdded(result.data.cards || [])
-
-      // Auto-focus to Quick note field (T046)
-      setTimeout(() => {
-        onQuickNoteFocus()
-      }, 100)
     } catch (err) {
       setAddingError(
         err instanceof Error ? err.message : 'Error adding repositories',
