@@ -5,13 +5,14 @@ runs:
   using: composite
   steps:
     - name: Install pnpm
-      uses: pnpm/action-setup@v4
+      uses: pnpm/action-setup@v6
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
-        node-version: '22'
-        cache: 'pnpm'
+        node-version: '26'
+        # Disable package-manager caching to avoid restoring poisoned pnpm cache entries.
+        package-manager-cache: false
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
