@@ -146,7 +146,6 @@ describe('insertBlock logic', () => {
     'callout',
     'code_block',
     'equation',
-    'excalidraw',
     'file',
     'img',
     'media_embed',
@@ -157,7 +156,7 @@ describe('insertBlock logic', () => {
 
   it('should have all expected block types in the insert map', () => {
     // Verify the expected block types are defined
-    expect(insertBlockTypes.length).toBe(15)
+    expect(insertBlockTypes.length).toBe(14)
   })
 
   it('should include list types', () => {

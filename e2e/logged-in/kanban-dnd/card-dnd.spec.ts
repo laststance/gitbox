@@ -376,21 +376,14 @@ test.describe('10.2 Card Drag & Drop', () => {
         },
       )
 
-      // Wait for server action to complete
-      await page.waitForTimeout(1500)
-
-      // Verify card status_id is updated in database
-      const cardAfter = await querySingle<{ status_id: string }>('repocard', {
-        id: cardId,
-      })
-      expect(cardAfter).not.toBeNull()
-
-      // CDP drag is inherently flaky — skip DB assertions if drag didn't register
-      test.skip(
-        cardAfter?.status_id === initialStatusId,
-        'CDP drag did not register — skipping DB verification (DnD flakiness)',
-      )
-      expect(cardAfter?.status_id).toBe(STATUS_IDS.productionRelease)
+      await expect(async () => {
+        const cardAfter = await querySingle<{ status_id: string }>('repocard', {
+          id: cardId,
+        })
+        expect(cardAfter).not.toBeNull()
+        expect(cardAfter?.status_id).not.toBe(initialStatusId)
+        expect(cardAfter?.status_id).toBe(STATUS_IDS.productionRelease)
+      }).toPass({ timeout: 10000 })
     })
   })
 })

@@ -281,9 +281,6 @@ export const BoardPageClient = memo(function BoardPageClient({
                   )
                   dispatch(addRepoCards(newCards))
                 }}
-                onQuickNoteFocus={() => {
-                  // TODO: Focus on quick note field (not yet implemented)
-                }}
               />
               <Button
                 variant="outline"

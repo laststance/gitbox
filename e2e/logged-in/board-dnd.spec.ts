@@ -73,12 +73,6 @@ test.describe('Board DnD Reordering', () => {
   })
 
   test('should swap two boards via CDP drag @slow', async ({ page }) => {
-    // CDP drag can be flaky — soft skip guard
-    test.skip(
-      !!process.env.CI && process.env.SKIP_DND_TESTS === 'true',
-      'CDP DnD tests can be flaky in CI',
-    )
-
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
 
@@ -143,12 +137,6 @@ test.describe('Board DnD Reordering', () => {
   test('should persist board positions to database after drag @slow', async ({
     page,
   }) => {
-    // CDP drag can be flaky — soft skip guard
-    test.skip(
-      !!process.env.CI && process.env.SKIP_DND_TESTS === 'true',
-      'CDP DnD tests can be flaky in CI',
-    )
-
     await page.goto('/boards')
     await page.waitForLoadState('networkidle')
 
@@ -175,24 +163,26 @@ test.describe('Board DnD Reordering', () => {
       { steps: 15, stepDelay: 50, dropDelay: 200 },
     )
 
-    // Wait for server action to complete by polling DB
+    // Wait for server action to complete before checking persisted order.
     await page.waitForLoadState('networkidle')
 
-    // Query DB to verify positions were updated
-    const boardsAfter = await querySupabase<{
-      id: string
-      position: number
-    }>('board')
+    await expect(async () => {
+      const boardsAfter = await querySupabase<{
+        id: string
+        position: number
+      }>('board')
 
-    const wpAfter = boardsAfter.find((b) => b.id === BOARD_IDS.workProjects)
-    const tbAfter = boardsAfter.find((b) => b.id === BOARD_IDS.testBoard)
+      const wpAfter = boardsAfter.find((b) => b.id === BOARD_IDS.workProjects)
+      const tbAfter = boardsAfter.find((b) => b.id === BOARD_IDS.testBoard)
+      expect(wpAfter).toBeDefined()
+      expect(tbAfter).toBeDefined()
 
-    // After swap: relative positions should have swapped
-    // If WP was at lower position than TB, it should now be at higher (and vice versa)
-    if (wpBefore!.position < tbBefore!.position) {
-      expect(wpAfter!.position).toBeGreaterThan(tbAfter!.position)
-    } else {
-      expect(wpAfter!.position).toBeLessThan(tbAfter!.position)
-    }
+      // After swap: relative positions should have swapped.
+      if (wpBefore!.position < tbBefore!.position) {
+        expect(wpAfter!.position).toBeGreaterThan(tbAfter!.position)
+      } else {
+        expect(wpAfter!.position).toBeLessThan(tbAfter!.position)
+      }
+    }).toPass({ timeout: 10000 })
   })
 })
