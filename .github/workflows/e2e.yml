@@ -28,18 +28,18 @@ jobs:
         shardTotal: [12]
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: '26'
           # Disable package-manager caching to avoid restoring poisoned pnpm cache entries.
           package-manager-cache: false
 
       # Install Supabase CLI
-      - uses: supabase/setup-cli@v2.0.0
+      - uses: supabase/setup-cli@df56b21da46c98abb12a9804e4fb1f657773e333 # v2.0.0
         with:
           version: latest
 
@@ -103,7 +103,7 @@ jobs:
 
       - name: Upload blob report
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: blob-report-${{ matrix.shardIndex }}
           path: blob-report
@@ -112,7 +112,7 @@ jobs:
 
       - name: Upload coverage report
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-report-${{ matrix.shardIndex }}
           path: coverage-e2e/
@@ -127,11 +127,11 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: '26'
           # Disable package-manager caching to avoid restoring poisoned pnpm cache entries.
@@ -141,14 +141,14 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Download blob reports
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           path: all-blob-reports
           pattern: blob-report-*
           merge-multiple: true
 
       - name: Download coverage reports
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           path: all-coverage-reports
           pattern: coverage-report-*
@@ -241,7 +241,7 @@ jobs:
           "
 
       - name: Upload merged Playwright report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
         with:
           name: playwright-report
@@ -249,7 +249,7 @@ jobs:
           retention-days: 30
 
       - name: Upload merged coverage report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
         with:
           name: e2e-coverage-report
@@ -275,31 +275,41 @@ jobs:
             BRANCHES_PCT=$(jq '.total.branches.pct // 0' coverage-e2e/coverage/coverage-summary.json)
             STATEMENTS_PCT=$(jq '.total.statements.pct // 0' coverage-e2e/coverage/coverage-summary.json)
 
-            echo "lines_pct=${LINES_PCT}" >> $GITHUB_OUTPUT
-            echo "functions_pct=${FUNCTIONS_PCT}" >> $GITHUB_OUTPUT
-            echo "branches_pct=${BRANCHES_PCT}" >> $GITHUB_OUTPUT
-            echo "statements_pct=${STATEMENTS_PCT}" >> $GITHUB_OUTPUT
+            {
+              echo "lines_pct=${LINES_PCT}"
+              echo "functions_pct=${FUNCTIONS_PCT}"
+              echo "branches_pct=${BRANCHES_PCT}"
+              echo "statements_pct=${STATEMENTS_PCT}"
+            } >> "$GITHUB_OUTPUT"
 
-            if (( $(echo "$LINES_PCT >= 80" | bc -l) )); then
+            is_at_least() {
+              awk -v value="$1" -v threshold="$2" 'BEGIN { exit !(value >= threshold) }'
+            }
+
+            if is_at_least "$LINES_PCT" 80; then
               COLOR="brightgreen"
-            elif (( $(echo "$LINES_PCT >= 60" | bc -l) )); then
+            elif is_at_least "$LINES_PCT" 60; then
               COLOR="yellow"
-            elif (( $(echo "$LINES_PCT >= 40" | bc -l) )); then
+            elif is_at_least "$LINES_PCT" 40; then
               COLOR="orange"
             else
               COLOR="red"
             fi
-            echo "color=${COLOR}" >> $GITHUB_OUTPUT
-            echo "coverage_available=true" >> $GITHUB_OUTPUT
+            {
+              echo "color=${COLOR}"
+              echo "coverage_available=true"
+            } >> "$GITHUB_OUTPUT"
           else
-            echo "coverage_available=false" >> $GITHUB_OUTPUT
-            echo "lines_pct=0" >> $GITHUB_OUTPUT
+            {
+              echo "coverage_available=false"
+              echo "lines_pct=0"
+            } >> "$GITHUB_OUTPUT"
           fi
 
       # Badge update (main branch only)
       - name: Update coverage badge
         if: always() && github.ref == 'refs/heads/main' && steps.coverage.outputs.coverage_available == 'true'
-        uses: Schneegans/dynamic-badges-action@v1.8.0
+        uses: Schneegans/dynamic-badges-action@0e50b8bad39e7e1afd3e4e9c2b7dd145fad07501 # v1.8.0
         with:
           auth: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           gistID: 7782ae901e4ba955b064eadeeac72c45
@@ -312,7 +322,7 @@ jobs:
       # PR Comment
       - name: Comment coverage on PR
         if: always() && github.event_name == 'pull_request' && steps.coverage.outputs.coverage_available == 'true'
-        uses: marocchino/sticky-pull-request-comment@v3.0.4
+        uses: marocchino/sticky-pull-request-comment@0ea0beb66eb9baf113663a64ec522f60e49231c0 # v3.0.4
         with:
           header: e2e-coverage
           message: |
