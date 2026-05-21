@@ -142,46 +142,41 @@ export async function createStatusList(
   statusListNameSchema.parse(name)
   statusListColorSchema.parse(color)
 
-  // Auth check (P1-5): RLS handles ownership, but verify user is authenticated.
-  // Uses JWT claims (~5ms WebCrypto verify) instead of the ~50ms `auth.getUser()`
-  // GoTrue round-trip — claims body is unused; only existence matters here.
-  const authedContext = await getCachedClaims()
-  if (!authedContext) throw new Error('Authentication required')
-  const { supabase } = authedContext
+  return withAuthRateLimit('boardCrud', async (supabase) => {
+    // Get the current max grid_col in row 0
+    const { data: maxColData } = await supabase
+      .from('statuslist')
+      .select('grid_col')
+      .eq('board_id', boardId)
+      .eq('grid_row', 0)
+      .order('grid_col', { ascending: false })
+      .limit(1)
+      .single()
 
-  // Get the current max grid_col in row 0
-  const { data: maxColData } = await supabase
-    .from('statuslist')
-    .select('grid_col')
-    .eq('board_id', boardId)
-    .eq('grid_row', 0)
-    .order('grid_col', { ascending: false })
-    .limit(1)
-    .single()
+    const nextCol = (maxColData?.grid_col ?? -1) + 1
 
-  const nextCol = (maxColData?.grid_col ?? -1) + 1
+    const { data, error } = await supabase
+      .from('statuslist')
+      .insert({
+        board_id: boardId,
+        name,
+        color,
+        order: nextCol, // Keep order in sync for backwards compatibility
+        grid_row: 0,
+        grid_col: nextCol,
+      })
+      .select()
+      .single()
 
-  const { data, error } = await supabase
-    .from('statuslist')
-    .insert({
-      board_id: boardId,
-      name,
-      color,
-      order: nextCol, // Keep order in sync for backwards compatibility
-      grid_row: 0,
-      grid_col: nextCol,
-    })
-    .select()
-    .single()
+    if (error || !data) {
+      Sentry.captureException(error ?? new Error('No data returned'), {
+        extra: { context: 'Create status list', boardId, name },
+      })
+      throw new Error('Failed to create status list')
+    }
 
-  if (error || !data) {
-    Sentry.captureException(error ?? new Error('No data returned'), {
-      extra: { context: 'Create status list', boardId, name },
-    })
-    throw new Error('Failed to create status list')
-  }
-
-  return toStatusListDomain(data)
+    return toStatusListDomain(data)
+  })
 }
 
 /**
