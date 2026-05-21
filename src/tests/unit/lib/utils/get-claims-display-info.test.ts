@@ -159,4 +159,23 @@ describe('getClaimsDisplayInfo', () => {
       userAvatar: undefined,
     })
   })
+
+  it("falls back to 'User' when full_name is non-string and email is missing", () => {
+    // Arrange
+    // Defends the worst-case shape: malformed JWT with a non-string full_name
+    // claim and no email field. The header must still render a stable string.
+    const claims: SupabaseClaims = {
+      ...baseClaims,
+      user_metadata: { full_name: { nested: 'object' } },
+    }
+
+    // Act
+    const result = getClaimsDisplayInfo(claims)
+
+    // Assert
+    expect(result).toEqual({
+      userName: 'User',
+      userAvatar: undefined,
+    })
+  })
 })
