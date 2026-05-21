@@ -3,12 +3,14 @@
  *
  * Layout for /board/* routes
  * - Sidebar navigation
- * - Fetches user information and passes it to Sidebar
+ * - Reads JWT claims (~5ms WebCrypto verify via `requireClaims`) for header
+ *   user info, so `loading.tsx` Skeleton can stream effectively immediately
+ *   after the first byte instead of waiting on the ~50ms `auth.getUser()`
+ *   GoTrue round-trip.
  */
 
-import { redirect } from 'next/navigation'
-
-import { createClient } from '@/lib/supabase/server'
+import { requireClaims } from '@/lib/auth/require-claims'
+import { getClaimsDisplayInfo } from '@/lib/utils/get-claims-display-info'
 
 import { BoardLayoutClient } from './BoardLayoutClient'
 
@@ -17,20 +19,8 @@ export default async function BoardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-
-  // Authentication check
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
-  // Get user metadata
-  const userName = user.user_metadata?.full_name || user.email || 'User'
-  const userAvatar = user.user_metadata?.avatar_url
+  const { claims } = await requireClaims()
+  const { userName, userAvatar } = getClaimsDisplayInfo(claims)
 
   return (
     <BoardLayoutClient userName={userName} userAvatar={userAvatar}>
