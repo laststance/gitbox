@@ -99,7 +99,8 @@ export async function proxy(request: NextRequest) {
   const hasValidClaims =
     !claimsError &&
     !!claims &&
-    (typeof claims.exp !== 'number' || nowInSeconds <= claims.exp)
+    typeof claims.exp === 'number' &&
+    nowInSeconds <= claims.exp
 
   // Allow public paths without authentication
   if (publicPaths.includes(pathname)) {

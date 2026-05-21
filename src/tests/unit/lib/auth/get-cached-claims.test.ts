@@ -8,7 +8,7 @@
  *  B. SDK error — returns null (treat as unauthenticated)
  *  C. Missing claims — returns null
  *  D. Defensive expiry check — exp in the past returns null
- *  E. Defensive expiry check — exp omitted/non-number passes through
+ *  E. Defensive expiry check — exp omitted/non-number returns null (fail closed)
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -132,8 +132,9 @@ describe('getCachedClaims()', () => {
     expect(result).toBeNull()
   })
 
-  it('passes through when exp is not a number (defensive check is opt-in)', async () => {
-    // Arrange — exp deliberately omitted (treat as "no defensive expiry")
+  it('returns null when exp is missing or non-numeric (fail closed)', async () => {
+    // Arrange — exp deliberately omitted; a JWT without an expiry must be
+    // rejected by the auth gate even if the Supabase SDK accepted it.
     const claimsWithoutExp = {
       iss: 'supabase-demo',
       sub: MOCK_USER_UUID,
@@ -151,8 +152,7 @@ describe('getCachedClaims()', () => {
     const { getCachedClaims } = await importFreshHelper()
     const result = await getCachedClaims()
 
-    // Assert — claims pass through; SDK would have already rejected a true bad token
-    expect(result).not.toBeNull()
-    expect(result?.claims.sub).toBe(MOCK_USER_UUID)
+    // Assert — fail closed: missing exp = unauthenticated
+    expect(result).toBeNull()
   })
 })

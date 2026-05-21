@@ -58,9 +58,10 @@ export const getCachedClaims = cache(async () => {
 
   const claims = data.claims as SupabaseClaims
 
-  // Defensive expiry check on top of SDK validation (handles clock skew).
+  // Defensive expiry check on top of SDK validation: fail closed if exp is
+  // missing, non-numeric, or already past (handles clock skew + malformed JWT).
   const nowInSeconds = Math.floor(Date.now() / 1000)
-  if (typeof claims.exp === 'number' && nowInSeconds > claims.exp) return null
+  if (typeof claims.exp !== 'number' || nowInSeconds > claims.exp) return null
 
   return { supabase, claims }
 })
