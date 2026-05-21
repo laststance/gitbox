@@ -18,11 +18,23 @@ import { Toaster } from 'sonner'
 
 import { CommandPalette } from '@/components/CommandPalette/CommandPalette'
 import { ShortcutsHelp } from '@/components/ShortcutsHelp'
+import { DARK_THEME_IDS } from '@/lib/constants/themes'
 import { ReduxProvider } from '@/lib/redux/reduxProvider'
 import { isMSWEnabled } from '@/lib/utils/isMSWEnabled'
 import '@/styles/globals.css'
 
 import { MSWProvider } from './msw-provider'
+
+// Inline script injected into <head> to apply the persisted theme BEFORE
+// React hydrates. Without this, the default light theme paints first, then
+// `<ThemeApplicator />` swaps to the user's chosen theme after mount —
+// causing a visible FOUC (white → dark theme) on every navigation.
+// Reads the same `gitbox-state` key used by @laststance/redux-storage-middleware
+// (shape: { version: 0, state: { settings: { theme } } }) and applies the
+// `data-theme` attribute + `.dark` class directly to <html> synchronously.
+// `suppressHydrationWarning` on <html> covers React re-applying the same
+// attributes after hydration (idempotent — no visible change).
+const themeInitScript = `(function(){try{var raw=localStorage.getItem('gitbox-state');var theme;if(raw){var parsed=JSON.parse(raw);theme=parsed&&parsed.state&&parsed.state.settings&&parsed.state.settings.theme;}var root=document.documentElement;if(!theme||theme==='system'){var prefersDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;root.classList.toggle('dark',prefersDark);return;}var darkThemes=${JSON.stringify(DARK_THEME_IDS)};root.setAttribute('data-theme',theme);root.classList.toggle('dark',darkThemes.indexOf(theme)!==-1);}catch(e){}})();`
 
 /**
  * Metadata Configuration
@@ -83,7 +95,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head></head>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="antialiased">
         <NextTopLoader
           color="oklch(0.696 0.17 162.48)"

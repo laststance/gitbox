@@ -27,12 +27,20 @@ const rootReducer = combineReducers({
 
 // Storage middleware configuration with new API
 // Returns hydration-wrapped reducer automatically
-const { middleware: storageMiddleware, reducer: hydratedReducer } =
-  createStorageMiddleware({
-    rootReducer, // Required: pass root reducer
-    key: 'gitbox-state',
-    slices: ['settings', 'board', 'draft'], // Persist these slices to localStorage
-  })
+const {
+  middleware: storageMiddleware,
+  reducer: hydratedReducer,
+  api: storageApi,
+} = createStorageMiddleware({
+  rootReducer, // Required: pass root reducer
+  key: 'gitbox-state',
+  slices: ['settings', 'board', 'draft'], // Persist these slices to localStorage
+})
+
+// Exposed so hooks (e.g. useTheme) can gate effects on localStorage hydration
+// completion — avoids transient "initial Redux state" values being applied to
+// the DOM in the microtask window before `ACTION_HYDRATE_COMPLETE` fires.
+export { storageApi }
 
 export const store = configureStore({
   // Use returned reducer (already hydration-wrapped)
