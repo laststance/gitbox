@@ -142,13 +142,12 @@ export async function createStatusList(
   statusListNameSchema.parse(name)
   statusListColorSchema.parse(color)
 
-  const supabase = await createClient()
-
-  // Auth check (P1-5): RLS handles ownership, but verify user is authenticated
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('Authentication required')
+  // Auth check (P1-5): RLS handles ownership, but verify user is authenticated.
+  // Uses JWT claims (~5ms WebCrypto verify) instead of the ~50ms `auth.getUser()`
+  // GoTrue round-trip — claims body is unused; only existence matters here.
+  const authedContext = await getCachedClaims()
+  if (!authedContext) throw new Error('Authentication required')
+  const { supabase } = authedContext
 
   // Get the current max grid_col in row 0
   const { data: maxColData } = await supabase
