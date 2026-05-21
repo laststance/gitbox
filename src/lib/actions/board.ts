@@ -143,15 +143,25 @@ export async function createStatusList(
   statusListColorSchema.parse(color)
 
   return withAuthRateLimit('boardCrud', async (supabase) => {
-    // Get the current max grid_col in row 0
-    const { data: maxColData } = await supabase
+    // Get the current max grid_col in row 0. maybeSingle() returns null
+    // (no error) when the board has no columns yet — that's the legitimate
+    // empty case. Any other error means RLS denial, network failure, etc.,
+    // and silently falling back to 0 would duplicate grid_col on the insert.
+    const { data: maxColData, error: maxColError } = await supabase
       .from('statuslist')
       .select('grid_col')
       .eq('board_id', boardId)
       .eq('grid_row', 0)
       .order('grid_col', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
+
+    if (maxColError) {
+      Sentry.captureException(maxColError, {
+        extra: { context: 'Read max grid_col for createStatusList', boardId },
+      })
+      throw new Error('Failed to create status list')
+    }
 
     const nextCol = (maxColData?.grid_col ?? -1) + 1
 
