@@ -3,28 +3,20 @@
  *
  * Layout for /settings route
  * - Theme application for authenticated users
+ * - Auth gate via JWT claims (~5ms WebCrypto verify) instead of the ~50ms
+ *   `auth.getUser()` round-trip. Claims body is unused here; the call exists
+ *   for its redirect side effect when the JWT is missing or expired.
  */
 
-import { redirect } from 'next/navigation'
-
 import { ThemeApplicator } from '@/components/ThemeApplicator'
-import { createClient } from '@/lib/supabase/server'
+import { requireClaims } from '@/lib/auth/require-claims'
 
 export default async function SettingsLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-
-  // Authentication check
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
+  await requireClaims()
 
   return (
     <>

@@ -13,6 +13,7 @@ import * as Sentry from '@sentry/nextjs'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
+import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 import { deleteGitHubTokenCookie } from '@/lib/constants/cookies'
 import { checkRateLimit } from '@/lib/rate-limit/check'
 import { logSecurityEvent } from '@/lib/security-events'
@@ -112,23 +113,21 @@ export async function signOut() {
  * @throws Error if deletion fails
  */
 export async function deleteAccount() {
-  const supabase = await createServerActionClient()
+  // Get current user via JWT claims (~5ms WebCrypto verify) instead of the
+  // ~50ms `auth.getUser()` GoTrue round-trip. `claims.sub` is the user UUID.
+  const authedContext = await getCachedClaims()
 
-  // Get current user
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  if (userError || !user) {
-    Sentry.captureException(userError ?? new Error('User not found'), {
+  if (!authedContext) {
+    Sentry.captureException(new Error('User not found'), {
       extra: { context: 'Delete account - get user' },
     })
     throw new Error('Not authenticated')
   }
 
+  const { claims } = authedContext
+
   // Rate limit by user ID
-  const rlResult = checkRateLimit('deleteAccount', user.id)
+  const rlResult = checkRateLimit('deleteAccount', claims.sub)
   if (!rlResult.allowed) {
     throw new Error(rlResult.error!)
   }
@@ -136,17 +135,17 @@ export async function deleteAccount() {
   // Use admin client to delete user (bypasses RLS)
   const adminClient = createAdminClient()
   const { error: deleteError } = await adminClient.auth.admin.deleteUser(
-    user.id,
+    claims.sub,
   )
 
   if (deleteError) {
     Sentry.captureException(deleteError, {
-      extra: { context: 'Delete account', userId: user.id },
+      extra: { context: 'Delete account', userId: claims.sub },
     })
     throw new Error('Failed to delete account')
   }
 
-  logSecurityEvent('account_deleted', { userId: user.id })
+  logSecurityEvent('account_deleted', { userId: claims.sub })
 
   await deleteGitHubTokenCookie()
 

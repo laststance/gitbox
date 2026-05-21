@@ -142,47 +142,51 @@ export async function createStatusList(
   statusListNameSchema.parse(name)
   statusListColorSchema.parse(color)
 
-  const supabase = await createClient()
+  return withAuthRateLimit('boardCrud', async (supabase) => {
+    // Get the current max grid_col in row 0. maybeSingle() returns null
+    // (no error) when the board has no columns yet — that's the legitimate
+    // empty case. Any other error means RLS denial, network failure, etc.,
+    // and silently falling back to 0 would duplicate grid_col on the insert.
+    const { data: maxColData, error: maxColError } = await supabase
+      .from('statuslist')
+      .select('grid_col')
+      .eq('board_id', boardId)
+      .eq('grid_row', 0)
+      .order('grid_col', { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
-  // Auth check (P1-5): RLS handles ownership, but verify user is authenticated
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('Authentication required')
+    if (maxColError) {
+      Sentry.captureException(maxColError, {
+        extra: { context: 'Read max grid_col for createStatusList', boardId },
+      })
+      throw new Error('Failed to create status list')
+    }
 
-  // Get the current max grid_col in row 0
-  const { data: maxColData } = await supabase
-    .from('statuslist')
-    .select('grid_col')
-    .eq('board_id', boardId)
-    .eq('grid_row', 0)
-    .order('grid_col', { ascending: false })
-    .limit(1)
-    .single()
+    const nextCol = (maxColData?.grid_col ?? -1) + 1
 
-  const nextCol = (maxColData?.grid_col ?? -1) + 1
+    const { data, error } = await supabase
+      .from('statuslist')
+      .insert({
+        board_id: boardId,
+        name,
+        color,
+        order: nextCol, // Keep order in sync for backwards compatibility
+        grid_row: 0,
+        grid_col: nextCol,
+      })
+      .select()
+      .single()
 
-  const { data, error } = await supabase
-    .from('statuslist')
-    .insert({
-      board_id: boardId,
-      name,
-      color,
-      order: nextCol, // Keep order in sync for backwards compatibility
-      grid_row: 0,
-      grid_col: nextCol,
-    })
-    .select()
-    .single()
+    if (error || !data) {
+      Sentry.captureException(error ?? new Error('No data returned'), {
+        extra: { context: 'Create status list', boardId, name },
+      })
+      throw new Error('Failed to create status list')
+    }
 
-  if (error || !data) {
-    Sentry.captureException(error ?? new Error('No data returned'), {
-      extra: { context: 'Create status list', boardId, name },
-    })
-    throw new Error('Failed to create status list')
-  }
-
-  return toStatusListDomain(data)
+    return toStatusListDomain(data)
+  })
 }
 
 /**

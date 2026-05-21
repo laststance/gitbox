@@ -3,12 +3,13 @@
  *
  * Layout for /account route
  * - Sidebar navigation
- * - Fetches user information and passes it to Sidebar
+ * - Reads JWT claims (~5ms WebCrypto verify via `requireClaims`) for header
+ *   user info. The /account page itself still uses `requireUser()` because
+ *   it needs `user.created_at`, which is not in the JWT claims payload.
  */
 
-import { redirect } from 'next/navigation'
-
-import { createClient } from '@/lib/supabase/server'
+import { requireClaims } from '@/lib/auth/require-claims'
+import { getClaimsDisplayInfo } from '@/lib/utils/get-claims-display-info'
 
 import { AccountLayoutClient } from './AccountLayoutClient'
 
@@ -17,20 +18,8 @@ export default async function AccountLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-
-  // Authentication check
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
-  // Get user metadata
-  const userName = user.user_metadata?.full_name || user.email || 'User'
-  const userAvatar = user.user_metadata?.avatar_url
+  const { claims } = await requireClaims()
+  const { userName, userAvatar } = getClaimsDisplayInfo(claims)
 
   return (
     <AccountLayoutClient userName={userName} userAvatar={userAvatar}>
