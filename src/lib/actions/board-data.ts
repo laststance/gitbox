@@ -18,8 +18,8 @@
 
 'use server'
 
+import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 import type { StatusListDomain, RepoCardDomain } from '@/lib/models/domain'
-import { createClient } from '@/lib/supabase/server'
 import type { RepoIdentifier } from '@/lib/types/domain-primitives'
 
 import { getBoardData } from './board'
@@ -57,17 +57,14 @@ export interface BoardInitialData {
 export async function getUserMaintenanceRepoIdentifiers(): Promise<
   RepoIdentifier[]
 > {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) return []
+  const authedContext = await getCachedClaims()
+  if (!authedContext) return []
+  const { supabase, claims } = authedContext
 
   const { data } = await supabase
     .from('maintenance')
     .select('repo_owner, repo_name')
-    .eq('user_id', user.id)
+    .eq('user_id', claims.sub)
 
   return (data || []).map(
     (item) =>

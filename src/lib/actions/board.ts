@@ -15,6 +15,7 @@ import {
   withAuthResultRateLimit,
 } from '@/lib/actions/auth-guard'
 import { toRepoCardDomain, toStatusListDomain } from '@/lib/actions/mappers'
+import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 import {
   getPresetById,
   DEFAULT_PRESET_ID,
@@ -503,12 +504,12 @@ export async function createBoard(
     return { success: false, error: 'Invalid preset selection' }
   }
 
-  return withAuthResultRateLimit('boardCrud', async (supabase, user) => {
+  return withAuthResultRateLimit('boardCrud', async (supabase, claims) => {
     // Auto-assign position: append to end of user's board list
     const { data: maxPositionRow } = await supabase
       .from('board')
       .select('position')
-      .eq('user_id', user.id)
+      .eq('user_id', claims.sub)
       .order('position', { ascending: false })
       .limit(1)
       .single()
@@ -518,7 +519,7 @@ export async function createBoard(
     const { data, error } = await supabase
       .from('board')
       .insert({
-        user_id: user.id,
+        user_id: claims.sub,
         name,
         position: nextPosition,
       })
@@ -758,23 +759,18 @@ export type ToggleFavoriteState = {
 export async function toggleBoardFavorite(
   boardId: string,
 ): Promise<ToggleFavoriteState> {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  if (userError || !user) {
+  const authedContext = await getCachedClaims()
+  if (!authedContext) {
     return { success: false, error: 'Authentication required' }
   }
+  const { supabase, claims } = authedContext
 
   // Get current status
   const { data: board, error: fetchError } = await supabase
     .from('board')
     .select('is_favorite')
     .eq('id', boardId)
-    .eq('user_id', user.id)
+    .eq('user_id', claims.sub)
     .single()
 
   if (fetchError || !board) {
@@ -1212,7 +1208,7 @@ export async function toggleBoardPublic(
   boardId: string,
   isPublic: boolean,
 ): Promise<ActionResult<{ is_public: boolean; share_slug: string | null }>> {
-  return withAuthResultRateLimit('boardCrud', async (supabase, user) => {
+  return withAuthResultRateLimit('boardCrud', async (supabase, claims) => {
     const idResult = boardIdSchema.safeParse(boardId)
     if (!idResult.success) throw new Error('Invalid board ID')
 
@@ -1221,7 +1217,7 @@ export async function toggleBoardPublic(
       .from('board')
       .select('share_slug')
       .eq('id', idResult.data)
-      .eq('user_id', user.id)
+      .eq('user_id', claims.sub)
       .single()
 
     if (fetchError || !board) throw new Error('Board not found')
@@ -1234,7 +1230,7 @@ export async function toggleBoardPublic(
       .from('board')
       .update({ is_public: isPublic, share_slug: shareSlug })
       .eq('id', idResult.data)
-      .eq('user_id', user.id)
+      .eq('user_id', claims.sub)
 
     if (updateError) {
       Sentry.captureException(updateError, {

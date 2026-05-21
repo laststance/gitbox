@@ -256,12 +256,12 @@ export async function deleteMaintenanceComment(
 export async function deleteMaintenanceItem(
   maintenanceId: string,
 ): Promise<ActionResult<void>> {
-  return withAuthResultRateLimit('boardCrud', async (supabase, user) => {
+  return withAuthResultRateLimit('boardCrud', async (supabase, claims) => {
     const { error: deleteError } = await supabase
       .from('maintenance')
       .delete()
       .eq('id', maintenanceId)
-      .eq('user_id', user.id)
+      .eq('user_id', claims.sub)
 
     if (deleteError) {
       throw Object.assign(new Error('Failed to delete maintenance item'), {

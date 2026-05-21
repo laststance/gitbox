@@ -9,54 +9,55 @@
  * | `withAuthResultRateLimit` | `ActionResult<T>`| Yes        | All mutations               |
  * | `withAuthRateLimit<T>`   | `T` (throws)     | Yes        | DnD optimistic ops (throw)  |
  *
+ * Identity comes from `getCachedClaims()` (JWKS-verified JWT) instead of
+ * `getUser()` (Auth server round-trip). The action callback receives
+ * `claims` instead of `user`; use `claims.sub` for the user UUID.
+ *
  * @example
  * ```ts
  * // Read-only (no rate limit)
  * export const getPresets = () =>
- *   withAuthResult(async (supabase, user) => { ... })
+ *   withAuthResult(async (supabase, claims) => { ... })
  *
  * // Mutation (rate limited, returns ActionResult)
  * export const createBoard = (name: string) =>
- *   withAuthResultRateLimit('boardCrud', async (supabase, user) => { ... })
+ *   withAuthResultRateLimit('boardCrud', async (supabase, claims) => { ... })
  *
  * // DnD (rate limited, throws for try/catch rollback)
  * export const batchUpdate = (updates: ...) =>
- *   withAuthRateLimit('batchDnD', async (supabase, user) => { ... })
+ *   withAuthRateLimit('batchDnD', async (supabase, claims) => { ... })
  * ```
  */
 
 'use server'
 
 import * as Sentry from '@sentry/nextjs'
-import type { SupabaseClient, User } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
+import {
+  getCachedClaims,
+  type SupabaseClaims,
+} from '@/lib/auth/get-cached-claims'
 import { checkRateLimit } from '@/lib/rate-limit/check'
 import type { RateLimitKey } from '@/lib/rate-limit/config'
-import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/supabase/types'
 
 import type { ActionResult } from './types'
 
 type AuthedAction<T> = (
   supabase: SupabaseClient<Database>,
-  user: User,
+  claims: SupabaseClaims,
 ) => Promise<T>
 
 /**
- * Resolve the current authenticated user, returning `null` when unauthenticated.
- * Centralizes the `supabase.auth.getUser()` pattern used by all guards.
+ * Resolve the current authenticated claims, returning `null` when unauthenticated.
+ * Centralizes the JWKS-verified `getClaims()` pattern used by all guards.
  */
 async function getAuthedContext(): Promise<{
   supabase: SupabaseClient<Database>
-  user: User
+  claims: SupabaseClaims
 } | null> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser()
-  if (error || !user) return null
-  return { supabase, user }
+  return getCachedClaims()
 }
 
 // Always return a generic message to clients — Sentry.captureException
@@ -79,7 +80,7 @@ export async function withAuthResult<T>(
   if (!ctx) return { success: false, error: 'Authentication required' }
 
   try {
-    const data = await action(ctx.supabase, ctx.user)
+    const data = await action(ctx.supabase, ctx.claims)
     return { success: true, data }
   } catch (error) {
     Sentry.captureException(error, { extra: { context: 'withAuthResult' } })
@@ -101,13 +102,13 @@ export async function withAuthResultRateLimit<T>(
   const ctx = await getAuthedContext()
   if (!ctx) return { success: false, error: 'Authentication required' }
 
-  const rlResult = checkRateLimit(rateLimitKey, ctx.user.id)
+  const rlResult = checkRateLimit(rateLimitKey, ctx.claims.sub)
   if (!rlResult.allowed) {
     return { success: false, error: rlResult.error! }
   }
 
   try {
-    const data = await action(ctx.supabase, ctx.user)
+    const data = await action(ctx.supabase, ctx.claims)
     return { success: true, data }
   } catch (error) {
     Sentry.captureException(error, {
@@ -130,8 +131,8 @@ export async function withAuthRateLimit<T>(
   const ctx = await getAuthedContext()
   if (!ctx) throw new Error('Authentication required')
 
-  const rlResult = checkRateLimit(rateLimitKey, ctx.user.id)
+  const rlResult = checkRateLimit(rateLimitKey, ctx.claims.sub)
   if (!rlResult.allowed) throw new Error(rlResult.error!)
 
-  return action(ctx.supabase, ctx.user)
+  return action(ctx.supabase, ctx.claims)
 }

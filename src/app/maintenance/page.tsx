@@ -10,7 +10,7 @@
 
 import type { Metadata } from 'next'
 
-import { requireUser } from '@/lib/auth/require-user'
+import { requireClaims } from '@/lib/auth/require-claims'
 import { createModuleLogger } from '@/lib/logger'
 import { toMaintenanceId } from '@/lib/types/brands'
 
@@ -24,13 +24,13 @@ export const metadata: Metadata = {
 const log = createModuleLogger('maintenance')
 
 export default async function MaintenancePage() {
-  const { supabase, user } = await requireUser()
+  const { supabase, claims } = await requireClaims()
 
   // Fetch maintenance repos from the maintenance table
   const { data: maintenanceData, error } = await supabase
     .from('maintenance')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', claims.sub)
     .order('updated_at', { ascending: false })
 
   if (error) {

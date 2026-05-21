@@ -51,16 +51,16 @@ export interface UserPreset {
  * // Returns: [{ id: '...', value: 'my-service', label: 'My Service', icon: 'Link' }, ...]
  */
 export async function getUserPresets(): Promise<ActionResult<UserPreset[]>> {
-  return withAuthResult(async (supabase, user) => {
+  return withAuthResult(async (supabase, claims) => {
     const { data, error } = await supabase
       .from('user_link_presets')
       .select('id, value, label, icon')
-      .eq('user_id', user.id)
+      .eq('user_id', claims.sub)
       .order('label', { ascending: true })
 
     if (error) {
       Sentry.captureException(error, {
-        extra: { context: 'Get user presets', userId: user.id },
+        extra: { context: 'Get user presets', userId: claims.sub },
       })
       throw new Error('Failed to fetch custom presets')
     }
@@ -107,16 +107,16 @@ export async function createUserPreset(
     }
   }
 
-  return withAuthResultRateLimit('userSettings', async (supabase, user) => {
+  return withAuthResultRateLimit('userSettings', async (supabase, claims) => {
     // Check preset limit
     const { count, error: countError } = await supabase
       .from('user_link_presets')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
+      .eq('user_id', claims.sub)
 
     if (countError) {
       Sentry.captureException(countError, {
-        extra: { context: 'Count user presets', userId: user.id },
+        extra: { context: 'Count user presets', userId: claims.sub },
       })
       throw new Error('Failed to check preset limit')
     }
@@ -131,7 +131,7 @@ export async function createUserPreset(
     const { data: existing } = await supabase
       .from('user_link_presets')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', claims.sub)
       .eq('value', value)
       .single()
 
@@ -141,7 +141,7 @@ export async function createUserPreset(
 
     // Create preset
     const insertData: UserLinkPresetInsert = {
-      user_id: user.id,
+      user_id: claims.sub,
       value,
       label: label.trim(),
       icon: icon || 'Link',
@@ -155,7 +155,7 @@ export async function createUserPreset(
 
     if (error) {
       Sentry.captureException(error, {
-        extra: { context: 'Create user preset', userId: user.id, label },
+        extra: { context: 'Create user preset', userId: claims.sub, label },
       })
       throw new Error('Failed to create custom preset')
     }

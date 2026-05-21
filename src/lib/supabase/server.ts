@@ -142,16 +142,48 @@ export async function createClient() {
         },
         error: null,
       }),
+      /**
+       * E2E mock for `supabase.auth.getClaims()`.
+       *
+       * Returns a JWT claims object derived from MOCK_USER_FOR_E2E so any
+       * server code migrating from `getUser()` to `getClaims()` keeps working
+       * under `APP_ENV=test` without requiring JWKS verification.
+       *
+       * Matches the success-branch shape of `@supabase/auth-js`:
+       * `{ data: { claims, header, signature }, error: null }`.
+       */
+      getClaims: async () => ({
+        data: {
+          claims: {
+            iss: 'supabase-demo',
+            sub: MOCK_USER_FOR_E2E.id,
+            aud: MOCK_USER_FOR_E2E.aud,
+            exp: Math.floor(Date.now() / 1000) + 3600,
+            iat: Math.floor(Date.now() / 1000),
+            role: MOCK_USER_FOR_E2E.role,
+            email: MOCK_USER_FOR_E2E.email,
+            phone: MOCK_USER_FOR_E2E.phone,
+            session_id: '00000000-0000-0000-0000-000000000010',
+            is_anonymous: MOCK_USER_FOR_E2E.is_anonymous,
+            app_metadata: MOCK_USER_FOR_E2E.app_metadata,
+            user_metadata: MOCK_USER_FOR_E2E.user_metadata,
+          },
+          header: { alg: 'HS256', typ: 'JWT' },
+          signature: new Uint8Array(),
+        },
+        error: null,
+      }),
     }
 
     return new Proxy(supabase, {
       get(target, prop) {
         if (prop === 'auth') {
-          // Return a proxy for auth that intercepts getUser/getSession
+          // Return a proxy for auth that intercepts getUser/getSession/getClaims
           return new Proxy(target.auth, {
             get(authTarget, authProp) {
               if (authProp === 'getUser') return mockedAuth.getUser
               if (authProp === 'getSession') return mockedAuth.getSession
+              if (authProp === 'getClaims') return mockedAuth.getClaims
               return (authTarget as any)[authProp]
             },
           })
