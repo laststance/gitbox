@@ -8,7 +8,7 @@
 
 import type { Metadata } from 'next'
 
-import { requireUser } from '@/lib/auth/require-user'
+import { requireClaims } from '@/lib/auth/require-claims'
 
 import { CreateBoardForm } from './CreateBoardForm'
 
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 }
 
 export default async function NewBoardPage() {
-  await requireUser()
+  await requireClaims()
 
   return (
     <div className="bg-background min-h-screen">

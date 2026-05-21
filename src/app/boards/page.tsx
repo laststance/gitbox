@@ -13,7 +13,7 @@ import Link from 'next/link'
 
 import { BoardGrid } from '@/components/Boards'
 import { Button } from '@/components/ui/button'
-import { requireUser } from '@/lib/auth/require-user'
+import { requireClaims } from '@/lib/auth/require-claims'
 
 import { BoardsPageHeader } from './BoardsPageHeader'
 
@@ -23,31 +23,31 @@ export const metadata: Metadata = {
 }
 
 export default async function BoardsPage() {
-  const { supabase, user } = await requireUser()
+  const { supabase, claims } = await requireClaims()
 
   // Fetch boards and user settings in parallel
   const [boardsResult, settingsResult] = await Promise.all([
     supabase
       .from('board')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', claims.sub)
       .order('position', { ascending: true }),
     supabase
       .from('user_settings')
       .select('boards_page_title, boards_page_subtitle')
-      .eq('user_id', user.id)
+      .eq('user_id', claims.sub)
       .maybeSingle(),
   ])
 
   if (boardsResult.error) {
     Sentry.captureException(boardsResult.error, {
-      extra: { context: 'Fetch boards list', userId: user.id },
+      extra: { context: 'Fetch boards list', userId: claims.sub },
     })
   }
 
   if (settingsResult.error) {
     Sentry.captureException(settingsResult.error, {
-      extra: { context: 'Fetch user settings', userId: user.id },
+      extra: { context: 'Fetch user settings', userId: claims.sub },
     })
   }
 

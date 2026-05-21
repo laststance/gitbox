@@ -33,10 +33,10 @@ export async function updateBoardsPageTitle(
   // Store empty string as null in DB for cleaner querying
   const dbValue = parsed.data === '' ? null : parsed.data
 
-  return withAuthResultRateLimit('userSettings', async (supabase, user) => {
+  return withAuthResultRateLimit('userSettings', async (supabase, claims) => {
     const { error } = await supabase.from('user_settings').upsert(
       {
-        user_id: user.id,
+        user_id: claims.sub,
         boards_page_title: dbValue,
         updated_at: new Date().toISOString(),
       },
@@ -45,7 +45,7 @@ export async function updateBoardsPageTitle(
 
     if (error) {
       Sentry.captureException(error, {
-        extra: { context: 'Update boards page title', userId: user.id },
+        extra: { context: 'Update boards page title', userId: claims.sub },
       })
       throw new Error('Failed to update title')
     }
@@ -77,10 +77,10 @@ export async function updateBoardsPageSubtitle(
   // Store empty string as null in DB for cleaner querying
   const dbValue = parsed.data === '' ? null : parsed.data
 
-  return withAuthResultRateLimit('userSettings', async (supabase, user) => {
+  return withAuthResultRateLimit('userSettings', async (supabase, claims) => {
     const { error } = await supabase.from('user_settings').upsert(
       {
-        user_id: user.id,
+        user_id: claims.sub,
         boards_page_subtitle: dbValue,
         updated_at: new Date().toISOString(),
       },
@@ -89,7 +89,7 @@ export async function updateBoardsPageSubtitle(
 
     if (error) {
       Sentry.captureException(error, {
-        extra: { context: 'Update boards page subtitle', userId: user.id },
+        extra: { context: 'Update boards page subtitle', userId: claims.sub },
       })
       throw new Error('Failed to update subtitle')
     }

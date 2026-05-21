@@ -86,11 +86,20 @@ export async function proxy(request: NextRequest) {
     },
   )
 
-  // IMPORTANT: Use getUser() not getSession() for proper session refresh
-  // This also handles PKCE token exchange correctly
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Use getClaims() over getUser() to validate identity locally via JWKS
+  // (~5ms WebCrypto verify) instead of round-tripping to the Auth server
+  // (~300ms). The SDK rejects expired tokens by default; a manual exp guard
+  // below catches clock skew and any edge case where SDK validation is
+  // bypassed. PKCE refresh still fires through the cookie setAll plumbing
+  // when the access token is near expiry.
+  const { data: claimsData, error: claimsError } =
+    await supabase.auth.getClaims()
+  const claims = claimsData?.claims
+  const nowInSeconds = Math.floor(Date.now() / 1000)
+  const hasValidClaims =
+    !claimsError &&
+    !!claims &&
+    (typeof claims.exp !== 'number' || nowInSeconds <= claims.exp)
 
   // Allow public paths without authentication
   if (publicPaths.includes(pathname)) {
@@ -98,7 +107,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Redirect to login if not authenticated
-  if (!user) {
+  if (!hasValidClaims) {
     logSecurityEvent('unauthorized_access', { path: pathname })
     const loginUrl = new URL('/login', request.url)
     // Copy cookies to redirect response

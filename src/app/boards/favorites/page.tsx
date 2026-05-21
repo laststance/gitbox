@@ -11,7 +11,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { BoardGrid } from '@/components/Boards'
-import { requireUser } from '@/lib/auth/require-user'
+import { requireClaims } from '@/lib/auth/require-claims'
 import type { Tables } from '@/lib/supabase/types'
 
 export const metadata: Metadata = {
@@ -20,13 +20,13 @@ export const metadata: Metadata = {
 }
 
 export default async function FavoritesPage() {
-  const { supabase, user } = await requireUser()
+  const { supabase, claims } = await requireClaims()
 
   // Fetch favorite boards
   const { data: boards, error } = (await supabase
     .from('board')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', claims.sub)
     .eq('is_favorite', true)
     .order('updated_at', { ascending: false })) as {
     data: Tables<'board'>[] | null
@@ -35,7 +35,7 @@ export default async function FavoritesPage() {
 
   if (error) {
     Sentry.captureException(error, {
-      extra: { context: 'Fetch favorite boards', userId: user.id },
+      extra: { context: 'Fetch favorite boards', userId: claims.sub },
     })
   }
 

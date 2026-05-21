@@ -8,7 +8,7 @@
 
 import type { Metadata } from 'next'
 
-import { requireUser } from '@/lib/auth/require-user'
+import { requireClaims } from '@/lib/auth/require-claims'
 
 import { SettingsClient } from './SettingsClient'
 
@@ -18,6 +18,6 @@ export const metadata: Metadata = {
 }
 
 export default async function SettingsPage() {
-  await requireUser()
+  await requireClaims()
   return <SettingsClient />
 }

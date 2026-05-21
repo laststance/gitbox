@@ -105,123 +105,126 @@ export async function addRepositoriesToBoard(
     duplicateWarnings?: string[]
   }>
 > {
-  return withAuthResultRateLimit('addReposToBoard', async (supabase, user) => {
-    // Check if board exists and user owns it
-    const { data: board, error: boardError } = await supabase
-      .from('board')
-      .select('id, user_id')
-      .eq('id', boardId)
-      .eq('user_id', user.id)
-      .single()
+  return withAuthResultRateLimit(
+    'addReposToBoard',
+    async (supabase, claims) => {
+      // Check if board exists and user owns it
+      const { data: board, error: boardError } = await supabase
+        .from('board')
+        .select('id, user_id')
+        .eq('id', boardId)
+        .eq('user_id', claims.sub)
+        .single()
 
-    if (boardError || !board) {
-      throw new Error('Board not found')
-    }
+      if (boardError || !board) {
+        throw new Error('Board not found')
+      }
 
-    // Get existing cards and check for duplicates
-    const { data: existingCards, error: existingError } = await supabase
-      .from('repocard')
-      .select('repo_owner, repo_name')
-      .eq('board_id', boardId)
+      // Get existing cards and check for duplicates
+      const { data: existingCards, error: existingError } = await supabase
+        .from('repocard')
+        .select('repo_owner, repo_name')
+        .eq('board_id', boardId)
 
-    if (existingError) {
-      throw new Error('Failed to fetch existing cards')
-    }
+      if (existingError) {
+        throw new Error('Failed to fetch existing cards')
+      }
 
-    const existingRepoKeys = new Set(
-      existingCards?.map((card) => `${card.repo_owner}/${card.repo_name}`) ||
-        [],
-    )
-
-    // Also exclude repos in maintenance mode (defense-in-depth)
-    const { data: maintenanceRepos } = await supabase
-      .from('maintenance')
-      .select('repo_owner, repo_name')
-      .eq('user_id', user.id)
-
-    for (const m of maintenanceRepos || []) {
-      existingRepoKeys.add(`${m.repo_owner}/${m.repo_name}`)
-    }
-
-    // Filter to only non-duplicate repositories
-    const newRepos = repositories.filter((repo) => {
-      const key = `${repo.owner.login}/${repo.name}`
-      return !existingRepoKeys.has(key)
-    })
-
-    if (newRepos.length === 0) {
-      throw new Error('All repositories have already been added')
-    }
-
-    // Get current maximum order value
-    const { data: maxOrderData } = await supabase
-      .from('repocard')
-      .select('order')
-      .eq('status_id', statusId)
-      .order('order', { ascending: false })
-      .limit(1)
-      .single()
-
-    let nextOrder = (maxOrderData?.order ?? -1) + 1
-
-    // Add new cards
-    const cardsToInsert = newRepos.map((repo) => ({
-      board_id: boardId,
-      status_id: statusId,
-      repo_owner: repo.owner.login,
-      repo_name: repo.name,
-      order: nextOrder++,
-      meta: {
-        stars: repo.stargazers_count,
-        language: repo.language,
-        topics: repo.topics || [],
-        visibility: repo.visibility,
-        description: repo.description,
-        updatedAt: repo.updated_at,
-      },
-    }))
-
-    const { data: insertedCards, error: insertError } = await supabase
-      .from('repocard')
-      .insert(cardsToInsert)
-      .select(
-        'id, board_id, status_id, repo_owner, repo_name, order, meta, created_at, updated_at',
+      const existingRepoKeys = new Set(
+        existingCards?.map((card) => `${card.repo_owner}/${card.repo_name}`) ||
+          [],
       )
 
-    if (insertError) {
-      log.error({ error: insertError }, 'RepoCard insert error')
-      Sentry.captureException(insertError, {
-        extra: { context: 'RepoCard insert', boardId },
+      // Also exclude repos in maintenance mode (defense-in-depth)
+      const { data: maintenanceRepos } = await supabase
+        .from('maintenance')
+        .select('repo_owner, repo_name')
+        .eq('user_id', claims.sub)
+
+      for (const m of maintenanceRepos || []) {
+        existingRepoKeys.add(`${m.repo_owner}/${m.repo_name}`)
+      }
+
+      // Filter to only non-duplicate repositories
+      const newRepos = repositories.filter((repo) => {
+        const key = `${repo.owner.login}/${repo.name}`
+        return !existingRepoKeys.has(key)
       })
-      throw new Error('Failed to add cards: ' + insertError.message)
-    }
 
-    // Transform database response to CreatedRepoCard format
-    const createdCards: CreatedRepoCard[] = (insertedCards || []).map(
-      (card) => ({
-        id: toRepoCardId(card.id),
-        boardId: toBoardId(card.board_id),
-        statusId: toStatusListId(card.status_id),
-        repoOwner: card.repo_owner,
-        repoName: card.repo_name,
-        order: card.order,
-        meta: card.meta as CreatedRepoCard['meta'],
-        createdAt: card.created_at ?? new Date().toISOString(),
-        updatedAt: card.updated_at ?? new Date().toISOString(),
-      }),
-    )
+      if (newRepos.length === 0) {
+        throw new Error('All repositories have already been added')
+      }
 
-    const duplicateCount = repositories.length - newRepos.length
+      // Get current maximum order value
+      const { data: maxOrderData } = await supabase
+        .from('repocard')
+        .select('order')
+        .eq('status_id', statusId)
+        .order('order', { ascending: false })
+        .limit(1)
+        .single()
 
-    return {
-      addedCount: newRepos.length,
-      cards: createdCards,
-      duplicateWarnings:
-        duplicateCount > 0
-          ? [`${duplicateCount} repositories were duplicates`]
-          : undefined,
-    }
-  })
+      let nextOrder = (maxOrderData?.order ?? -1) + 1
+
+      // Add new cards
+      const cardsToInsert = newRepos.map((repo) => ({
+        board_id: boardId,
+        status_id: statusId,
+        repo_owner: repo.owner.login,
+        repo_name: repo.name,
+        order: nextOrder++,
+        meta: {
+          stars: repo.stargazers_count,
+          language: repo.language,
+          topics: repo.topics || [],
+          visibility: repo.visibility,
+          description: repo.description,
+          updatedAt: repo.updated_at,
+        },
+      }))
+
+      const { data: insertedCards, error: insertError } = await supabase
+        .from('repocard')
+        .insert(cardsToInsert)
+        .select(
+          'id, board_id, status_id, repo_owner, repo_name, order, meta, created_at, updated_at',
+        )
+
+      if (insertError) {
+        log.error({ error: insertError }, 'RepoCard insert error')
+        Sentry.captureException(insertError, {
+          extra: { context: 'RepoCard insert', boardId },
+        })
+        throw new Error('Failed to add cards: ' + insertError.message)
+      }
+
+      // Transform database response to CreatedRepoCard format
+      const createdCards: CreatedRepoCard[] = (insertedCards || []).map(
+        (card) => ({
+          id: toRepoCardId(card.id),
+          boardId: toBoardId(card.board_id),
+          statusId: toStatusListId(card.status_id),
+          repoOwner: card.repo_owner,
+          repoName: card.repo_name,
+          order: card.order,
+          meta: card.meta as CreatedRepoCard['meta'],
+          createdAt: card.created_at ?? new Date().toISOString(),
+          updatedAt: card.updated_at ?? new Date().toISOString(),
+        }),
+      )
+
+      const duplicateCount = repositories.length - newRepos.length
+
+      return {
+        addedCount: newRepos.length,
+        cards: createdCards,
+        duplicateWarnings:
+          duplicateCount > 0
+            ? [`${duplicateCount} repositories were duplicates`]
+            : undefined,
+      }
+    },
+  )
 }
 
 /**
@@ -279,13 +282,13 @@ export async function restoreToBoard(
   boardId: string,
   statusId: string,
 ): Promise<ActionResult<{ cardId: string }>> {
-  return withAuthResultRateLimit('boardCrud', async (supabase, user) => {
+  return withAuthResultRateLimit('boardCrud', async (supabase, claims) => {
     // Fetch maintenance item with ownership check
     const { data: maintItem, error: maintError } = await supabase
       .from('maintenance')
       .select('*')
       .eq('id', maintenanceId)
-      .eq('user_id', user.id)
+      .eq('user_id', claims.sub)
       .single()
 
     if (maintError || !maintItem) {
@@ -297,7 +300,7 @@ export async function restoreToBoard(
       .from('board')
       .select('id')
       .eq('id', boardId)
-      .eq('user_id', user.id)
+      .eq('user_id', claims.sub)
       .single()
 
     if (boardError || !board) {
@@ -383,12 +386,12 @@ export async function getUserBoardsWithStatusLists(): Promise<
     }>
   >
 > {
-  return withAuthResult(async (supabase, user) => {
+  return withAuthResult(async (supabase, claims) => {
     // Fetch boards
     const { data: boards, error: boardsError } = await supabase
       .from('board')
       .select('id, name')
-      .eq('user_id', user.id)
+      .eq('user_id', claims.sub)
       .order('created_at', { ascending: false })
 
     if (boardsError) {
@@ -472,7 +475,7 @@ export async function moveCardToBoard(
     return { success: false, error: 'Invalid ID format' }
   }
 
-  return withAuthResultRateLimit('boardCrud', async (supabase, user) => {
+  return withAuthResultRateLimit('boardCrud', async (supabase, claims) => {
     // Fetch card with board ownership check
     const { data: card, error: cardError } = await supabase
       .from('repocard')
@@ -486,7 +489,7 @@ export async function moveCardToBoard(
 
     // Verify ownership via board's user_id
     const boardData = card.board as { user_id: string } | null
-    if (!boardData || boardData.user_id !== user.id) {
+    if (!boardData || boardData.user_id !== claims.sub) {
       throw new Error('Unauthorized')
     }
 
@@ -495,7 +498,7 @@ export async function moveCardToBoard(
       .from('board')
       .select('id')
       .eq('id', targetBoardId)
-      .eq('user_id', user.id)
+      .eq('user_id', claims.sub)
       .single()
 
     if (targetBoardError || !targetBoard) {
@@ -570,7 +573,7 @@ export async function moveCardToBoard(
 export async function moveToMaintenance(
   cardId: string,
 ): Promise<ActionResult<{ maintenanceId: string }>> {
-  return withAuthResultRateLimit('boardCrud', async (supabase, user) => {
+  return withAuthResultRateLimit('boardCrud', async (supabase, claims) => {
     // Fetch card with board ownership check
     const { data: card, error: cardError } = await supabase
       .from('repocard')
@@ -584,7 +587,7 @@ export async function moveToMaintenance(
 
     // Verify ownership via board's user_id
     const boardData = card.board as { user_id: string } | null
-    if (!boardData || boardData.user_id !== user.id) {
+    if (!boardData || boardData.user_id !== claims.sub) {
       throw new Error('Unauthorized')
     }
 
@@ -592,7 +595,7 @@ export async function moveToMaintenance(
     const { data: existing } = await supabase
       .from('maintenance')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', claims.sub)
       .eq('repo_owner', card.repo_owner)
       .eq('repo_name', card.repo_name)
       .maybeSingle()
@@ -606,7 +609,7 @@ export async function moveToMaintenance(
       'move_to_maintenance',
       {
         p_card_id: cardId,
-        p_user_id: user.id,
+        p_user_id: claims.sub,
         p_repo_owner: card.repo_owner,
         p_repo_name: card.repo_name,
       },
