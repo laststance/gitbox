@@ -14,6 +14,14 @@ import { test as base } from '@playwright/test'
 import { addCoverageReport } from 'monocart-reporter'
 
 /**
+ * Collect coverage only in CI. Local runs — especially `pnpm e2e:parallel`, whose
+ * blob-only reporter never runs monocart — would otherwise keep dumping raw V8
+ * data into `monocart-report/coverage/.cache` with nothing ever cleaning it up,
+ * ballooning to tens of GB. GitHub Actions sets `CI=true`, so CI is unaffected.
+ */
+const shouldCollectCoverage = Boolean(process.env.CI)
+
+/**
  * Extended test fixture with automatic V8 coverage collection.
  *
  * @example
@@ -29,13 +37,16 @@ import { addCoverageReport } from 'monocart-reporter'
 export const test = base.extend<{ autoCoverage: void }>({
   autoCoverage: [
     async ({ page }, use, testInfo) => {
-      // Determine if this is a Chromium-based browser
+      // Coverage uses the V8 API, available only on Chromium-based projects.
       const isChromium =
         testInfo.project.name === 'setup' ||
         testInfo.project.name === 'logged-in' ||
         testInfo.project.name === 'unauthenticated'
 
-      if (isChromium) {
+      // Gate on CI so local runs never write to monocart-report/.cache.
+      const collectCoverage = isChromium && shouldCollectCoverage
+
+      if (collectCoverage) {
         // Start JS and CSS coverage collection before test
         await Promise.all([
           page.coverage.startJSCoverage({
@@ -51,7 +62,7 @@ export const test = base.extend<{ autoCoverage: void }>({
       await use()
 
       // Collect and report coverage after test
-      if (isChromium) {
+      if (collectCoverage) {
         const [jsCoverage, cssCoverage] = await Promise.all([
           page.coverage.stopJSCoverage(),
           page.coverage.stopCSSCoverage(),
