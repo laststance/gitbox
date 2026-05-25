@@ -139,6 +139,11 @@ export async function getBoardBundle(
       '*, statuslist(*), repocard(*, projectinfo(comment, comment_color))',
     )
     .eq('id', boardId)
+    // Order embedded cards by `order` ascending so that if the embed hits the
+    // PostgREST row cap, truncation drops the highest-order cards rather than
+    // an arbitrary subset (parity with the legacy getRepoCards `.order('order',
+    // { ascending: true })`). remapBoardEmbed re-sorts for render regardless.
+    .order('order', { ascending: true, referencedTable: 'repocard' })
     .maybeSingle()
     .overrideTypes<BoardBundleRow, { merge: false }>()
   const embedMs = performance.now() - embedStart
