@@ -79,6 +79,7 @@ Fill in the values in `.env` with your configuration.
 | `SENTRY_AUTH_TOKEN`             | ❌       | Sentry authentication token (optional)                 |
 | `APP_ENV`                       | ❌       | Environment mode (`development`, `test`, `production`) |
 | `NEXT_PUBLIC_ENABLE_MSW_MOCK`   | ❌       | Enable MSW mocking for tests                           |
+| `BOARD_TIMING_LOG`              | ❌       | Opt-in `/board/[id]` server-side timing logs (off)     |
 
 **Vercel Environment Variables:**
 
