@@ -40,10 +40,17 @@ export async function generateMetadata(
   props: BoardPageProps,
 ): Promise<Metadata> {
   const params = await props.params
-  const bundle = await getCachedBoardBundle(params.id)
 
-  return {
-    title: bundle?.board.name ?? 'Board',
+  // Metadata must degrade gracefully: a transient embed failure should fall
+  // back to a generic title, never crash title generation (parity with the
+  // legacy generateMetadata, which swallowed errors on its own light query).
+  // The page render still surfaces a genuine failure — React.cache replays the
+  // same rejected promise to BoardPage's await — so errors are not hidden.
+  try {
+    const bundle = await getCachedBoardBundle(params.id)
+    return { title: bundle?.board.name ?? 'Board' }
+  } catch {
+    return { title: 'Board' }
   }
 }
 
