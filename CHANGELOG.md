@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1.0] - 2026-05-26
+
+### Changed
+
+- `/board/[id]` read path collapsed from a four-query waterfall (plus a duplicate board fetch) into a single PostgREST nested embed (`board` + `statuslist` + `repocard` + each card's `projectinfo` comment), deduplicated across `generateMetadata` and the page render via `React.cache()`. The board detail page now resolves its data in one database round-trip.
+- Embedded repo cards are ordered by `order` ascending, so that if a board ever exceeds the PostgREST embed row cap, truncation drops the highest-order cards deterministically (parity with the previous `getRepoCards` ordering). `remapBoardEmbed` still re-sorts for render, so normal boards are unaffected.
+
+### Added
+
+- `BOARD_TIMING_LOG` flag and `logBoardTiming` utility (`src/lib/utils/board-timing.ts`) for opt-in board read-path timing instrumentation.
+- Unit suites for `remapBoardEmbed` (column/card ordering, comment parity, RLS no-leak) and `getBoardBundle` (malformed-id 404 guard, no Postgres round-trip).
+
+### Fixed
+
+- `/board/<malformed-uuid>` now returns 404 instead of 500: `getBoardBundle` validates the board id with `boardIdSchema` before querying Postgres, restoring parity with the previous read path and avoiding Sentry noise.
+- `generateMetadata` falls back to a generic "Board" title on a transient embed failure instead of throwing. A `React.cache`-memoized rejection would otherwise surface during metadata generation; the page render still replays the same rejection, so genuine failures are not hidden.
+
 ## [0.3.0] - 2026-04-29
 
 ### Added
@@ -34,5 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial tracked release.
 
-[Unreleased]: https://github.com/laststance/gitbox/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/laststance/gitbox/compare/v0.3.1.0...HEAD
+[0.3.1.0]: https://github.com/laststance/gitbox/compare/v0.3.0...v0.3.1.0
 [0.3.0]: https://github.com/laststance/gitbox/compare/v0.2.0...v0.3.0

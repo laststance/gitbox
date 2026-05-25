@@ -48,6 +48,8 @@ the T5 cleanup (removing the old `fetchBoardInitialData`/`getBoardData` read pat
       `null` data ⇒ `null` ⇒ `notFound()`, zero-column ⇒ `createDefaultStatusLists`, and the
       `repocard.length >= 1000` truncation Sentry warning. Out of scope of the pure
       `remapBoardEmbed` unit suite (needs Supabase + PostgREST + RLS).
+      _v0.3.1.0: the malformed-id ⇒ `null` path (404, never reaches Postgres) is now covered by
+      `src/tests/unit/lib/actions/board-data.test.ts`; the Supabase-backed paths above remain._
 - [ ] **`logBoardTiming` flag tests** — assert no-op when `BOARD_TIMING_LOG` is unset and one
       structured line when set (the "1 line = deduped" dedup proof).
 - [ ] **E2E `/board/[nonexistent-uuid]` ⇒ 404** — no such E2E spec exists today; the
@@ -63,6 +65,9 @@ the T5 cleanup (removing the old `fetchBoardInitialData`/`getBoardData` read pat
       warning for `repocard` only. A partial board can undercount cards before a destructive
       column-delete (`BoardPageClient` counts only loaded `repoCards`). Needs hard-fail / exact
       count / pagination before mutation-capable UI. Also add a `statuslist` cap check.
+      _v0.3.1.0: the embed now orders `repocard` by `order` ascending, so truncation drops the
+      highest-order cards deterministically rather than an arbitrary subset; the silent
+      undercount / hard-fail / pagination work above remains open._
 - [ ] **`/board/[id]` passes the full `board` row (incl. `user_id`) to the client for public
       boards** — pre-existing: the old page also used `select('*')` and passed the raw row.
       Public-board RLS lets any authenticated user read a public board by UUID, so consider
