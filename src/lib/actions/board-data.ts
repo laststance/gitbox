@@ -1,8 +1,10 @@
 /**
- * Board Initial Data Server Action
+ * Board Initial Data Server Actions
  *
- * Provides unified data fetching for Server Components.
- * Fetches all initial board data in a single function:
+ * Unified data fetching for the /board/[id] Server Component. The primary entry
+ * point, `getBoardBundle`, fetches a board and everything needed to render it in
+ * ONE PostgREST round-trip (replacing the old multi-query waterfall):
+ * - The board row itself
  * - Status lists (columns)
  * - Repo cards
  * - Comments for cards
