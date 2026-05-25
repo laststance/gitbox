@@ -26,6 +26,7 @@ import type { StatusListDomain, RepoCardDomain } from '@/lib/models/domain'
 import { createClient } from '@/lib/supabase/server'
 import type { RepoIdentifier } from '@/lib/types/domain-primitives'
 import { logBoardTiming } from '@/lib/utils/board-timing'
+import { boardIdSchema } from '@/lib/validations/board'
 
 import { createDefaultStatusLists } from './board'
 import {
@@ -105,7 +106,8 @@ export async function getUserMaintenanceRepoIdentifiers(): Promise<
  * @param boardId - The board ID to fetch.
  * @returns
  * - The {@link BoardBundle} when the board exists (and is visible under RLS).
- * - `null` when the board does not exist or RLS hides it (caller → notFound).
+ * - `null` when the ID is malformed, the board does not exist, or RLS hides it
+ *   (caller → notFound). A bad ID never reaches Postgres, so it cannot 500.
  * @throws When the embed query errors (propagated, not treated as not-found).
  * @example
  * const bundle = await getBoardBundle('board-uuid-123')
@@ -115,6 +117,15 @@ export async function getUserMaintenanceRepoIdentifiers(): Promise<
 export async function getBoardBundle(
   boardId: string,
 ): Promise<BoardBundle | null> {
+  // Reject malformed IDs before they reach Postgres. Passing a non-UUID to
+  // `.eq('id', ...)` triggers a Postgres "invalid input syntax for type uuid"
+  // error, which would otherwise be thrown as a 500. A bad ID is not a server
+  // failure — it is a board that cannot exist — so treat it like zero rows:
+  // return null → caller calls notFound() (404), metadata falls back to 'Board'.
+  if (!boardIdSchema.safeParse(boardId).success) {
+    return null
+  }
+
   const supabase = await createClient()
 
   // One nested embed: board + its columns + its cards (each with its single
