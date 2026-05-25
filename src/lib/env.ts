@@ -37,6 +37,13 @@ export const env = createEnv({
     // Service role key for admin operations (e.g., user deletion)
     // This bypasses RLS and should only be used for privileged operations
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+    // Opt-in per-segment timing logs for the /board/[id] read path.
+    // Server-only, default off; flip to 'true' to emit [board-timing] lines.
+    BOARD_TIMING_LOG: z
+      .string()
+      .optional()
+      .default('false')
+      .transform((val) => val === 'true'),
   },
 
   /**
@@ -65,6 +72,7 @@ export const env = createEnv({
     APP_ENV: process.env.APP_ENV,
     SUPABASE_URL: process.env.SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    BOARD_TIMING_LOG: process.env.BOARD_TIMING_LOG,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
