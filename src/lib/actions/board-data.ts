@@ -12,18 +12,35 @@
  *
  * @example
  * // In Server Component (page.tsx)
- * const initialData = await fetchBoardInitialData(boardId)
- * return <BoardPageClient board={board} initialData={initialData} />
+ * const bundle = await getBoardBundle(boardId)
+ * if (!bundle) notFound()
+ * return <BoardPageClient board={bundle.board} initialData={initialData} />
  */
 
 'use server'
 
+import * as Sentry from '@sentry/nextjs'
+
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 import type { StatusListDomain, RepoCardDomain } from '@/lib/models/domain'
+import { createClient } from '@/lib/supabase/server'
 import type { RepoIdentifier } from '@/lib/types/domain-primitives'
+import { logBoardTiming } from '@/lib/utils/board-timing'
 
-import { getBoardData } from './board'
-import { getCommentsForCards, type CommentData } from './project-info'
+import { createDefaultStatusLists } from './board'
+import {
+  remapBoardEmbed,
+  type BoardBundle,
+  type BoardBundleRow,
+} from './mappers'
+import type { CommentData } from './project-info'
+
+/**
+ * PostgREST caps the number of rows returned for an embedded relation
+ * (default `db-max-rows` = 1000). A board whose `repocard` embed hits this
+ * cap may be silently truncated, so `getBoardBundle` warns when it is reached.
+ */
+const POSTGREST_EMBED_MAX_ROWS = 1000
 
 /**
  * Complete initial data for a board
@@ -73,41 +90,88 @@ export async function getUserMaintenanceRepoIdentifiers(): Promise<
 }
 
 /**
- * Fetch all initial data needed to render a board
+ * Fetch a board and all of its render data in ONE PostgREST round-trip.
+ * Replaces the old 4-wave waterfall (board + statuslist + repocard + comments)
+ * with a single nested embed, remapped into the domain shape. Called by
+ * `app/board/[id]/page.tsx` (wrapped in `React.cache` so generateMetadata and
+ * the page share one fetch). Maintenance identifiers are fetched separately by
+ * the page because they are user-scoped, not board-scoped.
  *
- * Combines multiple data sources into a single response:
- * 1. Status lists (columns) - from statuslist table
- * 2. Repo cards - from repocard table
- * 3. Comments - from projectinfo table (batch fetched)
- * 4. Maintenance repo identifiers - for filtering Add Repository combobox
+ * Not-found contract: `.maybeSingle()` returns `{ data: null, error: null }`
+ * for zero rows, so a non-null `error` is a real failure (RLS denial, network)
+ * and is thrown — never silently converted to a 404. `null` data → `null`
+ * return → caller calls `notFound()`.
  *
- * If board has no status lists, creates default ones automatically.
- *
- * @param boardId - The board ID to fetch data for
- * @returns Complete initial data for the board
- *
+ * @param boardId - The board ID to fetch.
+ * @returns
+ * - The {@link BoardBundle} when the board exists (and is visible under RLS).
+ * - `null` when the board does not exist or RLS hides it (caller → notFound).
+ * @throws When the embed query errors (propagated, not treated as not-found).
  * @example
- * // In app/board/[id]/page.tsx (Server Component)
- * const initialData = await fetchBoardInitialData(params.id)
- * // Pass to client: <BoardPageClient initialData={initialData} />
+ * const bundle = await getBoardBundle('board-uuid-123')
+ * if (!bundle) notFound()
+ * // bundle.statusLists / bundle.repoCards / bundle.comments are render-ready
  */
-export async function fetchBoardInitialData(
+export async function getBoardBundle(
   boardId: string,
-): Promise<BoardInitialData> {
-  // Fetch board data and maintenance identifiers in parallel
-  const [boardData, maintenanceRepoIdentifiers] = await Promise.all([
-    getBoardData(boardId),
-    getUserMaintenanceRepoIdentifiers(),
-  ])
+): Promise<BoardBundle | null> {
+  const supabase = await createClient()
 
-  const { statusLists, repoCards } = boardData
+  // One nested embed: board + its columns + its cards (each with its single
+  // projectinfo comment). PostgREST resolves the joins server-side under RLS.
+  const embedStart = performance.now()
+  const { data, error } = await supabase
+    .from('board')
+    .select(
+      '*, statuslist(*), repocard(*, projectinfo(comment, comment_color))',
+    )
+    .eq('id', boardId)
+    .maybeSingle()
+    .overrideTypes<BoardBundleRow, { merge: false }>()
+  const embedMs = performance.now() - embedStart
 
-  // Batch fetch comments for all cards
-  const commentsResult =
-    repoCards.length > 0
-      ? await getCommentsForCards(repoCards.map((c) => c.id))
-      : null
-  const comments = commentsResult?.success ? commentsResult.data : {}
+  // A non-null error is a genuine failure (RLS denial, network) — propagate it.
+  if (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'getBoardBundle embed', boardId },
+    })
+    throw new Error('Failed to fetch board bundle')
+  }
 
-  return { statusLists, repoCards, comments, maintenanceRepoIdentifiers }
+  // null data (no error) means the board is absent or RLS-hidden → 404 at caller.
+  if (!data) {
+    logBoardTiming(boardId, { embedMs })
+    return null
+  }
+
+  // Surface a possible silent truncation at the PostgREST embed row cap.
+  if (data.repocard.length >= POSTGREST_EMBED_MAX_ROWS) {
+    Sentry.captureMessage(
+      'Board repocard embed may be truncated at PostgREST row limit',
+      {
+        level: 'warning',
+        extra: { boardId, repoCardCount: data.repocard.length },
+      },
+    )
+  }
+
+  const bundle = remapBoardEmbed(data)
+
+  // Preserve legacy getBoardData behavior: a board with no columns gets the
+  // default preset created on first view, and renders with zero cards.
+  if (bundle.statusLists.length === 0) {
+    const defaultCreateStart = performance.now()
+    const defaultStatusLists = await createDefaultStatusLists(boardId)
+    const defaultCreateMs = performance.now() - defaultCreateStart
+    logBoardTiming(boardId, { embedMs, defaultCreateMs })
+    return {
+      ...bundle,
+      statusLists: defaultStatusLists,
+      repoCards: [],
+      comments: {},
+    }
+  }
+
+  logBoardTiming(boardId, { embedMs })
+  return bundle
 }

@@ -1,22 +1,23 @@
 /**
  * Board Detail Page
  *
- * Displays individual Kanban board
- * - Fetches board information from Supabase
- * - Fetches initial board data (statusLists, repoCards, comments)
- * - Renders KanbanBoard component with server-fetched data
- *
- * Phase 4 Refactoring:
- * Data is now fetched in this Server Component and passed to
- * BoardPageClient, eliminating the child-to-parent data flow
- * anti-pattern in KanbanBoard.
+ * Displays an individual Kanban board.
+ * - Fetches the board + its columns, cards, and comments in ONE PostgREST
+ *   embed via getBoardBundle (deduped across generateMetadata + page with
+ *   React.cache).
+ * - Fetches user-scoped maintenance identifiers in parallel.
+ * - Renders BoardPageClient with the server-fetched data.
  */
 
 import { type Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { cache } from 'react'
 
-import { fetchBoardInitialData } from '@/lib/actions/board-data'
-import { createClient } from '@/lib/supabase/server'
+import {
+  getBoardBundle,
+  getUserMaintenanceRepoIdentifiers,
+  type BoardInitialData,
+} from '@/lib/actions/board-data'
 
 import { BoardPageClient } from './BoardPageClient'
 
@@ -26,56 +27,56 @@ export interface BoardPageProps {
   }>
 }
 
+/** Deduplicate the board embed within one request (generateMetadata + page). */
+const getCachedBoardBundle = cache(async (id: string) => getBoardBundle(id))
+
 /**
  * generateMetadata
  *
- * Sets board name as page title
+ * Sets the board name as the page title. Reuses the request-cached bundle so
+ * this does NOT trigger a second board fetch.
  */
 export async function generateMetadata(
   props: BoardPageProps,
 ): Promise<Metadata> {
   const params = await props.params
-  const supabase = await createClient()
-
-  const { data: board } = await supabase
-    .from('board')
-    .select('name')
-    .eq('id', params.id)
-    .single<{ name: string }>()
+  const bundle = await getCachedBoardBundle(params.id)
 
   return {
-    title: board?.name ?? 'Board',
+    title: bundle?.board.name ?? 'Board',
   }
 }
 
 /**
  * BoardPage
  *
- * Kanban board detail page
- * - Returns 404 if board does not exist
- * - User authentication check (already done in middleware.ts)
- * - Applies theme from board settings
- * - Fetches initial board data (Phase 4: Server Component pattern)
+ * Kanban board detail page.
+ * - Returns 404 if the board does not exist or RLS hides it from this user.
+ * - User authentication is enforced upstream in proxy.ts.
+ * - Fetches the board embed (request-cached) and maintenance identifiers in
+ *   parallel, then hands render-ready data to BoardPageClient.
  */
 export default async function BoardPage(props: BoardPageProps) {
   const params = await props.params
-  const supabase = await createClient()
 
-  // Fetch board information
-  const { data: board, error: boardError } = await supabase
-    .from('board')
-    .select('*')
-    .eq('id', params.id)
-    .single()
+  // The board embed is request-cached, so this awaits the same promise that
+  // generateMetadata already kicked off; maintenance ids resolve alongside it.
+  const [bundle, maintenanceRepoIdentifiers] = await Promise.all([
+    getCachedBoardBundle(params.id),
+    getUserMaintenanceRepoIdentifiers(),
+  ])
 
-  // Return 404 if board does not exist or user lacks access permission
-  if (boardError || !board) {
+  // Return 404 if the board does not exist or the user lacks access.
+  if (!bundle) {
     notFound()
   }
 
-  // Phase 4: Fetch initial data in Server Component
-  // This eliminates the child-to-parent data flow anti-pattern
-  const initialData = await fetchBoardInitialData(params.id)
+  const initialData: BoardInitialData = {
+    statusLists: bundle.statusLists,
+    repoCards: bundle.repoCards,
+    comments: bundle.comments,
+    maintenanceRepoIdentifiers,
+  }
 
-  return <BoardPageClient board={board} initialData={initialData} />
+  return <BoardPageClient board={bundle.board} initialData={initialData} />
 }
