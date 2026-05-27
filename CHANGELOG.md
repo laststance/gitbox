@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1.3] - 2026-05-27
+
+### Removed
+
+- Dead read-path query functions left orphaned by the v0.3.1.0 single-embed migration: `getStatusLists`, `getRepoCards`, and `getBoardData` (`src/lib/actions/board.ts`), and `getCommentsForCards` (`src/lib/actions/project-info.ts`). All four had zero callers — the `/board/[id]` read path has resolved through `getBoardBundle`'s PostgREST nested embed since v0.3.1.0. Pure code removal: no runtime, schema, or behavior change. `createDefaultStatusLists` (still called by `createFirstBoardIfNeeded` and the board-data no-columns fallback) and `getCommentsCore` (still used by `maintenance-project-info.ts`) are retained.
+
 ## [0.3.1.2] - 2026-05-27
 
 ### Added
@@ -63,7 +69,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial tracked release.
 
-[Unreleased]: https://github.com/laststance/gitbox/compare/v0.3.1.2...HEAD
+[Unreleased]: https://github.com/laststance/gitbox/compare/v0.3.1.3...HEAD
+[0.3.1.3]: https://github.com/laststance/gitbox/compare/v0.3.1.2...v0.3.1.3
 [0.3.1.2]: https://github.com/laststance/gitbox/compare/v0.3.1.1...v0.3.1.2
 [0.3.1.1]: https://github.com/laststance/gitbox/compare/v0.3.1.0...v0.3.1.1
 [0.3.1.0]: https://github.com/laststance/gitbox/compare/v0.3.0...v0.3.1.0
