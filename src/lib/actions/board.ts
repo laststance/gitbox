@@ -14,14 +14,14 @@ import {
   withAuthRateLimit,
   withAuthResultRateLimit,
 } from '@/lib/actions/auth-guard'
-import { toRepoCardDomain, toStatusListDomain } from '@/lib/actions/mappers'
+import { toStatusListDomain } from '@/lib/actions/mappers'
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 import {
   getPresetById,
   DEFAULT_PRESET_ID,
   type PresetId,
 } from '@/lib/constants/board-presets'
-import type { StatusListDomain, RepoCardDomain } from '@/lib/models/domain'
+import type { StatusListDomain } from '@/lib/models/domain'
 import { createClient } from '@/lib/supabase/server'
 import type { TablesInsert, TablesUpdate } from '@/lib/supabase/types'
 import {
@@ -41,33 +41,6 @@ import type { ActionResult } from './types'
 // ========================================
 // StatusList Operations
 // ========================================
-
-/**
- * Get all status lists for a board
- * Ordered by grid position (row first, then column)
- */
-export async function getStatusLists(
-  boardId: string,
-): Promise<StatusListDomain[]> {
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('statuslist')
-    .select('*')
-    .eq('board_id', boardId)
-    .order('grid_row', { ascending: true })
-    .order('grid_col', { ascending: true })
-
-  if (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'Fetch status lists', boardId },
-    })
-    throw new Error('Failed to fetch status lists')
-  }
-
-  // Convert DB rows to domain model
-  return (data || []).map(toStatusListDomain)
-}
 
 /**
  * Create status lists from a preset definition.
@@ -116,7 +89,7 @@ async function createStatusListsFromPreset(
 /**
  * Create default status lists for a new board.
  * Delegates to the Software Release preset.
- * Called by getBoardData (fallback) and createFirstBoardIfNeeded.
+ * Called by createFirstBoardIfNeeded and the board-data read-path fallback.
  *
  * @param boardId - Target board UUID
  * @returns Created StatusListDomain array
@@ -351,29 +324,6 @@ export async function batchUpdateStatusListPositions(
 // ========================================
 
 /**
- * Get all repo cards for a board
- */
-export async function getRepoCards(boardId: string): Promise<RepoCardDomain[]> {
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('repocard')
-    .select('*')
-    .eq('board_id', boardId)
-    .order('order', { ascending: true })
-
-  if (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'Fetch repo cards', boardId },
-    })
-    throw new Error('Failed to fetch repo cards')
-  }
-
-  // Convert DB rows to domain model
-  return (data || []).map(toRepoCardDomain)
-}
-
-/**
  * Update repo card position (status and/or order)
  * Used for drag & drop operations
  */
@@ -437,31 +387,6 @@ export async function batchUpdateRepoCardOrders(
 // ========================================
 // Board Operations
 // ========================================
-
-/**
- * Get board data with status lists and repo cards
- */
-export async function getBoardData(boardId: string): Promise<{
-  statusLists: StatusListDomain[]
-  repoCards: RepoCardDomain[]
-}> {
-  // Fetch in parallel for better performance
-  const [statusLists, repoCards] = await Promise.all([
-    getStatusLists(boardId),
-    getRepoCards(boardId),
-  ])
-
-  // If no status lists exist, create defaults
-  if (statusLists.length === 0) {
-    const defaultLists = await createDefaultStatusLists(boardId)
-    return {
-      statusLists: defaultLists,
-      repoCards: [],
-    }
-  }
-
-  return { statusLists, repoCards }
-}
 
 /**
  * Create a new board

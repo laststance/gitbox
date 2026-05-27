@@ -126,8 +126,8 @@ export interface BoardBundle {
  * Remap one PostgREST board embed into the domain-shaped {@link BoardBundle}.
  * Pure/synchronous; exists so the embed read path produces the exact shape the
  * legacy per-table queries did. Called by `getBoardBundle` right after the
- * embed resolves. Sorts children to match the old `getStatusLists`/`getRepoCards`
- * ordering and builds a comments map with one entry per card — filling
+ * embed resolves. Sorts columns by gridRow then gridCol and cards by order
+ * ascending, and builds a comments map with one entry per card — filling
  * `{ comment: '', color: DEFAULT_COMMENT_COLOR }` whenever `projectinfo` is
  * absent (no info yet, or RLS-hidden for non-owners), mirroring `getCommentsCore`.
  *
@@ -143,12 +143,12 @@ export function remapBoardEmbed(row: BoardBundleRow): BoardBundle {
   // Separate the embedded children from the plain board columns.
   const { statuslist, repocard, ...board } = row
 
-  // Sort columns to match the legacy getStatusLists ordering.
+  // Order columns by grid position: row first, then column.
   const statusLists = statuslist
     .map(toStatusListDomain)
     .sort((a, b) => a.gridRow - b.gridRow || a.gridCol - b.gridCol)
 
-  // Sort cards to match the legacy getRepoCards ordering.
+  // Order cards by their display order (asc).
   const repoCards = repocard
     .map(toRepoCardDomain)
     .sort((a, b) => a.order - b.order)
