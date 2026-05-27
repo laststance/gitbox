@@ -50,8 +50,12 @@ the T5 cleanup (removing the old `fetchBoardInitialData`/`getBoardData` read pat
       `remapBoardEmbed` unit suite (needs Supabase + PostgREST + RLS).
       _v0.3.1.0: the malformed-id ⇒ `null` path (404, never reaches Postgres) is now covered by
       `src/tests/unit/lib/actions/board-data.test.ts`; the Supabase-backed paths above remain._
-- [ ] **`logBoardTiming` flag tests** — assert no-op when `BOARD_TIMING_LOG` is unset and one
+- [x] **`logBoardTiming` flag tests** — assert no-op when `BOARD_TIMING_LOG` is unset and one
       structured line when set (the "1 line = deduped" dedup proof).
+      _v0.3.1.1: covered by `src/tests/unit/lib/utils/board-timing.test.ts` — flag off ⇒ no-op,
+      flag on ⇒ exactly one `board-timing` line carrying the board id + every segment, plus a
+      module-tag lock. The per-call `toHaveBeenCalledTimes(1)` proves one line per call; the
+      "1 line per request = React.cache dedup" property lives in `getBoardBundle`, not this unit._
 - [ ] **E2E `/board/[nonexistent-uuid]` ⇒ 404** — no such E2E spec exists today; the
       not-found contract (`.maybeSingle()` null ⇒ `notFound()`) is only covered indirectly.
 
