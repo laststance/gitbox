@@ -56,8 +56,13 @@ the T5 cleanup (removing the old `fetchBoardInitialData`/`getBoardData` read pat
       flag on ⇒ exactly one `board-timing` line carrying the board id + every segment, plus a
       module-tag lock. The per-call `toHaveBeenCalledTimes(1)` proves one line per call; the
       "1 line per request = React.cache dedup" property lives in `getBoardBundle`, not this unit._
-- [ ] **E2E `/board/[nonexistent-uuid]` ⇒ 404** — no such E2E spec exists today; the
-      not-found contract (`.maybeSingle()` null ⇒ `notFound()`) is only covered indirectly.
+- [x] **E2E `/board/[nonexistent-uuid]` ⇒ 404** — the not-found contract
+      (`.maybeSingle()` null ⇒ `notFound()`) now has direct E2E cover.
+      _v0.3.1.2: `e2e/logged-in/board-not-found.spec.ts` asserts the segment-local
+      "Board not found" boundary renders for both a malformed board id (rejected by
+      `boardIdSchema` before Postgres) and a well-formed but unseeded board UUID
+      (`.maybeSingle()` null). Asserts page content, not HTTP status, since the App
+      Router may stream a 200 before `notFound()` throws._
 
 ### Pre-existing product concerns (NOT introduced by this PR)
 

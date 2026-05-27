@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1.2] - 2026-05-27
+
+### Added
+
+- E2E coverage for the `/board/[id]` not-found contract (`e2e/logged-in/board-not-found.spec.ts`): a malformed board id (rejected by `boardIdSchema` before any Postgres round-trip) and a well-formed but unseeded board UUID (`.maybeSingle()` resolves `null`) both render the segment-local "Board not found" boundary. Previously the `getBoardBundle` `null` ⇒ `notFound()` path was only covered indirectly; this is the first end-to-end assertion that an invalid `/board/[id]` URL reaches the 404 page. Asserts page content rather than HTTP status, since the Next.js App Router may stream a 200 before `notFound()` throws.
+
 ## [0.3.1.1] - 2026-05-27
 
 ### Added
@@ -57,7 +63,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial tracked release.
 
-[Unreleased]: https://github.com/laststance/gitbox/compare/v0.3.1.1...HEAD
+[Unreleased]: https://github.com/laststance/gitbox/compare/v0.3.1.2...HEAD
+[0.3.1.2]: https://github.com/laststance/gitbox/compare/v0.3.1.1...v0.3.1.2
 [0.3.1.1]: https://github.com/laststance/gitbox/compare/v0.3.1.0...v0.3.1.1
 [0.3.1.0]: https://github.com/laststance/gitbox/compare/v0.3.0...v0.3.1.0
 [0.3.0]: https://github.com/laststance/gitbox/compare/v0.2.0...v0.3.0
