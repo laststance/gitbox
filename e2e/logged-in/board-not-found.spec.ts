@@ -17,6 +17,8 @@ test.describe('Board Not Found', () => {
     // before any Postgres round-trip and BoardPage calls notFound().
     // Act
     await page.goto('/board/not-a-uuid')
+    // Settle to networkidle, per the project's e2e page-load wait strategy.
+    await page.waitForLoadState('networkidle')
     // Assert
     // Next.js App Router may stream a 200 status before notFound() throws,
     // so verify the 404 page content instead of the HTTP status code.
@@ -32,6 +34,8 @@ test.describe('Board Not Found', () => {
     // resolve null, so getBoardBundle returns null and BoardPage calls notFound().
     // Act
     await page.goto('/board/00000000-0000-0000-0000-000000000999')
+    // Settle to networkidle, per the project's e2e page-load wait strategy.
+    await page.waitForLoadState('networkidle')
     // Assert
     // Next.js App Router may stream a 200 status before notFound() throws,
     // so verify the 404 page content instead of the HTTP status code.
