@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1.1] - 2026-05-27
+
+### Added
+
+- Unit tests for `logBoardTiming` (`src/lib/utils/board-timing.ts`) locking the `BOARD_TIMING_LOG` opt-in contract: a silent no-op when the flag is off (the production default), and exactly one structured line tagged `board-timing` carrying the board id plus every timing segment when it is on. Regression cover against accidental production log spam and against renaming the `board-timing` module tag that operators grep on.
+
 ## [0.3.1.0] - 2026-05-25
 
 ### Changed
@@ -51,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial tracked release.
 
-[Unreleased]: https://github.com/laststance/gitbox/compare/v0.3.1.0...HEAD
+[Unreleased]: https://github.com/laststance/gitbox/compare/v0.3.1.1...HEAD
+[0.3.1.1]: https://github.com/laststance/gitbox/compare/v0.3.1.0...v0.3.1.1
 [0.3.1.0]: https://github.com/laststance/gitbox/compare/v0.3.0...v0.3.1.0
 [0.3.0]: https://github.com/laststance/gitbox/compare/v0.2.0...v0.3.0
