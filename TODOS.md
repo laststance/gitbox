@@ -39,8 +39,11 @@ From the `/ship` adversarial review of `feat/silent-github-token-refresh` (PR #1
 From the `/review` of `perf/board-read-embed` (the `/board/[id]` single-embed read path).
 All items are **P3, non-blocking** for that PR: the refactor preserves behavior, and the
 items below are either pre-existing conditions surfaced by the adversarial review or
-explicit risk acceptances. Captured here, gated on the prod-confirmation that also gates
-the T5 cleanup (removing the old `fetchBoardInitialData`/`getBoardData` read path).
+explicit risk acceptances. Captured here; the P3 items below remain open. The **T5 cleanup
+is done as of v0.3.1.3** — the dead `getStatusLists` / `getRepoCards` / `getBoardData`
+(`board.ts`) and `getCommentsForCards` (`project-info.ts`) read-path functions are removed
+(static analysis proved zero callers post-embed-migration, so the prod-confirmation gate was
+obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed migration.
 
 ### Tests (paired with T5 cleanup, prod-confirmation gated)
 

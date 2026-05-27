@@ -19,13 +19,11 @@ import type { CommentColor } from '@/lib/supabase/types'
 import {
   getProjectInfoCore,
   upsertProjectInfoCore,
-  getCommentsCore,
   updateCommentCore,
   updateCommentColorCore,
   deleteCommentCore,
   type FkConfig,
   type ProjectInfoData,
-  type CommentData,
 } from './shared-project-info'
 import type { ActionResult } from './types'
 export type {
@@ -97,36 +95,6 @@ export async function upsertProjectInfo(
       success: false,
       error:
         error instanceof Error ? error.message : 'Failed to save project info',
-    }
-  }
-}
-
-/**
- * Get comments for multiple repo cards (batch fetch)
- *
- * @param repoCardIds - Array of repo card IDs
- * @returns
- * - On success: `{ success: true, data: Record<string, CommentData> }`
- * - On error: `{ success: false, error: string }`
- *
- * @example
- * const result = await getCommentsForCards(['card-1', 'card-2'])
- * if (result.success) console.log(result.data['card-1'])
- */
-export async function getCommentsForCards(
-  repoCardIds: string[],
-): Promise<ActionResult<Record<string, CommentData>>> {
-  try {
-    const data = await getCommentsCore(FK, repoCardIds)
-    return { success: true, data }
-  } catch (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'getCommentsForCards', repoCardIds },
-    })
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : 'Failed to fetch comments',
     }
   }
 }

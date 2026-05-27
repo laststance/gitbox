@@ -19,8 +19,8 @@ import { KanbanBoard } from '@/components/Board/KanbanBoard'
 import boardSlice from '@/lib/redux/slices/boardSlice'
 import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
 
-// Mock the board actions
-// Phase 4: getBoardData removed - data now fetched by Server Component
+// Mock the board DnD action functions (board data is fetched by the
+// Server Component, not via these actions).
 vi.mock('@/lib/actions/board', () => ({
   updateRepoCardPosition: vi.fn(async () => ({})),
   batchUpdateRepoCardOrders: vi.fn(async () => ({})),

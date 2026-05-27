@@ -141,8 +141,8 @@ export async function getBoardBundle(
     .eq('id', boardId)
     // Order embedded cards by `order` ascending so that if the embed hits the
     // PostgREST row cap, truncation drops the highest-order cards rather than
-    // an arbitrary subset (parity with the legacy getRepoCards `.order('order',
-    // { ascending: true })`). remapBoardEmbed re-sorts for render regardless.
+    // an arbitrary subset (ordering by `order` ascending). remapBoardEmbed
+    // re-sorts for render regardless.
     .order('order', { ascending: true, referencedTable: 'repocard' })
     .maybeSingle()
     .overrideTypes<BoardBundleRow, { merge: false }>()
@@ -175,8 +175,8 @@ export async function getBoardBundle(
 
   const bundle = remapBoardEmbed(data)
 
-  // Preserve legacy getBoardData behavior: a board with no columns gets the
-  // default preset created on first view, and renders with zero cards.
+  // A board with no columns gets the default preset created on first view and
+  // renders with zero cards.
   if (bundle.statusLists.length === 0) {
     const defaultCreateStart = performance.now()
     const defaultStatusLists = await createDefaultStatusLists(boardId)
