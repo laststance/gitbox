@@ -290,14 +290,14 @@ export const OptimisticFavoriteToggle: Story = {
 
     // Find and click favorite button (triggers optimistic update)
     const favoriteButton = canvas.getByRole('button', {
-      name: /add.*favorites/i,
+      name: `Add ${mockBoards[0]!.name} to favorites`,
     })
     await userEvent.click(favoriteButton)
 
     // After click, button should change to "remove from favorites"
     await waitFor(() => {
       const updatedButton = canvas.getByRole('button', {
-        name: /remove.*favorites/i,
+        name: `Remove ${mockBoards[0]!.name} from favorites`,
       })
       expect(updatedButton).toBeInTheDocument()
     })

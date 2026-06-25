@@ -6,8 +6,22 @@
  */
 import * as a11yAddonAnnotations from '@storybook/addon-a11y/preview'
 import { setProjectAnnotations } from '@storybook/nextjs-vite'
+import { vi } from 'vitest'
 
 import * as projectAnnotations from './preview'
+
+/**
+ * Storybook browser tests render components without a Next.js server, so server
+ * actions must resolve successfully for optimistic UI stories to pass.
+ */
+vi.mock('@/lib/actions/board', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/actions/board')>()
+
+  return {
+    ...actual,
+    toggleBoardFavorite: vi.fn().mockResolvedValue({ success: true }),
+  }
+})
 
 // Suppress benign ResizeObserver loop error in browser tests.
 // This fires when ResizeObserver can't deliver all notifications in a single

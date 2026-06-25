@@ -1,6 +1,3 @@
-patchedDependencies:
-  vite-plugin-storybook-nextjs@3.2.5: patches/vite-plugin-storybook-nextjs@3.2.5.patch
-
 # Supply-chain security (migrated from .npmrc 2026-05-07)
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:

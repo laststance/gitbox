@@ -91,10 +91,8 @@ export function useEditableUrl({
   // ----------------------------------------
   // State
   // ----------------------------------------
-  /* eslint-disable react-you-might-not-need-an-effect/no-event-handler -- using props (autoEdit, link.url) as initial state is the standard React initialization pattern */
   const [isEditing, setIsEditing] = useState(autoEdit)
   const [editValue, setEditValue] = useState(link.url)
-  /* eslint-enable react-you-might-not-need-an-effect/no-event-handler */
   const [error, setError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [showSaveSuccess, setShowSaveSuccess] = useState(false)
