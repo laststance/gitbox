@@ -55,24 +55,28 @@ test.describe('Maintenance View Toggle (Authenticated)', () => {
     await expect(gridContainer).toBeVisible()
   })
 
-  test('should show same items in both views', async ({ page }) => {
-    // Count items in grid view using the .group cards
-    const gridCards = page.locator('main .group')
+  test('shows the same maintenance items in grid and list views', async ({
+    page,
+  }) => {
+    // Arrange: capture the visible grid card count before changing views.
+    const gridContainer = page.locator('main .grid.gap-6')
+    const gridCards = gridContainer.locator(':scope > .group')
+    await expect(gridCards.first()).toBeVisible()
     const gridCount = await gridCards.count()
     expect(gridCount).toBeGreaterThan(0)
 
-    // Switch to list view
+    // Act: switch to list view and wait for the animated grid to unmount.
     const listButton = page
       .locator('button')
       .filter({ has: page.locator('svg.lucide-list') })
     await listButton.click()
+    await expect(gridContainer).not.toBeAttached()
 
-    // Count items in list view
-    const listCards = page.locator('main .group')
-    const listCount = await listCards.count()
+    const listContainer = page.locator('main .mx-auto > .space-y-2')
+    const listCards = listContainer.locator(':scope > .group')
 
-    // Both views should show the same number of items
-    expect(listCount).toBe(gridCount)
+    // Assert: the active list contains every item previously shown in the grid.
+    await expect(listCards).toHaveCount(gridCount)
   })
 
   test('should search filter items', async ({ page }) => {
