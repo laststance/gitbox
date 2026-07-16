@@ -793,7 +793,11 @@ export async function resetBoardPublicState(): Promise<void> {
 
 /**
  * Reset maintenance items to seed.sql initial values.
- * Re-creates items that may have been deleted by tests.
+ * Re-creates items that may have been deleted by tests and resets ProjectInfo
+ * for maintenance items to match seed.sql (maintenance-1 has ProjectInfo;
+ * maintenance-2 has none).
+ *
+ * @returns A promise that resolves after the maintenance seed state is restored
  *
  * @example
  * test.afterEach(async () => {
@@ -827,6 +831,20 @@ export async function resetMaintenanceItems(): Promise<void> {
         `resetMaintenanceItems: upsert failed for id=${item.id}: ${error.message}`,
       )
     }
+  }
+
+  // Clear stale ProjectInfo rows (e.g. comments saved on maintenance-2 by prior tests)
+  const { error: deleteError } = await supabase
+    .from('projectinfo')
+    .delete()
+    .in('maintenance_id', [
+      MAINTENANCE_IDS.maintenance1,
+      MAINTENANCE_IDS.maintenance2,
+    ])
+  if (deleteError) {
+    throw new Error(
+      `resetMaintenanceItems: projectinfo delete failed: ${deleteError.message}`,
+    )
   }
 
   // Re-insert projectinfo for maintenance-1 (may have been cascade-deleted)

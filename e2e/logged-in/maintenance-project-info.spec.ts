@@ -12,6 +12,7 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import { resetMaintenanceItems } from '../helpers/db-query'
 
 test.describe('Maintenance ProjectInfo (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
@@ -176,6 +177,7 @@ test.describe('Maintenance Comment Inline Edit (Authenticated)', () => {
   const MAINTENANCE_URL = '/maintenance'
 
   test.beforeEach(async ({ page }) => {
+    await resetMaintenanceItems()
     await page.goto(MAINTENANCE_URL)
     await page.waitForLoadState('networkidle')
   })
@@ -281,26 +283,23 @@ test.describe('Maintenance Comment Inline Edit (Authenticated)', () => {
       .filter({ has: page.locator('h3', { hasText: 'old-project' }) })
 
     const emptyState = card.locator('[data-testid="comment-empty-state"]')
-    const emptyCount = await emptyState.count()
+    const inlineEdit = card.locator('[data-testid="comment-inline-edit"]')
+    const testComment = 'E2E test comment for maintenance'
 
-    if (emptyCount > 0) {
-      await emptyState.click()
+    // Arrange
+    await expect(emptyState).toBeVisible()
 
-      const inlineEdit = card.locator('[data-testid="comment-inline-edit"]')
-      await expect(inlineEdit).toBeVisible({ timeout: 5000 })
+    // Act
+    await emptyState.click()
+    await expect(inlineEdit).toBeVisible({ timeout: 5000 })
+    const textarea = inlineEdit.locator('textarea')
+    await textarea.fill(testComment)
+    await textarea.press('Enter')
 
-      const textarea = inlineEdit.locator('textarea')
-      const testComment = 'E2E test comment for maintenance'
-      await textarea.fill(testComment)
-      await textarea.press('Enter')
-
-      // Should close inline edit
-      await expect(inlineEdit).not.toBeVisible({ timeout: 5000 })
-
-      // Comment should be displayed on this card
-      const commentDisplay = card.locator('[data-testid="comment-display"]')
-      await expect(commentDisplay).toContainText(testComment)
-    }
+    // Assert
+    await expect(inlineEdit).not.toBeVisible({ timeout: 5000 })
+    const commentDisplay = card.locator('[data-testid="comment-display"]')
+    await expect(commentDisplay).toContainText(testComment)
   })
 
   test('should cancel edit on Escape key', async ({ page }) => {
@@ -315,21 +314,20 @@ test.describe('Maintenance Comment Inline Edit (Authenticated)', () => {
       .filter({ has: page.locator('h3', { hasText: 'old-project' }) })
 
     const emptyState = card.locator('[data-testid="comment-empty-state"]')
-    const emptyCount = await emptyState.count()
+    const inlineEdit = card.locator('[data-testid="comment-inline-edit"]')
 
-    if (emptyCount > 0) {
-      await emptyState.click()
+    // Arrange
+    await expect(emptyState).toBeVisible()
 
-      const inlineEdit = card.locator('[data-testid="comment-inline-edit"]')
-      await expect(inlineEdit).toBeVisible({ timeout: 5000 })
+    // Act
+    await emptyState.click()
+    await expect(inlineEdit).toBeVisible({ timeout: 5000 })
+    const textarea = inlineEdit.locator('textarea')
+    await textarea.fill('This should be cancelled')
+    await textarea.press('Escape')
 
-      const textarea = inlineEdit.locator('textarea')
-      await textarea.fill('This should be cancelled')
-      await textarea.press('Escape')
-
-      // Should close inline edit and show empty state again
-      await expect(inlineEdit).not.toBeVisible({ timeout: 5000 })
-      await expect(emptyState).toBeVisible()
-    }
+    // Assert
+    await expect(inlineEdit).not.toBeVisible({ timeout: 5000 })
+    await expect(emptyState).toBeVisible()
   })
 })
