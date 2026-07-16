@@ -21,8 +21,10 @@ minimumReleaseAgeExclude:
   - '@laststance/react-next-eslint-plugin'
 verifyStoreIntegrity: true
 allowBuilds:
+  '@code-inspector/core': true
   '@sentry/cli': true
   esbuild: true
   msw: true
+  node-pty: true
   sharp: true
   unrs-resolver: true

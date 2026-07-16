@@ -303,33 +303,34 @@ test.describe('Maintenance Comment Inline Edit (Authenticated)', () => {
     }
   })
 
-  test('should cancel edit on Escape key', async ({ page }) => {
-    // Wait for page to load
+  test('cancels an unsaved maintenance comment when Escape is pressed', async ({
+    page,
+  }) => {
+    // Arrange
     await expect(page.getByText('Maintenance Mode')).toBeVisible({
       timeout: 10000,
     })
 
-    // Scope to old-project card (has empty comment in seed data)
     const card = page
       .locator('.group')
       .filter({ has: page.locator('h3', { hasText: 'old-project' }) })
+    const commentTrigger = card.locator(
+      '[data-testid="comment-empty-state"], [data-testid="comment-display"]',
+    )
+    const inlineEdit = card.locator('[data-testid="comment-inline-edit"]')
+    const unsavedComment = 'This should be cancelled'
+    await expect(commentTrigger).toBeVisible({ timeout: 10000 })
 
-    const emptyState = card.locator('[data-testid="comment-empty-state"]')
-    const emptyCount = await emptyState.count()
+    // Act
+    await commentTrigger.click()
+    await expect(inlineEdit).toBeVisible({ timeout: 5000 })
+    const textarea = inlineEdit.locator('textarea')
+    await textarea.fill(unsavedComment)
+    await textarea.press('Escape')
 
-    if (emptyCount > 0) {
-      await emptyState.click()
-
-      const inlineEdit = card.locator('[data-testid="comment-inline-edit"]')
-      await expect(inlineEdit).toBeVisible({ timeout: 5000 })
-
-      const textarea = inlineEdit.locator('textarea')
-      await textarea.fill('This should be cancelled')
-      await textarea.press('Escape')
-
-      // Should close inline edit and show empty state again
-      await expect(inlineEdit).not.toBeVisible({ timeout: 5000 })
-      await expect(emptyState).toBeVisible()
-    }
+    // Assert
+    await expect(inlineEdit).not.toBeVisible({ timeout: 5000 })
+    await expect(commentTrigger).toBeVisible()
+    await expect(commentTrigger).not.toContainText(unsavedComment)
   })
 })

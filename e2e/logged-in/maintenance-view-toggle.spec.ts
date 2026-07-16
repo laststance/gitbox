@@ -55,24 +55,42 @@ test.describe('Maintenance View Toggle (Authenticated)', () => {
     await expect(gridContainer).toBeVisible()
   })
 
-  test('should show same items in both views', async ({ page }) => {
-    // Count items in grid view using the .group cards
-    const gridCards = page.locator('main .group')
-    const gridCount = await gridCards.count()
-    expect(gridCount).toBeGreaterThan(0)
-
-    // Switch to list view
+  test('keeps both maintenance projects when switching to list view', async ({
+    page,
+  }) => {
+    // Arrange
+    const gridDashboardHeading = page.getByRole('heading', {
+      name: 'claude-plugin-dashboard',
+      exact: true,
+    })
+    const gridOldProjectHeading = page.getByRole('heading', {
+      name: 'old-project',
+      exact: true,
+    })
     const listButton = page
       .locator('button')
       .filter({ has: page.locator('svg.lucide-list') })
+    await expect(gridDashboardHeading).toBeVisible()
+    await expect(gridOldProjectHeading).toBeVisible()
+
+    // Act
     await listButton.click()
 
-    // Count items in list view
-    const listCards = page.locator('main .group')
-    const listCount = await listCards.count()
-
-    // Both views should show the same number of items
-    expect(listCount).toBe(gridCount)
+    // Assert
+    await expect(
+      page.getByRole('heading', {
+        name: 'laststance/claude-plugin-dashboard',
+        exact: true,
+      }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('heading', {
+        name: 'laststance/old-project',
+        exact: true,
+      }),
+    ).toBeVisible()
+    await expect(gridDashboardHeading).toBeHidden()
+    await expect(gridOldProjectHeading).toBeHidden()
   })
 
   test('should search filter items', async ({ page }) => {
