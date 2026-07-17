@@ -11,8 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useOrganizationData } from '@/hooks/board/useOrganizationData'
-import { useRepositoryData } from '@/hooks/board/useRepositoryData'
+import { useRepositoryCatalog } from '@/hooks/board/useRepositoryCatalog'
 import { useRepositorySearch } from '@/hooks/board/useRepositorySearch'
 import {
   addRepositoriesToBoard,
@@ -123,14 +122,13 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     clearSelection,
   } = useRepositorySearch()
 
-  const { currentUser, filteredOrganizations, isLoadingOrgs, organizations } =
-    useOrganizationData(isOpen)
-
-  const { userRepos, isLoadingRepos, reposError } = useRepositoryData(
-    isOpen,
-    organizations,
-    isLoadingOrgs,
-  )
+  const {
+    currentUser,
+    filteredOrganizations,
+    userRepos,
+    isLoadingCatalog,
+    catalogError,
+  } = useRepositoryCatalog(isOpen)
 
   // Filters (organizationFilter persisted to localStorage via Redux)
   const dispatch = useAppDispatch()
@@ -240,8 +238,8 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     maintenanceIdentifiers,
   ])
 
-  const isLoading = isLoadingRepos || isAdding
-  const error = addError || reposError
+  const isLoading = isLoadingCatalog || isAdding
+  const error = addError || catalogError
 
   // Virtual scrolling (enabled for 20+ repositories)
   const shouldVirtualize = filteredRepositories.length > 20
@@ -407,10 +405,10 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                 ))}
               </SelectContent>
             </Select>
-            {/* Loading indicator for organizations */}
-            {isLoadingOrgs && (
+            {/* One catalog request now loads both organizations and repositories. */}
+            {isLoadingCatalog && (
               <span className="text-muted-foreground self-center text-xs">
-                Loading orgs...
+                Loading GitHub data...
               </span>
             )}
 

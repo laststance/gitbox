@@ -3,6 +3,7 @@
  *
  * Tests for GitHub API Axios instance and token utilities:
  * - createGitHubAxios (axios instance creation)
+ * - getGitHubToken (request-cookie and E2E token resolution)
  * - hasGitHubToken (token availability check)
  * - 401 response interceptor (clears stale cookie via deleteGitHubTokenCookie)
  */
@@ -57,9 +58,12 @@ describe('axios-github', () => {
       const instance = createGitHubAxios()
 
       expect(instance.defaults.headers['Accept']).toBe(
-        'application/vnd.github.v3+json',
+        'application/vnd.github+json',
       )
       expect(instance.defaults.headers['User-Agent']).toBe('GitBox-App')
+      expect(instance.defaults.headers['X-GitHub-Api-Version']).toBe(
+        '2026-03-10',
+      )
     })
 
     it('should set 10 second timeout', async () => {
@@ -75,6 +79,45 @@ describe('axios-github', () => {
 
       // Axios interceptors have handlers array
       expect(instance.interceptors.request).toBeDefined()
+    })
+
+    it('uses an explicit cached-loader token without reading request cookies', async () => {
+      // Arrange
+      process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK = 'false'
+      process.env.APP_ENV = 'production'
+      const cookieStore = {
+        get: vi.fn().mockReturnValue({ value: 'request-cookie-token' }),
+      }
+      vi.mocked(cookies).mockResolvedValue(cookieStore as never)
+      vi.resetModules()
+      const { createGitHubAxios } = await import('@/lib/axios-github')
+      const instance = createGitHubAxios({
+        token: 'cached-loader-token',
+        clearTokenCookieOnUnauthorized: false,
+      })
+      const requestConfig = {
+        headers: { Authorization: 'Bearer cached-loader-token' },
+      }
+      const requestInterceptor = (
+        instance.interceptors.request as never as {
+          handlers: Array<{
+            fulfilled: (
+              config: typeof requestConfig,
+            ) => Promise<typeof requestConfig>
+          }>
+        }
+      ).handlers[0]?.fulfilled
+
+      // Act
+      const result = await requestInterceptor?.(requestConfig)
+
+      // Assert
+      expect(instance.defaults.headers.Authorization).toBe(
+        'Bearer cached-loader-token',
+      )
+      expect(result?.headers.Authorization).toBe('Bearer cached-loader-token')
+      expect(cookies).not.toHaveBeenCalled()
+      expect(cookieStore.get).not.toHaveBeenCalled()
     })
 
     describe('request interceptor in test mode', () => {
@@ -154,6 +197,42 @@ describe('axios-github', () => {
 
         expect(result.headers.Authorization).toBeUndefined()
       })
+    })
+  })
+
+  describe('getGitHubToken', () => {
+    it('returns the MSW token only when the explicit E2E flags are enabled', async () => {
+      // Arrange
+      process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK = 'true'
+      process.env.APP_ENV = 'test'
+      vi.resetModules()
+      const { getGitHubToken } = await import('@/lib/axios-github')
+
+      // Act
+      const token = await getGitHubToken()
+
+      // Assert
+      expect(token).toBe('mock-github-provider-token-for-testing')
+      expect(cookies).not.toHaveBeenCalled()
+    })
+
+    it('returns the provider token from the request cookie in production', async () => {
+      // Arrange
+      process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK = 'false'
+      process.env.APP_ENV = 'production'
+      const cookieStore = {
+        get: vi.fn().mockReturnValue({ value: 'real-github-token' }),
+      }
+      vi.mocked(cookies).mockResolvedValue(cookieStore as never)
+      vi.resetModules()
+      const { getGitHubToken } = await import('@/lib/axios-github')
+
+      // Act
+      const token = await getGitHubToken()
+
+      // Assert
+      expect(token).toBe('real-github-token')
+      expect(cookieStore.get).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -338,6 +417,26 @@ describe('axios-github', () => {
 
       const original = makeAxiosError(401)
       await expect(rejectedHandler(original)).rejects.toBe(original)
+    })
+
+    it('preserves request cookies when a cached loader handles a 401 outside the interceptor', async () => {
+      // Arrange
+      vi.resetModules()
+      const { createGitHubAxios } = await import('@/lib/axios-github')
+      const instance = createGitHubAxios({
+        token: 'cached-loader-token',
+        clearTokenCookieOnUnauthorized: false,
+      })
+      const rejectedHandler = (instance.interceptors.response as any)
+        .handlers[0].rejected
+      const unauthorizedError = makeAxiosError(401)
+
+      // Act
+      const rejection = expect(rejectedHandler(unauthorizedError)).rejects
+
+      // Assert
+      await rejection.toBe(unauthorizedError)
+      expect(deleteGitHubTokenCookie).not.toHaveBeenCalled()
     })
   })
 })
