@@ -373,7 +373,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             value={searchQuery}
             onChange={(e) => updateSearch(e.target.value)}
             placeholder="Search repositories..."
-            className="border-input bg-background text-foreground focus:border-primary focus:ring-primary w-full rounded-md border px-3 py-2 text-sm focus:ring-1 focus:outline-none"
+            className="border-input bg-background text-foreground focus:ring-primary w-full rounded-md border px-3 py-2 text-sm focus:ring-1 focus:outline-none"
             aria-label="Search repositories"
             autoFocus
           />
@@ -420,7 +420,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                   e.target.value as 'all' | 'public' | 'private',
                 )
               }
-              className="border-input bg-background text-foreground focus:border-primary rounded-md border px-3 py-1.5 text-sm focus:outline-none"
+              className="border-input bg-background text-foreground focus:ring-primary rounded-md border px-3 py-1.5 text-sm focus:ring-1 focus:outline-none"
               aria-label="Visibility filter"
             >
               <option value="all">All</option>
