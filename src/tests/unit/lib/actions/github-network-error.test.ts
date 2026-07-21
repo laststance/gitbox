@@ -89,9 +89,14 @@ describe('GitHub repository catalog network errors', () => {
     )
     expect(actionHarness.captureException).not.toHaveBeenCalled()
     expect(actionHarness.deleteGitHubTokenCookie).not.toHaveBeenCalled()
-    expect(JSON.stringify({ result, calls: actionHarness })).not.toContain(
-      rawToken,
-    )
+    expect(
+      JSON.stringify({
+        result,
+        logWarnCalls: actionHarness.logWarn.mock.calls,
+        logErrorCalls: actionHarness.logError.mock.calls,
+        captureExceptionCalls: actionHarness.captureException.mock.calls,
+      }),
+    ).not.toContain(rawToken)
   })
 
   it('returns a safe catalog error while logging only its status and action context', async () => {
