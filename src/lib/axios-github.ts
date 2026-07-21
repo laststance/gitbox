@@ -18,9 +18,26 @@ import {
   deleteGitHubTokenCookie,
   getGitHubTokenCookieName,
 } from '@/lib/constants/cookies'
+import {
+  GITHUB_API_ACCEPT_HEADER,
+  GITHUB_API_BASE_URL,
+  GITHUB_API_TIMEOUT_MS,
+  GITHUB_API_USER_AGENT,
+  GITHUB_API_VERSION,
+  GITHUB_E2E_MOCK_TOKEN,
+} from '@/lib/constants/github'
 
-const GITHUB_API_BASE_URL = 'https://api.github.com'
+interface CreateGitHubAxiosOptions {
+  token?: string
+  clearTokenCookieOnUnauthorized?: boolean
+}
 
+/**
+ * Detects the explicit E2E environment so only MSW-backed runs receive a mock token.
+ * @returns Whether both MSW and APP_ENV test flags are enabled.
+ * @example
+ * isE2ETestMode() // => true when NEXT_PUBLIC_ENABLE_MSW_MOCK=true and APP_ENV=test
+ */
 function isE2ETestMode(): boolean {
   // Require BOTH flags to be set explicitly. NODE_ENV is not a reliable
   // signal — Vitest/Jest default NODE_ENV to 'test' and would otherwise
@@ -29,6 +46,20 @@ function isE2ETestMode(): boolean {
     process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK === 'true' &&
     process.env.APP_ENV === 'test'
   )
+}
+
+/**
+ * Reads the GitHub token before cached loaders run so request APIs never execute inside a cache scope.
+ * @returns The real cookie token, the E2E mock token, or null when unauthenticated.
+ * @example
+ * const token = await getGitHubToken() // => 'gho_…' | null
+ */
+export async function getGitHubToken(): Promise<string | null> {
+  if (isE2ETestMode()) return GITHUB_E2E_MOCK_TOKEN
+
+  const cookieStore = await cookies()
+  const cookieName = getGitHubTokenCookieName()
+  return cookieStore.get(cookieName)?.value || null
 }
 
 /**
@@ -41,19 +72,25 @@ function isE2ETestMode(): boolean {
  * - Request interceptor for automatic auth token injection
  * - E2E test mode support with mock token
  *
- * @returns Configured AxiosInstance for GitHub API
+ * @param options - Optional explicit token and 401 cookie-cleanup behavior.
+ * @returns Configured AxiosInstance for GitHub API.
  *
  * @example
- * const api = createGitHubAxios()
+ * const api = createGitHubAxios({ token, clearTokenCookieOnUnauthorized: false })
  * const { data } = await api.get<GitHubUser>('/user')
  */
-export function createGitHubAxios(): AxiosInstance {
+export function createGitHubAxios(
+  options: CreateGitHubAxiosOptions = {},
+): AxiosInstance {
+  const { token, clearTokenCookieOnUnauthorized = true } = options
   const instance = axios.create({
     baseURL: GITHUB_API_BASE_URL,
-    timeout: 10000,
+    timeout: GITHUB_API_TIMEOUT_MS,
     headers: {
-      Accept: 'application/vnd.github.v3+json',
-      'User-Agent': 'GitBox-App',
+      Accept: GITHUB_API_ACCEPT_HEADER,
+      'User-Agent': GITHUB_API_USER_AGENT,
+      'X-GitHub-Api-Version': GITHUB_API_VERSION,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   })
 
@@ -70,20 +107,15 @@ export function createGitHubAxios(): AxiosInstance {
     async (
       config: InternalAxiosRequestConfig,
     ): Promise<InternalAxiosRequestConfig> => {
-      // E2E test mode: Use mock token for MSW interception
-      if (isE2ETestMode()) {
-        config.headers.Authorization =
-          'Bearer mock-github-provider-token-for-testing'
+      // Explicit tokens keep cached loaders independent from request cookies.
+      if (config.headers.Authorization) {
         return config
       }
 
-      // Production: Read token from httpOnly cookie
-      const cookieStore = await cookies()
-      const cookieName = getGitHubTokenCookieName()
-      const token = cookieStore.get(cookieName)?.value
+      const resolvedToken = await getGitHubToken()
 
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`
+      if (resolvedToken) {
+        config.headers.Authorization = `Bearer ${resolvedToken}`
       }
 
       return config
@@ -99,7 +131,11 @@ export function createGitHubAxios(): AxiosInstance {
    * re-authentication instead of repeated 401 failures.
    */
   instance.interceptors.response.use(undefined, async (error) => {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
+    if (
+      clearTokenCookieOnUnauthorized &&
+      axios.isAxiosError(error) &&
+      error.response?.status === 401
+    ) {
       try {
         await deleteGitHubTokenCookie()
       } catch {
@@ -127,10 +163,5 @@ export function createGitHubAxios(): AxiosInstance {
  * }
  */
 export async function hasGitHubToken(): Promise<boolean> {
-  // E2E test mode: Always has token (mock)
-  if (isE2ETestMode()) return true
-
-  const cookieStore = await cookies()
-  const cookieName = getGitHubTokenCookieName()
-  return !!cookieStore.get(cookieName)?.value
+  return Boolean(await getGitHubToken())
 }

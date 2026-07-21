@@ -1,10 +1,10 @@
 /**
- * GitHub API Server Actions
+ * GitHub repository catalog Server Action.
  *
- * Actions to call GitHub REST API on server side.
- * Uses axios for HTTP requests with automatic auth token injection.
+ * Authentication and request rate limiting stay outside the Next.js cache
+ * scope; the expensive read-only GitHub catalog is cached by token fingerprint.
  *
- * @see https://docs.github.com/en/rest
+ * @see https://docs.github.com/en/rest/repos/repos
  */
 
 'use server'
@@ -13,133 +13,111 @@ import * as Sentry from '@sentry/nextjs'
 import { isAxiosError } from 'axios'
 import { headers } from 'next/headers'
 
-import { createGitHubAxios, hasGitHubToken } from '@/lib/axios-github'
+import { getGitHubToken } from '@/lib/axios-github'
+import { deleteGitHubTokenCookie } from '@/lib/constants/cookies'
+import {
+  getCachedGitHubRepositoryCatalog,
+  getGitHubCatalogErrorStatus,
+} from '@/lib/github/repository-catalog'
 import { createModuleLogger } from '@/lib/logger'
 import { checkRateLimit } from '@/lib/rate-limit/check'
-import type {
-  GitHubAccountType,
-  Visibility,
-} from '@/lib/types/domain-primitives'
+import type { GitHubRepositoryCatalog } from '@/lib/types/github'
 import { getForwardedClientIp } from '@/lib/utils/get-client-ip'
 
 import type { ActionResult } from './types'
 
-const log = createModuleLogger('github')
+export type {
+  GitHubOrganization,
+  GitHubRepository,
+  GitHubRepositoryCatalog,
+  GitHubUser,
+} from '@/lib/types/github'
 
-/**
- * User-facing message shown when the GitHub provider_token cookie is missing.
- *
- * Paired with `errorCode: 'GITHUB_TOKEN_MISSING'` so the client can trigger
- * silent re-auth via `/api/auth/github/refresh` instead of surfacing this
- * to the UI as an error.
- */
+const log = createModuleLogger('github')
 const TOKEN_MISSING_ERROR_MSG = 'GitHub token not found. Please sign in again.'
 
 /**
- * Resolve client IP for IP-based rate limiting (GitHub Server Actions skip
- * Supabase auth). Warns once per call when the proxy did not set the header.
+ * Resolves the caller IP so repeated catalog actions retain the existing abuse guard.
+ * @returns The forwarded client IP or localhost when the proxy header is unavailable.
+ * @example
+ * await getClientIp() // => '203.0.113.10'
  */
 async function getClientIp(): Promise<string> {
-  const ip = getForwardedClientIp(await headers())
-  if (!ip) {
+  const clientIp = getForwardedClientIp(await headers())
+  if (!clientIp) {
     log.warn('x-forwarded-for header missing — falling back to 127.0.0.1')
   }
-  return ip ?? '127.0.0.1'
+  return clientIp ?? '127.0.0.1'
 }
 
 /**
- * Subset of the GitHub REST `Repository` object that GitBox consumes.
- *
- * Only the fields used by the repo picker and card metadata are modelled —
- * the full GitHub response is much larger.
- *
- * @see https://docs.github.com/en/rest/repos/repos
+ * Removes a rejected OAuth token after a cached loader returns a GitHub 401.
+ * @param error - Error propagated out of the cache scope.
+ * @returns Nothing; non-401 errors leave the cookie untouched.
  * @example
- * {
- *   id: 12345678,
- *   name: 'gitbox',
- *   full_name: 'laststance/gitbox',
- *   owner: { login: 'laststance', avatar_url: '…' },
- *   visibility: 'public',
- *   stargazers_count: 42,
- *   …
- * }
+ * await clearTokenCookieAfterUnauthorized(error)
  */
-export interface GitHubRepository {
-  id: number
-  node_id: string
-  name: string
-  full_name: string
-  owner: {
-    login: string
-    avatar_url: string
+async function clearTokenCookieAfterUnauthorized(
+  error: unknown,
+): Promise<void> {
+  const errorStatus = isAxiosError(error)
+    ? error.response?.status
+    : getGitHubCatalogErrorStatus(error)
+  if (errorStatus !== 401) return
+
+  try {
+    await deleteGitHubTokenCookie()
+  } catch (cookieError) {
+    log.warn(
+      { error: cookieError },
+      'Could not clear stale GitHub token cookie',
+    )
   }
-  description: string | null
-  html_url: string
-  homepage: string | null
-  stargazers_count: number
-  watchers_count: number
-  language: string | null
-  topics: string[]
-  visibility: Visibility
-  updated_at: string
-  created_at: string
 }
 
 /**
- * Subset of the GitHub REST `User` object that GitBox consumes.
- *
- * @see https://docs.github.com/en/rest/users/users
+ * Converts GitHub/Axios failures into the stable ActionResult message consumed by the picker.
+ * @param error - Error thrown while building or revalidating the catalog.
+ * @param context - Human-readable operation used in logs and Sentry context.
+ * @returns A safe user-facing error message.
  * @example
- * { id: 1234, login: 'octocat', avatar_url: '…', name: 'The Octocat', type: 'User' }
- */
-export interface GitHubUser {
-  id: number
-  login: string
-  avatar_url: string
-  name: string | null
-  type: GitHubAccountType
-}
-
-/**
- * Subset of the GitHub REST `Organization` object that GitBox consumes.
- *
- * @see https://docs.github.com/en/rest/orgs/orgs
- * @example
- * { id: 999, login: 'laststance', avatar_url: '…', description: '…' }
- */
-export interface GitHubOrganization {
-  id: number
-  login: string
-  avatar_url: string
-  description: string | null
-}
-
-/**
- * Handle axios errors and return standardized error response.
- *
- * @param error - The caught error
- * @param context - Context for error logging (e.g., 'fetch repositories')
- * @returns Standardized error message
- *
- * @example
- * catch (error) {
- *   return { data: null, error: handleGitHubError(error, 'fetch repositories') }
- * }
+ * handleGitHubError(error, 'fetch repository catalog') // => 'GitHub API error: 500'
  */
 function handleGitHubError(error: unknown, context: string): string {
   if (isAxiosError(error)) {
-    if (error.response?.status === 401) {
+    const errorStatus = error.response?.status
+    log.warn(
+      { status: errorStatus ?? null, context },
+      'GitHub API request failed',
+    )
+
+    if (errorStatus === 401) {
       return 'GitHub token expired. Please sign in again.'
     }
-    if (error.response?.status === 404) {
+    if (errorStatus === 404) {
       return 'Resource not found.'
     }
     const message = error.response?.data?.message
     if (message) {
       return message
     }
-    return `GitHub API error: ${error.response?.status ?? 'unknown'}`
+
+    // Axios config contains Authorization, so response-less errors must never be logged raw.
+    return `GitHub API error: ${errorStatus ?? error.code ?? 'network failure'}`
+  }
+
+  const errorStatus = getGitHubCatalogErrorStatus(error)
+
+  if (errorStatus !== null) {
+    log.warn({ status: errorStatus, context }, 'GitHub catalog request failed')
+
+    if (errorStatus === 401) {
+      return 'GitHub token expired. Please sign in again.'
+    }
+    if (errorStatus === 404) {
+      return 'Resource not found.'
+    }
+    return `GitHub API error: ${errorStatus}`
   }
 
   log.error({ error }, `Failed to ${context}`)
@@ -150,114 +128,17 @@ function handleGitHubError(error: unknown, context: string): string {
 }
 
 /**
- * Get authenticated user's repository list
- *
- * Fetches repositories from GitHub API with optional pagination support.
- * When `fetchAll: true`, iterates through all pages to get complete list.
- *
- * @param params.sort - Sort order for repositories
- * @param params.per_page - Number of repos per page (max 100)
- * @param params.page - Specific page to fetch (ignored when fetchAll is true)
- * @param params.fetchAll - Fetch all pages instead of just one (default: false)
- * @returns Array of repositories or error message
- *
+ * Returns the authenticated user's complete picker catalog from a 24-hour user-isolated cache.
+ * @returns A successful compact catalog, token error code, rate-limit error, or GitHub failure.
  * @example
- * // Fetch all repos (paginated)
- * const { data } = await getAuthenticatedUserRepositories({ fetchAll: true })
- *
- * // Fetch single page
- * const { data } = await getAuthenticatedUserRepositories({ per_page: 100, page: 1 })
+ * const result = await getAuthenticatedRepositoryCatalog()
+ * if (result.success) console.log(result.data.repositories.length)
  */
-export async function getAuthenticatedUserRepositories(params?: {
-  sort?: 'created' | 'updated' | 'pushed' | 'full_name'
-  per_page?: number
-  page?: number
-  fetchAll?: boolean
-}): Promise<ActionResult<GitHubRepository[]>> {
-  if (!(await hasGitHubToken())) {
-    return {
-      success: false,
-      error: TOKEN_MISSING_ERROR_MSG,
-      errorCode: 'GITHUB_TOKEN_MISSING',
-    }
-  }
-
-  // Rate limit GitHub API calls by IP
-  const ip = await getClientIp()
-  const rlResult = checkRateLimit('githubApi', ip)
-  if (!rlResult.allowed) {
-    return { success: false, error: rlResult.error! }
-  }
-
-  const api = createGitHubAxios()
-
-  try {
-    const perPage = params?.per_page ?? 100
-    const fetchAll = params?.fetchAll ?? false
-
-    // If fetchAll is true, paginate through all pages
-    if (fetchAll) {
-      const allRepos: GitHubRepository[] = []
-      let page = 1
-      const maxPages = 10 // Safety limit to prevent infinite loops (1000 repos max)
-
-      while (page <= maxPages) {
-        const searchParams = new URLSearchParams()
-        if (params?.sort) searchParams.set('sort', params.sort)
-        searchParams.set('per_page', perPage.toString())
-        searchParams.set('page', page.toString())
-
-        const { data } = await api.get<GitHubRepository[]>(
-          `/user/repos?${searchParams.toString()}`,
-        )
-
-        allRepos.push(...data)
-
-        // If we got fewer repos than requested, we've reached the last page
-        if (data.length < perPage) {
-          break
-        }
-
-        page++
-      }
-
-      return { success: true, data: allRepos }
-    }
-
-    // Single page fetch (original behavior)
-    const searchParams = new URLSearchParams()
-    if (params?.sort) searchParams.set('sort', params.sort)
-    searchParams.set('per_page', perPage.toString())
-    if (params?.page) searchParams.set('page', params.page.toString())
-
-    const { data } = await api.get<GitHubRepository[]>(
-      `/user/repos?${searchParams.toString()}`,
-    )
-
-    return { success: true, data }
-  } catch (error) {
-    return {
-      success: false,
-      error: handleGitHubError(error, 'fetch repositories'),
-    }
-  }
-}
-
-/**
- * Get authenticated user's profile
- *
- * Fetches the current user's GitHub profile information.
- *
- * @returns The user's profile data or an error message
- *
- * @example
- * const { data, error } = await getAuthenticatedUser()
- * if (data) console.log(data.login) // => "ryota-murakami"
- */
-export async function getAuthenticatedUser(): Promise<
-  ActionResult<GitHubUser>
+export async function getAuthenticatedRepositoryCatalog(): Promise<
+  ActionResult<GitHubRepositoryCatalog>
 > {
-  if (!(await hasGitHubToken())) {
+  const token = await getGitHubToken()
+  if (!token) {
     return {
       success: false,
       error: TOKEN_MISSING_ERROR_MSG,
@@ -265,156 +146,22 @@ export async function getAuthenticatedUser(): Promise<
     }
   }
 
-  // Rate limit GitHub API calls by IP
-  const ip = await getClientIp()
-  const rlResult = checkRateLimit('githubApi', ip)
-  if (!rlResult.allowed) {
-    return { success: false, error: rlResult.error! }
+  // One catalog action replaces the former user/org/repository action fan-out.
+  const clientIp = await getClientIp()
+  const rateLimitResult = checkRateLimit('githubApi', clientIp)
+  if (!rateLimitResult.allowed) {
+    return { success: false, error: rateLimitResult.error! }
   }
-
-  const api = createGitHubAxios()
 
   try {
-    const { data } = await api.get<GitHubUser>('/user')
-    return { success: true, data }
+    const catalog = await getCachedGitHubRepositoryCatalog(token)
+    return { success: true, data: catalog }
   } catch (error) {
+    // Cookie mutation must happen after leaving unstable_cache's request-free scope.
+    await clearTokenCookieAfterUnauthorized(error)
     return {
       success: false,
-      error: handleGitHubError(error, 'fetch user'),
-    }
-  }
-}
-
-/**
- * Get organization's repositories
- *
- * Fetches repositories from a specific GitHub organization.
- * Used when organization filter is selected to ensure all org repos are visible.
- *
- * @param org - Organization login name
- * @param params.per_page - Number of repos per page (max 100)
- * @param params.fetchAll - Fetch all pages instead of just one
- * @returns Array of repositories or error message
- *
- * @example
- * const { data } = await getOrganizationRepositories('laststance', { fetchAll: true })
- */
-export async function getOrganizationRepositories(
-  org: string,
-  params?: {
-    per_page?: number
-    fetchAll?: boolean
-  },
-): Promise<ActionResult<GitHubRepository[]>> {
-  if (!(await hasGitHubToken())) {
-    return {
-      success: false,
-      error: TOKEN_MISSING_ERROR_MSG,
-      errorCode: 'GITHUB_TOKEN_MISSING',
-    }
-  }
-
-  // Rate limit GitHub API calls by IP
-  const ip = await getClientIp()
-  const rlResult = checkRateLimit('githubApi', ip)
-  if (!rlResult.allowed) {
-    return { success: false, error: rlResult.error! }
-  }
-
-  const api = createGitHubAxios()
-
-  try {
-    const perPage = params?.per_page ?? 100
-    const fetchAll = params?.fetchAll ?? false
-
-    // If fetchAll is true, paginate through all pages
-    if (fetchAll) {
-      const allRepos: GitHubRepository[] = []
-      let page = 1
-      const maxPages = 10 // Safety limit (1000 repos max)
-
-      while (page <= maxPages) {
-        const searchParams = new URLSearchParams()
-        searchParams.set('per_page', perPage.toString())
-        searchParams.set('page', page.toString())
-        searchParams.set('type', 'all') // Get all repos (public, private, forks)
-
-        const { data } = await api.get<GitHubRepository[]>(
-          `/orgs/${org}/repos?${searchParams.toString()}`,
-        )
-
-        allRepos.push(...data)
-
-        if (data.length < perPage) {
-          break
-        }
-
-        page++
-      }
-
-      return { success: true, data: allRepos }
-    }
-
-    // Single page fetch
-    const searchParams = new URLSearchParams()
-    searchParams.set('per_page', perPage.toString())
-    searchParams.set('type', 'all')
-
-    const { data } = await api.get<GitHubRepository[]>(
-      `/orgs/${org}/repos?${searchParams.toString()}`,
-    )
-
-    return { success: true, data }
-  } catch (error) {
-    if (isAxiosError(error) && error.response?.status === 404) {
-      return { success: false, error: `Organization '${org}' not found.` }
-    }
-    return {
-      success: false,
-      error: handleGitHubError(error, 'fetch organization repositories'),
-    }
-  }
-}
-
-/**
- * Get authenticated user's organizations
- *
- * Fetches the list of organizations the current user belongs to.
- * Used for the Organization Filter in AddRepositoryCombobox.
- *
- * @returns Array of organizations or an error message
- *
- * @example
- * const { data, error } = await getAuthenticatedUserOrganizations()
- * if (data) data.forEach(org => console.log(org.login))
- */
-export async function getAuthenticatedUserOrganizations(): Promise<
-  ActionResult<GitHubOrganization[]>
-> {
-  if (!(await hasGitHubToken())) {
-    return {
-      success: false,
-      error: TOKEN_MISSING_ERROR_MSG,
-      errorCode: 'GITHUB_TOKEN_MISSING',
-    }
-  }
-
-  // Rate limit GitHub API calls by IP
-  const ip = await getClientIp()
-  const rlResult = checkRateLimit('githubApi', ip)
-  if (!rlResult.allowed) {
-    return { success: false, error: rlResult.error! }
-  }
-
-  const api = createGitHubAxios()
-
-  try {
-    const { data } = await api.get<GitHubOrganization[]>('/user/orgs')
-    return { success: true, data }
-  } catch (error) {
-    return {
-      success: false,
-      error: handleGitHubError(error, 'fetch organizations'),
+      error: handleGitHubError(error, 'fetch repository catalog'),
     }
   }
 }

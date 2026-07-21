@@ -1,22 +1,27 @@
 /**
  * Unit Tests: GitHub Server Action Error Codes
  *
- * Verifies that the four token-gated GitHub Server Actions return a
+ * Verifies that the repository-catalog Server Action returns a
  * structured `ActionResult` with `errorCode: 'GITHUB_TOKEN_MISSING'`
  * when the provider_token cookie is absent. The client-side hook in
  * `src/lib/utils/handle-github-token-missing.ts` keys off this code to
  * trigger silent re-auth instead of surfacing the error to the user.
  *
- * Covered actions:
- *  - getAuthenticatedUser
- *  - getAuthenticatedUserRepositories
- *  - getAuthenticatedUserOrganizations
- *  - getOrganizationRepositories
+ * Covered action: getAuthenticatedRepositoryCatalog
  */
 
+import axios from 'axios'
 import { cookies } from 'next/headers'
 import type * as NextHeaders from 'next/headers'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
+import type * as CookiesModule from '@/lib/constants/cookies'
+
+const actionHarness = vi.hoisted(() => ({
+  deleteGitHubTokenCookie: vi.fn(),
+  getCachedGitHubRepositoryCatalog: vi.fn(),
+  getGitHubCatalogErrorStatus: vi.fn(),
+}))
 
 vi.mock('next/headers', async () => {
   const actual = await vi.importActual<typeof NextHeaders>('next/headers')
@@ -29,13 +34,38 @@ vi.mock('next/headers', async () => {
   }
 })
 
+vi.mock('@/lib/constants/cookies', async () => {
+  const actual = await vi.importActual<typeof CookiesModule>(
+    '@/lib/constants/cookies',
+  )
+  return {
+    ...actual,
+    deleteGitHubTokenCookie: actionHarness.deleteGitHubTokenCookie,
+  }
+})
+
+vi.mock('@/lib/github/repository-catalog', () => ({
+  getCachedGitHubRepositoryCatalog:
+    actionHarness.getCachedGitHubRepositoryCatalog,
+  getGitHubCatalogErrorStatus: actionHarness.getGitHubCatalogErrorStatus,
+}))
+
+vi.mock('@/lib/rate-limit/check', () => ({
+  checkRateLimit: vi.fn().mockReturnValue({ allowed: true }),
+}))
+
 describe('GitHub Server Actions: errorCode=GITHUB_TOKEN_MISSING', () => {
   const originalEnv = process.env
 
   beforeEach(() => {
     vi.resetModules()
+    actionHarness.deleteGitHubTokenCookie.mockReset()
+    actionHarness.deleteGitHubTokenCookie.mockResolvedValue(undefined)
+    actionHarness.getCachedGitHubRepositoryCatalog.mockReset()
+    actionHarness.getGitHubCatalogErrorStatus.mockReset()
+    actionHarness.getGitHubCatalogErrorStatus.mockReturnValue(null)
     process.env = { ...originalEnv }
-    // Force the production code path so hasGitHubToken actually inspects
+    // Force the production code path so getGitHubToken actually inspects
     // the cookie store (test mode short-circuits to true).
     process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK = 'false'
     process.env.APP_ENV = 'production'
@@ -53,24 +83,15 @@ describe('GitHub Server Actions: errorCode=GITHUB_TOKEN_MISSING', () => {
     vi.clearAllMocks()
   })
 
-  it('getAuthenticatedUser returns errorCode when cookie is absent', async () => {
-    const { getAuthenticatedUser } = await import('@/lib/actions/github')
-
-    const result = await getAuthenticatedUser()
-
-    expect(result).toEqual({
-      success: false,
-      error: 'GitHub token not found. Please sign in again.',
-      errorCode: 'GITHUB_TOKEN_MISSING',
-    })
-  })
-
-  it('getAuthenticatedUserRepositories returns errorCode when cookie is absent', async () => {
-    const { getAuthenticatedUserRepositories } =
+  it('prompts silent re-auth when the repository catalog opens without a GitHub cookie', async () => {
+    // Arrange
+    const { getAuthenticatedRepositoryCatalog } =
       await import('@/lib/actions/github')
 
-    const result = await getAuthenticatedUserRepositories({ fetchAll: true })
+    // Act
+    const result = await getAuthenticatedRepositoryCatalog()
 
+    // Assert
     expect(result).toEqual({
       success: false,
       error: 'GitHub token not found. Please sign in again.',
@@ -78,30 +99,47 @@ describe('GitHub Server Actions: errorCode=GITHUB_TOKEN_MISSING', () => {
     })
   })
 
-  it('getAuthenticatedUserOrganizations returns errorCode when cookie is absent', async () => {
-    const { getAuthenticatedUserOrganizations } =
+  it('deletes a revoked token cookie and returns the stable expiry message after live validation responds 401', async () => {
+    // Arrange
+    const requestConfig = {
+      headers: new axios.AxiosHeaders({
+        Authorization: 'Bearer gho_revoked_live_token',
+      }),
+    }
+    const unauthorizedError = new axios.AxiosError(
+      'Bad credentials',
+      'ERR_BAD_REQUEST',
+      requestConfig,
+      undefined,
+      {
+        status: 401,
+        data: { message: 'Bad credentials' },
+        statusText: 'Unauthorized',
+        headers: new axios.AxiosHeaders(),
+        config: requestConfig,
+      },
+    )
+    const cookieStoreWithRevokedToken = {
+      get: vi.fn().mockReturnValue({ value: 'gho_revoked_live_token' }),
+    }
+    vi.mocked(cookies).mockResolvedValue(cookieStoreWithRevokedToken as never)
+    actionHarness.getCachedGitHubRepositoryCatalog.mockRejectedValue(
+      unauthorizedError,
+    )
+    const { getAuthenticatedRepositoryCatalog } =
       await import('@/lib/actions/github')
 
-    const result = await getAuthenticatedUserOrganizations()
+    // Act
+    const result = await getAuthenticatedRepositoryCatalog()
 
+    // Assert
+    expect(actionHarness.getCachedGitHubRepositoryCatalog).toHaveBeenCalledWith(
+      'gho_revoked_live_token',
+    )
+    expect(actionHarness.deleteGitHubTokenCookie).toHaveBeenCalledTimes(1)
     expect(result).toEqual({
       success: false,
-      error: 'GitHub token not found. Please sign in again.',
-      errorCode: 'GITHUB_TOKEN_MISSING',
-    })
-  })
-
-  it('getOrganizationRepositories returns errorCode when cookie is absent', async () => {
-    const { getOrganizationRepositories } = await import('@/lib/actions/github')
-
-    const result = await getOrganizationRepositories('laststance', {
-      fetchAll: true,
-    })
-
-    expect(result).toEqual({
-      success: false,
-      error: 'GitHub token not found. Please sign in again.',
-      errorCode: 'GITHUB_TOKEN_MISSING',
+      error: 'GitHub token expired. Please sign in again.',
     })
   })
 })

@@ -9,8 +9,7 @@
  *
  * Two layers of idempotency keep this safe:
  *  1. Module-level `isRefreshInFlight` flag prevents duplicate redirects
- *     when several hooks fire `Promise.all` against GitHub Server Actions
- *     in parallel and all receive the same `GITHUB_TOKEN_MISSING` error.
+ *     if multiple catalog consumers receive the same token error together.
  *  2. `sessionStorage` counter persists across the OAuth round-trip so
  *     that if a refresh fails to land a usable token, the next visit
  *     surfaces a hard error to the user instead of looping forever.
@@ -20,7 +19,7 @@
  * starts working again.
  *
  * @example
- *   const result = await getAuthenticatedUserRepositories()
+ *   const result = await getAuthenticatedRepositoryCatalog()
  *   if (result.success) {
  *     clearGitHubRefreshAttempts()
  *     return result.data
@@ -109,7 +108,7 @@ export function handleGitHubTokenMissing(currentPath: string): boolean {
  * session.
  *
  * @example
- *   const result = await getAuthenticatedUserRepositories()
+ *   const result = await getAuthenticatedRepositoryCatalog()
  *   if (result.success) {
  *     clearGitHubRefreshAttempts()
  *     return result.data
