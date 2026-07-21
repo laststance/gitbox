@@ -83,10 +83,41 @@ describe('GitHub repository catalog network errors', () => {
       error: 'GitHub API error: ECONNABORTED',
     })
     expect(actionHarness.logError).not.toHaveBeenCalled()
+    expect(actionHarness.logWarn).toHaveBeenCalledWith(
+      { status: null, context: 'fetch repository catalog' },
+      'GitHub API request failed',
+    )
     expect(actionHarness.captureException).not.toHaveBeenCalled()
     expect(actionHarness.deleteGitHubTokenCookie).not.toHaveBeenCalled()
     expect(JSON.stringify({ result, calls: actionHarness })).not.toContain(
       rawToken,
     )
+  })
+
+  it('returns a safe catalog error while logging only its status and action context', async () => {
+    // Arrange
+    const catalogError = new Error('upstream payload must stay private')
+    actionHarness.getGitHubCatalogErrorStatus.mockReturnValue(500)
+    actionHarness.getCachedGitHubRepositoryCatalog.mockRejectedValue(
+      catalogError,
+    )
+
+    // Act
+    const result = await getAuthenticatedRepositoryCatalog()
+
+    // Assert
+    expect(result).toEqual({
+      success: false,
+      error: 'GitHub API error: 500',
+    })
+    expect(actionHarness.logWarn).toHaveBeenCalledWith(
+      { status: 500, context: 'fetch repository catalog' },
+      'GitHub catalog request failed',
+    )
+    expect(JSON.stringify(actionHarness.logWarn.mock.calls)).not.toContain(
+      catalogError.message,
+    )
+    expect(actionHarness.logError).not.toHaveBeenCalled()
+    expect(actionHarness.captureException).not.toHaveBeenCalled()
   })
 })

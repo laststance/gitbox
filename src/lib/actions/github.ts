@@ -86,6 +86,11 @@ async function clearTokenCookieAfterUnauthorized(
 function handleGitHubError(error: unknown, context: string): string {
   if (isAxiosError(error)) {
     const errorStatus = error.response?.status
+    log.warn(
+      { status: errorStatus ?? null, context },
+      'GitHub API request failed',
+    )
+
     if (errorStatus === 401) {
       return 'GitHub token expired. Please sign in again.'
     }
@@ -103,7 +108,9 @@ function handleGitHubError(error: unknown, context: string): string {
 
   const errorStatus = getGitHubCatalogErrorStatus(error)
 
-  if (errorStatus !== null && errorStatus !== undefined) {
+  if (errorStatus !== null) {
+    log.warn({ status: errorStatus, context }, 'GitHub catalog request failed')
+
     if (errorStatus === 401) {
       return 'GitHub token expired. Please sign in again.'
     }

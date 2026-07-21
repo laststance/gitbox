@@ -10,12 +10,15 @@ import {
   GITHUB_REPOSITORY_CATALOG_WINDOW_MS,
   GITHUB_REPOSITORY_PAGE_SIZE,
 } from '@/lib/constants/github'
+import { createModuleLogger } from '@/lib/logger'
 import type {
   GitHubOrganization,
   GitHubRepository,
   GitHubRepositoryCatalog,
   GitHubUser,
 } from '@/lib/types/github'
+
+const log = createModuleLogger('github-repository-catalog')
 
 /** Base used when converting each SHA-256 byte into hexadecimal cache-key text. */
 const HEX_RADIX = 16
@@ -313,7 +316,23 @@ async function fetchAllRepositories(
 async function fetchOrganizationRepositoryCatalog(
   cacheContext: CatalogCacheContext,
 ): Promise<OrganizationRepositoryCatalog> {
-  const organizations = await fetchAllOrganizations(cacheContext)
+  let organizations: GitHubOrganization[]
+
+  try {
+    organizations = await fetchAllOrganizations(cacheContext)
+  } catch (error) {
+    const errorStatus = getGitHubCatalogErrorStatus(error)
+
+    // A revoked token invalidates the catalog; optional organization failures preserve user repos.
+    if (errorStatus === 401) throw error
+
+    log.warn(
+      { status: errorStatus },
+      'Skipping GitHub organization list supplementation',
+    )
+    return { organizations: [], repositoryResults: [] }
+  }
+
   const repositoryResults = await Promise.allSettled(
     organizations.map(
       async (organization) =>
@@ -412,10 +431,17 @@ export async function getCachedGitHubRepositoryCatalog(
       continue
     }
 
+    const errorStatus = getGitHubCatalogErrorStatus(organizationResult.reason)
+
     // A revoked token invalidates the whole response; other org failures preserve available user repos.
-    if (getGitHubCatalogErrorStatus(organizationResult.reason) === 401) {
+    if (errorStatus === 401) {
       throw organizationResult.reason
     }
+
+    log.warn(
+      { status: errorStatus },
+      'Skipping GitHub organization repository supplementation',
+    )
   }
 
   return {

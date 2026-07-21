@@ -34,12 +34,20 @@ const githubAxiosHarness = vi.hoisted(() => ({
   createGitHubAxios: vi.fn(),
 }))
 
+const loggerHarness = vi.hoisted(() => ({
+  warn: vi.fn(),
+}))
+
 vi.mock('next/cache', () => ({
   unstable_cache: cacheHarness.unstableCache,
 }))
 
 vi.mock('@/lib/axios-github', () => ({
   createGitHubAxios: githubAxiosHarness.createGitHubAxios,
+}))
+
+vi.mock('@/lib/logger', () => ({
+  createModuleLogger: vi.fn(() => ({ warn: loggerHarness.warn })),
 }))
 
 import {
@@ -230,6 +238,7 @@ describe('GitHub repository catalog page cache', () => {
     cacheHarness.cachedResults.clear()
     cacheHarness.unstableCache.mockClear()
     githubAxiosHarness.createGitHubAxios.mockReset()
+    loggerHarness.warn.mockReset()
     dateNowSpy = vi
       .spyOn(Date, 'now')
       .mockReturnValue(BASE_CACHE_WINDOW_MS + 1_000)
@@ -503,8 +512,73 @@ describe('GitHub repository catalog page cache', () => {
       expect(catalog.organizations).toHaveLength(1)
       expect(catalog.repositories.map(({ id }) => id)).toEqual([1])
       expect(apiGet).toHaveBeenCalledWith(LASTSTANCE_REPOSITORY_PAGE_ONE_URL)
+      expect(loggerHarness.warn).toHaveBeenCalledWith(
+        { status: organizationStatus },
+        'Skipping GitHub organization repository supplementation',
+      )
     },
   )
+
+  it.each([429, 500])(
+    'returns authenticated-user repositories when the organization list responds %i',
+    async (organizationStatus) => {
+      // Arrange
+      const rawToken = `gho_org_list_partial_${organizationStatus}`
+      const apiGet = vi.fn(async (url: string) => {
+        if (url === '/user') return { data: AUTHENTICATED_USER }
+        if (url === USER_REPOSITORY_PAGE_ONE_URL) {
+          return { data: [createRepository(1)] }
+        }
+        if (url === ORGANIZATION_PAGE_ONE_URL) {
+          throw createCredentialBearingAxiosError(organizationStatus, rawToken)
+        }
+        throw new Error(`Unexpected GitHub request: ${url}`)
+      })
+      githubAxiosHarness.createGitHubAxios.mockReturnValue({ get: apiGet })
+
+      // Act
+      const catalog = await getCachedGitHubRepositoryCatalog(rawToken)
+
+      // Assert
+      expect(catalog.organizations).toEqual([])
+      expect(catalog.repositories.map(({ id }) => id)).toEqual([1])
+      expect(loggerHarness.warn).toHaveBeenCalledWith(
+        { status: organizationStatus },
+        'Skipping GitHub organization list supplementation',
+      )
+      expect(JSON.stringify(loggerHarness.warn.mock.calls)).not.toContain(
+        rawToken,
+      )
+    },
+  )
+
+  it('rejects the whole catalog when the organization list reports a revoked token', async () => {
+    // Arrange
+    const rawToken = 'gho_revoked_during_org_list'
+    const apiGet = vi.fn(async (url: string) => {
+      if (url === '/user') return { data: AUTHENTICATED_USER }
+      if (url === USER_REPOSITORY_PAGE_ONE_URL) {
+        return { data: [createRepository(1)] }
+      }
+      if (url === ORGANIZATION_PAGE_ONE_URL) {
+        throw createCredentialBearingAxiosError(401, rawToken)
+      }
+      throw new Error(`Unexpected GitHub request: ${url}`)
+    })
+    githubAxiosHarness.createGitHubAxios.mockReturnValue({ get: apiGet })
+
+    // Act
+    let catalogError: unknown
+    try {
+      await getCachedGitHubRepositoryCatalog(rawToken)
+    } catch (error) {
+      catalogError = error
+    }
+
+    // Assert
+    expect(getGitHubCatalogErrorStatus(catalogError)).toBe(401)
+    expect(loggerHarness.warn).not.toHaveBeenCalled()
+  })
 
   it('validates the user live on every open while reusing all collection pages in the same 24-hour window', async () => {
     // Arrange
