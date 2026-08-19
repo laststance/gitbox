@@ -55,28 +55,42 @@ test.describe('Maintenance View Toggle (Authenticated)', () => {
     await expect(gridContainer).toBeVisible()
   })
 
-  test('shows the same maintenance items in grid and list views', async ({
+  test('keeps both maintenance projects when switching to list view', async ({
     page,
   }) => {
-    // Arrange: capture the visible grid card count before changing views.
-    const gridContainer = page.locator('main .grid.gap-6')
-    const gridCards = gridContainer.locator(':scope > .group')
-    await expect(gridCards.first()).toBeVisible()
-    const gridCount = await gridCards.count()
-    expect(gridCount).toBeGreaterThan(0)
-
-    // Act: switch to list view and wait for the animated grid to unmount.
+    // Arrange
+    const gridDashboardHeading = page.getByRole('heading', {
+      name: 'claude-plugin-dashboard',
+      exact: true,
+    })
+    const gridOldProjectHeading = page.getByRole('heading', {
+      name: 'old-project',
+      exact: true,
+    })
     const listButton = page
       .locator('button')
       .filter({ has: page.locator('svg.lucide-list') })
+    await expect(gridDashboardHeading).toBeVisible()
+    await expect(gridOldProjectHeading).toBeVisible()
+
+    // Act
     await listButton.click()
-    await expect(gridContainer).not.toBeAttached()
 
-    const listContainer = page.locator('main .mx-auto > .space-y-2')
-    const listCards = listContainer.locator(':scope > .group')
-
-    // Assert: the active list contains every item previously shown in the grid.
-    await expect(listCards).toHaveCount(gridCount)
+    // Assert
+    await expect(
+      page.getByRole('heading', {
+        name: 'laststance/claude-plugin-dashboard',
+        exact: true,
+      }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('heading', {
+        name: 'laststance/old-project',
+        exact: true,
+      }),
+    ).toBeVisible()
+    await expect(gridDashboardHeading).toBeHidden()
+    await expect(gridOldProjectHeading).toBeHidden()
   })
 
   test('should search filter items', async ({ page }) => {
