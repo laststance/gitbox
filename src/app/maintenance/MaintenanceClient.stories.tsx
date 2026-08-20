@@ -20,6 +20,11 @@ const meta = {
   parameters: {
     layout: 'fullscreen',
   },
+  // Comments come from the server in the real page; stories default to none and
+  // individual stories can override.
+  args: {
+    comments: {},
+  },
   tags: ['autodocs'],
 } satisfies Meta<typeof MaintenanceClient>
 
@@ -71,22 +76,19 @@ export const Empty: Story = {
 
 export const ManyRepos: Story = {
   args: {
-    repos: Array.from(
-      { length: 20 },
-      (_, i): MaintenanceRepo => ({
-        id: toMaintenanceId(`repo-${i}`),
-        repo_owner: 'octocat',
-        repo_name: `repo-${i}`,
-        meta: {
-          stars: i * 10,
-          language: i % 2 === 0 ? 'TypeScript' : 'JavaScript',
-          lastUpdated: new Date(2024, 0, i + 1).toISOString(),
-        },
-        created_at: new Date(2023, 0, i + 1).toISOString(),
-        updated_at: new Date(2024, 0, i + 1).toISOString(),
-        board: i % 3 === 0 ? { name: `Board ${i}` } : null,
-      }),
-    ),
+    repos: Array.from({ length: 20 }, (_, i): MaintenanceRepo => ({
+      id: toMaintenanceId(`repo-${i}`),
+      repo_owner: 'octocat',
+      repo_name: `repo-${i}`,
+      meta: {
+        stars: i * 10,
+        language: i % 2 === 0 ? 'TypeScript' : 'JavaScript',
+        lastUpdated: new Date(2024, 0, i + 1).toISOString(),
+      },
+      created_at: new Date(2023, 0, i + 1).toISOString(),
+      updated_at: new Date(2024, 0, i + 1).toISOString(),
+      board: i % 3 === 0 ? { name: `Board ${i}` } : null,
+    })),
   },
 }
 

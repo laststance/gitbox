@@ -129,7 +129,7 @@ export interface BoardBundle {
  * embed resolves. Sorts columns by gridRow then gridCol and cards by order
  * ascending, and builds a comments map with one entry per card — filling
  * `{ comment: '', color: DEFAULT_COMMENT_COLOR }` whenever `projectinfo` is
- * absent (no info yet, or RLS-hidden for non-owners), mirroring `getCommentsCore`.
+ * absent (no info yet, or RLS-hidden for non-owners).
  *
  * @param row - Raw board row with embedded `statuslist` + `repocard(+projectinfo)`.
  * @returns A {@link BoardBundle}: raw board, sorted columns/cards, parity comments map.
@@ -154,7 +154,7 @@ export function remapBoardEmbed(row: BoardBundleRow): BoardBundle {
     .sort((a, b) => a.order - b.order)
 
   // One comment entry per card — fill defaults when projectinfo is absent so
-  // the map has full parity with the old getCommentsCore batch fetch.
+  // `comments[id].color` is never undefined downstream.
   const comments: Record<string, CommentData> = {}
   for (const card of repocard) {
     const projectInfo = card.projectinfo

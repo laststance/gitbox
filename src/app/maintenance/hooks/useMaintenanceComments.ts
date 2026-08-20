@@ -2,18 +2,17 @@
  * Comments Hook for Maintenance Page
  *
  * Manages comment CRUD operations with optimistic updates.
- * Batch loads comments on mount for all maintenance items.
+ * Comments arrive already loaded from the server (see maintenance/page.tsx).
  *
  * @example
  * const { comments, editingCommentId, handleCommentSave, handleColorChange } =
- *   useMaintenanceComments({ initialRepos })
+ *   useMaintenanceComments({ initialComments })
  */
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 
 import { type CommentSaveOptions } from '@/components/Board/CommentInlineEdit'
 import {
-  getCommentsForMaintenanceItems,
   updateMaintenanceComment,
   updateMaintenanceCommentColor,
   deleteMaintenanceComment,
@@ -21,34 +20,22 @@ import {
 } from '@/lib/actions/maintenance-project-info'
 import type { CommentColor } from '@/lib/supabase/types'
 
-import type { MaintenanceRepo } from '../MaintenanceClient'
-
 interface UseMaintenanceCommentsProps {
-  initialRepos: MaintenanceRepo[]
+  initialComments: Record<string, CommentData>
 }
 
 /**
  * Hook for managing maintenance item comments
  *
- * @param props.initialRepos - Initial repos for batch comment loading
+ * @param props.initialComments - Server-fetched comments, keyed by maintenance id
  * @returns Comment state, editing state, and CRUD handlers
  */
 export function useMaintenanceComments({
-  initialRepos,
+  initialComments,
 }: UseMaintenanceCommentsProps) {
-  const [comments, setComments] = useState<Record<string, CommentData>>({})
+  const [comments, setComments] =
+    useState<Record<string, CommentData>>(initialComments)
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
-
-  // Load comments on mount (data fetching, not parent data passing)
-  /* eslint-disable react-you-might-not-need-an-effect/no-pass-data-to-parent, react-you-might-not-need-an-effect/no-event-handler -- data fetching when initialRepos changes is a valid effect, not a derived event handler */
-  useEffect(() => {
-    if (initialRepos.length === 0) return
-    const ids = initialRepos.map((r) => r.id)
-    getCommentsForMaintenanceItems(ids).then((result) => {
-      if (result.success) setComments(result.data)
-    })
-  }, [initialRepos])
-  /* eslint-enable react-you-might-not-need-an-effect/no-pass-data-to-parent, react-you-might-not-need-an-effect/no-event-handler */
 
   /**
    * Handle click on comment area to start editing

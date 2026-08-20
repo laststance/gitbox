@@ -304,58 +304,6 @@ export async function upsertProjectInfoCore(
 }
 
 /**
- * Get comments for multiple entities (batch fetch)
- *
- * @param fk - Foreign key configuration
- * @param entityIds - Array of entity IDs to fetch comments for
- * @returns Map of entity ID to CommentData
- *
- * @example
- * const comments = await getCommentsCore(
- *   { column: 'repo_card_id', label: 'project info' },
- *   ['card-1', 'card-2']
- * )
- */
-export async function getCommentsCore(
-  fk: FkConfig,
-  entityIds: string[],
-): Promise<Record<string, CommentData>> {
-  if (entityIds.length === 0) {
-    return {}
-  }
-
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('projectinfo')
-    .select(`${fk.column}, comment, comment_color`)
-    .in(fk.column, entityIds)
-
-  if (error) {
-    throw new Error('Failed to fetch comments')
-  }
-
-  const commentsMap: Record<string, CommentData> = {}
-  for (const row of data || []) {
-    const id = row[fk.column as keyof typeof row] as string | null
-    if (id) {
-      commentsMap[id] = {
-        comment: row.comment || '',
-        color: (row.comment_color as CommentColor) || DEFAULT_COMMENT_COLOR,
-      }
-    }
-  }
-
-  for (const id of entityIds) {
-    if (!(id in commentsMap)) {
-      commentsMap[id] = { comment: '', color: DEFAULT_COMMENT_COLOR }
-    }
-  }
-
-  return commentsMap
-}
-
-/**
  * Update comment for a single entity
  *
  * @param fk - Foreign key configuration

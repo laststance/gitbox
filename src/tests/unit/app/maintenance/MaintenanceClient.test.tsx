@@ -30,7 +30,6 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('@/lib/actions/maintenance-project-info', () => ({
-  getCommentsForMaintenanceItems: vi.fn().mockResolvedValue({}),
   updateMaintenanceComment: vi.fn().mockResolvedValue({}),
   updateMaintenanceCommentColor: vi.fn().mockResolvedValue({}),
   deleteMaintenanceComment: vi.fn().mockResolvedValue({}),
@@ -94,7 +93,7 @@ describe('MaintenanceClient Component', () => {
     it('should render the component with repos', async () => {
       const repos = [createMockRepo()]
 
-      render(<MaintenanceClient repos={repos} />)
+      render(<MaintenanceClient repos={repos} comments={{}} />)
 
       await waitFor(() => {
         expect(screen.getByText('Maintenance Mode')).toBeInTheDocument()
@@ -111,7 +110,7 @@ describe('MaintenanceClient Component', () => {
         }),
       ]
 
-      render(<MaintenanceClient repos={repos} />)
+      render(<MaintenanceClient repos={repos} comments={{}} />)
 
       await waitFor(() => {
         expect(screen.getByText(/2 items/)).toBeInTheDocument()
@@ -119,7 +118,7 @@ describe('MaintenanceClient Component', () => {
     })
 
     it('should render search input', async () => {
-      render(<MaintenanceClient repos={[createMockRepo()]} />)
+      render(<MaintenanceClient repos={[createMockRepo()]} comments={{}} />)
 
       await waitFor(() => {
         expect(
@@ -129,7 +128,7 @@ describe('MaintenanceClient Component', () => {
     })
 
     it('should render sort button', async () => {
-      render(<MaintenanceClient repos={[createMockRepo()]} />)
+      render(<MaintenanceClient repos={[createMockRepo()]} comments={{}} />)
 
       await waitFor(() => {
         expect(
@@ -139,7 +138,7 @@ describe('MaintenanceClient Component', () => {
     })
 
     it('should render view toggle buttons', async () => {
-      render(<MaintenanceClient repos={[createMockRepo()]} />)
+      render(<MaintenanceClient repos={[createMockRepo()]} comments={{}} />)
 
       await waitFor(() => {
         // Find buttons with grid and list icons
@@ -151,7 +150,7 @@ describe('MaintenanceClient Component', () => {
 
   describe('Empty State', () => {
     it('should render empty state when no repos', async () => {
-      render(<MaintenanceClient repos={[]} />)
+      render(<MaintenanceClient repos={[]} comments={{}} />)
 
       await waitFor(() => {
         expect(screen.getByText('No maintenance projects')).toBeInTheDocument()
@@ -163,7 +162,7 @@ describe('MaintenanceClient Component', () => {
 
     it('should render empty state when search has no results', async () => {
       const repos = [createMockRepo()]
-      render(<MaintenanceClient repos={repos} />)
+      render(<MaintenanceClient repos={repos} comments={{}} />)
 
       const searchInput = screen.getByPlaceholderText('Search repositories...')
       await userEvent.type(searchInput, 'nonexistent-xyz')
@@ -180,7 +179,7 @@ describe('MaintenanceClient Component', () => {
         createMockRepo({ id: toMaintenanceId('repo-1'), repo_name: 'react' }),
         createMockRepo({ id: toMaintenanceId('repo-2'), repo_name: 'vue' }),
       ]
-      render(<MaintenanceClient repos={repos} />)
+      render(<MaintenanceClient repos={repos} comments={{}} />)
 
       const searchInput = screen.getByPlaceholderText('Search repositories...')
       await userEvent.type(searchInput, 'react')
@@ -199,7 +198,7 @@ describe('MaintenanceClient Component', () => {
         }),
         createMockRepo({ id: toMaintenanceId('repo-2'), repo_owner: 'google' }),
       ]
-      render(<MaintenanceClient repos={repos} />)
+      render(<MaintenanceClient repos={repos} comments={{}} />)
 
       const searchInput = screen.getByPlaceholderText('Search repositories...')
       await userEvent.type(searchInput, 'facebook')
@@ -214,7 +213,7 @@ describe('MaintenanceClient Component', () => {
       const repos = [
         createMockRepo({ id: toMaintenanceId('repo-1'), repo_name: 'MyRepo' }),
       ]
-      render(<MaintenanceClient repos={repos} />)
+      render(<MaintenanceClient repos={repos} comments={{}} />)
 
       const searchInput = screen.getByPlaceholderText('Search repositories...')
       await userEvent.type(searchInput, 'myrepo')
@@ -228,7 +227,9 @@ describe('MaintenanceClient Component', () => {
   describe('Grid/List View Toggle', () => {
     it('should default to grid view', async () => {
       const repos = [createMockRepo()]
-      const { container } = render(<MaintenanceClient repos={repos} />)
+      const { container } = render(
+        <MaintenanceClient repos={repos} comments={{}} />,
+      )
 
       await waitFor(() => {
         // Grid view shows repo_name only
@@ -242,7 +243,7 @@ describe('MaintenanceClient Component', () => {
 
   describe('Sort Functionality', () => {
     it('should open sort dropdown on click', async () => {
-      render(<MaintenanceClient repos={[createMockRepo()]} />)
+      render(<MaintenanceClient repos={[createMockRepo()]} comments={{}} />)
 
       const sortButton = screen.getByRole('button', { name: /sort/i })
       await userEvent.click(sortButton)
@@ -262,7 +263,7 @@ describe('MaintenanceClient Component', () => {
           meta: { stars: 500, language: 'Rust' },
         }),
       ]
-      render(<MaintenanceClient repos={repos} />)
+      render(<MaintenanceClient repos={repos} comments={{}} />)
 
       await waitFor(() => {
         expect(screen.getByText('500')).toBeInTheDocument()
@@ -276,7 +277,7 @@ describe('MaintenanceClient Component', () => {
           updated_at: '2024-01-15T10:00:00Z',
         }),
       ]
-      render(<MaintenanceClient repos={repos} />)
+      render(<MaintenanceClient repos={repos} comments={{}} />)
 
       await waitFor(() => {
         // Date format depends on locale, just check it's present
@@ -287,7 +288,7 @@ describe('MaintenanceClient Component', () => {
 
     it('should have Note button', async () => {
       const repos = [createMockRepo()]
-      render(<MaintenanceClient repos={repos} />)
+      render(<MaintenanceClient repos={repos} comments={{}} />)
 
       await waitFor(() => {
         expect(screen.getByText('Note')).toBeInTheDocument()
@@ -299,7 +300,7 @@ describe('MaintenanceClient Component', () => {
     it('should show back button when lastVisitedBoard is set', async () => {
       mockLastVisitedBoard = { id: 'board-1', name: 'My Board' }
 
-      render(<MaintenanceClient repos={[createMockRepo()]} />)
+      render(<MaintenanceClient repos={[createMockRepo()]} comments={{}} />)
 
       await waitFor(() => {
         expect(screen.getByText(/Back to My Board/)).toBeInTheDocument()
@@ -307,7 +308,7 @@ describe('MaintenanceClient Component', () => {
     })
 
     it('should not show back button when no lastVisitedBoard', async () => {
-      render(<MaintenanceClient repos={[createMockRepo()]} />)
+      render(<MaintenanceClient repos={[createMockRepo()]} comments={{}} />)
 
       await waitFor(() => {
         expect(screen.queryByText(/Back to/)).not.toBeInTheDocument()
@@ -328,7 +329,7 @@ describe('MaintenanceClient Sorting Tests', () => {
       createMockRepo({ id: toMaintenanceId('repo-1'), repo_name: 'zebra' }),
       createMockRepo({ id: toMaintenanceId('repo-2'), repo_name: 'apple' }),
     ]
-    render(<MaintenanceClient repos={repos} />)
+    render(<MaintenanceClient repos={repos} comments={{}} />)
 
     // Click sort button
     const sortButton = screen.getByRole('button', { name: /sort/i })
@@ -353,7 +354,7 @@ describe('MaintenanceClient Sorting Tests', () => {
       createMockRepo({ id: toMaintenanceId('repo-1'), meta: { stars: 10 } }),
       createMockRepo({ id: toMaintenanceId('repo-2'), meta: { stars: 1000 } }),
     ]
-    render(<MaintenanceClient repos={repos} />)
+    render(<MaintenanceClient repos={repos} comments={{}} />)
 
     // Click sort button
     const sortButton = screen.getByRole('button', { name: /sort/i })
@@ -382,7 +383,9 @@ describe('MaintenanceClient View Toggle Tests', () => {
 
   it('should toggle to list view and back to grid view', async () => {
     const repos = [createMockRepo()]
-    const { container } = render(<MaintenanceClient repos={repos} />)
+    const { container } = render(
+      <MaintenanceClient repos={repos} comments={{}} />,
+    )
 
     // Should start in grid view
     await waitFor(() => {
@@ -430,7 +433,7 @@ describe('MaintenanceClient Handler Tests', () => {
 
   it('should open GitHub URL via dropdown menu', async () => {
     const repos = [createMockRepo()]
-    render(<MaintenanceClient repos={repos} />)
+    render(<MaintenanceClient repos={repos} comments={{}} />)
 
     await waitFor(() => {
       expect(screen.getByText('example-repo')).toBeInTheDocument()

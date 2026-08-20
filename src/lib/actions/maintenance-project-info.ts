@@ -20,13 +20,11 @@ import { withAuthResultRateLimit } from './auth-guard'
 import {
   getProjectInfoCore,
   upsertProjectInfoCore,
-  getCommentsCore,
   updateCommentCore,
   updateCommentColorCore,
   deleteCommentCore,
   type FkConfig,
   type ProjectInfoData,
-  type CommentData,
 } from './shared-project-info'
 import type { ActionResult } from './types'
 export type {
@@ -105,36 +103,6 @@ export async function upsertMaintenanceProjectInfo(
         error instanceof Error
           ? error.message
           : 'Failed to save maintenance project info',
-    }
-  }
-}
-
-/**
- * Get comments for multiple maintenance items (batch fetch)
- *
- * @param maintenanceIds - Array of maintenance IDs
- * @returns
- * - On success: `{ success: true, data: Record<string, CommentData> }`
- * - On error: `{ success: false, error: string }`
- *
- * @example
- * const result = await getCommentsForMaintenanceItems(['maint-1', 'maint-2'])
- * if (result.success) console.log(result.data['maint-1'])
- */
-export async function getCommentsForMaintenanceItems(
-  maintenanceIds: string[],
-): Promise<ActionResult<Record<string, CommentData>>> {
-  try {
-    const data = await getCommentsCore(FK, maintenanceIds)
-    return { success: true, data }
-  } catch (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'getCommentsForMaintenanceItems', maintenanceIds },
-    })
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : 'Failed to fetch comments',
     }
   }
 }

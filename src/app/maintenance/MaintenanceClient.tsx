@@ -49,6 +49,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import type { CommentData } from '@/lib/actions/maintenance-project-info'
 import { selectLastVisitedBoard } from '@/lib/redux/slices/boardSlice'
 import { useAppSelector } from '@/lib/redux/store'
 import type { MaintenanceId } from '@/lib/types/brands'
@@ -83,10 +84,13 @@ export interface MaintenanceRepo {
 
 interface MaintenanceClientProps {
   repos: MaintenanceRepo[]
+  /** Server-fetched comments keyed by maintenance id, one entry per repo. */
+  comments: Record<string, CommentData>
 }
 
 export const MaintenanceClient = memo(function MaintenanceClient({
   repos: initialRepos,
+  comments: initialComments,
 }: MaintenanceClientProps) {
   const router = useRouter()
   const prefersReducedMotion = useReducedMotion()
@@ -125,7 +129,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
     handleCommentCancel,
     handleColorChange,
     handleCommentDelete,
-  } = useMaintenanceComments({ initialRepos })
+  } = useMaintenanceComments({ initialComments })
 
   const {
     noteModalOpen,
