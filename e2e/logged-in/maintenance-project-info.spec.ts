@@ -320,6 +320,9 @@ test.describe('Maintenance Comment Inline Edit (Authenticated)', () => {
     const inlineEdit = card.locator('[data-testid="comment-inline-edit"]')
     const unsavedComment = 'This should be cancelled'
     await expect(commentTrigger).toBeVisible({ timeout: 10000 })
+    // Capture the pre-edit text: earlier tests may have saved a comment on this
+    // card, so the trigger is either the empty-state placeholder or a comment.
+    const originalComment = await commentTrigger.innerText()
 
     // Act
     await commentTrigger.click()
@@ -331,6 +334,7 @@ test.describe('Maintenance Comment Inline Edit (Authenticated)', () => {
     // Assert
     await expect(inlineEdit).not.toBeVisible({ timeout: 5000 })
     await expect(commentTrigger).toBeVisible()
+    await expect(commentTrigger).toHaveText(originalComment)
     await expect(commentTrigger).not.toContainText(unsavedComment)
   })
 })
