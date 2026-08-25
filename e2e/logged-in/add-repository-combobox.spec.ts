@@ -114,19 +114,15 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
     // Search for a repo that's already on the board
     await searchInput.fill('test-repo')
 
-    // Wait for debounced search filter to apply - assert expected state
-    // Since 'testuser/test-repo' is on the board, it should be filtered out
-    // The only other matching repo would be if there's another one with 'test-repo' in the name
+    // 'testuser/test-repo' is the only match for this query and it's already on
+    // the board, so the deterministic end state is the empty state. Its
+    // query-echoing text proves the filter for THIS query actually applied —
+    // the previous absence-only poll passed vacuously even before filtering.
     const repoOptions = page.locator('[role="option"]')
-
-    // Use polling with atomic snapshot to wait for filter to settle
-    await expect(async () => {
-      const allText = await repoOptions.allTextContents()
-      const hasExistingRepo = allText.some((t) =>
-        t.toLowerCase().includes('testuser/test-repo'),
-      )
-      expect(hasExistingRepo).toBe(false)
-    }).toPass({ timeout: 15000 })
+    await expect(
+      page.getByText('No repositories found matching "test-repo"'),
+    ).toBeVisible({ timeout: 10000 })
+    await expect(repoOptions).toHaveCount(0)
   })
 
   /**
@@ -197,23 +193,29 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
     await expect(searchInput).toBeVisible({ timeout: 10000 })
 
     // Wait for repository list to load by asserting options appear
-    await expect(page.locator('[role="option"]').first()).toBeVisible({
-      timeout: 10000,
-    })
-
-    // Search with different case - 'TEST-REPO' should still not show 'testuser/test-repo'
-    await searchInput.fill('TEST-REPO')
-
-    // Wait for filter to apply and verify results
     const repoOptions = page.locator('[role="option"]')
-    await expect(async () => {
-      const count = await repoOptions.count()
-      // Verify testuser/test-repo is not in results (case-insensitive match)
-      for (let i = 0; i < count; i++) {
-        const text = await repoOptions.nth(i).textContent()
-        expect(text?.toLowerCase()).not.toContain('testuser/test-repo')
-      }
-    }).toPass({ timeout: 10000 })
+    await expect(repoOptions.first()).toBeVisible({ timeout: 10000 })
+
+    // Uppercase query for a repo already on the board: 'TEST-REPO' matches
+    // 'testuser/test-repo' case-insensitively, and the match is excluded, so
+    // the deterministic end state is the empty state. Asserting its
+    // query-echoing text proves the filter for THIS query applied. The previous
+    // count()-then-nth() poll hung when the listbox unmounted between the two
+    // calls (nth().textContent() auto-waits forever on zero options), burning
+    // the whole toPass budget — the root cause of the recurring CI flake.
+    await searchInput.fill('TEST-REPO')
+    await expect(
+      page.getByText('No repositories found matching "TEST-REPO"'),
+    ).toBeVisible({ timeout: 10000 })
+    await expect(repoOptions).toHaveCount(0)
+
+    // Uppercase query for an available repo: the 0 → 1 transition proves
+    // case-insensitive matching itself ('PRIVATE-PROJECT' hits the lowercase
+    // full_name 'testuser/private-project'). Without this positive match the
+    // empty state above would also pass under case-SENSITIVE matching.
+    await searchInput.fill('PRIVATE-PROJECT')
+    await expect(repoOptions).toHaveCount(1, { timeout: 10000 })
+    await expect(repoOptions.first()).toContainText('testuser/private-project')
   })
 })
 
