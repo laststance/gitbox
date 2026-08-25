@@ -3,5 +3,5 @@
   "framework": "nextjs",
   "buildCommand": "pnpm build",
   "outputDirectory": ".next",
-  "regions": ["bom1"]
+  "regions": ["hnd1"]
 }

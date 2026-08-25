@@ -72,7 +72,10 @@ This application requires GitHub authentication to access any functionality beyo
 | Environment    | Supabase URL                               | Credentials File  |
 | -------------- | ------------------------------------------ | ----------------- |
 | **Local Dev**  | `http://127.0.0.1:54321` (Docker)          | `.env`            |
-| **Production** | `https://mfeesjmtofgayktirswf.supabase.co` | `.env.production` |
+| **Production** | `https://zfcwvzazzzsefbkztsyp.supabase.co` | `.env.production` |
+
+**Region:** Production Supabase is `ap-northeast-1` (Tokyo) and Vercel Functions run in `hnd1` (Tokyo).
+Keep them co-located — moving only one side turns local DB calls into cross-region round trips.
 
 **🔴 CRITICAL:** Use lowercase table names in Server Actions:
 
@@ -124,7 +127,7 @@ supabase db reset
 | Environment | OAuth App Name     | Callback URL                                   |
 | ----------- | ------------------ | ---------------------------------------------- |
 | Local Dev   | `GitBox Local Dev` | `http://127.0.0.1:54321/auth/v1/callback`      |
-| Production  | `GitBox`           | `https://mfeesjmtofgayktirswf.supabase.co/...` |
+| Production  | `GitBox Tokyo`     | `https://zfcwvzazzzsefbkztsyp.supabase.co/...` |
 
 **⚠️ Note:** Local and Production use **different** GitHub OAuth Apps due to different callback URLs.
 
@@ -184,7 +187,7 @@ supabase db reset
 
 ```bash
 # Link to production (use with caution)
-supabase link --project-ref mfeesjmtofgayktirswf
+supabase link --project-ref zfcwvzazzzsefbkztsyp
 
 # Push migrations
 supabase db push --linked

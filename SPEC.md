@@ -448,8 +448,7 @@ Standardized return type for client-consumed Server Actions (`src/lib/actions/ty
 
 ```typescript
 type ActionResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string }
+  { success: true; data: T } | { success: false; error: string }
 ```
 
 #### Auth Guard Wrappers (`src/lib/actions/auth-guard.ts`)
@@ -1016,7 +1015,7 @@ export const metadata: Metadata = {
 | Environment | Supabase Project                           | Purpose                      |
 | ----------- | ------------------------------------------ | ---------------------------- |
 | Development | `https://jqtxjzdxczqwsrvevmyk.supabase.co` | Local dev (`localhost:3008`) |
-| Production  | `https://mfeesjmtofgayktirswf.supabase.co` | Production deployment        |
+| Production  | `https://zfcwvzazzzsefbkztsyp.supabase.co` | Production deployment        |
 
 #### GitHub OAuth Configuration
 
@@ -1025,7 +1024,7 @@ Each Supabase project requires its own GitHub OAuth App:
 | Setting                | Dev Project                                                 | Prod Project                                                |
 | ---------------------- | ----------------------------------------------------------- | ----------------------------------------------------------- |
 | GitHub OAuth App       | `gitbox-dev`                                                | `gitbox-prod`                                               |
-| Authorization callback | `https://jqtxjzdxczqwsrvevmyk.supabase.co/auth/v1/callback` | `https://mfeesjmtofgayktirswf.supabase.co/auth/v1/callback` |
+| Authorization callback | `https://jqtxjzdxczqwsrvevmyk.supabase.co/auth/v1/callback` | `https://zfcwvzazzzsefbkztsyp.supabase.co/auth/v1/callback` |
 
 #### Local Supabase + GitHub OAuth Setup
 
