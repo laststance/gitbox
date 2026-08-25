@@ -98,11 +98,11 @@ function isTextNode(node: Element | Descendant): node is Text {
  */
 function extractTextFromNode(node: Element | Descendant): string {
   if (isTextNode(node)) {
-    return (node as Text).text
+    return node.text
   }
 
   // Element node: recursively extract from children
-  const element = node as Element
+  const element = node
   if (Array.isArray(element.children)) {
     return element.children.map(extractTextFromNode).join('')
   }

@@ -2,7 +2,7 @@
 
 import { getLinkAttributes } from '@platejs/link'
 import { SuggestionPlugin } from '@platejs/suggestion/react'
-import type { TInlineSuggestionData, TLinkElement } from 'platejs'
+import type { TLinkElement } from 'platejs'
 import type { PlateElementProps } from 'platejs/react'
 import { PlateElement } from 'platejs/react'
 import * as React from 'react'
@@ -11,9 +11,7 @@ import { cn } from '@/lib/utils'
 
 export function LinkElement(props: PlateElementProps<TLinkElement>) {
   const suggestionApi = props.editor.getApi(SuggestionPlugin)?.suggestion
-  const suggestionData = suggestionApi?.suggestionData?.(props.element) as
-    | TInlineSuggestionData
-    | undefined
+  const suggestionData = suggestionApi?.suggestionData?.(props.element)
 
   return (
     <PlateElement

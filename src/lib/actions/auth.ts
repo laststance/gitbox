@@ -129,7 +129,7 @@ export async function deleteAccount() {
   // Rate limit by user ID
   const rlResult = checkRateLimit('deleteAccount', claims.sub)
   if (!rlResult.allowed) {
-    throw new Error(rlResult.error!)
+    throw new Error(rlResult.error)
   }
 
   // Use admin client to delete user (bypasses RLS)

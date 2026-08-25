@@ -24,7 +24,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const { mockEnv, infoSpy, createModuleLoggerSpy } = vi.hoisted(() => {
   const infoSpy = vi.fn()
   return {
-    mockEnv: { BOARD_TIMING_LOG: false } as { BOARD_TIMING_LOG: boolean },
+    mockEnv: { BOARD_TIMING_LOG: false },
     infoSpy,
     // Spy on createModuleLogger itself (not just its returned logger) so the
     // test can prove every line is tagged with the 'board-timing' module name.

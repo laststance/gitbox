@@ -37,10 +37,7 @@ describe('events', () => {
 
     afterEach(() => {
       dispatchEventSpy.mockRestore()
-      window.removeEventListener(
-        OPEN_SHORTCUTS_HELP,
-        (() => {}) as EventListener,
-      )
+      window.removeEventListener(OPEN_SHORTCUTS_HELP, () => {})
     })
 
     it('should dispatch a CustomEvent', () => {

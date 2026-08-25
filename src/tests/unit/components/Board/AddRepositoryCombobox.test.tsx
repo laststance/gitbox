@@ -39,7 +39,7 @@ const generateMockRepositories = (count: number): GitHubRepository[] => {
     language:
       i % 3 === 0 ? 'TypeScript' : i % 3 === 1 ? 'JavaScript' : 'Python',
     topics: ['react', 'nextjs', 'typescript'].slice(0, (i % 3) + 1),
-    visibility: (i % 2 === 0 ? 'public' : 'private') as 'public' | 'private',
+    visibility: i % 2 === 0 ? 'public' : 'private',
     updated_at: new Date(Date.now() - i * 86400000).toISOString(),
     created_at: new Date(Date.now() - i * 86400000 * 365).toISOString(),
   }))

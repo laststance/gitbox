@@ -190,7 +190,7 @@ export async function createClient() {
         }
         return (target as any)[prop]
       },
-    }) as typeof supabase
+    })
   }
 
   return supabase
