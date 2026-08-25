@@ -70,6 +70,8 @@ export default defineConfig([
     'src/lib/supabase/database.types.ts',
     'src/lib/github/api.ts',
     'e2e/**',
+    // supabase start drops transient edge-runtime sources here while local Supabase runs
+    'supabase/.temp/**',
     '**/*.backup/**',
     '**/.backup/**',
     '**/coverage/**',
