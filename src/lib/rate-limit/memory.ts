@@ -43,7 +43,7 @@ export class SlidingWindowLimiter {
         typeof this.cleanupInterval === 'object' &&
         'unref' in this.cleanupInterval
       ) {
-        ;(this.cleanupInterval as NodeJS.Timeout).unref()
+        this.cleanupInterval.unref()
       }
     }
   }

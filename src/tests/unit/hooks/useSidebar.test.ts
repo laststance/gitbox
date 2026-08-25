@@ -28,6 +28,9 @@ const createTestStore = (sidebarCollapsed = false) => {
     },
     preloadedState: {
       settings: {
+        // Without the assertion 'default' widens to string and fails the reducer's
+        // ThemeType. The lint rule disagrees with tsc on this one.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         theme: 'default' as ThemeType,
         typography: { baseSize: 16, scale: 1.25 },
         compactMode: false,

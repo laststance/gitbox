@@ -1,7 +1,7 @@
 import type { Preview, StoryContext } from '@storybook/nextjs-vite'
 import React, { useEffect } from 'react'
 
-import { initialize, mswLoader } from 'msw-storybook-addon'
+import { mswLoader } from 'msw-storybook-addon/csf3'
 
 import { Provider as ReduxStoreProvider } from 'react-redux'
 import { store } from '@/lib/redux/store'
@@ -52,9 +52,6 @@ function ThemeDecorator(Story: React.ComponentType, context: StoryContext) {
 
   return <Story />
 }
-
-// Initialize MSW
-initialize()
 
 const preview: Preview = {
   parameters: {
@@ -109,7 +106,7 @@ const preview: Preview = {
   },
   // MSW loader must be in loaders (not decorators) to ensure
   // service workers are registered before story rendering
-  loaders: [mswLoader],
+  loaders: [mswLoader()],
   decorators: [
     // Theme decorator must come first to apply theme before component renders
     ThemeDecorator,

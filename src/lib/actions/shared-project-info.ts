@@ -355,6 +355,9 @@ export async function updateCommentCore(
       throw new Error('Failed to update comment')
     }
   } else {
+    // The computed key [fk.column] widens this object to a string index signature,
+    // so tsc needs the assertion here. The lint rule disagrees with tsc on this one.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     const { error } = await supabase.from('projectinfo').insert({
       [fk.column]: entityId,
       comment,
@@ -410,6 +413,9 @@ export async function updateCommentColorCore(
       throw new Error('Failed to update comment color')
     }
   } else {
+    // The computed key [fk.column] widens this object to a string index signature,
+    // so tsc needs the assertion here. The lint rule disagrees with tsc on this one.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     const { error } = await supabase.from('projectinfo').insert({
       [fk.column]: entityId,
       comment: null,

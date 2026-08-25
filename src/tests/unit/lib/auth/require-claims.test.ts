@@ -46,7 +46,7 @@ describe('requireClaims()', () => {
         role: 'authenticated',
       },
     }
-    vi.mocked(getCachedClaims).mockResolvedValue(fakeContext as never)
+    vi.mocked(getCachedClaims).mockResolvedValue(fakeContext)
 
     // Act
     const { requireClaims } = await import('@/lib/auth/require-claims')

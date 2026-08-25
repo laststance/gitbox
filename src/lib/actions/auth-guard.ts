@@ -132,7 +132,7 @@ export async function withAuthRateLimit<T>(
   if (!ctx) throw new Error('Authentication required')
 
   const rlResult = checkRateLimit(rateLimitKey, ctx.claims.sub)
-  if (!rlResult.allowed) throw new Error(rlResult.error!)
+  if (!rlResult.allowed) throw new Error(rlResult.error)
 
   return action(ctx.supabase, ctx.claims)
 }

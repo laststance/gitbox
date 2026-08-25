@@ -126,7 +126,7 @@ describe('getBlockType', () => {
         type: 'p',
         children: [{ text: '' }],
         listStyleType: 'decimal',
-      } as TElement
+      }
       expect(getBlockType(block)).toBe('decimal')
     })
   })
