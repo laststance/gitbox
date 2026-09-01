@@ -294,6 +294,9 @@ importers:
       eslint-import-resolver-typescript:
         specifier: ^4.4.5
         version: 4.4.5(eslint-plugin-import-x@4.17.1(@typescript-eslint/utils@8.67.0(eslint@10.9.1(jiti@2.7.0))(typescript@6.0.3))(eslint@10.9.1(jiti@2.7.0)))(eslint@10.9.1(jiti@2.7.0))
+      eslint-plugin-browser-security:
+        specifier: ^2.0.6
+        version: 2.0.6(@typescript-eslint/utils@8.67.0(eslint@10.9.1(jiti@2.7.0))(typescript@6.0.3))(eslint@10.9.1(jiti@2.7.0))(oxc-resolver@11.24.2)(typescript@6.0.3)
       eslint-plugin-jsx-a11y:
         specifier: ^6.10.2
         version: 6.10.2(eslint@10.9.1(jiti@2.7.0))
@@ -1047,6 +1050,22 @@ packages:
       '@types/node': '>=18'
     peerDependenciesMeta:
       '@types/node':
+        optional: true
+
+  '@interlace/eslint-devkit@1.17.3':
+    resolution: {integrity: sha512-XCklAAGpWEvYtRtBLfbQ06hpO/0VkwumzmgJtJw8ZbLzltI7LYJmhXQN4HSUxI4s/F/UkcEwgcvDTxkUgjlMHQ==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      '@typescript-eslint/utils': ^7.0.0 || ^8.0.0
+      eslint: ^8.40.0 || ^9.0.0 || ^10.0.0
+      oxc-resolver: ^11.24.2
+      typescript: '>=4.8.4'
+    peerDependenciesMeta:
+      '@typescript-eslint/utils':
+        optional: true
+      oxc-resolver:
+        optional: true
+      typescript:
         optional: true
 
   '@joshwooding/vite-plugin-react-docgen-typescript@0.7.0':
@@ -4265,6 +4284,12 @@ packages:
       eslint-plugin-import-x:
         optional: true
 
+  eslint-plugin-browser-security@2.0.6:
+    resolution: {integrity: sha512-QMS7w4M8yw6+vPRuskBg9jBK08qPOeuO2BNSf64y+/H+Qo8cseD4tG5GT2VyDdQpH7HNzhdtCOvfcQL+JIZK1A==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      eslint: ^8.40.0 || ^9.0.0 || ^10.0.0
+
   eslint-plugin-import-x@4.17.1:
     resolution: {integrity: sha512-4cdstYkKCyjumM2Q9NSI03K8D2a9F4Ssz33K2lv2hQa4KmR9jPLwk3uWGtNvclfqBrPGfGuMBwsGMbe6dMRbfg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
@@ -7418,6 +7443,14 @@ snapshots:
     optionalDependencies:
       '@types/node': 26.2.0
 
+  '@interlace/eslint-devkit@1.17.3(@typescript-eslint/utils@8.67.0(eslint@10.9.1(jiti@2.7.0))(typescript@6.0.3))(eslint@10.9.1(jiti@2.7.0))(oxc-resolver@11.24.2)(typescript@6.0.3)':
+    dependencies:
+      eslint: 10.9.1(jiti@2.7.0)
+    optionalDependencies:
+      '@typescript-eslint/utils': 8.67.0(eslint@10.9.1(jiti@2.7.0))(typescript@6.0.3)
+      oxc-resolver: 11.24.2
+      typescript: 6.0.3
+
   '@joshwooding/vite-plugin-react-docgen-typescript@0.7.0(typescript@6.0.3)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0))':
     dependencies:
       glob: 13.0.6
@@ -10513,6 +10546,15 @@ snapshots:
       eslint-plugin-import-x: 4.17.1(@typescript-eslint/utils@8.67.0(eslint@10.9.1(jiti@2.7.0))(typescript@6.0.3))(eslint@10.9.1(jiti@2.7.0))
     transitivePeerDependencies:
       - supports-color
+
+  eslint-plugin-browser-security@2.0.6(@typescript-eslint/utils@8.67.0(eslint@10.9.1(jiti@2.7.0))(typescript@6.0.3))(eslint@10.9.1(jiti@2.7.0))(oxc-resolver@11.24.2)(typescript@6.0.3):
+    dependencies:
+      '@interlace/eslint-devkit': 1.17.3(@typescript-eslint/utils@8.67.0(eslint@10.9.1(jiti@2.7.0))(typescript@6.0.3))(eslint@10.9.1(jiti@2.7.0))(oxc-resolver@11.24.2)(typescript@6.0.3)
+      eslint: 10.9.1(jiti@2.7.0)
+    transitivePeerDependencies:
+      - '@typescript-eslint/utils'
+      - oxc-resolver
+      - typescript
 
   eslint-plugin-import-x@4.17.1(@typescript-eslint/utils@8.67.0(eslint@10.9.1(jiti@2.7.0))(typescript@6.0.3))(eslint@10.9.1(jiti@2.7.0)):
     dependencies:
