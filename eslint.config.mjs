@@ -8,6 +8,7 @@ import laststanceReactNextPlugin from '@laststance/react-next-eslint-plugin'
 import tsPrefixer from 'eslint-config-ts-prefixer'
 import reactYouMightNotNeedAnEffect from 'eslint-plugin-react-you-might-not-need-an-effect'
 import { createTypeScriptImportResolver } from 'eslint-import-resolver-typescript'
+import browserSecurity from 'eslint-plugin-browser-security'
 
 export default defineConfig([
   // ts-prefixer: @typescript-eslint + import-x + parser
@@ -199,6 +200,49 @@ export default defineConfig([
       ],
       // Ban console usage - use logger (server) or Sentry (client) instead
       'no-console': 'error',
+    },
+  },
+
+  // ── Browser security — eight runtime XSS / token-storage rules ──
+  // Mirrors eslint-config-ts-prefixer#636. Added directly because that PR is
+  // not yet released; delete this block once gitbox's eslint-config-ts-prefixer
+  // is bumped to a version that already ships these rules.
+  // https://github.com/laststance/eslint-config-ts-prefixer/pull/636
+  {
+    files: ['**/*.{js,jsx,mjs,ts,tsx,mts,cts}'],
+    plugins: {
+      'browser-security': browserSecurity,
+    },
+    rules: {
+      // Disallow assigning to innerHTML/outerHTML — the most common XSS sink in
+      // browser code, and not something a type checker can catch.
+      'browser-security/no-innerhtml': 'error',
+
+      // Disallow eval() and its string-compiling relatives.
+      'browser-security/no-eval': 'error',
+
+      // Disallow storing a JWT in localStorage/sessionStorage: any XSS on the
+      // page can read it, unlike an HttpOnly cookie.
+      'browser-security/no-jwt-in-storage': 'error',
+
+      // Same reasoning for other secrets kept in Web Storage.
+      'browser-security/no-sensitive-localstorage': 'error',
+
+      // Disallow credentials in query strings — they land in browser history,
+      // Referer headers, and server access logs.
+      'browser-security/no-credentials-in-query-params': 'error',
+
+      // Require Secure and SameSite when setting cookies from JS. (HttpOnly is
+      // deliberately absent — a cookie set through document.cookie cannot be
+      // HttpOnly, by definition.)
+      'browser-security/require-cookie-secure-attrs': 'error',
+
+      // Disallow postMessage(..., '*') — an origin wildcard leaks the payload
+      // to whatever happens to be framed.
+      'browser-security/no-postmessage-wildcard-origin': 'error',
+
+      // Disallow redirects built from unvalidated input (open redirect).
+      'browser-security/no-insecure-redirects': 'error',
     },
   },
 
