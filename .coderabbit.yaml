@@ -9,6 +9,7 @@
 # =============================================================================
 
 language: 'en-US'
+early_access: true
 
 # Tone: Focus on critical issues, avoid excessive nitpicking
 tone_instructions: |
@@ -21,8 +22,7 @@ tone_instructions: |
 # =============================================================================
 
 reviews:
-  # "chill" profile reduces nitpicky feedback
-  profile: 'chill'
+  profile: 'assertive'
 
   # Enable helpful summaries
   high_level_summary: true
@@ -171,3 +171,4 @@ knowledge_base:
 
 chat:
   auto_reply: true
+  art: false
