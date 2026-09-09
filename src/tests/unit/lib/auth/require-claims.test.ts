@@ -9,7 +9,7 @@
  *  C. Unauthenticated with override — redirects to caller-supplied path
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 import { ROUTES } from '@/lib/constants/routes'
@@ -33,7 +33,7 @@ describe('requireClaims()', () => {
     vi.clearAllMocks()
   })
 
-  it('returns { supabase, claims } when getCachedClaims resolves with a session', async () => {
+  test('returns { supabase, claims } when getCachedClaims resolves with a session', async () => {
     // Arrange
     const fakeContext = {
       supabase: { tag: 'supabase-client' } as never,
@@ -57,7 +57,7 @@ describe('requireClaims()', () => {
     expect(mockRedirect).not.toHaveBeenCalled()
   })
 
-  it('redirects to ROUTES.LOGIN when getCachedClaims returns null', async () => {
+  test('redirects to ROUTES.LOGIN when getCachedClaims returns null', async () => {
     // Arrange
     vi.mocked(getCachedClaims).mockResolvedValue(null)
 
@@ -69,7 +69,7 @@ describe('requireClaims()', () => {
     expect(mockRedirect).toHaveBeenCalledWith(ROUTES.LOGIN)
   })
 
-  it('redirects to the caller-supplied path when unauthenticated', async () => {
+  test('redirects to the caller-supplied path when unauthenticated', async () => {
     // Arrange
     vi.mocked(getCachedClaims).mockResolvedValue(null)
     const customRedirectTarget = '/boards/favorites'

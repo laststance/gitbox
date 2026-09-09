@@ -10,7 +10,7 @@
  * - createSlateValueFromText (text to Slate conversion)
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, test, expect } from 'vitest'
 
 import {
   parseSlateValue,
@@ -26,31 +26,31 @@ describe('slate-utils', () => {
 
   describe('parseSlateValue', () => {
     describe('empty/null input handling', () => {
-      it('should return empty paragraph for null input', () => {
+      test('should return empty paragraph for null input', () => {
         const result = parseSlateValue(null)
 
         expect(result).toEqual([EMPTY_PARAGRAPH])
       })
 
-      it('should return empty paragraph for undefined input', () => {
+      test('should return empty paragraph for undefined input', () => {
         const result = parseSlateValue(undefined)
 
         expect(result).toEqual([EMPTY_PARAGRAPH])
       })
 
-      it('should return empty paragraph for empty string', () => {
+      test('should return empty paragraph for empty string', () => {
         const result = parseSlateValue('')
 
         expect(result).toEqual([EMPTY_PARAGRAPH])
       })
 
-      it('should return empty paragraph for whitespace-only string', () => {
+      test('should return empty paragraph for whitespace-only string', () => {
         const result = parseSlateValue('   ')
 
         expect(result).toEqual([EMPTY_PARAGRAPH])
       })
 
-      it('should return empty paragraph for tabs and newlines only', () => {
+      test('should return empty paragraph for tabs and newlines only', () => {
         const result = parseSlateValue('\t\n\n')
 
         expect(result).toEqual([EMPTY_PARAGRAPH])
@@ -58,7 +58,7 @@ describe('slate-utils', () => {
     })
 
     describe('JSON parsing (new format)', () => {
-      it('should parse valid JSON array with single paragraph', () => {
+      test('should parse valid JSON array with single paragraph', () => {
         const json = '[{"type":"p","children":[{"text":"Test"}]}]'
 
         const result = parseSlateValue(json)
@@ -66,7 +66,7 @@ describe('slate-utils', () => {
         expect(result).toEqual([{ type: 'p', children: [{ text: 'Test' }] }])
       })
 
-      it('should parse valid JSON array with multiple paragraphs', () => {
+      test('should parse valid JSON array with multiple paragraphs', () => {
         const json =
           '[{"type":"p","children":[{"text":"Hello"}]},{"type":"p","children":[{"text":"World"}]}]'
 
@@ -78,7 +78,7 @@ describe('slate-utils', () => {
         ])
       })
 
-      it('should parse JSON with heading elements', () => {
+      test('should parse JSON with heading elements', () => {
         const json =
           '[{"type":"h1","children":[{"text":"Title"}]},{"type":"p","children":[{"text":"Content"}]}]'
 
@@ -90,7 +90,7 @@ describe('slate-utils', () => {
         ])
       })
 
-      it('should parse JSON with nested elements', () => {
+      test('should parse JSON with nested elements', () => {
         const json =
           '[{"type":"blockquote","children":[{"type":"p","children":[{"text":"Quote"}]}]}]'
 
@@ -104,7 +104,7 @@ describe('slate-utils', () => {
         ])
       })
 
-      it('should handle JSON with leading/trailing whitespace', () => {
+      test('should handle JSON with leading/trailing whitespace', () => {
         const json = '  [{"type":"p","children":[{"text":"Test"}]}]  '
 
         const result = parseSlateValue(json)
@@ -112,7 +112,7 @@ describe('slate-utils', () => {
         expect(result).toEqual([{ type: 'p', children: [{ text: 'Test' }] }])
       })
 
-      it('should handle JSON with formatting marks', () => {
+      test('should handle JSON with formatting marks', () => {
         const json =
           '[{"type":"p","children":[{"text":"Bold","bold":true},{"text":" and "},{"text":"italic","italic":true}]}]'
 
@@ -132,7 +132,7 @@ describe('slate-utils', () => {
     })
 
     describe('JSON parsing edge cases', () => {
-      it('should fall back to plain text for invalid JSON', () => {
+      test('should fall back to plain text for invalid JSON', () => {
         const invalidJson = '[{"type":"p", invalid'
 
         const result = parseSlateValue(invalidJson)
@@ -143,7 +143,7 @@ describe('slate-utils', () => {
         ])
       })
 
-      it('should fall back to plain text for empty JSON array', () => {
+      test('should fall back to plain text for empty JSON array', () => {
         const emptyArray = '[]'
 
         const result = parseSlateValue(emptyArray)
@@ -152,7 +152,7 @@ describe('slate-utils', () => {
         expect(result).toEqual([{ type: 'p', children: [{ text: '[]' }] }])
       })
 
-      it('should fall back to plain text for JSON object (not array)', () => {
+      test('should fall back to plain text for JSON object (not array)', () => {
         const jsonObject = '{"type":"p","children":[{"text":"Test"}]}'
 
         const result = parseSlateValue(jsonObject)
@@ -168,13 +168,13 @@ describe('slate-utils', () => {
     })
 
     describe('legacy plain text parsing', () => {
-      it('should convert single line text to paragraph', () => {
+      test('should convert single line text to paragraph', () => {
         const result = parseSlateValue('Hello')
 
         expect(result).toEqual([{ type: 'p', children: [{ text: 'Hello' }] }])
       })
 
-      it('should convert multi-line text to multiple paragraphs', () => {
+      test('should convert multi-line text to multiple paragraphs', () => {
         const result = parseSlateValue('Hello\nWorld')
 
         expect(result).toEqual([
@@ -183,7 +183,7 @@ describe('slate-utils', () => {
         ])
       })
 
-      it('should preserve empty lines as empty paragraphs', () => {
+      test('should preserve empty lines as empty paragraphs', () => {
         const result = parseSlateValue('Line 1\n\nLine 3')
 
         expect(result).toEqual([
@@ -193,7 +193,7 @@ describe('slate-utils', () => {
         ])
       })
 
-      it('should handle text starting with [ but not valid JSON', () => {
+      test('should handle text starting with [ but not valid JSON', () => {
         const result = parseSlateValue('[Not JSON')
 
         expect(result).toEqual([
@@ -201,7 +201,7 @@ describe('slate-utils', () => {
         ])
       })
 
-      it('should handle special characters in plain text', () => {
+      test('should handle special characters in plain text', () => {
         const result = parseSlateValue('Hello <world> & "friends"')
 
         expect(result).toEqual([
@@ -209,7 +209,7 @@ describe('slate-utils', () => {
         ])
       })
 
-      it('should handle unicode characters', () => {
+      test('should handle unicode characters', () => {
         const result = parseSlateValue('日本語テスト\n🎉 Emoji')
 
         expect(result).toEqual([
@@ -221,7 +221,7 @@ describe('slate-utils', () => {
   })
 
   describe('serializeSlateValue', () => {
-    it('should serialize single paragraph to JSON', () => {
+    test('should serialize single paragraph to JSON', () => {
       const value = [{ type: 'p', children: [{ text: 'Test' }] }]
 
       const result = serializeSlateValue(value)
@@ -229,7 +229,7 @@ describe('slate-utils', () => {
       expect(result).toBe('[{"type":"p","children":[{"text":"Test"}]}]')
     })
 
-    it('should serialize multiple paragraphs to JSON', () => {
+    test('should serialize multiple paragraphs to JSON', () => {
       const value = [
         { type: 'p', children: [{ text: 'Hello' }] },
         { type: 'p', children: [{ text: 'World' }] },
@@ -242,7 +242,7 @@ describe('slate-utils', () => {
       )
     })
 
-    it('should serialize elements with formatting marks', () => {
+    test('should serialize elements with formatting marks', () => {
       const value = [
         {
           type: 'p',
@@ -255,7 +255,7 @@ describe('slate-utils', () => {
       expect(JSON.parse(result)).toEqual(value)
     })
 
-    it('should serialize nested elements', () => {
+    test('should serialize nested elements', () => {
       const value = [
         {
           type: 'ul',
@@ -271,7 +271,7 @@ describe('slate-utils', () => {
       expect(JSON.parse(result)).toEqual(value)
     })
 
-    it('should preserve special characters in serialization', () => {
+    test('should preserve special characters in serialization', () => {
       const value = [
         { type: 'p', children: [{ text: 'Hello "world" & <friends>' }] },
       ]
@@ -283,7 +283,7 @@ describe('slate-utils', () => {
   })
 
   describe('extractAllText', () => {
-    it('should extract text from single paragraph', () => {
+    test('should extract text from single paragraph', () => {
       const value = [{ type: 'p', children: [{ text: 'Hello' }] }]
 
       const result = extractAllText(value)
@@ -291,7 +291,7 @@ describe('slate-utils', () => {
       expect(result).toBe('Hello')
     })
 
-    it('should join multiple paragraphs with newlines', () => {
+    test('should join multiple paragraphs with newlines', () => {
       const value = [
         { type: 'p', children: [{ text: 'Hello' }] },
         { type: 'p', children: [{ text: 'World' }] },
@@ -302,7 +302,7 @@ describe('slate-utils', () => {
       expect(result).toBe('Hello\nWorld')
     })
 
-    it('should concatenate multiple text nodes in same element', () => {
+    test('should concatenate multiple text nodes in same element', () => {
       const value = [
         {
           type: 'p',
@@ -315,7 +315,7 @@ describe('slate-utils', () => {
       expect(result).toBe('Hello World')
     })
 
-    it('should extract text from different element types', () => {
+    test('should extract text from different element types', () => {
       const value = [
         { type: 'h1', children: [{ text: 'Title' }] },
         { type: 'p', children: [{ text: 'Content' }] },
@@ -326,7 +326,7 @@ describe('slate-utils', () => {
       expect(result).toBe('Title\nContent')
     })
 
-    it('should handle nested elements', () => {
+    test('should handle nested elements', () => {
       const value = [
         {
           type: 'blockquote',
@@ -339,7 +339,7 @@ describe('slate-utils', () => {
       expect(result).toBe('Quote')
     })
 
-    it('should ignore formatting marks in extraction', () => {
+    test('should ignore formatting marks in extraction', () => {
       const value = [
         {
           type: 'p',
@@ -352,7 +352,7 @@ describe('slate-utils', () => {
       expect(result).toBe('Bold normal')
     })
 
-    it('should handle empty value array', () => {
+    test('should handle empty value array', () => {
       const value: { type: string; children: { text: string }[] }[] = []
 
       const result = extractAllText(value)
@@ -360,7 +360,7 @@ describe('slate-utils', () => {
       expect(result).toBe('')
     })
 
-    it('should handle empty text nodes', () => {
+    test('should handle empty text nodes', () => {
       const value = [{ type: 'p', children: [{ text: '' }] }]
 
       const result = extractAllText(value)
@@ -368,7 +368,7 @@ describe('slate-utils', () => {
       expect(result).toBe('')
     })
 
-    it('should handle list structures', () => {
+    test('should handle list structures', () => {
       const value = [
         {
           type: 'ul',
@@ -384,7 +384,7 @@ describe('slate-utils', () => {
       expect(result).toBe('Item 1Item 2')
     })
 
-    it('should handle element without children array', () => {
+    test('should handle element without children array', () => {
       // Edge case: element without children property
       const value = [{ type: 'hr' }] as any
 
@@ -395,7 +395,7 @@ describe('slate-utils', () => {
   })
 
   describe('getSlateTextLength', () => {
-    it('should return 0 for empty paragraph', () => {
+    test('should return 0 for empty paragraph', () => {
       const value = [{ type: 'p', children: [{ text: '' }] }]
 
       const result = getSlateTextLength(value)
@@ -403,7 +403,7 @@ describe('slate-utils', () => {
       expect(result).toBe(0)
     })
 
-    it('should count characters in single paragraph', () => {
+    test('should count characters in single paragraph', () => {
       const value = [{ type: 'p', children: [{ text: 'Hello' }] }]
 
       const result = getSlateTextLength(value)
@@ -411,7 +411,7 @@ describe('slate-utils', () => {
       expect(result).toBe(5)
     })
 
-    it('should count characters across multiple paragraphs', () => {
+    test('should count characters across multiple paragraphs', () => {
       const value = [
         { type: 'p', children: [{ text: 'Hello' }] },
         { type: 'h1', children: [{ text: 'Title' }] },
@@ -422,7 +422,7 @@ describe('slate-utils', () => {
       expect(result).toBe(10) // 5 + 5, newlines not counted
     })
 
-    it('should count characters in multiple text nodes', () => {
+    test('should count characters in multiple text nodes', () => {
       const value = [
         {
           type: 'p',
@@ -435,7 +435,7 @@ describe('slate-utils', () => {
       expect(result).toBe(11)
     })
 
-    it('should count unicode characters correctly', () => {
+    test('should count unicode characters correctly', () => {
       const value = [{ type: 'p', children: [{ text: '日本語' }] }]
 
       const result = getSlateTextLength(value)
@@ -443,7 +443,7 @@ describe('slate-utils', () => {
       expect(result).toBe(3)
     })
 
-    it('should count emojis as multiple characters (surrogate pairs)', () => {
+    test('should count emojis as multiple characters (surrogate pairs)', () => {
       const value = [{ type: 'p', children: [{ text: '🎉' }] }]
 
       const result = getSlateTextLength(value)
@@ -452,7 +452,7 @@ describe('slate-utils', () => {
       expect(result).toBe(2)
     })
 
-    it('should handle empty value array', () => {
+    test('should handle empty value array', () => {
       const value: { type: string; children: { text: string }[] }[] = []
 
       const result = getSlateTextLength(value)
@@ -460,7 +460,7 @@ describe('slate-utils', () => {
       expect(result).toBe(0)
     })
 
-    it('should count spaces', () => {
+    test('should count spaces', () => {
       const value = [{ type: 'p', children: [{ text: 'a b c' }] }]
 
       const result = getSlateTextLength(value)
@@ -470,19 +470,19 @@ describe('slate-utils', () => {
   })
 
   describe('isSlateValueEmpty', () => {
-    it('should return true for null value', () => {
+    test('should return true for null value', () => {
       const result = isSlateValueEmpty(null as any)
 
       expect(result).toBe(true)
     })
 
-    it('should return true for empty array', () => {
+    test('should return true for empty array', () => {
       const result = isSlateValueEmpty([])
 
       expect(result).toBe(true)
     })
 
-    it('should return true for empty paragraph', () => {
+    test('should return true for empty paragraph', () => {
       const value = [{ type: 'p', children: [{ text: '' }] }]
 
       const result = isSlateValueEmpty(value)
@@ -490,7 +490,7 @@ describe('slate-utils', () => {
       expect(result).toBe(true)
     })
 
-    it('should return true for whitespace-only content', () => {
+    test('should return true for whitespace-only content', () => {
       const value = [{ type: 'p', children: [{ text: '   ' }] }]
 
       const result = isSlateValueEmpty(value)
@@ -498,7 +498,7 @@ describe('slate-utils', () => {
       expect(result).toBe(true)
     })
 
-    it('should return true for multiple empty paragraphs', () => {
+    test('should return true for multiple empty paragraphs', () => {
       const value = [
         { type: 'p', children: [{ text: '' }] },
         { type: 'p', children: [{ text: '  ' }] },
@@ -509,7 +509,7 @@ describe('slate-utils', () => {
       expect(result).toBe(true)
     })
 
-    it('should return false for content with text', () => {
+    test('should return false for content with text', () => {
       const value = [{ type: 'p', children: [{ text: 'Hello' }] }]
 
       const result = isSlateValueEmpty(value)
@@ -517,7 +517,7 @@ describe('slate-utils', () => {
       expect(result).toBe(false)
     })
 
-    it('should return false for content with single character', () => {
+    test('should return false for content with single character', () => {
       const value = [{ type: 'p', children: [{ text: 'a' }] }]
 
       const result = isSlateValueEmpty(value)
@@ -525,7 +525,7 @@ describe('slate-utils', () => {
       expect(result).toBe(false)
     })
 
-    it('should return false for content with emoji', () => {
+    test('should return false for content with emoji', () => {
       const value = [{ type: 'p', children: [{ text: '🎉' }] }]
 
       const result = isSlateValueEmpty(value)
@@ -533,7 +533,7 @@ describe('slate-utils', () => {
       expect(result).toBe(false)
     })
 
-    it('should return false for content with newlines and text', () => {
+    test('should return false for content with newlines and text', () => {
       const value = [
         { type: 'p', children: [{ text: '' }] },
         { type: 'p', children: [{ text: 'Text' }] },
@@ -546,31 +546,31 @@ describe('slate-utils', () => {
   })
 
   describe('createSlateValueFromText', () => {
-    it('should return empty paragraph for null input', () => {
+    test('should return empty paragraph for null input', () => {
       const result = createSlateValueFromText(null as any)
 
       expect(result).toEqual([EMPTY_PARAGRAPH])
     })
 
-    it('should return empty paragraph for empty string', () => {
+    test('should return empty paragraph for empty string', () => {
       const result = createSlateValueFromText('')
 
       expect(result).toEqual([EMPTY_PARAGRAPH])
     })
 
-    it('should return empty paragraph for whitespace-only string', () => {
+    test('should return empty paragraph for whitespace-only string', () => {
       const result = createSlateValueFromText('   ')
 
       expect(result).toEqual([EMPTY_PARAGRAPH])
     })
 
-    it('should create single paragraph from single line', () => {
+    test('should create single paragraph from single line', () => {
       const result = createSlateValueFromText('Hello')
 
       expect(result).toEqual([{ type: 'p', children: [{ text: 'Hello' }] }])
     })
 
-    it('should create multiple paragraphs from multi-line text', () => {
+    test('should create multiple paragraphs from multi-line text', () => {
       const result = createSlateValueFromText('Hello\nWorld')
 
       expect(result).toEqual([
@@ -579,7 +579,7 @@ describe('slate-utils', () => {
       ])
     })
 
-    it('should preserve empty lines as empty paragraphs', () => {
+    test('should preserve empty lines as empty paragraphs', () => {
       const result = createSlateValueFromText('Line 1\n\nLine 3')
 
       expect(result).toEqual([
@@ -589,7 +589,7 @@ describe('slate-utils', () => {
       ])
     })
 
-    it('should handle Windows line endings (CRLF)', () => {
+    test('should handle Windows line endings (CRLF)', () => {
       const result = createSlateValueFromText('Line 1\r\nLine 2')
 
       // Note: split('\n') will leave \r at end of first line
@@ -597,7 +597,7 @@ describe('slate-utils', () => {
       expect(result[1]!.children[0]!.text).toBe('Line 2')
     })
 
-    it('should handle unicode characters', () => {
+    test('should handle unicode characters', () => {
       const result = createSlateValueFromText('日本語\n🎉')
 
       expect(result).toEqual([
@@ -606,7 +606,7 @@ describe('slate-utils', () => {
       ])
     })
 
-    it('should handle special characters', () => {
+    test('should handle special characters', () => {
       const result = createSlateValueFromText('<script>alert("xss")</script>')
 
       expect(result).toEqual([
@@ -616,7 +616,7 @@ describe('slate-utils', () => {
   })
 
   describe('round-trip consistency', () => {
-    it('should maintain data integrity through serialize → parse cycle', () => {
+    test('should maintain data integrity through serialize → parse cycle', () => {
       const original = [
         { type: 'h1', children: [{ text: 'Title' }] },
         {
@@ -631,7 +631,7 @@ describe('slate-utils', () => {
       expect(parsed).toEqual(original)
     })
 
-    it('should maintain data integrity through createFromText → extractAllText cycle', () => {
+    test('should maintain data integrity through createFromText → extractAllText cycle', () => {
       const original = 'Hello\nWorld\nTest'
 
       const slateValue = createSlateValueFromText(original)
@@ -640,7 +640,7 @@ describe('slate-utils', () => {
       expect(extracted).toBe(original)
     })
 
-    it('should produce parseable JSON from serialization', () => {
+    test('should produce parseable JSON from serialization', () => {
       const value = [
         {
           type: 'p',

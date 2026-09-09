@@ -12,7 +12,7 @@ import { configureStore } from '@reduxjs/toolkit'
 import { renderHook, act } from '@testing-library/react'
 import React from 'react'
 import { Provider } from 'react-redux'
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
 
 import { useSidebar } from '@/hooks/use-sidebar'
 import type { ThemeType } from '@/lib/constants/themes'
@@ -65,7 +65,7 @@ describe('useSidebar', () => {
   })
 
   describe('Initial State', () => {
-    it('should return isCollapsed false by default', () => {
+    test('should return isCollapsed false by default', () => {
       const store = createTestStore(false)
       const { result } = renderHook(() => useSidebar(), {
         wrapper: createWrapper(store),
@@ -74,7 +74,7 @@ describe('useSidebar', () => {
       expect(result.current.isCollapsed).toBe(false)
     })
 
-    it('should return isCollapsed true when initialized collapsed', () => {
+    test('should return isCollapsed true when initialized collapsed', () => {
       const store = createTestStore(true)
       const { result } = renderHook(() => useSidebar(), {
         wrapper: createWrapper(store),
@@ -83,7 +83,7 @@ describe('useSidebar', () => {
       expect(result.current.isCollapsed).toBe(true)
     })
 
-    it('should report mounted state correctly', () => {
+    test('should report mounted state correctly', () => {
       const store = createTestStore(false)
       const { result } = renderHook(() => useSidebar(), {
         wrapper: createWrapper(store),
@@ -95,7 +95,7 @@ describe('useSidebar', () => {
   })
 
   describe('setCollapsed()', () => {
-    it('should set sidebar to collapsed state', () => {
+    test('should set sidebar to collapsed state', () => {
       const store = createTestStore(false)
       const { result } = renderHook(() => useSidebar(), {
         wrapper: createWrapper(store),
@@ -111,7 +111,7 @@ describe('useSidebar', () => {
       expect(store.getState().settings.sidebarCollapsed).toBe(true)
     })
 
-    it('should set sidebar to expanded state', () => {
+    test('should set sidebar to expanded state', () => {
       const store = createTestStore(true)
       const { result } = renderHook(() => useSidebar(), {
         wrapper: createWrapper(store),
@@ -127,7 +127,7 @@ describe('useSidebar', () => {
       expect(store.getState().settings.sidebarCollapsed).toBe(false)
     })
 
-    it('should handle setting same value (idempotent)', () => {
+    test('should handle setting same value (idempotent)', () => {
       const store = createTestStore(true)
       const { result } = renderHook(() => useSidebar(), {
         wrapper: createWrapper(store),
@@ -142,7 +142,7 @@ describe('useSidebar', () => {
   })
 
   describe('toggle()', () => {
-    it('should toggle from expanded to collapsed', () => {
+    test('should toggle from expanded to collapsed', () => {
       const store = createTestStore(false)
       const { result } = renderHook(() => useSidebar(), {
         wrapper: createWrapper(store),
@@ -157,7 +157,7 @@ describe('useSidebar', () => {
       expect(result.current.isCollapsed).toBe(true)
     })
 
-    it('should toggle from collapsed to expanded', () => {
+    test('should toggle from collapsed to expanded', () => {
       const store = createTestStore(true)
       const { result } = renderHook(() => useSidebar(), {
         wrapper: createWrapper(store),
@@ -172,7 +172,7 @@ describe('useSidebar', () => {
       expect(result.current.isCollapsed).toBe(false)
     })
 
-    it('should handle multiple toggles', () => {
+    test('should handle multiple toggles', () => {
       const store = createTestStore(false)
       const { result } = renderHook(() => useSidebar(), {
         wrapper: createWrapper(store),
@@ -196,7 +196,7 @@ describe('useSidebar', () => {
   })
 
   describe('Memoization', () => {
-    it('should maintain stable setCollapsed reference', () => {
+    test('should maintain stable setCollapsed reference', () => {
       const store = createTestStore(false)
       const { result, rerender } = renderHook(() => useSidebar(), {
         wrapper: createWrapper(store),
@@ -209,7 +209,7 @@ describe('useSidebar', () => {
       expect(result.current.setCollapsed).toBe(initialSetCollapsed)
     })
 
-    it('should maintain stable toggle reference', () => {
+    test('should maintain stable toggle reference', () => {
       const store = createTestStore(false)
       const { result, rerender } = renderHook(() => useSidebar(), {
         wrapper: createWrapper(store),
@@ -224,7 +224,7 @@ describe('useSidebar', () => {
   })
 
   describe('Integration with Redux Store', () => {
-    it('should sync with external store changes', () => {
+    test('should sync with external store changes', () => {
       const store = createTestStore(false)
       const { result } = renderHook(() => useSidebar(), {
         wrapper: createWrapper(store),

@@ -12,7 +12,7 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { BoardSettingsDialog } from '@/components/Boards/BoardSettingsDialog'
 
@@ -61,7 +61,7 @@ describe('BoardSettingsDialog', () => {
   })
 
   describe('Dialog Rendering', () => {
-    it('should render the dialog when isOpen is true', () => {
+    test('should render the dialog when isOpen is true', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const dialog = screen.getByRole('dialog')
@@ -74,14 +74,14 @@ describe('BoardSettingsDialog', () => {
       ).toBeInTheDocument()
     })
 
-    it('should not render the dialog when isOpen is false', () => {
+    test('should not render the dialog when isOpen is false', () => {
       render(<BoardSettingsDialog {...defaultProps} isOpen={false} />)
 
       const dialog = screen.queryByRole('dialog')
       expect(dialog).not.toBeInTheDocument()
     })
 
-    it('should display the Close button in footer', () => {
+    test('should display the Close button in footer', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       // There are 2 Close buttons (X icon + footer button)
@@ -92,7 +92,7 @@ describe('BoardSettingsDialog', () => {
   })
 
   describe('Tab Navigation', () => {
-    it('should display all four tabs', () => {
+    test('should display all four tabs', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       expect(screen.getByRole('tab', { name: /general/i })).toBeInTheDocument()
@@ -103,14 +103,14 @@ describe('BoardSettingsDialog', () => {
       ).toBeInTheDocument()
     })
 
-    it('should have General tab selected by default', () => {
+    test('should have General tab selected by default', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const generalTab = screen.getByRole('tab', { name: /general/i })
       expect(generalTab).toHaveAttribute('aria-selected', 'true')
     })
 
-    it('should switch to Cards tab when clicked', () => {
+    test('should switch to Cards tab when clicked', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const cardsTab = screen.getByRole('tab', { name: /cards/i })
@@ -123,7 +123,7 @@ describe('BoardSettingsDialog', () => {
       )
     })
 
-    it('should switch to Danger Zone tab when clicked', () => {
+    test('should switch to Danger Zone tab when clicked', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const dangerTab = screen.getByRole('tab', { name: /danger zone/i })
@@ -136,7 +136,7 @@ describe('BoardSettingsDialog', () => {
       ).toBeInTheDocument()
     })
 
-    it('should display correct tab panel content for each tab', () => {
+    test('should display correct tab panel content for each tab', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       // General tab content
@@ -153,14 +153,14 @@ describe('BoardSettingsDialog', () => {
   })
 
   describe('General Tab - Rename', () => {
-    it('should display the current board name in input', () => {
+    test('should display the current board name in input', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const input = screen.getByPlaceholderText('Board name')
       expect(input).toHaveValue('Test Board')
     })
 
-    it('should update input value when typed', () => {
+    test('should update input value when typed', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const input = screen.getByPlaceholderText('Board name')
@@ -169,14 +169,14 @@ describe('BoardSettingsDialog', () => {
       expect(input).toHaveValue('New Board Name')
     })
 
-    it('should display character count', () => {
+    test('should display character count', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       // "Test Board" is 10 characters, max is 50
       expect(screen.getByText('10/50')).toBeInTheDocument()
     })
 
-    it('should update character count when typing', () => {
+    test('should update character count when typing', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const input = screen.getByPlaceholderText('Board name')
@@ -185,7 +185,7 @@ describe('BoardSettingsDialog', () => {
       expect(screen.getByText('5/50')).toBeInTheDocument()
     })
 
-    it('should show warning color when approaching character limit', () => {
+    test('should show warning color when approaching character limit', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const input = screen.getByPlaceholderText('Board name')
@@ -196,7 +196,7 @@ describe('BoardSettingsDialog', () => {
       expect(charCount).toHaveClass('text-orange-500')
     })
 
-    it('should disable Rename button when name is empty', () => {
+    test('should disable Rename button when name is empty', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const input = screen.getByPlaceholderText('Board name')
@@ -206,7 +206,7 @@ describe('BoardSettingsDialog', () => {
       expect(renameButton).toBeDisabled()
     })
 
-    it('should disable Rename button when name is only whitespace', () => {
+    test('should disable Rename button when name is only whitespace', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const input = screen.getByPlaceholderText('Board name')
@@ -216,7 +216,7 @@ describe('BoardSettingsDialog', () => {
       expect(renameButton).toBeDisabled()
     })
 
-    it('should enable Rename button when name is valid', () => {
+    test('should enable Rename button when name is valid', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const input = screen.getByPlaceholderText('Board name')
@@ -226,7 +226,7 @@ describe('BoardSettingsDialog', () => {
       expect(renameButton).not.toBeDisabled()
     })
 
-    it('should have autoFocus on name input', () => {
+    test('should have autoFocus on name input', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const input = screen.getByPlaceholderText('Board name')
@@ -239,7 +239,7 @@ describe('BoardSettingsDialog', () => {
   })
 
   describe('Danger Zone Tab - Delete', () => {
-    it('should display delete warning', () => {
+    test('should display delete warning', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       fireEvent.click(screen.getByRole('tab', { name: /danger zone/i }))
@@ -249,7 +249,7 @@ describe('BoardSettingsDialog', () => {
       ).toBeInTheDocument()
     })
 
-    it('should display delete button', () => {
+    test('should display delete button', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       fireEvent.click(screen.getByRole('tab', { name: /danger zone/i }))
@@ -258,7 +258,7 @@ describe('BoardSettingsDialog', () => {
       expect(deleteButton).toBeInTheDocument()
     })
 
-    it('should open confirmation dialog when delete is clicked', async () => {
+    test('should open confirmation dialog when delete is clicked', async () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       fireEvent.click(screen.getByRole('tab', { name: /danger zone/i }))
@@ -273,7 +273,7 @@ describe('BoardSettingsDialog', () => {
       })
     })
 
-    it('should show board name in confirmation dialog', async () => {
+    test('should show board name in confirmation dialog', async () => {
       render(<BoardSettingsDialog {...defaultProps} boardName="My Board" />)
 
       fireEvent.click(screen.getByRole('tab', { name: /danger zone/i }))
@@ -288,7 +288,7 @@ describe('BoardSettingsDialog', () => {
       })
     })
 
-    it('should close confirmation dialog when Cancel is clicked', async () => {
+    test('should close confirmation dialog when Cancel is clicked', async () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       fireEvent.click(screen.getByRole('tab', { name: /danger zone/i }))
@@ -310,7 +310,7 @@ describe('BoardSettingsDialog', () => {
   })
 
   describe('Close Behavior', () => {
-    it('should call onClose when Close button is clicked', () => {
+    test('should call onClose when Close button is clicked', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       // Get all Close buttons and click the last one (footer button)
@@ -321,7 +321,7 @@ describe('BoardSettingsDialog', () => {
       expect(mockOnClose).toHaveBeenCalled()
     })
 
-    it('should reset tab to General when dialog is closed', () => {
+    test('should reset tab to General when dialog is closed', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       // Switch to Cards tab
@@ -341,14 +341,14 @@ describe('BoardSettingsDialog', () => {
   })
 
   describe('Accessibility (ARIA)', () => {
-    it('should have tablist role for navigation', () => {
+    test('should have tablist role for navigation', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const tablist = screen.getByRole('tablist')
       expect(tablist).toBeInTheDocument()
     })
 
-    it('should have tab roles for each tab', () => {
+    test('should have tab roles for each tab', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const tabs = screen.getAllByRole('tab')
@@ -356,14 +356,14 @@ describe('BoardSettingsDialog', () => {
       expect(tabs).toHaveLength(4)
     })
 
-    it('should have tabpanel role for content', () => {
+    test('should have tabpanel role for content', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const tabpanel = screen.getByRole('tabpanel')
       expect(tabpanel).toBeInTheDocument()
     })
 
-    it('should have aria-controls on tabs', () => {
+    test('should have aria-controls on tabs', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const generalTab = screen.getByRole('tab', { name: /general/i })
@@ -376,7 +376,7 @@ describe('BoardSettingsDialog', () => {
       expect(dangerTab).toHaveAttribute('aria-controls', 'panel-danger')
     })
 
-    it('should have proper aria-selected for tabs', () => {
+    test('should have proper aria-selected for tabs', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const generalTab = screen.getByRole('tab', { name: /general/i })
@@ -386,7 +386,7 @@ describe('BoardSettingsDialog', () => {
       expect(cardsTab).toHaveAttribute('aria-selected', 'false')
     })
 
-    it('should have aria-invalid on name input when empty', () => {
+    test('should have aria-invalid on name input when empty', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const input = screen.getByPlaceholderText('Board name')
@@ -399,7 +399,7 @@ describe('BoardSettingsDialog', () => {
   })
 
   describe('Props Sync', () => {
-    it('should sync name when boardName prop changes', () => {
+    test('should sync name when boardName prop changes', () => {
       const { rerender } = render(<BoardSettingsDialog {...defaultProps} />)
 
       expect(screen.getByPlaceholderText('Board name')).toHaveValue(
@@ -417,7 +417,7 @@ describe('BoardSettingsDialog', () => {
   })
 
   describe('Edge Cases', () => {
-    it('should handle special characters in board name', () => {
+    test('should handle special characters in board name', () => {
       render(
         <BoardSettingsDialog
           {...defaultProps}
@@ -430,7 +430,7 @@ describe('BoardSettingsDialog', () => {
       ).toBeInTheDocument()
     })
 
-    it('should handle long board name display', () => {
+    test('should handle long board name display', () => {
       const longName = 'A'.repeat(50) // Max is 50 characters
       render(<BoardSettingsDialog {...defaultProps} boardName={longName} />)
 

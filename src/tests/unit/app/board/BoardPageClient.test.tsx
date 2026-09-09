@@ -11,7 +11,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { render, screen, waitFor } from '@testing-library/react'
 import { Provider } from 'react-redux'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { BoardPageClient } from '@/app/board/[id]/BoardPageClient'
 import type { BoardInitialData } from '@/lib/actions/board-data'
@@ -239,7 +239,7 @@ describe('BoardPageClient Component', () => {
   })
 
   describe('Rendering', () => {
-    it('should render the board page with header and board name', async () => {
+    test('should render the board page with header and board name', async () => {
       const board = createMockBoard()
       const initialData = createMockInitialData()
 
@@ -254,7 +254,7 @@ describe('BoardPageClient Component', () => {
       })
     })
 
-    it('should render Add Column button', async () => {
+    test('should render Add Column button', async () => {
       const board = createMockBoard()
       const initialData = createMockInitialData()
 
@@ -271,7 +271,7 @@ describe('BoardPageClient Component', () => {
       })
     })
 
-    it('should render Board Settings button', async () => {
+    test('should render Board Settings button', async () => {
       const board = createMockBoard()
       const initialData = createMockInitialData()
 
@@ -288,7 +288,7 @@ describe('BoardPageClient Component', () => {
       })
     })
 
-    it('should render KanbanBoard component', async () => {
+    test('should render KanbanBoard component', async () => {
       const board = createMockBoard()
       const initialData = createMockInitialData()
 
@@ -305,7 +305,7 @@ describe('BoardPageClient Component', () => {
   })
 
   describe('Redux Hydration', () => {
-    it('should hydrate Redux store with initial status lists', async () => {
+    test('should hydrate Redux store with initial status lists', async () => {
       const board = createMockBoard()
       const initialData = createMockInitialData()
 
@@ -323,7 +323,7 @@ describe('BoardPageClient Component', () => {
       })
     })
 
-    it('should hydrate Redux store with initial repo cards', async () => {
+    test('should hydrate Redux store with initial repo cards', async () => {
       const board = createMockBoard()
       const initialData = createMockInitialData()
 
@@ -340,7 +340,7 @@ describe('BoardPageClient Component', () => {
       })
     })
 
-    it('should set activeBoard in Redux', async () => {
+    test('should set activeBoard in Redux', async () => {
       const board = createMockBoard()
       const initialData = createMockInitialData()
 
@@ -359,7 +359,7 @@ describe('BoardPageClient Component', () => {
   })
 
   describe('lastVisitedBoard', () => {
-    it('should save lastVisitedBoard to Redux state', async () => {
+    test('should save lastVisitedBoard to Redux state', async () => {
       const board = createMockBoard()
       const initialData = createMockInitialData()
 
@@ -380,7 +380,7 @@ describe('BoardPageClient Component', () => {
   })
 
   describe('Dialogs and Modals', () => {
-    it('should render StatusListDialog', async () => {
+    test('should render StatusListDialog', async () => {
       const board = createMockBoard()
       const initialData = createMockInitialData()
 
@@ -395,7 +395,7 @@ describe('BoardPageClient Component', () => {
       })
     })
 
-    it('should render BoardSettingsDialog', async () => {
+    test('should render BoardSettingsDialog', async () => {
       const board = createMockBoard()
       const initialData = createMockInitialData()
 
@@ -421,7 +421,7 @@ describe('BoardPageClient Empty State', () => {
     store = createMockStore()
   })
 
-  it('should handle empty status lists', async () => {
+  test('should handle empty status lists', async () => {
     const board = createMockBoard()
     const initialData = createMockInitialData({
       statusLists: [],
@@ -451,7 +451,7 @@ describe('BoardPageClient Board Settings', () => {
     store = createMockStore()
   })
 
-  it('should render board with custom settings', async () => {
+  test('should render board with custom settings', async () => {
     const board = createMockBoard({
       settings: {
         cardDisplay: {

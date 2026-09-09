@@ -7,7 +7,7 @@
  * - selectDraftNote selector
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
 
 import draftSlice, {
   updateDraftNote,
@@ -49,7 +49,7 @@ describe('draftSlice', () => {
   }
 
   describe('updateDraftNote action', () => {
-    it('should create a new draft note for a card', () => {
+    test('should create a new draft note for a card', () => {
       const action = updateDraftNote({
         cardId: toRepoCardId('card-123'),
         content: 'My draft content',
@@ -66,7 +66,7 @@ describe('draftSlice', () => {
       })
     })
 
-    it('should update existing draft note', () => {
+    test('should update existing draft note', () => {
       const stateWithDraft = {
         ...initialState,
         notes: {
@@ -98,7 +98,7 @@ describe('draftSlice', () => {
       )
     })
 
-    it('should handle multiple drafts for different cards', () => {
+    test('should handle multiple drafts for different cards', () => {
       let state: DraftState = initialState
 
       state = draftSlice(
@@ -132,7 +132,7 @@ describe('draftSlice', () => {
       expect(state.notes[toRepoCardId('card-3')]!.content).toBe('Content 3')
     })
 
-    it('should handle empty content', () => {
+    test('should handle empty content', () => {
       const action = updateDraftNote({
         cardId: toRepoCardId('card-123'),
         content: '',
@@ -144,7 +144,7 @@ describe('draftSlice', () => {
       expect(nextState.notes[toRepoCardId('card-123')]!.content).toBe('')
     })
 
-    it('should handle very long content', () => {
+    test('should handle very long content', () => {
       const longContent = 'x'.repeat(10000)
       const action = updateDraftNote({
         cardId: toRepoCardId('card-123'),
@@ -161,7 +161,7 @@ describe('draftSlice', () => {
   })
 
   describe('deleteDraftNote action', () => {
-    it('should delete a draft note', () => {
+    test('should delete a draft note', () => {
       const stateWithDraft = {
         ...initialState,
         notes: {
@@ -181,7 +181,7 @@ describe('draftSlice', () => {
       expect(nextState.notes[toRepoCardId('card-123')]).toBeUndefined()
     })
 
-    it('should not affect other drafts', () => {
+    test('should not affect other drafts', () => {
       const stateWithMultipleDrafts = {
         ...initialState,
         notes: {
@@ -208,7 +208,7 @@ describe('draftSlice', () => {
       expect(nextState.notes[toRepoCardId('card-2')]).toBeDefined()
     })
 
-    it('should handle deleting non-existent draft gracefully', () => {
+    test('should handle deleting non-existent draft gracefully', () => {
       const action = deleteDraftNote(toRepoCardId('non-existent'))
 
       const nextState = draftSlice(initialState, action)
@@ -219,7 +219,7 @@ describe('draftSlice', () => {
 
   describe('Selectors', () => {
     describe('selectDraftNote', () => {
-      it('should return draft for specific card', () => {
+      test('should return draft for specific card', () => {
         const draftNote = {
           cardId: toRepoCardId('card-123'),
           content: 'Test content',
@@ -238,7 +238,7 @@ describe('draftSlice', () => {
         expect(result).toEqual(draftNote)
       })
 
-      it('should return null for non-existent card', () => {
+      test('should return null for non-existent card', () => {
         const rootState = { draft: initialState }
 
         const selector = selectDraftNote(toRepoCardId('non-existent'))

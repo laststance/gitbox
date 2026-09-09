@@ -18,7 +18,7 @@
  * @see src/lib/actions/mappers.ts
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, test, expect } from 'vitest'
 
 import { remapBoardEmbed, type BoardBundleRow } from '@/lib/actions/mappers'
 import type { Tables } from '@/lib/supabase/types'
@@ -101,7 +101,7 @@ function makeBundleRow(
 }
 
 describe('remapBoardEmbed', () => {
-  it('orders columns by grid row then grid column so the board renders left-to-right regardless of DB row order', () => {
+  test('orders columns by grid row then grid column so the board renders left-to-right regardless of DB row order', () => {
     // Arrange: columns supplied out of order
     const row = makeBundleRow({
       statuslist: [
@@ -124,7 +124,7 @@ describe('remapBoardEmbed', () => {
     ])
   })
 
-  it('orders cards by their order field within the bundle', () => {
+  test('orders cards by their order field within the bundle', () => {
     // Arrange: cards supplied out of order
     const row = makeBundleRow({
       repocard: [
@@ -145,7 +145,7 @@ describe('remapBoardEmbed', () => {
     ])
   })
 
-  it('uses the stored comment text and color when projectinfo is present', () => {
+  test('uses the stored comment text and color when projectinfo is present', () => {
     // Arrange
     const row = makeBundleRow({
       repocard: [
@@ -166,7 +166,7 @@ describe('remapBoardEmbed', () => {
     })
   })
 
-  it("fills the default 'primary' comment when a card has no projectinfo (parity with the old batch comment fetch)", () => {
+  test("fills the default 'primary' comment when a card has no projectinfo (parity with the old batch comment fetch)", () => {
     // Arrange: card with no projectinfo row
     const row = makeBundleRow({
       repocard: [makeRepoCardRow({ id: 'card-1', projectinfo: null })],
@@ -179,7 +179,7 @@ describe('remapBoardEmbed', () => {
     expect(bundle.comments['card-1']).toEqual({ comment: '', color: 'primary' })
   })
 
-  it("falls back to the default 'primary' color when comment_color is null", () => {
+  test("falls back to the default 'primary' color when comment_color is null", () => {
     // Arrange: projectinfo present but no color stored
     const row = makeBundleRow({
       repocard: [
@@ -200,7 +200,7 @@ describe('remapBoardEmbed', () => {
     })
   })
 
-  it('produces exactly one comment entry per card so the map never misses a card', () => {
+  test('produces exactly one comment entry per card so the map never misses a card', () => {
     // Arrange: one card with projectinfo, one without
     const row = makeBundleRow({
       repocard: [
@@ -222,7 +222,7 @@ describe('remapBoardEmbed', () => {
     })
   })
 
-  it('never leaks a comment when projectinfo is RLS-hidden for a non-owner — every card gets a safe default', () => {
+  test('never leaks a comment when projectinfo is RLS-hidden for a non-owner — every card gets a safe default', () => {
     // Arrange: non-owner embed where RLS returns projectinfo: null for every card
     const row = makeBundleRow({
       repocard: [
@@ -241,7 +241,7 @@ describe('remapBoardEmbed', () => {
     })
   })
 
-  it('returns empty status lists when the board has no columns (the caller creates defaults, not the remap)', () => {
+  test('returns empty status lists when the board has no columns (the caller creates defaults, not the remap)', () => {
     // Arrange: a board with no columns and no cards
     const row = makeBundleRow({ statuslist: [], repocard: [] })
 
@@ -254,7 +254,7 @@ describe('remapBoardEmbed', () => {
     expect(bundle.comments).toEqual({})
   })
 
-  it('returns the plain board row without the embedded statuslist/repocard children', () => {
+  test('returns the plain board row without the embedded statuslist/repocard children', () => {
     // Arrange: a fully populated bundle
     const row = makeBundleRow({
       board: makeBoardRow({ id: 'board-9', name: 'Roadmap' }),

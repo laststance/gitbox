@@ -7,7 +7,7 @@
  */
 
 import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 // Track callback invocations
 const renameSuccessLog: Array<[string, string]> = []
@@ -184,7 +184,7 @@ describe('BoardCard', () => {
   })
 
   describe('handleRenameSuccess callback', () => {
-    it('should call onRename with boardId and newName when rename succeeds', async () => {
+    test('should call onRename with boardId and newName when rename succeeds', async () => {
       const board = createMockBoard({ id: 'board-123' })
       render(
         <BoardCard
@@ -217,7 +217,7 @@ describe('BoardCard', () => {
   })
 
   describe('handleDeleteSuccess callback', () => {
-    it('should call onDelete with boardId when delete succeeds', async () => {
+    test('should call onDelete with boardId when delete succeeds', async () => {
       const board = createMockBoard({ id: 'board-to-delete' })
       render(
         <BoardCard
@@ -250,7 +250,7 @@ describe('BoardCard', () => {
   })
 
   describe('handleCloseRename callback', () => {
-    it('should close rename dialog when onClose is called', async () => {
+    test('should close rename dialog when onClose is called', async () => {
       const board = createMockBoard()
       render(
         <BoardCard
@@ -283,7 +283,7 @@ describe('BoardCard', () => {
   })
 
   describe('handleCloseDelete callback', () => {
-    it('should close delete dialog when onClose is called', async () => {
+    test('should close delete dialog when onClose is called', async () => {
       const board = createMockBoard()
       render(
         <BoardCard

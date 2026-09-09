@@ -12,7 +12,7 @@
  */
 
 import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { RenameBoardDialog } from '@/components/Boards/RenameBoardDialog'
 
@@ -46,21 +46,21 @@ describe('RenameBoardDialog', () => {
   })
 
   describe('Dialog Rendering', () => {
-    it('should render the dialog when isOpen is true', () => {
+    test('should render the dialog when isOpen is true', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const dialog = screen.getByRole('dialog')
       expect(dialog).toBeInTheDocument()
     })
 
-    it('should not render the dialog when isOpen is false', () => {
+    test('should not render the dialog when isOpen is false', () => {
       render(<RenameBoardDialog {...defaultProps} isOpen={false} />)
 
       const dialog = screen.queryByRole('dialog')
       expect(dialog).not.toBeInTheDocument()
     })
 
-    it('should display "Rename Board" as the title', () => {
+    test('should display "Rename Board" as the title', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       // There are multiple h2s (visually hidden a11y title + visible title)
@@ -68,7 +68,7 @@ describe('RenameBoardDialog', () => {
       expect(headings.length).toBeGreaterThanOrEqual(1)
     })
 
-    it('should display the description text', () => {
+    test('should display the description text', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       expect(
@@ -78,14 +78,14 @@ describe('RenameBoardDialog', () => {
   })
 
   describe('Input Field', () => {
-    it('should display the current board name in input', () => {
+    test('should display the current board name in input', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const input = screen.getByRole('textbox')
       expect(input).toHaveValue('Test Board')
     })
 
-    it('should update input value when typed', () => {
+    test('should update input value when typed', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const input = screen.getByRole('textbox')
@@ -94,21 +94,21 @@ describe('RenameBoardDialog', () => {
       expect(input).toHaveValue('New Board Name')
     })
 
-    it('should have maxLength attribute set to 50', () => {
+    test('should have maxLength attribute set to 50', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const input = screen.getByRole('textbox')
       expect(input).toHaveAttribute('maxLength', '50')
     })
 
-    it('should have placeholder text', () => {
+    test('should have placeholder text', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const input = screen.getByPlaceholderText('Board name')
       expect(input).toBeInTheDocument()
     })
 
-    it('should have autoComplete disabled', () => {
+    test('should have autoComplete disabled', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const input = screen.getByRole('textbox')
@@ -117,14 +117,14 @@ describe('RenameBoardDialog', () => {
   })
 
   describe('Character Count', () => {
-    it('should display character count', () => {
+    test('should display character count', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       // "Test Board" is 10 characters, max is 50
       expect(screen.getByText('10/50')).toBeInTheDocument()
     })
 
-    it('should update character count when typing', () => {
+    test('should update character count when typing', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const input = screen.getByRole('textbox')
@@ -133,7 +133,7 @@ describe('RenameBoardDialog', () => {
       expect(screen.getByText('5/50')).toBeInTheDocument()
     })
 
-    it('should show warning color when approaching character limit', () => {
+    test('should show warning color when approaching character limit', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const input = screen.getByRole('textbox')
@@ -144,7 +144,7 @@ describe('RenameBoardDialog', () => {
       expect(charCount).toHaveClass('text-orange-500')
     })
 
-    it('should not show warning color when under threshold', () => {
+    test('should not show warning color when under threshold', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const charCount = screen.getByText('10/50')
@@ -152,7 +152,7 @@ describe('RenameBoardDialog', () => {
       expect(charCount).toHaveClass('text-muted-foreground')
     })
 
-    it('should display 0/50 when input is empty', () => {
+    test('should display 0/50 when input is empty', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const input = screen.getByRole('textbox')
@@ -161,7 +161,7 @@ describe('RenameBoardDialog', () => {
       expect(screen.getByText('0/50')).toBeInTheDocument()
     })
 
-    it('should display max count at limit', () => {
+    test('should display max count at limit', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const input = screen.getByRole('textbox')
@@ -172,7 +172,7 @@ describe('RenameBoardDialog', () => {
   })
 
   describe('Submit Button', () => {
-    it('should display Rename button', () => {
+    test('should display Rename button', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const renameButton = screen.getByRole('button', {
@@ -182,7 +182,7 @@ describe('RenameBoardDialog', () => {
       expect(renameButton).toHaveTextContent('Rename')
     })
 
-    it('should disable Rename button when name is empty', () => {
+    test('should disable Rename button when name is empty', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const input = screen.getByRole('textbox')
@@ -194,7 +194,7 @@ describe('RenameBoardDialog', () => {
       expect(renameButton).toBeDisabled()
     })
 
-    it('should disable Rename button when name is only whitespace', () => {
+    test('should disable Rename button when name is only whitespace', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const input = screen.getByRole('textbox')
@@ -206,7 +206,7 @@ describe('RenameBoardDialog', () => {
       expect(renameButton).toBeDisabled()
     })
 
-    it('should enable Rename button when name is valid', () => {
+    test('should enable Rename button when name is valid', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const input = screen.getByRole('textbox')
@@ -218,7 +218,7 @@ describe('RenameBoardDialog', () => {
       expect(renameButton).not.toBeDisabled()
     })
 
-    it('should have correct aria-label reflecting current input', () => {
+    test('should have correct aria-label reflecting current input', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const input = screen.getByRole('textbox')
@@ -232,14 +232,14 @@ describe('RenameBoardDialog', () => {
   })
 
   describe('Cancel Button', () => {
-    it('should display Cancel button', () => {
+    test('should display Cancel button', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const cancelButton = screen.getByRole('button', { name: /cancel/i })
       expect(cancelButton).toBeInTheDocument()
     })
 
-    it('should call onClose when Cancel is clicked', () => {
+    test('should call onClose when Cancel is clicked', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const cancelButton = screen.getByRole('button', { name: /cancel/i })
@@ -250,7 +250,7 @@ describe('RenameBoardDialog', () => {
   })
 
   describe('Form Structure', () => {
-    it('should contain a hidden boardId input', () => {
+    test('should contain a hidden boardId input', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const hiddenInput = document.querySelector(
@@ -260,14 +260,14 @@ describe('RenameBoardDialog', () => {
       expect(hiddenInput).toHaveValue('board-123')
     })
 
-    it('should have name input with name="name"', () => {
+    test('should have name input with name="name"', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const input = screen.getByRole('textbox')
       expect(input).toHaveAttribute('name', 'name')
     })
 
-    it('should have a form wrapping the inputs', () => {
+    test('should have a form wrapping the inputs', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const input = screen.getByRole('textbox')
@@ -276,7 +276,7 @@ describe('RenameBoardDialog', () => {
   })
 
   describe('Props Sync', () => {
-    it('should sync name when currentName prop changes', () => {
+    test('should sync name when currentName prop changes', () => {
       const { rerender } = render(<RenameBoardDialog {...defaultProps} />)
 
       expect(screen.getByRole('textbox')).toHaveValue('Test Board')
@@ -288,7 +288,7 @@ describe('RenameBoardDialog', () => {
       expect(screen.getByRole('textbox')).toHaveValue('Updated Board')
     })
 
-    it('should update character count when currentName prop changes', () => {
+    test('should update character count when currentName prop changes', () => {
       const { rerender } = render(<RenameBoardDialog {...defaultProps} />)
 
       expect(screen.getByText('10/50')).toBeInTheDocument()
@@ -300,7 +300,7 @@ describe('RenameBoardDialog', () => {
   })
 
   describe('Edge Cases', () => {
-    it('should handle special characters in board name', () => {
+    test('should handle special characters in board name', () => {
       render(
         <RenameBoardDialog
           {...defaultProps}
@@ -312,7 +312,7 @@ describe('RenameBoardDialog', () => {
       expect(input).toHaveValue('Project "Alpha" & <Beta>')
     })
 
-    it('should handle max length board name', () => {
+    test('should handle max length board name', () => {
       const longName = 'A'.repeat(50)
       render(<RenameBoardDialog {...defaultProps} currentName={longName} />)
 
@@ -323,13 +323,13 @@ describe('RenameBoardDialog', () => {
   })
 
   describe('Accessibility', () => {
-    it('should use dialog role', () => {
+    test('should use dialog role', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
-    it('should have accessible heading', () => {
+    test('should have accessible heading', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       // There are multiple h2s (visually hidden a11y title + visible title)
@@ -337,7 +337,7 @@ describe('RenameBoardDialog', () => {
       expect(headings.length).toBeGreaterThanOrEqual(1)
     })
 
-    it('should have submit button with type="submit"', () => {
+    test('should have submit button with type="submit"', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const renameButton = screen.getByRole('button', {
@@ -346,7 +346,7 @@ describe('RenameBoardDialog', () => {
       expect(renameButton).toHaveAttribute('type', 'submit')
     })
 
-    it('should have aria-describedby on input', () => {
+    test('should have aria-describedby on input', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const input = screen.getByRole('textbox')

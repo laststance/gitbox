@@ -12,7 +12,7 @@
 
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { StatusColumn, CARD_DRAG_TYPE } from '@/components/Board/StatusColumn'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
@@ -140,13 +140,13 @@ describe('StatusColumn', () => {
   })
 
   describe('Column Header', () => {
-    it('should render column title', () => {
+    test('should render column title', () => {
       render(<StatusColumn status={defaultStatus} cards={[]} />)
 
       expect(screen.getByText('In Progress')).toBeInTheDocument()
     })
 
-    it('should render color indicator when color is provided', () => {
+    test('should render color indicator when color is provided', () => {
       render(<StatusColumn status={defaultStatus} cards={[]} />)
 
       const colorDot = screen
@@ -155,7 +155,7 @@ describe('StatusColumn', () => {
       expect(colorDot).toHaveStyle({ backgroundColor: '#3b82f6' })
     })
 
-    it('should not render color indicator when color is empty', () => {
+    test('should not render color indicator when color is empty', () => {
       const statusWithoutColor = { ...defaultStatus, color: '' }
       render(<StatusColumn status={statusWithoutColor} cards={[]} />)
 
@@ -165,7 +165,7 @@ describe('StatusColumn', () => {
       expect(colorDot).toBeNull()
     })
 
-    it('should have cursor-grab class for draggable header', () => {
+    test('should have cursor-grab class for draggable header', () => {
       render(<StatusColumn status={defaultStatus} cards={[]} />)
 
       const header = screen
@@ -176,26 +176,26 @@ describe('StatusColumn', () => {
   })
 
   describe('Card List Rendering', () => {
-    it('should render all cards in the column', () => {
+    test('should render all cards in the column', () => {
       render(<StatusColumn status={defaultStatus} cards={defaultCards} />)
 
       expect(screen.getByTestId('repo-card-card-1')).toBeInTheDocument()
       expect(screen.getByTestId('repo-card-card-2')).toBeInTheDocument()
     })
 
-    it('should render empty column when no cards', () => {
+    test('should render empty column when no cards', () => {
       render(<StatusColumn status={defaultStatus} cards={[]} />)
 
       expect(screen.queryByTestId('repo-card-card-1')).not.toBeInTheDocument()
     })
 
-    it('should wrap cards in SortableContext', () => {
+    test('should wrap cards in SortableContext', () => {
       render(<StatusColumn status={defaultStatus} cards={defaultCards} />)
 
       expect(screen.getByTestId('sortable-context')).toBeInTheDocument()
     })
 
-    it('should pass card data to RepoCard components', () => {
+    test('should pass card data to RepoCard components', () => {
       render(<StatusColumn status={defaultStatus} cards={defaultCards} />)
 
       expect(screen.getByText('test-repo-1')).toBeInTheDocument()
@@ -204,7 +204,7 @@ describe('StatusColumn', () => {
   })
 
   describe('Column Actions Menu', () => {
-    it('should render column options button', () => {
+    test('should render column options button', () => {
       render(
         <StatusColumn
           status={defaultStatus}
@@ -216,7 +216,7 @@ describe('StatusColumn', () => {
       expect(screen.getByLabelText('Column options')).toBeInTheDocument()
     })
 
-    it('should show Edit Column option when onEditStatus is provided', async () => {
+    test('should show Edit Column option when onEditStatus is provided', async () => {
       const user = userEvent.setup()
       render(
         <StatusColumn
@@ -233,7 +233,7 @@ describe('StatusColumn', () => {
       })
     })
 
-    it('should show Delete Column option when onDeleteStatus is provided', async () => {
+    test('should show Delete Column option when onDeleteStatus is provided', async () => {
       const user = userEvent.setup()
       render(
         <StatusColumn
@@ -250,7 +250,7 @@ describe('StatusColumn', () => {
       })
     })
 
-    it('should call onEditStatus when Edit Column is clicked', async () => {
+    test('should call onEditStatus when Edit Column is clicked', async () => {
       const user = userEvent.setup()
       render(
         <StatusColumn
@@ -266,7 +266,7 @@ describe('StatusColumn', () => {
       expect(mockOnEditStatus).toHaveBeenCalledWith(defaultStatus)
     })
 
-    it('should call onDeleteStatus when Delete Column is clicked', async () => {
+    test('should call onDeleteStatus when Delete Column is clicked', async () => {
       const user = userEvent.setup()
       render(
         <StatusColumn
@@ -282,7 +282,7 @@ describe('StatusColumn', () => {
       expect(mockOnDeleteStatus).toHaveBeenCalledWith('status-1')
     })
 
-    it('should have destructive styling on Delete Column option', async () => {
+    test('should have destructive styling on Delete Column option', async () => {
       const user = userEvent.setup()
       render(
         <StatusColumn
@@ -302,7 +302,7 @@ describe('StatusColumn', () => {
   })
 
   describe('Add Card Button', () => {
-    it('should render Add Repo button when onAddCard is provided', () => {
+    test('should render Add Repo button when onAddCard is provided', () => {
       render(
         <StatusColumn
           status={defaultStatus}
@@ -315,13 +315,13 @@ describe('StatusColumn', () => {
       expect(screen.getByText('Add Repo')).toBeInTheDocument()
     })
 
-    it('should not render Add Repo button when onAddCard is not provided', () => {
+    test('should not render Add Repo button when onAddCard is not provided', () => {
       render(<StatusColumn status={defaultStatus} cards={[]} />)
 
       expect(screen.queryByTestId('add-repo-button')).not.toBeInTheDocument()
     })
 
-    it('should call onAddCard with statusId when clicked', async () => {
+    test('should call onAddCard with statusId when clicked', async () => {
       const user = userEvent.setup()
       render(
         <StatusColumn
@@ -338,7 +338,7 @@ describe('StatusColumn', () => {
   })
 
   describe('Card Callbacks', () => {
-    it('should pass onNote to RepoCard', async () => {
+    test('should pass onNote to RepoCard', async () => {
       const user = userEvent.setup()
       render(
         <StatusColumn
@@ -355,7 +355,7 @@ describe('StatusColumn', () => {
   })
 
   describe('Drag Attributes and Listeners', () => {
-    it('should apply dragAttributes to header', () => {
+    test('should apply dragAttributes to header', () => {
       // dragAttributes are spread onto the header div
       // The component already has its own aria-label, so we just verify
       // the header element exists and can accept additional attributes
@@ -379,7 +379,7 @@ describe('StatusColumn', () => {
       expect(header).toHaveAttribute('data-drag-handle', 'true')
     })
 
-    it('should have aria-label for accessibility on drag header', () => {
+    test('should have aria-label for accessibility on drag header', () => {
       render(<StatusColumn status={defaultStatus} cards={[]} />)
 
       const header = screen.getByLabelText(/Drag to reorder In Progress column/)
@@ -388,7 +388,7 @@ describe('StatusColumn', () => {
   })
 
   describe('Comment Integration', () => {
-    it('should pass comments to RepoCard', () => {
+    test('should pass comments to RepoCard', () => {
       const comments = {
         'card-1': { comment: 'Test comment', color: 'blue' as const },
       }
@@ -404,7 +404,7 @@ describe('StatusColumn', () => {
       expect(screen.getByTestId('repo-card-card-1')).toBeInTheDocument()
     })
 
-    it('should pass cardDisplaySettings to RepoCard', () => {
+    test('should pass cardDisplaySettings to RepoCard', () => {
       const cardDisplaySettings = {
         showGitHubDescription: true,
         showComment: true,
@@ -427,7 +427,7 @@ describe('StatusColumn', () => {
   })
 
   describe('Test ID and Data Attributes', () => {
-    it('should have correct test-id for column', () => {
+    test('should have correct test-id for column', () => {
       render(<StatusColumn status={defaultStatus} cards={[]} />)
 
       expect(screen.getByTestId('status-column-status-1')).toBeInTheDocument()
@@ -435,13 +435,13 @@ describe('StatusColumn', () => {
   })
 
   describe('CARD_DRAG_TYPE Export', () => {
-    it('should export CARD_DRAG_TYPE constant', () => {
+    test('should export CARD_DRAG_TYPE constant', () => {
       expect(CARD_DRAG_TYPE).toBe('card')
     })
   })
 
   describe('Edge Cases', () => {
-    it('should handle status with empty color', () => {
+    test('should handle status with empty color', () => {
       const minimalStatus: StatusListDomain = {
         id: toStatusListId('minimal'),
         title: 'Minimal',
@@ -458,7 +458,7 @@ describe('StatusColumn', () => {
       expect(screen.getByText('Minimal')).toBeInTheDocument()
     })
 
-    it('should handle large number of cards', () => {
+    test('should handle large number of cards', () => {
       const manyCards: RepoCardForRedux[] = Array.from(
         { length: 50 },
         (_, i) => ({

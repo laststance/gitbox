@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 const cacheHarness = vi.hoisted(() => {
   const cachedResults = new Map<string, Promise<unknown>>()
@@ -248,7 +248,7 @@ describe('GitHub repository catalog page cache', () => {
     dateNowSpy.mockRestore()
   })
 
-  it('supplements 100-item user pages with organization repositories while retaining one duplicate and every org-only repository', async () => {
+  test('supplements 100-item user pages with organization repositories while retaining one duplicate and every org-only repository', async () => {
     // Arrange
     const rawToken = 'gho_catalog_test'
     const userRepositories = createRepositories(100, 1)
@@ -361,7 +361,7 @@ describe('GitHub repository catalog page cache', () => {
     }
   })
 
-  it('keeps a 100-repository page below 2 MiB when every cached field uses GitHub maximum-sized values', async () => {
+  test('keeps a 100-repository page below 2 MiB when every cached field uses GitHub maximum-sized values', async () => {
     // Arrange
     const maximumFieldRepositories = createMaximumFieldRepositoryPage()
     const apiGet = createApiGet(
@@ -411,7 +411,7 @@ describe('GitHub repository catalog page cache', () => {
     ).toBeLessThan(NEXT_DATA_CACHE_ENTRY_LIMIT_BYTES)
   })
 
-  it('skips null and missing owners without failing the catalog and still requests page two after 100 raw rows', async () => {
+  test('skips null and missing owners without failing the catalog and still requests page two after 100 raw rows', async () => {
     // Arrange
     const rawPageOne = createRepositories(100, 1)
     rawPageOne[19] = createRepository(20, null)
@@ -453,7 +453,7 @@ describe('GitHub repository catalog page cache', () => {
     expect(cachedPageOne.items).toHaveLength(98)
   })
 
-  it('rejects the whole catalog when organization supplementation reports a revoked 401 token', async () => {
+  test('rejects the whole catalog when organization supplementation reports a revoked 401 token', async () => {
     // Arrange
     const rawToken = 'gho_revoked_during_org_supplement'
     const apiGet = vi.fn(async (url: string) => {
@@ -485,7 +485,7 @@ describe('GitHub repository catalog page cache', () => {
     expect(apiGet).toHaveBeenCalledWith(LASTSTANCE_REPOSITORY_PAGE_ONE_URL)
   })
 
-  it.each([404, 500])(
+  test.each([404, 500])(
     'returns authenticated-user repositories when optional organization supplementation responds %i',
     async (organizationStatus) => {
       // Arrange
@@ -519,7 +519,7 @@ describe('GitHub repository catalog page cache', () => {
     },
   )
 
-  it.each([429, 500])(
+  test.each([429, 500])(
     'returns authenticated-user repositories when the organization list responds %i',
     async (organizationStatus) => {
       // Arrange
@@ -552,7 +552,7 @@ describe('GitHub repository catalog page cache', () => {
     },
   )
 
-  it('rejects the whole catalog when the organization list reports a revoked token', async () => {
+  test('rejects the whole catalog when the organization list reports a revoked token', async () => {
     // Arrange
     const rawToken = 'gho_revoked_during_org_list'
     const apiGet = vi.fn(async (url: string) => {
@@ -580,7 +580,7 @@ describe('GitHub repository catalog page cache', () => {
     expect(loggerHarness.warn).not.toHaveBeenCalled()
   })
 
-  it('validates the user live on every open while reusing all collection pages in the same 24-hour window', async () => {
+  test('validates the user live on every open while reusing all collection pages in the same 24-hour window', async () => {
     // Arrange
     let userValidationCount = 0
     const apiGet = vi.fn(async (url: string) => {
@@ -621,7 +621,7 @@ describe('GitHub repository catalog page cache', () => {
     expect(githubAxiosHarness.createGitHubAxios).toHaveBeenCalledTimes(2)
   })
 
-  it('rejects a second open when live user validation returns 401 instead of exposing already-cached collections', async () => {
+  test('rejects a second open when live user validation returns 401 instead of exposing already-cached collections', async () => {
     // Arrange
     const rawToken = 'gho_revoked_after_collection_cache'
     let userValidationCount = 0
@@ -667,7 +667,7 @@ describe('GitHub repository catalog page cache', () => {
     ).toHaveLength(1)
   })
 
-  it('performs a blocking collection miss with a new page key after crossing the 24-hour window', async () => {
+  test('performs a blocking collection miss with a new page key after crossing the 24-hour window', async () => {
     // Arrange
     let repositoryPageRequestCount = 0
     const apiGet = vi.fn(async (url: string) => {
@@ -703,7 +703,7 @@ describe('GitHub repository catalog page cache', () => {
     expect(cacheKeys.some((keyParts) => keyParts.includes('20001'))).toBe(true)
   })
 
-  it('redacts an Axios 401 from every thrown surface and retries the failed page for the same token', async () => {
+  test('redacts an Axios 401 from every thrown surface and retries the failed page for the same token', async () => {
     // Arrange
     const rawToken = 'gho_do_not_leak_this_secret'
     const unauthorizedErrorFixture = createCredentialBearingAxiosError(

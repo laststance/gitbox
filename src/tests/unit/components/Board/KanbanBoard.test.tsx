@@ -13,7 +13,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { render, waitFor } from '@testing-library/react'
 import { Provider } from 'react-redux'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { KanbanBoard } from '@/components/Board/KanbanBoard'
 import boardSlice from '@/lib/redux/slices/boardSlice'
@@ -66,7 +66,7 @@ describe('KanbanBoard Horizontal Scroll Tests', () => {
   })
 
   describe('CSS Classes for Horizontal Scroll', () => {
-    it('should render outer container with w-fit min-w-full classes', async () => {
+    test('should render outer container with w-fit min-w-full classes', async () => {
       const store = createMockStore()
 
       const { container } = render(
@@ -85,7 +85,7 @@ describe('KanbanBoard Horizontal Scroll Tests', () => {
       })
     })
 
-    it('should render grid container with w-fit min-w-full classes', async () => {
+    test('should render grid container with w-fit min-w-full classes', async () => {
       const store = createMockStore()
 
       const { container } = render(
@@ -104,7 +104,7 @@ describe('KanbanBoard Horizontal Scroll Tests', () => {
       })
     })
 
-    it('should have grid with inline style for gridTemplateColumns', async () => {
+    test('should have grid with inline style for gridTemplateColumns', async () => {
       const store = createMockStore()
 
       const { container } = render(
@@ -127,7 +127,7 @@ describe('KanbanBoard Horizontal Scroll Tests', () => {
   })
 
   describe('Column Width Calculation', () => {
-    it('should calculate minimum width for 6 columns correctly', () => {
+    test('should calculate minimum width for 6 columns correctly', () => {
       const columnCount = 6
       const minColumnWidth = 280 // px
       const gapSize = 16 // gap-4 = 1rem = 16px
@@ -142,7 +142,7 @@ describe('KanbanBoard Horizontal Scroll Tests', () => {
       // This exceeds typical viewport widths (1280-1440px), confirming need for scroll
     })
 
-    it('should calculate minimum width for 10 columns correctly', () => {
+    test('should calculate minimum width for 10 columns correctly', () => {
       const columnCount = 10
       const minColumnWidth = 280
       const gapSize = 16
@@ -154,7 +154,7 @@ describe('KanbanBoard Horizontal Scroll Tests', () => {
       expect(expectedMinWidth).toBe(2944)
     })
 
-    it('should calculate minimum width for 15 columns correctly', () => {
+    test('should calculate minimum width for 15 columns correctly', () => {
       const columnCount = 15
       const minColumnWidth = 280
       const gapSize = 16
@@ -178,7 +178,7 @@ describe('BoardPageClient Wrapper Tests (Overflow)', () => {
    * - overflow-y-auto: Enables vertical scrollbar when content overflows
    */
 
-  it('should document expected overflow classes for parent container', () => {
+  test('should document expected overflow classes for parent container', () => {
     // Expected classes in BoardPageClient.tsx line 480:
     // className="flex-1 overflow-x-auto overflow-y-auto bg-gray-100 dark:bg-gray-900"
 
@@ -196,7 +196,7 @@ describe('BoardPageClient Wrapper Tests (Overflow)', () => {
     expect(expectedClasses).toContain('flex-1')
   })
 
-  it('should document expected classes for KanbanBoard container (auto-height)', () => {
+  test('should document expected classes for KanbanBoard container (auto-height)', () => {
     // Expected classes in KanbanBoard.tsx line 613:
     // className="w-fit min-w-full p-6 relative"
     // Note: h-full removed for auto-height expansion
@@ -211,7 +211,7 @@ describe('BoardPageClient Wrapper Tests (Overflow)', () => {
     expect(expectedClasses).not.toContain('h-full')
   })
 
-  it('should document expected classes for grid container', () => {
+  test('should document expected classes for grid container', () => {
     // Expected classes in KanbanBoard.tsx line 636:
     // className="grid gap-4 pb-4 w-fit min-w-full"
 
@@ -231,7 +231,7 @@ describe('Horizontal Scroll Technical Requirements', () => {
    */
 
   describe('Tailwind CSS Class Semantics', () => {
-    it('should use w-fit to allow content to define width', () => {
+    test('should use w-fit to allow content to define width', () => {
       // w-fit = width: fit-content
       // This allows the element to shrink-wrap its content
       // Instead of being constrained to parent width
@@ -239,7 +239,7 @@ describe('Horizontal Scroll Technical Requirements', () => {
       expect(wFitBehavior).toBe('width: fit-content')
     })
 
-    it('should use min-w-full to ensure minimum viewport width', () => {
+    test('should use min-w-full to ensure minimum viewport width', () => {
       // min-w-full = min-width: 100%
       // This ensures the element is at least as wide as its parent
       // Prevents content from being narrower than viewport
@@ -247,7 +247,7 @@ describe('Horizontal Scroll Technical Requirements', () => {
       expect(minWFullBehavior).toBe('min-width: 100%')
     })
 
-    it('should use overflow-x-auto to enable horizontal scroll', () => {
+    test('should use overflow-x-auto to enable horizontal scroll', () => {
       // overflow-x-auto = overflow-x: auto
       // Shows horizontal scrollbar only when content overflows
       const overflowXAutoBehavior = 'overflow-x: auto'
@@ -256,7 +256,7 @@ describe('Horizontal Scroll Technical Requirements', () => {
   })
 
   describe('Grid Column Sizing', () => {
-    it('should use minmax(280px, var(--column-width)) for constrained column sizing', () => {
+    test('should use minmax(280px, var(--column-width)) for constrained column sizing', () => {
       // minmax(280px, var(--column-width)) ensures:
       // - Minimum width of 280px per column
       // - Maximum width constrained by CSS variable (320px) to prevent expansion
@@ -265,7 +265,7 @@ describe('Horizontal Scroll Technical Requirements', () => {
       expect(gridTemplatePattern).toContain('var(--column-width)')
     })
 
-    it('should calculate grid template for N columns', () => {
+    test('should calculate grid template for N columns', () => {
       const generateGridTemplate = (cols: number): string => {
         return `repeat(${cols}, minmax(280px, var(--column-width)))`
       }
@@ -285,7 +285,7 @@ describe('Horizontal Scroll Technical Requirements', () => {
     const gapWidth = 16
 
     viewportWidths.forEach((viewport) => {
-      it(`should determine scroll need for viewport ${viewport}px`, () => {
+      test(`should determine scroll need for viewport ${viewport}px`, () => {
         const calculateMaxColumnsWithoutScroll = (vw: number): number => {
           // (cols * 280) + ((cols - 1) * 16) <= viewport
           // 280c + 16c - 16 <= vw
@@ -303,7 +303,7 @@ describe('Horizontal Scroll Technical Requirements', () => {
       })
     })
 
-    it('should require horizontal scroll for 6 columns on 1440px viewport', () => {
+    test('should require horizontal scroll for 6 columns on 1440px viewport', () => {
       const viewport = 1440
       const columns = 6
       const requiredWidth = columns * columnWidth + (columns - 1) * gapWidth
@@ -313,7 +313,7 @@ describe('Horizontal Scroll Technical Requirements', () => {
       expect(requiredWidth).toBeGreaterThan(viewport)
     })
 
-    it('should fit 5 columns on 1440px viewport without scroll', () => {
+    test('should fit 5 columns on 1440px viewport without scroll', () => {
       const columns = 5
       const requiredWidth = columns * columnWidth + (columns - 1) * gapWidth
 
@@ -337,7 +337,7 @@ describe('Horizontal Scroll Technical Requirements', () => {
  */
 describe('KanbanBoard Column Auto-Height Tests', () => {
   describe('CSS Classes for Auto-Height', () => {
-    it('should render outer container without height constraints', async () => {
+    test('should render outer container without height constraints', async () => {
       const store = createMockStore()
 
       const { container } = render(
@@ -355,7 +355,7 @@ describe('KanbanBoard Column Auto-Height Tests', () => {
       })
     })
 
-    it('should render grid container without h-full min-h-0 classes', async () => {
+    test('should render grid container without h-full min-h-0 classes', async () => {
       const store = createMockStore()
 
       const { container } = render(
@@ -373,7 +373,7 @@ describe('KanbanBoard Column Auto-Height Tests', () => {
       })
     })
 
-    it('should have grid with minmax(min-content, auto) for row sizing', async () => {
+    test('should have grid with minmax(min-content, auto) for row sizing', async () => {
       const store = createMockStore()
 
       const { container } = render(
@@ -398,7 +398,7 @@ describe('KanbanBoard Column Auto-Height Tests', () => {
   })
 
   describe('Auto-Height Expansion Behavior', () => {
-    it('should document auto-height expansion requirements', () => {
+    test('should document auto-height expansion requirements', () => {
       // Auto-height pattern:
       // - Columns expand to fit all cards (no internal scrolling)
       // - Grid rows use minmax(min-content, auto) to expand based on content
@@ -415,7 +415,7 @@ describe('KanbanBoard Column Auto-Height Tests', () => {
       expect(autoHeightRequirements.noOverflow).toContain('overflow-y-auto')
     })
 
-    it('should calculate column height based on card count', () => {
+    test('should calculate column height based on card count', () => {
       // Approximate card height: 130px (varies by content)
       // Column header: ~50px
       // Add Repo button: ~40px
@@ -438,7 +438,7 @@ describe('KanbanBoard Column Auto-Height Tests', () => {
   })
 
   describe('Grid Row Sizing', () => {
-    it('should use minmax(min-content, auto) for auto-height expansion', () => {
+    test('should use minmax(min-content, auto) for auto-height expansion', () => {
       // gridTemplateRows: repeat(N, minmax(0, 1fr)) - bounded height (OLD - for scroll)
       // gridTemplateRows: repeat(N, minmax(min-content, auto)) - auto-height (NEW)
 
@@ -452,7 +452,7 @@ describe('KanbanBoard Column Auto-Height Tests', () => {
       expect(autoHeightPattern).toContain('min-content')
     })
 
-    it('should calculate grid row height distribution for auto-height', () => {
+    test('should calculate grid row height distribution for auto-height', () => {
       const generateGridRowTemplate = (rows: number): string => {
         return `repeat(${rows}, minmax(min-content, auto))`
       }
@@ -476,7 +476,7 @@ describe('SortableColumn Auto-Height Classes', () => {
    * that enable auto-height expansion (no internal scrolling).
    */
 
-  it('should document expected classes for SortableColumn container (auto-height)', () => {
+  test('should document expected classes for SortableColumn container (auto-height)', () => {
     // Expected classes in SortableColumn.tsx line 89-90:
     // className="flex flex-col w-full bg-background/50..."
     // Note: h-full and min-h-0 removed for auto-height expansion
@@ -490,7 +490,7 @@ describe('SortableColumn Auto-Height Classes', () => {
     expect(expectedClasses).not.toContain('min-h-0')
   })
 
-  it('should document expected classes for inner wrapper (auto-height)', () => {
+  test('should document expected classes for inner wrapper (auto-height)', () => {
     // Expected classes in SortableColumn.tsx line 98:
     // className="flex-1 p-4"
     // Note: min-h-0 and overflow-hidden removed for auto-height expansion
@@ -511,7 +511,7 @@ describe('StatusColumn Auto-Height Classes', () => {
    * that enable auto-height expansion of cards.
    */
 
-  it('should document expected classes for StatusColumn container (auto-height)', () => {
+  test('should document expected classes for StatusColumn container (auto-height)', () => {
     // Expected classes in StatusColumn.tsx line 81:
     // className="flex flex-col"
     // Note: h-full and min-h-0 removed for auto-height expansion
@@ -524,7 +524,7 @@ describe('StatusColumn Auto-Height Classes', () => {
     expect(expectedClasses).not.toContain('min-h-0')
   })
 
-  it('should document expected classes for card area (auto-height)', () => {
+  test('should document expected classes for card area (auto-height)', () => {
     // Expected classes in StatusColumn.tsx line 147:
     // className="space-y-3 flex-1 rounded-lg p-1..."
     // Note: min-h-0 and overflow-y-auto removed for auto-height expansion
@@ -552,7 +552,7 @@ describe('KanbanBoard Loading States', () => {
     vi.clearAllMocks()
   })
 
-  it('should render skeleton when no status lists exist', async () => {
+  test('should render skeleton when no status lists exist', async () => {
     const store = configureStore({
       reducer: {
         board: boardSlice,
@@ -581,7 +581,7 @@ describe('KanbanBoard Loading States', () => {
     })
   })
 
-  it('should not show skeleton when status lists exist', async () => {
+  test('should not show skeleton when status lists exist', async () => {
     const store = configureStore({
       reducer: {
         board: boardSlice,
@@ -638,7 +638,7 @@ describe('KanbanBoard with Data', () => {
     vi.clearAllMocks()
   })
 
-  it('should render status columns when data is available', async () => {
+  test('should render status columns when data is available', async () => {
     const store = configureStore({
       reducer: {
         board: boardSlice,
@@ -700,7 +700,7 @@ describe('KanbanBoard with Data', () => {
     })
   })
 
-  it('should sort status lists by gridRow then gridCol', async () => {
+  test('should sort status lists by gridRow then gridCol', async () => {
     const store = configureStore({
       reducer: {
         board: boardSlice,
@@ -777,7 +777,7 @@ describe('KanbanBoard Callbacks', () => {
     vi.clearAllMocks()
   })
 
-  it('should pass callbacks to child components', async () => {
+  test('should pass callbacks to child components', async () => {
     const mockOnMoveToMaintenance = vi.fn()
     const mockOnNote = vi.fn()
     const mockOnRemove = vi.fn()
@@ -846,7 +846,7 @@ describe('KanbanBoard Initial Comments', () => {
     vi.clearAllMocks()
   })
 
-  it('should accept initialComments prop', async () => {
+  test('should accept initialComments prop', async () => {
     const store = configureStore({
       reducer: {
         board: boardSlice,
@@ -916,7 +916,7 @@ describe('KanbanBoard Card Display Settings', () => {
     vi.clearAllMocks()
   })
 
-  it('should accept cardDisplaySettings prop', async () => {
+  test('should accept cardDisplaySettings prop', async () => {
     const store = configureStore({
       reducer: {
         board: boardSlice,
@@ -967,7 +967,7 @@ describe('KanbanBoard Card Display Settings', () => {
     })
   })
 
-  it('should accept cardDisplaySettings with showComment disabled', async () => {
+  test('should accept cardDisplaySettings with showComment disabled', async () => {
     const store = configureStore({
       reducer: {
         board: boardSlice,
@@ -1031,7 +1031,7 @@ describe('KanbanBoard Undo Keyboard Shortcut', () => {
     vi.clearAllMocks()
   })
 
-  it('should respond to Z key press for undo', async () => {
+  test('should respond to Z key press for undo', async () => {
     const store = configureStore({
       reducer: {
         board: boardSlice,
@@ -1079,7 +1079,7 @@ describe('KanbanBoard Undo Keyboard Shortcut', () => {
     // This tests the keyboard event handler is registered
   })
 
-  it('should not trigger undo when typing in input field', async () => {
+  test('should not trigger undo when typing in input field', async () => {
     const store = configureStore({
       reducer: {
         board: boardSlice,
@@ -1136,7 +1136,7 @@ describe('KanbanBoard Undo Keyboard Shortcut', () => {
     // Undo should not be triggered when target is input
   })
 
-  it('should respond to uppercase Z key press', async () => {
+  test('should respond to uppercase Z key press', async () => {
     const store = configureStore({
       reducer: {
         board: boardSlice,
@@ -1196,7 +1196,7 @@ describe('KanbanBoard DndContext Configuration', () => {
     vi.clearAllMocks()
   })
 
-  it('should render DndContext wrapper', async () => {
+  test('should render DndContext wrapper', async () => {
     const store = configureStore({
       reducer: {
         board: boardSlice,
@@ -1263,7 +1263,7 @@ describe('KanbanBoard Multi-Row Layout', () => {
     vi.clearAllMocks()
   })
 
-  it('should render multiple rows of columns', async () => {
+  test('should render multiple rows of columns', async () => {
     const store = configureStore({
       reducer: {
         board: boardSlice,
@@ -1331,7 +1331,7 @@ describe('KanbanBoard Multi-Row Layout', () => {
     expect(style).toContain('grid-template-rows')
   })
 
-  it('should calculate grid dimensions for 2x2 layout', async () => {
+  test('should calculate grid dimensions for 2x2 layout', async () => {
     const store = configureStore({
       reducer: {
         board: boardSlice,
@@ -1415,7 +1415,7 @@ describe('KanbanBoard Multi-Row Layout', () => {
  * Tests for internal grid dimension calculation logic
  */
 describe('Grid Dimension Calculation', () => {
-  it('should calculate maxRow and maxCol correctly', () => {
+  test('should calculate maxRow and maxCol correctly', () => {
     // Simulate the calculation logic
     const statuses = [
       { id: toStatusListId('status-1'), gridRow: 0, gridCol: 0 },
@@ -1437,7 +1437,7 @@ describe('Grid Dimension Calculation', () => {
     expect(numCols).toBe(2)
   })
 
-  it('should handle sparse grid positions', () => {
+  test('should handle sparse grid positions', () => {
     // Columns might not fill every grid cell
     const statuses = [
       { id: toStatusListId('status-1'), gridRow: 0, gridCol: 0 },

@@ -11,7 +11,7 @@
  * - labelToValue function
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, test, expect } from 'vitest'
 
 import {
   LINK_TYPE_CATEGORIES,
@@ -25,11 +25,11 @@ import {
 
 describe('link-presets', () => {
   describe('LINK_TYPE_CATEGORIES', () => {
-    it('should have 13 categories', () => {
+    test('should have 13 categories', () => {
       expect(LINK_TYPE_CATEGORIES).toHaveLength(13)
     })
 
-    it('should include all expected categories', () => {
+    test('should include all expected categories', () => {
       const expectedCategories = [
         'Hosting',
         'Cloud',
@@ -50,11 +50,11 @@ describe('link-presets', () => {
   })
 
   describe('LINK_TYPE_PRESETS', () => {
-    it('should have 59 presets', () => {
+    test('should have 59 presets', () => {
       expect(LINK_TYPE_PRESETS).toHaveLength(59)
     })
 
-    it('should have valid preset structure', () => {
+    test('should have valid preset structure', () => {
       for (const preset of LINK_TYPE_PRESETS) {
         expect(preset).toHaveProperty('value')
         expect(preset).toHaveProperty('label')
@@ -67,7 +67,7 @@ describe('link-presets', () => {
       }
     })
 
-    it('should have unique values', () => {
+    test('should have unique values', () => {
       const values = LINK_TYPE_PRESETS.map((p) => p.value)
       const uniqueValues = new Set(values)
       expect(uniqueValues.size).toBe(values.length)
@@ -75,12 +75,12 @@ describe('link-presets', () => {
   })
 
   describe('LINK_TYPE_PRESETS_MAP', () => {
-    it('should be a Map with 59 entries', () => {
+    test('should be a Map with 59 entries', () => {
       expect(LINK_TYPE_PRESETS_MAP).toBeInstanceOf(Map)
       expect(LINK_TYPE_PRESETS_MAP.size).toBe(59)
     })
 
-    it('should allow O(1) lookup by value', () => {
+    test('should allow O(1) lookup by value', () => {
       const vercel = LINK_TYPE_PRESETS_MAP.get('vercel')
       expect(vercel).toBeDefined()
       expect(vercel?.label).toBe('Vercel')
@@ -90,7 +90,7 @@ describe('link-presets', () => {
   })
 
   describe('getPresetsByCategory', () => {
-    it('should return all categories', () => {
+    test('should return all categories', () => {
       const grouped = getPresetsByCategory()
       const keys = Object.keys(grouped)
       expect(keys).toHaveLength(13)
@@ -99,7 +99,7 @@ describe('link-presets', () => {
       }
     })
 
-    it('should group presets correctly', () => {
+    test('should group presets correctly', () => {
       const grouped = getPresetsByCategory()
 
       // Check Hosting has 8 presets
@@ -115,7 +115,7 @@ describe('link-presets', () => {
       expect(grouped.Custom).toHaveLength(0)
     })
 
-    it('should have total presets equal to 59', () => {
+    test('should have total presets equal to 59', () => {
       const grouped = getPresetsByCategory()
       let total = 0
       for (const category of LINK_TYPE_CATEGORIES) {
@@ -126,7 +126,7 @@ describe('link-presets', () => {
   })
 
   describe('findPresetByValue', () => {
-    it('should find existing preset', () => {
+    test('should find existing preset', () => {
       const result = findPresetByValue('vercel')
       expect(result).toBeDefined()
       expect(result?.label).toBe('Vercel')
@@ -134,85 +134,85 @@ describe('link-presets', () => {
       expect(result?.category).toBe('Hosting')
     })
 
-    it('should find preset with kebab-case value', () => {
+    test('should find preset with kebab-case value', () => {
       const result = findPresetByValue('docker-hub')
       expect(result).toBeDefined()
       expect(result?.label).toBe('Docker Hub')
     })
 
-    it('should return undefined for non-existent preset', () => {
+    test('should return undefined for non-existent preset', () => {
       const result = findPresetByValue('non-existent-preset')
       expect(result).toBeUndefined()
     })
 
-    it('should return undefined for empty string', () => {
+    test('should return undefined for empty string', () => {
       const result = findPresetByValue('')
       expect(result).toBeUndefined()
     })
   })
 
   describe('isBuiltInPreset', () => {
-    it('should return true for built-in preset', () => {
+    test('should return true for built-in preset', () => {
       expect(isBuiltInPreset('vercel')).toBe(true)
       expect(isBuiltInPreset('supabase')).toBe(true)
       expect(isBuiltInPreset('stripe')).toBe(true)
     })
 
-    it('should return true for preset with kebab-case', () => {
+    test('should return true for preset with kebab-case', () => {
       expect(isBuiltInPreset('docker-hub')).toBe(true)
       expect(isBuiltInPreset('google-cloud')).toBe(true)
       expect(isBuiltInPreset('lemon-squeezy')).toBe(true)
     })
 
-    it('should return false for non-built-in value', () => {
+    test('should return false for non-built-in value', () => {
       expect(isBuiltInPreset('my-custom-service')).toBe(false)
       expect(isBuiltInPreset('')).toBe(false)
       expect(isBuiltInPreset('random')).toBe(false)
     })
 
-    it('should be case-sensitive', () => {
+    test('should be case-sensitive', () => {
       expect(isBuiltInPreset('Vercel')).toBe(false)
       expect(isBuiltInPreset('VERCEL')).toBe(false)
     })
   })
 
   describe('labelToValue', () => {
-    it('should convert simple label to kebab-case', () => {
+    test('should convert simple label to kebab-case', () => {
       expect(labelToValue('My Service')).toBe('my-service')
     })
 
-    it('should handle multiple spaces', () => {
+    test('should handle multiple spaces', () => {
       expect(labelToValue('My   Custom   Service')).toBe('my-custom-service')
     })
 
-    it('should handle special characters', () => {
+    test('should handle special characters', () => {
       expect(labelToValue('My @Service!')).toBe('my-service')
       expect(labelToValue('Service (v2.0)')).toBe('service-v2-0')
     })
 
-    it('should handle leading and trailing spaces', () => {
+    test('should handle leading and trailing spaces', () => {
       expect(labelToValue('  My Service  ')).toBe('my-service')
     })
 
-    it('should handle numbers', () => {
+    test('should handle numbers', () => {
       expect(labelToValue('Service123')).toBe('service123')
       expect(labelToValue('123 Service')).toBe('123-service')
     })
 
-    it('should handle empty string', () => {
+    test('should handle empty string', () => {
       expect(labelToValue('')).toBe('')
     })
 
-    it('should handle only special characters', () => {
+    test('should handle only special characters', () => {
       expect(labelToValue('@#$%')).toBe('')
     })
 
-    it('should handle mixed case', () => {
+    test('should handle mixed case', () => {
       expect(labelToValue('MyCustomService')).toBe('mycustomservice')
       expect(labelToValue('My CUSTOM Service')).toBe('my-custom-service')
     })
 
-    it('should match docstring example', () => {
+    test('should match docstring example', () => {
       expect(labelToValue('My Custom Service')).toBe('my-custom-service')
     })
   })

@@ -7,7 +7,7 @@
  */
 
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { CreateBoardForm } from '@/app/boards/new/CreateBoardForm'
 
@@ -33,7 +33,7 @@ describe('CreateBoardForm', () => {
   })
 
   describe('Form Input Validation', () => {
-    it('should display board name input', () => {
+    test('should display board name input', () => {
       render(<CreateBoardForm />)
 
       const input = screen.getByPlaceholderText(
@@ -42,14 +42,14 @@ describe('CreateBoardForm', () => {
       expect(input).toBeInTheDocument()
     })
 
-    it('should display character count', () => {
+    test('should display character count', () => {
       render(<CreateBoardForm />)
 
       // Initial count should be 0/50
       expect(screen.getByText('0/50 characters')).toBeInTheDocument()
     })
 
-    it('should update character count when typing', () => {
+    test('should update character count when typing', () => {
       render(<CreateBoardForm />)
 
       const input = screen.getByPlaceholderText(
@@ -60,7 +60,7 @@ describe('CreateBoardForm', () => {
       expect(screen.getByText('10/50 characters')).toBeInTheDocument()
     })
 
-    it('should have autoFocus on board name input', () => {
+    test('should have autoFocus on board name input', () => {
       render(<CreateBoardForm />)
 
       const input = screen.getByPlaceholderText(
@@ -73,14 +73,14 @@ describe('CreateBoardForm', () => {
   })
 
   describe('Form Buttons', () => {
-    it('should display Cancel button', () => {
+    test('should display Cancel button', () => {
       render(<CreateBoardForm />)
 
       const cancelButton = screen.getByRole('button', { name: /cancel/i })
       expect(cancelButton).toBeInTheDocument()
     })
 
-    it('should display Create Board button', () => {
+    test('should display Create Board button', () => {
       render(<CreateBoardForm />)
 
       const createButton = screen.getByRole('button', {
@@ -89,7 +89,7 @@ describe('CreateBoardForm', () => {
       expect(createButton).toBeInTheDocument()
     })
 
-    it('should call router.back when Cancel is clicked', () => {
+    test('should call router.back when Cancel is clicked', () => {
       render(<CreateBoardForm />)
 
       const cancelButton = screen.getByRole('button', { name: /cancel/i })

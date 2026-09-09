@@ -11,7 +11,7 @@
  * - All selectors with hydration safety
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, test, expect } from 'vitest'
 
 import type { ThemeType } from '@/lib/constants/themes'
 import settingsSlice, {
@@ -47,7 +47,7 @@ describe('settingsSlice', () => {
   }
 
   describe('setTheme action', () => {
-    it('should set theme to dark', () => {
+    test('should set theme to dark', () => {
       const action = setTheme('dark')
 
       const nextState = settingsSlice(initialState, action)
@@ -55,7 +55,7 @@ describe('settingsSlice', () => {
       expect(nextState.theme).toBe('dark')
     })
 
-    it('should set theme to light', () => {
+    test('should set theme to light', () => {
       const action = setTheme('default')
 
       const nextState = settingsSlice(initialState, action)
@@ -63,7 +63,7 @@ describe('settingsSlice', () => {
       expect(nextState.theme).toBe('default')
     })
 
-    it('should set theme to a named theme', () => {
+    test('should set theme to a named theme', () => {
       const action = setTheme('midnight')
 
       const nextState = settingsSlice(initialState, action)
@@ -71,7 +71,7 @@ describe('settingsSlice', () => {
       expect(nextState.theme).toBe('midnight')
     })
 
-    it('should set theme to sunrise', () => {
+    test('should set theme to sunrise', () => {
       const action = setTheme('sunrise')
 
       const nextState = settingsSlice(initialState, action)
@@ -79,7 +79,7 @@ describe('settingsSlice', () => {
       expect(nextState.theme).toBe('sunrise')
     })
 
-    it('should not affect other settings when changing theme', () => {
+    test('should not affect other settings when changing theme', () => {
       const modifiedState = {
         ...initialState,
         compactMode: true,
@@ -96,7 +96,7 @@ describe('settingsSlice', () => {
   })
 
   describe('setCompactMode action', () => {
-    it('should enable compact mode', () => {
+    test('should enable compact mode', () => {
       const action = setCompactMode(true)
 
       const nextState = settingsSlice(initialState, action)
@@ -104,7 +104,7 @@ describe('settingsSlice', () => {
       expect(nextState.compactMode).toBe(true)
     })
 
-    it('should disable compact mode', () => {
+    test('should disable compact mode', () => {
       const enabledState = { ...initialState, compactMode: true }
       const action = setCompactMode(false)
 
@@ -115,7 +115,7 @@ describe('settingsSlice', () => {
   })
 
   describe('setShowCardMetadata action', () => {
-    it('should hide card metadata', () => {
+    test('should hide card metadata', () => {
       const action = setShowCardMetadata(false)
 
       const nextState = settingsSlice(initialState, action)
@@ -123,7 +123,7 @@ describe('settingsSlice', () => {
       expect(nextState.showCardMetadata).toBe(false)
     })
 
-    it('should show card metadata', () => {
+    test('should show card metadata', () => {
       const hiddenState = { ...initialState, showCardMetadata: false }
       const action = setShowCardMetadata(true)
 
@@ -134,7 +134,7 @@ describe('settingsSlice', () => {
   })
 
   describe('setOrganizationFilter action', () => {
-    it('should set organization filter to specific org', () => {
+    test('should set organization filter to specific org', () => {
       const action = setOrganizationFilter('laststance')
 
       const nextState = settingsSlice(initialState, action)
@@ -142,7 +142,7 @@ describe('settingsSlice', () => {
       expect(nextState.organizationFilter).toBe('laststance')
     })
 
-    it('should reset organization filter to all', () => {
+    test('should reset organization filter to all', () => {
       const filteredState = {
         ...initialState,
         organizationFilter: 'laststance',
@@ -154,7 +154,7 @@ describe('settingsSlice', () => {
       expect(nextState.organizationFilter).toBe('all')
     })
 
-    it('should handle personal username', () => {
+    test('should handle personal username', () => {
       const action = setOrganizationFilter('ryotamurakami')
 
       const nextState = settingsSlice(initialState, action)
@@ -164,7 +164,7 @@ describe('settingsSlice', () => {
   })
 
   describe('setSidebarCollapsed action', () => {
-    it('should collapse sidebar', () => {
+    test('should collapse sidebar', () => {
       const action = setSidebarCollapsed(true)
 
       const nextState = settingsSlice(initialState, action)
@@ -172,7 +172,7 @@ describe('settingsSlice', () => {
       expect(nextState.sidebarCollapsed).toBe(true)
     })
 
-    it('should expand sidebar', () => {
+    test('should expand sidebar', () => {
       const collapsedState = { ...initialState, sidebarCollapsed: true }
       const action = setSidebarCollapsed(false)
 
@@ -183,7 +183,7 @@ describe('settingsSlice', () => {
   })
 
   describe('toggleSidebarCollapsed action', () => {
-    it('should toggle sidebar from expanded to collapsed', () => {
+    test('should toggle sidebar from expanded to collapsed', () => {
       const action = toggleSidebarCollapsed()
 
       const nextState = settingsSlice(initialState, action)
@@ -191,7 +191,7 @@ describe('settingsSlice', () => {
       expect(nextState.sidebarCollapsed).toBe(true)
     })
 
-    it('should toggle sidebar from collapsed to expanded', () => {
+    test('should toggle sidebar from collapsed to expanded', () => {
       const collapsedState = { ...initialState, sidebarCollapsed: true }
       const action = toggleSidebarCollapsed()
 
@@ -200,7 +200,7 @@ describe('settingsSlice', () => {
       expect(nextState.sidebarCollapsed).toBe(false)
     })
 
-    it('should toggle multiple times correctly', () => {
+    test('should toggle multiple times correctly', () => {
       let state: SettingsState = initialState
 
       state = settingsSlice(state, toggleSidebarCollapsed())
@@ -216,7 +216,7 @@ describe('settingsSlice', () => {
 
   describe('Selectors', () => {
     describe('selectTheme', () => {
-      it('should return theme value', () => {
+      test('should return theme value', () => {
         const rootState = {
           settings: { ...initialState, theme: 'dark' as const },
         }
@@ -226,7 +226,7 @@ describe('settingsSlice', () => {
         expect(result).toBe('dark')
       })
 
-      it('should return system as default during hydration', () => {
+      test('should return system as default during hydration', () => {
         // Simulating state during hydration where settings might be undefined
         const rootState = { settings: undefined } as any
 
@@ -235,7 +235,7 @@ describe('settingsSlice', () => {
         expect(result).toBe('system')
       })
 
-      it('should return system when settings exists but theme is undefined', () => {
+      test('should return system when settings exists but theme is undefined', () => {
         // Edge case: settings object exists but theme property is undefined
         const rootState = { settings: { theme: undefined } } as any
 
@@ -246,7 +246,7 @@ describe('settingsSlice', () => {
     })
 
     describe('selectCompactMode', () => {
-      it('should return compact mode setting', () => {
+      test('should return compact mode setting', () => {
         const rootState = { settings: { ...initialState, compactMode: true } }
 
         const result = selectCompactMode(rootState)
@@ -256,7 +256,7 @@ describe('settingsSlice', () => {
     })
 
     describe('selectShowCardMetadata', () => {
-      it('should return show card metadata setting', () => {
+      test('should return show card metadata setting', () => {
         const rootState = {
           settings: { ...initialState, showCardMetadata: false },
         }
@@ -268,7 +268,7 @@ describe('settingsSlice', () => {
     })
 
     describe('selectOrganizationFilter', () => {
-      it('should return organization filter', () => {
+      test('should return organization filter', () => {
         const rootState = {
           settings: { ...initialState, organizationFilter: 'laststance' },
         }
@@ -278,7 +278,7 @@ describe('settingsSlice', () => {
         expect(result).toBe('laststance')
       })
 
-      it('should return all as default during hydration', () => {
+      test('should return all as default during hydration', () => {
         const rootState = { settings: undefined } as any
 
         const result = selectOrganizationFilter(rootState)
@@ -286,7 +286,7 @@ describe('settingsSlice', () => {
         expect(result).toBe('all')
       })
 
-      it('should return all when settings exists but organizationFilter is undefined', () => {
+      test('should return all when settings exists but organizationFilter is undefined', () => {
         const rootState = { settings: { organizationFilter: undefined } } as any
 
         const result = selectOrganizationFilter(rootState)
@@ -296,7 +296,7 @@ describe('settingsSlice', () => {
     })
 
     describe('selectSidebarCollapsed', () => {
-      it('should return sidebar collapsed state', () => {
+      test('should return sidebar collapsed state', () => {
         const rootState = {
           settings: { ...initialState, sidebarCollapsed: true },
         }
@@ -306,7 +306,7 @@ describe('settingsSlice', () => {
         expect(result).toBe(true)
       })
 
-      it('should return false as default during hydration', () => {
+      test('should return false as default during hydration', () => {
         const rootState = { settings: undefined } as any
 
         const result = selectSidebarCollapsed(rootState)
@@ -314,7 +314,7 @@ describe('settingsSlice', () => {
         expect(result).toBe(false)
       })
 
-      it('should return false when settings exists but sidebarCollapsed is undefined', () => {
+      test('should return false when settings exists but sidebarCollapsed is undefined', () => {
         const rootState = { settings: { sidebarCollapsed: undefined } } as any
 
         const result = selectSidebarCollapsed(rootState)

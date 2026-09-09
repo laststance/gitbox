@@ -13,7 +13,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { Provider } from 'react-redux'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { Sidebar } from '@/components/Sidebar/Sidebar'
 import settingsReducer from '@/lib/redux/slices/settingsSlice'
@@ -79,20 +79,20 @@ describe('Sidebar', () => {
   })
 
   describe('Expanded State', () => {
-    it('should render with w-64 width class when expanded', () => {
+    test('should render with w-64 width class when expanded', () => {
       renderSidebar()
 
       const sidebar = screen.getByRole('complementary')
       expect(sidebar).toHaveClass('w-64')
     })
 
-    it('should display GitBox logo text when expanded', () => {
+    test('should display GitBox logo text when expanded', () => {
       renderSidebar()
 
       expect(screen.getByText('GitBox')).toBeInTheDocument()
     })
 
-    it('should display full navigation labels when expanded', () => {
+    test('should display full navigation labels when expanded', () => {
       renderSidebar()
 
       expect(screen.getByText('All Boards')).toBeInTheDocument()
@@ -102,19 +102,19 @@ describe('Sidebar', () => {
       expect(screen.getByText('Shortcuts')).toBeInTheDocument()
     })
 
-    it('should display user name when expanded', () => {
+    test('should display user name when expanded', () => {
       renderSidebar({ userName: 'testuser' })
 
       expect(screen.getByText('testuser')).toBeInTheDocument()
     })
 
-    it('should display "Sign out" button text when expanded', () => {
+    test('should display "Sign out" button text when expanded', () => {
       renderSidebar()
 
       expect(screen.getByText('Sign out')).toBeInTheDocument()
     })
 
-    it('should display collapsible Boards section header when expanded', () => {
+    test('should display collapsible Boards section header when expanded', () => {
       renderSidebar()
 
       expect(screen.getByText('Boards')).toBeInTheDocument()
@@ -122,20 +122,20 @@ describe('Sidebar', () => {
   })
 
   describe('Collapsed State', () => {
-    it('should render with w-16 width class when collapsed', () => {
+    test('should render with w-16 width class when collapsed', () => {
       renderSidebar({}, true)
 
       const sidebar = screen.getByRole('complementary')
       expect(sidebar).toHaveClass('w-16')
     })
 
-    it('should NOT display GitBox logo text when collapsed', () => {
+    test('should NOT display GitBox logo text when collapsed', () => {
       renderSidebar({}, true)
 
       expect(screen.queryByText('GitBox')).not.toBeInTheDocument()
     })
 
-    it('should NOT display navigation labels when collapsed', () => {
+    test('should NOT display navigation labels when collapsed', () => {
       renderSidebar({}, true)
 
       // These should be in tooltips only, not visible text
@@ -143,20 +143,20 @@ describe('Sidebar', () => {
       expect(screen.queryByText('Favorites')).not.toBeInTheDocument()
     })
 
-    it('should NOT display Boards section header when collapsed', () => {
+    test('should NOT display Boards section header when collapsed', () => {
       renderSidebar({}, true)
 
       expect(screen.queryByText('Boards')).not.toBeInTheDocument()
     })
 
-    it('should NOT display user name text when collapsed', () => {
+    test('should NOT display user name text when collapsed', () => {
       renderSidebar({ userName: 'testuser' }, true)
 
       // User name should only be in tooltip
       expect(screen.queryByText('testuser')).not.toBeInTheDocument()
     })
 
-    it('should NOT display "Sign out" text when collapsed', () => {
+    test('should NOT display "Sign out" text when collapsed', () => {
       renderSidebar({}, true)
 
       expect(screen.queryByText('Sign out')).not.toBeInTheDocument()
@@ -164,7 +164,7 @@ describe('Sidebar', () => {
   })
 
   describe('Toggle Button', () => {
-    it('should display toggle button', () => {
+    test('should display toggle button', () => {
       renderSidebar()
 
       const toggleButton = screen.getByRole('button', {
@@ -173,7 +173,7 @@ describe('Sidebar', () => {
       expect(toggleButton).toBeInTheDocument()
     })
 
-    it('should have "Expand sidebar" label when collapsed', () => {
+    test('should have "Expand sidebar" label when collapsed', () => {
       renderSidebar({}, true)
 
       const toggleButton = screen.getByRole('button', {
@@ -182,7 +182,7 @@ describe('Sidebar', () => {
       expect(toggleButton).toBeInTheDocument()
     })
 
-    it('should dispatch toggle action when clicked', () => {
+    test('should dispatch toggle action when clicked', () => {
       const { store } = renderSidebar()
 
       const toggleButton = screen.getByRole('button', {
@@ -193,7 +193,7 @@ describe('Sidebar', () => {
       expect(store.getState().settings.sidebarCollapsed).toBe(true)
     })
 
-    it('should toggle from collapsed to expanded', () => {
+    test('should toggle from collapsed to expanded', () => {
       const { store } = renderSidebar({}, true)
 
       const toggleButton = screen.getByRole('button', {
@@ -206,35 +206,35 @@ describe('Sidebar', () => {
   })
 
   describe('Navigation Links', () => {
-    it('should render All Boards link', () => {
+    test('should render All Boards link', () => {
       renderSidebar()
 
       const link = screen.getByRole('link', { name: /all boards/i })
       expect(link).toHaveAttribute('href', '/boards')
     })
 
-    it('should render Favorites link', () => {
+    test('should render Favorites link', () => {
       renderSidebar()
 
       const link = screen.getByRole('link', { name: /favorites/i })
       expect(link).toHaveAttribute('href', '/boards/favorites')
     })
 
-    it('should render Maintenance Mode link', () => {
+    test('should render Maintenance Mode link', () => {
       renderSidebar()
 
       const link = screen.getByRole('link', { name: /maintenance mode/i })
       expect(link).toHaveAttribute('href', '/maintenance')
     })
 
-    it('should render Settings link', () => {
+    test('should render Settings link', () => {
       renderSidebar()
 
       const link = screen.getByRole('link', { name: /settings/i })
       expect(link).toHaveAttribute('href', '/settings')
     })
 
-    it('should highlight active link', () => {
+    test('should highlight active link', () => {
       renderSidebar()
 
       // /boards is mocked as current path
@@ -244,14 +244,14 @@ describe('Sidebar', () => {
   })
 
   describe('Shortcuts Button', () => {
-    it('should render Shortcuts button', () => {
+    test('should render Shortcuts button', () => {
       renderSidebar()
 
       const button = screen.getByRole('button', { name: /shortcuts/i })
       expect(button).toBeInTheDocument()
     })
 
-    it('should call openShortcutsHelp when clicked', async () => {
+    test('should call openShortcutsHelp when clicked', async () => {
       const { openShortcutsHelp } = await import('@/lib/events')
       renderSidebar()
 
@@ -263,7 +263,7 @@ describe('Sidebar', () => {
   })
 
   describe('User Profile Section', () => {
-    it('should render user avatar when provided', () => {
+    test('should render user avatar when provided', () => {
       renderSidebar({
         userName: 'octocat',
         userAvatar: 'https://avatars.githubusercontent.com/u/1?v=4',
@@ -273,7 +273,7 @@ describe('Sidebar', () => {
       expect(avatar).toBeInTheDocument()
     })
 
-    it('should render fallback icon when no avatar provided', () => {
+    test('should render fallback icon when no avatar provided', () => {
       renderSidebar({ userName: 'testuser' })
 
       // Fallback div with User icon should be present
@@ -281,14 +281,14 @@ describe('Sidebar', () => {
       expect(profileLink).toBeInTheDocument()
     })
 
-    it('should render account link', () => {
+    test('should render account link', () => {
       renderSidebar()
 
       const accountLink = screen.getByRole('link', { name: /octocat/i })
       expect(accountLink).toHaveAttribute('href', '/account')
     })
 
-    it('should render sign out button', () => {
+    test('should render sign out button', () => {
       renderSidebar()
 
       // In expanded mode, there's a button with "Sign out" text
@@ -296,7 +296,7 @@ describe('Sidebar', () => {
       expect(signOutButton).toBeInTheDocument()
     })
 
-    it('should call signOut when sign out button is clicked', async () => {
+    test('should call signOut when sign out button is clicked', async () => {
       const { signOut } = await import('@/lib/actions/auth')
       renderSidebar()
 
@@ -308,7 +308,7 @@ describe('Sidebar', () => {
   })
 
   describe('ThemeToggle Integration', () => {
-    it('should render ThemeToggle component', () => {
+    test('should render ThemeToggle component', () => {
       renderSidebar()
 
       // Theme toggle shows "Theme" text when expanded
@@ -317,21 +317,21 @@ describe('Sidebar', () => {
   })
 
   describe('Accessibility', () => {
-    it('should have complementary role for aside element', () => {
+    test('should have complementary role for aside element', () => {
       renderSidebar()
 
       const sidebar = screen.getByRole('complementary')
       expect(sidebar).toBeInTheDocument()
     })
 
-    it('should have navigation element', () => {
+    test('should have navigation element', () => {
       renderSidebar()
 
       const nav = screen.getByRole('navigation')
       expect(nav).toBeInTheDocument()
     })
 
-    it('should have proper aria-label on toggle button', () => {
+    test('should have proper aria-label on toggle button', () => {
       renderSidebar()
 
       const toggleButton = screen.getByRole('button', {
@@ -340,7 +340,7 @@ describe('Sidebar', () => {
       expect(toggleButton).toHaveAttribute('aria-label', 'Collapse sidebar')
     })
 
-    it('should have proper aria-label on sign out button', () => {
+    test('should have proper aria-label on sign out button', () => {
       renderSidebar({}, true)
 
       const signOutButton = screen.getByRole('button', { name: /sign out/i })
@@ -349,7 +349,7 @@ describe('Sidebar', () => {
   })
 
   describe('CSS Transition', () => {
-    it('should have transition classes for width animation', () => {
+    test('should have transition classes for width animation', () => {
       renderSidebar()
 
       const sidebar = screen.getByRole('complementary')
@@ -360,7 +360,7 @@ describe('Sidebar', () => {
   })
 
   describe('Boards Section Toggle', () => {
-    it('should toggle Boards section when header is clicked', () => {
+    test('should toggle Boards section when header is clicked', () => {
       renderSidebar()
 
       // Initially both nav items should be visible

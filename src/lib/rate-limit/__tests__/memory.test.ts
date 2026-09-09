@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { SlidingWindowLimiter } from '../memory'
 
@@ -14,7 +14,7 @@ describe('SlidingWindowLimiter', () => {
     vi.useRealTimers()
   })
 
-  it('allows requests within the limit', () => {
+  test('allows requests within the limit', () => {
     limiter = new SlidingWindowLimiter(3, 60_000) // 3 req/min
 
     expect(limiter.check('user-1')).toBe(true)
@@ -22,7 +22,7 @@ describe('SlidingWindowLimiter', () => {
     expect(limiter.check('user-1')).toBe(true)
   })
 
-  it('blocks requests exceeding the limit', () => {
+  test('blocks requests exceeding the limit', () => {
     limiter = new SlidingWindowLimiter(2, 60_000) // 2 req/min
 
     expect(limiter.check('user-1')).toBe(true)
@@ -30,7 +30,7 @@ describe('SlidingWindowLimiter', () => {
     expect(limiter.check('user-1')).toBe(false) // 3rd request blocked
   })
 
-  it('resets after the window expires', () => {
+  test('resets after the window expires', () => {
     limiter = new SlidingWindowLimiter(2, 60_000) // 2 req/min
 
     expect(limiter.check('user-1')).toBe(true)
@@ -43,7 +43,7 @@ describe('SlidingWindowLimiter', () => {
     expect(limiter.check('user-1')).toBe(true) // allowed again
   })
 
-  it('tracks separate identifiers independently', () => {
+  test('tracks separate identifiers independently', () => {
     limiter = new SlidingWindowLimiter(1, 60_000) // 1 req/min
 
     expect(limiter.check('user-1')).toBe(true)
@@ -52,7 +52,7 @@ describe('SlidingWindowLimiter', () => {
     expect(limiter.check('user-2')).toBe(true) // user-2 independent
   })
 
-  it('uses sliding window (partial expiry)', () => {
+  test('uses sliding window (partial expiry)', () => {
     limiter = new SlidingWindowLimiter(2, 60_000) // 2 req/min
 
     // t=0s: first request
@@ -70,7 +70,7 @@ describe('SlidingWindowLimiter', () => {
     expect(limiter.check('user-1')).toBe(true)
   })
 
-  it('cleans up expired entries', () => {
+  test('cleans up expired entries', () => {
     limiter = new SlidingWindowLimiter(1, 1_000) // 1 req/sec
 
     limiter.check('user-1')

@@ -13,7 +13,7 @@
 import axios from 'axios'
 import { cookies } from 'next/headers'
 import type * as NextHeaders from 'next/headers'
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import type * as CookiesModule from '@/lib/constants/cookies'
 
@@ -83,7 +83,7 @@ describe('GitHub Server Actions: errorCode=GITHUB_TOKEN_MISSING', () => {
     vi.clearAllMocks()
   })
 
-  it('prompts silent re-auth when the repository catalog opens without a GitHub cookie', async () => {
+  test('prompts silent re-auth when the repository catalog opens without a GitHub cookie', async () => {
     // Arrange
     const { getAuthenticatedRepositoryCatalog } =
       await import('@/lib/actions/github')
@@ -99,7 +99,7 @@ describe('GitHub Server Actions: errorCode=GITHUB_TOKEN_MISSING', () => {
     })
   })
 
-  it('deletes a revoked token cookie and returns the stable expiry message after live validation responds 401', async () => {
+  test('deletes a revoked token cookie and returns the stable expiry message after live validation responds 401', async () => {
     // Arrange
     const requestConfig = {
       headers: new axios.AxiosHeaders({

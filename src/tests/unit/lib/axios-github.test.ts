@@ -10,7 +10,7 @@
 
 import axios from 'axios'
 import { cookies } from 'next/headers'
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { deleteGitHubTokenCookie } from '@/lib/constants/cookies'
 import type * as CookiesModule from '@/lib/constants/cookies'
@@ -46,14 +46,14 @@ describe('axios-github', () => {
   })
 
   describe('createGitHubAxios', () => {
-    it('should create an axios instance with correct base URL', async () => {
+    test('should create an axios instance with correct base URL', async () => {
       const { createGitHubAxios } = await import('@/lib/axios-github')
       const instance = createGitHubAxios()
 
       expect(instance.defaults.baseURL).toBe('https://api.github.com')
     })
 
-    it('should set correct default headers', async () => {
+    test('should set correct default headers', async () => {
       const { createGitHubAxios } = await import('@/lib/axios-github')
       const instance = createGitHubAxios()
 
@@ -66,14 +66,14 @@ describe('axios-github', () => {
       )
     })
 
-    it('should set 10 second timeout', async () => {
+    test('should set 10 second timeout', async () => {
       const { createGitHubAxios } = await import('@/lib/axios-github')
       const instance = createGitHubAxios()
 
       expect(instance.defaults.timeout).toBe(10000)
     })
 
-    it('should add request interceptor', async () => {
+    test('should add request interceptor', async () => {
       const { createGitHubAxios } = await import('@/lib/axios-github')
       const instance = createGitHubAxios()
 
@@ -81,7 +81,7 @@ describe('axios-github', () => {
       expect(instance.interceptors.request).toBeDefined()
     })
 
-    it('uses an explicit cached-loader token without reading request cookies', async () => {
+    test('uses an explicit cached-loader token without reading request cookies', async () => {
       // Arrange
       process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK = 'false'
       process.env.APP_ENV = 'production'
@@ -126,7 +126,7 @@ describe('axios-github', () => {
         process.env.APP_ENV = 'test'
       })
 
-      it('should add mock token header in test mode', async () => {
+      test('should add mock token header in test mode', async () => {
         vi.resetModules()
         const { createGitHubAxios } = await import('@/lib/axios-github')
         const instance = createGitHubAxios()
@@ -154,7 +154,7 @@ describe('axios-github', () => {
         process.env.APP_ENV = 'production'
       })
 
-      it('should read token from cookies', async () => {
+      test('should read token from cookies', async () => {
         const mockCookieStore = {
           get: vi.fn().mockReturnValue({ value: 'real-github-token' }),
         }
@@ -176,7 +176,7 @@ describe('axios-github', () => {
         expect(result.headers.Authorization).toBe('Bearer real-github-token')
       })
 
-      it('should not add Authorization header when no token', async () => {
+      test('should not add Authorization header when no token', async () => {
         const mockCookieStore = {
           get: vi.fn().mockReturnValue(undefined),
         }
@@ -201,7 +201,7 @@ describe('axios-github', () => {
   })
 
   describe('getGitHubToken', () => {
-    it('returns the MSW token only when the explicit E2E flags are enabled', async () => {
+    test('returns the MSW token only when the explicit E2E flags are enabled', async () => {
       // Arrange
       process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK = 'true'
       process.env.APP_ENV = 'test'
@@ -216,7 +216,7 @@ describe('axios-github', () => {
       expect(cookies).not.toHaveBeenCalled()
     })
 
-    it('returns the provider token from the request cookie in production', async () => {
+    test('returns the provider token from the request cookie in production', async () => {
       // Arrange
       process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK = 'false'
       process.env.APP_ENV = 'production'
@@ -243,7 +243,7 @@ describe('axios-github', () => {
         process.env.APP_ENV = 'test'
       })
 
-      it('should return true in test mode', async () => {
+      test('should return true in test mode', async () => {
         vi.resetModules()
         const { hasGitHubToken } = await import('@/lib/axios-github')
 
@@ -252,7 +252,7 @@ describe('axios-github', () => {
         expect(result).toBe(true)
       })
 
-      it('should NOT treat NODE_ENV=test alone as test mode (requires APP_ENV=test)', async () => {
+      test('should NOT treat NODE_ENV=test alone as test mode (requires APP_ENV=test)', async () => {
         // Vitest/Jest default NODE_ENV to 'test' — trusting it as a signal
         // would accidentally enable the mock-token path in unit tests that
         // run against production code. Gate must require APP_ENV=test too.
@@ -285,7 +285,7 @@ describe('axios-github', () => {
           'production'
       })
 
-      it('should return true when token exists', async () => {
+      test('should return true when token exists', async () => {
         const mockCookieStore = {
           get: vi.fn().mockReturnValue({ value: 'github-token' }),
         }
@@ -299,7 +299,7 @@ describe('axios-github', () => {
         expect(result).toBe(true)
       })
 
-      it('should return false when token does not exist', async () => {
+      test('should return false when token does not exist', async () => {
         const mockCookieStore = {
           get: vi.fn().mockReturnValue(undefined),
         }
@@ -313,7 +313,7 @@ describe('axios-github', () => {
         expect(result).toBe(false)
       })
 
-      it('should return false when token value is empty', async () => {
+      test('should return false when token value is empty', async () => {
         const mockCookieStore = {
           get: vi.fn().mockReturnValue({ value: '' }),
         }
@@ -360,7 +360,7 @@ describe('axios-github', () => {
       )
     }
 
-    it('clears the GitHub cookie when the API responds 401', async () => {
+    test('clears the GitHub cookie when the API responds 401', async () => {
       vi.resetModules()
       const { createGitHubAxios } = await import('@/lib/axios-github')
       const instance = createGitHubAxios()
@@ -373,7 +373,7 @@ describe('axios-github', () => {
       expect(deleteGitHubTokenCookie).toHaveBeenCalledTimes(1)
     })
 
-    it('does NOT clear the cookie on non-401 errors (403, 404, 500)', async () => {
+    test('does NOT clear the cookie on non-401 errors (403, 404, 500)', async () => {
       vi.resetModules()
       const { createGitHubAxios } = await import('@/lib/axios-github')
       const instance = createGitHubAxios()
@@ -390,7 +390,7 @@ describe('axios-github', () => {
       expect(deleteGitHubTokenCookie).not.toHaveBeenCalled()
     })
 
-    it('does NOT clear the cookie on non-axios errors (network drop, timeout)', async () => {
+    test('does NOT clear the cookie on non-axios errors (network drop, timeout)', async () => {
       vi.resetModules()
       const { createGitHubAxios } = await import('@/lib/axios-github')
       const instance = createGitHubAxios()
@@ -404,7 +404,7 @@ describe('axios-github', () => {
       expect(deleteGitHubTokenCookie).not.toHaveBeenCalled()
     })
 
-    it('still rejects the original error when cookie deletion throws', async () => {
+    test('still rejects the original error when cookie deletion throws', async () => {
       vi.mocked(deleteGitHubTokenCookie).mockRejectedValueOnce(
         new Error('cookie store unavailable in static generation'),
       )
@@ -419,7 +419,7 @@ describe('axios-github', () => {
       await expect(rejectedHandler(original)).rejects.toBe(original)
     })
 
-    it('preserves request cookies when a cached loader handles a 401 outside the interceptor', async () => {
+    test('preserves request cookies when a cached loader handles a 401 outside the interceptor', async () => {
       // Arrange
       vi.resetModules()
       const { createGitHubAxios } = await import('@/lib/axios-github')

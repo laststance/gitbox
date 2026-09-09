@@ -12,7 +12,7 @@
 
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { CommentInlineEdit } from '@/components/Board/CommentInlineEdit'
 
@@ -59,14 +59,14 @@ describe('CommentInlineEdit', () => {
   }
 
   describe('Basic Rendering', () => {
-    it('should render textarea with initial value', () => {
+    test('should render textarea with initial value', () => {
       render(<CommentInlineEdit {...defaultProps} />)
 
       const textarea = screen.getByTestId('comment-textarea')
       expect(textarea).toHaveValue('Initial comment')
     })
 
-    it('should render character counter', () => {
+    test('should render character counter', () => {
       render(<CommentInlineEdit {...defaultProps} />)
 
       expect(screen.getByTestId('character-counter')).toHaveTextContent(
@@ -74,20 +74,20 @@ describe('CommentInlineEdit', () => {
       )
     })
 
-    it('should render save button', () => {
+    test('should render save button', () => {
       render(<CommentInlineEdit {...defaultProps} />)
 
       expect(screen.getByTestId('comment-save-btn')).toBeInTheDocument()
     })
 
-    it('should auto-focus textarea by default', () => {
+    test('should auto-focus textarea by default', () => {
       render(<CommentInlineEdit {...defaultProps} />)
 
       const textarea = screen.getByTestId('comment-textarea')
       expect(document.activeElement).toBe(textarea)
     })
 
-    it('should not auto-focus when autoFocus is false', () => {
+    test('should not auto-focus when autoFocus is false', () => {
       render(<CommentInlineEdit {...defaultProps} autoFocus={false} />)
 
       const textarea = screen.getByTestId('comment-textarea')
@@ -96,7 +96,7 @@ describe('CommentInlineEdit', () => {
   })
 
   describe('Character Counter States', () => {
-    it('should show normal counter when under warning threshold', () => {
+    test('should show normal counter when under warning threshold', () => {
       render(
         <CommentInlineEdit {...defaultProps} initialValue={'a'.repeat(100)} />,
       )
@@ -106,7 +106,7 @@ describe('CommentInlineEdit', () => {
       expect(counter).toHaveClass('text-muted-foreground')
     })
 
-    it('should show warning color when at warning threshold (270+)', () => {
+    test('should show warning color when at warning threshold (270+)', () => {
       render(
         <CommentInlineEdit
           {...defaultProps}
@@ -120,7 +120,7 @@ describe('CommentInlineEdit', () => {
       expect(counter).toHaveClass('text-orange-500')
     })
 
-    it('should show error color when over limit (300+)', () => {
+    test('should show error color when over limit (300+)', () => {
       render(
         <CommentInlineEdit
           {...defaultProps}
@@ -134,7 +134,7 @@ describe('CommentInlineEdit', () => {
       expect(counter).toHaveClass('text-destructive')
     })
 
-    it('should support custom maxLength', () => {
+    test('should support custom maxLength', () => {
       render(
         <CommentInlineEdit
           {...defaultProps}
@@ -149,7 +149,7 @@ describe('CommentInlineEdit', () => {
   })
 
   describe('Save Functionality', () => {
-    it('should call onSave with closeOnSave:true when save button is clicked', async () => {
+    test('should call onSave with closeOnSave:true when save button is clicked', async () => {
       const user = userEvent.setup()
       render(<CommentInlineEdit {...defaultProps} />)
 
@@ -167,7 +167,7 @@ describe('CommentInlineEdit', () => {
       })
     })
 
-    it('should not save when value has not changed', async () => {
+    test('should not save when value has not changed', async () => {
       const user = userEvent.setup()
       render(<CommentInlineEdit {...defaultProps} />)
 
@@ -177,7 +177,7 @@ describe('CommentInlineEdit', () => {
       expect(mockOnCancel).toHaveBeenCalled()
     })
 
-    it('should disable save button when over character limit', () => {
+    test('should disable save button when over character limit', () => {
       render(
         <CommentInlineEdit
           {...defaultProps}
@@ -190,7 +190,7 @@ describe('CommentInlineEdit', () => {
       expect(saveBtn).toBeDisabled()
     })
 
-    it('should disable save button while saving', async () => {
+    test('should disable save button while saving', async () => {
       // Make onSave hang
       mockOnSave.mockImplementation(
         async () => new Promise((resolve) => setTimeout(resolve, 1000)),
@@ -214,7 +214,7 @@ describe('CommentInlineEdit', () => {
   })
 
   describe('Keyboard Shortcuts', () => {
-    it('should save and close when Enter is pressed (without Shift)', async () => {
+    test('should save and close when Enter is pressed (without Shift)', async () => {
       const user = userEvent.setup()
       render(<CommentInlineEdit {...defaultProps} initialValue="Original" />)
 
@@ -230,7 +230,7 @@ describe('CommentInlineEdit', () => {
       })
     })
 
-    it('should allow newlines when Shift+Enter is pressed', async () => {
+    test('should allow newlines when Shift+Enter is pressed', async () => {
       const user = userEvent.setup()
       render(<CommentInlineEdit {...defaultProps} />)
 
@@ -242,7 +242,7 @@ describe('CommentInlineEdit', () => {
       expect(mockOnSave).not.toHaveBeenCalled()
     })
 
-    it('should cancel when Escape is pressed', async () => {
+    test('should cancel when Escape is pressed', async () => {
       render(<CommentInlineEdit {...defaultProps} />)
 
       const textarea = screen.getByTestId('comment-textarea')
@@ -251,7 +251,7 @@ describe('CommentInlineEdit', () => {
       expect(mockOnCancel).toHaveBeenCalled()
     })
 
-    it('should stop event propagation to prevent DnD interference', () => {
+    test('should stop event propagation to prevent DnD interference', () => {
       render(<CommentInlineEdit {...defaultProps} />)
 
       const container = screen.getByTestId('comment-inline-edit')
@@ -265,7 +265,7 @@ describe('CommentInlineEdit', () => {
   })
 
   describe('Auto-save on Blur', () => {
-    it('should auto-save when focus is lost', async () => {
+    test('should auto-save when focus is lost', async () => {
       const user = userEvent.setup()
       render(<CommentInlineEdit {...defaultProps} initialValue="Original" />)
 
@@ -283,7 +283,7 @@ describe('CommentInlineEdit', () => {
       })
     })
 
-    it('should not auto-save if focus moves to save button', async () => {
+    test('should not auto-save if focus moves to save button', async () => {
       const user = userEvent.setup()
       render(<CommentInlineEdit {...defaultProps} initialValue="Original" />)
 
@@ -300,7 +300,7 @@ describe('CommentInlineEdit', () => {
       expect(mockOnSave).not.toHaveBeenCalled()
     })
 
-    it('should not auto-save after Escape is pressed', async () => {
+    test('should not auto-save after Escape is pressed', async () => {
       render(<CommentInlineEdit {...defaultProps} initialValue="Original" />)
 
       const textarea = screen.getByTestId('comment-textarea')
@@ -319,7 +319,7 @@ describe('CommentInlineEdit', () => {
   })
 
   describe('Cancel Functionality', () => {
-    it('should not cancel while saving', async () => {
+    test('should not cancel while saving', async () => {
       mockOnSave.mockImplementation(
         async () => new Promise((resolve) => setTimeout(resolve, 500)),
       )
@@ -343,7 +343,7 @@ describe('CommentInlineEdit', () => {
   })
 
   describe('Style Configuration', () => {
-    it('should apply custom border color style', () => {
+    test('should apply custom border color style', () => {
       render(
         <CommentInlineEdit {...defaultProps} style={{ borderColor: 'blue' }} />,
       )
@@ -352,7 +352,7 @@ describe('CommentInlineEdit', () => {
       expect(container).toHaveClass('bg-blue-100')
     })
 
-    it('should apply default neutral style when no style provided', () => {
+    test('should apply default neutral style when no style provided', () => {
       render(<CommentInlineEdit {...defaultProps} />)
 
       const container = screen.getByTestId('comment-inline-edit')
@@ -361,20 +361,20 @@ describe('CommentInlineEdit', () => {
   })
 
   describe('Accessibility', () => {
-    it('should have accessible save button with aria-label', () => {
+    test('should have accessible save button with aria-label', () => {
       render(<CommentInlineEdit {...defaultProps} />)
 
       expect(screen.getByLabelText('Save comment')).toBeInTheDocument()
     })
 
-    it('should have placeholder text for empty textarea', () => {
+    test('should have placeholder text for empty textarea', () => {
       render(<CommentInlineEdit {...defaultProps} initialValue="" />)
 
       const textarea = screen.getByTestId('comment-textarea')
       expect(textarea).toHaveAttribute('placeholder', 'Add a comment...')
     })
 
-    it('should disable textarea while saving', async () => {
+    test('should disable textarea while saving', async () => {
       mockOnSave.mockImplementation(
         async () => new Promise((resolve) => setTimeout(resolve, 500)),
       )
@@ -395,7 +395,7 @@ describe('CommentInlineEdit', () => {
   })
 
   describe('Edge Cases', () => {
-    it('should handle empty initial value', () => {
+    test('should handle empty initial value', () => {
       render(<CommentInlineEdit {...defaultProps} initialValue="" />)
 
       expect(screen.getByTestId('character-counter')).toHaveTextContent(
@@ -403,7 +403,7 @@ describe('CommentInlineEdit', () => {
       )
     })
 
-    it('should handle whitespace-only input', async () => {
+    test('should handle whitespace-only input', async () => {
       const user = userEvent.setup()
       render(<CommentInlineEdit {...defaultProps} initialValue="" />)
 
@@ -417,7 +417,7 @@ describe('CommentInlineEdit', () => {
       })
     })
 
-    it('should apply custom className', () => {
+    test('should apply custom className', () => {
       render(<CommentInlineEdit {...defaultProps} className="custom-class" />)
 
       const container = screen.getByTestId('comment-inline-edit')

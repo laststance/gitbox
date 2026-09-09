@@ -9,7 +9,7 @@
  */
 
 import { renderHook, act } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { useNoteModal } from '@/hooks/board/useNoteModal'
 import { getProjectInfo, upsertProjectInfo } from '@/lib/actions/project-info'
@@ -60,7 +60,7 @@ describe('useNoteModal', () => {
   })
 
   describe('Initial State', () => {
-    it('should have correct initial state', () => {
+    test('should have correct initial state', () => {
       const { result } = renderHook(() =>
         useNoteModal({ repoCards: mockRepoCards }),
       )
@@ -74,7 +74,7 @@ describe('useNoteModal', () => {
   })
 
   describe('open()', () => {
-    it('should open modal and fetch note and links for card', async () => {
+    test('should open modal and fetch note and links for card', async () => {
       mockGetProjectInfo.mockResolvedValueOnce({
         success: true,
         data: {
@@ -102,7 +102,7 @@ describe('useNoteModal', () => {
       expect(mockGetProjectInfo).toHaveBeenCalledWith('card-1')
     })
 
-    it('should set empty note and links when no project info exists', async () => {
+    test('should set empty note and links when no project info exists', async () => {
       mockGetProjectInfo.mockResolvedValueOnce({
         success: true,
         data: null,
@@ -121,7 +121,7 @@ describe('useNoteModal', () => {
       expect(result.current.initialLinks).toEqual([])
     })
 
-    it('should handle fetch error gracefully', async () => {
+    test('should handle fetch error gracefully', async () => {
       mockGetProjectInfo.mockResolvedValueOnce({
         success: false,
         error: 'Network error',
@@ -140,7 +140,7 @@ describe('useNoteModal', () => {
       expect(result.current.initialLinks).toEqual([])
     })
 
-    it('should not open when card is not found', async () => {
+    test('should not open when card is not found', async () => {
       const { result } = renderHook(() =>
         useNoteModal({ repoCards: mockRepoCards }),
       )
@@ -155,7 +155,7 @@ describe('useNoteModal', () => {
   })
 
   describe('close()', () => {
-    it('should close modal and reset state', async () => {
+    test('should close modal and reset state', async () => {
       mockGetProjectInfo.mockResolvedValueOnce({
         success: true,
         data: {
@@ -190,7 +190,7 @@ describe('useNoteModal', () => {
   })
 
   describe('save()', () => {
-    it('should save note and links to server', async () => {
+    test('should save note and links to server', async () => {
       mockGetProjectInfo.mockResolvedValueOnce({
         success: true,
         data: {
@@ -225,7 +225,7 @@ describe('useNoteModal', () => {
       })
     })
 
-    it('should not save when no card is selected', async () => {
+    test('should not save when no card is selected', async () => {
       const { result } = renderHook(() =>
         useNoteModal({ repoCards: mockRepoCards }),
       )
@@ -239,7 +239,7 @@ describe('useNoteModal', () => {
   })
 
   describe('Memoization', () => {
-    it('should maintain stable function references', () => {
+    test('should maintain stable function references', () => {
       const { result, rerender } = renderHook(() =>
         useNoteModal({ repoCards: mockRepoCards }),
       )

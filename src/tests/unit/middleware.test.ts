@@ -7,18 +7,18 @@
  * - Public and private path validation
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, test, expect } from 'vitest'
 
 describe('Middleware (middleware.ts)', () => {
   describe('Module Exports', () => {
-    it('should export proxy function', async () => {
+    test('should export proxy function', async () => {
       const middlewareModule = await import('@/proxy')
 
       expect(middlewareModule.proxy).toBeDefined()
       expect(typeof middlewareModule.proxy).toBe('function')
     })
 
-    it('should export config object', async () => {
+    test('should export config object', async () => {
       const middlewareModule = await import('@/proxy')
 
       expect(middlewareModule.config).toBeDefined()
@@ -27,14 +27,14 @@ describe('Middleware (middleware.ts)', () => {
   })
 
   describe('Matcher Configuration', () => {
-    it('should have matcher array', async () => {
+    test('should have matcher array', async () => {
       const { config } = await import('@/proxy')
 
       expect(Array.isArray(config.matcher)).toBe(true)
       expect(config.matcher.length).toBeGreaterThan(0)
     })
 
-    it('should exclude static files from matching', async () => {
+    test('should exclude static files from matching', async () => {
       const { config } = await import('@/proxy')
       const matcher = config.matcher[0]
 
@@ -48,7 +48,7 @@ describe('Middleware (middleware.ts)', () => {
   })
 
   describe('Public Paths Configuration', () => {
-    it('should include legal and auth-related public paths', async () => {
+    test('should include legal and auth-related public paths', async () => {
       const { publicPaths } = await import('@/proxy')
       const expectedPublicPaths = [
         '/',
@@ -65,7 +65,7 @@ describe('Middleware (middleware.ts)', () => {
   })
 
   describe('Locale Support', () => {
-    it('should support en locale only', () => {
+    test('should support en locale only', () => {
       const locales = ['en']
 
       expect(locales).toContain('en')
@@ -74,7 +74,7 @@ describe('Middleware (middleware.ts)', () => {
   })
 
   describe('Proxy Function Type', () => {
-    it('should be an async function', async () => {
+    test('should be an async function', async () => {
       const { proxy } = await import('@/proxy')
 
       expect(proxy.constructor.name).toBe('AsyncFunction')

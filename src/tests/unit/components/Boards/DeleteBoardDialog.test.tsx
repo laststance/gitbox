@@ -11,7 +11,7 @@
  */
 
 import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { DeleteBoardDialog } from '@/components/Boards/DeleteBoardDialog'
 
@@ -45,21 +45,21 @@ describe('DeleteBoardDialog', () => {
   })
 
   describe('Dialog Rendering', () => {
-    it('should render the alert dialog when isOpen is true', () => {
+    test('should render the alert dialog when isOpen is true', () => {
       render(<DeleteBoardDialog {...defaultProps} />)
 
       const dialog = screen.getByRole('alertdialog')
       expect(dialog).toBeInTheDocument()
     })
 
-    it('should not render the dialog when isOpen is false', () => {
+    test('should not render the dialog when isOpen is false', () => {
       render(<DeleteBoardDialog {...defaultProps} isOpen={false} />)
 
       const dialog = screen.queryByRole('alertdialog')
       expect(dialog).not.toBeInTheDocument()
     })
 
-    it('should display "Delete Board" as the title', () => {
+    test('should display "Delete Board" as the title', () => {
       render(<DeleteBoardDialog {...defaultProps} />)
 
       expect(
@@ -67,7 +67,7 @@ describe('DeleteBoardDialog', () => {
       ).toBeInTheDocument()
     })
 
-    it('should display the board name in the description', () => {
+    test('should display the board name in the description', () => {
       render(<DeleteBoardDialog {...defaultProps} boardName="My Project" />)
 
       expect(
@@ -75,7 +75,7 @@ describe('DeleteBoardDialog', () => {
       ).toBeInTheDocument()
     })
 
-    it('should warn about permanent removal', () => {
+    test('should warn about permanent removal', () => {
       render(<DeleteBoardDialog {...defaultProps} />)
 
       expect(
@@ -88,14 +88,14 @@ describe('DeleteBoardDialog', () => {
   })
 
   describe('Buttons', () => {
-    it('should display Cancel button', () => {
+    test('should display Cancel button', () => {
       render(<DeleteBoardDialog {...defaultProps} />)
 
       const cancelButton = screen.getByRole('button', { name: /cancel/i })
       expect(cancelButton).toBeInTheDocument()
     })
 
-    it('should display Delete Board button', () => {
+    test('should display Delete Board button', () => {
       render(<DeleteBoardDialog {...defaultProps} />)
 
       const deleteButton = screen.getByRole('button', {
@@ -105,7 +105,7 @@ describe('DeleteBoardDialog', () => {
       expect(deleteButton).toHaveTextContent('Delete Board')
     })
 
-    it('should have destructive variant on delete button', () => {
+    test('should have destructive variant on delete button', () => {
       render(<DeleteBoardDialog {...defaultProps} />)
 
       const deleteButton = screen.getByRole('button', {
@@ -115,7 +115,7 @@ describe('DeleteBoardDialog', () => {
       expect(deleteButton.className).toContain('destructive')
     })
 
-    it('should have correct aria-label on delete button', () => {
+    test('should have correct aria-label on delete button', () => {
       render(<DeleteBoardDialog {...defaultProps} boardName="My Board" />)
 
       const deleteButton = screen.getByRole('button', {
@@ -126,7 +126,7 @@ describe('DeleteBoardDialog', () => {
   })
 
   describe('Form', () => {
-    it('should contain a hidden boardId input', () => {
+    test('should contain a hidden boardId input', () => {
       render(<DeleteBoardDialog {...defaultProps} />)
 
       const hiddenInput = document.querySelector(
@@ -136,7 +136,7 @@ describe('DeleteBoardDialog', () => {
       expect(hiddenInput).toHaveValue('board-123')
     })
 
-    it('should have a form element wrapping the delete button', () => {
+    test('should have a form element wrapping the delete button', () => {
       render(<DeleteBoardDialog {...defaultProps} />)
 
       const deleteButton = screen.getByRole('button', {
@@ -147,7 +147,7 @@ describe('DeleteBoardDialog', () => {
   })
 
   describe('Close Behavior', () => {
-    it('should call onClose when Cancel is clicked', () => {
+    test('should call onClose when Cancel is clicked', () => {
       render(<DeleteBoardDialog {...defaultProps} />)
 
       const cancelButton = screen.getByRole('button', { name: /cancel/i })
@@ -158,7 +158,7 @@ describe('DeleteBoardDialog', () => {
   })
 
   describe('Edge Cases', () => {
-    it('should handle special characters in board name', () => {
+    test('should handle special characters in board name', () => {
       render(
         <DeleteBoardDialog
           {...defaultProps}
@@ -173,7 +173,7 @@ describe('DeleteBoardDialog', () => {
       ).toBeInTheDocument()
     })
 
-    it('should handle empty board name', () => {
+    test('should handle empty board name', () => {
       render(<DeleteBoardDialog {...defaultProps} boardName="" />)
 
       const dialog = screen.getByRole('alertdialog')
@@ -182,20 +182,20 @@ describe('DeleteBoardDialog', () => {
   })
 
   describe('Accessibility', () => {
-    it('should use alertdialog role', () => {
+    test('should use alertdialog role', () => {
       render(<DeleteBoardDialog {...defaultProps} />)
 
       expect(screen.getByRole('alertdialog')).toBeInTheDocument()
     })
 
-    it('should have accessible heading', () => {
+    test('should have accessible heading', () => {
       render(<DeleteBoardDialog {...defaultProps} />)
 
       const heading = screen.getByRole('heading', { name: /delete board/i })
       expect(heading).toBeInTheDocument()
     })
 
-    it('should have submit button with type="submit"', () => {
+    test('should have submit button with type="submit"', () => {
       render(<DeleteBoardDialog {...defaultProps} />)
 
       const deleteButton = screen.getByRole('button', {

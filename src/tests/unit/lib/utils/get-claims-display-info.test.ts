@@ -10,7 +10,7 @@
  * named after the observable behavior the layout depends on.
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, test, expect } from 'vitest'
 
 import type { SupabaseClaims } from '@/lib/auth/get-cached-claims'
 import { getClaimsDisplayInfo } from '@/lib/utils/get-claims-display-info'
@@ -29,7 +29,7 @@ const baseClaims = {
 } satisfies SupabaseClaims
 
 describe('getClaimsDisplayInfo', () => {
-  it('uses user_metadata.full_name as the header name when available', () => {
+  test('uses user_metadata.full_name as the header name when available', () => {
     // Arrange
     const claims: SupabaseClaims = {
       ...baseClaims,
@@ -50,7 +50,7 @@ describe('getClaimsDisplayInfo', () => {
     })
   })
 
-  it('falls back to email when full_name is missing from user_metadata', () => {
+  test('falls back to email when full_name is missing from user_metadata', () => {
     // Arrange
     const claims: SupabaseClaims = {
       ...baseClaims,
@@ -68,7 +68,7 @@ describe('getClaimsDisplayInfo', () => {
     })
   })
 
-  it("falls back to literal 'User' when both full_name and email are missing", () => {
+  test("falls back to literal 'User' when both full_name and email are missing", () => {
     // Arrange
     const claims: SupabaseClaims = {
       ...baseClaims,
@@ -85,7 +85,7 @@ describe('getClaimsDisplayInfo', () => {
     })
   })
 
-  it('returns avatar undefined when user_metadata is missing entirely', () => {
+  test('returns avatar undefined when user_metadata is missing entirely', () => {
     // Arrange
     const claims: SupabaseClaims = {
       ...baseClaims,
@@ -102,7 +102,7 @@ describe('getClaimsDisplayInfo', () => {
     })
   })
 
-  it('rejects non-string full_name and falls back to email', () => {
+  test('rejects non-string full_name and falls back to email', () => {
     // Arrange
     const claims: SupabaseClaims = {
       ...baseClaims,
@@ -122,7 +122,7 @@ describe('getClaimsDisplayInfo', () => {
     })
   })
 
-  it('rejects non-string avatar_url and returns undefined', () => {
+  test('rejects non-string avatar_url and returns undefined', () => {
     // Arrange
     const claims: SupabaseClaims = {
       ...baseClaims,
@@ -140,7 +140,7 @@ describe('getClaimsDisplayInfo', () => {
     })
   })
 
-  it('returns email when full_name is an empty string', () => {
+  test('returns email when full_name is an empty string', () => {
     // Arrange
     // An empty `full_name` should not render as a blank header; the layout
     // depends on the `||` cascade falling through to `email`.
@@ -160,7 +160,7 @@ describe('getClaimsDisplayInfo', () => {
     })
   })
 
-  it("falls back to 'User' when full_name is non-string and email is missing", () => {
+  test("falls back to 'User' when full_name is non-string and email is missing", () => {
     // Arrange
     // Defends the worst-case shape: malformed JWT with a non-string full_name
     // claim and no email field. The header must still render a stable string.

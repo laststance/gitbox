@@ -12,7 +12,7 @@
  */
 
 import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { CommandPalette } from '@/components/CommandPalette/CommandPalette'
 
@@ -87,7 +87,7 @@ describe('CommandPalette', () => {
   })
 
   describe('Opening/Closing', () => {
-    it('should not be visible initially', () => {
+    test('should not be visible initially', () => {
       render(<CommandPalette />)
 
       expect(
@@ -95,7 +95,7 @@ describe('CommandPalette', () => {
       ).not.toBeInTheDocument()
     })
 
-    it('should open when ⌘K is pressed', () => {
+    test('should open when ⌘K is pressed', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -105,7 +105,7 @@ describe('CommandPalette', () => {
       ).toBeInTheDocument()
     })
 
-    it('should open when Ctrl+K is pressed', () => {
+    test('should open when Ctrl+K is pressed', () => {
       render(<CommandPalette />)
 
       fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
@@ -115,7 +115,7 @@ describe('CommandPalette', () => {
       ).toBeInTheDocument()
     })
 
-    it('should close when Escape is pressed', () => {
+    test('should close when Escape is pressed', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -130,7 +130,7 @@ describe('CommandPalette', () => {
       ).not.toBeInTheDocument()
     })
 
-    it('should toggle on repeated ⌘K presses', () => {
+    test('should toggle on repeated ⌘K presses', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -144,7 +144,7 @@ describe('CommandPalette', () => {
       ).not.toBeInTheDocument()
     })
 
-    it('should close when backdrop is clicked', () => {
+    test('should close when backdrop is clicked', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -162,7 +162,7 @@ describe('CommandPalette', () => {
   })
 
   describe('Command Display', () => {
-    it('should display all command categories', () => {
+    test('should display all command categories', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -172,7 +172,7 @@ describe('CommandPalette', () => {
       expect(screen.getByText('Settings')).toBeInTheDocument()
     })
 
-    it('should display navigation commands', () => {
+    test('should display navigation commands', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -182,7 +182,7 @@ describe('CommandPalette', () => {
       expect(screen.getByText('Go to Settings')).toBeInTheDocument()
     })
 
-    it('should display action commands', () => {
+    test('should display action commands', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -190,7 +190,7 @@ describe('CommandPalette', () => {
       expect(screen.getByText('Create New Board')).toBeInTheDocument()
     })
 
-    it('should display settings commands', () => {
+    test('should display settings commands', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -200,7 +200,7 @@ describe('CommandPalette', () => {
       expect(screen.getByText('Sign Out')).toBeInTheDocument()
     })
 
-    it('should display keyboard shortcuts on commands', () => {
+    test('should display keyboard shortcuts on commands', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -211,7 +211,7 @@ describe('CommandPalette', () => {
       expect(screen.getByText('N')).toBeInTheDocument()
     })
 
-    it('should display ESC hint', () => {
+    test('should display ESC hint', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -219,7 +219,7 @@ describe('CommandPalette', () => {
       expect(screen.getByText('ESC')).toBeInTheDocument()
     })
 
-    it('should display footer navigation hints', () => {
+    test('should display footer navigation hints', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -231,7 +231,7 @@ describe('CommandPalette', () => {
   })
 
   describe('Search Filtering', () => {
-    it('should filter commands by search text', () => {
+    test('should filter commands by search text', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -243,7 +243,7 @@ describe('CommandPalette', () => {
       expect(screen.queryByText('Go to Maintenance')).not.toBeInTheDocument()
     })
 
-    it('should show "No commands found" when search has no matches', () => {
+    test('should show "No commands found" when search has no matches', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -253,7 +253,7 @@ describe('CommandPalette', () => {
       expect(screen.getByText('No commands found')).toBeInTheDocument()
     })
 
-    it('should be case-insensitive', () => {
+    test('should be case-insensitive', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -263,7 +263,7 @@ describe('CommandPalette', () => {
       expect(screen.getByText('Go to Maintenance')).toBeInTheDocument()
     })
 
-    it('should reset search when reopened', () => {
+    test('should reset search when reopened', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -280,7 +280,7 @@ describe('CommandPalette', () => {
   })
 
   describe('Keyboard Navigation', () => {
-    it('should navigate down with ArrowDown', () => {
+    test('should navigate down with ArrowDown', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -299,7 +299,7 @@ describe('CommandPalette', () => {
       expect(secondButton.className).toContain('bg-primary')
     })
 
-    it('should navigate up with ArrowUp', () => {
+    test('should navigate up with ArrowUp', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -315,7 +315,7 @@ describe('CommandPalette', () => {
       expect(firstButton.className).toContain('bg-primary')
     })
 
-    it('should wrap around at the bottom', () => {
+    test('should wrap around at the bottom', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -336,7 +336,7 @@ describe('CommandPalette', () => {
       expect(firstButton.className).toContain('bg-primary')
     })
 
-    it('should wrap around at the top', () => {
+    test('should wrap around at the top', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -351,7 +351,7 @@ describe('CommandPalette', () => {
   })
 
   describe('Command Execution', () => {
-    it('should navigate to /boards when "Go to Boards" is executed', () => {
+    test('should navigate to /boards when "Go to Boards" is executed', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -363,7 +363,7 @@ describe('CommandPalette', () => {
       expect(mockPush).toHaveBeenCalledWith('/boards')
     })
 
-    it('should navigate to /maintenance when "Go to Maintenance" is clicked', () => {
+    test('should navigate to /maintenance when "Go to Maintenance" is clicked', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -373,7 +373,7 @@ describe('CommandPalette', () => {
       expect(mockPush).toHaveBeenCalledWith('/maintenance')
     })
 
-    it('should navigate to /boards/new when "Create New Board" is clicked', () => {
+    test('should navigate to /boards/new when "Create New Board" is clicked', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -383,7 +383,7 @@ describe('CommandPalette', () => {
       expect(mockPush).toHaveBeenCalledWith('/boards/new')
     })
 
-    it('should close palette after command execution via click', () => {
+    test('should close palette after command execution via click', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -395,7 +395,7 @@ describe('CommandPalette', () => {
       ).not.toBeInTheDocument()
     })
 
-    it('should close palette after command execution via Enter', () => {
+    test('should close palette after command execution via Enter', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -407,7 +407,7 @@ describe('CommandPalette', () => {
       ).not.toBeInTheDocument()
     })
 
-    it('should navigate to /settings when "Go to Settings" is executed via keyboard', () => {
+    test('should navigate to /settings when "Go to Settings" is executed via keyboard', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -423,7 +423,7 @@ describe('CommandPalette', () => {
   })
 
   describe('Search + Keyboard Interaction', () => {
-    it('should reset selection index when search changes', () => {
+    test('should reset selection index when search changes', () => {
       render(<CommandPalette />)
 
       openPalette()
@@ -441,7 +441,7 @@ describe('CommandPalette', () => {
       expect(signOutButton.className).toContain('bg-primary')
     })
 
-    it('should execute filtered command on Enter', () => {
+    test('should execute filtered command on Enter', () => {
       render(<CommandPalette />)
 
       openPalette()

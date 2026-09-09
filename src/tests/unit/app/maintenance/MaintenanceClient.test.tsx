@@ -11,7 +11,7 @@
 
 import { render, waitFor, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import {
   MaintenanceClient,
@@ -90,7 +90,7 @@ describe('MaintenanceClient Component', () => {
   })
 
   describe('Rendering', () => {
-    it('should render the component with repos', async () => {
+    test('should render the component with repos', async () => {
       const repos = [createMockRepo()]
 
       render(<MaintenanceClient repos={repos} comments={{}} />)
@@ -101,7 +101,7 @@ describe('MaintenanceClient Component', () => {
       })
     })
 
-    it('should render header with correct item count', async () => {
+    test('should render header with correct item count', async () => {
       const repos = [
         createMockRepo({ id: toMaintenanceId('repo-1') }),
         createMockRepo({
@@ -117,7 +117,7 @@ describe('MaintenanceClient Component', () => {
       })
     })
 
-    it('should render search input', async () => {
+    test('should render search input', async () => {
       render(<MaintenanceClient repos={[createMockRepo()]} comments={{}} />)
 
       await waitFor(() => {
@@ -127,7 +127,7 @@ describe('MaintenanceClient Component', () => {
       })
     })
 
-    it('should render sort button', async () => {
+    test('should render sort button', async () => {
       render(<MaintenanceClient repos={[createMockRepo()]} comments={{}} />)
 
       await waitFor(() => {
@@ -137,7 +137,7 @@ describe('MaintenanceClient Component', () => {
       })
     })
 
-    it('should render view toggle buttons', async () => {
+    test('should render view toggle buttons', async () => {
       render(<MaintenanceClient repos={[createMockRepo()]} comments={{}} />)
 
       await waitFor(() => {
@@ -149,7 +149,7 @@ describe('MaintenanceClient Component', () => {
   })
 
   describe('Empty State', () => {
-    it('should render empty state when no repos', async () => {
+    test('should render empty state when no repos', async () => {
       render(<MaintenanceClient repos={[]} comments={{}} />)
 
       await waitFor(() => {
@@ -160,7 +160,7 @@ describe('MaintenanceClient Component', () => {
       })
     })
 
-    it('should render empty state when search has no results', async () => {
+    test('should render empty state when search has no results', async () => {
       const repos = [createMockRepo()]
       render(<MaintenanceClient repos={repos} comments={{}} />)
 
@@ -174,7 +174,7 @@ describe('MaintenanceClient Component', () => {
   })
 
   describe('Search Functionality', () => {
-    it('should filter repos by name', async () => {
+    test('should filter repos by name', async () => {
       const repos = [
         createMockRepo({ id: toMaintenanceId('repo-1'), repo_name: 'react' }),
         createMockRepo({ id: toMaintenanceId('repo-2'), repo_name: 'vue' }),
@@ -190,7 +190,7 @@ describe('MaintenanceClient Component', () => {
       })
     })
 
-    it('should filter repos by owner', async () => {
+    test('should filter repos by owner', async () => {
       const repos = [
         createMockRepo({
           id: toMaintenanceId('repo-1'),
@@ -209,7 +209,7 @@ describe('MaintenanceClient Component', () => {
       })
     })
 
-    it('should be case-insensitive', async () => {
+    test('should be case-insensitive', async () => {
       const repos = [
         createMockRepo({ id: toMaintenanceId('repo-1'), repo_name: 'MyRepo' }),
       ]
@@ -225,7 +225,7 @@ describe('MaintenanceClient Component', () => {
   })
 
   describe('Grid/List View Toggle', () => {
-    it('should default to grid view', async () => {
+    test('should default to grid view', async () => {
       const repos = [createMockRepo()]
       const { container } = render(
         <MaintenanceClient repos={repos} comments={{}} />,
@@ -242,7 +242,7 @@ describe('MaintenanceClient Component', () => {
   })
 
   describe('Sort Functionality', () => {
-    it('should open sort dropdown on click', async () => {
+    test('should open sort dropdown on click', async () => {
       render(<MaintenanceClient repos={[createMockRepo()]} comments={{}} />)
 
       const sortButton = screen.getByRole('button', { name: /sort/i })
@@ -257,7 +257,7 @@ describe('MaintenanceClient Component', () => {
   })
 
   describe('Repository Card', () => {
-    it('should display repo metadata', async () => {
+    test('should display repo metadata', async () => {
       const repos = [
         createMockRepo({
           meta: { stars: 500, language: 'Rust' },
@@ -271,7 +271,7 @@ describe('MaintenanceClient Component', () => {
       })
     })
 
-    it('should display updated date', async () => {
+    test('should display updated date', async () => {
       const repos = [
         createMockRepo({
           updated_at: '2024-01-15T10:00:00Z',
@@ -286,7 +286,7 @@ describe('MaintenanceClient Component', () => {
       })
     })
 
-    it('should have Note button', async () => {
+    test('should have Note button', async () => {
       const repos = [createMockRepo()]
       render(<MaintenanceClient repos={repos} comments={{}} />)
 
@@ -297,7 +297,7 @@ describe('MaintenanceClient Component', () => {
   })
 
   describe('Back Button', () => {
-    it('should show back button when lastVisitedBoard is set', async () => {
+    test('should show back button when lastVisitedBoard is set', async () => {
       mockLastVisitedBoard = { id: 'board-1', name: 'My Board' }
 
       render(<MaintenanceClient repos={[createMockRepo()]} comments={{}} />)
@@ -307,7 +307,7 @@ describe('MaintenanceClient Component', () => {
       })
     })
 
-    it('should not show back button when no lastVisitedBoard', async () => {
+    test('should not show back button when no lastVisitedBoard', async () => {
       render(<MaintenanceClient repos={[createMockRepo()]} comments={{}} />)
 
       await waitFor(() => {
@@ -324,7 +324,7 @@ describe('MaintenanceClient Sorting Tests', () => {
     mockLastVisitedBoard = null
   })
 
-  it('should sort by name alphabetically', async () => {
+  test('should sort by name alphabetically', async () => {
     const repos = [
       createMockRepo({ id: toMaintenanceId('repo-1'), repo_name: 'zebra' }),
       createMockRepo({ id: toMaintenanceId('repo-2'), repo_name: 'apple' }),
@@ -349,7 +349,7 @@ describe('MaintenanceClient Sorting Tests', () => {
     })
   })
 
-  it('should sort by stars', async () => {
+  test('should sort by stars', async () => {
     const repos = [
       createMockRepo({ id: toMaintenanceId('repo-1'), meta: { stars: 10 } }),
       createMockRepo({ id: toMaintenanceId('repo-2'), meta: { stars: 1000 } }),
@@ -381,7 +381,7 @@ describe('MaintenanceClient View Toggle Tests', () => {
     localStorage.clear()
   })
 
-  it('should toggle to list view and back to grid view', async () => {
+  test('should toggle to list view and back to grid view', async () => {
     const repos = [createMockRepo()]
     const { container } = render(
       <MaintenanceClient repos={repos} comments={{}} />,
@@ -431,7 +431,7 @@ describe('MaintenanceClient Handler Tests', () => {
     mockOpen.mockClear()
   })
 
-  it('should open GitHub URL via dropdown menu', async () => {
+  test('should open GitHub URL via dropdown menu', async () => {
     const repos = [createMockRepo()]
     render(<MaintenanceClient repos={repos} comments={{}} />)
 

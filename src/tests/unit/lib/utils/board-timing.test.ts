@@ -16,7 +16,7 @@
  * @see src/lib/utils/board-timing.ts
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 // Hoisted so the vi.mock factories below (which are hoisted above the imports)
 // can close over them, and the test body can flip the flag, assert on the
@@ -52,7 +52,7 @@ describe('logBoardTiming() BOARD_TIMING_LOG gating', () => {
     mockEnv.BOARD_TIMING_LOG = false
   })
 
-  it('does not emit a timing line when BOARD_TIMING_LOG is off', () => {
+  test('does not emit a timing line when BOARD_TIMING_LOG is off', () => {
     // Arrange
     mockEnv.BOARD_TIMING_LOG = false
 
@@ -63,7 +63,7 @@ describe('logBoardTiming() BOARD_TIMING_LOG gating', () => {
     expect(infoSpy).not.toHaveBeenCalled()
   })
 
-  it('emits one timing line carrying the board id and every segment when BOARD_TIMING_LOG is on', () => {
+  test('emits one timing line carrying the board id and every segment when BOARD_TIMING_LOG is on', () => {
     // Arrange
     mockEnv.BOARD_TIMING_LOG = true
 
@@ -85,7 +85,7 @@ describe('logBoardTiming() BOARD_TIMING_LOG gating', () => {
     )
   })
 
-  it('emits one line carrying only the board id when segments is empty and BOARD_TIMING_LOG is on', () => {
+  test('emits one line carrying only the board id when segments is empty and BOARD_TIMING_LOG is on', () => {
     // Arrange
     mockEnv.BOARD_TIMING_LOG = true
 
@@ -100,7 +100,7 @@ describe('logBoardTiming() BOARD_TIMING_LOG gating', () => {
     )
   })
 
-  it('tags its log lines with the board-timing module name', () => {
+  test('tags its log lines with the board-timing module name', () => {
     // Assert — createModuleLogger runs once at module load, never re-cleared,
     // so a re-tag of the module name (which would orphan the prod grep key)
     // fails here even though the emitted-line tests would still pass.

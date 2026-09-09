@@ -14,7 +14,7 @@ import { renderHook, act } from '@testing-library/react'
 import React from 'react'
 import { Provider } from 'react-redux'
 import { toast } from 'sonner'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { useStatusListDialog } from '@/hooks/board/useStatusListDialog'
 import {
@@ -106,7 +106,7 @@ describe('useStatusListDialog', () => {
   })
 
   describe('Initial State', () => {
-    it('should have correct initial state', () => {
+    test('should have correct initial state', () => {
       const store = createTestStore()
       const { result } = renderHook(
         () => useStatusListDialog({ boardId: toBoardId('board-1') }),
@@ -123,7 +123,7 @@ describe('useStatusListDialog', () => {
   })
 
   describe('openCreate()', () => {
-    it('should open dialog in create mode', () => {
+    test('should open dialog in create mode', () => {
       const store = createTestStore()
       const { result } = renderHook(
         () => useStatusListDialog({ boardId: toBoardId('board-1') }),
@@ -141,7 +141,7 @@ describe('useStatusListDialog', () => {
   })
 
   describe('openEdit()', () => {
-    it('should open dialog in edit mode with selected status', () => {
+    test('should open dialog in edit mode with selected status', () => {
       const store = createTestStore()
       const status = createMockStatus({
         id: toStatusListId('status-1'),
@@ -164,7 +164,7 @@ describe('useStatusListDialog', () => {
   })
 
   describe('close()', () => {
-    it('should close dialog', () => {
+    test('should close dialog', () => {
       const store = createTestStore()
       const { result } = renderHook(
         () => useStatusListDialog({ boardId: toBoardId('board-1') }),
@@ -186,7 +186,7 @@ describe('useStatusListDialog', () => {
   })
 
   describe('save() - Create Mode', () => {
-    it('should create new status and update Redux', async () => {
+    test('should create new status and update Redux', async () => {
       const store = createTestStore([])
       const newStatus = createMockStatus({
         id: toStatusListId('new-status'),
@@ -225,7 +225,7 @@ describe('useStatusListDialog', () => {
       expect(state.board.statusLists[0]!.title).toBe('New Column')
     })
 
-    it('should handle create error', async () => {
+    test('should handle create error', async () => {
       const store = createTestStore([])
       const error = new Error('Create failed')
       mockCreateStatusList.mockRejectedValueOnce(error)
@@ -253,7 +253,7 @@ describe('useStatusListDialog', () => {
   })
 
   describe('save() - Edit Mode', () => {
-    it('should update existing status and Redux', async () => {
+    test('should update existing status and Redux', async () => {
       const existingStatus = createMockStatus({
         id: toStatusListId('status-1'),
         title: 'Old Title',
@@ -291,7 +291,7 @@ describe('useStatusListDialog', () => {
       expect(state.board.statusLists[0]!.color).toBe('#fff')
     })
 
-    it('should handle update error', async () => {
+    test('should handle update error', async () => {
       const existingStatus = createMockStatus({
         id: toStatusListId('status-1'),
       })
@@ -322,7 +322,7 @@ describe('useStatusListDialog', () => {
   })
 
   describe('Delete Confirmation Flow', () => {
-    it('should open delete confirmation dialog', () => {
+    test('should open delete confirmation dialog', () => {
       const existingStatus = createMockStatus({
         id: toStatusListId('status-1'),
         title: 'To Delete',
@@ -343,7 +343,7 @@ describe('useStatusListDialog', () => {
       expect(result.current.pendingDeleteStatusTitle).toBe('To Delete')
     })
 
-    it('should cancel delete', () => {
+    test('should cancel delete', () => {
       const existingStatus = createMockStatus({
         id: toStatusListId('status-1'),
       })
@@ -369,7 +369,7 @@ describe('useStatusListDialog', () => {
       expect(result.current.pendingDeleteStatusId).toBeNull()
     })
 
-    it('should confirm delete and update Redux', async () => {
+    test('should confirm delete and update Redux', async () => {
       const existingStatus = createMockStatus({
         id: toStatusListId('status-1'),
         title: 'Deleted Status',
@@ -406,7 +406,7 @@ describe('useStatusListDialog', () => {
       expect(result.current.pendingDeleteStatusId).toBeNull()
     })
 
-    it('should handle delete error', async () => {
+    test('should handle delete error', async () => {
       const existingStatus = createMockStatus({
         id: toStatusListId('status-1'),
       })
@@ -439,7 +439,7 @@ describe('useStatusListDialog', () => {
       expect(state.board.statusLists).toHaveLength(1)
     })
 
-    it('should not delete when no pending status', async () => {
+    test('should not delete when no pending status', async () => {
       const store = createTestStore([])
 
       const { result } = renderHook(
@@ -454,7 +454,7 @@ describe('useStatusListDialog', () => {
       expect(mockDeleteStatusList).not.toHaveBeenCalled()
     })
 
-    it('should handle non-existent status in confirmDelete', async () => {
+    test('should handle non-existent status in confirmDelete', async () => {
       const store = createTestStore([]) // No statuses
 
       const { result } = renderHook(
@@ -478,7 +478,7 @@ describe('useStatusListDialog', () => {
   })
 
   describe('setDeleteConfirmOpen()', () => {
-    it('should control delete confirmation dialog visibility', () => {
+    test('should control delete confirmation dialog visibility', () => {
       const store = createTestStore([])
 
       const { result } = renderHook(
@@ -500,7 +500,7 @@ describe('useStatusListDialog', () => {
   })
 
   describe('Memoization', () => {
-    it('should maintain stable function references', () => {
+    test('should maintain stable function references', () => {
       const store = createTestStore()
       const { result, rerender } = renderHook(
         () => useStatusListDialog({ boardId: toBoardId('board-1') }),

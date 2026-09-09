@@ -8,7 +8,7 @@
  */
 
 import { renderHook, act } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { describe, test, expect } from 'vitest'
 
 import { useAddRepositoryCombobox } from '@/hooks/board/useAddRepositoryCombobox'
 import type { StatusListDomain } from '@/lib/models/domain'
@@ -33,7 +33,7 @@ const createMockStatus = (
 
 describe('useAddRepositoryCombobox', () => {
   describe('Initial State', () => {
-    it('should have correct initial state with status lists', () => {
+    test('should have correct initial state with status lists', () => {
       const statusLists = [
         createMockStatus({ id: toStatusListId('status-1'), title: 'Todo' }),
         createMockStatus({
@@ -51,7 +51,7 @@ describe('useAddRepositoryCombobox', () => {
       expect(result.current.statusId).toBe('status-1')
     })
 
-    it('should have null statusId when no status lists', () => {
+    test('should have null statusId when no status lists', () => {
       const { result } = renderHook(() =>
         useAddRepositoryCombobox({ statusLists: [] }),
       )
@@ -62,7 +62,7 @@ describe('useAddRepositoryCombobox', () => {
   })
 
   describe('openForStatus()', () => {
-    it('should open combobox and set specific status ID', () => {
+    test('should open combobox and set specific status ID', () => {
       const statusLists = [
         createMockStatus({ id: toStatusListId('status-1'), title: 'Todo' }),
         createMockStatus({
@@ -87,7 +87,7 @@ describe('useAddRepositoryCombobox', () => {
       expect(result.current.statusId).toBe('status-2')
     })
 
-    it('should override previous user selection', () => {
+    test('should override previous user selection', () => {
       const statusLists = [
         createMockStatus({ id: toStatusListId('status-1') }),
         createMockStatus({ id: toStatusListId('status-2') }),
@@ -111,7 +111,7 @@ describe('useAddRepositoryCombobox', () => {
   })
 
   describe('handleOpenChange()', () => {
-    it('should open combobox when passed true', () => {
+    test('should open combobox when passed true', () => {
       const statusLists = [createMockStatus({ id: toStatusListId('status-1') })]
 
       const { result } = renderHook(() =>
@@ -125,7 +125,7 @@ describe('useAddRepositoryCombobox', () => {
       expect(result.current.isOpen).toBe(true)
     })
 
-    it('should close combobox and reset to default when passed false', () => {
+    test('should close combobox and reset to default when passed false', () => {
       const statusLists = [
         createMockStatus({ id: toStatusListId('status-1') }),
         createMockStatus({ id: toStatusListId('status-2') }),
@@ -153,7 +153,7 @@ describe('useAddRepositoryCombobox', () => {
   })
 
   describe('statusId Derivation', () => {
-    it('should use user-selected status when specified', () => {
+    test('should use user-selected status when specified', () => {
       const statusLists = [
         createMockStatus({ id: toStatusListId('status-1') }),
         createMockStatus({ id: toStatusListId('status-2') }),
@@ -170,7 +170,7 @@ describe('useAddRepositoryCombobox', () => {
       expect(result.current.statusId).toBe('status-2')
     })
 
-    it('should fall back to first column when no user selection', () => {
+    test('should fall back to first column when no user selection', () => {
       const statusLists = [
         createMockStatus({ id: toStatusListId('status-1') }),
         createMockStatus({ id: toStatusListId('status-2') }),
@@ -183,7 +183,7 @@ describe('useAddRepositoryCombobox', () => {
       expect(result.current.statusId).toBe('status-1')
     })
 
-    it('should update when statusLists change', () => {
+    test('should update when statusLists change', () => {
       const initialStatusLists = [
         createMockStatus({ id: toStatusListId('status-old') }),
       ]
@@ -205,7 +205,7 @@ describe('useAddRepositoryCombobox', () => {
       expect(result.current.statusId).toBe('status-new-1')
     })
 
-    it('should preserve user selection when statusLists change', () => {
+    test('should preserve user selection when statusLists change', () => {
       const initialStatusLists = [
         createMockStatus({ id: toStatusListId('status-1') }),
         createMockStatus({ id: toStatusListId('status-2') }),
@@ -236,7 +236,7 @@ describe('useAddRepositoryCombobox', () => {
   })
 
   describe('Memoization', () => {
-    it('should maintain stable function references', () => {
+    test('should maintain stable function references', () => {
       const statusLists = [createMockStatus({ id: toStatusListId('status-1') })]
 
       const { result, rerender } = renderHook(() =>
@@ -254,7 +254,7 @@ describe('useAddRepositoryCombobox', () => {
   })
 
   describe('Edge Cases', () => {
-    it('should handle single status list', () => {
+    test('should handle single status list', () => {
       const statusLists = [
         createMockStatus({ id: toStatusListId('only-status') }),
       ]
@@ -272,7 +272,7 @@ describe('useAddRepositoryCombobox', () => {
       expect(result.current.statusId).toBe('only-status')
     })
 
-    it('should handle rapid open/close cycles', () => {
+    test('should handle rapid open/close cycles', () => {
       const statusLists = [
         createMockStatus({ id: toStatusListId('status-1') }),
         createMockStatus({ id: toStatusListId('status-2') }),

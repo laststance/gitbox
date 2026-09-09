@@ -15,7 +15,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { memo } from 'react'
 import { Provider } from 'react-redux'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, test, expect, vi } from 'vitest'
 
 import type { GitHubRepository } from '@/lib/actions/github'
 import boardSlice from '@/lib/redux/slices/boardSlice'
@@ -100,7 +100,7 @@ const MockAddRepositoryCombobox = memo(function MockAddRepositoryCombobox({
 describe('AddRepositoryCombobox Performance Tests (T039)', () => {
   describe('Performance: Render 100+ repositories within 2 seconds', () => {
     // Allow 2 seconds due to limited resources in CI environment
-    it('should render 150 repositories in under 2 seconds', async () => {
+    test('should render 150 repositories in under 2 seconds', async () => {
       const mockRepos = generateMockRepositories(150)
       const mockStore = createMockStore()
 
@@ -128,7 +128,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       expect(renderTime).toBeLessThan(3000)
     })
 
-    it('should handle 200 repositories efficiently', async () => {
+    test('should handle 200 repositories efficiently', async () => {
       const mockRepos = generateMockRepositories(200)
       const mockStore = createMockStore()
 
@@ -156,7 +156,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
   })
 
   describe('Virtual Scrolling', () => {
-    it('should use virtual scrolling container', () => {
+    test('should use virtual scrolling container', () => {
       const mockRepos = generateMockRepositories(100)
       const mockStore = createMockStore()
 
@@ -174,7 +174,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       expect(virtualContainer).toHaveStyle({ overflow: 'auto' })
     })
 
-    it('should render only visible items (virtualization check)', async () => {
+    test('should render only visible items (virtualization check)', async () => {
       // Note: In actual Virtual scrolling implementation (T045),
       // @tanstack/react-virtual will be used to render only visible items in DOM
       // This test verifies mock component behavior
@@ -196,7 +196,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
   })
 
   describe('Debounce Search', () => {
-    it('should debounce search input (300ms)', async () => {
+    test('should debounce search input (300ms)', async () => {
       const user = userEvent.setup()
       const mockSearch = vi.fn()
       const mockStore = createMockStore()
@@ -224,7 +224,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
   })
 
   describe('Duplicate Repository Detection (T043)', () => {
-    it('should detect duplicate repository by ID', () => {
+    test('should detect duplicate repository by ID', () => {
       const existingRepoIds = ['12345', '67890']
       const newRepo: GitHubRepository = {
         id: 12345,
@@ -252,7 +252,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       expect(isDuplicate).toBe(true)
     })
 
-    it('should allow adding non-duplicate repository', () => {
+    test('should allow adding non-duplicate repository', () => {
       const existingRepoIds = ['12345', '67890']
       const newRepo = generateMockRepositories(1)[0]!
       newRepo.id = 99999
@@ -261,7 +261,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       expect(isDuplicate).toBe(false)
     })
 
-    it('should mark duplicate repositories in UI', () => {
+    test('should mark duplicate repositories in UI', () => {
       const mockRepos = generateMockRepositories(10)
       const existingRepoIds = ['1', '5', '9'] // ID: 1, 5, 9 are duplicates
       const mockStore = createMockStore()
@@ -288,7 +288,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
   })
 
   describe('Edge Cases', () => {
-    it('should handle empty repository list', () => {
+    test('should handle empty repository list', () => {
       const mockStore = createMockStore()
 
       render(
@@ -301,7 +301,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       expect(options.length).toBe(0)
     })
 
-    it('should handle single repository', () => {
+    test('should handle single repository', () => {
       const mockRepos = generateMockRepositories(1)
       const mockStore = createMockStore()
 
@@ -315,7 +315,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
       expect(options.length).toBe(1)
     })
 
-    it('should handle repository selection', async () => {
+    test('should handle repository selection', async () => {
       const user = userEvent.setup()
       const mockSelect = vi.fn()
       const mockRepos = generateMockRepositories(5)
@@ -339,7 +339,7 @@ describe('AddRepositoryCombobox Performance Tests (T039)', () => {
   })
 
   describe('Memory Efficiency', () => {
-    it('should not cause memory leaks with large datasets', async () => {
+    test('should not cause memory leaks with large datasets', async () => {
       const mockRepos = generateMockRepositories(500)
       const mockStore = createMockStore()
 
@@ -402,14 +402,14 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
   }
 
   describe('existingRepoIdentifiers Set Creation', () => {
-    it('should create empty Set when no cards exist on board', () => {
+    test('should create empty Set when no cards exist on board', () => {
       const repoCards: Array<{ repoOwner: string; repoName: string }> = []
       const identifiers = createExistingRepoIdentifiers(repoCards)
 
       expect(identifiers.size).toBe(0)
     })
 
-    it('should create Set with correct "owner/repo" format', () => {
+    test('should create Set with correct "owner/repo" format', () => {
       const repoCards = [
         { repoOwner: 'facebook', repoName: 'react' },
         { repoOwner: 'vercel', repoName: 'next.js' },
@@ -421,7 +421,7 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
       expect(identifiers.has('vercel/next.js')).toBe(true)
     })
 
-    it('should normalize to lowercase for case-insensitive matching', () => {
+    test('should normalize to lowercase for case-insensitive matching', () => {
       const repoCards = [
         { repoOwner: 'Facebook', repoName: 'React' },
         { repoOwner: 'VERCEL', repoName: 'NEXT.JS' },
@@ -435,7 +435,7 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
       expect(identifiers.has('Facebook/React')).toBe(false)
     })
 
-    it('should handle special characters in repo names', () => {
+    test('should handle special characters in repo names', () => {
       const repoCards = [
         { repoOwner: 'user', repoName: 'repo-with-dashes' },
         { repoOwner: 'org', repoName: 'repo_with_underscores' },
@@ -450,7 +450,7 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
   })
 
   describe('Repository Filtering Logic', () => {
-    it('should filter out repos that exist on the board', () => {
+    test('should filter out repos that exist on the board', () => {
       const allRepos = generateMockRepositories(10)
       // Mark repos 0, 5 as already on board
       const existingCards = [
@@ -476,7 +476,7 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
       expect(filtered.find((r) => r.id === allRepos[1]!.id)).toBeDefined()
     })
 
-    it('should return all repos when board is empty', () => {
+    test('should return all repos when board is empty', () => {
       const allRepos = generateMockRepositories(20)
       const identifiers = createExistingRepoIdentifiers([])
 
@@ -485,7 +485,7 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
       expect(filtered.length).toBe(20)
     })
 
-    it('should return empty array when all repos are on board', () => {
+    test('should return empty array when all repos are on board', () => {
       const allRepos = generateMockRepositories(5)
       const existingCards = allRepos.map((repo) => ({
         repoOwner: repo.owner.login,
@@ -498,7 +498,7 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
       expect(filtered.length).toBe(0)
     })
 
-    it('should handle case-insensitive matching correctly', () => {
+    test('should handle case-insensitive matching correctly', () => {
       const allRepos = [
         {
           ...generateMockRepositories(1)[0]!,
@@ -519,7 +519,7 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
   })
 
   describe('Set O(1) Lookup Performance', () => {
-    it('should perform efficiently with 50+ cards on board', () => {
+    test('should perform efficiently with 50+ cards on board', () => {
       const allRepos = generateMockRepositories(200)
       // Simulate 50 cards already on board
       const existingCards = allRepos.slice(0, 50).map((repo) => ({
@@ -538,7 +538,7 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
       expect(filtered.length).toBe(150)
     })
 
-    it('should maintain O(1) lookup with large existing card sets', () => {
+    test('should maintain O(1) lookup with large existing card sets', () => {
       const allRepos = generateMockRepositories(100)
       const existingCards = allRepos.slice(0, 75).map((repo) => ({
         repoOwner: repo.owner.login,
@@ -561,7 +561,7 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
   })
 
   describe('Edge Cases', () => {
-    it('should handle repos with empty owner', () => {
+    test('should handle repos with empty owner', () => {
       const allRepos = generateMockRepositories(1)
       allRepos[0]!.full_name = '/repo-name'
       allRepos[0]!.owner = { login: '', avatar_url: '' }
@@ -574,7 +574,7 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
       expect(filtered.length).toBe(0)
     })
 
-    it('should handle repos with special unicode characters', () => {
+    test('should handle repos with special unicode characters', () => {
       const allRepos = generateMockRepositories(1)
       allRepos[0]!.full_name = 'user/日本語-repo'
       allRepos[0]!.owner = { login: 'user', avatar_url: '' }
@@ -588,7 +588,7 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
       expect(filtered.length).toBe(0)
     })
 
-    it('should not match partial repo names', () => {
+    test('should not match partial repo names', () => {
       const allRepos = generateMockRepositories(1)
       allRepos[0]!.full_name = 'facebook/react'
       allRepos[0]!.owner = { login: 'facebook', avatar_url: '' }
@@ -610,7 +610,7 @@ describe('Existing Repo Filtering (Board Duplicate Prevention)', () => {
 
 describe('Duplicate Detection Utility Functions (T043)', () => {
   describe('checkDuplicateRepository', () => {
-    it('should return true for duplicate repository', () => {
+    test('should return true for duplicate repository', () => {
       const mockRepo = generateMockRepositories(1)[0]!
       mockRepo.id = 12345
 
@@ -627,7 +627,7 @@ describe('Duplicate Detection Utility Functions (T043)', () => {
       expect(result).toBe(true)
     })
 
-    it('should return false for non-duplicate repository', () => {
+    test('should return false for non-duplicate repository', () => {
       const mockRepo = generateMockRepositories(1)[0]!
       mockRepo.id = 99999
 
@@ -646,7 +646,7 @@ describe('Duplicate Detection Utility Functions (T043)', () => {
   })
 
   describe('filterDuplicates', () => {
-    it('should filter out duplicate repositories', () => {
+    test('should filter out duplicate repositories', () => {
       const mockRepos = generateMockRepositories(5)
       mockRepos[0]!.id = 12345
       mockRepos[2]!.id = 67890
@@ -670,7 +670,7 @@ describe('Duplicate Detection Utility Functions (T043)', () => {
   })
 
   describe('getDuplicateErrorMessage', () => {
-    it('should generate Japanese error message', () => {
+    test('should generate Japanese error message', () => {
       const duplicates = generateMockRepositories(2)
       duplicates[0]!.full_name = 'facebook/react'
       duplicates[1]!.full_name = 'vercel/next.js'
@@ -692,7 +692,7 @@ describe('Duplicate Detection Utility Functions (T043)', () => {
       )
     })
 
-    it('should generate English error message', () => {
+    test('should generate English error message', () => {
       const duplicates = generateMockRepositories(1)
       duplicates[0]!.full_name = 'facebook/react'
 
@@ -713,7 +713,7 @@ describe('Duplicate Detection Utility Functions (T043)', () => {
       )
     })
 
-    it('should return empty string for no duplicates', () => {
+    test('should return empty string for no duplicates', () => {
       const getDuplicateErrorMessage = (
         repos: GitHubRepository[],
         locale: 'en' | 'ja' = 'ja',

@@ -10,7 +10,7 @@
  * - selectStatusLists, selectRepoCards selectors
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, test, expect } from 'vitest'
 
 import type { RepoCardForRedux, StatusListDomain } from '@/lib/models/domain'
 import boardSlice, {
@@ -65,7 +65,7 @@ const createMockStatus = (
 
 describe('boardSlice', () => {
   describe('addRepoCards action', () => {
-    it('should add new cards to empty state', () => {
+    test('should add new cards to empty state', () => {
       const initialState = {
         activeBoard: null,
         statusLists: [],
@@ -85,7 +85,7 @@ describe('boardSlice', () => {
       expect(nextState.repoCards[1]!.id).toBe('card-2')
     })
 
-    it('should append cards to existing cards', () => {
+    test('should append cards to existing cards', () => {
       const existingCards = [
         createMockCard({
           id: toRepoCardId('existing-1'),
@@ -113,7 +113,7 @@ describe('boardSlice', () => {
       expect(nextState.repoCards[2]!.id).toBe('new-2')
     })
 
-    it('should handle empty array input', () => {
+    test('should handle empty array input', () => {
       const existingCards = [createMockCard({ id: toRepoCardId('existing-1') })]
 
       const initialState = {
@@ -129,7 +129,7 @@ describe('boardSlice', () => {
       expect(nextState.repoCards[0]!.id).toBe('existing-1')
     })
 
-    it('should preserve card metadata', () => {
+    test('should preserve card metadata', () => {
       const initialState = {
         activeBoard: null,
         statusLists: [],
@@ -159,7 +159,7 @@ describe('boardSlice', () => {
   })
 
   describe('setRepoCards action (full replacement)', () => {
-    it('should replace all existing cards', () => {
+    test('should replace all existing cards', () => {
       const existingCards = [
         createMockCard({ id: toRepoCardId('old-1') }),
         createMockCard({ id: toRepoCardId('old-2') }),
@@ -180,7 +180,7 @@ describe('boardSlice', () => {
       expect(nextState.repoCards[0]!.id).toBe('new-1')
     })
 
-    it('should clear cards when set to empty array', () => {
+    test('should clear cards when set to empty array', () => {
       const existingCards = [
         createMockCard({ id: toRepoCardId('card-1') }),
         createMockCard({ id: toRepoCardId('card-2') }),
@@ -200,7 +200,7 @@ describe('boardSlice', () => {
   })
 
   describe('selectRepoCards selector', () => {
-    it('should return repoCards from state', () => {
+    test('should return repoCards from state', () => {
       const cards = [
         createMockCard({ id: toRepoCardId('card-1') }),
         createMockCard({ id: toRepoCardId('card-2') }),
@@ -223,7 +223,7 @@ describe('boardSlice', () => {
   })
 
   describe('Optimistic Update Pattern', () => {
-    it('should support optimistic add then rollback pattern', () => {
+    test('should support optimistic add then rollback pattern', () => {
       const existingCards = [createMockCard({ id: toRepoCardId('existing-1') })]
 
       const initialState = {
@@ -249,7 +249,7 @@ describe('boardSlice', () => {
       expect(rolledBackState.repoCards[0]!.id).toBe('existing-1')
     })
 
-    it('should maintain order when adding cards', () => {
+    test('should maintain order when adding cards', () => {
       const existingCards = [
         createMockCard({ id: toRepoCardId('card-1'), order: 0 }),
         createMockCard({ id: toRepoCardId('card-2'), order: 1 }),
@@ -288,7 +288,7 @@ describe('boardSlice', () => {
       ...overrides,
     })
 
-    it('should set activeBoard from null', () => {
+    test('should set activeBoard from null', () => {
       const initialState = {
         activeBoard: null,
         statusLists: [],
@@ -304,7 +304,7 @@ describe('boardSlice', () => {
       expect(nextState.activeBoard?.name).toBe('Test Board')
     })
 
-    it('should update activeBoard when already set', () => {
+    test('should update activeBoard when already set', () => {
       const existingBoard = createMockBoard({
         id: 'old-board',
         name: 'Old Board',
@@ -326,7 +326,7 @@ describe('boardSlice', () => {
       expect(nextState.activeBoard?.name).toBe('New Board')
     })
 
-    it('should clear activeBoard when set to null', () => {
+    test('should clear activeBoard when set to null', () => {
       const existingBoard = createMockBoard()
       const initialState = {
         activeBoard: existingBoard,
@@ -340,7 +340,7 @@ describe('boardSlice', () => {
       expect(nextState.activeBoard).toBeNull()
     })
 
-    it('should preserve board properties including position', () => {
+    test('should preserve board properties including position', () => {
       const initialState = {
         activeBoard: null,
         statusLists: [],
@@ -360,7 +360,7 @@ describe('boardSlice', () => {
   })
 
   describe('setStatusLists action', () => {
-    it('should set status lists from empty state', () => {
+    test('should set status lists from empty state', () => {
       const initialState = {
         activeBoard: null,
         statusLists: [],
@@ -383,7 +383,7 @@ describe('boardSlice', () => {
       expect(nextState.statusLists[1]!.title).toBe('In Progress')
     })
 
-    it('should replace existing status lists', () => {
+    test('should replace existing status lists', () => {
       const existingStatuses = [
         createMockStatus({ id: toStatusListId('old-1'), title: 'Old' }),
       ]
@@ -405,7 +405,7 @@ describe('boardSlice', () => {
   })
 
   describe('removeRepoCard action', () => {
-    it('should remove a card by ID', () => {
+    test('should remove a card by ID', () => {
       const existingCards = [
         createMockCard({ id: toRepoCardId('card-1') }),
         createMockCard({ id: toRepoCardId('card-2') }),
@@ -427,7 +427,7 @@ describe('boardSlice', () => {
       expect(nextState.repoCards.find((c) => c.id === 'card-2')).toBeUndefined()
     })
 
-    it('should not modify state when card ID does not exist', () => {
+    test('should not modify state when card ID does not exist', () => {
       const existingCards = [createMockCard({ id: toRepoCardId('card-1') })]
       const initialState = {
         activeBoard: null,
@@ -446,7 +446,7 @@ describe('boardSlice', () => {
   })
 
   describe('selectStatusLists selector', () => {
-    it('should return status lists from state', () => {
+    test('should return status lists from state', () => {
       const statuses = [
         createMockStatus({ id: toStatusListId('status-1'), title: 'Todo' }),
         createMockStatus({ id: toStatusListId('status-2'), title: 'Done' }),

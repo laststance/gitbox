@@ -8,7 +8,7 @@
  */
 
 import { renderHook, act } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { describe, test, expect } from 'vitest'
 
 import { useBoardSettings } from '@/hooks/board/useBoardSettings'
 import {
@@ -29,7 +29,7 @@ describe('useBoardSettings', () => {
   }
 
   describe('Initial State', () => {
-    it('should have correct initial state', () => {
+    test('should have correct initial state', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: 'Test Board',
@@ -50,7 +50,7 @@ describe('useBoardSettings', () => {
       })
     })
 
-    it('should use default settings when boardSettings is null', () => {
+    test('should use default settings when boardSettings is null', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: 'Test Board',
@@ -65,7 +65,7 @@ describe('useBoardSettings', () => {
       )
     })
 
-    it('should use default settings when boardSettings is undefined', () => {
+    test('should use default settings when boardSettings is undefined', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: 'Test Board',
@@ -79,7 +79,7 @@ describe('useBoardSettings', () => {
       )
     })
 
-    it('should use default settings when boardSettings is invalid', () => {
+    test('should use default settings when boardSettings is invalid', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: 'Test Board',
@@ -95,7 +95,7 @@ describe('useBoardSettings', () => {
   })
 
   describe('open()', () => {
-    it('should open the dialog', () => {
+    test('should open the dialog', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: 'Test Board',
@@ -115,7 +115,7 @@ describe('useBoardSettings', () => {
   })
 
   describe('close()', () => {
-    it('should close the dialog', () => {
+    test('should close the dialog', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: 'Test Board',
@@ -139,7 +139,7 @@ describe('useBoardSettings', () => {
   })
 
   describe('handleRenameSuccess()', () => {
-    it('should update display name', () => {
+    test('should update display name', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: 'Original Name',
@@ -159,7 +159,7 @@ describe('useBoardSettings', () => {
   })
 
   describe('handleCardDisplayChange()', () => {
-    it('should update card display settings', () => {
+    test('should update card display settings', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: 'Test Board',
@@ -186,7 +186,7 @@ describe('useBoardSettings', () => {
   })
 
   describe('Memoization', () => {
-    it('should maintain stable function references', () => {
+    test('should maintain stable function references', () => {
       const { result, rerender } = renderHook(() =>
         useBoardSettings({
           boardName: 'Test Board',
@@ -215,7 +215,7 @@ describe('useBoardSettings', () => {
   })
 
   describe('Edge Cases', () => {
-    it('should handle empty board name', () => {
+    test('should handle empty board name', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: '',
@@ -227,7 +227,7 @@ describe('useBoardSettings', () => {
       expect(result.current.displayName).toBe('')
     })
 
-    it('should handle partial card display settings', () => {
+    test('should handle partial card display settings', () => {
       const { result } = renderHook(() =>
         useBoardSettings({
           boardName: 'Test Board',

@@ -11,7 +11,7 @@
  *  E. Defensive expiry check — exp omitted/non-number returns null (fail closed)
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { createClient } from '@/lib/supabase/server'
 
@@ -46,7 +46,7 @@ describe('getCachedClaims()', () => {
     vi.clearAllMocks()
   })
 
-  it('returns { supabase, claims } when the SDK returns valid claims', async () => {
+  test('returns { supabase, claims } when the SDK returns valid claims', async () => {
     // Arrange
     const futureExpInSeconds = Math.floor(Date.now() / 1000) + 3600
     const validClaims = {
@@ -75,7 +75,7 @@ describe('getCachedClaims()', () => {
     expect(result?.supabase).toBe(supabaseMock)
   })
 
-  it('returns null when the SDK reports an error', async () => {
+  test('returns null when the SDK reports an error', async () => {
     // Arrange
     const supabaseMock = buildSupabaseMock({
       data: null,
@@ -91,7 +91,7 @@ describe('getCachedClaims()', () => {
     expect(result).toBeNull()
   })
 
-  it('returns null when claims payload is missing', async () => {
+  test('returns null when claims payload is missing', async () => {
     // Arrange
     const supabaseMock = buildSupabaseMock({
       data: { claims: null },
@@ -107,7 +107,7 @@ describe('getCachedClaims()', () => {
     expect(result).toBeNull()
   })
 
-  it('returns null when the defensive exp check trips (token already expired)', async () => {
+  test('returns null when the defensive exp check trips (token already expired)', async () => {
     // Arrange — exp 60s in the past
     const pastExpInSeconds = Math.floor(Date.now() / 1000) - 60
     const expiredClaims = {
@@ -132,7 +132,7 @@ describe('getCachedClaims()', () => {
     expect(result).toBeNull()
   })
 
-  it('returns null when exp is missing or non-numeric (fail closed)', async () => {
+  test('returns null when exp is missing or non-numeric (fail closed)', async () => {
     // Arrange — exp deliberately omitted; a JWT without an expiry must be
     // rejected by the auth gate even if the Supabase SDK accepted it.
     const claimsWithoutExp = {

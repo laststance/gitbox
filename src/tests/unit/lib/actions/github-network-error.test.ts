@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 const actionHarness = vi.hoisted(() => ({
   captureException: vi.fn(),
@@ -57,7 +57,7 @@ describe('GitHub repository catalog network errors', () => {
     actionHarness.getGitHubCatalogErrorStatus.mockReturnValue(null)
   })
 
-  it('returns a safe network error without sending the OAuth token to logs or Sentry', async () => {
+  test('returns a safe network error without sending the OAuth token to logs or Sentry', async () => {
     // Arrange
     const rawToken = 'gho_timeout_secret'
     const requestConfig = {
@@ -99,7 +99,7 @@ describe('GitHub repository catalog network errors', () => {
     ).not.toContain(rawToken)
   })
 
-  it('returns a safe catalog error while logging only its status and action context', async () => {
+  test('returns a safe catalog error while logging only its status and action context', async () => {
     // Arrange
     const catalogError = new Error('upstream payload must stay private')
     actionHarness.getGitHubCatalogErrorStatus.mockReturnValue(500)

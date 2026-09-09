@@ -9,7 +9,7 @@
  */
 
 import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { BoardGrid } from '@/components/Boards/BoardGrid'
 import type { Tables } from '@/lib/supabase/types'
@@ -100,7 +100,7 @@ describe('BoardGrid', () => {
   })
 
   describe('Grid Rendering', () => {
-    it('should render board cards for each board', () => {
+    test('should render board cards for each board', () => {
       const boards = [
         createMockBoard({ id: 'board-1', name: 'Board 1' }),
         createMockBoard({ id: 'board-2', name: 'Board 2' }),
@@ -114,7 +114,7 @@ describe('BoardGrid', () => {
       expect(screen.getByTestId('board-card-board-3')).toBeInTheDocument()
     })
 
-    it('should display board names', () => {
+    test('should display board names', () => {
       const boards = [
         createMockBoard({ id: 'board-1', name: 'My First Board' }),
         createMockBoard({ id: 'board-2', name: 'My Second Board' }),
@@ -130,7 +130,7 @@ describe('BoardGrid', () => {
       )
     })
 
-    it('should render grid container with correct classes', () => {
+    test('should render grid container with correct classes', () => {
       const boards = [createMockBoard()]
 
       const { container } = render(<BoardGrid initialBoards={boards} />)
@@ -142,7 +142,7 @@ describe('BoardGrid', () => {
   })
 
   describe('Empty State', () => {
-    it('should render empty state when no boards', () => {
+    test('should render empty state when no boards', () => {
       render(<BoardGrid initialBoards={[]} />)
 
       expect(screen.getByText('No boards yet')).toBeInTheDocument()
@@ -151,7 +151,7 @@ describe('BoardGrid', () => {
       ).toBeInTheDocument()
     })
 
-    it('should render create board link in empty state', () => {
+    test('should render create board link in empty state', () => {
       render(<BoardGrid initialBoards={[]} />)
 
       const createLink = screen.getByRole('link', { name: /create board/i })
@@ -159,7 +159,7 @@ describe('BoardGrid', () => {
       expect(createLink).toHaveAttribute('href', '/boards/new')
     })
 
-    it('should not render empty state when boards exist', () => {
+    test('should not render empty state when boards exist', () => {
       render(<BoardGrid initialBoards={[createMockBoard()]} />)
 
       expect(screen.queryByText('No boards yet')).not.toBeInTheDocument()
@@ -167,7 +167,7 @@ describe('BoardGrid', () => {
   })
 
   describe('Optimistic Rename', () => {
-    it('should call onRename handler when rename is triggered', () => {
+    test('should call onRename handler when rename is triggered', () => {
       const boards = [createMockBoard({ id: 'board-1', name: 'Original Name' })]
 
       render(<BoardGrid initialBoards={boards} />)
@@ -179,7 +179,7 @@ describe('BoardGrid', () => {
       expect(renameCallLog.length).toBe(1)
     })
 
-    it('should pass correct arguments to rename handler', () => {
+    test('should pass correct arguments to rename handler', () => {
       const boards = [createMockBoard({ id: 'board-1' })]
 
       render(<BoardGrid initialBoards={boards} />)
@@ -193,7 +193,7 @@ describe('BoardGrid', () => {
   })
 
   describe('Optimistic Delete', () => {
-    it('should call onDelete handler when delete is triggered', () => {
+    test('should call onDelete handler when delete is triggered', () => {
       const boards = [createMockBoard({ id: 'board-1' })]
 
       render(<BoardGrid initialBoards={boards} />)
@@ -204,7 +204,7 @@ describe('BoardGrid', () => {
       expect(deleteCallLog.length).toBe(1)
     })
 
-    it('should pass correct boardId to delete handler', () => {
+    test('should pass correct boardId to delete handler', () => {
       const boards = [createMockBoard({ id: 'board-to-delete' })]
 
       render(<BoardGrid initialBoards={boards} />)
@@ -217,7 +217,7 @@ describe('BoardGrid', () => {
   })
 
   describe('Optimistic Toggle Favorite', () => {
-    it('should call onToggleFavorite handler', () => {
+    test('should call onToggleFavorite handler', () => {
       const boards = [createMockBoard({ id: 'board-1', is_favorite: false })]
 
       render(<BoardGrid initialBoards={boards} />)
@@ -228,7 +228,7 @@ describe('BoardGrid', () => {
       expect(favoriteCallLog.length).toBe(1)
     })
 
-    it('should pass correct arguments to toggleFavorite handler', () => {
+    test('should pass correct arguments to toggleFavorite handler', () => {
       const boards = [createMockBoard({ id: 'board-1', is_favorite: false })]
 
       render(<BoardGrid initialBoards={boards} />)
@@ -239,7 +239,7 @@ describe('BoardGrid', () => {
       expect(favoriteCallLog[0]).toEqual(['board-1', true]) // Toggle from false to true
     })
 
-    it('should toggle favorite from true to false', () => {
+    test('should toggle favorite from true to false', () => {
       const boards = [createMockBoard({ id: 'board-1', is_favorite: true })]
 
       render(<BoardGrid initialBoards={boards} />)
@@ -252,7 +252,7 @@ describe('BoardGrid', () => {
   })
 
   describe('Multiple Boards', () => {
-    it('should render all boards in the grid', () => {
+    test('should render all boards in the grid', () => {
       const boards = [
         createMockBoard({ id: 'board-1', name: 'Board 1' }),
         createMockBoard({ id: 'board-2', name: 'Board 2' }),
@@ -267,7 +267,7 @@ describe('BoardGrid', () => {
       })
     })
 
-    it('should pass correct board data to each BoardCard', () => {
+    test('should pass correct board data to each BoardCard', () => {
       const boards = [
         createMockBoard({ id: 'b1', name: 'Alpha', is_favorite: true }),
         createMockBoard({ id: 'b2', name: 'Beta', is_favorite: false }),
@@ -287,14 +287,14 @@ describe('BoardGrid', () => {
   })
 
   describe('Accessibility', () => {
-    it('should have accessible empty state with proper heading', () => {
+    test('should have accessible empty state with proper heading', () => {
       render(<BoardGrid initialBoards={[]} />)
 
       const heading = screen.getByRole('heading', { name: /no boards yet/i })
       expect(heading).toBeInTheDocument()
     })
 
-    it('should have SVG icons with aria-hidden in empty state', () => {
+    test('should have SVG icons with aria-hidden in empty state', () => {
       const { container } = render(<BoardGrid initialBoards={[]} />)
 
       const svgs = container.querySelectorAll('svg')

@@ -9,7 +9,7 @@
  *  - Tampered storage values (parsed defensively)
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 
 const STORAGE_KEY = 'gh_refresh_attempts'
 
@@ -41,7 +41,7 @@ describe('handleGitHubTokenMissing', () => {
     })
   })
 
-  it('redirects to /api/auth/github/refresh with `next` and no attempt param on first call', async () => {
+  test('redirects to /api/auth/github/refresh with `next` and no attempt param on first call', async () => {
     const { handleGitHubTokenMissing } =
       await import('@/lib/utils/handle-github-token-missing')
 
@@ -54,7 +54,7 @@ describe('handleGitHubTokenMissing', () => {
     expect(window.sessionStorage.getItem(STORAGE_KEY)).toBe('1')
   })
 
-  it('emits ?attempt=2 on the second call (after sessionStorage already records 1)', async () => {
+  test('emits ?attempt=2 on the second call (after sessionStorage already records 1)', async () => {
     window.sessionStorage.setItem(STORAGE_KEY, '1')
     const { handleGitHubTokenMissing } =
       await import('@/lib/utils/handle-github-token-missing')
@@ -67,7 +67,7 @@ describe('handleGitHubTokenMissing', () => {
     expect(window.sessionStorage.getItem(STORAGE_KEY)).toBe('2')
   })
 
-  it('only redirects once when called many times in the same JS tick (module lock)', async () => {
+  test('only redirects once when called many times in the same JS tick (module lock)', async () => {
     const { handleGitHubTokenMissing } =
       await import('@/lib/utils/handle-github-token-missing')
 
@@ -90,7 +90,7 @@ describe('handleGitHubTokenMissing', () => {
     expect(window.sessionStorage.getItem(STORAGE_KEY)).toBe('1')
   })
 
-  it('coerces tampered sessionStorage values (e.g. "abc") back to a fresh first attempt', async () => {
+  test('coerces tampered sessionStorage values (e.g. "abc") back to a fresh first attempt', async () => {
     window.sessionStorage.setItem(STORAGE_KEY, 'not-a-number')
     const { handleGitHubTokenMissing } =
       await import('@/lib/utils/handle-github-token-missing')
@@ -103,7 +103,7 @@ describe('handleGitHubTokenMissing', () => {
     expect(window.sessionStorage.getItem(STORAGE_KEY)).toBe('1')
   })
 
-  it('coerces negative sessionStorage values back to a fresh first attempt', async () => {
+  test('coerces negative sessionStorage values back to a fresh first attempt', async () => {
     window.sessionStorage.setItem(STORAGE_KEY, '-5')
     const { handleGitHubTokenMissing } =
       await import('@/lib/utils/handle-github-token-missing')
@@ -116,7 +116,7 @@ describe('handleGitHubTokenMissing', () => {
     expect(window.sessionStorage.getItem(STORAGE_KEY)).toBe('1')
   })
 
-  it('encodes the next path so query params survive intact', async () => {
+  test('encodes the next path so query params survive intact', async () => {
     const { handleGitHubTokenMissing } =
       await import('@/lib/utils/handle-github-token-missing')
 
@@ -127,7 +127,7 @@ describe('handleGitHubTokenMissing', () => {
     )
   })
 
-  it('returns false and does NOT navigate when running inside an iframe (Storybook test orchestrator, embedded views)', async () => {
+  test('returns false and does NOT navigate when running inside an iframe (Storybook test orchestrator, embedded views)', async () => {
     // happy-dom defaults `window.parent === window`. Override it so the
     // helper detects an embedded context and bails out cleanly.
     const fakeParent = { ...window } as Window
@@ -153,7 +153,7 @@ describe('handleGitHubTokenMissing', () => {
     })
   })
 
-  it('returns false in SSR contexts where window is undefined', async () => {
+  test('returns false in SSR contexts where window is undefined', async () => {
     const originalWindowDescriptor = Object.getOwnPropertyDescriptor(
       globalThis,
       'window',
@@ -183,7 +183,7 @@ describe('clearGitHubRefreshAttempts', () => {
     window.sessionStorage.clear()
   })
 
-  it('removes the counter from sessionStorage', async () => {
+  test('removes the counter from sessionStorage', async () => {
     window.sessionStorage.setItem(STORAGE_KEY, '1')
     const { clearGitHubRefreshAttempts } =
       await import('@/lib/utils/handle-github-token-missing')
@@ -193,7 +193,7 @@ describe('clearGitHubRefreshAttempts', () => {
     expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull()
   })
 
-  it('is a no-op when the counter is already absent', async () => {
+  test('is a no-op when the counter is already absent', async () => {
     const { clearGitHubRefreshAttempts } =
       await import('@/lib/utils/handle-github-token-missing')
 

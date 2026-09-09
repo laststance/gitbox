@@ -7,7 +7,7 @@
  */
 
 import { renderHook, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { useRepositoryCatalog } from '@/hooks/board/useRepositoryCatalog'
 import {
@@ -81,7 +81,7 @@ describe('useRepositoryCatalog', () => {
     window.history.replaceState({}, '', '/board/board-1')
   })
 
-  it('stays idle without requesting GitHub data while the picker is closed', () => {
+  test('stays idle without requesting GitHub data while the picker is closed', () => {
     // Arrange
     const isPickerOpen = false
 
@@ -100,7 +100,7 @@ describe('useRepositoryCatalog', () => {
     expect(getAuthenticatedRepositoryCatalog).not.toHaveBeenCalled()
   })
 
-  it('requests the aggregate catalog exactly once when the picker opens', async () => {
+  test('requests the aggregate catalog exactly once when the picker opens', async () => {
     // Arrange
     vi.mocked(getAuthenticatedRepositoryCatalog).mockResolvedValue({
       success: true,
@@ -117,7 +117,7 @@ describe('useRepositoryCatalog', () => {
     expect(getAuthenticatedRepositoryCatalog).toHaveBeenCalledTimes(1)
   })
 
-  it('exposes the complete repository catalog and excludes the current user from organization filters', async () => {
+  test('exposes the complete repository catalog and excludes the current user from organization filters', async () => {
     // Arrange
     vi.mocked(getAuthenticatedRepositoryCatalog).mockResolvedValue({
       success: true,
@@ -143,7 +143,7 @@ describe('useRepositoryCatalog', () => {
     expect(handleGitHubTokenMissing).not.toHaveBeenCalled()
   })
 
-  it('reopens instantly from retained catalog data without another request', async () => {
+  test('reopens instantly from retained catalog data without another request', async () => {
     // Arrange
     vi.mocked(getAuthenticatedRepositoryCatalog).mockResolvedValue({
       success: true,
@@ -166,7 +166,7 @@ describe('useRepositoryCatalog', () => {
     expect(getAuthenticatedRepositoryCatalog).toHaveBeenCalledTimes(1)
   })
 
-  it('hands a missing token to the top-level refresh flow without flashing an error', async () => {
+  test('hands a missing token to the top-level refresh flow without flashing an error', async () => {
     // Arrange
     vi.mocked(getAuthenticatedRepositoryCatalog).mockResolvedValue({
       success: false,
@@ -186,7 +186,7 @@ describe('useRepositoryCatalog', () => {
     expect(clearGitHubRefreshAttempts).not.toHaveBeenCalled()
   })
 
-  it('shows the authentication error when an iframe cannot run the refresh flow', async () => {
+  test('shows the authentication error when an iframe cannot run the refresh flow', async () => {
     // Arrange
     vi.mocked(handleGitHubTokenMissing).mockReturnValue(false)
     vi.mocked(getAuthenticatedRepositoryCatalog).mockResolvedValue({
@@ -209,7 +209,7 @@ describe('useRepositoryCatalog', () => {
     expect(result.current.userRepos).toEqual([])
   })
 
-  it('retries a generic failure after the picker closes and opens again', async () => {
+  test('retries a generic failure after the picker closes and opens again', async () => {
     // Arrange
     vi.mocked(getAuthenticatedRepositoryCatalog)
       .mockResolvedValueOnce({

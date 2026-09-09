@@ -6,7 +6,7 @@
  */
 
 import { cookies } from 'next/headers'
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('next/headers', () => ({
   cookies: vi.fn(),
@@ -31,7 +31,7 @@ describe('getGitHubTokenCookieName', () => {
     process.env = originalEnv
   })
 
-  it('should extract project ID from dev Supabase URL', () => {
+  test('should extract project ID from dev Supabase URL', () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL =
       'https://jqtxjzdxczqwsrvevmyk.supabase.co'
 
@@ -40,7 +40,7 @@ describe('getGitHubTokenCookieName', () => {
     expect(cookieName).toBe('gh_token_jqtxjzdx')
   })
 
-  it('should extract project ID from prod Supabase URL', () => {
+  test('should extract project ID from prod Supabase URL', () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL =
       'https://mfeesjmtofgayktirswf.supabase.co'
 
@@ -49,7 +49,7 @@ describe('getGitHubTokenCookieName', () => {
     expect(cookieName).toBe('gh_token_mfeesjmt')
   })
 
-  it('should return default when URL is empty', () => {
+  test('should return default when URL is empty', () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = ''
 
     const cookieName = getGitHubTokenCookieName()
@@ -57,7 +57,7 @@ describe('getGitHubTokenCookieName', () => {
     expect(cookieName).toBe('gh_token_default')
   })
 
-  it('should return default when URL is undefined', () => {
+  test('should return default when URL is undefined', () => {
     delete process.env.NEXT_PUBLIC_SUPABASE_URL
 
     const cookieName = getGitHubTokenCookieName()
@@ -65,7 +65,7 @@ describe('getGitHubTokenCookieName', () => {
     expect(cookieName).toBe('gh_token_default')
   })
 
-  it('should return default when URL format is invalid', () => {
+  test('should return default when URL format is invalid', () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'invalid-url'
 
     const cookieName = getGitHubTokenCookieName()
@@ -73,7 +73,7 @@ describe('getGitHubTokenCookieName', () => {
     expect(cookieName).toBe('gh_token_default')
   })
 
-  it('should return default for non-supabase URLs', () => {
+  test('should return default for non-supabase URLs', () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.com'
 
     const cookieName = getGitHubTokenCookieName()
@@ -81,7 +81,7 @@ describe('getGitHubTokenCookieName', () => {
     expect(cookieName).toBe('gh_token_default')
   })
 
-  it('should handle short project IDs', () => {
+  test('should handle short project IDs', () => {
     // Edge case: project ID shorter than 8 chars
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://abc.supabase.co'
 
@@ -92,7 +92,7 @@ describe('getGitHubTokenCookieName', () => {
 })
 
 describe('GITHUB_TOKEN_COOKIE_MAX_AGE_SECONDS', () => {
-  it('should equal 30 days in seconds (regression guard for the 8h bug)', () => {
+  test('should equal 30 days in seconds (regression guard for the 8h bug)', () => {
     // The original bug used `60 * 60 * 8` (8 hours) which caused users to lose
     // GitHub access after a workday. 30 days matches Supabase refresh_token TTL.
     expect(GITHUB_TOKEN_COOKIE_MAX_AGE_SECONDS).toBe(30 * 24 * 60 * 60)
@@ -114,7 +114,7 @@ describe('setGitHubTokenCookie', () => {
     vi.clearAllMocks()
   })
 
-  it('should call cookieStore.set with the env-specific name and 30d maxAge', async () => {
+  test('should call cookieStore.set with the env-specific name and 30d maxAge', async () => {
     const setSpy = vi.fn()
     vi.mocked(cookies).mockResolvedValue({ set: setSpy } as never)
 
@@ -133,7 +133,7 @@ describe('setGitHubTokenCookie', () => {
     )
   })
 
-  it('should set secure=false outside production', async () => {
+  test('should set secure=false outside production', async () => {
     ;(process.env as Record<string, string | undefined>).NODE_ENV =
       'development'
     const setSpy = vi.fn()
@@ -148,7 +148,7 @@ describe('setGitHubTokenCookie', () => {
     )
   })
 
-  it('should set secure=true in production', async () => {
+  test('should set secure=true in production', async () => {
     ;(process.env as Record<string, string | undefined>).NODE_ENV = 'production'
     const setSpy = vi.fn()
     vi.mocked(cookies).mockResolvedValue({ set: setSpy } as never)
@@ -177,7 +177,7 @@ describe('deleteGitHubTokenCookie', () => {
     vi.clearAllMocks()
   })
 
-  it('should call cookieStore.delete with the env-specific name', async () => {
+  test('should call cookieStore.delete with the env-specific name', async () => {
     const deleteSpy = vi.fn()
     vi.mocked(cookies).mockResolvedValue({ delete: deleteSpy } as never)
 

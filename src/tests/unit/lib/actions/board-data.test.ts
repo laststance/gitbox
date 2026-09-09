@@ -15,7 +15,7 @@
  * @see src/lib/actions/board-data.ts
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { getBoardBundle } from '@/lib/actions/board-data'
 import { createClient } from '@/lib/supabase/server'
@@ -35,7 +35,7 @@ describe('getBoardBundle() malformed-id guard', () => {
     vi.clearAllMocks()
   })
 
-  it('treats a non-UUID board id as not-found (null) without querying Postgres', async () => {
+  test('treats a non-UUID board id as not-found (null) without querying Postgres', async () => {
     // Arrange
     const malformedBoardId = 'not-a-uuid'
 
@@ -47,7 +47,7 @@ describe('getBoardBundle() malformed-id guard', () => {
     expect(createClient).not.toHaveBeenCalled()
   })
 
-  it('treats an empty board id as not-found (null) without querying Postgres', async () => {
+  test('treats an empty board id as not-found (null) without querying Postgres', async () => {
     // Arrange
     const emptyBoardId = ''
 

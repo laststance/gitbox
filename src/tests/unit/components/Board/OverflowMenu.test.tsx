@@ -12,7 +12,7 @@
 
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { OverflowMenu } from '@/components/Board/OverflowMenu'
 import { toRepoCardId } from '@/lib/types/brands'
@@ -40,20 +40,20 @@ describe('OverflowMenu', () => {
   }
 
   describe('Menu Trigger', () => {
-    it('should render menu trigger button', () => {
+    test('should render menu trigger button', () => {
       render(<OverflowMenu {...defaultProps} />)
 
       const trigger = screen.getByTestId('overflow-menu-trigger-card-1')
       expect(trigger).toBeInTheDocument()
     })
 
-    it('should have accessible label for screen readers', () => {
+    test('should have accessible label for screen readers', () => {
       render(<OverflowMenu {...defaultProps} />)
 
       expect(screen.getByText('Open menu')).toBeInTheDocument()
     })
 
-    it('should open menu when trigger is clicked', async () => {
+    test('should open menu when trigger is clicked', async () => {
       const user = userEvent.setup()
       render(<OverflowMenu {...defaultProps} />)
 
@@ -64,13 +64,13 @@ describe('OverflowMenu', () => {
   })
 
   describe('Menu Content - Board Context', () => {
-    it('should render Open on GitHub item when repoOwner and repoName are provided', () => {
+    test('should render Open on GitHub item when repoOwner and repoName are provided', () => {
       render(<OverflowMenu {...defaultProps} open={true} />)
 
       expect(screen.getByText('Open on GitHub')).toBeInTheDocument()
     })
 
-    it('should not render Open on GitHub when owner/name is missing', async () => {
+    test('should not render Open on GitHub when owner/name is missing', async () => {
       render(
         <OverflowMenu
           {...defaultProps}
@@ -83,7 +83,7 @@ describe('OverflowMenu', () => {
       expect(screen.queryByText('Open on GitHub')).not.toBeInTheDocument()
     })
 
-    it('should render Move to Maintenance in board context', () => {
+    test('should render Move to Maintenance in board context', () => {
       render(
         <OverflowMenu
           {...defaultProps}
@@ -96,7 +96,7 @@ describe('OverflowMenu', () => {
       expect(screen.getByText('Move to Maintenance')).toBeInTheDocument()
     })
 
-    it('should render Remove from Board in board context', () => {
+    test('should render Remove from Board in board context', () => {
       render(
         <OverflowMenu
           {...defaultProps}
@@ -111,7 +111,7 @@ describe('OverflowMenu', () => {
   })
 
   describe('Menu Content - Maintenance Context', () => {
-    it('should render Restore to Board in maintenance context', () => {
+    test('should render Restore to Board in maintenance context', () => {
       render(
         <OverflowMenu
           {...defaultProps}
@@ -124,7 +124,7 @@ describe('OverflowMenu', () => {
       expect(screen.getByText('Restore to Board')).toBeInTheDocument()
     })
 
-    it('should not render Move to Maintenance in maintenance context', () => {
+    test('should not render Move to Maintenance in maintenance context', () => {
       render(
         <OverflowMenu
           {...defaultProps}
@@ -137,7 +137,7 @@ describe('OverflowMenu', () => {
       expect(screen.queryByText('Move to Maintenance')).not.toBeInTheDocument()
     })
 
-    it('should not render Remove from Board in maintenance context', () => {
+    test('should not render Remove from Board in maintenance context', () => {
       render(
         <OverflowMenu
           {...defaultProps}
@@ -152,7 +152,7 @@ describe('OverflowMenu', () => {
   })
 
   describe('Optional URLs', () => {
-    it('should render Production URL when provided', () => {
+    test('should render Production URL when provided', () => {
       render(
         <OverflowMenu
           {...defaultProps}
@@ -164,7 +164,7 @@ describe('OverflowMenu', () => {
       expect(screen.getByText('Open Production URL')).toBeInTheDocument()
     })
 
-    it('should render Tracking dashboard when provided', () => {
+    test('should render Tracking dashboard when provided', () => {
       render(
         <OverflowMenu
           {...defaultProps}
@@ -176,7 +176,7 @@ describe('OverflowMenu', () => {
       expect(screen.getByText('Open Tracking dashboard')).toBeInTheDocument()
     })
 
-    it('should render Supabase dashboard when provided', () => {
+    test('should render Supabase dashboard when provided', () => {
       render(
         <OverflowMenu
           {...defaultProps}
@@ -190,7 +190,7 @@ describe('OverflowMenu', () => {
   })
 
   describe('URL Opening', () => {
-    it('should open GitHub URL when clicking Open on GitHub', async () => {
+    test('should open GitHub URL when clicking Open on GitHub', async () => {
       const user = userEvent.setup()
       render(<OverflowMenu {...defaultProps} open={true} />)
 
@@ -203,7 +203,7 @@ describe('OverflowMenu', () => {
       )
     })
 
-    it('should open production URL when clicking', async () => {
+    test('should open production URL when clicking', async () => {
       const user = userEvent.setup()
       render(
         <OverflowMenu
@@ -224,7 +224,7 @@ describe('OverflowMenu', () => {
   })
 
   describe('Callback Invocations', () => {
-    it('should call onMoveToMaintenance when clicked', async () => {
+    test('should call onMoveToMaintenance when clicked', async () => {
       const user = userEvent.setup()
       render(
         <OverflowMenu
@@ -240,7 +240,7 @@ describe('OverflowMenu', () => {
       expect(mockOnMoveToMaintenance).toHaveBeenCalledWith('card-1')
     })
 
-    it('should call onRestoreToBoard when clicked', async () => {
+    test('should call onRestoreToBoard when clicked', async () => {
       const user = userEvent.setup()
       render(
         <OverflowMenu
@@ -258,7 +258,7 @@ describe('OverflowMenu', () => {
   })
 
   describe('Delete Confirmation Dialog', () => {
-    it('should open delete dialog when Remove from Board is clicked', async () => {
+    test('should open delete dialog when Remove from Board is clicked', async () => {
       const user = userEvent.setup()
       render(
         <OverflowMenu
@@ -279,7 +279,7 @@ describe('OverflowMenu', () => {
       })
     })
 
-    it('should show repository name in delete confirmation', async () => {
+    test('should show repository name in delete confirmation', async () => {
       const user = userEvent.setup()
       render(
         <OverflowMenu
@@ -297,7 +297,7 @@ describe('OverflowMenu', () => {
       })
     })
 
-    it('should call onRemove when confirmation is accepted', async () => {
+    test('should call onRemove when confirmation is accepted', async () => {
       const user = userEvent.setup()
       render(
         <OverflowMenu
@@ -321,7 +321,7 @@ describe('OverflowMenu', () => {
       expect(mockOnRemove).toHaveBeenCalledWith('card-1')
     })
 
-    it('should close dialog when Cancel is clicked', async () => {
+    test('should close dialog when Cancel is clicked', async () => {
       const user = userEvent.setup()
       render(
         <OverflowMenu
@@ -349,7 +349,7 @@ describe('OverflowMenu', () => {
       })
     })
 
-    it('should not call onRemove when cancelled', async () => {
+    test('should not call onRemove when cancelled', async () => {
       const user = userEvent.setup()
       render(
         <OverflowMenu
@@ -375,7 +375,7 @@ describe('OverflowMenu', () => {
   })
 
   describe('Accessibility', () => {
-    it('should have correct test IDs for automation', () => {
+    test('should have correct test IDs for automation', () => {
       render(
         <OverflowMenu
           {...defaultProps}
@@ -397,7 +397,7 @@ describe('OverflowMenu', () => {
       expect(screen.getByTestId('remove-from-board-card-1')).toBeInTheDocument()
     })
 
-    it('should have destructive styling on Remove button', () => {
+    test('should have destructive styling on Remove button', () => {
       render(
         <OverflowMenu
           {...defaultProps}
@@ -413,7 +413,7 @@ describe('OverflowMenu', () => {
   })
 
   describe('Separator Logic', () => {
-    it('should render separator between URL items and actions', () => {
+    test('should render separator between URL items and actions', () => {
       render(
         <OverflowMenu
           {...defaultProps}
@@ -447,7 +447,7 @@ describe('OverflowMenu', () => {
    * for pointer / mouse / click / key events. These tests pin that contract.
    */
   describe('Event Propagation Isolation (dnd-kit guard)', () => {
-    it('should render an isolation wrapper that catches bubbling events', () => {
+    test('should render an isolation wrapper that catches bubbling events', () => {
       render(
         <OverflowMenu
           {...defaultProps}
@@ -462,7 +462,7 @@ describe('OverflowMenu', () => {
       expect(isolation).toHaveClass('contents')
     })
 
-    it('should stop click bubbling from menu items reaching draggable ancestor', async () => {
+    test('should stop click bubbling from menu items reaching draggable ancestor', async () => {
       const ancestorClickSpy = vi.fn()
       const ancestorPointerDownSpy = vi.fn()
       const ancestorMouseDownSpy = vi.fn()
@@ -494,7 +494,7 @@ describe('OverflowMenu', () => {
       expect(ancestorMouseDownSpy).not.toHaveBeenCalled()
     })
 
-    it('should stop click bubbling when opening menu via the trigger', async () => {
+    test('should stop click bubbling when opening menu via the trigger', async () => {
       const ancestorClickSpy = vi.fn()
       const ancestorPointerDownSpy = vi.fn()
       const user = userEvent.setup()
@@ -520,7 +520,7 @@ describe('OverflowMenu', () => {
       expect(ancestorPointerDownSpy).not.toHaveBeenCalled()
     })
 
-    it('should stop keyboard events bubbling from the menu trigger', async () => {
+    test('should stop keyboard events bubbling from the menu trigger', async () => {
       const ancestorKeyDownSpy = vi.fn()
       const user = userEvent.setup()
 

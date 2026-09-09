@@ -12,7 +12,7 @@ import { configureStore } from '@reduxjs/toolkit'
 import { renderHook, act } from '@testing-library/react'
 import React from 'react'
 import { Provider } from 'react-redux'
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { useTheme } from '@/hooks/use-theme'
 import type { ThemeType } from '@/lib/constants/themes'
@@ -103,7 +103,7 @@ describe('useTheme', () => {
   })
 
   describe('Initial State', () => {
-    it('should return default theme from Redux', () => {
+    test('should return default theme from Redux', () => {
       const store = createTestStore('default')
       const { result } = renderHook(() => useTheme(), {
         wrapper: createWrapper(store),
@@ -112,7 +112,7 @@ describe('useTheme', () => {
       expect(result.current.theme).toBe('default')
     })
 
-    it('should detect light theme correctly', () => {
+    test('should detect light theme correctly', () => {
       const store = createTestStore('sunrise')
       const { result } = renderHook(() => useTheme(), {
         wrapper: createWrapper(store),
@@ -122,7 +122,7 @@ describe('useTheme', () => {
       expect(result.current.isDark).toBe(false)
     })
 
-    it('should detect dark theme correctly', () => {
+    test('should detect dark theme correctly', () => {
       const store = createTestStore('midnight')
       const { result } = renderHook(() => useTheme(), {
         wrapper: createWrapper(store),
@@ -134,7 +134,7 @@ describe('useTheme', () => {
   })
 
   describe('setTheme()', () => {
-    it('should update theme in Redux', () => {
+    test('should update theme in Redux', () => {
       const store = createTestStore('default')
       const { result } = renderHook(() => useTheme(), {
         wrapper: createWrapper(store),
@@ -148,7 +148,7 @@ describe('useTheme', () => {
       expect(store.getState().settings.theme).toBe('midnight')
     })
 
-    it('should update isDark when switching to dark theme', () => {
+    test('should update isDark when switching to dark theme', () => {
       const store = createTestStore('default')
       const { result } = renderHook(() => useTheme(), {
         wrapper: createWrapper(store),
@@ -163,7 +163,7 @@ describe('useTheme', () => {
       expect(result.current.isDark).toBe(true)
     })
 
-    it('should update isDark when switching to light theme', () => {
+    test('should update isDark when switching to light theme', () => {
       const store = createTestStore('midnight')
       const { result } = renderHook(() => useTheme(), {
         wrapper: createWrapper(store),
@@ -180,7 +180,7 @@ describe('useTheme', () => {
   })
 
   describe('DOM Application', () => {
-    it('should apply data-theme attribute for non-system themes', async () => {
+    test('should apply data-theme attribute for non-system themes', async () => {
       const store = createTestStore('mint')
       renderHook(() => useTheme(), {
         wrapper: createWrapper(store),
@@ -192,7 +192,7 @@ describe('useTheme', () => {
       })
     })
 
-    it('should add dark class for dark themes', async () => {
+    test('should add dark class for dark themes', async () => {
       const store = createTestStore('midnight')
       renderHook(() => useTheme(), {
         wrapper: createWrapper(store),
@@ -206,7 +206,7 @@ describe('useTheme', () => {
       })
     })
 
-    it('should remove dark class for light themes', async () => {
+    test('should remove dark class for light themes', async () => {
       // Start with dark class
       document.documentElement.classList.add('dark')
 
@@ -220,7 +220,7 @@ describe('useTheme', () => {
       })
     })
 
-    it('should handle system theme with dark preference', async () => {
+    test('should handle system theme with dark preference', async () => {
       // Mock system dark preference
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
@@ -243,7 +243,7 @@ describe('useTheme', () => {
       })
     })
 
-    it('should handle system theme with light preference', async () => {
+    test('should handle system theme with light preference', async () => {
       // Mock system light preference
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
@@ -285,7 +285,7 @@ describe('useTheme', () => {
       'rust',
     ]
 
-    it.each(lightThemes)('should detect %s as light theme', (themeName) => {
+    test.each(lightThemes)('should detect %s as light theme', (themeName) => {
       const store = createTestStore(themeName)
       const { result } = renderHook(() => useTheme(), {
         wrapper: createWrapper(store),
@@ -294,7 +294,7 @@ describe('useTheme', () => {
       expect(result.current.isDark).toBe(false)
     })
 
-    it.each(darkThemes)('should detect %s as dark theme', (themeName) => {
+    test.each(darkThemes)('should detect %s as dark theme', (themeName) => {
       const store = createTestStore(themeName)
       const { result } = renderHook(() => useTheme(), {
         wrapper: createWrapper(store),
@@ -305,7 +305,7 @@ describe('useTheme', () => {
   })
 
   describe('mounted State', () => {
-    it('should report mounted state correctly', () => {
+    test('should report mounted state correctly', () => {
       const store = createTestStore('default')
       const { result } = renderHook(() => useTheme(), {
         wrapper: createWrapper(store),
@@ -317,7 +317,7 @@ describe('useTheme', () => {
   })
 
   describe('Memoization', () => {
-    it('should maintain stable setTheme reference', () => {
+    test('should maintain stable setTheme reference', () => {
       const store = createTestStore('default')
       const { result, rerender } = renderHook(() => useTheme(), {
         wrapper: createWrapper(store),
@@ -332,7 +332,7 @@ describe('useTheme', () => {
   })
 
   describe('Edge Cases', () => {
-    it('should handle rapid theme changes', async () => {
+    test('should handle rapid theme changes', async () => {
       const store = createTestStore('default')
       const { result } = renderHook(() => useTheme(), {
         wrapper: createWrapper(store),
@@ -359,7 +359,7 @@ describe('useTheme', () => {
       })
     })
 
-    it('should clean up previous theme when switching', async () => {
+    test('should clean up previous theme when switching', async () => {
       const store = createTestStore('midnight')
       const { result } = renderHook(() => useTheme(), {
         wrapper: createWrapper(store),

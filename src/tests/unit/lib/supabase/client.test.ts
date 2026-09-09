@@ -7,56 +7,56 @@
  * - Authentication configuration verification
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, test, expect } from 'vitest'
 
 describe('Supabase Client (lib/supabase/client.ts)', () => {
   describe('Environment Variables', () => {
-    it('should have NEXT_PUBLIC_SUPABASE_URL defined and non-empty', () => {
+    test('should have NEXT_PUBLIC_SUPABASE_URL defined and non-empty', () => {
       expect(process.env.NEXT_PUBLIC_SUPABASE_URL).toBeDefined()
       expect(process.env.NEXT_PUBLIC_SUPABASE_URL).toBeTruthy()
       // Verify it's a valid URL format
       expect(process.env.NEXT_PUBLIC_SUPABASE_URL).toMatch(/^https?:\/\//)
     })
 
-    it('should have NEXT_PUBLIC_SUPABASE_ANON_KEY defined and non-empty', () => {
+    test('should have NEXT_PUBLIC_SUPABASE_ANON_KEY defined and non-empty', () => {
       expect(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY).toBeDefined()
       expect(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY).toBeTruthy()
     })
   })
 
   describe('Client Module', () => {
-    it('should export supabase client', async () => {
+    test('should export supabase client', async () => {
       const { supabase } = await import('@/lib/supabase/client')
 
       expect(supabase).toBeDefined()
       expect(supabase.auth).toBeDefined()
     })
 
-    it('should export getSession function', async () => {
+    test('should export getSession function', async () => {
       const { getSession } = await import('@/lib/supabase/client')
 
       expect(typeof getSession).toBe('function')
     })
 
-    it('should export getUser function', async () => {
+    test('should export getUser function', async () => {
       const { getUser } = await import('@/lib/supabase/client')
 
       expect(typeof getUser).toBe('function')
     })
 
-    it('should export signInWithGitHub function', async () => {
+    test('should export signInWithGitHub function', async () => {
       const { signInWithGitHub } = await import('@/lib/supabase/client')
 
       expect(typeof signInWithGitHub).toBe('function')
     })
 
-    it('should export signOut function', async () => {
+    test('should export signOut function', async () => {
       const { signOut } = await import('@/lib/supabase/client')
 
       expect(typeof signOut).toBe('function')
     })
 
-    it('should export onAuthStateChange function', async () => {
+    test('should export onAuthStateChange function', async () => {
       const { onAuthStateChange } = await import('@/lib/supabase/client')
 
       expect(typeof onAuthStateChange).toBe('function')
@@ -64,7 +64,7 @@ describe('Supabase Client (lib/supabase/client.ts)', () => {
   })
 
   describe('Client Configuration', () => {
-    it('should have auth configuration', async () => {
+    test('should have auth configuration', async () => {
       const { supabase } = await import('@/lib/supabase/client')
 
       // Verify supabase client has auth methods

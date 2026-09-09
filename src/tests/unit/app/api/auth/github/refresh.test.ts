@@ -13,7 +13,7 @@
  *  H. Unexpected exception — redirect to /login?error=unexpected_error
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { checkRateLimit } from '@/lib/rate-limit/check'
 import { logSecurityEvent } from '@/lib/security-events'
@@ -103,7 +103,7 @@ describe('GET /api/auth/github/refresh', () => {
   })
 
   // ─────────────────────────────────────── Branch E: happy path
-  it('redirects to GitHub OAuth URL on the happy path', async () => {
+  test('redirects to GitHub OAuth URL on the happy path', async () => {
     const { GET } = await import('@/app/api/auth/github/refresh/route')
 
     const response = await GET(buildRequest('?next=%2Fboard%2Fabc'))
@@ -116,7 +116,7 @@ describe('GET /api/auth/github/refresh', () => {
     })
   })
 
-  it('forwards the sanitized `next` param into the callback URL handed to Supabase', async () => {
+  test('forwards the sanitized `next` param into the callback URL handed to Supabase', async () => {
     const supabaseMock = buildSupabaseMock()
     const signInSpy = vi.spyOn(supabaseMock.auth, 'signInWithOAuth')
     vi.mocked(createRouteHandlerClient).mockResolvedValue(supabaseMock as never)
@@ -138,7 +138,7 @@ describe('GET /api/auth/github/refresh', () => {
   })
 
   // ─────────────────────────────────────── Branch A: open-redirect guard
-  it('coerces protocol-relative `next` (//evil.com) to /boards', async () => {
+  test('coerces protocol-relative `next` (//evil.com) to /boards', async () => {
     const supabaseMock = buildSupabaseMock()
     const signInSpy = vi.spyOn(supabaseMock.auth, 'signInWithOAuth')
     vi.mocked(createRouteHandlerClient).mockResolvedValue(supabaseMock as never)
@@ -155,7 +155,7 @@ describe('GET /api/auth/github/refresh', () => {
     )
   })
 
-  it('coerces backslash-prefixed `next` to /boards', async () => {
+  test('coerces backslash-prefixed `next` to /boards', async () => {
     const supabaseMock = buildSupabaseMock()
     const signInSpy = vi.spyOn(supabaseMock.auth, 'signInWithOAuth')
     vi.mocked(createRouteHandlerClient).mockResolvedValue(supabaseMock as never)
@@ -172,7 +172,7 @@ describe('GET /api/auth/github/refresh', () => {
     )
   })
 
-  it('coerces non-relative `next` (https://evil.com) to /boards', async () => {
+  test('coerces non-relative `next` (https://evil.com) to /boards', async () => {
     const supabaseMock = buildSupabaseMock()
     const signInSpy = vi.spyOn(supabaseMock.auth, 'signInWithOAuth')
     vi.mocked(createRouteHandlerClient).mockResolvedValue(supabaseMock as never)
@@ -190,7 +190,7 @@ describe('GET /api/auth/github/refresh', () => {
   })
 
   // ─────────────────────────────────────── Branch B: attempt cap
-  it('redirects to /login?error=token_refresh_failed when attempt exceeds the cap', async () => {
+  test('redirects to /login?error=token_refresh_failed when attempt exceeds the cap', async () => {
     const { GET } = await import('@/app/api/auth/github/refresh/route')
 
     const response = await GET(buildRequest('?next=%2Fboard%2Fabc&attempt=2'))
@@ -204,7 +204,7 @@ describe('GET /api/auth/github/refresh', () => {
     })
   })
 
-  it('treats a malformed attempt value as 1 (does not bail)', async () => {
+  test('treats a malformed attempt value as 1 (does not bail)', async () => {
     const { GET } = await import('@/app/api/auth/github/refresh/route')
 
     const response = await GET(
@@ -216,7 +216,7 @@ describe('GET /api/auth/github/refresh', () => {
   })
 
   // ─────────────────────────────────────── Branch C: rate limit
-  it('redirects to /login?error=rate_limited when checkRateLimit denies (no error message reflected in URL)', async () => {
+  test('redirects to /login?error=rate_limited when checkRateLimit denies (no error message reflected in URL)', async () => {
     vi.mocked(checkRateLimit).mockReturnValue({
       allowed: false,
       error: 'Too many sign-in requests. Please try again later.',
@@ -233,7 +233,7 @@ describe('GET /api/auth/github/refresh', () => {
   })
 
   // ─────────────────────────────────────── Branch D: no Supabase session
-  it('redirects to /login?next=... when there is no Supabase user', async () => {
+  test('redirects to /login?next=... when there is no Supabase user', async () => {
     vi.mocked(createRouteHandlerClient).mockResolvedValue(
       buildSupabaseMock({
         getUser: async () => ({
@@ -257,7 +257,7 @@ describe('GET /api/auth/github/refresh', () => {
   })
 
   // ─────────────────────────────────────── Branch F: signInWithOAuth error
-  it('redirects to /login?error=oauth_failed when signInWithOAuth returns an error (provider message stays server-side)', async () => {
+  test('redirects to /login?error=oauth_failed when signInWithOAuth returns an error (provider message stays server-side)', async () => {
     vi.mocked(createRouteHandlerClient).mockResolvedValue(
       buildSupabaseMock({
         signInWithOAuth: async () => ({
@@ -282,7 +282,7 @@ describe('GET /api/auth/github/refresh', () => {
   })
 
   // ─────────────────────────────────────── Branch G: missing data.url
-  it('redirects to /login?error=oauth_failed when Supabase returns no redirect URL', async () => {
+  test('redirects to /login?error=oauth_failed when Supabase returns no redirect URL', async () => {
     vi.mocked(createRouteHandlerClient).mockResolvedValue(
       buildSupabaseMock({
         signInWithOAuth: async () => ({
@@ -301,7 +301,7 @@ describe('GET /api/auth/github/refresh', () => {
   })
 
   // ─────────────────────────────────────── Branch H: unexpected exception
-  it('redirects to /login?error=unexpected_error when an exception bubbles out', async () => {
+  test('redirects to /login?error=unexpected_error when an exception bubbles out', async () => {
     vi.mocked(createRouteHandlerClient).mockResolvedValue(
       buildSupabaseMock({
         getUser: async () => {
@@ -319,7 +319,7 @@ describe('GET /api/auth/github/refresh', () => {
   })
 
   // ─────────────────────────────────────── default-next behavior
-  it('defaults `next` to /boards when not provided', async () => {
+  test('defaults `next` to /boards when not provided', async () => {
     const supabaseMock = buildSupabaseMock()
     const signInSpy = vi.spyOn(supabaseMock.auth, 'signInWithOAuth')
     vi.mocked(createRouteHandlerClient).mockResolvedValue(supabaseMock as never)
