@@ -80,7 +80,7 @@ export const CommandPalette = memo(function CommandPalette() {
         label: 'Go to Boards',
         icon: <Home className="h-4 w-4" />,
         shortcut: 'G B',
-        action: () => router.push('/boards'),
+        action: (): void => router.push('/boards'),
         category: 'navigation',
       },
       {
@@ -88,7 +88,7 @@ export const CommandPalette = memo(function CommandPalette() {
         label: 'Go to Maintenance',
         icon: <Archive className="h-4 w-4" />,
         shortcut: 'G M',
-        action: () => router.push('/maintenance'),
+        action: (): void => router.push('/maintenance'),
         category: 'navigation',
       },
       {
@@ -96,7 +96,7 @@ export const CommandPalette = memo(function CommandPalette() {
         label: 'Go to Settings',
         icon: <Settings className="h-4 w-4" />,
         shortcut: 'G S',
-        action: () => router.push('/settings'),
+        action: (): void => router.push('/settings'),
         category: 'navigation',
       },
       // Actions
@@ -105,7 +105,7 @@ export const CommandPalette = memo(function CommandPalette() {
         label: 'Create New Board',
         icon: <PlusCircle className="h-4 w-4" />,
         shortcut: 'N',
-        action: () => router.push('/boards/new'),
+        action: (): void => router.push('/boards/new'),
         category: 'actions',
       },
       // Settings
@@ -114,7 +114,7 @@ export const CommandPalette = memo(function CommandPalette() {
         label: 'Keyboard Shortcuts',
         icon: <Keyboard className="h-4 w-4" />,
         shortcut: '?',
-        action: () => {
+        action: (): void => {
           setIsOpen(false)
           toast.info('Keyboard Shortcuts', {
             description:
@@ -136,7 +136,7 @@ export const CommandPalette = memo(function CommandPalette() {
         id: 'logout',
         label: 'Sign Out',
         icon: <LogOut className="h-4 w-4" />,
-        action: async () => {
+        action: async (): Promise<void> => {
           await signOut()
           router.push('/login')
         },
@@ -208,14 +208,14 @@ export const CommandPalette = memo(function CommandPalette() {
    * This pattern avoids useEffect setState by handling the reset inline.
    * @param e - The change event from the search input.
    */
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     setSearch(e.target.value)
     setSelectedIndex(0)
   }
 
   // Open/close with ⌘K
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent): void => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
         setIsOpen((prev) => !prev)
@@ -229,7 +229,7 @@ export const CommandPalette = memo(function CommandPalette() {
     }
 
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return (): void => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   // Focus is handled by autoFocus on the input element
@@ -242,7 +242,7 @@ export const CommandPalette = memo(function CommandPalette() {
    * - ArrowUp: Move selection to the previous command (wraps around).
    * - Enter: Execute the currently selected command and close the palette.
    */
-  const handleInputKeyDown = (e: React.KeyboardEvent) => {
+  const handleInputKeyDown = (e: React.KeyboardEvent): void => {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
       setSelectedIndex((prev) => (prev + 1) % flatCommands.length)
@@ -271,7 +271,7 @@ export const CommandPalette = memo(function CommandPalette() {
     }
   }, [selectedIndex])
 
-  const handleClose = () => {
+  const handleClose = (): void => {
     setIsOpen(false)
     setSearch('')
   }

@@ -64,7 +64,7 @@ export const LinkManager = memo(function LinkManager({
       .catch(() => {
         // Silently fail - user can still use built-in presets
       })
-    return () => {
+    return (): void => {
       mounted = false
     }
   }, [])

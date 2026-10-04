@@ -32,7 +32,7 @@ const getClientSubtitleSnapshot = () => {
 const getServerSubtitleSnapshot = () => 0
 
 /** No-op subscribe for useSyncExternalStore */
-const emptySubtitleSubscribe = () => () => {}
+const emptySubtitleSubscribe = () => (): void => {}
 
 /**
  * Features section with 4 feature cards and an SSR-safe random subtitle.

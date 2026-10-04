@@ -85,7 +85,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
    * Toggle the combobox open state
    * Used for the main trigger button
    */
-  const handleToggleOpen = () => {
+  const handleToggleOpen = (): void => {
     const newOpen = !isOpen
     if (onOpenChange) {
       onOpenChange(newOpen)
@@ -98,7 +98,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
    * Close the combobox
    * Used for Cancel button and after successful add
    */
-  const handleClose = () => {
+  const handleClose = (): void => {
     if (onOpenChange) {
       onOpenChange(false)
     } else {
@@ -252,7 +252,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   })
 
   // Add selected repositories to board
-  const handleAddRepositories = async () => {
+  const handleAddRepositories = async (): Promise<void> => {
     if (selectedRepos.length === 0) return
     if (!statusId) {
       setAddingError('Add a column before adding repositories')
@@ -317,7 +317,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   }
 
   // Keyboard navigation (WCAG AA)
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent): void => {
     if (e.key === 'Escape') {
       // Close combobox (supports both controlled and uncontrolled modes)
       if (onOpenChange) {

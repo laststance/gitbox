@@ -1,4 +1,4 @@
-import { withSentryConfig } from '@sentry/nextjs'
+import { withSentryConfig } from '@sentry/nextjs/config'
 import { codeInspectorPlugin } from 'code-inspector-plugin'
 import type { NextConfig } from 'next'
 
@@ -18,6 +18,8 @@ if (process.env.VERCEL && process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK === 'true') {
 }
 
 const nextConfig: NextConfig = {
+  // Keep MSW's Node interceptors outside Turbopack for test-mode server rendering.
+  serverExternalPackages: ['msw'],
   turbopack: {
     rules: codeInspectorPlugin({
       bundler: 'turbopack',

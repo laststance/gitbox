@@ -51,7 +51,7 @@ function MSWProviderComponent({ children }: MSWProviderProps): React.ReactNode {
           await worker.start({
             // 'bypass' allows unhandled requests to pass through to the network
             // Change to 'warn' or 'error' to debug missing handlers
-            onUnhandledRequest: 'bypass',
+            onUnhandledFrame: 'bypass',
           })
           setIsMSWReady(true)
         } catch {

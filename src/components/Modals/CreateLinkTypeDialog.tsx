@@ -99,7 +99,7 @@ export const CreateLinkTypeDialog = memo(function CreateLinkTypeDialog({
     onOpenChange(false)
   }, [resetForm, onOpenChange])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault()
     setError(null)
 

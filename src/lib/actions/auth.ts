@@ -28,7 +28,7 @@ import { getForwardedClientIp } from '@/lib/utils/get-client-ip'
  *
  * @returns Redirect URL to GitHub authentication screen
  */
-export async function signInWithGitHub() {
+export async function signInWithGitHub(): Promise<void> {
   // Rate limit by IP (user not yet authenticated)
   const headerStore = await headers()
   const forwarded = getForwardedClientIp(headerStore)
@@ -85,7 +85,7 @@ export async function signInWithGitHub() {
  *
  * @throws Error if Supabase sign out fails
  */
-export async function signOut() {
+export async function signOut(): Promise<void> {
   const supabase = await createServerActionClient()
 
   const { error } = await supabase.auth.signOut()
@@ -112,7 +112,7 @@ export async function signOut() {
  * @throws Error if user is not authenticated
  * @throws Error if deletion fails
  */
-export async function deleteAccount() {
+export async function deleteAccount(): Promise<void> {
   // Get current user via JWT claims (~5ms WebCrypto verify) instead of the
   // ~50ms `auth.getUser()` GoTrue round-trip. `claims.sub` is the user UUID.
   const authedContext = await getCachedClaims()

@@ -80,7 +80,7 @@ export const SettingsClient = memo(function SettingsClient() {
   const compactMode = useAppSelector(selectCompactMode)
   const showCardMetadata = useAppSelector(selectShowCardMetadata)
 
-  const handleSaveSettings = () => {
+  const handleSaveSettings = (): void => {
     toast.success('Settings saved', {
       description: 'Your preferences have been updated.',
     })

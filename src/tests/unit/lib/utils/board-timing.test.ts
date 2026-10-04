@@ -100,10 +100,15 @@ describe('logBoardTiming() BOARD_TIMING_LOG gating', () => {
     )
   })
 
-  test('tags its log lines with the board-timing module name', () => {
-    // Assert — createModuleLogger runs once at module load, never re-cleared,
-    // so a re-tag of the module name (which would orphan the prod grep key)
-    // fails here even though the emitted-line tests would still pass.
+  test('tags its log lines with the board-timing module name', async () => {
+    // Arrange — Vitest 5 clears import-time spy calls between tests.
+    createModuleLoggerSpy.mockClear()
+    vi.resetModules()
+
+    // Act
+    await import('@/lib/utils/board-timing')
+
+    // Assert
     expect(createModuleLoggerSpy).toHaveBeenCalledTimes(1)
     expect(createModuleLoggerSpy).toHaveBeenCalledWith('board-timing')
   })

@@ -73,7 +73,7 @@ const WARNING_EVENTS = new Set<SecurityEventType>([
 export function logSecurityEvent(
   type: SecurityEventType,
   context: SecurityEventContext = {},
-) {
+): void {
   Sentry.captureMessage(`security: ${type}`, {
     level: WARNING_EVENTS.has(type) ? 'warning' : 'info',
     tags: {

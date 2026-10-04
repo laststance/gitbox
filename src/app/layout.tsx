@@ -20,7 +20,6 @@ import { CommandPalette } from '@/components/CommandPalette/CommandPalette'
 import { ShortcutsHelp } from '@/components/ShortcutsHelp'
 import { DARK_THEME_IDS } from '@/lib/constants/themes'
 import { ReduxProvider } from '@/lib/redux/reduxProvider'
-import { isMSWEnabled } from '@/lib/utils/isMSWEnabled'
 import '@/styles/globals.css'
 
 import { MSWProvider } from './msw-provider'
@@ -79,13 +78,6 @@ export const metadata: Metadata = {
     follow: true,
   },
   manifest: '/manifest.json',
-}
-
-// Server-side MSW initialization (runs at module load time)
-// Uses require() to avoid bundling issues with Next.js SSR
-if (process.env.NEXT_RUNTIME === 'nodejs' && isMSWEnabled()) {
-  const { server } = require('../../mocks/server')
-  server.listen({ onUnhandledRequest: 'bypass' })
 }
 
 export default function RootLayout({

@@ -7,7 +7,6 @@
  * - Utility function tests
  */
 
-import { fileURLToPath } from 'node:url'
 import path from 'path'
 
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
@@ -15,19 +14,12 @@ import react from '@vitejs/plugin-react'
 import { playwright } from '@vitest/browser-playwright'
 import { loadEnv } from 'vite'
 import { defineConfig } from 'vitest/config'
-const dirname =
-  typeof __dirname !== 'undefined'
-    ? __dirname
-    : path.dirname(fileURLToPath(import.meta.url))
+const dirname = import.meta.dirname
 
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 
 export default defineConfig(({ mode }) => ({
   plugins: [react()],
-  // Pre-bundle dependencies to prevent Vite re-optimization during tests
-  optimizeDeps: {
-    include: ['superjson', 'lz-string'],
-  },
   test: {
     // Transform packages through Vite's module runner for compatibility
     server: {
@@ -127,12 +119,12 @@ export default defineConfig(({ mode }) => ({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@/lib': path.resolve(__dirname, './src/lib'),
-      '@/components': path.resolve(__dirname, './src/components'),
-      '@/app': path.resolve(__dirname, './src/app'),
-      '@/styles': path.resolve(__dirname, './src/styles'),
-      '@/mocks': path.resolve(__dirname, './mocks'),
+      '@': path.resolve(dirname, './src'),
+      '@/lib': path.resolve(dirname, './src/lib'),
+      '@/components': path.resolve(dirname, './src/components'),
+      '@/app': path.resolve(dirname, './src/app'),
+      '@/styles': path.resolve(dirname, './src/styles'),
+      '@/mocks': path.resolve(dirname, './mocks'),
     },
   },
 }))

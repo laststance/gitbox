@@ -19,7 +19,7 @@ export const HeroSection = memo(function HeroSection() {
   const router = useRouter()
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = (e: MouseEvent): void => {
       const heroElement = document.getElementById('hero-section')
       if (heroElement) {
         const rect = heroElement.getBoundingClientRect()
@@ -33,7 +33,8 @@ export const HeroSection = memo(function HeroSection() {
     const heroElement = document.getElementById('hero-section')
     if (heroElement) {
       heroElement.addEventListener('mousemove', handleMouseMove)
-      return () => heroElement.removeEventListener('mousemove', handleMouseMove)
+      return (): void =>
+        heroElement.removeEventListener('mousemove', handleMouseMove)
     }
   }, [])
 

@@ -107,7 +107,7 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
 
     let cancelled = false
 
-    const fetchBoards = async () => {
+    const fetchBoards = async (): Promise<void> => {
       setIsLoadingBoards(true)
       setBoardsError(null)
 
@@ -133,7 +133,7 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
 
     fetchBoards()
 
-    return () => {
+    return (): void => {
       cancelled = true
     }
   }, [isOpen])

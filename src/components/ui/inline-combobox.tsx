@@ -126,7 +126,7 @@ const InlineCombobox = ({
     const pointRef = editor.api.pointRef(point)
     insertPoint.current = pointRef.current
 
-    return () => {
+    return (): void => {
       pointRef.unref()
     }
   }, [editor, element])
@@ -352,7 +352,7 @@ const InlineComboboxEmpty = ({
   React.useEffect(() => {
     setHasEmpty(true)
 
-    return () => {
+    return (): void => {
       setHasEmpty(false)
     }
   }, [setHasEmpty])

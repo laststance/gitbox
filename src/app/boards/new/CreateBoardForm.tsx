@@ -28,7 +28,7 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
   const [presetId, setPresetId] = useState<PresetId>(DEFAULT_PRESET_ID)
   const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault()
     setError(null)
 

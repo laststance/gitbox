@@ -99,7 +99,7 @@ const groups: Group[] = [
       },
     ].map((item) => ({
       ...item,
-      onSelect: (editor, value) => {
+      onSelect: (editor, value): void => {
         insertBlock(editor, value)
       },
     })),
@@ -129,7 +129,7 @@ const groups: Group[] = [
       },
     ].map((item) => ({
       ...item,
-      onSelect: (editor, value) => {
+      onSelect: (editor, value): void => {
         insertBlock(editor, value)
       },
     })),
@@ -149,7 +149,7 @@ const groups: Group[] = [
       },
     ].map((item) => ({
       ...item,
-      onSelect: (editor, value) => {
+      onSelect: (editor, value): void => {
         insertBlock(editor, value)
       },
     })),
@@ -175,7 +175,7 @@ const groups: Group[] = [
       },
     ].map((item) => ({
       ...item,
-      onSelect: (editor, value) => {
+      onSelect: (editor, value): void => {
         insertBlock(editor, value)
       },
     })),
@@ -202,7 +202,7 @@ const groups: Group[] = [
       },
     ].map((item) => ({
       ...item,
-      onSelect: (editor, value) => {
+      onSelect: (editor, value): void => {
         insertInlineElement(editor, value)
       },
     })),

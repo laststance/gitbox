@@ -88,7 +88,7 @@ export const InlineEditableText = memo<InlineEditableTextProps>(
     }
 
     if (isEditing) {
-      const save = async () => {
+      const save = async (): Promise<void> => {
         if (isSavingRef.current) return
         isSavingRef.current = true
 

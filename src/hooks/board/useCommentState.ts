@@ -77,7 +77,7 @@ export function useCommentState(
 
       // Rollback helper — used both on `{success:false}` and thrown errors so
       // a network rejection doesn't leave the UI showing un-persisted state.
-      const rollback = () => {
+      const rollback = (): void => {
         setComments((prev) => ({
           ...prev,
           [cardId]: previous ?? DEFAULT_COMMENT,

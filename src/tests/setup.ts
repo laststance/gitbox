@@ -15,18 +15,21 @@ import { expect, afterEach, vi } from 'vitest'
 
 expect.extend(matchers)
 
+// Happy DOM's WAAPI rejects unfinished animations during cleanup; use Motion's JS fallback in unit tests.
+Reflect.deleteProperty(Element.prototype, 'animate')
+
 // Mocked because happy-dom's localStorage implementation doesn't reset between tests
 const localStorageMock = (() => {
   let store: Record<string, string> = {}
   return {
     getItem: (key: string) => store[key] ?? null,
-    setItem: (key: string, value: string) => {
+    setItem: (key: string, value: string): void => {
       store[key] = value
     },
-    removeItem: (key: string) => {
+    removeItem: (key: string): void => {
       delete store[key]
     },
-    clear: () => {
+    clear: (): void => {
       store = {}
     },
     get length() {

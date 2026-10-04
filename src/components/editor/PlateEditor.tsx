@@ -125,7 +125,7 @@ export const PlateEditor = memo(function PlateEditor({
       const timer = setTimeout(() => {
         editor.tf.focus({ edge: 'end' })
       }, 0)
-      return () => clearTimeout(timer)
+      return (): void => clearTimeout(timer)
     }
   }, [autoFocus, editor])
 
