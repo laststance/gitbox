@@ -24,15 +24,15 @@
 | Category   | Technology                                           |
 | ---------- | ---------------------------------------------------- |
 | Framework  | Next.js 16 (App Router)                              |
-| UI Library | React 19.2                                           |
-| Language   | TypeScript 5.9 (strict, noUncheckedIndexedAccess)    |
+| UI Library | React 19.3                                           |
+| Language   | TypeScript 7 (strict, noUncheckedIndexedAccess)      |
 | Styling    | Tailwind CSS 4 + shadcn/ui (OKLCH tokens)            |
 | State      | Redux Toolkit + @laststance/redux-storage-middleware |
 | Database   | Supabase (PostgreSQL + Auth + RLS)                   |
-| Rich Text  | Plate.js (Platejs 52)                                |
+| Rich Text  | Plate.js (Platejs 53)                                |
 | D&D        | @dnd-kit (core + sortable + modifiers)               |
-| Testing    | Vitest 4, Playwright 1.58, Storybook 10              |
-| Monitoring | Sentry 10                                            |
+| Testing    | Vitest 5, Playwright 1.63, Storybook 10              |
+| Monitoring | Sentry 11                                            |
 | Analytics  | Vercel Analytics                                     |
 | Validation | Zod 4                                                |
 | Hosting    | Vercel                                               |
@@ -1301,13 +1301,13 @@ export async function cdpBoardDragAndDrop(
 
 ### 12.1 Unit Tests
 
-- **Runner**: Vitest 4 + happy-dom
+- **Runner**: Vitest 5 + happy-dom
 - **Coverage**: @vitest/coverage-v8
 - **React Testing**: @testing-library/react + @testing-library/user-event
 
 ### 12.2 E2E Tests (Hybrid Architecture)
 
-- **Runner**: Playwright 1.58
+- **Runner**: Playwright 1.63
 - **Database**: Real local Supabase (not mocked)
 - **GitHub API**: MSW mocking (stability for external API)
 - **Auth**: Pre-authenticated via `e2e/auth.setup.ts`

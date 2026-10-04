@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2.0] - 2026-10-05
+
+### Changed
+
+- Updated all direct dependencies to their latest stable releases, including Next.js 16.3.8, React 19.3, Sentry 11, MSW 3, Vitest 5, and Motion 14.
+- Adopted the TypeScript 7 native compiler for typechecking while keeping the TypeScript 6 API available to ESLint and other tools that require it.
+
+### Fixed
+
+- Migrated Sentry and MSW configuration to their current APIs and refreshed the test Service Worker.
+- Kept unit tests stable with Motion's JavaScript animation fallback in Happy DOM.
+
 ## [0.3.1.3] - 2026-05-27
 
 ### Removed
