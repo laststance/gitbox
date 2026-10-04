@@ -195,7 +195,7 @@ export const Sidebar = memo(function Sidebar({
   const [boardsExpanded, setBoardsExpanded] = useState(true)
   const { isCollapsed, toggle, mounted } = useSidebar()
 
-  const handleSignOut = async () => {
+  const handleSignOut = async (): Promise<void> => {
     await signOut()
   }
 

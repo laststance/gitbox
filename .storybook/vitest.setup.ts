@@ -1,14 +1,10 @@
 /**
  * Vitest Setup for Storybook
  *
- * Configures project annotations for testing stories with Vitest.
- * The @storybook/addon-vitest automatically handles the beforeAll hook.
+ * Configures browser-only mocks for Storybook's Vitest project.
+ * The @storybook/addon-vitest applies project annotations automatically.
  */
-import * as a11yAddonAnnotations from '@storybook/addon-a11y/preview'
-import { setProjectAnnotations } from '@storybook/nextjs-vite'
 import { vi } from 'vitest'
-
-import * as projectAnnotations from './preview'
 
 /**
  * Storybook browser tests render components without a Next.js server, so server
@@ -35,7 +31,3 @@ if (typeof window !== 'undefined') {
     }
   })
 }
-
-// Apply project annotations for testing stories
-// The addon-vitest automatically loads Storybook's beforeAll hook
-setProjectAnnotations([a11yAddonAnnotations, projectAnnotations])

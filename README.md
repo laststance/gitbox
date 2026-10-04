@@ -41,14 +41,14 @@ When you have dozens (or hundreds) of repos from side projects, experiments, and
 ## Tech Stack
 
 - **Framework**: Next.js 16 (App Router)
-- **UI**: React 19.2, Tailwind CSS 4, shadcn/ui
+- **UI**: React 19.3, Tailwind CSS 4, shadcn/ui
 - **State**: Redux Toolkit + @laststance/redux-storage-middleware
 - **Database**: Supabase (PostgreSQL + Auth + RLS)
 - **Rich Text**: Plate.js (Platejs 53)
 - **Drag & Drop**: @dnd-kit
 - **Validation**: Zod 4
-- **Monitoring**: Sentry 10
-- **Testing**: Playwright (E2E), Vitest (Unit), Storybook 10
+- **Monitoring**: Sentry 11
+- **Testing**: Playwright 1.63 (E2E), Vitest 5 (Unit), Storybook 10
 
 ## Getting Started
 

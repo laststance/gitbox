@@ -82,7 +82,7 @@ export async function signInWithGitHub(redirectTo?: string) {
 /**
  * Sign out
  */
-export async function signOut() {
+export async function signOut(): Promise<void> {
   const { error } = await supabase.auth.signOut()
   if (error) {
     Sentry.captureException(error, { tags: { action: 'signOut' } })

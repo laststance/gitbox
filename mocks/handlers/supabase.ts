@@ -7,7 +7,7 @@
  * @see https://supabase.com/docs/reference/javascript/auth-api
  * @see https://postgrest.org/en/stable/api.html
  */
-import { http, HttpResponse, type HttpHandler } from 'msw'
+import { http, HttpResponse, type HttpHandler } from 'msw/http'
 
 import {
   SUPABASE_URL,

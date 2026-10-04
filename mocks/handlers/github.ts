@@ -6,7 +6,7 @@
  *
  * @see https://docs.github.com/en/rest
  */
-import { http, HttpResponse, type HttpHandler } from 'msw'
+import { http, HttpResponse, type HttpHandler } from 'msw/http'
 
 import {
   GITHUB_API_URL,

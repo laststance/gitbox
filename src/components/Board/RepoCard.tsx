@@ -106,7 +106,7 @@ export const RepoCard = memo<RepoCardProps>(
      *
      * @param open - Whether the menu should be open
      */
-    const handleMenuOpenChange = (open: boolean) => {
+    const handleMenuOpenChange = (open: boolean): void => {
       setMenuOpen(open)
     }
 
@@ -179,7 +179,7 @@ export const RepoCard = memo<RepoCardProps>(
      *
      * @param e - KeyboardEvent
      */
-    const handleKeyDown = (e: React.KeyboardEvent) => {
+    const handleKeyDown = (e: React.KeyboardEvent): void => {
       // Ignore events forwarded from a portal child (menu item, dialog, etc.)
       // so the card's shortcuts never fire while a child has focus.
       if (e.target !== e.currentTarget) return
@@ -232,7 +232,9 @@ export const RepoCard = memo<RepoCardProps>(
                   repoName={card.repoName}
                   onMoveToMaintenance={onMaintenance}
                   onMoveToAnotherBoard={
-                    onMoveToBoard ? () => onMoveToBoard(card.id) : undefined
+                    onMoveToBoard
+                      ? (): void => onMoveToBoard(card.id)
+                      : undefined
                   }
                   onRemove={onRemove}
                   open={menuOpen}

@@ -214,7 +214,7 @@ function TablePicker() {
     size: { colCount: 0, rowCount: 0 },
   })
 
-  const onCellMove = (rowIndex: number, colIndex: number) => {
+  const onCellMove = (rowIndex: number, colIndex: number): void => {
     const newGrid = [...tablePicker.grid]
 
     for (let i = 0; i < newGrid.length; i++) {

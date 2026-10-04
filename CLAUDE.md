@@ -34,7 +34,7 @@ This application requires GitHub authentication to access any functionality beyo
 
 **GitBox** - PWA for managing GitHub repositories in Kanban format.
 
-**Tech Stack:** Next.js 16 App Router, React 19.2, Redux Toolkit, Supabase, @dnd-kit
+**Tech Stack:** Next.js 16 App Router, React 19.3, Redux Toolkit, Supabase, @dnd-kit
 
 **Navigation:** `Landing → GitHub OAuth → /boards → /board/[id] (Kanban)`
 
@@ -459,8 +459,9 @@ Dark: dark, midnight, graphite, forest, ocean, plum, rust
 
 Key project-specific rules:
 
+- **TypeScript 7:** `@typescript/native` supplies the `tsc` binary for `pnpm typecheck`. The `typescript` alias points to `@typescript/typescript6` so ESLint and other compiler-API consumers can use TypeScript 6. Keep both packages when updating dependencies.
 - **Type-only fixes:** Don't alter runtime behavior when fixing TS errors
-- **React 19.2:** Use `useOptimistic`, `useActionState`, `use` API, Form Actions
+- **React 19.3:** Use `useOptimistic`, `useActionState`, `use` API, Form Actions
 - **UI Components:** Reuse from `src/components/ui` (shadcn/ui)
 - **Helper Functions:** Extract as pure functions below component definition
 

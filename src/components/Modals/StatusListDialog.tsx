@@ -71,7 +71,7 @@ const StatusListForm = memo(function StatusListForm({
   /**
    * Form submission handler
    */
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     setError(null)
 

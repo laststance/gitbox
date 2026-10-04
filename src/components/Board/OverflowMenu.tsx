@@ -95,7 +95,7 @@ function OverflowMenuInner<TId extends CardIdentifier>({
    * Opens a URL in a new tab securely.
    * @param url - The URL to open
    */
-  const handleOpenUrl = (url: string) => {
+  const handleOpenUrl = (url: string): void => {
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 
@@ -103,7 +103,7 @@ function OverflowMenuInner<TId extends CardIdentifier>({
    * Handles the remove confirmation action.
    * Calls onRemove callback and closes the dialog.
    */
-  const handleConfirmRemove = () => {
+  const handleConfirmRemove = (): void => {
     onRemove?.(cardId)
     setShowDeleteDialog(false)
   }
@@ -135,7 +135,7 @@ function OverflowMenuInner<TId extends CardIdentifier>({
    */
   const stopPointerBubble = (
     event: React.PointerEvent | React.MouseEvent | React.KeyboardEvent,
-  ) => {
+  ): void => {
     event.stopPropagation()
   }
 

@@ -204,7 +204,7 @@ export const MaintenanceClient = memo(function MaintenanceClient({
   /**
    * Open GitHub page for repository
    */
-  const openGitHubUrl = (repo: MaintenanceRepo) => {
+  const openGitHubUrl = (repo: MaintenanceRepo): void => {
     window.open(
       `https://github.com/${repo.repo_owner}/${repo.repo_name}`,
       '_blank',

@@ -109,7 +109,7 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
    *
    * @param open - Whether the dialog should be open
    */
-  const handleOpenChange = (open: boolean) => {
+  const handleOpenChange = (open: boolean): void => {
     setIsOpen(open)
   }
 
@@ -118,7 +118,7 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
    * Requirements: ? key to show help, ESC key to close
    */
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const handleKeyDown = (event: KeyboardEvent): void => {
       // ? key to toggle (disabled in input/textarea)
       if (
         event.key === '?' &&
@@ -140,7 +140,7 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
     }
 
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return (): void => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen])
 
   /**
@@ -148,12 +148,12 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
    * Allows Shortcuts link in Sidebar to trigger this modal
    */
   useEffect(() => {
-    const handleOpenShortcuts = () => {
+    const handleOpenShortcuts = (): void => {
       setIsOpen(true)
     }
 
     window.addEventListener(OPEN_SHORTCUTS_HELP, handleOpenShortcuts)
-    return () =>
+    return (): void =>
       window.removeEventListener(OPEN_SHORTCUTS_HELP, handleOpenShortcuts)
   }, [])
 

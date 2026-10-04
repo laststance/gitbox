@@ -168,7 +168,7 @@ export const KanbanPreview = memo(function KanbanPreview() {
     e: React.DragEvent<HTMLDivElement>,
     card: KanbanCard,
     sourceColumnId: string,
-  ) => {
+  ): void => {
     setDraggedCard(card)
     e.dataTransfer.setData('dragType', DRAG_TYPE.CARD)
     e.dataTransfer.setData('cardId', card.id)
@@ -188,7 +188,7 @@ export const KanbanPreview = memo(function KanbanPreview() {
    * Handles the end of a card drag operation.
    * @param e - The drag event
    */
-  const handleCardDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleCardDragEnd = (e: React.DragEvent<HTMLDivElement>): void => {
     const target = e.target as HTMLElement
     if (target) {
       target.style.opacity = '1'
@@ -205,7 +205,7 @@ export const KanbanPreview = memo(function KanbanPreview() {
   const handleCardDragOver = (
     e: React.DragEvent<HTMLDivElement>,
     columnId: string,
-  ) => {
+  ): void => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
     if (!draggedColumnId) {
@@ -216,7 +216,7 @@ export const KanbanPreview = memo(function KanbanPreview() {
   /**
    * Handles drag leave event for card drop zones.
    */
-  const handleCardDragLeave = () => {
+  const handleCardDragLeave = (): void => {
     setDragOverColumn(null)
   }
 
@@ -229,7 +229,7 @@ export const KanbanPreview = memo(function KanbanPreview() {
   const handleCardDrop = (
     e: React.DragEvent<HTMLDivElement>,
     targetColumnId: string,
-  ) => {
+  ): void => {
     e.preventDefault()
     const dragType = e.dataTransfer.getData('dragType')
 
@@ -278,7 +278,7 @@ export const KanbanPreview = memo(function KanbanPreview() {
   const handleColumnDragStart = (
     e: React.DragEvent<HTMLDivElement>,
     columnId: string,
-  ) => {
+  ): void => {
     setDraggedColumnId(columnId)
     e.dataTransfer.setData('dragType', DRAG_TYPE.COLUMN)
     e.dataTransfer.setData('columnId', columnId)
@@ -298,7 +298,7 @@ export const KanbanPreview = memo(function KanbanPreview() {
    * Handles the end of a column drag operation.
    * @param e - The drag event
    */
-  const handleColumnDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleColumnDragEnd = (e: React.DragEvent<HTMLDivElement>): void => {
     const target = e.currentTarget as HTMLElement
     if (target) {
       target.style.opacity = '1'
@@ -315,7 +315,7 @@ export const KanbanPreview = memo(function KanbanPreview() {
   const handleColumnDragOver = (
     e: React.DragEvent<HTMLDivElement>,
     targetIndex: number,
-  ) => {
+  ): void => {
     e.preventDefault()
     e.stopPropagation()
 
@@ -339,7 +339,7 @@ export const KanbanPreview = memo(function KanbanPreview() {
   const handleColumnDrop = (
     e: React.DragEvent<HTMLDivElement>,
     targetIndex: number,
-  ) => {
+  ): void => {
     e.preventDefault()
     e.stopPropagation()
 

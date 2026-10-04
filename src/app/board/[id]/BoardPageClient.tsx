@@ -122,7 +122,7 @@ export const BoardPageClient = memo(function BoardPageClient({
   // This enables other components to know which board is currently being viewed
   useEffect(() => {
     dispatch(setActiveBoard(board))
-    return () => {
+    return (): void => {
       // Clear activeBoard when leaving the page
       dispatch(setActiveBoard(null))
     }

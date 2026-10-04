@@ -126,7 +126,7 @@ export function useEditableUrl({
   // ----------------------------------------
   useEffect(() => {
     isMountedRef.current = true
-    return () => {
+    return (): void => {
       isMountedRef.current = false
       debouncedValidate.cancel()
       isCancellingRef.current = false

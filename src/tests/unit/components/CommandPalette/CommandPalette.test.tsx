@@ -77,7 +77,7 @@ function filterDomProps(
 /**
  * Helper to open the command palette via ⌘K.
  */
-function openPalette() {
+function openPalette(): void {
   fireEvent.keyDown(window, { key: 'k', metaKey: true })
 }
 

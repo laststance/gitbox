@@ -14,7 +14,7 @@ export const Navigation = memo(function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter()
 
-  const handleSignIn = () => {
+  const handleSignIn = (): void => {
     router.push('/login')
   }
 

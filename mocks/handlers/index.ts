@@ -7,7 +7,7 @@
  *
  * @see https://mswjs.io/docs/concepts/request-handler
  */
-import type { HttpHandler } from 'msw'
+import type { HttpHandler } from 'msw/http'
 
 import { githubApiHandlers } from './github'
 import { supabaseHandlers } from './supabase'

@@ -265,7 +265,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
   /**
    * Save subtitle text via server action
    */
-  async function handleSaveSubtitle() {
+  async function handleSaveSubtitle(): Promise<void> {
     setIsSavingSubtitle(true)
     try {
       const result = await updateBoardSubtitle(boardId, subtitle)
@@ -285,7 +285,9 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
   /**
    * Toggle subtitle visibility via server action
    */
-  async function handleToggleSubtitleVisibility(checked: boolean) {
+  async function handleToggleSubtitleVisibility(
+    checked: boolean,
+  ): Promise<void> {
     setIsTogglingSubtitle(true)
     try {
       const result = await toggleBoardSubtitleVisibility(boardId, checked)
@@ -309,7 +311,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
    * Toggle public visibility for the board.
    * Generates a share slug on first enable.
    */
-  async function handleTogglePublic(checked: boolean) {
+  async function handleTogglePublic(checked: boolean): Promise<void> {
     setIsTogglingPublic(true)
     try {
       const result = await toggleBoardPublic(boardId, checked)
@@ -329,7 +331,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
   }
 
   /** Copy share URL to clipboard */
-  async function handleCopyShareLink() {
+  async function handleCopyShareLink(): Promise<void> {
     if (!boardShareSlug) return
     const url = `${window.location.origin}/public/${boardShareSlug}`
     try {
