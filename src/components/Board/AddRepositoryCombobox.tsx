@@ -128,7 +128,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     userRepos,
     isLoadingCatalog,
     catalogError,
-  } = useRepositoryCatalog(isOpen)
+  } = useRepositoryCatalog(isOpen, statusId)
 
   // Filters (organizationFilter persisted to localStorage via Redux)
   const dispatch = useAppDispatch()
@@ -384,12 +384,20 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             <Select
               value={organizationFilter}
               onValueChange={handleOrganizationFilterChange}
+              disabled={isLoadingCatalog}
             >
               <SelectTrigger
                 className="h-9 flex-1 text-sm"
                 aria-label="Organization filter"
               >
-                <SelectValue placeholder="Organization Filter" />
+                {/* Persisted filters need a label before their catalog options load. */}
+                <SelectValue>
+                  {organizationFilter === 'all'
+                    ? 'All Organizations'
+                    : organizationFilter === currentUser?.login
+                      ? `${currentUser.login} (Personal)`
+                      : organizationFilter}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Organizations</SelectItem>

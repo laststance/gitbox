@@ -7,10 +7,14 @@
  * - Derived status ID for adding repos
  */
 
+import { useSearchParams } from 'next/navigation'
 import { useState, useCallback, useMemo } from 'react'
 
 import type { StatusListDomain } from '@/lib/models/domain'
 import type { StatusListId } from '@/lib/types/brands'
+
+/** Carries the target column through GitHub reauthentication so the picker can resume. */
+export const ADD_REPOSITORY_RETURN_PARAM = 'addRepositoryTo'
 
 interface UseAddRepositoryComboboxParams {
   /** Status lists from Redux store */
@@ -29,7 +33,8 @@ interface UseAddRepositoryComboboxReturn {
 }
 
 /**
- * Hook for managing AddRepositoryCombobox state.
+ * Manages {@link AddRepositoryCombobox} state for {@link BoardPageClient}.
+ * Restores the target column from the URL after GitHub reauthentication.
  *
  * Provides derived state that computes the target status ID:
  * - User-selected status when specified
@@ -57,15 +62,21 @@ interface UseAddRepositoryComboboxReturn {
 export function useAddRepositoryCombobox({
   statusLists,
 }: UseAddRepositoryComboboxParams): UseAddRepositoryComboboxReturn {
-  // User-selected status ID (null = use default first column)
+  const searchParams = useSearchParams()
+  const returnStatusId = searchParams.get(ADD_REPOSITORY_RETURN_PARAM)
+  // Wait for Redux hydration and only restore a column belonging to this board.
+  const resumedStatusId =
+    statusLists.find((status) => status.id === returnStatusId)?.id ?? null
+
+  // User-selected status ID (null = restore the target or use the first column)
   const [userSelectedStatusId, setUserSelectedStatusId] =
     useState<StatusListId | null>(null)
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState<boolean | null>(null)
 
   const statusId = useMemo<StatusListId | null>(() => {
     if (userSelectedStatusId) return userSelectedStatusId
-    return statusLists[0]?.id ?? null
-  }, [userSelectedStatusId, statusLists])
+    return resumedStatusId ?? statusLists[0]?.id ?? null
+  }, [userSelectedStatusId, resumedStatusId, statusLists])
 
   /**
    * Opens the AddRepositoryCombobox for the specified column
@@ -86,11 +97,22 @@ export function useAddRepositoryCombobox({
     if (!open) {
       // Reset to default (null = useMemo computes first column)
       setUserSelectedStatusId(null)
+      // Consume the return marker so closing or adding does not reopen the picker.
+      const url = new URL(window.location.href)
+      if (url.searchParams.has(ADD_REPOSITORY_RETURN_PARAM)) {
+        url.searchParams.delete(ADD_REPOSITORY_RETURN_PARAM)
+        // Next.js preserves its router state and synchronizes search params for null data.
+        window.history.replaceState(
+          null,
+          '',
+          `${url.pathname}${url.search}${url.hash}`,
+        )
+      }
     }
   }, [])
 
   return {
-    isOpen,
+    isOpen: isOpen ?? resumedStatusId !== null,
     statusId,
     openForStatus,
     handleOpenChange,

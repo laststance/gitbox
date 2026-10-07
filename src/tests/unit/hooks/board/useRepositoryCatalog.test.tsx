@@ -6,7 +6,9 @@
  * and exposes retryable authentication and generic failures.
  */
 
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
+import { memo } from 'react'
+import { renderToString } from 'react-dom/server'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { useRepositoryCatalog } from '@/hooks/board/useRepositoryCatalog'
@@ -14,6 +16,7 @@ import {
   getAuthenticatedRepositoryCatalog,
   type GitHubRepositoryCatalog,
 } from '@/lib/actions/github'
+import { toStatusListId } from '@/lib/types/brands'
 import {
   clearGitHubRefreshAttempts,
   handleGitHubTokenMissing,
@@ -100,6 +103,24 @@ describe('useRepositoryCatalog', () => {
     expect(getAuthenticatedRepositoryCatalog).not.toHaveBeenCalled()
   })
 
+  test('shows loading on the first render of a picker restored after authentication', () => {
+    // Arrange
+    const RestoredPicker = memo(function RestoredPicker() {
+      const { isLoadingCatalog } = useRepositoryCatalog(true)
+      return (
+        <div role="status">
+          {isLoadingCatalog ? 'Loading repositories...' : ''}
+        </div>
+      )
+    })
+
+    // Act
+    const html = renderToString(<RestoredPicker />)
+
+    // Assert
+    expect(html).toBe('<div role="status">Loading repositories...</div>')
+  })
+
   test('requests the aggregate catalog exactly once when the picker opens', async () => {
     // Arrange
     vi.mocked(getAuthenticatedRepositoryCatalog).mockResolvedValue({
@@ -166,7 +187,7 @@ describe('useRepositoryCatalog', () => {
     expect(getAuthenticatedRepositoryCatalog).toHaveBeenCalledTimes(1)
   })
 
-  test('hands a missing token to the top-level refresh flow without flashing an error', async () => {
+  test('keeps the repository loading indicator visible until GitHub reauthentication navigates away', async () => {
     // Arrange
     vi.mocked(getAuthenticatedRepositoryCatalog).mockResolvedValue({
       success: false,
@@ -181,10 +202,178 @@ describe('useRepositoryCatalog', () => {
     await waitFor(() => {
       expect(handleGitHubTokenMissing).toHaveBeenCalledWith('/board/board-1')
     })
-    expect(result.current.isLoadingCatalog).toBe(false)
+    expect(result.current.isLoadingCatalog).toBe(true)
     expect(result.current.catalogError).toBeNull()
     expect(clearGitHubRefreshAttempts).not.toHaveBeenCalled()
   })
+
+  test('carries the selected column and full board destination through GitHub reauthentication', async () => {
+    // Arrange
+    window.history.replaceState({}, '', '/board/board-1?view=compact#cards')
+    vi.mocked(getAuthenticatedRepositoryCatalog).mockResolvedValue({
+      success: false,
+      error: 'GitHub token not found. Please sign in again.',
+      errorCode: 'GITHUB_TOKEN_MISSING',
+    })
+
+    // Act
+    const { result } = renderHook(() =>
+      useRepositoryCatalog(true, toStatusListId('status-2')),
+    )
+
+    // Assert
+    await waitFor(() => {
+      expect(handleGitHubTokenMissing).toHaveBeenCalledWith(
+        '/board/board-1?view=compact&addRepositoryTo=status-2#cards',
+      )
+    })
+    expect(result.current.isLoadingCatalog).toBe(true)
+    expect(result.current.catalogError).toBeNull()
+  })
+
+  test.each([
+    { isOpen: true, expected: '/board/board-1?addRepositoryTo=status-2' },
+    { isOpen: false, expected: '/board/board-1' },
+  ])(
+    'respects the latest picker intent when authentication resolves ($isOpen)',
+    async ({ isOpen, expected }) => {
+      // Arrange
+      const pending =
+        Promise.withResolvers<
+          Awaited<ReturnType<typeof getAuthenticatedRepositoryCatalog>>
+        >()
+      vi.mocked(getAuthenticatedRepositoryCatalog).mockReturnValue(
+        pending.promise,
+      )
+      const { rerender } = renderHook(
+        ({ open, status }) =>
+          useRepositoryCatalog(open, toStatusListId(status)),
+        { initialProps: { open: true, status: 'status-1' } },
+      )
+
+      // Act
+      rerender({ open: isOpen, status: 'status-2' })
+      await act(async () =>
+        pending.resolve({
+          success: false,
+          error: 'Token missing',
+          errorCode: 'GITHUB_TOKEN_MISSING',
+        }),
+      )
+
+      // Assert
+      expect(handleGitHubTokenMissing).toHaveBeenCalledWith(expected)
+      expect(getAuthenticatedRepositoryCatalog).toHaveBeenCalledTimes(1)
+    },
+  )
+
+  test('shows an authentication error instead of repeating OAuth when the resumed picker still lacks a token', async () => {
+    // Arrange
+    window.history.replaceState(
+      {},
+      '',
+      '/board/board-1?addRepositoryTo=status-2',
+    )
+    vi.mocked(getAuthenticatedRepositoryCatalog).mockResolvedValue({
+      success: false,
+      error: 'Token missing',
+      errorCode: 'GITHUB_TOKEN_MISSING',
+    })
+
+    // Act
+    const { result } = renderHook(() =>
+      useRepositoryCatalog(true, toStatusListId('status-2')),
+    )
+
+    // Assert
+    await waitFor(() =>
+      expect(result.current.catalogError).toBe('Token missing'),
+    )
+    expect(result.current.isLoadingCatalog).toBe(false)
+    expect(handleGitHubTokenMissing).not.toHaveBeenCalled()
+  })
+
+  test.each([true, false])(
+    'authenticates past a stale return marker while respecting current open intent (%s)',
+    async (isOpen) => {
+      // Arrange
+      window.history.replaceState(
+        {},
+        '',
+        '/board/board-1?view=compact&addRepositoryTo=deleted-status#cards',
+      )
+      const pending =
+        Promise.withResolvers<
+          Awaited<ReturnType<typeof getAuthenticatedRepositoryCatalog>>
+        >()
+      vi.mocked(getAuthenticatedRepositoryCatalog).mockReturnValue(
+        pending.promise,
+      )
+      const { rerender } = renderHook(
+        ({ open }) => useRepositoryCatalog(open, toStatusListId('status-1')),
+        { initialProps: { open: true } },
+      )
+
+      // Act
+      rerender({ open: isOpen })
+      await act(async () =>
+        pending.resolve({
+          success: false,
+          error: 'Token missing',
+          errorCode: 'GITHUB_TOKEN_MISSING',
+        }),
+      )
+
+      // Assert
+      expect(handleGitHubTokenMissing).toHaveBeenCalledWith(
+        isOpen
+          ? '/board/board-1?view=compact&addRepositoryTo=status-1#cards'
+          : '/board/board-1?view=compact#cards',
+      )
+    },
+  )
+
+  test.each([true, false])(
+    'prevents repeated OAuth after a resumed request changes target or closes (%s)',
+    async (isOpen) => {
+      // Arrange
+      window.history.replaceState(
+        {},
+        '',
+        '/board/board-1?addRepositoryTo=status-2',
+      )
+      const pending =
+        Promise.withResolvers<
+          Awaited<ReturnType<typeof getAuthenticatedRepositoryCatalog>>
+        >()
+      vi.mocked(getAuthenticatedRepositoryCatalog).mockReturnValue(
+        pending.promise,
+      )
+      const { result, rerender } = renderHook(
+        ({ open, status }) =>
+          useRepositoryCatalog(open, toStatusListId(status)),
+        { initialProps: { open: true, status: 'status-2' } },
+      )
+
+      // Act
+      // Closing the picker consumes its marker before the pending response arrives.
+      if (!isOpen) window.history.replaceState(null, '', '/board/board-1')
+      rerender({ open: isOpen, status: 'status-3' })
+      await act(async () =>
+        pending.resolve({
+          success: false,
+          error: 'Token missing',
+          errorCode: 'GITHUB_TOKEN_MISSING',
+        }),
+      )
+
+      // Assert
+      expect(handleGitHubTokenMissing).not.toHaveBeenCalled()
+      expect(result.current.catalogError).toBe('Token missing')
+      expect(result.current.isLoadingCatalog).toBe(false)
+      expect(getAuthenticatedRepositoryCatalog).toHaveBeenCalledTimes(1)
+    },
+  )
 
   test('shows the authentication error when an iframe cannot run the refresh flow', async () => {
     // Arrange

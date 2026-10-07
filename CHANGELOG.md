@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3.0] - 2026-10-07
+
+### Fixed
+
+- Keep the repository picker visibly loading during GitHub reauthentication and reopen it in the selected column when authentication completes.
+- Preserve the latest column choice, cancellation, and board query/hash across authentication; show an error when a resumed session still lacks a GitHub token.
+- Keep saved organization filters readable while repositories load and restore the default column after closing the resumed picker.
+
 ## [0.3.2.0] - 2026-10-05
 
 ### Changed

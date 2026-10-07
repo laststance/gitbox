@@ -38,10 +38,13 @@ test.describe('Page Titles (Unauthenticated)', () => {
 
     for (const path of publicPages) {
       await page.goto(path)
-      const title = await page.title()
-      const gitboxCount = (title.match(/GitBox/gi) || []).length
-
-      expect(gitboxCount, `${path} has duplicate GitBox: "${title}"`).toBe(1)
+      // Wait for streamed metadata rather than inspecting a transient empty title.
+      await expect
+        .poll(
+          async () => ((await page.title()).match(/GitBox/gi) ?? []).length,
+          { message: `${path} must include GitBox exactly once` },
+        )
+        .toBe(1)
     }
   })
 })
