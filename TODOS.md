@@ -10,7 +10,6 @@ From the `/ship` adversarial review of `feat/silent-github-token-refresh` (PR #1
 
 ### UX
 
-- [ ] **Preserve `?query` and `#hash` on silent refresh redirect** — [#177](https://github.com/laststance/gitbox/issues/177)
 - [ ] **Clear refresh attempt counter on `/login?error=token_refresh_failed`** — [#178](https://github.com/laststance/gitbox/issues/178)
 
 ### Concurrency / correctness
@@ -91,3 +90,8 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
       intentional: `React.cache` dedups it with the page render, which is the whole point of
       eliminating the duplicate board fetch. Reverting to a name-only metadata query would
       re-introduce the second round-trip. Revisit only if metadata-only prefetch paths emerge.
+
+## Completed
+
+- [x] **Preserve `?query` and `#hash` on silent refresh redirect** — [#177](https://github.com/laststance/gitbox/issues/177)
+      **Completed:** v0.3.3.0 (2026-10-07). The repository catalog caller now forwards the full board destination, with unit coverage and a real-account OAuth round trip confirming both values survive.
