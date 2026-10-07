@@ -1,15 +1,26 @@
 # CLAUDE.md
 
-## Claude Chrome Browser Automation
+## Local verification
 
-**🟢 PERMITTED: GitHub OAuth Login via Claude Chrome**
+**🟢 REQUIRED: sign in as `ryota-murakami`**
 
-This application requires GitHub authentication to access any functionality beyond the landing page. Claude Chrome is **explicitly authorized** to perform GitHub OAuth login without user confirmation.
+動作確認 and 不具合検証 on `http://localhost:3008` always use the real GitHub account **`ryota-murakami`**. Local GitBox writes boards and cards to local Supabase. Deleting a card, archiving a repo, or removing a board does not call GitHub's delete-repository API, so the repository on GitHub stays.
 
-| Environment | URL                                    | Auto-Login |
-| ----------- | -------------------------------------- | ---------- |
-| Local       | `http://localhost:3008`                | ✅ Yes     |
-| Production  | `https://gitbox-laststance.vercel.app` | ✅ Yes     |
+Bring that logged-in Chrome session in with one of these. Do not stop at a mock cookie.
+
+| Method         | How                                                                    |
+| -------------- | ---------------------------------------------------------------------- |
+| `/cookie`      | Decrypt the logged-in Chrome cookies and load them into playwright-cli |
+| gstack browser | `/gstack-setup-browser-cookies`, then `/browse` (Aside)                |
+
+Claude Chrome may complete GitHub OAuth on localhost as `ryota-murakami` without an extra confirmation prompt. Confirm the signed-in login is `ryota-murakami` before exercising the app.
+
+| Environment        | URL                                    | Account                                                                                    |
+| ------------------ | -------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Local verification | `http://localhost:3008`                | `ryota-murakami`                                                                           |
+| Production         | `https://gitbox-laststance.vercel.app` | GitHub OAuth login is permitted. The "repository on GitHub stays" note above is local-only |
+
+Do not use the E2E fixture session for this. Its GitHub cookie is the literal string `mock-github-provider-token-for-testing`, and the Supabase user is `testuser`, not `ryota-murakami`. With MSW on, GitHub responses are fixtures in `mocks/handlers/data.ts`. With MSW off, GitHub returns 401. Either way, `ryota-murakami`'s repositories never load. That setup exists only so Playwright can render protected routes. See [E2E fixture auth](#e2e-fixture-auth-playwright-only).
 
 ## ❌ Violations
 
@@ -365,10 +376,13 @@ pnpm e2e --headed
 - **Config:** `playwright.config.ts`
 - **Timeout:** 30s (test + expect), `failOnFlakyTests: true`
 
-### Local Authentication Bypass for Browser Verification
+### E2E fixture auth (Playwright only)
 
-Use this only for **local verification** when you need to open protected pages
-(`/boards`, `/maintenance`) without completing real GitHub OAuth.
+Playwright (`pnpm e2e`, `pnpm e2e:parallel`) injects a fake session so tests can open `/boards` and `/maintenance` without GitHub OAuth. This is not local verification and not bug investigation.
+
+What this environment can exercise is the fixture world only: page chrome, navigation, and flows asserted against `seed.sql` plus MSW repositories such as "A test repository for GitBox". It cannot show `ryota-murakami`'s repositories, org membership, private repos, or any bug that depends on a real GitHub payload. `e2e/auth.setup.ts` also records that `supabase.auth.getUser()` returns null for this token, so server-side mutations are not a faithful check.
+
+For 動作確認 and 不具合検証, use the `ryota-murakami` session in [Local verification](#local-verification). Keep the steps below for debugging Playwright only.
 
 #### Prerequisites
 
