@@ -8,11 +8,15 @@
  */
 
 import { renderHook, act } from '@testing-library/react'
-import { describe, test, expect } from 'vitest'
+import { beforeEach, describe, test, expect, vi } from 'vitest'
 
 import { useAddRepositoryCombobox } from '@/hooks/board/useAddRepositoryCombobox'
 import type { StatusListDomain } from '@/lib/models/domain'
 import { toBoardId, toStatusListId } from '@/lib/types/brands'
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(window.location.search),
+}))
 
 /**
  * Create a mock StatusListDomain object
@@ -32,6 +36,105 @@ const createMockStatus = (
 })
 
 describe('useAddRepositoryCombobox', () => {
+  beforeEach(() => {
+    window.history.replaceState({}, '', '/board/board-1')
+  })
+
+  test('reopens the repository picker in the selected column after GitHub reauthentication', () => {
+    // Arrange
+    window.history.replaceState(
+      {},
+      '',
+      '/board/board-1?addRepositoryTo=status-2',
+    )
+    const statusLists = [
+      createMockStatus({ id: toStatusListId('status-1') }),
+      createMockStatus({ id: toStatusListId('status-2') }),
+    ]
+
+    // Act
+    const { result } = renderHook(() =>
+      useAddRepositoryCombobox({ statusLists }),
+    )
+
+    // Assert
+    expect(result.current.isOpen).toBe(true)
+    expect(result.current.statusId).toBe('status-2')
+  })
+
+  test('restores the target column once board data hydrates after reauthentication', () => {
+    // Arrange
+    window.history.replaceState(
+      {},
+      '',
+      '/board/board-1?addRepositoryTo=status-2',
+    )
+    const { result, rerender } = renderHook(
+      ({ statusLists }) => useAddRepositoryCombobox({ statusLists }),
+      { initialProps: { statusLists: [] as StatusListDomain[] } },
+    )
+    expect(result.current.isOpen).toBe(false)
+
+    // Act
+    rerender({
+      statusLists: [
+        createMockStatus({ id: toStatusListId('status-1') }),
+        createMockStatus({ id: toStatusListId('status-2') }),
+      ],
+    })
+
+    // Assert
+    expect(result.current.isOpen).toBe(true)
+    expect(result.current.statusId).toBe('status-2')
+  })
+
+  test('closing the restored picker clears its return marker while preserving the board URL', () => {
+    // Arrange
+    window.history.replaceState(
+      { __NA: true },
+      '',
+      '/board/board-1?view=compact&addRepositoryTo=status-2#cards',
+    )
+    const statusLists = [
+      createMockStatus({ id: toStatusListId('status-1') }),
+      createMockStatus({ id: toStatusListId('status-2') }),
+    ]
+    const { result, rerender } = renderHook(() =>
+      useAddRepositoryCombobox({ statusLists }),
+    )
+
+    // Act
+    act(() => result.current.handleOpenChange(false))
+    rerender()
+
+    // Assert
+    expect(result.current.isOpen).toBe(false)
+    expect(result.current.statusId).toBe('status-1')
+    expect(
+      window.location.pathname + window.location.search + window.location.hash,
+    ).toBe('/board/board-1?view=compact#cards')
+    expect(window.history.state).toBeNull()
+  })
+
+  test('does not reopen for a deleted column or a column from another board', () => {
+    // Arrange
+    window.history.replaceState(
+      {},
+      '',
+      '/board/board-1?addRepositoryTo=other-board-status',
+    )
+    const statusLists = [createMockStatus({ id: toStatusListId('status-1') })]
+
+    // Act
+    const { result } = renderHook(() =>
+      useAddRepositoryCombobox({ statusLists }),
+    )
+
+    // Assert
+    expect(result.current.isOpen).toBe(false)
+    expect(result.current.statusId).toBe('status-1')
+  })
+
   describe('Initial State', () => {
     test('should have correct initial state with status lists', () => {
       const statusLists = [
