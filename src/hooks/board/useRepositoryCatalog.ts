@@ -57,10 +57,12 @@ export function useRepositoryCatalog(
   const hasRequestedCatalog = useRef(false)
 
   // Read the latest committed picker intent after the catalog request settles.
-  const refreshAuthentication = useEffectEvent(() => {
+  const refreshAuthentication = useEffectEvent((wasResumedPicker: boolean) => {
     const returnUrl = new URL(window.location.href)
     // A resumed picker without a token must show an error instead of looping OAuth.
-    if (returnUrl.searchParams.has(ADD_REPOSITORY_RETURN_PARAM)) return false
+    if (wasResumedPicker) return false
+    // Discard stale markers before carrying the current picker intent into OAuth.
+    returnUrl.searchParams.delete(ADD_REPOSITORY_RETURN_PARAM)
     // A picker closed during the request must remain closed after authentication.
     if (isOpen && statusId) {
       returnUrl.searchParams.set(ADD_REPOSITORY_RETURN_PARAM, statusId)
@@ -74,6 +76,12 @@ export function useRepositoryCatalog(
     // Strict Mode and rapid close/reopen events share one in-flight catalog request.
     if (hasRequestedCatalog.current) return
 
+    // Classify this request before awaiting, even if its target or URL changes later.
+    const returnStatusId = new URL(window.location.href).searchParams.get(
+      ADD_REPOSITORY_RETURN_PARAM,
+    )
+    const wasResumedPicker =
+      returnStatusId !== null && returnStatusId === statusId
     hasRequestedCatalog.current = true
     setState((currentState) => ({
       ...currentState,
@@ -85,7 +93,7 @@ export function useRepositoryCatalog(
       const result = await getAuthenticatedRepositoryCatalog()
       if (!result.success) {
         if (result.errorCode === 'GITHUB_TOKEN_MISSING') {
-          const wasHandledByRefresh = refreshAuthentication()
+          const wasHandledByRefresh = refreshAuthentication(wasResumedPicker)
           // Navigation is asynchronous: keep the loading state until this page unloads.
           if (wasHandledByRefresh) return
         }

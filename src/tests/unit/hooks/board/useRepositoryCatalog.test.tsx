@@ -293,6 +293,88 @@ describe('useRepositoryCatalog', () => {
     expect(handleGitHubTokenMissing).not.toHaveBeenCalled()
   })
 
+  test.each([true, false])(
+    'authenticates past a stale return marker while respecting current open intent (%s)',
+    async (isOpen) => {
+      // Arrange
+      window.history.replaceState(
+        {},
+        '',
+        '/board/board-1?view=compact&addRepositoryTo=deleted-status#cards',
+      )
+      const pending =
+        Promise.withResolvers<
+          Awaited<ReturnType<typeof getAuthenticatedRepositoryCatalog>>
+        >()
+      vi.mocked(getAuthenticatedRepositoryCatalog).mockReturnValue(
+        pending.promise,
+      )
+      const { rerender } = renderHook(
+        ({ open }) => useRepositoryCatalog(open, toStatusListId('status-1')),
+        { initialProps: { open: true } },
+      )
+
+      // Act
+      rerender({ open: isOpen })
+      await act(async () =>
+        pending.resolve({
+          success: false,
+          error: 'Token missing',
+          errorCode: 'GITHUB_TOKEN_MISSING',
+        }),
+      )
+
+      // Assert
+      expect(handleGitHubTokenMissing).toHaveBeenCalledWith(
+        isOpen
+          ? '/board/board-1?view=compact&addRepositoryTo=status-1#cards'
+          : '/board/board-1?view=compact#cards',
+      )
+    },
+  )
+
+  test.each([true, false])(
+    'prevents repeated OAuth after a resumed request changes target or closes (%s)',
+    async (isOpen) => {
+      // Arrange
+      window.history.replaceState(
+        {},
+        '',
+        '/board/board-1?addRepositoryTo=status-2',
+      )
+      const pending =
+        Promise.withResolvers<
+          Awaited<ReturnType<typeof getAuthenticatedRepositoryCatalog>>
+        >()
+      vi.mocked(getAuthenticatedRepositoryCatalog).mockReturnValue(
+        pending.promise,
+      )
+      const { result, rerender } = renderHook(
+        ({ open, status }) =>
+          useRepositoryCatalog(open, toStatusListId(status)),
+        { initialProps: { open: true, status: 'status-2' } },
+      )
+
+      // Act
+      // Closing the picker consumes its marker before the pending response arrives.
+      if (!isOpen) window.history.replaceState(null, '', '/board/board-1')
+      rerender({ open: isOpen, status: 'status-3' })
+      await act(async () =>
+        pending.resolve({
+          success: false,
+          error: 'Token missing',
+          errorCode: 'GITHUB_TOKEN_MISSING',
+        }),
+      )
+
+      // Assert
+      expect(handleGitHubTokenMissing).not.toHaveBeenCalled()
+      expect(result.current.catalogError).toBe('Token missing')
+      expect(result.current.isLoadingCatalog).toBe(false)
+      expect(getAuthenticatedRepositoryCatalog).toHaveBeenCalledTimes(1)
+    },
+  )
+
   test('shows the authentication error when an iframe cannot run the refresh flow', async () => {
     // Arrange
     vi.mocked(handleGitHubTokenMissing).mockReturnValue(false)
