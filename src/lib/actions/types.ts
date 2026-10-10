@@ -57,3 +57,24 @@ export type ActionErrorCode = 'GITHUB_TOKEN_MISSING'
 export type ActionResult<T> =
   | { success: true; data: T }
   | { success: false; error: string; errorCode?: ActionErrorCode }
+
+/**
+ * An expected, user-facing Server Action failure whose message is safe to show.
+ *
+ * The auth guards ({@link withAuthResult}, {@link withAuthResultRateLimit}) replace
+ * every other thrown message with a generic one and report it to Sentry. Throw this
+ * instead when the user did something the app must explain (e.g. the repository is
+ * already on another board): the guards return its message verbatim and skip Sentry.
+ *
+ * Never put internal details (table names, DB error strings, ids) in the message.
+ *
+ * @example
+ * throw new ActionUserError('laststance/gitbox is already on board "Work"')
+ * // caller receives => { success: false, error: 'laststance/gitbox is already on board "Work"' }
+ */
+export class ActionUserError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ActionUserError'
+  }
+}
