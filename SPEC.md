@@ -110,7 +110,8 @@
 - Combobox search (owner/repo, topics, visibility)
 - Batch addition / duplicate detection
 - **Organization Filter**: Filter repositories by user/org (persisted to Redux/localStorage)
-- **Maintenance Filter**: Repos in Maintenance Mode are excluded from combobox (client + server validation)
+- **One repository, one card per user** ([#215](https://github.com/laststance/gitbox/issues/215)): a repository can sit on at most one of a user's boards, and never on a board and in Maintenance at once. Identity is `owner/name`, case-insensitive. Board-to-board uniqueness is enforced by the database; board vs Maintenance is enforced by the server actions.
+- **Already placed elsewhere**: the combobox lists repos held by another board (`On <board name>`) or by Maintenance (`In Maintenance`) under their own heading, each with a link to where it lives, instead of offering them. Repos on the current board stay hidden. Placements are fetched every time the combobox opens.
 - **First Board auto-creation**: Auto-create "My First Board" on first login (DB trigger)
 
 #### Acceptance Criteria
@@ -119,6 +120,7 @@
 - D&D/Undo works smoothly
 - Organization selection persists across sessions
 - Maintenance repos cannot be added to board
+- A repo held by another board cannot be added, moved in as a duplicate, or restored from Maintenance; the UI names the holding board
 
 ### 3.2 Board (Kanban)
 
@@ -749,7 +751,10 @@ repocard {
   repo_owner text NOT NULL,
   order integer,
   meta jsonb,  -- GitHub API metadata cache (stars, language, etc.)
-  created_at, updated_at
+  user_id uuid NOT NULL REFERENCES auth.users,  -- always the board owner (trigger set_repocard_user_id)
+  created_at, updated_at,
+  UNIQUE (board_id, repo_owner, repo_name),                  -- unique_repo_per_board
+  UNIQUE (user_id, lower(repo_owner), lower(repo_name))      -- repocard_unique_repo_per_user (#215)
 }
 
 -- ProjectInfo: Extended Project Details
@@ -837,6 +842,7 @@ interface RepoCardMeta {
   language?: string
   topics?: string[]
   description?: string
+  githubId?: number // GitHub repo id reported by the browser; untrusted hint
 }
 ```
 
@@ -1350,6 +1356,7 @@ export async function cdpBoardDragAndDrop(
 | Repo        | `repo-card-display.spec.ts`                | Card display                 |
 | Repo        | `repo-card-description.spec.ts`            | Card description             |
 | Repo        | `remove-from-board.spec.ts`                | Remove card from board       |
+| Repo        | `one-repo-across-boards.spec.ts`           | One repo per user (#215)     |
 | Repo        | `move-to-another-board.spec.ts`            | Move card between boards     |
 | Comment     | `comment-display.spec.ts`                  | Comment display              |
 | Comment     | `comment-inline-edit.spec.ts`              | Comment inline editing       |

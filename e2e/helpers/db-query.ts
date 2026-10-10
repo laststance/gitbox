@@ -29,6 +29,56 @@ const LOCAL_SUPABASE_URL =
 const LOCAL_SUPABASE_SERVICE_ROLE_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
 
+// Local Supabase anon key (from `supabase status`); only identifies the project.
+const LOCAL_SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+
+// The JWT the app itself uses in E2E test mode (see `src/lib/supabase/server.ts`):
+// role=authenticated, sub=TEST_USER_ID. Requests carrying it are subject to RLS.
+const E2E_TEST_USER_JWT =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJzdWIiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxOTgzODEyOTk2fQ.iUckNAR3RMWPmn8smgOZr0NeDUzRLR0LOx_5V1ddQVs'
+
+/**
+ * Create a Supabase client that acts as the E2E test user, with RLS applied.
+ *
+ * Use this instead of the service-role helpers when a test must prove what an
+ * ordinary signed-in user is (not) allowed to do, e.g. that an insert into
+ * another user's board is rejected. The service role bypasses RLS and cannot
+ * show that.
+ *
+ * @returns Supabase client authenticated as `TEST_USER_ID` (role `authenticated`)
+ *
+ * @example
+ * const { error } = await createTestUserSupabaseClient()
+ *   .from('repocard')
+ *   .insert({ board_id: OTHER_USER.boardId, ... })
+ * expect(error?.code).toBe('42501')
+ */
+export function createTestUserSupabaseClient(): SupabaseClient {
+  return createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${E2E_TEST_USER_JWT}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+}
+
+/**
+ * Create a Supabase client with the service role (bypasses RLS).
+ *
+ * Exported for tests that assert on raw database errors (e.g. the `23505` of a
+ * unique violation), which the throwing query helpers below would hide.
+ *
+ * @returns Supabase client configured for local instance with admin access
+ *
+ * @example
+ * const { error } = await createServiceRoleSupabaseClient()
+ *   .from('repocard')
+ *   .insert({ board_id: BOARD_IDS.workProjects, ... })
+ * expect(error?.code).toBe('23505')
+ */
+export function createServiceRoleSupabaseClient(): SupabaseClient {
+  return createLocalSupabaseClient()
+}
+
 /**
  * Create a Supabase client for direct database queries.
  * Uses service_role key to bypass RLS for setup/teardown operations.
@@ -160,6 +210,27 @@ export const MAINTENANCE_IDS = {
 
 /** Public board share slug (matches seed.sql) */
 export const PUBLIC_BOARD_SLUG = 'a1b2c3d4e5f6'
+
+/**
+ * A second seeded account (see "Second Account" in `supabase/seed.sql`).
+ * It owns one PUBLIC board holding `testuser/test-repo` and
+ * `testuser/private-project`, to prove that one user's cards never restrict
+ * another user (Issue #215).
+ */
+export const OTHER_USER = {
+  id: '00000000-0000-0000-0000-000000000002',
+  boardId: '00000000-0000-0000-0000-000000000110',
+  statusId: '00000000-0000-0000-0000-000000000221',
+  testRepoCardId: '00000000-0000-0000-0000-000000000311',
+  privateProjectCardId: '00000000-0000-0000-0000-000000000312',
+} as const
+
+/** Column ids of the Work Projects board. */
+export const WORK_PROJECTS_STATUS_IDS = {
+  backlog: '00000000-0000-0000-0000-000000000211',
+  active: '00000000-0000-0000-0000-000000000212',
+  complete: '00000000-0000-0000-0000-000000000213',
+} as const
 
 // ============================================================================
 // State Reset Helpers (for test isolation with real DB)
@@ -356,11 +427,27 @@ export async function resetCardPositions(): Promise<void> {
 export async function resetRepoCards(): Promise<void> {
   const supabase = createLocalSupabaseClient()
 
-  // First, delete ALL cards from testBoard (including any added by previous tests)
+  // First, delete ALL cards on EVERY board of the test user (including any
+  // added or moved by previous tests). A repository may sit on only one board
+  // per user, so a leftover card on another board would make the re-insert of
+  // the seed cards below fail with a unique violation.
+  const { data: testUserBoards, error: boardsError } = await supabase
+    .from('board')
+    .select('id')
+    .eq('user_id', TEST_USER_ID)
+  if (boardsError) {
+    throw new Error(
+      `resetRepoCards: board lookup failed: ${boardsError.message}`,
+    )
+  }
+
   const { error: deleteError } = await supabase
     .from('repocard')
     .delete()
-    .eq('board_id', BOARD_IDS.testBoard)
+    .in(
+      'board_id',
+      (testUserBoards ?? []).map((board) => board.id),
+    )
   if (deleteError) {
     throw new Error(`resetRepoCards: delete failed: ${deleteError.message}`)
   }

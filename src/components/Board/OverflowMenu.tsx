@@ -283,12 +283,13 @@ function OverflowMenuInner<TId extends CardIdentifier>({
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Repository from Board?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove{' '}
+              This removes{' '}
               <span className="text-foreground font-semibold">
                 {repoOwner}/{repoName}
               </span>{' '}
-              from this board. The repository itself will not be deleted from
-              GitHub. You can always add it back later.
+              from this board and permanently deletes its note, links and
+              comment. Adding the repository again will not restore them. The
+              repository on GitHub is not affected.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

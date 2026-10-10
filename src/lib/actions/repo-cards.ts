@@ -27,8 +27,19 @@ import {
   type StatusListId,
 } from '@/lib/types/brands'
 import type { ISOTimestamp, Visibility } from '@/lib/types/domain-primitives'
+import { addRepositoriesRequestSchema } from '@/lib/validations/repo-card'
 
-import type { ActionResult } from './types'
+import {
+  ADD_RACE_MESSAGE,
+  findBoardPlacement,
+  isUniqueViolation,
+  lookupRepoPlacements,
+  splitRequestedRepos,
+  toDialogRaceMessage,
+  toUniqueViolationError,
+  type SkippedRepository,
+} from './repo-card-duplicates'
+import { ActionUserError, type ActionResult } from './types'
 
 const log = createModuleLogger('repo-cards')
 
@@ -72,6 +83,7 @@ export interface CreatedRepoCard {
     visibility?: Visibility
     description?: string | null
     updatedAt?: ISOTimestamp
+    githubId?: number
   }
   /** Creation timestamp (ISO-8601 UTC). */
   createdAt: ISOTimestamp
@@ -82,16 +94,24 @@ export interface CreatedRepoCard {
 /**
  * Add multiple repositories to board
  *
+ * A repository can sit on at most one of the user's boards and never on a
+ * board and in Maintenance at once (Issue #215). Repositories that are already
+ * placed are not an error: they come back in `skipped`, each with the sentence
+ * to show. Called by the Add Repositories picker.
+ *
  * @param boardId - Target board ID
  * @param statusId - Initial status (column) ID
  * @param repositories - List of GitHub repositories to add
  * @returns
- * - On success: `{ success: true, addedCount: number, cards: CreatedRepoCard[] }`
- * - On failure: `{ success: false, addedCount: 0, errors: string[] }`
+ * - Some or all added: `{ success: true, data: { addedCount, cards, skipped } }`
+ * - Every repository already placed: `{ success: true, data: { addedCount: 0, cards: [], skipped } }`
+ * - Lost a race with another tab: `{ success: false, error: ADD_RACE_MESSAGE }` (nothing added)
+ * - Anything else: `{ success: false, error: 'An unexpected error occurred' }`
  * @example
  * const result = await addRepositoriesToBoard(boardId, statusId, repos)
  * if (result.success) {
- *   dispatch(addRepoCards(result.cards)) // Optimistic update
+ *   dispatch(addRepoCards(result.data.cards)) // Optimistic update
+ *   result.data.skipped // => [{ fullName: 'a/b', reason: 'other-board', message: 'a/b is already on board "Work"', ... }]
  * }
  */
 export async function addRepositoriesToBoard(
@@ -102,12 +122,18 @@ export async function addRepositoriesToBoard(
   ActionResult<{
     addedCount: number
     cards: CreatedRepoCard[]
-    duplicateWarnings?: string[]
+    skipped: SkippedRepository[]
   }>
 > {
   return withAuthResultRateLimit(
     'addReposToBoard',
     async (supabase, claims) => {
+      // Reject malformed payloads before any query: owner and name are echoed
+      // back in messages and stored on the card
+      if (!addRepositoriesRequestSchema.safeParse(repositories).success) {
+        throw new Error('Invalid repositories payload')
+      }
+
       // Check if board exists and user owns it
       const { data: board, error: boardError } = await supabase
         .from('board')
@@ -120,39 +146,19 @@ export async function addRepositoriesToBoard(
         throw new Error('Board not found')
       }
 
-      // Get existing cards and check for duplicates
-      const { data: existingCards, error: existingError } = await supabase
-        .from('repocard')
-        .select('repo_owner, repo_name')
-        .eq('board_id', boardId)
+      // Where every repository of this user already lives (all boards +
+      // maintenance). Throws on lookup failure: never insert without it.
+      const placements = await lookupRepoPlacements(supabase, claims.sub)
 
-      if (existingError) {
-        throw new Error('Failed to fetch existing cards')
-      }
-
-      const existingRepoKeys = new Set(
-        existingCards?.map((card) => `${card.repo_owner}/${card.repo_name}`) ||
-          [],
+      const { addable: newRepos, skipped } = splitRequestedRepos(
+        repositories,
+        placements,
+        boardId,
       )
 
-      // Also exclude repos in maintenance mode (defense-in-depth)
-      const { data: maintenanceRepos } = await supabase
-        .from('maintenance')
-        .select('repo_owner, repo_name')
-        .eq('user_id', claims.sub)
-
-      for (const m of maintenanceRepos || []) {
-        existingRepoKeys.add(`${m.repo_owner}/${m.repo_name}`)
-      }
-
-      // Filter to only non-duplicate repositories
-      const newRepos = repositories.filter((repo) => {
-        const key = `${repo.owner.login}/${repo.name}`
-        return !existingRepoKeys.has(key)
-      })
-
+      // Everything is already placed: not an error, the picker explains why
       if (newRepos.length === 0) {
-        throw new Error('All repositories have already been added')
+        return { addedCount: 0, cards: [], skipped }
       }
 
       // Get current maximum order value
@@ -180,6 +186,9 @@ export async function addRepositoriesToBoard(
           visibility: repo.visibility,
           description: repo.description,
           updatedAt: repo.updated_at,
+          // Untrusted client hint for a later rename-safe identity backfill:
+          // re-verify against the GitHub API before relying on it
+          githubId: repo.id,
         },
       }))
 
@@ -191,6 +200,17 @@ export async function addRepositoriesToBoard(
         )
 
       if (insertError) {
+        // Another tab placed one of these repositories after the lookup. The
+        // batch insert is atomic, so nothing was added.
+        if (isUniqueViolation(insertError)) {
+          throw toUniqueViolationError({
+            error: insertError,
+            raceMessage: ADD_RACE_MESSAGE,
+            action: 'addRepositoriesToBoard',
+            userId: claims.sub,
+          })
+        }
+
         log.error({ error: insertError }, 'RepoCard insert error')
         Sentry.captureException(insertError, {
           extra: { context: 'RepoCard insert', boardId },
@@ -213,15 +233,10 @@ export async function addRepositoriesToBoard(
         }),
       )
 
-      const duplicateCount = repositories.length - newRepos.length
-
       return {
-        addedCount: newRepos.length,
+        addedCount: createdCards.length,
         cards: createdCards,
-        duplicateWarnings:
-          duplicateCount > 0
-            ? [`${duplicateCount} repositories were duplicates`]
-            : undefined,
+        skipped,
       }
     },
   )
@@ -265,9 +280,10 @@ export async function deleteRepoCard(
  * @returns
  * - On success: `{ success: true, cardId: string }`
  * - On auth error: `{ success: false, error: 'Authentication required' }`
- * - On not found: `{ success: false, error: 'Maintenance item not found' }`
- * - On duplicate: `{ success: false, error: 'Repository already exists in this board' }`
- * - On insert error: `{ success: false, error: 'Failed to restore repository' }`
+ * - On duplicate: `{ success: false, error: 'owner/name is already on board "<board name>"' }`
+ *   (the repository sits on any of the user's boards, Issue #215)
+ * - On a lost race: `{ success: false, error: 'owner/name was just placed on a board. Close this dialog and try again.' }`
+ * - On anything else: `{ success: false, error: 'An unexpected error occurred' }`
  *
  * @example
  * const result = await restoreToBoard('maint-uuid-123', 'board-uuid-456', 'status-uuid-789')
@@ -307,17 +323,19 @@ export async function restoreToBoard(
       throw new Error('Board not found')
     }
 
-    // Check for duplicate in target board
-    const { data: existing } = await supabase
-      .from('repocard')
-      .select('id')
-      .eq('board_id', boardId)
-      .eq('repo_owner', maintItem.repo_owner)
-      .eq('repo_name', maintItem.repo_name)
-      .maybeSingle()
+    // Reject when the repository already sits on ANY board of this user.
+    // Throws on lookup failure: never restore without it.
+    const placements = await lookupRepoPlacements(supabase, claims.sub)
+    const holdingBoard = findBoardPlacement(
+      placements,
+      maintItem.repo_owner,
+      maintItem.repo_name,
+    )
 
-    if (existing) {
-      throw new Error('Repository already exists in this board')
+    if (holdingBoard) {
+      throw new ActionUserError(
+        `${maintItem.repo_owner}/${maintItem.repo_name} is already on board "${holdingBoard.boardName}"`,
+      )
     }
 
     // Get max order in target status
@@ -345,6 +363,19 @@ export async function restoreToBoard(
     )
 
     if (rpcError) {
+      // Another tab placed this repository after the lookup
+      if (isUniqueViolation(rpcError)) {
+        throw toUniqueViolationError({
+          error: rpcError,
+          raceMessage: toDialogRaceMessage(
+            maintItem.repo_owner,
+            maintItem.repo_name,
+          ),
+          action: 'restoreToBoard',
+          userId: claims.sub,
+        })
+      }
+
       log.error({ error: rpcError }, 'restore_to_board RPC error')
       Sentry.captureException(rpcError, {
         extra: { context: 'restore_to_board RPC', maintenanceId, boardId },
@@ -517,7 +548,8 @@ export async function moveCardToBoard(
       throw new Error('Status column does not belong to target board')
     }
 
-    // Check for duplicate in target board
+    // Check for duplicate in target board. Still needed on the old schema
+    // while a legacy cross-board duplicate exists (Issue #215).
     const { data: existing } = await supabase
       .from('repocard')
       .select('id')
@@ -527,7 +559,7 @@ export async function moveCardToBoard(
       .maybeSingle()
 
     if (existing) {
-      throw new Error('Repository already exists in target board')
+      throw new ActionUserError('Repository already exists in target board')
     }
 
     // Atomic move via RPC (calculates next order position)
@@ -538,6 +570,16 @@ export async function moveCardToBoard(
     })
 
     if (rpcError) {
+      // Another tab placed this repository on a board after the check
+      if (isUniqueViolation(rpcError)) {
+        throw toUniqueViolationError({
+          error: rpcError,
+          raceMessage: toDialogRaceMessage(card.repo_owner, card.repo_name),
+          action: 'moveCardToBoard',
+          userId: claims.sub,
+        })
+      }
+
       log.error({ error: rpcError }, 'move_card_to_board RPC error')
       Sentry.captureException(rpcError, {
         extra: { context: 'move_card_to_board RPC', cardId, targetBoardId },

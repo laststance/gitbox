@@ -16,6 +16,15 @@ vi.mock('@/lib/actions/github', () => ({
   getAuthenticatedRepositoryCatalog: vi.fn(),
 }))
 
+// The picker fetches repo placements on every opening; these tests are about
+// the GitHub catalog, so placements resolve immediately with nothing placed.
+vi.mock('@/lib/actions/board-data', () => ({
+  getUserRepoPlacements: vi.fn(async () => ({
+    success: true,
+    data: { boards: [], maintenance: [] },
+  })),
+}))
+
 vi.mock('@/lib/actions/repo-cards', () => ({
   addRepositoriesToBoard: vi.fn(),
 }))

@@ -73,6 +73,7 @@ function makeRepoCardRow(
   return {
     id: 'card-1',
     board_id: 'board-1',
+    user_id: 'user-1',
     status_id: 'status-1',
     repo_owner: 'laststance',
     repo_name: 'gitbox',

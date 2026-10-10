@@ -24,12 +24,14 @@
 import * as Sentry from '@sentry/nextjs'
 
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
+import { POSTGREST_MAX_ROWS } from '@/lib/constants/postgrest'
 import type { StatusListDomain, RepoCardDomain } from '@/lib/models/domain'
 import { createClient } from '@/lib/supabase/server'
 import type { RepoIdentifier } from '@/lib/types/domain-primitives'
 import { logBoardTiming } from '@/lib/utils/board-timing'
 import { boardIdSchema } from '@/lib/validations/board'
 
+import { withAuthResult } from './auth-guard'
 import { createDefaultStatusLists } from './board'
 import {
   remapBoardEmbed,
@@ -37,13 +39,11 @@ import {
   type BoardBundleRow,
 } from './mappers'
 import type { CommentData } from './project-info'
-
-/**
- * PostgREST caps the number of rows returned for an embedded relation
- * (default `db-max-rows` = 1000). A board whose `repocard` embed hits this
- * cap may be silently truncated, so `getBoardBundle` warns when it is reached.
- */
-const POSTGREST_EMBED_MAX_ROWS = 1000
+import {
+  lookupRepoPlacements,
+  type RepoPlacements,
+} from './repo-card-duplicates'
+import type { ActionResult } from './types'
 
 /**
  * Complete initial data for a board
@@ -89,6 +89,35 @@ export async function getUserMaintenanceRepoIdentifiers(): Promise<
   return (data || []).map(
     (item) =>
       `${item.repo_owner.toLowerCase()}/${item.repo_name.toLowerCase()}`,
+  )
+}
+
+/**
+ * Get every placement of the current user's repositories: which board holds
+ * each one, and which are in Maintenance.
+ *
+ * Called by {@link useRepoPlacements} each time the Add Repositories picker
+ * opens, so the picker can list repositories that are already placed elsewhere
+ * instead of offering them (Issue #215). Fetched on open rather than with the
+ * page so Back / Forward navigation and moves made in other tabs never leave
+ * it stale.
+ *
+ * @returns
+ * - On success: `{ success: true, data: RepoPlacements }`
+ * - On auth error: `{ success: false, error: 'Authentication required' }`
+ * - On lookup failure: `{ success: false, error: 'An unexpected error occurred' }`
+ * @example
+ * const result = await getUserRepoPlacements()
+ * if (result.success) {
+ *   result.data.boards      // => [{ identifier: 'laststance/gitbox', boardId: '…', boardName: 'Work' }]
+ *   result.data.maintenance // => ['laststance/old-project']
+ * }
+ */
+export async function getUserRepoPlacements(): Promise<
+  ActionResult<RepoPlacements>
+> {
+  return withAuthResult(async (supabase, claims) =>
+    lookupRepoPlacements(supabase, claims.sub),
   )
 }
 
@@ -163,7 +192,7 @@ export async function getBoardBundle(
   }
 
   // Surface a possible silent truncation at the PostgREST embed row cap.
-  if (data.repocard.length >= POSTGREST_EMBED_MAX_ROWS) {
+  if (data.repocard.length >= POSTGREST_MAX_ROWS) {
     Sentry.captureMessage(
       'Board repocard embed may be truncated at PostgREST row limit',
       {

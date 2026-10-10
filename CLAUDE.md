@@ -252,7 +252,7 @@ src/app/
 
 - **board** - Kanban boards per user (position, subtitle, is_public, share_slug, settings JSONB)
 - **statuslist** - Columns (2D grid layout: gridRow, gridCol)
-- **repocard** - GitHub repos as cards
+- **repocard** - GitHub repos as cards. One card per user and repo across all boards: `user_id` is copied from the board by the `set_repocard_user_id` trigger and `repocard_unique_repo_per_user` is unique on `(user_id, lower(repo_owner), lower(repo_name))`. App code reads ownership through the `board` join and never selects or writes `repocard.user_id`
 - **projectinfo** - Extended card data (notes, links, comments)
 - **maintenance** - Archived repos
 - **user_link_presets** - User-defined custom link types
@@ -266,6 +266,7 @@ src/lib/actions/
 ├── auth-guard.ts              # withAuthResult, withAuthResultRateLimit, withAuthRateLimit wrappers
 ├── board.ts, board-data.ts    # Board CRUD + D&D reorder
 ├── repo-cards.ts              # RepoCard CRUD + D&D
+├── repo-card-duplicates.ts    # One-repo-per-user rules: placement lookup, split, 23505 mapping (not 'use server')
 ├── project-info.ts            # Notes, links
 ├── shared-project-info.ts     # Shared project info helpers
 ├── maintenance-project-info.ts # Maintenance CRUD + delete
@@ -294,7 +295,7 @@ Stored in httpOnly cookie `github_provider_token` (set in `src/app/auth/callback
 
 ### ActionResult\<T\> Pattern
 
-All client-consumed Server Actions return `ActionResult<T>` (`{ success: true, data: T } | { success: false, error: string }`). Three auth guard wrappers: `withAuthResult(action)` for reads, `withAuthResultRateLimit(key, action)` for mutations, `withAuthRateLimit(key, action)` for DnD (throws).
+All client-consumed Server Actions return `ActionResult<T>` (`{ success: true, data: T } | { success: false, error: string }`). The guards replace every thrown message with a generic one; throw `ActionUserError` (`src/lib/actions/types.ts`) when the message is meant for the user, and the guards return it verbatim without reporting to Sentry. Three auth guard wrappers: `withAuthResult(action)` for reads, `withAuthResultRateLimit(key, action)` for mutations, `withAuthRateLimit(key, action)` for DnD (throws).
 
 ### Rate Limiting
 

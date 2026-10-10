@@ -91,6 +91,154 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
       eliminating the duplicate board fetch. Reverting to a name-only metadata query would
       re-introduce the second round-trip. Revisit only if metadata-only prefetch paths emerge.
 
+## One Repo Across Boards (#215) — deferred follow-ups
+
+From the `/autoplan` review of issue #215 (one card per user and repository). None blocks that change.
+
+### Paginate the repo placement lookup beyond 1000 rows
+
+**What:** Page through `repocard` in the shared placement lookup instead of stopping at the PostgREST `max_rows` cap.
+
+**Why:** A user with more than 1000 cards gets a truncated lookup, so the picker can offer a repo that is already placed and the add ends in the generic race sentence instead of naming the board.
+
+**Context:** The lookup lives in `src/lib/actions/repo-card-duplicates.ts` and sends one Sentry warning when it returns exactly 1000 rows. The unique index `repocard_unique_repo_per_user` still blocks the duplicate. Related to the existing "more than 1000 cards silently truncated" item above. Start with `.range()` pages ordered by `id`.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Reveal and focus the card when arriving from the picker's "On <board>" link
+
+**What:** After following a held-row link, scroll to the card on the holding board and focus it.
+
+**Why:** Today the user lands on the board and has to find the card by eye before moving it.
+
+**Context:** Both design review voices recommended this; it was left out because it adds scope to #215 (User Challenge 2). Needs a card id in the link (query or hash), a scroll and focus on mount, and care with the virtualized columns.
+
+**Effort:** M
+**Priority:** P2
+**Depends on:** None
+
+### One-click "Move here" from the picker
+
+**What:** Let a held row move the card to the current board directly.
+
+**Why:** Moving a repo now takes: follow link, open card menu, Move to Another Board, pick board and column.
+
+**Context:** `moveCardToBoard` already does the work and keeps `projectinfo`. The picker knows the current board; it needs a target column choice and a confirmation.
+
+**Effort:** M
+**Priority:** P3
+**Depends on:** None
+
+### Enforce board vs Maintenance exclusivity in the database
+
+**What:** Make it impossible at the DB level for one repo to be on a board and in `maintenance` at once.
+
+**Why:** The rule is app-enforced only, so a race between restore and add can still produce both.
+
+**Context:** Production had 0 overlaps on 2026-10-11. Needs a cross-table mechanism (trigger on both tables or a shared placement table) and its own audit and cleanup step.
+
+**Effort:** M
+**Priority:** P3
+**Depends on:** None
+
+### Identify repositories by GitHub id instead of `owner/name`
+
+**What:** Key uniqueness on the GitHub repository id so renames and transfers keep one identity.
+
+**Why:** A renamed repo can be added a second time under its new name.
+
+**Context:** New cards store `meta.githubId` as an untrusted client hint. A backfill must re-verify every id against the GitHub API before any constraint uses it.
+
+**Effort:** L
+**Priority:** P3
+**Depends on:** None
+
+### Repo search in the command palette
+
+**What:** Find a repo across all boards from `⌘K` and jump to its board.
+
+**Why:** With one placement per repo, "where is it" becomes the common question.
+
+**Context:** `getUserRepoPlacements()` in `src/lib/actions/board-data.ts` already returns repo, board id and board name.
+
+**Effort:** M
+**Priority:** P3
+**Depends on:** None
+
+### Viewport-aware layout for the Add Repositories panel
+
+**What:** Make the picker panel fit narrow screens.
+
+**Why:** The panel is a fixed `w-120`, which overflows small viewports; the held list adds height.
+
+**Context:** Pre-existing. `src/components/Board/AddRepositoryCombobox.tsx`.
+
+**Effort:** M
+**Priority:** P3
+**Depends on:** None
+
+### Separate "Adding" state in the picker
+
+**What:** Show an adding state on submit instead of `Loading repositories...`.
+
+**Why:** Submitting reuses the catalog loading text, which reads as if the list were reloading.
+
+**Context:** Pre-existing. Same component.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Open-board links inside the move and restore dialog errors
+
+**What:** Turn the board name in the duplicate error into a link.
+
+**Why:** The error names the holding board but offers no way to get there.
+
+**Context:** The error is a plain string from `ActionUserError`. Would need a structured error payload. 0 such cases in the production audit.
+
+**Effort:** S
+**Priority:** P4
+**Depends on:** None
+
+### Fail the parallel E2E run when seeding fails
+
+**What:** Make `scripts/e2e-parallel.sh` and the shard restore stop on seed or restore errors (`ON_ERROR_STOP`).
+
+**Why:** A failed seed leaves shards running against a partial fixture set, and tests that expect a fixture to be absent pass for the wrong reason.
+
+**Context:** Found by the Codex eng review. The owner-independence test asserts its fixtures as a local guard.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Pin the Supabase CLI version in the production migration workflow
+
+**What:** Pin the CLI version used by `.github/workflows/supabase-production.yml`.
+
+**Why:** Migration behavior (transaction wrapping, history handling) can change between CLI releases.
+
+**Context:** The #215 migration is one `DO` block so it does not depend on wrapping, but later migrations may.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Correct the "fixture auth cannot mutate" notes
+
+**What:** Update the comments in `e2e/auth.setup.ts` and the E2E fixture section of `CLAUDE.md`.
+
+**Why:** They say server-side mutations are not exercised under fixture auth, but `move-to-another-board.spec.ts` asserts DB rows after a server action in test mode.
+
+**Context:** Test mode uses the `E2E_TEST_JWT` constant with the authenticated role (`src/lib/supabase/server.ts`). The real-account rule for local verification stays as is.
+
+**Effort:** S
+**Priority:** P4
+**Depends on:** None
+
 ## Completed
 
 - [x] **Preserve `?query` and `#hash` on silent refresh redirect** — [#177](https://github.com/laststance/gitbox/issues/177)
