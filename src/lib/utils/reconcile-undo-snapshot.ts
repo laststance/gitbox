@@ -11,17 +11,17 @@ import type { RepoCardForRedux } from '@/lib/models/domain'
  *
  * @param snapshot - Cards as they were before the drag being undone.
  * @param currentCards - Cards on the board now.
- * @returns
- * - `restored`: snapshot cards that are still on the board, with their old column and order (the only ones to write back)
- * - `cards`: `restored` followed by the cards added since the snapshot, unchanged
+ * @returns The cards to show after the undo: snapshot cards that are still on
+ * the board, with their old column and position, followed by the cards added
+ * since the snapshot, unchanged.
  * @example
  * reconcileUndoSnapshot([cardA, movedAwayCard], [cardADragged, addedCard])
- * // => { restored: [cardA], cards: [cardA, addedCard] }
+ * // => [cardA, addedCard]
  */
 export const reconcileUndoSnapshot = (
   snapshot: RepoCardForRedux[],
   currentCards: RepoCardForRedux[],
-): { restored: RepoCardForRedux[]; cards: RepoCardForRedux[] } => {
+): RepoCardForRedux[] => {
   const currentCardIds = new Set(currentCards.map((card) => card.id))
   const snapshotCardIds = new Set(snapshot.map((card) => card.id))
 
@@ -32,5 +32,5 @@ export const reconcileUndoSnapshot = (
     (card) => !snapshotCardIds.has(card.id),
   )
 
-  return { restored, cards: [...restored, ...addedSinceSnapshot] }
+  return [...restored, ...addedSinceSnapshot]
 }

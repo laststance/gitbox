@@ -10,7 +10,8 @@
  * @see src/hooks/board/useKanbanUndo.ts
  */
 
-import { act, renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
+import { toast } from 'sonner'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { useKanbanUndo } from '@/hooks/board/useKanbanUndo'
@@ -29,7 +30,7 @@ vi.mock('@sentry/nextjs', () => ({
 }))
 
 vi.mock('sonner', () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+  toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }))
 
 /** A card of board-1 for `laststance/<repoName>` in the given column and position. */
@@ -96,8 +97,8 @@ describe('useKanbanUndo', () => {
     ])
   })
 
-  test('undoing a drag keeps a card that was added after the drag on the board', () => {
-    // Arrange: snapshot holds only card-1; card-3 was added after the drag
+  test('undoing a drag keeps a card that was added after the drag, below the restored card', () => {
+    // Arrange: snapshot holds only card-1; card-3 was added to To Do after the drag
     const dispatch = vi.fn()
     const snapshotBeforeDrag = [makeCard('card-1', 'gitbox', 'status-todo', 0)]
     const { result, rerender } = renderHook(
@@ -117,7 +118,7 @@ describe('useKanbanUndo', () => {
     // Act
     pressUndoKey()
 
-    // Assert: card-1 is back in To Do and card-3 is still there, untouched
+    // Assert: card-1 is back in To Do; both cards get distinct positions there
     expect(dispatch).toHaveBeenCalledWith(
       setRepoCards([
         makeCard('card-1', 'gitbox', 'status-todo', 0),
@@ -126,6 +127,102 @@ describe('useKanbanUndo', () => {
     )
     expect(batchUpdateRepoCardOrders).toHaveBeenCalledWith([
       { id: 'card-1', statusId: 'status-todo', order: 0 },
+      { id: 'card-3', statusId: 'status-todo', order: 1 },
     ])
+  })
+
+  test('undo saves the order shown on screen even when the cards carry an older order', () => {
+    // Arrange: after an earlier drag the screen shows card-2 above card-1,
+    // while both cards still carry the order they were loaded with
+    const dispatch = vi.fn()
+    const snapshotBeforeSecondDrag = [
+      makeCard('card-2', 'corelive', 'status-todo', 1),
+      makeCard('card-1', 'gitbox', 'status-todo', 0),
+    ]
+    const { result, rerender } = renderHook(
+      ({ cards }) => useKanbanUndo({ dispatch, cards }),
+      { initialProps: { cards: snapshotBeforeSecondDrag } },
+    )
+    act(() => {
+      result.current.pushCardHistory(snapshotBeforeSecondDrag)
+    })
+    // The second drag put card-1 back on top
+    rerender({
+      cards: [
+        makeCard('card-1', 'gitbox', 'status-todo', 0),
+        makeCard('card-2', 'corelive', 'status-todo', 1),
+      ],
+    })
+
+    // Act
+    pressUndoKey()
+
+    // Assert: the database gets card-2 first, exactly as the screen shows it
+    expect(batchUpdateRepoCardOrders).toHaveBeenCalledWith([
+      { id: 'card-2', statusId: 'status-todo', order: 0 },
+      { id: 'card-1', statusId: 'status-todo', order: 1 },
+    ])
+  })
+
+  test('says there is nothing to undo when the dragged card has left the board', () => {
+    // Arrange: card-1 was dragged to Done and then moved to another board
+    const dispatch = vi.fn()
+    const snapshotBeforeDrag = [
+      makeCard('card-1', 'gitbox', 'status-todo', 0),
+      makeCard('card-2', 'corelive', 'status-todo', 1),
+    ]
+    const { result, rerender } = renderHook(
+      ({ cards }) => useKanbanUndo({ dispatch, cards }),
+      { initialProps: { cards: snapshotBeforeDrag } },
+    )
+    act(() => {
+      result.current.pushCardHistory(snapshotBeforeDrag)
+    })
+    rerender({ cards: [makeCard('card-2', 'corelive', 'status-todo', 1)] })
+
+    // Act
+    pressUndoKey()
+
+    // Assert: no change on screen, no write, and no "undone" claim
+    expect(toast.info).toHaveBeenCalledWith('Nothing to undo on this board')
+    expect(toast.success).not.toHaveBeenCalled()
+    expect(dispatch).not.toHaveBeenCalled()
+    expect(batchUpdateRepoCardOrders).not.toHaveBeenCalled()
+  })
+
+  test('puts the cards back as they were when the database refuses the undo', async () => {
+    // Arrange: the write is refused, e.g. the old column was deleted since
+    vi.mocked(batchUpdateRepoCardOrders).mockRejectedValueOnce(
+      new Error('Failed to update card orders'),
+    )
+    const dispatch = vi.fn()
+    const snapshotBeforeDrag = [makeCard('card-1', 'gitbox', 'status-todo', 0)]
+    const cardsAfterDrag = [makeCard('card-1', 'gitbox', 'status-done', 0)]
+    const { result, rerender } = renderHook(
+      ({ cards }) => useKanbanUndo({ dispatch, cards }),
+      { initialProps: { cards: snapshotBeforeDrag } },
+    )
+    act(() => {
+      result.current.pushCardHistory(snapshotBeforeDrag)
+    })
+    rerender({ cards: cardsAfterDrag })
+
+    // Act
+    pressUndoKey()
+
+    // Assert: the screen returns to the layout the database still holds
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        'Failed to sync undo to database',
+      )
+    })
+    expect(dispatch).toHaveBeenNthCalledWith(
+      1,
+      setRepoCards([makeCard('card-1', 'gitbox', 'status-todo', 0)]),
+    )
+    expect(dispatch).toHaveBeenNthCalledWith(
+      2,
+      setRepoCards([makeCard('card-1', 'gitbox', 'status-done', 0)]),
+    )
   })
 })

@@ -127,4 +127,48 @@ describe('useRepoPlacements', () => {
       tags: { action: 'fetchRepoPlacements' },
     })
   })
+
+  test('does not keep placements that were refreshed after the picker closed', async () => {
+    // Arrange: the picker was open, settled, and is closed again
+    vi.mocked(getUserRepoPlacements)
+      // First opening
+      .mockResolvedValueOnce({
+        success: true,
+        data: { boards: [], maintenance: [] },
+      })
+      // Refresh asked for after closing, e.g. by an add that was still running
+      .mockResolvedValueOnce({
+        success: true,
+        data: {
+          boards: [
+            {
+              identifier: 'laststance/gitbox',
+              boardId: 'board-2',
+              boardName: 'Work Projects',
+            },
+          ],
+          maintenance: [],
+        },
+      })
+      // Second opening: the server does not answer for the rest of this test
+      .mockReturnValueOnce(new Promise(() => {}))
+    const { result, rerender } = renderHook(
+      ({ isOpen }) => useRepoPlacements(isOpen),
+      { initialProps: { isOpen: true } },
+    )
+    await waitFor(() => {
+      expect(result.current.isLoadingPlacements).toBe(false)
+    })
+    rerender({ isOpen: false })
+    await act(async () => {
+      await result.current.refreshPlacements()
+    })
+
+    // Act
+    rerender({ isOpen: true })
+
+    // Assert: the next opening loads instead of starting from the late answer
+    expect(result.current.isLoadingPlacements).toBe(true)
+    expect(result.current.placements).toBeNull()
+  })
 })

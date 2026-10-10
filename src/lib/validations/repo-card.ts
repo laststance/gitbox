@@ -14,9 +14,7 @@ export const MAX_REPOSITORIES_PER_ADD = 100
 /** Shown to the user when one request holds more than {@link MAX_REPOSITORIES_PER_ADD} repositories */
 export const TOO_MANY_REPOSITORIES_MESSAGE = `Add at most ${MAX_REPOSITORIES_PER_ADD} repositories at once`
 
-const githubNameSegmentSchema = z
-  .string()
-  .regex(GITHUB_NAME_SEGMENT, 'Invalid GitHub name')
+const githubNameSegmentSchema = z.string().regex(GITHUB_NAME_SEGMENT)
 
 /**
  * Schema for the identity fields of the repositories passed to
@@ -41,5 +39,5 @@ export const addRepositoriesRequestSchema = z
       owner: z.object({ login: githubNameSegmentSchema }),
     }),
   )
-  .min(1, 'Select at least one repository')
+  .min(1)
   .max(MAX_REPOSITORIES_PER_ADD, TOO_MANY_REPOSITORIES_MESSAGE)

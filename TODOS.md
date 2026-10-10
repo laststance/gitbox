@@ -171,7 +171,7 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 **What:** Make the picker panel fit narrow screens.
 
-**Why:** The panel is a fixed `w-120`, which overflows narrow viewports. Its height is capped to the viewport since #215 (the panel scrolls), but the Cancel / Add row is not pinned.
+**Why:** The panel is a fixed `w-120`, which overflows narrow viewports. Its height is capped to the viewport since #215 (the panel scrolls), but the Cancel / Add row is not pinned: with both lists full the panel is about 700px tall, so at viewport heights of about 800px and below the Add button needs a scroll inside the panel, past two nested scrolling lists. A `flex flex-col` panel with a `shrink-0` footer and a shrinking listbox fixes it.
 
 **Context:** Pre-existing. `src/components/Board/AddRepositoryCombobox.tsx`.
 
@@ -291,12 +291,24 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 **What:** Replace the two triggers with composite foreign keys: `repocard (board_id, user_id) -> board (id, user_id) ON UPDATE CASCADE` and `repocard (status_id, board_id) -> statuslist (id, board_id)`.
 
-**Why:** The triggers keep both invariants only from the `repocard` side. If a board ever changes owner, its cards keep the old `user_id` (and the direct cascade from `auth.users` would then delete them with the old owner's account).
+**Why:** Triggers keep these invariants: `set_repocard_user_id` and `check_repocard_status_board` on `repocard`, `forbid_statuslist_board_change` on `statuslist`. Nothing covers a change of `board.user_id`: if a board ever changes owner, its cards keep the old `user_id` (and the direct cascade from `auth.users` would then delete them with the old owner's account).
 
-**Context:** Not reachable today: boards cannot change owner. Needs `UNIQUE (id, user_id)` on `board`, `UNIQUE (id, board_id)` on `statuslist`, and an audit that no stranded card exists (`s.board_id <> r.board_id`) before the constraint is added.
+**Context:** Board ownership cannot change today (the board UPDATE policy pins `user_id` to the caller, and the app has no transfer). Needs `UNIQUE (id, user_id)` on `board`, `UNIQUE (id, board_id)` on `statuslist`, and an audit that no stranded card exists (`s.board_id <> r.board_id`) before the constraint is added.
 
 **Effort:** M
 **Priority:** P3
+**Depends on:** None
+
+### Keep Redux in step when a column is deleted, and drop late picker notices
+
+**What:** (1) When a column is deleted, also remove its cards from the Redux store. (2) When an add finishes after the picker was closed, do not show its error or "not added" notice on the next opening.
+
+**Why:** (1) The database deletes the column's cards by cascade, but the store keeps them until reload: an undo can bring such a card back on screen although its row is gone, and the picker hides its repository as already on this board. (2) Cancel and Escape stay enabled while an add is running, so its result can arrive on a closed picker; a later opening through a column's "Add Repo" button then shows that old notice.
+
+**Context:** Found by the red team pass of #215; both are older than that change. `src/hooks/board/useStatusListDialog.ts` (`confirmDelete`), `src/components/Board/AddRepositoryCombobox.tsx` (`handleAddRepositories`, `openForStatus` in `useAddRepositoryCombobox`). Placements refreshed after close are already ignored by `useRepoPlacements`.
+
+**Effort:** S
+**Priority:** P2
 **Depends on:** None
 
 ### Polish left from the #215 design review

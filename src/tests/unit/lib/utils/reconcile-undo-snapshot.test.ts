@@ -37,7 +37,7 @@ function makeCard(
 }
 
 describe('reconcileUndoSnapshot', () => {
-  test('a card moved to another board after the drag is neither shown again nor written back', () => {
+  test('a card moved to another board after the drag is not shown again', () => {
     // Arrange
     const snapshotBeforeDrag = [
       makeCard('card-1', 'gitbox', 'status-todo', 0),
@@ -47,61 +47,59 @@ describe('reconcileUndoSnapshot', () => {
     const cardsOnBoardNow = [makeCard('card-1', 'gitbox', 'status-done', 0)]
 
     // Act
-    const result = reconcileUndoSnapshot(snapshotBeforeDrag, cardsOnBoardNow)
+    const cardsAfterUndo = reconcileUndoSnapshot(
+      snapshotBeforeDrag,
+      cardsOnBoardNow,
+    )
 
-    // Assert
-    expect(result.cards.map((card) => card.id)).toEqual(['card-1'])
-    expect(result.restored.map((card) => card.id)).toEqual(['card-1'])
-    expect(result.restored[0]).toMatchObject({
-      statusId: 'status-todo',
-      order: 0,
-    })
+    // Assert: only card-1 remains, back in To Do
+    expect(cardsAfterUndo).toEqual([
+      makeCard('card-1', 'gitbox', 'status-todo', 0),
+    ])
   })
 
-  test('a card added after the drag stays where it is', () => {
+  test('a card added after the drag stays where it is, after the restored cards', () => {
     // Arrange
     const snapshotBeforeDrag = [makeCard('card-1', 'gitbox', 'status-todo', 0)]
-    // card-1 was dragged to Done, then card-3 was added to Done below it
+    // card-1 was dragged to Done, then card-3 was added to To Do
     const cardsOnBoardNow = [
       makeCard('card-1', 'gitbox', 'status-done', 0),
-      makeCard('card-3', 'new-project', 'status-done', 1),
+      makeCard('card-3', 'nsx', 'status-todo', 0),
     ]
 
     // Act
-    const result = reconcileUndoSnapshot(snapshotBeforeDrag, cardsOnBoardNow)
+    const cardsAfterUndo = reconcileUndoSnapshot(
+      snapshotBeforeDrag,
+      cardsOnBoardNow,
+    )
 
     // Assert
-    expect(result.cards).toEqual([
+    expect(cardsAfterUndo).toEqual([
       makeCard('card-1', 'gitbox', 'status-todo', 0),
-      makeCard('card-3', 'new-project', 'status-done', 1),
-    ])
-    // Only the card that was on the board before the drag is written back
-    expect(result.restored).toEqual([
-      makeCard('card-1', 'gitbox', 'status-todo', 0),
+      makeCard('card-3', 'nsx', 'status-todo', 0),
     ])
   })
 
-  test('every card goes back to its old column and order when the board did not change', () => {
+  test('every card goes back to its old column and position when the board did not change', () => {
     // Arrange
     const snapshotBeforeDrag = [
       makeCard('card-1', 'gitbox', 'status-todo', 0),
       makeCard('card-2', 'corelive', 'status-todo', 1),
     ]
-    // card-1 was dragged to Done, which moved card-2 up
+    // card-2 was dragged above card-1
     const cardsOnBoardNow = [
-      makeCard('card-2', 'corelive', 'status-todo', 0),
-      makeCard('card-1', 'gitbox', 'status-done', 0),
+      makeCard('card-2', 'corelive', 'status-todo', 1),
+      makeCard('card-1', 'gitbox', 'status-todo', 0),
     ]
 
     // Act
-    const result = reconcileUndoSnapshot(snapshotBeforeDrag, cardsOnBoardNow)
+    const cardsAfterUndo = reconcileUndoSnapshot(
+      snapshotBeforeDrag,
+      cardsOnBoardNow,
+    )
 
     // Assert
-    expect(result.cards).toEqual([
-      makeCard('card-1', 'gitbox', 'status-todo', 0),
-      makeCard('card-2', 'corelive', 'status-todo', 1),
-    ])
-    expect(result.restored).toEqual([
+    expect(cardsAfterUndo).toEqual([
       makeCard('card-1', 'gitbox', 'status-todo', 0),
       makeCard('card-2', 'corelive', 'status-todo', 1),
     ])

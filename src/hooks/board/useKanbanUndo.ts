@@ -25,6 +25,10 @@ import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import { setStatusLists, setRepoCards } from '@/lib/redux/slices/boardSlice'
 import type { AppDispatch } from '@/lib/redux/store'
 import { reconcileUndoSnapshot } from '@/lib/utils/reconcile-undo-snapshot'
+import {
+  toColumnPositions,
+  type CardColumnPosition,
+} from '@/lib/utils/to-column-positions'
 
 interface UseKanbanUndoParams {
   /** Redux dispatch function */
@@ -101,25 +105,31 @@ export function useKanbanUndo(
 
     if (history.length === 0) return
     const previousState = history[history.length - 1]!
+    setHistory((prev) => prev.slice(0, -1))
+
     // The board may have changed since the snapshot (card moved to another
     // board, removed, added): only cards still here go back to their old place
-    const { restored, cards: cardsAfterUndo } = reconcileUndoSnapshot(
-      previousState,
-      cards,
-    )
+    const cardsAfterUndo = reconcileUndoSnapshot(previousState, cards)
+    const positionsAfterUndo = toColumnPositions(cardsAfterUndo)
+
+    // The dragged card has left the board, so nothing here moves back
+    if (hasSameLayout(toColumnPositions(cards), positionsAfterUndo)) {
+      toast.info('Nothing to undo on this board')
+      return
+    }
+
     dispatch(setRepoCards(cardsAfterUndo))
-    setHistory((prev) => prev.slice(0, -1))
     toast.success('Card operation undone')
 
-    const updates = restored.map((c, index) => ({
-      id: c.id,
-      statusId: c.statusId,
-      order: c.order ?? index,
-    }))
-    batchUpdateRepoCardOrders(updates).catch((error) => {
+    // Positions come from the restored layout, not from each card's `order`
+    // field, which drags never update
+    batchUpdateRepoCardOrders(positionsAfterUndo).catch((error) => {
       Sentry.captureException(error, {
         tags: { action: 'undoCardPositions' },
       })
+      // The write was refused (e.g. the old column was deleted since): go
+      // back to the layout the database still holds
+      dispatch(setRepoCards(cards))
       toast.error('Failed to sync undo to database')
     })
   }, [history, columnHistory, dispatch, cards])
@@ -157,4 +167,34 @@ export function useKanbanUndo(
     pushCardHistory,
     pushColumnHistory,
   }
+}
+
+/**
+ * Tells whether two board layouts show every card in the same column and at
+ * the same position. Used by {@link useKanbanUndo} to skip an undo that would
+ * change nothing.
+ *
+ * @param current - Positions of the cards on the board now.
+ * @param next - Positions the undo would produce.
+ * @returns `true` when both hold the same cards at the same places.
+ * @example
+ * hasSameLayout([{ id: 'a', statusId: 'todo', order: 0 }], [{ id: 'a', statusId: 'done', order: 0 }]) // => false
+ */
+function hasSameLayout(
+  current: CardColumnPosition[],
+  next: CardColumnPosition[],
+): boolean {
+  if (current.length !== next.length) return false
+
+  const currentPositionById = new Map(
+    current.map((position) => [position.id, position]),
+  )
+  return next.every((position) => {
+    const currentPosition = currentPositionById.get(position.id)
+    return (
+      currentPosition !== undefined &&
+      currentPosition.statusId === position.statusId &&
+      currentPosition.order === position.order
+    )
+  })
 }

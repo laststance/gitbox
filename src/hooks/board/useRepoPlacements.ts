@@ -51,6 +51,9 @@ export function useRepoPlacements(isOpen: boolean): UseRepoPlacementsReturn {
   )
   // Only the newest request may write state: close/reopen can overlap fetches.
   const latestRequestId = useRef(0)
+  // A refresh asked for after the picker closed (e.g. by an add that was still
+  // in flight) must not store placements for the next opening to start from.
+  const isOpenRef = useRef(false)
 
   const refreshPlacements = useCallback(async (): Promise<void> => {
     const requestId = ++latestRequestId.current
@@ -66,8 +69,8 @@ export function useRepoPlacements(isOpen: boolean): UseRepoPlacementsReturn {
       })
     }
 
-    // A newer request superseded this one
-    if (requestId !== latestRequestId.current) return
+    // A newer request superseded this one, or the picker closed meanwhile
+    if (requestId !== latestRequestId.current || !isOpenRef.current) return
     setState({ placements, isSettled: true })
   }, [])
 
@@ -79,11 +82,13 @@ export function useRepoPlacements(isOpen: boolean): UseRepoPlacementsReturn {
   useEffect(() => {
     if (!isOpen) return
 
+    isOpenRef.current = true
     loadPlacementsForOpening()
 
     return (): void => {
       // Closing invalidates any in-flight request and forgets the old data, so
       // the next opening shows loading instead of a stale held list.
+      isOpenRef.current = false
       latestRequestId.current += 1
       setState(INITIAL_PLACEMENTS_STATE)
     }

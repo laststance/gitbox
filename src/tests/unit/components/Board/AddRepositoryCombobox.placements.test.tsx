@@ -10,7 +10,7 @@
  */
 
 import { configureStore } from '@reduxjs/toolkit'
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Provider } from 'react-redux'
 import { toast } from 'sonner'
@@ -26,7 +26,7 @@ import {
   addRepositoriesToBoard,
   type CreatedRepoCard,
 } from '@/lib/actions/repo-cards'
-import boardReducer from '@/lib/redux/slices/boardSlice'
+import boardReducer, { setRepoCards } from '@/lib/redux/slices/boardSlice'
 import settingsReducer from '@/lib/redux/slices/settingsSlice'
 import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
 
@@ -225,10 +225,10 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
       'gitbox',
     )
 
-    // Assert
+    // Assert: the sentence blames the search, not an exhausted catalog
     expect(
       await screen.findByText(
-        'No repositories to add. The ones below are already placed.',
+        'Nothing to add matches the search or filters. The ones below are already placed.',
       ),
     ).toBeVisible()
     expect(
@@ -909,5 +909,144 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
       screen.getByRole('button', { name: 'Remove laststance/free-repo' }),
     ).toBeVisible()
     expect(screen.getByRole('button', { name: 'Add (1)' })).toBeDisabled()
+  })
+
+  // Value: protects=a repository already on this board stays hidden when the
+  //   placement request fails, so it cannot be offered a second time;
+  //   fails_when=the store-based "already on this board" check is dropped from
+  //   classifyRepositories (the fetched placements hide it in every other test);
+  //   why_new=the deleted "Existing Repo Filtering" block tested a copy of this
+  //   logic, never the picker itself;
+  //   seam=none
+  test('keeps hiding a repository that is already on this board when placements cannot be loaded', async () => {
+    // Arrange: the board's card is in the store with a different letter case
+    mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: false,
+      error: 'An unexpected error occurred',
+    })
+    const store = configureStore({
+      reducer: { board: boardReducer, settings: settingsReducer },
+    })
+    store.dispatch(
+      setRepoCards([
+        {
+          id: toRepoCardId('card-1'),
+          title: 'Laststance/GitBox',
+          statusId: toStatusListId('status-1'),
+          boardId: toBoardId('board-1'),
+          repoOwner: 'Laststance',
+          repoName: 'GitBox',
+          order: 0,
+          meta: {},
+          createdAt: '2026-01-01T00:00:00Z',
+          updatedAt: '2026-01-01T00:00:00Z',
+        },
+      ]),
+    )
+
+    // Act
+    render(
+      <Provider store={store}>
+        <AddRepositoryCombobox
+          boardId={toBoardId('board-1')}
+          statusId={toStatusListId('status-1')}
+          isOpen
+          onRepositoriesAdded={vi.fn()}
+        />
+      </Provider>,
+    )
+
+    // Assert
+    const options = await findRepositoryOptions()
+    expect(options).toHaveLength(1)
+    expect(options[0]).toHaveTextContent('laststance/free-repo')
+  })
+
+  // Value: protects=the "not added" notice does not survive cancelling the
+  //   picker, so the next opening starts clean;
+  //   fails_when=handleClose stops clearing the skipped messages (the picker
+  //   stays mounted while closed, so the notice would still be there);
+  //   why_new=existing tests clear the notice only by starting another add;
+  //   seam=none
+  test('forgets the not-added notice once the picker is cancelled', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    mockCatalog([makeRepository(2, 'gitbox')])
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: true,
+      data: { boards: [], maintenance: [] },
+    })
+    vi.mocked(addRepositoriesToBoard).mockResolvedValue({
+      success: true,
+      data: {
+        addedCount: 0,
+        cards: [],
+        skipped: [
+          {
+            fullName: 'laststance/gitbox',
+            reason: 'other-board',
+            message: 'laststance/gitbox is already on board "Work Projects"',
+            boardId: 'board-2',
+            boardName: 'Work Projects',
+          },
+        ],
+      },
+    })
+    const { onOpenChange } = renderOpenPicker()
+    const [onlyOption] = await findRepositoryOptions()
+    await user.click(onlyOption!)
+    await user.click(screen.getByRole('button', { name: 'Add (1)' }))
+    await screen.findByRole('note', {
+      name: 'Repositories that were not added',
+    })
+
+    // Act
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    // Assert
+    expect(
+      screen.queryByRole('note', { name: 'Repositories that were not added' }),
+    ).toBeNull()
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  // Value: protects=Enter that confirms a Japanese (IME) conversion in the
+  //   search box only confirms the conversion;
+  //   fails_when=the panel's key handler loses its composition guard, so
+  //   confirming a conversion adds the selection and closes the picker;
+  //   why_new=no test types into the search box through an IME;
+  //   seam=none
+  test('confirming an IME conversion with Enter in the search box does not add the selection', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    mockCatalog([makeRepository(1, 'free-repo')])
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: true,
+      data: { boards: [], maintenance: [] },
+    })
+    vi.mocked(addRepositoriesToBoard).mockResolvedValue({
+      success: true,
+      data: { addedCount: 1, cards: [makeCreatedFreeRepoCard()], skipped: [] },
+    })
+    renderOpenPicker()
+    const [onlyOption] = await findRepositoryOptions()
+    await user.click(onlyOption!)
+    const searchInput = screen.getByRole('textbox', {
+      name: 'Search repositories',
+    })
+
+    // Act: the keydown a browser sends while a conversion is being confirmed
+    fireEvent.keyDown(searchInput, {
+      key: 'Enter',
+      isComposing: true,
+      keyCode: 229,
+    })
+
+    // Assert: nothing is added by the conversion...
+    expect(addRepositoriesToBoard).not.toHaveBeenCalled()
+    // ...while a plain Enter in the same box still adds
+    fireEvent.keyDown(searchInput, { key: 'Enter', keyCode: 13 })
+    expect(addRepositoriesToBoard).toHaveBeenCalledTimes(1)
   })
 })

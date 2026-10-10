@@ -14,6 +14,10 @@
  * Database rules (asserted directly against PostgREST):
  * - Unique index per (user, lower(owner), lower(name))
  * - `repocard.user_id` always equals the board owner and cannot be forged
+ * - RLS refuses an insert into another user's public board (42501)
+ * - A card's column must be a column of the card's board, and a column cannot
+ *   change boards (`check_repocard_status_board`,
+ *   `forbid_statuslist_board_change`, 23514)
  *
  * Fixtures: the MSW GitHub catalog offers `testuser/private-project`, which is
  * on none of the test user's boards in `seed.sql`. The seeded second account
@@ -66,6 +70,34 @@ async function placeOnWorkProjects(
     })
   if (error) {
     throw new Error(`placeOnWorkProjects failed: ${error.message}`)
+  }
+}
+
+/**
+ * Put the other user's `testuser/private-project` card back as seeded.
+ * `resetRepoCards` only rebuilds the test user's boards; if a regression let
+ * that card move onto one of them, it would be deleted there and every later
+ * test relying on the second account would fail for an unrelated reason.
+ */
+async function restoreOtherUserPrivateProjectCard(): Promise<void> {
+  const { error } = await createServiceRoleSupabaseClient()
+    .from('repocard')
+    .upsert(
+      {
+        id: OTHER_USER.privateProjectCardId,
+        board_id: OTHER_USER.boardId,
+        status_id: OTHER_USER.statusId,
+        repo_owner: 'testuser',
+        repo_name: 'private-project',
+        order: 1,
+        meta: { visibility: 'private' },
+      },
+      { onConflict: 'id' },
+    )
+  if (error) {
+    throw new Error(
+      `restoreOtherUserPrivateProjectCard failed: ${error.message}`,
+    )
   }
 }
 
@@ -443,6 +475,7 @@ test.describe('One repository per user - database rules', () => {
   test.afterEach(async () => {
     await resetRepoCards()
     await resetMaintenanceItems()
+    await restoreOtherUserPrivateProjectCard()
   })
 
   test('rejects a second card for the same repository on another board of the same user', async () => {
@@ -595,26 +628,30 @@ test.describe('One repository per user - database rules', () => {
   })
 
   test('re-checks uniqueness for the new owner when a card changes boards', async () => {
-    // Arrange: moving card-1 (testuser/test-repo) onto the other user's board
-    // makes that user its owner, and that user already holds testuser/test-repo
+    // Arrange: the test user holds testuser/private-project on Work Projects.
+    // Test Board holds no private-project, so the older per-board constraint
+    // cannot be what rejects the move below: only the per-user index can.
+    await placeOnWorkProjects('testuser', 'private-project')
     const supabase = createServiceRoleSupabaseClient()
 
-    // Act
+    // Act: the other user's private-project card is moved onto Test Board,
+    // which would make the test user its owner
     const { error } = await supabase.rpc('move_card_to_board', {
-      p_card_id: CARD_IDS.card1,
-      p_target_board_id: OTHER_USER.boardId,
-      p_target_status_id: OTHER_USER.statusId,
+      p_card_id: OTHER_USER.privateProjectCardId,
+      p_target_board_id: BOARD_IDS.testBoard,
+      p_target_status_id: STATUS_IDS.planning,
     })
 
-    // Assert: rejected, card-1 stays where it was
+    // Assert: rejected by the per-user index, the card stays with its owner
     expect(error?.code).toBe('23505')
+    expect(error?.message).toContain('repocard_unique_repo_per_user')
     const card = await querySingle<{ board_id: string; user_id: string }>(
       'repocard',
-      { id: CARD_IDS.card1 },
+      { id: OTHER_USER.privateProjectCardId },
     )
     expect(card).toMatchObject({
-      board_id: BOARD_IDS.testBoard,
-      user_id: TEST_USER_ID,
+      board_id: '00000000-0000-0000-0000-000000000110',
+      user_id: '00000000-0000-0000-0000-000000000002',
     })
   })
 
@@ -705,6 +742,26 @@ test.describe("A card's column belongs to the card's board - database rules", ()
     expect(card).toMatchObject({
       board_id: BOARD_IDS.workProjects,
       status_id: WORK_PROJECTS_STATUS_IDS.backlog,
+    })
+  })
+
+  test('refuses moving a column to another board', async () => {
+    // Arrange: Planning is a column of Test Board and holds cards
+    const supabase = createServiceRoleSupabaseClient()
+
+    // Act: a direct API call re-homes the column, cards and all
+    const { error } = await supabase
+      .from('statuslist')
+      .update({ board_id: BOARD_IDS.workProjects })
+      .eq('id', STATUS_IDS.planning)
+
+    // Assert: check violation, and the column is still on Test Board
+    expect(error?.code).toBe('23514')
+    const column = await querySingle<{ board_id: string }>('statuslist', {
+      id: STATUS_IDS.planning,
+    })
+    expect(column).toMatchObject({
+      board_id: '00000000-0000-0000-0000-000000000100',
     })
   })
 

@@ -27,11 +27,7 @@ import {
   type StatusListId,
 } from '@/lib/types/brands'
 import type { ISOTimestamp, Visibility } from '@/lib/types/domain-primitives'
-import {
-  addRepositoriesRequestSchema,
-  MAX_REPOSITORIES_PER_ADD,
-  TOO_MANY_REPOSITORIES_MESSAGE,
-} from '@/lib/validations/repo-card'
+import { addRepositoriesRequestSchema } from '@/lib/validations/repo-card'
 
 import {
   ADD_RACE_MESSAGE,
@@ -133,20 +129,20 @@ export async function addRepositoriesToBoard(
   return withAuthResultRateLimit(
     'addReposToBoard',
     async (supabase, claims) => {
-      // The picker has no selection cap, so an oversized batch is a user
-      // mistake worth explaining rather than an unexpected error
-      if (
-        Array.isArray(repositories) &&
-        repositories.length > MAX_REPOSITORIES_PER_ADD
-      ) {
-        throw new ActionUserError(TOO_MANY_REPOSITORIES_MESSAGE)
-      }
-
       // Reject a malformed identity (id, owner, name) before any query: owner
       // and name are echoed back in messages and stored on the card. Display
       // metadata (stars, topics, ...) is not validated here.
-      if (!addRepositoriesRequestSchema.safeParse(repositories).success) {
-        throw new Error('Invalid repositories payload')
+      const parsedRequest = addRepositoriesRequestSchema.safeParse(repositories)
+      if (!parsedRequest.success) {
+        // The picker has no selection cap, so an oversized batch is a user
+        // mistake worth explaining (the schema carries the sentence);
+        // anything else is a malformed request
+        const tooManyRepositoriesIssue = parsedRequest.error.issues.find(
+          (issue) => issue.code === 'too_big' && issue.path.length === 0,
+        )
+        throw tooManyRepositoriesIssue
+          ? new ActionUserError(tooManyRepositoriesIssue.message)
+          : new Error('Invalid repositories payload')
       }
 
       // Check if board exists and user owns it

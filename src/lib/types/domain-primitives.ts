@@ -116,8 +116,8 @@ export type LinkPresetLabel = string
 
 /**
  * GitHub repository identifier in `owner/repo` format, lowercased for
- * case-insensitive matching. Used by `AddRepositoryCombobox` to exclude
- * repositories already archived in Maintenance.
+ * case-insensitive matching. The key for "where is this repository placed?":
+ * on one of the user's boards or in Maintenance (see {@link toRepoIdentifier}).
  *
  * @example 'laststance/gitbox'
  */

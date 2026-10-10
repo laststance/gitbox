@@ -261,6 +261,10 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   // Options and held rows render only once both the catalog and the placements
   // have settled, so a held repository never flashes as selectable
   const isLoading = isLoadingCatalog || isLoadingPlacements || isAdding
+  // A filter that hides everything is not an empty catalog: the empty states
+  // below say which of the two the user is looking at
+  const hasActiveFilter =
+    organizationFilter !== 'all' || visibilityFilter !== 'all'
   const error = addError || catalogError
 
   // Virtual scrolling (enabled for 20+ repositories)
@@ -356,6 +360,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
   // Keyboard navigation (WCAG AA)
   const handleKeyDown = (e: React.KeyboardEvent): void => {
+    // Enter / Escape that confirm or cancel an IME conversion (e.g. Japanese
+    // input) belong to the conversion. 229 covers Safari, where the confirming
+    // keydown arrives after compositionend.
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return
+
     if (e.key === 'Escape') {
       handleClose()
       searchInputRef.current?.blur()
@@ -699,7 +708,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             filteredRepositories.length === 0 &&
             heldRepositories.length > 0 && (
               <p className="text-muted-foreground mt-3 text-sm">
-                No repositories to add. The ones below are already placed.
+                {deferredSearchQuery || hasActiveFilter
+                  ? 'Nothing to add matches the search or filters. The ones below are already placed.'
+                  : 'No repositories to add. The ones below are already placed.'}
               </p>
             )}
 
@@ -710,10 +721,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             filteredRepositories.length === 0 &&
             heldRepositories.length === 0 && (
               <div className="text-muted-foreground py-8 text-center text-sm">
-                {/* A filter that hides everything is not an empty catalog */}
-                {organizationFilter === 'all' && visibilityFilter === 'all'
-                  ? 'No repositories left to add.'
-                  : 'No repositories match the current filters.'}
+                {hasActiveFilter
+                  ? 'No repositories match the current filters.'
+                  : 'No repositories left to add.'}
               </div>
             )}
 

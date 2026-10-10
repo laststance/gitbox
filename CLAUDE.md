@@ -252,7 +252,7 @@ src/app/
 
 - **board** - Kanban boards per user (position, subtitle, is_public, share_slug, settings JSONB)
 - **statuslist** - Columns (2D grid layout: gridRow, gridCol)
-- **repocard** - GitHub repos as cards. One card per user and repo across all boards: `user_id` is copied from the board by the `set_repocard_user_id` trigger and `repocard_unique_repo_per_user` is unique on `(user_id, lower(repo_owner), lower(repo_name))`. A card's column must be a column of its own board (`check_repocard_status_board` trigger). App code reads ownership through the `board` join and never names, filters on or writes `repocard.user_id` (wildcard selects fetch it, the mappers drop it)
+- **repocard** - GitHub repos as cards. One card per user and repo across all boards: `user_id` is copied from the board by the `set_repocard_user_id` trigger and `repocard_unique_repo_per_user` is unique on `(user_id, lower(repo_owner), lower(repo_name))`. A card's column must be a column of its own board (`check_repocard_status_board` trigger), and a column cannot change boards (`forbid_statuslist_board_change` trigger on `statuslist`). App code reads ownership through the `board` join and never names, filters on or writes `repocard.user_id` (wildcard selects fetch it, the mappers drop it)
 - **projectinfo** - Extended card data (notes, links, comments)
 - **maintenance** - Archived repos
 - **user_link_presets** - User-defined custom link types

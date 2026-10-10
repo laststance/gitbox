@@ -29,6 +29,7 @@ import type { StatusListDomain, RepoCardDomain } from '@/lib/models/domain'
 import { createClient } from '@/lib/supabase/server'
 import type { RepoIdentifier } from '@/lib/types/domain-primitives'
 import { logBoardTiming } from '@/lib/utils/board-timing'
+import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
 import { boardIdSchema } from '@/lib/validations/board'
 
 import { withAuthResult } from './auth-guard'
@@ -86,9 +87,8 @@ export async function getUserMaintenanceRepoIdentifiers(): Promise<
     .select('repo_owner, repo_name')
     .eq('user_id', claims.sub)
 
-  return (data || []).map(
-    (item) =>
-      `${item.repo_owner.toLowerCase()}/${item.repo_name.toLowerCase()}`,
+  return (data || []).map((item) =>
+    toRepoIdentifier(item.repo_owner, item.repo_name),
   )
 }
 

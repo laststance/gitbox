@@ -1149,3 +1149,12 @@ Recorded after the build, where the code differs from the plan text above.
 - Placement lookup: the truncation warning also covers the Maintenance query, which has no unique-index backstop.
 - Not changed, tracked in `TODOS.md`: metadata validation of add requests, the owner filter of the board page, placement loading performance, parallel queries, composite foreign keys, copy polish. The suggested `auth.uid()` comparison inside `set_repocard_user_id` was left out: the E2E shard databases grant no USAGE on schema `auth`, so a name lookup of `auth.uid()` inside a function body fails there, and the repocard `WITH CHECK` policy already refuses the write.
 - Migration checks and the old-schema smoke were repeated after these changes; results are in the pull request.
+
+### Changes from the second review pass (2026-10-11)
+
+- Migration `20261011020000` also adds `forbid_statuslist_board_change` (a column cannot be moved to another board, which would strand its cards from the other side through a direct API call) and reports the number of already stranded cards as a WARNING in the migration output (count only).
+- Undo writes each card's position as shown on screen instead of the card's `order` field, which drags never update (`toColumnPositions`); it says "Nothing to undo on this board" when the dragged card has left the board, and puts the cards back when the database refuses the write.
+- Picker: Enter and Escape that confirm or cancel an IME conversion are ignored; a placement refresh that returns after the picker closed is dropped; "Nothing to add matches the search or filters." replaces "No repositories to add." when a search or filter is active.
+- Held rows: the row-wide hit area applies to touch screens only, so the repository name can be selected with a mouse; hover and focus styles added; the now unneeded key handler on the link is gone.
+- The add limit has one owner: the schema's `too_big` issue carries the sentence and the action passes it on.
+- Tests: the cross-user move test now uses a move only the per-user index can reject and asserts the index name; picker tests for the store-based "already on this board" path, the notice after Cancel, and IME Enter.

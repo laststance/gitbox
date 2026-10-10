@@ -63,22 +63,23 @@ export const HeldRepositoryList = memo(function HeldRepositoryList({
               key={repository.id}
               className="border-border relative flex min-h-11 flex-col justify-center border-b px-3 py-1.5 last:border-b-0"
             >
-              <span className="text-muted-foreground truncate text-sm">
+              <span
+                title={repository.fullName}
+                className="text-muted-foreground truncate text-sm"
+              >
                 {repository.fullName}
               </span>
               <Link
                 href={destination.href}
                 // Do not prefetch a whole board page per held row
                 prefetch={false}
-                // Both lines can be truncated; the link covers the whole row,
-                // so its tooltip carries the full text of both
-                title={`${destination.label} · ${repository.fullName}`}
+                title={destination.label}
                 aria-label={destination.accessibleName}
-                onKeyDown={stopActivationKeysFromReachingPanel}
                 // text-foreground + underline: text-primary is below AA contrast
-                // in most themes. after:inset-0 stretches the hit area over
-                // the whole row (44px touch target).
-                className="text-foreground focus-visible:ring-ring inline-flex max-w-full items-center gap-1 self-start rounded-sm text-sm underline underline-offset-4 after:absolute after:inset-0 focus-visible:ring-2 focus-visible:outline-none"
+                // in most themes. On touch screens the hit area is stretched
+                // over the whole row (44px target); with a mouse the link stays
+                // precise so the repository name above it can be selected.
+                className="text-foreground focus-visible:ring-primary inline-flex max-w-full items-center gap-1 self-start rounded-sm text-sm underline underline-offset-4 hover:decoration-2 focus-visible:ring-2 focus-visible:outline-none pointer-coarse:after:absolute pointer-coarse:after:inset-0"
               >
                 <span className="truncate">{destination.label}</span>
                 <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -122,20 +123,5 @@ function toDestination(repository: HeldRepository): {
     href: `/board/${repository.location.boardId}`,
     label: `On ${repository.location.boardName}`,
     accessibleName: `On ${repository.location.boardName}, which holds ${repository.fullName}`,
-  }
-}
-
-/**
- * Keeps Enter / Space pressed on a held-row link from bubbling to the picker
- * panel, whose Enter handler would add the pending selection. The default
- * action (following the link) is left untouched.
- *
- * @param event - Key event from the link.
- */
-function stopActivationKeysFromReachingPanel(
-  event: React.KeyboardEvent<HTMLAnchorElement>,
-): void {
-  if (event.key === 'Enter' || event.key === ' ') {
-    event.stopPropagation()
   }
 }
