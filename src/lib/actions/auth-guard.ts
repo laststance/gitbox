@@ -42,7 +42,7 @@ import { checkRateLimit } from '@/lib/rate-limit/check'
 import type { RateLimitKey } from '@/lib/rate-limit/config'
 import type { Database } from '@/lib/supabase/types'
 
-import type { ActionResult } from './types'
+import { ActionUserError, type ActionResult } from './types'
 
 type AuthedAction<T> = (
   supabase: SupabaseClient<Database>,
@@ -68,6 +68,36 @@ function toErrorMessage(): string {
 }
 
 /**
+ * Converts an error thrown by a guarded action into a failed {@link ActionResult}.
+ *
+ * Called by {@link withAuthResult} and {@link withAuthResultRateLimit} in their catch
+ * blocks so both guards treat expected and unexpected failures identically.
+ *
+ * @param error - Whatever the action threw.
+ * @param sentryContext - Guard label attached to the Sentry event for unexpected errors.
+ * @returns
+ * - {@link ActionUserError}: its own message, not reported to Sentry
+ * - anything else: the generic message, reported to Sentry
+ * @example
+ * toFailedResult(new ActionUserError('a/b is in Maintenance'), 'withAuthResult')
+ * // => { success: false, error: 'a/b is in Maintenance' }
+ * toFailedResult(new Error('relation "x" does not exist'), 'withAuthResult')
+ * // => { success: false, error: 'An unexpected error occurred' }
+ */
+function toFailedResult(
+  error: unknown,
+  sentryContext: string,
+): { success: false; error: string } {
+  // Expected, user-facing failure: show it as written, keep Sentry quiet
+  if (error instanceof ActionUserError) {
+    return { success: false, error: error.message }
+  }
+
+  Sentry.captureException(error, { extra: { context: sentryContext } })
+  return { success: false, error: toErrorMessage() }
+}
+
+/**
  * Wraps a Server Action with authentication (no rate limiting).
  * Returns ActionResult<T> (does not throw).
  *
@@ -83,8 +113,7 @@ export async function withAuthResult<T>(
     const data = await action(ctx.supabase, ctx.claims)
     return { success: true, data }
   } catch (error) {
-    Sentry.captureException(error, { extra: { context: 'withAuthResult' } })
-    return { success: false, error: toErrorMessage() }
+    return toFailedResult(error, 'withAuthResult')
   }
 }
 
@@ -111,10 +140,7 @@ export async function withAuthResultRateLimit<T>(
     const data = await action(ctx.supabase, ctx.claims)
     return { success: true, data }
   } catch (error) {
-    Sentry.captureException(error, {
-      extra: { context: `withAuthResultRateLimit:${rateLimitKey}` },
-    })
-    return { success: false, error: toErrorMessage() }
+    return toFailedResult(error, `withAuthResultRateLimit:${rateLimitKey}`)
   }
 }
 

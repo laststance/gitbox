@@ -15,6 +15,10 @@
 -- - projinfo-1~4       → 00000000-0000-0000-0000-000000000401~404
 -- - maintenance-1~2    → 00000000-0000-0000-0000-000000000501~502
 -- - projinfo-maint-1   → 00000000-0000-0000-0000-000000000601
+-- - other-user         → 00000000-0000-0000-0000-000000000002 (second account)
+-- - other-user-board   → 00000000-0000-0000-0000-000000000110
+-- - other-user-status  → 00000000-0000-0000-0000-000000000221
+-- - other-user-cards   → 00000000-0000-0000-0000-000000000311~312
 --
 -- ============================================================================
 
@@ -427,3 +431,107 @@ VALUES (
   '2024-01-01T00:00:00.000Z'::timestamptz
 )
 ON CONFLICT (user_id) DO NOTHING;
+
+-- ============================================================================
+-- Second Account (Issue #215: one repository, one card per user)
+-- ============================================================================
+-- A different user who owns ONE PUBLIC board holding two repositories the
+-- test user can also see in their GitHub catalog:
+--   testuser/test-repo       - also on the test user's Test Board. Proves the
+--                              unique index is per user: if it were global,
+--                              this seed would fail.
+--   testuser/private-project - on none of the test user's boards. Because the
+--                              board is public, RLS returns this card to the
+--                              test user, so the picker must still offer the
+--                              repository (owner filter in the placement lookup).
+
+INSERT INTO auth.users (
+  id,
+  instance_id,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  created_at,
+  updated_at,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  is_super_admin,
+  role,
+  aud
+)
+VALUES (
+  '00000000-0000-0000-0000-000000000002'::uuid,
+  '00000000-0000-0000-0000-000000000000'::uuid,
+  'other@gitbox.dev',
+  crypt('testpassword123', gen_salt('bf')),
+  NOW(),
+  '2024-01-01T00:00:00.000Z'::timestamptz,
+  '2024-01-01T00:00:00.000Z'::timestamptz,
+  '{"provider":"github","providers":["github"]}'::jsonb,
+  '{
+    "avatar_url": "https://avatars.githubusercontent.com/u/67890?v=4",
+    "email": "other@gitbox.dev",
+    "full_name": "Other User",
+    "user_name": "otheruser"
+  }'::jsonb,
+  false,
+  'authenticated',
+  'authenticated'
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO board (id, user_id, name, subtitle, settings, is_favorite, position, is_public, share_slug, created_at, updated_at)
+VALUES (
+  '00000000-0000-0000-0000-000000000110'::uuid,
+  '00000000-0000-0000-0000-000000000002'::uuid,
+  'Other User Public Board',
+  NULL,
+  '{}'::jsonb,
+  false,
+  0,
+  true,
+  'f6e5d4c3b2a1',
+  '2024-01-03T00:00:00.000Z'::timestamptz,
+  '2024-01-03T00:00:00.000Z'::timestamptz
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO statuslist (id, board_id, name, color, "order", grid_row, grid_col, created_at, updated_at)
+VALUES (
+  '00000000-0000-0000-0000-000000000221'::uuid,
+  '00000000-0000-0000-0000-000000000110'::uuid,
+  'Backlog',
+  '#6B7280',
+  0,
+  0,
+  0,
+  '2024-01-03T00:00:00.000Z'::timestamptz,
+  '2024-01-03T00:00:00.000Z'::timestamptz
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO repocard (id, board_id, status_id, repo_owner, repo_name, "order", meta, created_at, updated_at)
+VALUES
+  (
+    '00000000-0000-0000-0000-000000000311'::uuid,
+    '00000000-0000-0000-0000-000000000110'::uuid,
+    '00000000-0000-0000-0000-000000000221'::uuid,
+    'testuser',
+    'test-repo',
+    0,
+    '{"visibility": "public"}'::jsonb,
+    '2024-01-03T00:00:00.000Z'::timestamptz,
+    '2024-01-03T00:00:00.000Z'::timestamptz
+  ),
+  (
+    '00000000-0000-0000-0000-000000000312'::uuid,
+    '00000000-0000-0000-0000-000000000110'::uuid,
+    '00000000-0000-0000-0000-000000000221'::uuid,
+    'testuser',
+    'private-project',
+    1,
+    '{"visibility": "private"}'::jsonb,
+    '2024-01-03T00:00:00.000Z'::timestamptz,
+    '2024-01-03T00:00:00.000Z'::timestamptz
+  )
+ON CONFLICT (id) DO NOTHING;

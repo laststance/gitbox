@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0.0] - 2026-10-11
+
+### Added
+
+- A repository can now sit on only one of your boards, and never on a board and in Maintenance at once, so its note, links and comment live in one place.
+- The Add Repositories picker lists repositories that are already on another board or in Maintenance under "Already placed elsewhere", each with a link to where it lives, instead of offering them again.
+- When a repository was placed somewhere else after the picker opened (for example in another tab), the picker says which board holds it instead of adding a second card.
+
+### Changed
+
+- Restoring a repository from Maintenance or moving a card to another board now names the board that already holds the repository instead of showing "An unexpected error occurred".
+- The "Remove from Board" confirmation states that the card's note, links and comment are deleted for good and that adding the repository again does not bring them back.
+- An empty picker tells apart "nothing left to add" from "the current search or filters hide everything".
+- Adding more than 100 repositories at once is refused with a message that says so.
+
+### Fixed
+
+- Pressing Z to undo a drag no longer brings back a card that was moved to another board, sent to Maintenance or removed in the meantime, and saves the card order exactly as shown on screen.
+- A card can no longer end up in a column of a different board, where it was shown on no board.
+- Pressing Enter to confirm Japanese (IME) input in the picker's search box no longer adds the selected repositories. Enter on Cancel, on a selected badge's remove button or on a repository row no longer submits the selection either.
+- The picker stays inside short browser windows and scrolls instead of pushing its buttons off screen.
+- A previous error in the "Move to Another Board" dialog disappears when another board or column is chosen.
+
 ## [0.3.3.0] - 2026-10-07
 
 ### Fixed

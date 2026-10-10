@@ -50,6 +50,13 @@ export {
   type ProjectLinkInput,
 } from './project-info'
 
+// RepoCard schemas
+export {
+  MAX_REPOSITORIES_PER_ADD,
+  TOO_MANY_REPOSITORIES_MESSAGE,
+  addRepositoriesRequestSchema,
+} from './repo-card'
+
 // User presets schemas
 export {
   MAX_CUSTOM_PRESETS,

@@ -148,6 +148,11 @@ export interface RepoCardMeta {
   topics?: string[]
   /** Repository description from GitHub. */
   description?: string
+  /**
+   * GitHub repository id as reported by the browser when the card was added.
+   * An untrusted hint: re-verify against the GitHub API before relying on it.
+   */
+  githubId?: number
 }
 
 // ========================================

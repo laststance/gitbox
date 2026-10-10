@@ -11,8 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useRepoPlacements } from '@/hooks/board/useRepoPlacements'
 import { useRepositoryCatalog } from '@/hooks/board/useRepositoryCatalog'
 import { useRepositorySearch } from '@/hooks/board/useRepositorySearch'
+import type { GitHubRepository } from '@/lib/actions/github'
+import type { RepoPlacements } from '@/lib/actions/repo-card-duplicates'
 import {
   addRepositoriesToBoard,
   type CreatedRepoCard,
@@ -25,6 +28,9 @@ import {
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { BoardId, StatusListId } from '@/lib/types/brands'
 import type { RepoIdentifier } from '@/lib/types/domain-primitives'
+import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
+
+import { HeldRepositoryList, type HeldRepository } from './HeldRepositoryList'
 
 interface AddRepositoryComboboxProps {
   boardId: BoardId
@@ -50,8 +56,9 @@ interface AddRepositoryComboboxProps {
    */
   onOpenChange?: (open: boolean) => void
   /**
-   * Lowercase "owner/repo" identifiers of repos in maintenance mode.
-   * These repos will be filtered out from the combobox options.
+   * Lowercase "owner/repo" identifiers of repos in maintenance mode, as loaded
+   * with the page. Only a fallback: the picker fetches fresh placements each
+   * time it opens and uses this list (to hide those repos) when that fetch fails.
    */
   maintenanceRepoIdentifiers?: RepoIdentifier[]
 }
@@ -65,7 +72,9 @@ interface AddRepositoryComboboxProps {
  * - Virtual scrolling for 100+ repositories
  * - Performance optimized (<1s response)
  * - WCAG AA accessibility compliance
- * - Duplicate detection
+ * - One repository per user (Issue #215): repositories already on another
+ *   board or in Maintenance are listed under "Already placed elsewhere" with a
+ *   link to where they live, instead of being offered
  */
 export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   boardId,
@@ -87,6 +96,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
    */
   const handleToggleOpen = (): void => {
     const newOpen = !isOpen
+    clearSkippedMessages()
     if (onOpenChange) {
       onOpenChange(newOpen)
     } else {
@@ -96,9 +106,10 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
   /**
    * Close the combobox
-   * Used for Cancel button and after successful add
+   * Used for Cancel button, Escape and after successful add
    */
   const handleClose = (): void => {
+    clearSkippedMessages()
     if (onOpenChange) {
       onOpenChange(false)
     } else {
@@ -120,6 +131,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     toggleRepoSelection,
     removeSelectedRepo,
     clearSelection,
+    skippedMessages,
+    showSkippedMessages,
+    clearSkippedMessages,
   } = useRepositorySearch()
 
   const {
@@ -129,6 +143,10 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     isLoadingCatalog,
     catalogError,
   } = useRepositoryCatalog(isOpen, statusId)
+
+  // Where the user's repositories already live; fetched on every opening
+  const { placements, isLoadingPlacements, refreshPlacements } =
+    useRepoPlacements(isOpen)
 
   // Filters (organizationFilter persisted to localStorage via Redux)
   const dispatch = useAppDispatch()
@@ -149,17 +167,16 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   const existingRepoIdentifiers = useMemo(
     () =>
       new Set(
-        existingRepoCards.map(
-          (card) =>
-            `${card.repoOwner.toLowerCase()}/${card.repoName.toLowerCase()}`,
+        existingRepoCards.map((card) =>
+          toRepoIdentifier(card.repoOwner, card.repoName),
         ),
       ),
     [existingRepoCards],
   )
 
   /**
-   * Set of "owner/repo" identifiers for repos in maintenance mode.
-   * Used to filter these repos from the combobox options.
+   * Set of "owner/repo" identifiers for repos in maintenance mode, from the
+   * page load. Fallback for when the placement fetch fails.
    * @example Set { "archived/project", "old/repo" }
    */
   const maintenanceIdentifiers = useMemo(
@@ -185,21 +202,12 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   const comboboxRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
-  // Filtered repositories (client-side filtering)
-  const filteredRepositories = useMemo(() => {
+  // Catalog repositories matching the search and both filters. The same
+  // filters apply to the options and to the "Already placed elsewhere" list.
+  const matchingRepositories = useMemo(() => {
     if (!userRepos) return []
 
     let filtered = userRepos
-
-    // Filter out repos already on this board (highest priority filter)
-    filtered = filtered.filter(
-      (repo) => !existingRepoIdentifiers.has(repo.full_name.toLowerCase()),
-    )
-
-    // Filter out repos in maintenance mode
-    filtered = filtered.filter(
-      (repo) => !maintenanceIdentifiers.has(repo.full_name.toLowerCase()),
-    )
 
     // Filter by search query (uses deferred value for non-blocking filtering)
     if (deferredSearchQuery) {
@@ -229,16 +237,34 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     }
 
     return filtered
-  }, [
-    userRepos,
-    deferredSearchQuery,
-    organizationFilter,
-    visibilityFilter,
-    existingRepoIdentifiers,
-    maintenanceIdentifiers,
-  ])
+  }, [userRepos, deferredSearchQuery, organizationFilter, visibilityFilter])
 
-  const isLoading = isLoadingCatalog || isAdding
+  // Split into what can be added and what is already placed elsewhere
+  const { addable: filteredRepositories, held: heldRepositories } = useMemo(
+    () =>
+      classifyRepositories({
+        repositories: matchingRepositories,
+        currentBoardId: boardId,
+        currentBoardIdentifiers: existingRepoIdentifiers,
+        placements,
+        fallbackMaintenanceIdentifiers: maintenanceIdentifiers,
+      }),
+    [
+      matchingRepositories,
+      boardId,
+      existingRepoIdentifiers,
+      placements,
+      maintenanceIdentifiers,
+    ],
+  )
+
+  // Options and held rows render only once both the catalog and the placements
+  // have settled, so a held repository never flashes as selectable
+  const isLoading = isLoadingCatalog || isLoadingPlacements || isAdding
+  // A filter that hides everything is not an empty catalog: the empty states
+  // below say which of the two the user is looking at
+  const hasActiveFilter =
+    organizationFilter !== 'all' || visibilityFilter !== 'all'
   const error = addError || catalogError
 
   // Virtual scrolling (enabled for 20+ repositories)
@@ -271,42 +297,58 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
       if (!result.success) {
         setAddingError(result.error || 'Failed to add repositories')
+        // A lost race means the server knows a placement this picker does
+        // not: refetch so the raced repository moves to the held list
+        void refreshPlacements()
         return
       }
 
-      // Show warning if some repositories were duplicates
-      if (
-        result.data.duplicateWarnings &&
-        result.data.duplicateWarnings.length > 0
-      ) {
-        toast.warning('Some repositories already exist', {
-          description: result.data.duplicateWarnings.join(', '),
-        })
+      const { addedCount, cards, skipped } = result.data
+
+      // Nothing added: not an error. The picker stays open, so refetch to move
+      // the skipped repositories to the "Already placed elsewhere" list, clear
+      // the selection (all of it was skipped) and say where each one lives.
+      if (addedCount === 0) {
+        void refreshPlacements()
+        clearSelection()
+        showSkippedMessages(skipped.map((skippedRepo) => skippedRepo.message))
+        return
       }
 
-      // Show success toast
-      toast.success(
-        `${result.data.addedCount} ${result.data.addedCount === 1 ? 'repository' : 'repositories'} added`,
-        {
-          description:
-            result.data.addedCount === 1 && selectedRepos[0]
-              ? `"${selectedRepos[0].full_name}" has been added to the board.`
-              : `${result.data.addedCount} repositories have been added to the board.`,
-        },
-      )
+      if (skipped.length > 0) {
+        // Some added, some skipped: one toast, one sentence per line
+        toast.warning(`${addedCount} added, ${skipped.length} skipped`, {
+          description: (
+            <>
+              {skipped.map((skippedRepo) => (
+                <span key={skippedRepo.fullName} className="block">
+                  {skippedRepo.message}
+                </span>
+              ))}
+            </>
+          ),
+        })
+      } else {
+        // All added. Text comes from the created cards, not from the selection
+        const firstCard = cards[0]
+        toast.success(
+          `${addedCount} ${addedCount === 1 ? 'repository' : 'repositories'} added`,
+          {
+            description:
+              addedCount === 1 && firstCard
+                ? `"${firstCard.repoOwner}/${firstCard.repoName}" has been added to the board.`
+                : `${addedCount} repositories have been added to the board.`,
+          },
+        )
+      }
 
       // Success: clear selection and close combobox
       clearSelection()
       updateSearch('')
-      // Close combobox (supports both controlled and uncontrolled modes)
-      if (onOpenChange) {
-        onOpenChange(false)
-      } else {
-        setInternalIsOpen(false)
-      }
+      handleClose()
 
       // Pass created cards for optimistic UI update (no page reload needed)
-      onRepositoriesAdded(result.data.cards || [])
+      onRepositoriesAdded(cards)
     } catch (err) {
       setAddingError(
         err instanceof Error ? err.message : 'Error adding repositories',
@@ -318,15 +360,23 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
   // Keyboard navigation (WCAG AA)
   const handleKeyDown = (e: React.KeyboardEvent): void => {
+    // Enter / Escape that confirm or cancel an IME conversion (e.g. Japanese
+    // input) belong to the conversion. 229 covers Safari, where the confirming
+    // keydown arrives after compositionend.
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return
+
     if (e.key === 'Escape') {
-      // Close combobox (supports both controlled and uncontrolled modes)
-      if (onOpenChange) {
-        onOpenChange(false)
-      } else {
-        setInternalIsOpen(false)
-      }
+      handleClose()
       searchInputRef.current?.blur()
-    } else if (e.key === 'Enter' && selectedRepos.length > 0) {
+    } else if (
+      e.key === 'Enter' &&
+      // Only Enter typed in the search box submits. Enter on Cancel, on a
+      // badge's remove button or on an option row keeps its own meaning.
+      e.target === searchInputRef.current &&
+      selectedRepos.length > 0 &&
+      // Same gate as the Add button: not while loading or while an add is in flight
+      !isLoading
+    ) {
       handleAddRepositories()
     }
   }
@@ -360,7 +410,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       {/* Combobox panel */}
       {isOpen && (
         <div
-          className="border-border bg-background absolute top-full right-0 z-50 mt-2 w-120 rounded-lg border p-4 shadow-xl"
+          // Capped to the viewport: with both lists full the panel is taller
+          // than a small laptop screen, and the buttons must stay reachable
+          className="border-border bg-background absolute top-full right-0 z-50 mt-2 max-h-[calc(100dvh-6rem)] w-120 overflow-y-auto rounded-lg border p-4 shadow-xl"
           role="combobox"
           aria-expanded={isOpen}
           aria-controls="repository-listbox"
@@ -495,6 +547,23 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             </div>
           )}
 
+          {/* Nothing was added because every selected repository is already
+              placed: neutral notice, not an error */}
+          {skippedMessages.length > 0 && (
+            <div
+              role="note"
+              aria-live="polite"
+              aria-label="Repositories that were not added"
+              className="border-border bg-muted text-foreground mt-3 rounded-md border p-3 text-sm"
+            >
+              <ul className="space-y-1">
+                {skippedMessages.map((message) => (
+                  <li key={message}>{message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* Repository list with virtual scrolling support */}
           {!isLoading && filteredRepositories.length > 0 && (
             <div
@@ -624,14 +693,42 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             </div>
           )}
 
-          {/* No results */}
+          {/* No results: only when neither list has a match for the query */}
           {!isLoading &&
             deferredSearchQuery &&
-            filteredRepositories.length === 0 && (
+            filteredRepositories.length === 0 &&
+            heldRepositories.length === 0 && (
               <div className="text-muted-foreground py-8 text-center text-sm">
                 No repositories found matching &quot;{deferredSearchQuery}&quot;
               </div>
             )}
+
+          {/* Nothing addable, but some repositories are placed elsewhere */}
+          {!isLoading &&
+            filteredRepositories.length === 0 &&
+            heldRepositories.length > 0 && (
+              <p className="text-muted-foreground mt-3 text-sm">
+                {deferredSearchQuery || hasActiveFilter
+                  ? 'Nothing to add matches the search or filters. The ones below are already placed.'
+                  : 'No repositories to add. The ones below are already placed.'}
+              </p>
+            )}
+
+          {/* Nothing addable and nothing held, without a search */}
+          {!isLoading &&
+            !catalogError &&
+            !deferredSearchQuery &&
+            filteredRepositories.length === 0 &&
+            heldRepositories.length === 0 && (
+              <div className="text-muted-foreground py-8 text-center text-sm">
+                {hasActiveFilter
+                  ? 'No repositories match the current filters.'
+                  : 'No repositories left to add.'}
+              </div>
+            )}
+
+          {/* Repositories already on another board or in Maintenance */}
+          {!isLoading && <HeldRepositoryList repositories={heldRepositories} />}
 
           {/* Add button */}
           <div className="mt-4 flex justify-end gap-2">
@@ -661,3 +758,110 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     </div>
   )
 })
+
+/**
+ * Splits catalog repositories into those the user can add to the current board
+ * and those already placed elsewhere.
+ *
+ * Called by {@link AddRepositoryCombobox} on every filter or placement change.
+ * - Hidden (in neither list): on the current board, according to the live
+ *   Redux cards or to the fetched placements.
+ * - Held: on another board of the user, or in Maintenance.
+ * - Addable: everything else.
+ *
+ * When `placements` is `null` (the fetch failed) the picker degrades to the
+ * old behavior: maintenance repositories from the page load are hidden and
+ * nothing is listed as held. The server still rejects an already placed repository.
+ *
+ * @param params.repositories - Catalog repositories after search and filters.
+ * @param params.currentBoardId - Board the picker adds to.
+ * @param params.currentBoardIdentifiers - Lowercase `owner/name` of cards on the current board (Redux).
+ * @param params.placements - Fetched placements, or `null` when unknown.
+ * @param params.fallbackMaintenanceIdentifiers - Maintenance identifiers from the page load.
+ * @returns `{ addable, held }`, both in catalog order.
+ * @example
+ * classifyRepositories({
+ *   repositories: [repoA, repoB],
+ *   currentBoardId: 'b1',
+ *   currentBoardIdentifiers: new Set(),
+ *   placements: { boards: [{ identifier: 'o/b', boardId: 'b2', boardName: 'Work' }], maintenance: [] },
+ *   fallbackMaintenanceIdentifiers: new Set(),
+ * })
+ * // => { addable: [repoA], held: [{ id: repoB.id, fullName: 'o/b', location: { kind: 'board', boardId: 'b2', boardName: 'Work' } }] }
+ */
+function classifyRepositories(params: {
+  repositories: GitHubRepository[]
+  currentBoardId: string
+  currentBoardIdentifiers: Set<RepoIdentifier>
+  placements: RepoPlacements | null
+  fallbackMaintenanceIdentifiers: Set<RepoIdentifier>
+}): { addable: GitHubRepository[]; held: HeldRepository[] } {
+  const {
+    repositories,
+    currentBoardId,
+    currentBoardIdentifiers,
+    placements,
+    fallbackMaintenanceIdentifiers,
+  } = params
+
+  // First card wins if legacy data holds the same repository on two boards
+  const boardPlacementByIdentifier = new Map<
+    RepoIdentifier,
+    RepoPlacements['boards'][number]
+  >()
+  for (const placement of placements?.boards ?? []) {
+    if (!boardPlacementByIdentifier.has(placement.identifier)) {
+      boardPlacementByIdentifier.set(placement.identifier, placement)
+    }
+  }
+  const maintenanceIdentifiers = new Set(placements?.maintenance ?? [])
+
+  const addable: GitHubRepository[] = []
+  const held: HeldRepository[] = []
+
+  for (const repository of repositories) {
+    // GitHub's own `owner/name`, lowercased: the same string toRepoIdentifier
+    // builds, and it survives a repository with missing owner data (GITBOX-1)
+    const identifier = repository.full_name.toLowerCase()
+    const boardPlacement = boardPlacementByIdentifier.get(identifier)
+
+    // Already on this board: hidden, as before
+    if (
+      currentBoardIdentifiers.has(identifier) ||
+      boardPlacement?.boardId === currentBoardId
+    ) {
+      continue
+    }
+
+    if (boardPlacement) {
+      held.push({
+        id: repository.id,
+        fullName: repository.full_name,
+        location: {
+          kind: 'board',
+          boardId: boardPlacement.boardId,
+          boardName: boardPlacement.boardName,
+        },
+      })
+      continue
+    }
+
+    if (maintenanceIdentifiers.has(identifier)) {
+      held.push({
+        id: repository.id,
+        fullName: repository.full_name,
+        location: { kind: 'maintenance' },
+      })
+      continue
+    }
+
+    // Placements unknown: keep hiding maintenance repositories from the page load
+    if (!placements && fallbackMaintenanceIdentifiers.has(identifier)) {
+      continue
+    }
+
+    addable.push(repository)
+  }
+
+  return { addable, held }
+}

@@ -166,10 +166,18 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
     return statusLists[0]?.id ?? ''
   }, [selectedStatusId, statusLists])
 
-  // Handle board selection change
+  // Handle board selection change. A previous move error (e.g. the target
+  // board already holds this repository) no longer applies to the new target.
   const handleBoardChange = useCallback((boardId: string) => {
     setSelectedBoardId(boardId)
     setSelectedStatusId('')
+    setError(null)
+  }, [])
+
+  // Handle column selection change; clears a stale move error like above
+  const handleStatusChange = useCallback((statusId: string) => {
+    setSelectedStatusId(statusId)
+    setError(null)
   }, [])
 
   // Handle move action
@@ -310,7 +318,7 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
                 </Label>
                 <Select
                   value={effectiveStatusId}
-                  onValueChange={setSelectedStatusId}
+                  onValueChange={handleStatusChange}
                   disabled={statusLists.length === 0}
                 >
                   <SelectTrigger id="status-select" className="w-full">

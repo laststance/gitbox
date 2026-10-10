@@ -35,7 +35,7 @@ interface UseRepositorySearchReturn {
   clearSelection: () => void
   /** Whether an add operation is in progress */
   isAdding: boolean
-  /** Mark the start of an add operation (sets isAdding=true, clears error) */
+  /** Mark the start of an add operation (sets isAdding=true, clears error and skipped notice) */
   startAdding: () => void
   /** Mark the end of an add operation (sets isAdding=false) */
   finishAdding: () => void
@@ -45,6 +45,16 @@ interface UseRepositorySearchReturn {
   setAddingError: (error: string) => void
   /** Clear the add operation error */
   clearError: () => void
+  /**
+   * Sentences explaining why the last add attempt added nothing (every selected
+   * repository was already placed). Empty when there is nothing to explain.
+   * @example ['laststance/gitbox is already on board "Work"']
+   */
+  skippedMessages: string[]
+  /** Show the sentences from an add attempt that added nothing */
+  showSkippedMessages: (messages: string[]) => void
+  /** Hide the skipped-repositories notice */
+  clearSkippedMessages: () => void
 }
 
 /**
@@ -64,6 +74,7 @@ export function useRepositorySearch(): UseRepositorySearchReturn {
   const [selectedRepos, setSelectedRepos] = useState<GitHubRepository[]>([])
   const [isAdding, setIsAdding] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
+  const [skippedMessages, setSkippedMessages] = useState<string[]>([])
 
   const updateSearch = useCallback((query: string) => {
     setSearchQuery(query)
@@ -89,6 +100,7 @@ export function useRepositorySearch(): UseRepositorySearchReturn {
   const startAdding = useCallback(() => {
     setIsAdding(true)
     setAddError(null)
+    setSkippedMessages([])
   }, [])
 
   const finishAdding = useCallback(() => {
@@ -101,6 +113,14 @@ export function useRepositorySearch(): UseRepositorySearchReturn {
 
   const clearError = useCallback(() => {
     setAddError(null)
+  }, [])
+
+  const showSkippedMessages = useCallback((messages: string[]) => {
+    setSkippedMessages(messages)
+  }, [])
+
+  const clearSkippedMessages = useCallback(() => {
+    setSkippedMessages([])
   }, [])
 
   return {
@@ -117,5 +137,8 @@ export function useRepositorySearch(): UseRepositorySearchReturn {
     addError,
     setAddingError,
     clearError,
+    skippedMessages,
+    showSkippedMessages,
+    clearSkippedMessages,
   }
 }

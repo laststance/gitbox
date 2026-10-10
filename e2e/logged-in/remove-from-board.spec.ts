@@ -80,9 +80,16 @@ test.describe('Remove from Board Feature', () => {
     const title = alertDialog.getByText('Remove Repository from Board?')
     await expect(title).toBeVisible()
 
-    // Verify dialog description mentions the consequences
-    const description = alertDialog.getByText(/will not be deleted from GitHub/)
-    await expect(description).toBeVisible()
+    // Verify dialog description states what is lost and what is not:
+    // removing a card deletes its note, links and comment for good (Issue #215)
+    await expect(
+      alertDialog.getByText(
+        /permanently deletes its note, links and comment\. Adding the repository again will not restore them\./,
+      ),
+    ).toBeVisible()
+    await expect(
+      alertDialog.getByText(/The repository on GitHub is not affected\./),
+    ).toBeVisible()
 
     // Verify Cancel button exists
     const cancelButton = alertDialog.getByRole('button', { name: /cancel/i })

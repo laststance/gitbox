@@ -29,13 +29,54 @@ const LOCAL_SUPABASE_URL =
 const LOCAL_SUPABASE_SERVICE_ROLE_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
 
+// Local Supabase anon key (from `supabase status`); only identifies the project.
+const LOCAL_SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+
+// The JWT the app itself uses in E2E test mode (see `src/lib/supabase/server.ts`):
+// role=authenticated, sub=TEST_USER_ID. Requests carrying it are subject to RLS.
+const E2E_TEST_USER_JWT =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJzdWIiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxOTgzODEyOTk2fQ.iUckNAR3RMWPmn8smgOZr0NeDUzRLR0LOx_5V1ddQVs'
+
 /**
- * Create a Supabase client for direct database queries.
- * Uses service_role key to bypass RLS for setup/teardown operations.
+ * Create a Supabase client that acts as the E2E test user, with RLS applied.
+ *
+ * Use this instead of the service-role helpers when a test must prove what an
+ * ordinary signed-in user is (not) allowed to do, e.g. that an insert into
+ * another user's board is rejected. The service role bypasses RLS and cannot
+ * show that.
+ *
+ * @returns Supabase client authenticated as `TEST_USER_ID` (role `authenticated`)
+ *
+ * @example
+ * const { error } = await createTestUserSupabaseClient()
+ *   .from('repocard')
+ *   .insert({ board_id: OTHER_USER.boardId, ... })
+ * expect(error?.code).toBe('42501')
+ */
+export function createTestUserSupabaseClient(): SupabaseClient {
+  return createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${E2E_TEST_USER_JWT}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+}
+
+/**
+ * Create a Supabase client with the service role (bypasses RLS).
+ *
+ * Used by the setup/teardown helpers below, and exported for tests that assert
+ * on raw database errors (e.g. the `23505` of a unique violation), which the
+ * throwing query helpers would hide.
  *
  * @returns Supabase client configured for local instance with admin access
+ *
+ * @example
+ * const { error } = await createServiceRoleSupabaseClient()
+ *   .from('repocard')
+ *   .insert({ board_id: BOARD_IDS.workProjects, ... })
+ * expect(error?.code).toBe('23505')
  */
-function createLocalSupabaseClient(): SupabaseClient {
+export function createServiceRoleSupabaseClient(): SupabaseClient {
   return createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_SERVICE_ROLE_KEY)
 }
 
@@ -57,7 +98,7 @@ export async function querySupabase<T>(
   table: string,
   filters?: Record<string, string | number | boolean>,
 ): Promise<T[]> {
-  const supabase = createLocalSupabaseClient()
+  const supabase = createServiceRoleSupabaseClient()
 
   let query = supabase.from(table).select('*')
 
@@ -91,7 +132,7 @@ export async function querySingle<T>(
   table: string,
   filters: Record<string, string | number | boolean>,
 ): Promise<T | null> {
-  const supabase = createLocalSupabaseClient()
+  const supabase = createServiceRoleSupabaseClient()
 
   let query = supabase.from(table).select('*')
 
@@ -161,6 +202,27 @@ export const MAINTENANCE_IDS = {
 /** Public board share slug (matches seed.sql) */
 export const PUBLIC_BOARD_SLUG = 'a1b2c3d4e5f6'
 
+/**
+ * A second seeded account (see "Second Account" in `supabase/seed.sql`).
+ * It owns one PUBLIC board holding `testuser/test-repo` and
+ * `testuser/private-project`, to prove that one user's cards never restrict
+ * another user (Issue #215).
+ */
+export const OTHER_USER = {
+  id: '00000000-0000-0000-0000-000000000002',
+  boardId: '00000000-0000-0000-0000-000000000110',
+  statusId: '00000000-0000-0000-0000-000000000221',
+  testRepoCardId: '00000000-0000-0000-0000-000000000311',
+  privateProjectCardId: '00000000-0000-0000-0000-000000000312',
+} as const
+
+/** Column ids of the Work Projects board. */
+export const WORK_PROJECTS_STATUS_IDS = {
+  backlog: '00000000-0000-0000-0000-000000000211',
+  active: '00000000-0000-0000-0000-000000000212',
+  complete: '00000000-0000-0000-0000-000000000213',
+} as const
+
 // ============================================================================
 // State Reset Helpers (for test isolation with real DB)
 // ============================================================================
@@ -175,7 +237,7 @@ export const PUBLIC_BOARD_SLUG = 'a1b2c3d4e5f6'
  * })
  */
 export async function resetStatusListPositions(): Promise<void> {
-  const supabase = createLocalSupabaseClient()
+  const supabase = createServiceRoleSupabaseClient()
 
   const seedPositions = [
     { id: STATUS_IDS.pending, order: 0, grid_row: 0, grid_col: 0 },
@@ -217,7 +279,7 @@ export async function resetStatusListPositions(): Promise<void> {
  * })
  */
 export async function resetProjectInfoComments(): Promise<void> {
-  const supabase = createLocalSupabaseClient()
+  const supabase = createServiceRoleSupabaseClient()
 
   const seedComments = [
     {
@@ -277,7 +339,7 @@ export async function resetProjectInfoComments(): Promise<void> {
  * })
  */
 export async function resetProjectInfoNotes(): Promise<void> {
-  const supabase = createLocalSupabaseClient()
+  const supabase = createServiceRoleSupabaseClient()
 
   const seedNotes = [
     { id: PROJECT_INFO_IDS.projinfo1, note: 'Important project notes here' },
@@ -316,7 +378,7 @@ export async function resetProjectInfoNotes(): Promise<void> {
  * })
  */
 export async function resetCardPositions(): Promise<void> {
-  const supabase = createLocalSupabaseClient()
+  const supabase = createServiceRoleSupabaseClient()
 
   const seedPositions = [
     { id: CARD_IDS.card1, status_id: STATUS_IDS.planning, order: 0 },
@@ -354,13 +416,29 @@ export async function resetCardPositions(): Promise<void> {
  * })
  */
 export async function resetRepoCards(): Promise<void> {
-  const supabase = createLocalSupabaseClient()
+  const supabase = createServiceRoleSupabaseClient()
 
-  // First, delete ALL cards from testBoard (including any added by previous tests)
+  // First, delete ALL cards on EVERY board of the test user (including any
+  // added or moved by previous tests). A repository may sit on only one board
+  // per user, so a leftover card on another board would make the re-insert of
+  // the seed cards below fail with a unique violation.
+  const { data: testUserBoards, error: boardsError } = await supabase
+    .from('board')
+    .select('id')
+    .eq('user_id', TEST_USER_ID)
+  if (boardsError) {
+    throw new Error(
+      `resetRepoCards: board lookup failed: ${boardsError.message}`,
+    )
+  }
+
   const { error: deleteError } = await supabase
     .from('repocard')
     .delete()
-    .eq('board_id', BOARD_IDS.testBoard)
+    .in(
+      'board_id',
+      (testUserBoards ?? []).map((board) => board.id),
+    )
   if (deleteError) {
     throw new Error(`resetRepoCards: delete failed: ${deleteError.message}`)
   }
@@ -521,7 +599,7 @@ export async function resetRepoCards(): Promise<void> {
  * })
  */
 export async function resetBoardNames(): Promise<void> {
-  const supabase = createLocalSupabaseClient()
+  const supabase = createServiceRoleSupabaseClient()
 
   const seedNames = [
     { id: BOARD_IDS.testBoard, name: 'Test Board' },
@@ -558,7 +636,7 @@ export async function resetBoardNames(): Promise<void> {
  * })
  */
 export async function resetBoardSubtitles(): Promise<void> {
-  const supabase = createLocalSupabaseClient()
+  const supabase = createServiceRoleSupabaseClient()
 
   const seedSubtitles: { id: string; subtitle: string | null }[] = [
     { id: BOARD_IDS.testBoard, subtitle: 'Main testing board for E2E' },
@@ -595,7 +673,7 @@ export async function resetBoardSubtitles(): Promise<void> {
  * })
  */
 export async function resetBoardSettings(): Promise<void> {
-  const supabase = createLocalSupabaseClient()
+  const supabase = createServiceRoleSupabaseClient()
 
   const boardIds = [BOARD_IDS.testBoard, BOARD_IDS.workProjects]
 
@@ -629,7 +707,7 @@ export async function resetBoardSettings(): Promise<void> {
  * })
  */
 export async function resetStatusListNames(): Promise<void> {
-  const supabase = createLocalSupabaseClient()
+  const supabase = createServiceRoleSupabaseClient()
 
   const seedNames = [
     { id: STATUS_IDS.pending, name: 'Pending' },
@@ -673,7 +751,7 @@ export async function resetStatusListNames(): Promise<void> {
  * })
  */
 export async function resetBoardPositions(): Promise<void> {
-  const supabase = createLocalSupabaseClient()
+  const supabase = createServiceRoleSupabaseClient()
 
   const seedPositions = [
     { id: BOARD_IDS.workProjects, position: 0 },
@@ -710,7 +788,7 @@ export async function resetBoardPositions(): Promise<void> {
  * })
  */
 export async function resetProjectInfoLinks(): Promise<void> {
-  const supabase = createLocalSupabaseClient()
+  const supabase = createServiceRoleSupabaseClient()
 
   // Seed data: projinfo3 (card-3: laststance/create-react-app-vite) has empty links
   const seedLinks = [{ id: PROJECT_INFO_IDS.projinfo3, links: [] as unknown[] }]
@@ -745,7 +823,7 @@ export async function resetProjectInfoLinks(): Promise<void> {
  * })
  */
 export async function resetUserSettings(): Promise<void> {
-  const supabase = createLocalSupabaseClient()
+  const supabase = createServiceRoleSupabaseClient()
 
   // Upsert to handle case where row doesn't exist yet
   const { error } = await supabase.from('user_settings').upsert(
@@ -773,7 +851,7 @@ export async function resetUserSettings(): Promise<void> {
  * })
  */
 export async function resetBoardPublicState(): Promise<void> {
-  const supabase = createLocalSupabaseClient()
+  const supabase = createServiceRoleSupabaseClient()
 
   const { data, error } = await supabase
     .from('board')
@@ -801,7 +879,7 @@ export async function resetBoardPublicState(): Promise<void> {
  * })
  */
 export async function resetMaintenanceItems(): Promise<void> {
-  const supabase = createLocalSupabaseClient()
+  const supabase = createServiceRoleSupabaseClient()
 
   const seedItems = [
     {
