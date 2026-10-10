@@ -7,6 +7,9 @@
  * If this regresses, either duplicate-repository messages turn back into
  * "An unexpected error occurred", or internal DB error strings leak to the browser.
  *
+ * Also locks in who never gets as far as the action: a signed-out caller and a
+ * caller over the rate limit are refused with their own message.
+ *
  * @see src/lib/actions/auth-guard.ts
  */
 
@@ -18,6 +21,8 @@ import {
   withAuthResultRateLimit,
 } from '@/lib/actions/auth-guard'
 import { ActionUserError } from '@/lib/actions/types'
+import { getCachedClaims } from '@/lib/auth/get-cached-claims'
+import { checkRateLimit } from '@/lib/rate-limit/check'
 
 vi.mock('@sentry/nextjs', () => ({
   captureException: vi.fn(),
@@ -115,5 +120,67 @@ describe('auth guard error pass-through', () => {
     expect(Sentry.captureException).toHaveBeenCalledWith(databaseError, {
       extra: { context: 'withAuthResultRateLimit:boardCrud' },
     })
+  })
+})
+
+describe('auth guard refusals', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  test('a signed-out caller cannot run a read action', async () => {
+    // Arrange
+    vi.mocked(getCachedClaims).mockResolvedValueOnce(null)
+    const readAction = vi.fn(async () => 'board data')
+
+    // Act
+    const result = await withAuthResult(readAction)
+
+    // Assert
+    expect(result).toEqual({
+      success: false,
+      error: 'Authentication required',
+    })
+    expect(readAction).not.toHaveBeenCalled()
+  })
+
+  test('a signed-out caller cannot run a mutation', async () => {
+    // Arrange
+    vi.mocked(getCachedClaims).mockResolvedValueOnce(null)
+    const mutation = vi.fn(async () => 'card deleted')
+
+    // Act
+    const result = await withAuthResultRateLimit('boardCrud', mutation)
+
+    // Assert
+    expect(result).toEqual({
+      success: false,
+      error: 'Authentication required',
+    })
+    expect(mutation).not.toHaveBeenCalled()
+  })
+
+  test('a caller over the rate limit is told to try again later and the mutation does not run', async () => {
+    // Arrange
+    vi.mocked(checkRateLimit).mockReturnValueOnce({
+      allowed: false,
+      error: 'Too many board operation requests. Please try again later.',
+    })
+    const mutation = vi.fn(async () => 'card deleted')
+
+    // Act
+    const result = await withAuthResultRateLimit('boardCrud', mutation)
+
+    // Assert
+    expect(result).toEqual({
+      success: false,
+      error: 'Too many board operation requests. Please try again later.',
+    })
+    expect(mutation).not.toHaveBeenCalled()
+    expect(checkRateLimit).toHaveBeenCalledWith(
+      'boardCrud',
+      '00000000-0000-0000-0000-000000000001',
+    )
+    expect(Sentry.captureException).not.toHaveBeenCalled()
   })
 })

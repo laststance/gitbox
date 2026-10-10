@@ -171,7 +171,7 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 **What:** Make the picker panel fit narrow screens.
 
-**Why:** The panel is a fixed `w-120`, which overflows small viewports; the held list adds height.
+**Why:** The panel is a fixed `w-120`, which overflows narrow viewports. Its height is capped to the viewport since #215 (the panel scrolls), but the Cancel / Add row is not pinned.
 
 **Context:** Pre-existing. `src/components/Board/AddRepositoryCombobox.tsx`.
 
@@ -237,6 +237,78 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 **Effort:** S
 **Priority:** P4
+**Depends on:** None
+
+### Validate the display metadata of an add request
+
+**What:** Extend `addRepositoriesRequestSchema` to the fields stored in `repocard.meta` (description, language, topics, stars, visibility, updated date) and build the insert from the parsed data.
+
+**Why:** Only `id`, `name` and `owner.login` are checked. A hand-crafted request can store a non-string description or an oversized payload, which breaks the render of the caller's own board and its public page.
+
+**Context:** Found by the pre-landing security review of #215; the gap is older than that change and affects only the caller's own boards. Keep the schema as loose as the real GitHub payload (`visibility` may be `internal`, `description` and `language` may be null, `topics` may be missing), or legitimate repositories stop being addable. A database CHECK is needed if direct PostgREST inserts must obey it too.
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** None
+
+### Filter the board page by owner
+
+**What:** Add the owner filter to `getBoardBundle` (`src/lib/actions/board-data.ts`) or strip `user_id` before passing the board to the client.
+
+**Why:** The bundle relies on RLS alone, and RLS also returns other users' public boards. A signed-in user who opens `/board/<id>` of someone else's public board gets the owner UI (every write is still refused by RLS) and the raw board row, including `board.user_id`.
+
+**Context:** Found by the red team pass of #215; older than that change. The board id is discoverable from the public page. While there, select explicit `repocard` columns in `public-board.ts` and in the bundle embed so the new `repocard.user_id` column cannot leak through a future mapper change.
+
+**Effort:** S
+**Priority:** P1
+**Depends on:** None
+
+### Load placements without waiting behind the catalog action
+
+**What:** Fetch the picker's placements through a GET route handler (or return them with the catalog), and keep the cached options on screen, non-interactive, while only placements are pending.
+
+**Why:** Server Actions run one at a time on the client, so on first open the placement request waits for the catalog request. Every reopen also shows the spinner and resizes the panel, where it used to be instant.
+
+**Context:** `src/hooks/board/useRepoPlacements.ts` resets on close on purpose: a held repository must never flash as selectable. A stale-while-revalidate variant has to keep that guarantee (options disabled until fresh placements arrive). Related: the "Separate Adding state" item above.
+
+**Effort:** M
+**Priority:** P2
+**Depends on:** None
+
+### Run the independent queries of add and restore in parallel
+
+**What:** Use `Promise.all` for the board check, the placement lookup and the max-order query in `addRepositoriesToBoard`, and for the sequential lookups in `restoreToBoard`.
+
+**Why:** Each action makes three to five round trips in sequence; most do not depend on each other.
+
+**Context:** `src/lib/actions/repo-cards.ts`. The unit tests stub the queries in call order, so they need updating together. Once the production migration is applied and no legacy duplicate remains, the target-board pre-check in `moveCardToBoard` can go as well (the unique index covers it).
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** Production migration of #215 applied
+
+### Tie `repocard.user_id` and `repocard.status_id` to the board declaratively
+
+**What:** Replace the two triggers with composite foreign keys: `repocard (board_id, user_id) -> board (id, user_id) ON UPDATE CASCADE` and `repocard (status_id, board_id) -> statuslist (id, board_id)`.
+
+**Why:** The triggers keep both invariants only from the `repocard` side. If a board ever changes owner, its cards keep the old `user_id` (and the direct cascade from `auth.users` would then delete them with the old owner's account).
+
+**Context:** Not reachable today: boards cannot change owner. Needs `UNIQUE (id, user_id)` on `board`, `UNIQUE (id, board_id)` on `statuslist`, and an audit that no stranded card exists (`s.board_id <> r.board_id`) before the constraint is added.
+
+**Effort:** M
+**Priority:** P3
+**Depends on:** None
+
+### Polish left from the #215 design review
+
+**What:** (1) Use one wording for a card's data in the Remove and Move dialogs ("its note, links and comment" vs "Notes, links, and comments"). (2) Give the permanent-loss sentence of the Remove dialog visual emphasis. (3) Add a visible heading to the "not added" notice. (4) Soften "Reload the page and try again" in the add race message, since the picker now refreshes itself. (5) Drop selected repositories that are no longer addable when the picker reopens.
+
+**Why:** Small consistency and clarity gaps; none changes behavior.
+
+**Context:** `src/components/Board/OverflowMenu.tsx`, `src/components/Modals/MoveToAnotherBoardDialog.tsx`, `src/components/Board/AddRepositoryCombobox.tsx`, `ADD_RACE_MESSAGE` in `src/lib/actions/repo-card-duplicates.ts`. The copy is asserted in unit and E2E tests.
+
+**Effort:** S
+**Priority:** P3
 **Depends on:** None
 
 ## Completed

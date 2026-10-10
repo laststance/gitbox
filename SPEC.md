@@ -746,7 +746,7 @@ statuslist {
 repocard {
   id uuid PRIMARY KEY,
   board_id uuid REFERENCES board,
-  status_id uuid REFERENCES statuslist,
+  status_id uuid REFERENCES statuslist,  -- must be a column of board_id (trigger check_repocard_status_board)
   repo_name text NOT NULL,
   repo_owner text NOT NULL,
   order integer,

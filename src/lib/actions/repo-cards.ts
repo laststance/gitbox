@@ -27,7 +27,11 @@ import {
   type StatusListId,
 } from '@/lib/types/brands'
 import type { ISOTimestamp, Visibility } from '@/lib/types/domain-primitives'
-import { addRepositoriesRequestSchema } from '@/lib/validations/repo-card'
+import {
+  addRepositoriesRequestSchema,
+  MAX_REPOSITORIES_PER_ADD,
+  TOO_MANY_REPOSITORIES_MESSAGE,
+} from '@/lib/validations/repo-card'
 
 import {
   ADD_RACE_MESSAGE,
@@ -106,6 +110,7 @@ export interface CreatedRepoCard {
  * - Some or all added: `{ success: true, data: { addedCount, cards, skipped } }`
  * - Every repository already placed: `{ success: true, data: { addedCount: 0, cards: [], skipped } }`
  * - Lost a race with another tab: `{ success: false, error: ADD_RACE_MESSAGE }` (nothing added)
+ * - More than `MAX_REPOSITORIES_PER_ADD` repositories: `{ success: false, error: TOO_MANY_REPOSITORIES_MESSAGE }`
  * - Anything else: `{ success: false, error: 'An unexpected error occurred' }`
  * @example
  * const result = await addRepositoriesToBoard(boardId, statusId, repos)
@@ -128,8 +133,18 @@ export async function addRepositoriesToBoard(
   return withAuthResultRateLimit(
     'addReposToBoard',
     async (supabase, claims) => {
-      // Reject malformed payloads before any query: owner and name are echoed
-      // back in messages and stored on the card
+      // The picker has no selection cap, so an oversized batch is a user
+      // mistake worth explaining rather than an unexpected error
+      if (
+        Array.isArray(repositories) &&
+        repositories.length > MAX_REPOSITORIES_PER_ADD
+      ) {
+        throw new ActionUserError(TOO_MANY_REPOSITORIES_MESSAGE)
+      }
+
+      // Reject a malformed identity (id, owner, name) before any query: owner
+      // and name are echoed back in messages and stored on the card. Display
+      // metadata (stars, topics, ...) is not validated here.
       if (!addRepositoriesRequestSchema.safeParse(repositories).success) {
         throw new Error('Invalid repositories payload')
       }
@@ -278,7 +293,7 @@ export async function deleteRepoCard(
  * @param boardId - Target board ID
  * @param statusId - Target status list ID (column)
  * @returns
- * - On success: `{ success: true, cardId: string }`
+ * - On success: `{ success: true, data: { cardId: string } }`
  * - On auth error: `{ success: false, error: 'Authentication required' }`
  * - On duplicate: `{ success: false, error: 'owner/name is already on board "<board name>"' }`
  *   (the repository sits on any of the user's boards, Issue #215)
@@ -288,7 +303,7 @@ export async function deleteRepoCard(
  * @example
  * const result = await restoreToBoard('maint-uuid-123', 'board-uuid-456', 'status-uuid-789')
  * if (result.success) {
- *   console.log('Restored to board, new card:', result.cardId)
+ *   console.log('Restored to board, new card:', result.data.cardId)
  * } else {
  *   console.error('Failed:', result.error)
  * }
@@ -478,11 +493,12 @@ export async function getUserBoardsWithStatusLists(): Promise<
  * @param targetStatusId - Destination status column ID
  * @returns
  * - On success: `{ success: true }`
+ * - On a malformed id: `{ success: false, error: 'Invalid ID format' }`
  * - On auth error: `{ success: false, error: 'Authentication required' }`
- * - On not found: `{ success: false, error: 'Card not found' }`
- * - On ownership error: `{ success: false, error: 'Unauthorized' }`
  * - On duplicate: `{ success: false, error: 'Repository already exists in target board' }`
- * - On invalid status: `{ success: false, error: 'Status column does not belong to target board' }`
+ * - On a lost race: `{ success: false, error: 'owner/name was just placed on a board. Close this dialog and try again.' }`
+ * - On anything else (card or board not found, not the owner, column of
+ *   another board): `{ success: false, error: 'An unexpected error occurred' }`
  *
  * @example
  * const result = await moveCardToBoard('card-uuid', 'board-uuid', 'status-uuid')

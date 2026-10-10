@@ -53,14 +53,15 @@ export const HeldRepositoryList = memo(function HeldRepositoryList({
       </h3>
       <ul
         aria-label="Already placed elsewhere"
-        className="border-border mt-1 max-h-40 overflow-y-auto rounded-md border"
+        // About 3.5 rows: a cut-off row shows that the list scrolls
+        className="border-border mt-1 max-h-46 overflow-y-auto rounded-md border"
       >
         {repositories.map((repository) => {
           const destination = toDestination(repository)
           return (
             <li
               key={repository.id}
-              className="border-border flex min-h-11 flex-col justify-center border-b px-3 py-1.5 last:border-b-0"
+              className="border-border relative flex min-h-11 flex-col justify-center border-b px-3 py-1.5 last:border-b-0"
             >
               <span className="text-muted-foreground truncate text-sm">
                 {repository.fullName}
@@ -69,10 +70,15 @@ export const HeldRepositoryList = memo(function HeldRepositoryList({
                 href={destination.href}
                 // Do not prefetch a whole board page per held row
                 prefetch={false}
-                title={destination.label}
+                // Both lines can be truncated; the link covers the whole row,
+                // so its tooltip carries the full text of both
+                title={`${destination.label} · ${repository.fullName}`}
                 aria-label={destination.accessibleName}
                 onKeyDown={stopActivationKeysFromReachingPanel}
-                className="text-primary focus-visible:ring-ring inline-flex max-w-full items-center gap-1 self-start rounded-sm text-sm hover:underline focus-visible:ring-2 focus-visible:outline-none"
+                // text-foreground + underline: text-primary is below AA contrast
+                // in most themes. after:inset-0 stretches the hit area over
+                // the whole row (44px touch target).
+                className="text-foreground focus-visible:ring-ring inline-flex max-w-full items-center gap-1 self-start rounded-sm text-sm underline underline-offset-4 after:absolute after:inset-0 focus-visible:ring-2 focus-visible:outline-none"
               >
                 <span className="truncate">{destination.label}</span>
                 <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -90,11 +96,14 @@ export const HeldRepositoryList = memo(function HeldRepositoryList({
  *
  * @param repository - The held repository to describe.
  * @returns
- * - On a board: `{ href: '/board/<id>', label: 'On <board name>', accessibleName: 'Open board <board name>, which holds owner/name' }`
- * - In Maintenance: `{ href: '/maintenance', label: 'In Maintenance', accessibleName: 'Open Maintenance, which holds owner/name' }`
+ * - On a board: `{ href: '/board/<id>', label: 'On <board name>', accessibleName: 'On <board name>, which holds owner/name' }`
+ * - In Maintenance: `{ href: '/maintenance', label: 'In Maintenance', accessibleName: 'In Maintenance, which holds owner/name' }`
+ *
+ * The accessible name starts with the visible label so that speech-control
+ * users can say what they see (WCAG 2.5.3 Label in Name).
  * @example
  * toDestination({ id: 1, fullName: 'a/b', location: { kind: 'board', boardId: 'x', boardName: 'Work' } })
- * // => { href: '/board/x', label: 'On Work', accessibleName: 'Open board Work, which holds a/b' }
+ * // => { href: '/board/x', label: 'On Work', accessibleName: 'On Work, which holds a/b' }
  */
 function toDestination(repository: HeldRepository): {
   href: string
@@ -105,14 +114,14 @@ function toDestination(repository: HeldRepository): {
     return {
       href: ROUTES.MAINTENANCE,
       label: 'In Maintenance',
-      accessibleName: `Open Maintenance, which holds ${repository.fullName}`,
+      accessibleName: `In Maintenance, which holds ${repository.fullName}`,
     }
   }
 
   return {
     href: `/board/${repository.location.boardId}`,
     label: `On ${repository.location.boardName}`,
-    accessibleName: `Open board ${repository.location.boardName}, which holds ${repository.fullName}`,
+    accessibleName: `On ${repository.location.boardName}, which holds ${repository.fullName}`,
   }
 }
 

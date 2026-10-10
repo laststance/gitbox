@@ -59,12 +59,12 @@ export const OnAnotherBoardAndInMaintenance: Story = {
     await expect(canvas.getByText('Already placed elsewhere (2)')).toBeVisible()
     await expect(
       canvas.getByRole('link', {
-        name: 'Open board Work Projects, which holds laststance/gitbox',
+        name: 'On Work Projects, which holds laststance/gitbox',
       }),
     ).toHaveAttribute('href', '/board/00000000-0000-0000-0000-000000000101')
     await expect(
       canvas.getByRole('link', {
-        name: 'Open Maintenance, which holds laststance/old-project',
+        name: 'In Maintenance, which holds laststance/old-project',
       }),
     ).toHaveAttribute('href', '/maintenance')
   },

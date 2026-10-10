@@ -92,7 +92,10 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     } = useCommentState({ initialComments: initialComments ?? {} })
 
     // Undo hook: history stacks + Z-key shortcut (self-contained)
-    const { pushCardHistory, pushColumnHistory } = useKanbanUndo({ dispatch })
+    const { pushCardHistory, pushColumnHistory } = useKanbanUndo({
+      dispatch,
+      cards,
+    })
 
     // DnD hook: sensors, handlers, grid calculations
     const {

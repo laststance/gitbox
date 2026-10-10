@@ -53,6 +53,7 @@ export {
 // RepoCard schemas
 export {
   MAX_REPOSITORIES_PER_ADD,
+  TOO_MANY_REPOSITORIES_MESSAGE,
   addRepositoriesRequestSchema,
 } from './repo-card'
 

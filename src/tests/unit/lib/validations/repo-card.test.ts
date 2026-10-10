@@ -68,6 +68,78 @@ describe('addRepositoriesRequestSchema', () => {
     expect(result.success).toBe(false)
   })
 
+  test('rejects a repository with an empty name', () => {
+    // Arrange
+    const request = [{ id: 1, name: '', owner: { login: 'laststance' } }]
+
+    // Act
+    const result = addRepositoriesRequestSchema.safeParse(request)
+
+    // Assert
+    expect(result.success).toBe(false)
+  })
+
+  test('accepts a repository name of exactly 100 characters', () => {
+    // Arrange
+    const request = [
+      { id: 1, name: 'a'.repeat(100), owner: { login: 'laststance' } },
+    ]
+
+    // Act
+    const result = addRepositoriesRequestSchema.safeParse(request)
+
+    // Assert
+    expect(result.success).toBe(true)
+  })
+
+  test('rejects a repository name of 101 characters', () => {
+    // Arrange
+    const request = [
+      { id: 1, name: 'a'.repeat(101), owner: { login: 'laststance' } },
+    ]
+
+    // Act
+    const result = addRepositoriesRequestSchema.safeParse(request)
+
+    // Assert
+    expect(result.success).toBe(false)
+  })
+
+  test('rejects a repository name with non-ASCII letters', () => {
+    // Arrange
+    const request = [
+      { id: 1, name: '日本語-repo', owner: { login: 'laststance' } },
+    ]
+
+    // Act
+    const result = addRepositoriesRequestSchema.safeParse(request)
+
+    // Assert
+    expect(result.success).toBe(false)
+  })
+
+  test('rejects a repository id of zero', () => {
+    // Arrange
+    const request = [{ id: 0, name: 'gitbox', owner: { login: 'laststance' } }]
+
+    // Act
+    const result = addRepositoriesRequestSchema.safeParse(request)
+
+    // Assert
+    expect(result.success).toBe(false)
+  })
+
+  test('rejects a repository without an owner', () => {
+    // Arrange
+    const request = [{ id: 1, name: 'gitbox' }]
+
+    // Act
+    const result = addRepositoriesRequestSchema.safeParse(request)
+
+    // Assert
+    expect(result.success).toBe(false)
+  })
+
   test('rejects an empty request', () => {
     // Arrange
     const request: unknown[] = []

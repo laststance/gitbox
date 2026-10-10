@@ -8,7 +8,7 @@
  * Column undo takes priority over card undo.
  *
  * @example
- * const { pushCardHistory, pushColumnHistory } = useKanbanUndo({ dispatch })
+ * const { pushCardHistory, pushColumnHistory } = useKanbanUndo({ dispatch, cards })
  * // Pass to useKanbanDnD:
  * useKanbanDnD({ ...params, pushCardHistory, pushColumnHistory })
  */
@@ -24,10 +24,13 @@ import {
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import { setStatusLists, setRepoCards } from '@/lib/redux/slices/boardSlice'
 import type { AppDispatch } from '@/lib/redux/store'
+import { reconcileUndoSnapshot } from '@/lib/utils/reconcile-undo-snapshot'
 
 interface UseKanbanUndoParams {
   /** Redux dispatch function */
   dispatch: AppDispatch
+  /** Cards on the board right now; an undo never touches a card that left it */
+  cards: RepoCardForRedux[]
 }
 
 interface UseKanbanUndoReturn {
@@ -43,17 +46,17 @@ interface UseKanbanUndoReturn {
  * Manages card and column history stacks, handles undo operations with
  * DB sync, and registers the Z-key keyboard shortcut internally.
  *
- * @param params - Redux dispatch
+ * @param params - Redux dispatch and the board's current cards
  * @returns Push callbacks for DnD handlers to record history
  *
  * @example
- * const { pushCardHistory, pushColumnHistory } = useKanbanUndo({ dispatch })
+ * const { pushCardHistory, pushColumnHistory } = useKanbanUndo({ dispatch, cards })
  * // DnD handlers call pushCardHistory(cards) before mutations
  */
 export function useKanbanUndo(
   params: UseKanbanUndoParams,
 ): UseKanbanUndoReturn {
-  const { dispatch } = params
+  const { dispatch, cards } = params
 
   // History stacks (max 10 entries each)
   const [history, setHistory] = useState<RepoCardForRedux[][]>([])
@@ -98,11 +101,17 @@ export function useKanbanUndo(
 
     if (history.length === 0) return
     const previousState = history[history.length - 1]!
-    dispatch(setRepoCards(previousState))
+    // The board may have changed since the snapshot (card moved to another
+    // board, removed, added): only cards still here go back to their old place
+    const { restored, cards: cardsAfterUndo } = reconcileUndoSnapshot(
+      previousState,
+      cards,
+    )
+    dispatch(setRepoCards(cardsAfterUndo))
     setHistory((prev) => prev.slice(0, -1))
     toast.success('Card operation undone')
 
-    const updates = previousState.map((c, index) => ({
+    const updates = restored.map((c, index) => ({
       id: c.id,
       statusId: c.statusId,
       order: c.order ?? index,
@@ -113,7 +122,7 @@ export function useKanbanUndo(
       })
       toast.error('Failed to sync undo to database')
     })
-  }, [history, columnHistory, dispatch])
+  }, [history, columnHistory, dispatch, cards])
 
   // Keyboard shortcut: Z key to execute undo
   useEffect(() => {

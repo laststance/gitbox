@@ -293,32 +293,20 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
       if (!result.success) {
         setAddingError(result.error || 'Failed to add repositories')
+        // A lost race means the server knows a placement this picker does
+        // not: refetch so the raced repository moves to the held list
+        void refreshPlacements()
         return
       }
 
       const { addedCount, cards, skipped } = result.data
 
-      // The server knows about a placement this picker did not: refetch so the
-      // skipped repositories move to the "Already placed elsewhere" list
-      if (skipped.length > 0) {
-        void refreshPlacements()
-      }
-
-      // Nothing added: not an error. Keep the picker open, drop the skipped
-      // repositories from the selection and say where each one lives.
+      // Nothing added: not an error. The picker stays open, so refetch to move
+      // the skipped repositories to the "Already placed elsewhere" list, clear
+      // the selection (all of it was skipped) and say where each one lives.
       if (addedCount === 0) {
-        const skippedIdentifiers = new Set(
-          skipped.map((skippedRepo) => skippedRepo.fullName.toLowerCase()),
-        )
-        for (const repo of selectedRepos) {
-          if (
-            skippedIdentifiers.has(
-              toRepoIdentifier(repo.owner.login, repo.name),
-            )
-          ) {
-            removeSelectedRepo(repo.id)
-          }
-        }
+        void refreshPlacements()
+        clearSelection()
         showSkippedMessages(skipped.map((skippedRepo) => skippedRepo.message))
         return
       }
@@ -371,8 +359,15 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     if (e.key === 'Escape') {
       handleClose()
       searchInputRef.current?.blur()
-    } else if (e.key === 'Enter' && selectedRepos.length > 0 && !isAdding) {
-      // Ignored while an add is in flight so Enter cannot submit twice
+    } else if (
+      e.key === 'Enter' &&
+      // Only Enter typed in the search box submits. Enter on Cancel, on a
+      // badge's remove button or on an option row keeps its own meaning.
+      e.target === searchInputRef.current &&
+      selectedRepos.length > 0 &&
+      // Same gate as the Add button: not while loading or while an add is in flight
+      !isLoading
+    ) {
       handleAddRepositories()
     }
   }
@@ -406,7 +401,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       {/* Combobox panel */}
       {isOpen && (
         <div
-          className="border-border bg-background absolute top-full right-0 z-50 mt-2 w-120 rounded-lg border p-4 shadow-xl"
+          // Capped to the viewport: with both lists full the panel is taller
+          // than a small laptop screen, and the buttons must stay reachable
+          className="border-border bg-background absolute top-full right-0 z-50 mt-2 max-h-[calc(100dvh-6rem)] w-120 overflow-y-auto rounded-lg border p-4 shadow-xl"
           role="combobox"
           aria-expanded={isOpen}
           aria-controls="repository-listbox"
@@ -713,7 +710,10 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             filteredRepositories.length === 0 &&
             heldRepositories.length === 0 && (
               <div className="text-muted-foreground py-8 text-center text-sm">
-                No repositories left to add.
+                {/* A filter that hides everything is not an empty catalog */}
+                {organizationFilter === 'all' && visibilityFilter === 'all'
+                  ? 'No repositories left to add.'
+                  : 'No repositories match the current filters.'}
               </div>
             )}
 
@@ -810,6 +810,8 @@ function classifyRepositories(params: {
   const held: HeldRepository[] = []
 
   for (const repository of repositories) {
+    // GitHub's own `owner/name`, lowercased: the same string toRepoIdentifier
+    // builds, and it survives a repository with missing owner data (GITBOX-1)
     const identifier = repository.full_name.toLowerCase()
     const boardPlacement = boardPlacementByIdentifier.get(identifier)
 

@@ -29,6 +29,14 @@ DO $migration$
 DECLARE
   v_duplicate_groups integer;
 BEGIN
+  -- 0. Take the table lock before the guard, so the guard and the index build
+  --    see the same rows: a card committed in between would otherwise fail the
+  --    index build with its key values (user id, owner/name) in the error.
+  --    Fail fast instead of queueing behind a long transaction and stalling
+  --    every board read behind this ALTER; the job can simply be re-run.
+  PERFORM set_config('lock_timeout', '5s', true);
+  LOCK TABLE repocard IN ACCESS EXCLUSIVE MODE;
+
   -- 1. Guard: refuse to run while any user holds one repository on 2+ boards.
   --    The message carries a count only (no repository names, no user ids).
   SELECT count(*) INTO v_duplicate_groups
@@ -46,10 +54,12 @@ BEGIN
       v_duplicate_groups;
   END IF;
 
-  -- 2. Owner column. The default keeps user_id optional for inserts; the
-  --    trigger below overwrites whatever value arrives.
+  -- 2. Owner column. Added without a default so existing rows start as NULL
+  --    whatever the session's auth.uid() is; the default is set after the
+  --    backfill and only keeps user_id optional for inserts (the trigger below
+  --    overwrites whatever value arrives).
   ALTER TABLE repocard
-    ADD COLUMN IF NOT EXISTS user_id uuid DEFAULT auth.uid()
+    ADD COLUMN IF NOT EXISTS user_id uuid
     REFERENCES auth.users(id) ON DELETE CASCADE;
 
   -- 3. Backfill from the owning board. User triggers are switched off so
@@ -60,15 +70,18 @@ BEGIN
   SET user_id = b.user_id
   FROM board b
   WHERE b.id = r.board_id
-    AND r.user_id IS NULL;
+    AND r.user_id IS DISTINCT FROM b.user_id;
 
   ALTER TABLE repocard ENABLE TRIGGER USER;
 
+  ALTER TABLE repocard ALTER COLUMN user_id SET DEFAULT auth.uid();
   ALTER TABLE repocard ALTER COLUMN user_id SET NOT NULL;
 
   -- 4. Keep user_id equal to the board owner on every insert and on every
-  --    change of board_id / user_id. SECURITY INVOKER: a caller who cannot see
-  --    the board (RLS) cannot attach a card to it.
+  --    change of board_id / user_id. SECURITY INVOKER: the board is read with
+  --    the caller's rights. Visibility is not ownership (other users' public
+  --    boards are visible): writing to a board the caller does not own is
+  --    refused by the repocard WITH CHECK policy, which runs after this trigger.
   CREATE OR REPLACE FUNCTION set_repocard_user_id()
   RETURNS trigger
   LANGUAGE plpgsql

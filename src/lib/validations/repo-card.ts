@@ -11,6 +11,9 @@ import { GITHUB_NAME_SEGMENT } from '@/lib/constants/regex'
 /** Maximum number of repositories accepted by one "Add Repositories" request */
 export const MAX_REPOSITORIES_PER_ADD = 100
 
+/** Shown to the user when one request holds more than {@link MAX_REPOSITORIES_PER_ADD} repositories */
+export const TOO_MANY_REPOSITORIES_MESSAGE = `Add at most ${MAX_REPOSITORIES_PER_ADD} repositories at once`
+
 const githubNameSegmentSchema = z
   .string()
   .regex(GITHUB_NAME_SEGMENT, 'Invalid GitHub name')
@@ -39,7 +42,4 @@ export const addRepositoriesRequestSchema = z
     }),
   )
   .min(1, 'Select at least one repository')
-  .max(
-    MAX_REPOSITORIES_PER_ADD,
-    `Add at most ${MAX_REPOSITORIES_PER_ADD} repositories at once`,
-  )
+  .max(MAX_REPOSITORIES_PER_ADD, TOO_MANY_REPOSITORIES_MESSAGE)

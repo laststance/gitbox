@@ -145,14 +145,23 @@ export async function lookupRepoPlacements(
     throw new Error('Failed to look up repository placements (maintenance)')
   }
 
-  // Surface a possible silent truncation at the PostgREST row cap. The unique
-  // index still blocks the duplicate; the user just gets the race message.
-  if (cardsResult.data.length >= POSTGREST_MAX_ROWS) {
+  // Surface a possible silent truncation at the PostgREST row cap. For cards
+  // the unique index still blocks the duplicate (the user gets the race
+  // message). Maintenance has no such backstop: beyond the cap, a repository
+  // in Maintenance could also be added to a board.
+  if (
+    cardsResult.data.length >= POSTGREST_MAX_ROWS ||
+    maintenanceResult.data.length >= POSTGREST_MAX_ROWS
+  ) {
     Sentry.captureMessage(
       'Repo placement lookup may be truncated at PostgREST row limit',
       {
         level: 'warning',
-        extra: { userId, repoCardCount: cardsResult.data.length },
+        extra: {
+          userId,
+          repoCardCount: cardsResult.data.length,
+          maintenanceCount: maintenanceResult.data.length,
+        },
       },
     )
   }
