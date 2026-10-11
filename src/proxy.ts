@@ -11,6 +11,14 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+import {
+  PUBLIC_BOARD_ROUTE_PREFIX,
+  SENTRY_TUNNEL_ROUTE,
+} from '@/lib/constants/routes'
+import {
+  SENTRY_ENVELOPE_URL,
+  SENTRY_TUNNEL_MAX_BODY_BYTES,
+} from '@/lib/constants/sentry'
 import { RATE_LIMIT_CONFIG } from '@/lib/rate-limit/config'
 import { edgeRateLimit, getClientIp } from '@/lib/rate-limit/edge-memory'
 import { logSecurityEvent } from '@/lib/security-events'
@@ -25,7 +33,30 @@ export const publicPaths = [
   '/terms',
 ]
 
+/**
+ * Files the browser and link-preview crawlers fetch without a session: the
+ * PWA manifest (the static file and the generated route) and the generated
+ * social and touch images. They hold no user data. Behind the login redirect
+ * the app cannot be installed and a shared link shows no preview.
+ */
+const sessionlessMetadataPaths = [
+  '/manifest.json',
+  '/manifest.webmanifest',
+  '/opengraph-image',
+  '/twitter-image',
+  '/apple-icon',
+]
+
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // Sentry tunnel: the browser SDK posts error reports to this path so ad
+  // blockers do not drop them. Signed-out pages report errors too, so this
+  // comes before the sign-in check.
+  if (isSentryTunnelPath(pathname)) {
+    return forwardSentryReport(request)
+  }
+
   // In E2E test mode, bypass authentication and allow all requests
   if (isTestMode()) {
     return NextResponse.next({
@@ -35,8 +66,12 @@ export async function proxy(request: NextRequest) {
     })
   }
 
+  // The manifest and the preview images are the same for everyone
+  if (sessionlessMetadataPaths.includes(pathname)) {
+    return NextResponse.next()
+  }
+
   // Rate limit OAuth callback by IP
-  const { pathname } = request.nextUrl
   if (pathname === '/auth/callback') {
     const ip = getClientIp(request)
     const config = RATE_LIMIT_CONFIG['auth/callback']
@@ -103,7 +138,7 @@ export async function proxy(request: NextRequest) {
     nowInSeconds <= claims.exp
 
   // Allow public paths without authentication
-  if (publicPaths.includes(pathname)) {
+  if (publicPaths.includes(pathname) || isPublicBoardPath(pathname)) {
     return supabaseResponse
   }
 
@@ -120,6 +155,111 @@ export async function proxy(request: NextRequest) {
   }
 
   return supabaseResponse
+}
+
+/**
+ * Tells whether a request is for the Sentry tunnel. Exists because the
+ * `tunnelRoute` option in next.config.ts also adds a rewrite of its own, which
+ * takes its destination from the query string, forwards cookies, and matches
+ * the path in any letter case with trailing slashes. A tunnel request this
+ * check missed would fall through to that rewrite, so the check has to be at
+ * least as wide. Called by {@link proxy} for every request.
+ *
+ * @param pathname - Path of the incoming request, without the query string.
+ * @returns
+ * - `true` for the tunnel route in any letter case, with or without trailing slashes
+ * - `false` for every other path, including ones that only start with it
+ * @example
+ * isSentryTunnelPath('/monitoring')   // => true
+ * isSentryTunnelPath('/Monitoring//') // => true
+ * isSentryTunnelPath('/monitoring/x') // => false
+ */
+const isSentryTunnelPath = (pathname: string): boolean =>
+  pathname.toLowerCase().replace(/\/+$/, '') === SENTRY_TUNNEL_ROUTE
+
+/**
+ * Forwards a browser error report to this app's own Sentry project. Exists so
+ * the tunnel works for signed-out pages and cannot be used to reach anything
+ * else: the destination is the constant {@link SENTRY_ENVELOPE_URL}, so
+ * nothing in the request can choose it, the `o`, `p` and `r` the SDK writes
+ * into the query string included. Called by {@link proxy} for every request
+ * on the tunnel path.
+ *
+ * The Cookie header stays behind: the session cookies are not Sentry's to
+ * see, and their size makes the ingest host answer 400.
+ *
+ * The route answers without a session, so it bounds what one client can send
+ * through it: a number of reports per minute, and the size a report declares.
+ * The proxy never reads the body, so a report sent without `Content-Length`
+ * is counted but not measured.
+ *
+ * @param request - A request whose path is the Sentry tunnel route.
+ * @returns
+ * - A rewrite to {@link SENTRY_ENVELOPE_URL}, without the Cookie header, for a `POST`
+ * - `404` for every other method
+ * - `429` with `Retry-After` once the client address is over its limit for the minute
+ * - `413` when `Content-Length` is above {@link SENTRY_TUNNEL_MAX_BODY_BYTES}
+ * @example
+ * // POST /monitoring?o=1245861&p=4510597804261376&r=us => this app's Sentry project
+ * // POST /monitoring?o=999&p=999&r=de                  => this app's Sentry project
+ * // GET  /monitoring?o=1245861&p=4510597804261376&r=us => 404
+ * // 121st POST of the minute from one address          => 429
+ * // POST with Content-Length: 20971521                 => 413
+ */
+const forwardSentryReport = (request: NextRequest): NextResponse => {
+  // The SDK only ever posts; no other method has a reason to be forwarded
+  if (request.method !== 'POST') {
+    return new NextResponse(null, { status: 404 })
+  }
+
+  // Counted under a key of its own: under the bare address, reports would use
+  // up the sign-in callback's limit. A refusal is not logged as a security
+  // event, which would itself be one Sentry event per refused report.
+  const { maxRequests, windowMs } = RATE_LIMIT_CONFIG.sentryTunnel
+  const tunnelRateLimitKey = `sentry-tunnel:${getClientIp(request)}`
+  if (!edgeRateLimit(tunnelRateLimitKey, maxRequests, windowMs)) {
+    // The SDK reads Retry-After and sends nothing for that many seconds
+    return new NextResponse(null, {
+      status: 429,
+      headers: { 'Retry-After': String(windowMs / 1000) },
+    })
+  }
+
+  // A missing or unreadable Content-Length becomes 0 or NaN and passes
+  const declaredBodyBytes = Number(request.headers.get('content-length'))
+  if (declaredBodyBytes > SENTRY_TUNNEL_MAX_BODY_BYTES) {
+    return new NextResponse(null, { status: 413 })
+  }
+
+  const forwardedHeaders = new Headers(request.headers)
+  forwardedHeaders.delete('cookie')
+  return NextResponse.rewrite(SENTRY_ENVELOPE_URL, {
+    request: { headers: forwardedHeaders },
+  })
+}
+
+/**
+ * Tells whether a path is a shared board page, which anyone with the link may
+ * open without signing in. Exists because the sign-in check would otherwise
+ * send those visitors to the login page. Called by {@link proxy} next to the
+ * exact-match {@link publicPaths}.
+ *
+ * @param pathname - Path of the incoming request, without the query string.
+ * @returns
+ * - `true` for `/public/<slug>`: the prefix and exactly one more segment
+ * - `false` for every other path, including `/public/` alone and anything
+ *   below a slug
+ * @example
+ * isPublicBoardPath('/public/a1b2c3d4e5f6')      // => true
+ * isPublicBoardPath('/public/')                  // => false
+ * isPublicBoardPath('/public/a1b2c3d4e5f6/edit') // => false
+ * isPublicBoardPath('/publicity')                // => false
+ */
+const isPublicBoardPath = (pathname: string): boolean => {
+  if (!pathname.startsWith(PUBLIC_BOARD_ROUTE_PREFIX)) return false
+
+  const slug = pathname.slice(PUBLIC_BOARD_ROUTE_PREFIX.length)
+  return slug.length > 0 && !slug.includes('/')
 }
 
 export const config = {

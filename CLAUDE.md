@@ -1,24 +1,38 @@
 # CLAUDE.md
 
-## Local verification
+## Verification with the real account
 
-**🟢 REQUIRED: sign in as `ryota-murakami`**
+**🔴 REQUIRED: every 動作確認 and 不具合検証 is done signed in as the real GitHub account `ryota-murakami`, on local and on production.**
 
-動作確認 and 不具合検証 on `http://localhost:3008` always use the real GitHub account **`ryota-murakami`**. Local GitBox writes boards and cards to local Supabase. Deleting a card, archiving a repo, or removing a board does not call GitHub's delete-repository API, so the repository on GitHub stays.
+Only `ryota-murakami` has real GitHub repository data: org membership, private repositories and real API payloads. A check that never loads that data proves nothing about how GitBox behaves for its user. So:
 
-Bring that logged-in Chrome session in with one of these. Do not stop at a mock cookie.
+- A change is not verified until it has been exercised with this account. Green `pnpm e2e:parallel` runs and fixture screenshots do not replace this step.
+- Verify on `http://localhost:3008` before merging, and on production after the deploy.
+- If the session cannot be brought in, say that the change is unverified. Do not report fixture results as verification.
+
+| Environment | URL                                    | Account          |
+| ----------- | -------------------------------------- | ---------------- |
+| Local       | `http://localhost:3008`                | `ryota-murakami` |
+| Production  | `https://gitbox-laststance.vercel.app` | `ryota-murakami` |
+
+Signing in needs no password and no OAuth prompt: copy the cookies of the logged-in Chrome session with one of these. Do not stop at a mock cookie.
 
 | Method         | How                                                                    |
 | -------------- | ---------------------------------------------------------------------- |
 | `/cookie`      | Decrypt the logged-in Chrome cookies and load them into playwright-cli |
 | gstack browser | `/gstack-setup-browser-cookies`, then `/browse` (Aside)                |
 
-Claude Chrome may complete GitHub OAuth on localhost as `ryota-murakami` without an extra confirmation prompt. Confirm the signed-in login is `ryota-murakami` before exercising the app.
+Claude Chrome may complete GitHub OAuth on localhost as `ryota-murakami` without an extra confirmation prompt. GitHub OAuth login on production is permitted too. Confirm the signed-in login is `ryota-murakami` before exercising the app.
 
-| Environment        | URL                                    | Account                                                                                    |
-| ------------------ | -------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Local verification | `http://localhost:3008`                | `ryota-murakami`                                                                           |
-| Production         | `https://gitbox-laststance.vercel.app` | GitHub OAuth login is permitted. The "repository on GitHub stays" note above is local-only |
+Local GitBox writes boards and cards to local Supabase. Deleting a card, archiving a repo, or removing a board does not call GitHub's delete-repository API, so the repository on GitHub stays. On production the boards and cards are the owner's real data.
+
+**🔴 Destructive flows on production run on scratch data only.** Remove from board, Move to Maintenance, delete column, delete board, account deletion and anything else that cannot be undone from the UI:
+
+- Create a board (and the cards or columns the check needs) for the check, exercise the flow on that board only, and delete the board afterwards.
+- Never delete, archive or move an existing board, column or card to verify something, and never run account deletion on `ryota-murakami`.
+- A flow that cannot be exercised this way stays unverified on production. Name it in the report instead of skipping it silently.
+
+This rule is about verification. It does not limit a production change the owner asked for, such as deleting a duplicate card so a migration can run.
 
 Do not use the E2E fixture session for this. Its GitHub cookie is the literal string `mock-github-provider-token-for-testing`, and the Supabase user is `testuser`, not `ryota-murakami`. With MSW on, GitHub responses are fixtures in `mocks/handlers/data.ts`. With MSW off, GitHub returns 401. Either way, `ryota-murakami`'s repositories never load. That setup exists only so Playwright can render protected routes. See [E2E fixture auth](#e2e-fixture-auth-playwright-only).
 
@@ -187,12 +201,12 @@ supabase db reset
 1. Create migration file: `supabase migration new <description>`
 2. Write SQL in `supabase/migrations/YYYYMMDDHHMMSS_<description>.sql`
 3. Test on dev: `supabase link --project-ref jqtxjzdxczqwsrvevmyk` → `supabase db push --linked`
-4. Merge to `main` → production deploys (requires approval)
+4. Merge to `main` → the workflow runs `supabase db push` on production right away. There is no approval step, so remove any data the migration would reject before merging
 
 **Required Setup:**
 
 - GitHub Secret: `SUPABASE_ACCESS_TOKEN` (from https://supabase.com/dashboard/account/tokens)
-- GitHub Environment: `production` with required reviewers
+- GitHub Environment: `production` (branch policy `main`, no required reviewers)
 
 #### Manual Production Migration
 
@@ -250,9 +264,9 @@ src/app/
 
 ### Database Schema (7 tables with RLS)
 
-- **board** - Kanban boards per user (position, subtitle, is_public, share_slug, settings JSONB)
+- **board** - Kanban boards per user (position, subtitle, is_public, share_slug, settings JSONB). RLS shows a board, its columns and its cards to their owner only. A shared board is read through the `get_public_board(p_slug)` function, which returns the name and subtitle of the board with that share slug, its columns and its cards (1000 each at most), without any `user_id`; `/public/[slug]` is the only caller. A field the shared page needs has to be added to the function in a migration
 - **statuslist** - Columns (2D grid layout: gridRow, gridCol)
-- **repocard** - GitHub repos as cards. One card per user and repo across all boards: `user_id` is copied from the board by the `set_repocard_user_id` trigger and `repocard_unique_repo_per_user` is unique on `(user_id, lower(repo_owner), lower(repo_name))`. A card's column must be a column of its own board (`check_repocard_status_board` trigger), and a column cannot change boards (`forbid_statuslist_board_change` trigger on `statuslist`). App code reads ownership through the `board` join and never names, filters on or writes `repocard.user_id` (wildcard selects fetch it, the mappers drop it)
+- **repocard** - GitHub repos as cards. One card per user and repo across all boards: `user_id` is copied from the board by the `set_repocard_user_id` trigger and `repocard_unique_repo_per_user` is unique on `(user_id, lower(repo_owner), lower(repo_name))`. A card's column must be a column of its own board (`check_repocard_status_board` trigger), and a column cannot change boards (`forbid_statuslist_board_change` trigger on `statuslist`). App code reads ownership through the `board` join and never names, filters on or writes `repocard.user_id`. Card reads that reach the client select `REPO_CARD_COLUMNS` (`src/lib/actions/mappers.ts`), which leaves it out; the remaining wildcard selects are server-side ownership checks
 - **projectinfo** - Extended card data (notes, links, comments)
 - **maintenance** - Archived repos
 - **user_link_presets** - User-defined custom link types
@@ -270,12 +284,12 @@ src/lib/actions/
 ├── project-info.ts            # Notes, links
 ├── shared-project-info.ts     # Shared project info helpers
 ├── maintenance-project-info.ts # Maintenance CRUD + delete
-├── public-board.ts            # Public board sharing (read-only view)
+├── public-board.ts            # Public board sharing (read-only view, via the get_public_board RPC)
 ├── user-presets.ts            # Custom link type presets
 ├── user-settings.ts           # Boards page title/subtitle customization
 ├── mappers.ts                 # Data mapping utilities
 ├── auth.ts                    # Session management
-└── github.ts                  # GitHub API (uses provider_token cookie)
+└── github.ts                  # GitHub API (uses the gh_token_* cookie)
 ```
 
 ---
@@ -291,15 +305,27 @@ src/lib/actions/
 
 ### GitHub OAuth Token
 
-Stored in httpOnly cookie `github_provider_token` (set in `src/app/auth/callback/route.ts`).
+Stored in the httpOnly cookie named by `getGitHubTokenCookieName()` in `src/lib/constants/cookies.ts`: `gh_token_<first 8 characters of the Supabase project id>`, for example `gh_token_zfcwvzaz` on production. `setGitHubTokenCookie` writes it from `src/app/auth/callback/route.ts`.
 
 ### ActionResult\<T\> Pattern
 
 All client-consumed Server Actions return `ActionResult<T>` (`{ success: true, data: T } | { success: false, error: string }`). The guards replace every thrown message with a generic one; throw `ActionUserError` (`src/lib/actions/types.ts`) when the message is meant for the user, and the guards return it verbatim without reporting to Sentry. Three auth guard wrappers: `withAuthResult(action)` for reads, `withAuthResultRateLimit(key, action)` for mutations, `withAuthRateLimit(key, action)` for DnD (throws).
 
+### Board data and optimistic writes
+
+`useBoardServerSync` (called once by `BoardPageClient`) is the only place the page's server data enters the Redux store, and the only code that fetches a board again (`router.refresh()`). Card and column drags, undo, remove and move to Maintenance wrap their server action in `trackBoardWrite(dispatch, …)` (`src/lib/redux/slices/boardSyncSlice.ts`). Data fetched for the board on screen is not applied while one of those saves is pending or after the board changed mid-fetch; it is dropped and the board is fetched once more. Column create, rename and delete, adding repositories and comment edits are not counted yet (see TODOS.md). A failed save calls `useBoardRollback`, which restores the previous cards or columns only when the store still holds what that write put there, and otherwise dispatches `boardRefreshRequested()`; `notifyFailedBoardSave` words the toast from what the rollback returned. Do not call `router.refresh()` or dispatch `setRepoCards(initialData…)` from anywhere else on the board page.
+
+### Signed-out access
+
+Without a session `src/proxy.ts` lets through `publicPaths` (`/`, `/login`, `/auth/callback`, `/privacy`, `/terms`), a shared board at `/public/<slug>` (the slug and nothing below it), the manifest and preview-image routes in `sessionlessMetadataPaths`, and a `POST` to the Sentry tunnel (any other method there gets 404). Every other path the proxy matches redirects to `/login`. Paths its matcher skips never reach the proxy and have to check the session themselves: anything starting with `/_next`, `/api`, `/icons` or `/favicon.ico`, and anything ending in `.svg`, `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp` or `.ico`. E2E test mode skips the session check, so this is tested in `src/tests/unit/proxy-signed-out-access.test.ts` and, for the Sentry tunnel, in `src/tests/unit/middleware.test.ts`, not in Playwright. A unit test that needs a cookie on the request sets it with `request.cookies.set(...)` after building the request: happy-dom drops a `Cookie` header passed to the `Request` constructor.
+
+### Sentry tunnel
+
+The browser posts error reports to `/monitoring` (`SENTRY_TUNNEL_ROUTE`). `src/proxy.ts` answers every request on that path itself, session or not: a `POST` is rewritten to `SENTRY_ENVELOPE_URL`, the envelope endpoint of this app's own Sentry project, without the `Cookie` header, and any other method gets 404. The destination is a constant, so nothing in the request can choose it. The route has no sign-in check, so it limits what one client address can send: 120 `POST`s a minute (`RATE_LIMIT_CONFIG.sentryTunnel`, counted in test mode too, under a key of its own so reports do not use up the `/auth/callback` limit), then 429 with `Retry-After`, which the SDK obeys. A `POST` that declares more than `SENTRY_TUNNEL_MAX_BODY_BYTES` (20 MiB) gets 413; the proxy never reads the body, so a report sent without `Content-Length` is counted but not measured. On Vercel a body above 4.5 MB never reaches the proxy: the platform answers 413 `FUNCTION_PAYLOAD_TOO_LARGE` first, and that request is not counted. `tunnelRoute` in `next.config.ts` still adds Sentry's own rewrite, which takes the organization and project from the query string; the proxy's path check is at least as wide as that rewrite's so it is never reached. Keep it that way when touching either. `SENTRY_ENVELOPE_URL` and the CSP `report-uri` are derived from `SENTRY_DSN` in `src/lib/constants/sentry.ts`, the single copy the three Sentry init files read too.
+
 ### Rate Limiting
 
-Sliding window, in-memory per-process. Config in `src/lib/rate-limit/config.ts`. Bypassed in test mode. Edge variant in `src/proxy.ts`.
+Sliding window, in-memory per-process. Config in `src/lib/rate-limit/config.ts`. Bypassed in test mode. Edge variant (`src/lib/rate-limit/edge-memory.ts`, fixed window) in `src/proxy.ts` for `/auth/callback` and the Sentry tunnel.
 
 ### Security Event Logging
 
@@ -383,7 +409,7 @@ Playwright (`pnpm e2e`, `pnpm e2e:parallel`) injects a fake session so tests can
 
 What this environment can exercise is the fixture world only: page chrome, navigation, and flows asserted against `seed.sql` plus MSW repositories such as "A test repository for GitBox". It cannot show `ryota-murakami`'s repositories, org membership, private repos, or any bug that depends on a real GitHub payload. `e2e/auth.setup.ts` also records that `supabase.auth.getUser()` returns null for this token, so server-side mutations are not a faithful check.
 
-For 動作確認 and 不具合検証, use the `ryota-murakami` session in [Local verification](#local-verification). Keep the steps below for debugging Playwright only.
+For 動作確認 and 不具合検証, use the `ryota-murakami` session in [Verification with the real account](#verification-with-the-real-account). Keep the steps below for debugging Playwright only.
 
 #### Prerequisites
 

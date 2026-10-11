@@ -2,6 +2,9 @@ import { withSentryConfig } from '@sentry/nextjs/config'
 import { codeInspectorPlugin } from 'code-inspector-plugin'
 import type { NextConfig } from 'next'
 
+import { SENTRY_TUNNEL_ROUTE } from './src/lib/constants/routes'
+import { SENTRY_CSP_REPORT_URI } from './src/lib/constants/sentry'
+
 // Prevent test-mode environment variables from reaching Vercel deployments.
 // If either is set, ALL authentication is bypassed (proxy.ts, supabase/server.ts).
 // NOTE: Only guard Vercel builds (VERCEL env is set). E2E CI builds intentionally
@@ -74,7 +77,7 @@ const nextConfig: NextConfig = {
               // will take effect when policy is switched to enforcement.
               'upgrade-insecure-requests',
               // Sentry CSP reporting endpoint
-              'report-uri https://o1245861.ingest.us.sentry.io/api/4510597804261376/security/?sentry_key=06b1775946774ab1527986b339ea85ed',
+              `report-uri ${SENTRY_CSP_REPORT_URI}`,
             ].join('; '),
           },
           {
@@ -124,11 +127,12 @@ export default withSentryConfig(nextConfig, {
   // Upload a larger set of source maps for prettier stack traces (increases build time)
   widenClientFileUpload: true,
 
-  // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
+  // Route browser requests to Sentry through this app's own domain to circumvent ad-blockers.
   // This can increase your server load as well as your hosting bill.
-  // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
-  // side errors will fail.
-  tunnelRoute: '/monitoring',
+  // The option makes the browser SDK post to this route and adds a rewrite to Sentry's ingest host. That rewrite is
+  // never reached: src/proxy.ts answers every request on the route first and forwards reports itself, to this app's
+  // own Sentry project only and without the Cookie header, for signed-out pages too.
+  tunnelRoute: SENTRY_TUNNEL_ROUTE,
 
   webpack: {
     // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)

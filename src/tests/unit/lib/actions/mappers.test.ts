@@ -5,15 +5,15 @@
  * optimization: it turns ONE nested PostgREST embed into the exact shape the
  * old multi-query path produced. These specs lock in the behaviors that would
  * silently break the board if they regressed — child ordering, comment-map
- * parity, and the RLS fail-closed shape (projectinfo hidden for non-owners).
+ * parity, and the default comment for a card without project info.
  *
  * Out of scope here (and why): the async getBoardBundle DB contract — embed
  * error => throw (never a 404), null data => null => notFound(), zero-column
  * default creation, and the 1000-row truncation warning — depends on Supabase
- * + PostgREST + Postgres RLS. RLS itself is enforced by migration
- * 20260219100000_add_public_board.sql and PostgREST, not by this remap; these
- * tests only prove the remap handles a projectinfo:null (RLS-hidden) embed
- * without leaking. The DB contract is covered by E2E board rendering.
+ * + PostgREST + Postgres RLS. getBoardBundle returns the owner's boards only,
+ * so projectinfo:null here means a card without project info; these tests only
+ * prove the remap fills the default for it. The DB contract is covered by E2E
+ * board rendering.
  *
  * @see src/lib/actions/mappers.ts
  */
@@ -73,7 +73,6 @@ function makeRepoCardRow(
   return {
     id: 'card-1',
     board_id: 'board-1',
-    user_id: 'user-1',
     status_id: 'status-1',
     repo_owner: 'laststance',
     repo_name: 'gitbox',
@@ -223,8 +222,8 @@ describe('remapBoardEmbed', () => {
     })
   })
 
-  test('never leaks a comment when projectinfo is RLS-hidden for a non-owner — every card gets a safe default', () => {
-    // Arrange: non-owner embed where RLS returns projectinfo: null for every card
+  test('gives every card the default comment when no card has project info', () => {
+    // Arrange: an embed where projectinfo is null for every card
     const row = makeBundleRow({
       repocard: [
         makeRepoCardRow({ id: 'card-1', projectinfo: null }),
@@ -235,7 +234,7 @@ describe('remapBoardEmbed', () => {
     // Act
     const bundle = remapBoardEmbed(row)
 
-    // Assert: only the safe default shape, no leaked text
+    // Assert: only the default shape
     expect(bundle.comments).toEqual({
       'card-1': { comment: '', color: 'primary' },
       'card-2': { comment: '', color: 'primary' },

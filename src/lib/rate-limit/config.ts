@@ -73,6 +73,14 @@ export const RATE_LIMIT_CONFIG = {
     windowMs: 60_000,
     description: 'public board view',
   },
+  // Browser error reports through the Sentry tunnel, per client address. One
+  // tab sends at most 12 replay segments a minute (the SDK flushes every 5 s)
+  // plus a transaction per navigation, so this leaves room for several tabs.
+  sentryTunnel: {
+    maxRequests: 120,
+    windowMs: 60_000,
+    description: 'error reporting',
+  },
 } as const satisfies Record<string, RateLimitConfig>
 
 export type RateLimitKey = keyof typeof RATE_LIMIT_CONFIG

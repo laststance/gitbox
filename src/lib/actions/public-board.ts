@@ -4,7 +4,9 @@
  * Public Board Actions
  *
  * Server-side data fetching for publicly shared boards.
- * No authentication required — relies on RLS `is_public = true` policies.
+ * No authentication required. Row level security shows a board to its owner
+ * only, so the read goes through the `get_public_board(p_slug)` database
+ * function, which returns the one public board with that share slug.
  */
 
 import * as Sentry from '@sentry/nextjs'
@@ -14,24 +16,14 @@ import { toRepoCardDomain, toStatusListDomain } from '@/lib/actions/mappers'
 import type { RepoCardDomain, StatusListDomain } from '@/lib/models/domain'
 import { checkRateLimit } from '@/lib/rate-limit/check'
 import { createClient } from '@/lib/supabase/server'
-import {
-  toBoardId,
-  type BoardId,
-  type PublicBoardSlug,
-} from '@/lib/types/brands'
-import type { ISOTimestamp, ShareSlug } from '@/lib/types/domain-primitives'
+import type { PublicBoardSlug } from '@/lib/types/brands'
 import { getForwardedClientIp } from '@/lib/utils/get-client-ip'
+import { publicBoardRowSchema } from '@/lib/validations/public-board'
 
-/** Public-safe board fields (excludes user_id) */
+/** What the shared page shows of the board itself: no id, owner or settings */
 interface PublicBoard {
-  id: BoardId
   name: string
   subtitle: string | null
-  created_at: ISOTimestamp | null
-  updated_at: ISOTimestamp | null
-  is_public: boolean
-  share_slug: ShareSlug
-  settings: unknown
 }
 
 /** Data returned for a public board view */
@@ -44,8 +36,14 @@ export interface PublicBoardData {
 /**
  * Fetch a public board by its share slug.
  *
+ * Called by the `/public/[slug]` page (and its metadata), for visitors with
+ * or without an account.
+ *
  * @param slug - The board's share_slug (12-char hex)
- * @returns Board data if found and public, null otherwise
+ * @returns
+ * - The board with its columns and cards when a public board has this slug
+ * - `null` when the slug is malformed or unknown, the board is not public,
+ *   the caller is rate limited, or the lookup fails
  *
  * @example
  * const data = await getPublicBoardBySlug("a1b2c3d4e5f6")
@@ -67,60 +65,34 @@ export async function getPublicBoardBySlug(
 
   const supabase = await createClient()
 
-  // Fetch the public board by slug (explicit columns — excludes user_id)
-  const { data: board, error: boardError } = await supabase
-    .from('board')
-    .select(
-      'id, name, subtitle, created_at, updated_at, is_public, share_slug, settings',
-    )
-    .eq('share_slug', slug)
-    .eq('is_public', true)
-    .single()
+  // One call returns the board with its columns and cards. The function
+  // answers null for an unknown slug and for a board that is not public.
+  const { data: publicBoardJson, error } = await supabase.rpc(
+    'get_public_board',
+    { p_slug: slug },
+  )
 
-  if (boardError || !board) return null
-
-  // Fetch status lists and repo cards in parallel
-  const [statusListsResult, repoCardsResult] = await Promise.all([
-    supabase
-      .from('statuslist')
-      .select('*')
-      .eq('board_id', board.id)
-      .order('grid_row', { ascending: true })
-      .order('grid_col', { ascending: true }),
-    supabase
-      .from('repocard')
-      .select('*')
-      .eq('board_id', board.id)
-      .order('order', { ascending: true }),
-  ])
-
-  if (statusListsResult.error) {
-    Sentry.captureException(statusListsResult.error, {
-      extra: { context: 'Public board: fetch status lists', slug },
+  if (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'Public board: get_public_board', slug },
     })
     return null
   }
 
-  if (repoCardsResult.error) {
-    Sentry.captureException(repoCardsResult.error, {
-      extra: { context: 'Public board: fetch repo cards', slug },
+  if (publicBoardJson === null) return null
+
+  // The function builds its JSON by hand in SQL; check it before mapping
+  const parsedPublicBoard = publicBoardRowSchema.safeParse(publicBoardJson)
+  if (!parsedPublicBoard.success) {
+    Sentry.captureException(parsedPublicBoard.error, {
+      extra: { context: 'Public board: unexpected get_public_board shape' },
     })
     return null
   }
 
-  const statusLists = (statusListsResult.data || []).map(toStatusListDomain)
-  const repoCards = (repoCardsResult.data || []).map(toRepoCardDomain)
+  const { board, statuslist, repocard } = parsedPublicBoard.data
+  const statusLists = statuslist.map(toStatusListDomain)
+  const repoCards = repocard.map(toRepoCardDomain)
 
-  const publicBoard: PublicBoard = {
-    id: toBoardId(board.id),
-    name: board.name,
-    subtitle: board.subtitle,
-    created_at: board.created_at,
-    updated_at: board.updated_at,
-    is_public: board.is_public,
-    share_slug: board.share_slug,
-    settings: board.settings,
-  }
-
-  return { board: publicBoard, statusLists, repoCards }
+  return { board, statusLists, repoCards }
 }

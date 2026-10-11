@@ -11,13 +11,13 @@ import * as Sentry from '@sentry/nextjs'
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 
-import {
-  removeRepoCard,
-  setRepoCards,
-  selectRepoCards,
-} from '@/lib/redux/slices/boardSlice'
+import { setRepoCards, selectRepoCards } from '@/lib/redux/slices/boardSlice'
+import { trackBoardWrite } from '@/lib/redux/slices/boardSyncSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { RepoCardId } from '@/lib/types/brands'
+import { notifyFailedBoardSave } from '@/lib/utils/notify-failed-board-save'
+
+import { useBoardRollback } from './useBoardRollback'
 
 /**
  * Server action result shape (matches moveToMaintenance / deleteRepoCard)
@@ -60,6 +60,7 @@ interface CardActionOptions {
 export function useOptimisticCardAction() {
   const dispatch = useAppDispatch()
   const repoCards = useAppSelector(selectRepoCards)
+  const { rollbackRepoCards } = useBoardRollback()
 
   const executeCardAction = useCallback(
     async (
@@ -73,13 +74,15 @@ export function useOptimisticCardAction() {
       // Snapshot for rollback
       const previousCards = repoCards
 
-      // Optimistic remove (instant UI feedback)
-      dispatch(removeRepoCard(cardId))
+      // Optimistic remove (instant UI feedback). The array is kept so a failed
+      // save can tell whether the board still shows this removal.
+      const cardsWithoutCard = repoCards.filter((card) => card.id !== cardId)
+      dispatch(setRepoCards(cardsWithoutCard))
 
       try {
-        const result = await serverAction(cardId)
+        const result = await trackBoardWrite(dispatch, serverAction(cardId))
         if (!result.success) {
-          dispatch(setRepoCards(previousCards))
+          rollbackRepoCards(cardsWithoutCard, previousCards)
           Sentry.captureMessage(`${options.actionName} failed`, {
             level: 'error',
             tags: { action: options.actionName },
@@ -90,16 +93,17 @@ export function useOptimisticCardAction() {
           toast.success(options.successMessage)
         }
       } catch (error) {
-        dispatch(setRepoCards(previousCards))
+        const rollbackOutcome = rollbackRepoCards(
+          cardsWithoutCard,
+          previousCards,
+        )
         Sentry.captureException(error, {
           tags: { action: options.actionName },
         })
-        toast.error(options.errorMessage, {
-          description: 'Please try again.',
-        })
+        notifyFailedBoardSave(options.errorMessage, rollbackOutcome)
       }
     },
-    [repoCards, dispatch],
+    [repoCards, dispatch, rollbackRepoCards],
   )
 
   return executeCardAction

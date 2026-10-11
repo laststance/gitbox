@@ -440,10 +440,11 @@ ON CONFLICT (user_id) DO NOTHING;
 --   testuser/test-repo       - also on the test user's Test Board. Proves the
 --                              unique index is per user: if it were global,
 --                              this seed would fail.
---   testuser/private-project - on none of the test user's boards. Because the
---                              board is public, RLS returns this card to the
---                              test user, so the picker must still offer the
---                              repository (owner filter in the placement lookup).
+--   testuser/private-project - on none of the test user's boards, so the
+--                              picker must still offer the repository. Row
+--                              level security hides this card from the test
+--                              user (20261011030000) and the placement lookup
+--                              filters by owner as well.
 
 INSERT INTO auth.users (
   id,

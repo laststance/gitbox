@@ -8,6 +8,7 @@ import React, { memo, useMemo } from 'react'
 
 import { KanbanSkeleton } from '@/components/Board/KanbanSkeleton'
 import { Card, CardContent } from '@/components/ui/card'
+import { useBoardRollback } from '@/hooks/board/useBoardRollback'
 import { useCommentState } from '@/hooks/board/useCommentState'
 import {
   forgivingCollisionDetection,
@@ -91,10 +92,16 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       handleCommentDelete,
     } = useCommentState({ initialComments: initialComments ?? {} })
 
+    // Failed-save rollbacks that never overwrite a board that changed meanwhile
+    const { rollbackRepoCards, rollbackStatusLists } = useBoardRollback()
+
     // Undo hook: history stacks + Z-key shortcut (self-contained)
     const { pushCardHistory, pushColumnHistory } = useKanbanUndo({
       dispatch,
       cards,
+      statuses,
+      rollbackRepoCards,
+      rollbackStatusLists,
     })
 
     // DnD hook: sensors, handlers, grid calculations
@@ -116,6 +123,8 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       dispatch,
       pushCardHistory,
       pushColumnHistory,
+      rollbackRepoCards,
+      rollbackStatusLists,
     })
 
     // Show skeleton when no data loaded yet (e.g., initial hydration)

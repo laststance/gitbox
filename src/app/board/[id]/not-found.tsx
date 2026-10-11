@@ -4,8 +4,10 @@ import { memo } from 'react'
 import { Button } from '@/components/ui/button'
 
 /**
- * Custom 404 page for invalid board IDs.
- * Shown when notFound() is called from the board page.
+ * Custom 404 page for a board the signed-in user cannot open here.
+ * Shown when notFound() is called from the board page: the ID is malformed,
+ * no such board exists, or the board belongs to another account (a public
+ * board of someone else opens at /public/[slug], not here).
  */
 const BoardNotFound = memo(function BoardNotFound() {
   return (
@@ -15,7 +17,11 @@ const BoardNotFound = memo(function BoardNotFound() {
           Board not found
         </h2>
         <p className="text-muted-foreground mt-2 text-sm">
-          This board doesn&apos;t exist or has been deleted.
+          This board doesn&apos;t exist, was deleted, or belongs to another
+          account.
+        </p>
+        <p className="text-muted-foreground mt-1 text-sm">
+          To see someone else&apos;s board, ask them for its public link.
         </p>
       </div>
       <Button asChild variant="default">

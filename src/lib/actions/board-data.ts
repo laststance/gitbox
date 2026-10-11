@@ -26,7 +26,6 @@ import * as Sentry from '@sentry/nextjs'
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 import { POSTGREST_MAX_ROWS } from '@/lib/constants/postgrest'
 import type { StatusListDomain, RepoCardDomain } from '@/lib/models/domain'
-import { createClient } from '@/lib/supabase/server'
 import type { RepoIdentifier } from '@/lib/types/domain-primitives'
 import { logBoardTiming } from '@/lib/utils/board-timing'
 import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
@@ -35,6 +34,7 @@ import { boardIdSchema } from '@/lib/validations/board'
 import { withAuthResult } from './auth-guard'
 import { createDefaultStatusLists } from './board'
 import {
+  REPO_CARD_COLUMNS,
   remapBoardEmbed,
   type BoardBundle,
   type BoardBundleRow,
@@ -136,9 +136,12 @@ export async function getUserRepoPlacements(): Promise<
  *
  * @param boardId - The board ID to fetch.
  * @returns
- * - The {@link BoardBundle} when the board exists (and is visible under RLS).
- * - `null` when the ID is malformed, the board does not exist, or RLS hides it
- *   (caller → notFound). A bad ID never reaches Postgres, so it cannot 500.
+ * - The {@link BoardBundle} when the board exists and belongs to the signed-in user.
+ * - `null` when the ID is malformed, the board does not exist or it belongs
+ *   to someone else, even when public (caller → notFound). A bad ID never
+ *   reaches Postgres, so it cannot 500.
+ * - `null` when there is no session. The board page sends that visitor to the
+ *   login page with {@link requireClaims} instead of showing a 404.
  * @throws When the embed query errors (propagated, not treated as not-found).
  * @example
  * const bundle = await getBoardBundle('board-uuid-123')
@@ -157,7 +160,14 @@ export async function getBoardBundle(
     return null
   }
 
-  const supabase = await createClient()
+  // No session means there is no owner to match. The board page redirects to
+  // the login page before it reads this result, so the null never becomes a
+  // "Board not found" for a visitor whose session just ended.
+  const authedContext = await getCachedClaims()
+  if (!authedContext) {
+    return null
+  }
+  const { supabase, claims } = authedContext
 
   // One nested embed: board + its columns + its cards (each with its single
   // projectinfo comment). PostgREST resolves the joins server-side under RLS.
@@ -165,9 +175,13 @@ export async function getBoardBundle(
   const { data, error } = await supabase
     .from('board')
     .select(
-      '*, statuslist(*), repocard(*, projectinfo(comment, comment_color))',
+      `*, statuslist(*), repocard(${REPO_CARD_COLUMNS}, projectinfo(comment, comment_color))`,
     )
     .eq('id', boardId)
+    // This page is the owner's editing view: anyone else gets a 404 here and
+    // uses /public/[slug]. Row level security hides other users' boards too;
+    // this filter keeps the page correct without depending on the policies.
+    .eq('user_id', claims.sub)
     // Order embedded cards by `order` ascending so that if the embed hits the
     // PostgREST row cap, truncation drops the highest-order cards rather than
     // an arbitrary subset (ordering by `order` ascending). remapBoardEmbed
@@ -185,7 +199,7 @@ export async function getBoardBundle(
     throw new Error('Failed to fetch board bundle')
   }
 
-  // null data (no error) means the board is absent or RLS-hidden → 404 at caller.
+  // null data (no error) means the board is absent or not this user's → 404 at caller.
   if (!data) {
     logBoardTiming(boardId, { embedMs })
     return null

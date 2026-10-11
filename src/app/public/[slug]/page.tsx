@@ -40,7 +40,9 @@ export async function generateMetadata(
 
 /**
  * Public board page — read-only view accessible without authentication.
- * Uses RLS `is_public = true` policy for data access.
+ * Reads the board through the `get_public_board` database function
+ * (see {@link getPublicBoardBySlug}); the proxy lets `/public/<slug>` through.
+ * A slug that shows no board renders the segment's own not-found page.
  */
 export default async function PublicBoardPage(props: PublicBoardPageProps) {
   const { slug } = await props.params

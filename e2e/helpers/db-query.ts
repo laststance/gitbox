@@ -42,21 +42,42 @@ const E2E_TEST_USER_JWT =
  * Create a Supabase client that acts as the E2E test user, with RLS applied.
  *
  * Use this instead of the service-role helpers when a test must prove what an
- * ordinary signed-in user is (not) allowed to do, e.g. that an insert into
- * another user's board is rejected. The service role bypasses RLS and cannot
- * show that.
+ * ordinary signed-in user is (not) allowed to do, e.g. that another user's
+ * board cannot be read. The service role bypasses RLS and cannot show that.
  *
  * @returns Supabase client authenticated as `TEST_USER_ID` (role `authenticated`)
  *
  * @example
- * const { error } = await createTestUserSupabaseClient()
- *   .from('repocard')
- *   .insert({ board_id: OTHER_USER.boardId, ... })
- * expect(error?.code).toBe('42501')
+ * const { data } = await createTestUserSupabaseClient()
+ *   .from('board')
+ *   .select('id')
+ *   .eq('id', OTHER_USER.boardId)
+ * expect(data).toEqual([])
  */
 export function createTestUserSupabaseClient(): SupabaseClient {
   return createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: `Bearer ${E2E_TEST_USER_JWT}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+}
+
+/**
+ * Create a Supabase client for a visitor who is not signed in (role `anon`).
+ *
+ * Use it to prove what the database hands to anyone holding the project's
+ * public API key, which every browser receives. The service role bypasses
+ * RLS and cannot show that.
+ *
+ * @returns Supabase client that sends the anon key only
+ *
+ * @example
+ * const { data } = await createAnonSupabaseClient()
+ *   .from('board')
+ *   .select('id')
+ * expect(data).toEqual([])
+ */
+export function createAnonSupabaseClient(): SupabaseClient {
+  return createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_ANON_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
 }

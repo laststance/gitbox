@@ -34,14 +34,8 @@ export const Default: Story = {
   args: {
     data: {
       board: {
-        id: toBoardId('board-1'),
         name: 'My Public Board',
         subtitle: null,
-        created_at: '2024-01-01T00:00:00.000Z',
-        updated_at: '2024-06-01T00:00:00.000Z',
-        is_public: true,
-        share_slug: 'a1b2c3d4e5f6',
-        settings: null,
       },
       statusLists: [
         {
@@ -134,14 +128,8 @@ export const EmptyBoard: Story = {
   args: {
     data: {
       board: {
-        id: toBoardId('board-2'),
         name: 'Empty Board',
         subtitle: null,
-        created_at: '2024-01-01T00:00:00.000Z',
-        updated_at: '2024-01-01T00:00:00.000Z',
-        is_public: true,
-        share_slug: 'b2c3d4e5f6a7',
-        settings: null,
       },
       statusLists: [
         {
@@ -197,14 +185,8 @@ export const WithSubtitle: Story = {
   args: {
     data: {
       board: {
-        id: toBoardId('board-3'),
         name: 'Project Tracker',
         subtitle: 'This is a shared project board',
-        created_at: '2024-01-01T00:00:00.000Z',
-        updated_at: '2024-06-01T00:00:00.000Z',
-        is_public: true,
-        share_slug: 'c3d4e5f6a7b8',
-        settings: null,
       },
       statusLists: [
         {
@@ -259,14 +241,8 @@ export const ManyCards: Story = {
   args: {
     data: {
       board: {
-        id: toBoardId('board-4'),
         name: 'Large Board',
         subtitle: null,
-        created_at: '2024-01-01T00:00:00.000Z',
-        updated_at: '2024-06-01T00:00:00.000Z',
-        is_public: true,
-        share_slug: 'd4e5f6a7b8c9',
-        settings: null,
       },
       statusLists: [
         {

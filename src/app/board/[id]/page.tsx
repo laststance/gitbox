@@ -18,6 +18,7 @@ import {
   getUserMaintenanceRepoIdentifiers,
   type BoardInitialData,
 } from '@/lib/actions/board-data'
+import { requireClaims } from '@/lib/auth/require-claims'
 
 import { BoardPageClient } from './BoardPageClient'
 
@@ -58,13 +59,20 @@ export async function generateMetadata(
  * BoardPage
  *
  * Kanban board detail page.
- * - Returns 404 if the board does not exist or RLS hides it from this user.
- * - User authentication is enforced upstream in proxy.ts.
+ * - Returns 404 if the board does not exist or belongs to another user.
+ * - Sends a visitor without a session to the login page. proxy.ts does the
+ *   same upstream; this covers a session that ends in between.
  * - Fetches the board embed (request-cached) and maintenance identifiers in
  *   parallel, then hands render-ready data to BoardPageClient.
  */
 export default async function BoardPage(props: BoardPageProps) {
   const params = await props.params
+
+  // No session (expired between the proxy and here, or its check failed) is
+  // not a missing board: send the visitor to sign in instead of a 404. The
+  // board layout redirects too, but the page renders on its own and would
+  // answer "Board not found" for the board's owner without this check.
+  await requireClaims()
 
   // The board embed is request-cached, so this awaits the same promise that
   // generateMetadata already kicked off; maintenance ids resolve alongside it.

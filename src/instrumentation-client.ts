@@ -4,6 +4,8 @@
 
 import * as Sentry from '@sentry/nextjs'
 
+import { SENTRY_DSN as dsn } from '@/lib/constants/sentry'
+
 /** Hostnames where Sentry should be disabled */
 const DISABLED_HOSTNAMES = ['localhost', '127.0.0.1'] as const
 
@@ -52,7 +54,7 @@ function isSentryEnabled(): boolean {
 }
 
 Sentry.init({
-  dsn: 'https://06b1775946774ab1527986b339ea85ed@o1245861.ingest.us.sentry.io/4510597804261376',
+  dsn,
 
   // Only enable Sentry in production environment (not localhost)
   enabled: isSentryEnabled(),

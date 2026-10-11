@@ -16,3 +16,17 @@ export const ROUTES = {
 } as const
 
 export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES]
+
+/**
+ * Path the browser posts Sentry events to (`tunnelRoute` in next.config.ts).
+ * The proxy forwards what arrives there to this app's Sentry project, so both
+ * must name the same path.
+ */
+export const SENTRY_TUNNEL_ROUTE = '/monitoring'
+
+/**
+ * Path prefix of the shared, read-only board pages (`/public/<slug>`), which
+ * need no sign-in. The proxy lets `/public/<slug>` through and nothing below
+ * a slug.
+ */
+export const PUBLIC_BOARD_ROUTE_PREFIX = '/public/'
