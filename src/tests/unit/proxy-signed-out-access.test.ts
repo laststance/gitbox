@@ -136,6 +136,33 @@ describe('proxy() for a signed-out visitor', () => {
     )
   })
 
+  test('lets a browser finish signing in after it sent more error reports than the tunnel forwards', async () => {
+    // Arrange: one address is over its error report limit (the 121st report
+    // of the minute is refused). 203.0.113.0/24 is reserved for documentation.
+    let lastReportResponse = new Response()
+    for (let reportNumber = 1; reportNumber <= 121; reportNumber++) {
+      lastReportResponse = await proxy(
+        new NextRequest('https://gitbox.example/monitoring', {
+          method: 'POST',
+          body: '{}',
+          headers: { 'x-forwarded-for': '203.0.113.20' },
+        }),
+      )
+    }
+    expect(lastReportResponse.status).toBe(429)
+
+    // Act: the OAuth callback of the same address, limited to 10 a minute
+    const callbackResponse = await proxy(
+      new NextRequest('https://gitbox.example/auth/callback', {
+        headers: { 'x-forwarded-for': '203.0.113.20' },
+      }),
+    )
+
+    // Assert: error reports did not use up the sign-in limit
+    expect(callbackResponse.status).toBe(200)
+    expect(callbackResponse.headers.get('location')).toBeNull()
+  })
+
   // The browser fetches the manifest for the install prompt and crawlers fetch
   // the images for link previews. None of them carries a session cookie.
   const sessionlessMetadataPaths = [

@@ -321,11 +321,11 @@ Without a session `src/proxy.ts` lets through `publicPaths` (`/`, `/login`, `/au
 
 ### Sentry tunnel
 
-The browser posts error reports to `/monitoring` (`SENTRY_TUNNEL_ROUTE`). `src/proxy.ts` answers every request on that path itself, session or not: a `POST` is rewritten to `SENTRY_ENVELOPE_URL`, the envelope endpoint of this app's own Sentry project, without the `Cookie` header, and any other method gets 404. The destination is a constant, so nothing in the request can choose it. `tunnelRoute` in `next.config.ts` still adds Sentry's own rewrite, which takes the organization and project from the query string; the proxy's path check is at least as wide as that rewrite's so it is never reached. Keep it that way when touching either. `SENTRY_ENVELOPE_URL` and the CSP `report-uri` are derived from `SENTRY_DSN` in `src/lib/constants/sentry.ts`, the single copy the three Sentry init files read too.
+The browser posts error reports to `/monitoring` (`SENTRY_TUNNEL_ROUTE`). `src/proxy.ts` answers every request on that path itself, session or not: a `POST` is rewritten to `SENTRY_ENVELOPE_URL`, the envelope endpoint of this app's own Sentry project, without the `Cookie` header, and any other method gets 404. The destination is a constant, so nothing in the request can choose it. The route has no sign-in check, so it limits what one client address can send: 120 `POST`s a minute (`RATE_LIMIT_CONFIG.sentryTunnel`, counted in test mode too, under a key of its own so reports do not use up the `/auth/callback` limit), then 429 with `Retry-After`, which the SDK obeys. A `POST` that declares more than `SENTRY_TUNNEL_MAX_BODY_BYTES` (20 MiB) gets 413; the proxy never reads the body, so a report sent without `Content-Length` is counted but not measured. `tunnelRoute` in `next.config.ts` still adds Sentry's own rewrite, which takes the organization and project from the query string; the proxy's path check is at least as wide as that rewrite's so it is never reached. Keep it that way when touching either. `SENTRY_ENVELOPE_URL` and the CSP `report-uri` are derived from `SENTRY_DSN` in `src/lib/constants/sentry.ts`, the single copy the three Sentry init files read too.
 
 ### Rate Limiting
 
-Sliding window, in-memory per-process. Config in `src/lib/rate-limit/config.ts`. Bypassed in test mode. Edge variant in `src/proxy.ts`.
+Sliding window, in-memory per-process. Config in `src/lib/rate-limit/config.ts`. Bypassed in test mode. Edge variant (`src/lib/rate-limit/edge-memory.ts`, fixed window) in `src/proxy.ts` for `/auth/callback` and the Sentry tunnel.
 
 ### Security Event Logging
 

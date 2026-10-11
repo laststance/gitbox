@@ -15,7 +15,10 @@ import {
   PUBLIC_BOARD_ROUTE_PREFIX,
   SENTRY_TUNNEL_ROUTE,
 } from '@/lib/constants/routes'
-import { SENTRY_ENVELOPE_URL } from '@/lib/constants/sentry'
+import {
+  SENTRY_ENVELOPE_URL,
+  SENTRY_TUNNEL_MAX_BODY_BYTES,
+} from '@/lib/constants/sentry'
 import { RATE_LIMIT_CONFIG } from '@/lib/rate-limit/config'
 import { edgeRateLimit, getClientIp } from '@/lib/rate-limit/edge-memory'
 import { logSecurityEvent } from '@/lib/security-events'
@@ -185,19 +188,47 @@ const isSentryTunnelPath = (pathname: string): boolean =>
  * The Cookie header stays behind: the session cookies are not Sentry's to
  * see, and their size makes the ingest host answer 400.
  *
+ * The route answers without a session, so it bounds what one client can send
+ * through it: a number of reports per minute, and the size a report declares.
+ * The proxy never reads the body, so a report sent without `Content-Length`
+ * is counted but not measured.
+ *
  * @param request - A request whose path is the Sentry tunnel route.
  * @returns
  * - A rewrite to {@link SENTRY_ENVELOPE_URL}, without the Cookie header, for a `POST`
  * - `404` for every other method
+ * - `429` with `Retry-After` once the client address is over its limit for the minute
+ * - `413` when `Content-Length` is above {@link SENTRY_TUNNEL_MAX_BODY_BYTES}
  * @example
  * // POST /monitoring?o=1245861&p=4510597804261376&r=us => this app's Sentry project
  * // POST /monitoring?o=999&p=999&r=de                  => this app's Sentry project
  * // GET  /monitoring?o=1245861&p=4510597804261376&r=us => 404
+ * // 121st POST of the minute from one address          => 429
+ * // POST with Content-Length: 20971521                 => 413
  */
 const forwardSentryReport = (request: NextRequest): NextResponse => {
   // The SDK only ever posts; no other method has a reason to be forwarded
   if (request.method !== 'POST') {
     return new NextResponse(null, { status: 404 })
+  }
+
+  // Counted under a key of its own: under the bare address, reports would use
+  // up the sign-in callback's limit. A refusal is not logged as a security
+  // event, which would itself be one Sentry event per refused report.
+  const { maxRequests, windowMs } = RATE_LIMIT_CONFIG.sentryTunnel
+  const tunnelRateLimitKey = `sentry-tunnel:${getClientIp(request)}`
+  if (!edgeRateLimit(tunnelRateLimitKey, maxRequests, windowMs)) {
+    // The SDK reads Retry-After and sends nothing for that many seconds
+    return new NextResponse(null, {
+      status: 429,
+      headers: { 'Retry-After': String(windowMs / 1000) },
+    })
+  }
+
+  // A missing or unreadable Content-Length becomes 0 or NaN and passes
+  const declaredBodyBytes = Number(request.headers.get('content-length'))
+  if (declaredBodyBytes > SENTRY_TUNNEL_MAX_BODY_BYTES) {
+    return new NextResponse(null, { status: 413 })
   }
 
   const forwardedHeaders = new Headers(request.headers)

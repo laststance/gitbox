@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A shared board can be opened only with its link. Shared boards can no longer be listed, and the shared page no longer receives the owner's user id or the board's settings. It shows at most 1000 columns and 1000 cards.
 - A share link that is mistyped or no longer shared shows its own "This shared board isn't available" page.
 - Error reports go to this app's own Sentry project only, and session cookies are no longer sent along with them.
+- The address that receives error reports forwards at most 120 reports a minute from one client and refuses a report that declares more than 20 MiB.
 
 ## [0.4.0.0] - 2026-10-11
 

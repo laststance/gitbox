@@ -385,11 +385,11 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 ### Forward only the headers Sentry needs through the tunnel
 
-**What:** Build the headers of the forwarded tunnel request from a short allowlist (`content-type`, `content-encoding`, `user-agent`, `origin`, `referer`, `x-forwarded-for`, `accept-encoding`) instead of copying every header and deleting `cookie`. While there, match the tunnel path with one anchored pattern instead of `replace(/\/+$/, '')`, refuse bodies above Sentry's envelope size by `Content-Length`, and apply the edge rate limit before the rewrite.
+**What:** Build the headers of the forwarded tunnel request from a short allowlist (`content-type`, `content-encoding`, `user-agent`, `origin`, `referer`, `x-forwarded-for`, `accept-encoding`) instead of copying every header and deleting `cookie`. While there, match the tunnel path with one anchored pattern instead of `replace(/\/+$/, '')`, and decide whether a report sent without `Content-Length` should be refused.
 
-**Why:** Every header the proxy sees except `Cookie` goes to sentry.io with each report. The browser sends nothing else that is secret, but headers the platform adds for a function would go along if the proxy receives them: Vercel documents `x-vercel-oidc-token` as a request header of its functions. Whether the proxy gets it was not checked on a deployment. Before this change the whole header set, cookies included, was forwarded for signed-in users, so this is hardening, not a regression. The trailing-slash pattern is quadratic on a long run of slashes that is not at the end of the path (about 70 ms for a 14 kB path). The tunnel now answers signed-out requests too, and nothing bounds their size or rate; three review passes named this first. It gives no new way to reach Sentry, since the DSN is public and the same report can be posted to the ingest host directly, but each request costs a proxy run here.
+**Why:** Every header the proxy sees except `Cookie` goes to sentry.io with each report. The browser sends nothing else that is secret, but headers the platform adds for a function would go along if the proxy receives them: Vercel documents `x-vercel-oidc-token` as a request header of its functions. Whether the proxy gets it was not checked on a deployment. Before this change the whole header set, cookies included, was forwarded for signed-in users, so this is hardening, not a regression. The trailing-slash pattern is quadratic on a long run of slashes that is not at the end of the path (about 70 ms for a 14 kB path). The tunnel limits each client address to 120 reports a minute and refuses a declared length above 20 MiB, but it never reads the body, so a report sent with chunked encoding is not measured. Answering 411 to those would bound the size for real, and would drop every report if a browser or the platform stopped sending the header.
 
-**Context:** `forwardSentryReport` and `isSentryTunnelPath` in `src/proxy.ts`. `NextResponse.rewrite(..., { request: { headers } })` lists every remaining header name in `x-middleware-override-headers`, which is how `src/tests/unit/middleware.test.ts` sees what is forwarded. Before reusing `edgeRateLimit` for every report, see "Evict expired keys from the edge rate-limit store".
+**Context:** `forwardSentryReport` and `isSentryTunnelPath` in `src/proxy.ts`. `NextResponse.rewrite(..., { request: { headers } })` lists every remaining header name in `x-middleware-override-headers`, which is how `src/tests/unit/middleware.test.ts` sees what is forwarded. The limit's key is the first `X-Forwarded-For` entry; the spoofable key is tracked as #182.
 
 **Effort:** S
 **Priority:** P2
@@ -546,18 +546,6 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 **Why:** Delete a column, then press Z while an earlier column move is on the stack: the whole earlier column list is put back, the deleted column included. The position update for its id matches no row and reports success, so nothing is rolled back and the column stays on screen until reload.
 
 **Context:** `handleUndo` in `src/hooks/board/useKanbanUndo.ts` (the card path filters against the current cards, the column path does not), `confirmDelete` in `src/hooks/board/useStatusListDialog.ts`. Older than this change. Related: "Keep Redux in step when a column is deleted, and drop late picker notices" and "Fail a card or column move that matched no row".
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
-### Evict expired keys from the edge rate-limit store
-
-**What:** Sweep expired entries from the map in `src/lib/rate-limit/edge-memory.ts`, as `src/lib/rate-limit/memory.ts` does, or cap its size.
-
-**Why:** The store has no delete path. Every distinct first `X-Forwarded-For` value on `/auth/callback` leaves an entry for the life of the process.
-
-**Context:** Older than this change and outside it. The spoofable key is tracked as #182.
 
 **Effort:** S
 **Priority:** P3

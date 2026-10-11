@@ -21,6 +21,16 @@ const sentryIngestBaseUrl = `https://${sentryDsnUrl.host}/api${sentryDsnUrl.path
 export const SENTRY_ENVELOPE_URL = `${sentryIngestBaseUrl}/envelope/?hsts=0`
 
 /**
+ * Largest body the proxy forwards on the tunnel route. The biggest report the
+ * browser SDK builds is a session replay segment, which it stops growing at
+ * 20 MB before compression (`REPLAY_MAX_EVENT_BUFFER_SIZE` in
+ * `@sentry/replay`). Sentry accepts less than that anyway: 1 MiB for an error
+ * or a transaction and 10 MiB for a compressed replay. 20 MiB leaves room for
+ * the envelope headers on top of the largest segment.
+ */
+export const SENTRY_TUNNEL_MAX_BODY_BYTES = 20 * 1024 * 1024
+
+/**
  * `report-uri` of the Content-Security-Policy header in next.config.ts: the
  * browser posts this app's CSP violations straight to its Sentry project.
  */

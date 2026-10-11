@@ -380,7 +380,7 @@ interface BoardSettings {
 
 - **Algorithm**: Sliding window, in-memory per-process
 - **Bypass**: Disabled in test mode (`APP_ENV=test`)
-- **Edge**: Fixed-window variant in `proxy.ts` for OAuth callback
+- **Edge**: Fixed-window variant in `proxy.ts` for the OAuth callback and the Sentry tunnel. The tunnel limit also applies in test mode
 
 #### Rate Limit Configuration
 
@@ -393,6 +393,9 @@ interface BoardSettings {
 | `addReposToBoard`  | 10           | 1 min  | Add repository         |
 | `batchDnD`         | 60           | 1 min  | D&D batch operations   |
 | `boardCrud`        | 20           | 1 min  | Board/maintenance CRUD |
+| `userSettings`     | 20           | 1 min  | User settings          |
+| `publicBoardView`  | 60           | 1 min  | Shared board view      |
+| `sentryTunnel`     | 120          | 1 min  | Error reports (edge)   |
 
 #### Integration
 
