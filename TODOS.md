@@ -127,18 +127,6 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 **Priority:** P3
 **Depends on:** None
 
-### Enforce board vs Maintenance exclusivity in the database
-
-**What:** Make it impossible at the DB level for one repo to be on a board and in `maintenance` at once.
-
-**Why:** The rule is app-enforced only, so a race between restore and add can still produce both.
-
-**Context:** Production had 0 overlaps on 2026-10-11. Needs a cross-table mechanism (trigger on both tables or a shared placement table) and its own audit and cleanup step.
-
-**Effort:** M
-**Priority:** P3
-**Depends on:** None
-
 ### Identify repositories by GitHub id instead of `owner/name`
 
 **What:** Key uniqueness on the GitHub repository id so renames and transfers keep one identity.
@@ -155,7 +143,7 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 **What:** Find a repo across all boards from `⌘K` and jump to its board.
 
-**Why:** With one placement per repo, "where is it" becomes the common question.
+**Why:** With one placement per repo, "where is it" becomes the common question. The installed PWA has no find-in-page, so a long column can only be scrolled.
 
 **Context:** `getUserRepoPlacements()` in `src/lib/actions/board-data.ts` already returns repo, board id and board name.
 
@@ -187,18 +175,6 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 **Priority:** P3
 **Depends on:** None
 
-### Open-board links inside the move and restore dialog errors
-
-**What:** Turn the board name in the duplicate error into a link.
-
-**Why:** The error names the holding board but offers no way to get there.
-
-**Context:** The error is a plain string from `ActionUserError`. Would need a structured error payload. 0 such cases in the production audit.
-
-**Effort:** S
-**Priority:** P4
-**Depends on:** None
-
 ### Fail the parallel E2E run when seeding fails
 
 **What:** Make `scripts/e2e-parallel.sh` and the shard restore stop on seed or restore errors (`ON_ERROR_STOP`).
@@ -206,18 +182,6 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 **Why:** A failed seed leaves shards running against a partial fixture set, and tests that expect a fixture to be absent pass for the wrong reason.
 
 **Context:** Found by the Codex eng review. The owner-independence test asserts its fixtures as a local guard.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
-### Pin the Supabase CLI version in the production migration workflow
-
-**What:** Pin the CLI version used by `.github/workflows/supabase-production.yml`.
-
-**Why:** Migration behavior (transaction wrapping, history handling) can change between CLI releases.
-
-**Context:** The #215 migration is one `DO` block so it does not depend on wrapping, but later migrations may.
 
 **Effort:** S
 **Priority:** P3
@@ -259,11 +223,11 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 **Priority:** P2
 **Depends on:** None
 
-### Run the independent queries of add and restore in parallel
+### Run the independent queries of add in parallel
 
-**What:** Use `Promise.all` for the board check, the placement lookup and the max-order query in `addRepositoriesToBoard`, and for the sequential lookups in `restoreToBoard`.
+**What:** Use `Promise.all` for the board check, the placement lookup and the max-order query in `addRepositoriesToBoard`.
 
-**Why:** Each action makes three to five round trips in sequence; most do not depend on each other.
+**Why:** The action sends these queries one after the other, and none of them needs the answer of another.
 
 **Context:** `src/lib/actions/repo-cards.ts`. The unit tests stub the queries in call order, so they need updating together. Once the production migration is applied and no legacy duplicate remains, the target-board pre-check in `moveCardToBoard` can go as well (the unique index covers it).
 
@@ -316,6 +280,22 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 **Context:** `src/components/Board/OverflowMenu.tsx`, `src/components/Modals/MoveToAnotherBoardDialog.tsx`, `src/components/Board/AddRepositoryCombobox.tsx`, `ADD_RACE_MESSAGE` in `src/lib/actions/repo-card-duplicates.ts`. The copy is asserted in unit and E2E tests.
 
 **Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+## Set Work Aside on Boards (#213): deferred follow-ups
+
+From the `/autoplan` review of issue #213 (a repository that is set aside is a card on an ordinary board). The one follow-up does not block that change.
+
+### Refresh a card's GitHub metadata
+
+**What:** Add an action that reads a repository from GitHub again and rewrites the `meta` of its card (description, language, topics, stars, visibility, updated date), for one card and for a whole board.
+
+**Why:** `meta` is a snapshot from the moment a card is added and nothing updates it. A new description, star count, language or visibility on GitHub never reaches the card. Removing the card and adding it again would refresh it, but Remove from Board also deletes the note, links and comment.
+
+**Context:** `meta` is written in one place, `addRepositoriesToBoard` in `src/lib/actions/repo-cards.ts`, from the repository object the browser sends. A refresh should read GitHub on the server (`src/lib/actions/github.ts`) rather than trust a browser payload. It is a feature of its own: a server action with its own rate-limit key, a card-menu entry or a board-level button, and tests, about ten files in all.
+
+**Effort:** M
 **Priority:** P3
 **Depends on:** None
 
@@ -387,9 +367,9 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 **What:** On sign-out and account deletion, clear the `board` and `draft` slices stored under `gitbox-state` in localStorage (keep the theme and display settings), or store the owner's user id with them and drop them when it differs from the signed-in user.
 
-**Why:** On a shared browser the next account still holds the previous user's columns, cards (private repository names included), note drafts and last board name. The Maintenance page then shows "Back to <previous user's board>", a link that ends at "Board not found".
+**Why:** On a shared browser the next account still holds the previous user's columns, cards (private repository names included) and note drafts.
 
-**Context:** `slices: ['settings', 'board', 'draft']` in `src/lib/redux/store.ts`; `signOut` in `src/lib/actions/auth.ts` redirects without touching client state. Older than this change.
+**Context:** `slices: ['settings', 'board', 'draft']` in `src/lib/redux/store.ts`; `signOut` in `src/lib/actions/auth.ts` redirects without touching client state. Older than this change. The settings slice also keeps `moveDestinationByBoard`, a map of board ids to board ids (no names); another account never reads an entry, because its boards have other ids, but the map should be emptied with the rest.
 
 **Effort:** S
 **Priority:** P2
@@ -435,7 +415,7 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 **What:** (1) In `useOptimisticCardAction`, pass the rollback outcome to `notifyFailedBoardSave` on the `{ success: false }` branch too, and keep the server's message as the description when the card was put back. (2) Give a refused undo its own text: "Please try again." is wrong there because the undo step is gone. (3) Show one notice when a save fails offline, not the failed-save toast plus "You're offline", and keep the offline notice up while a save is pending. (4) Give the offline notice a close button. (5) After a save that threw, ask for a fresh copy of the board as well as putting the previous layout back.
 
-**Why:** (1) Remove from Board and Move to Maintenance are refused through `{ success: false }`. When the board changed in the meantime the card is not put back and the board reloads without saying so, and a burst of refusals stacks toasts. (2) to (4) The two notices disagree, the offline one disappears whenever a save starts, and it stays up with no button to close it. (5) A request can be committed before the connection drops; the screen then shows the old layout while the database holds the new one until the next reload. Do (5) after "Fetch the board again through a server action, not `router.refresh()`": a refetch sent while the server cannot be reached replaces the app with the browser's error page today.
+**Why:** (1) Remove from Board is refused through `{ success: false }`. When the board changed in the meantime the card is not put back and the board reloads without saying so, and a burst of refusals stacks toasts. (2) to (4) The two notices disagree, the offline one disappears whenever a save starts, and it stays up with no button to close it. (5) A request can be committed before the connection drops; the screen then shows the old layout while the database holds the new one until the next reload. Do (5) after "Fetch the board again through a server action, not `router.refresh()`": a refetch sent while the server cannot be reached replaces the app with the browser's error page today.
 
 **Context:** `src/hooks/board/useOptimisticCardAction.ts`, `src/hooks/board/useKanbanUndo.ts`, `src/hooks/board/useBoardServerSync.ts`, `src/hooks/board/useBoardRollback.ts`, `src/lib/utils/notify-failed-board-save.ts`. See also "Let a refused undo be tried again".
 

@@ -24,21 +24,22 @@ Signing in needs no password and no OAuth prompt: copy the cookies of the logged
 
 Claude Chrome may complete GitHub OAuth on localhost as `ryota-murakami` without an extra confirmation prompt. GitHub OAuth login on production is permitted too. Confirm the signed-in login is `ryota-murakami` before exercising the app.
 
-Local GitBox writes boards and cards to local Supabase. Deleting a card, archiving a repo, or removing a board does not call GitHub's delete-repository API, so the repository on GitHub stays. On production the boards and cards are the owner's real data.
+Local GitBox writes boards and cards to local Supabase. Deleting a card or removing a board does not call GitHub's delete-repository API, so the repository on GitHub stays. On production the boards and cards are the owner's real data.
 
 **🔴 A board without repositories verifies nothing. Add repositories to the board before the check.**
 
 Both E2E commands empty the local database down to the seed: `pnpm e2e:parallel` runs `pnpm db:reset` as its second step, and `pnpm e2e` resets it in `e2e/global-setup.ts`. The `ryota-murakami` user, its boards and its cards are gone afterwards, and the old session redirects to `/login`. Signing in again creates one board with no card on it.
 
 - On local, sign in, open the board, press **Add Repositories** and add repositories of `ryota-murakami` from the picker: cards in at least two columns, and a private or organization repository when the change reads GitHub data. Exercise the change on those cards: open one, drag one, run the flow under test.
-- On production, checks that only read use the owner's existing boards and cards. A check that changes data runs on a scratch board, and that board needs cards too. Add repositories that sit on no board and not in Maintenance: the picker lists the others under "Already placed elsewhere" and does not offer them (one repository per user). Deleting the scratch board deletes its cards. A card that was moved to Maintenance during the check has to be deleted there.
+- On production, checks that only read use the owner's existing boards and cards. A check that changes data runs on a scratch board, and that board needs cards too. Add repositories that sit on no board: the picker lists the others under "Already placed elsewhere" and does not offer them (one repository per user). Deleting the scratch board deletes its cards.
 - Run the E2E suite before signing in for the check. Running it afterwards means signing in and adding the repositories again.
 - Say in the report which board the check used and how many cards it held. A check on a board without cards is reported as that, not as verified.
 
-**🔴 Destructive flows on production run on scratch data only.** Remove from board, Move to Maintenance, delete column, delete board, account deletion and anything else that cannot be undone from the UI:
+**🔴 Destructive flows on production run on scratch data only.** Remove from board, delete column, delete board, account deletion and anything else that cannot be undone from the UI:
 
 - Create a board (and the cards or columns the check needs) for the check, exercise the flow on that board only, and delete the board afterwards.
-- Never delete, archive or move an existing board, column or card to verify something, and never run account deletion on `ryota-murakami`.
+- Move to Another Board runs between two scratch boards: add a repository to the first, move it to the second, and delete both boards afterwards.
+- Never delete or move an existing board, column or card to verify something, and never run account deletion on `ryota-murakami`.
 - A flow that cannot be exercised this way stays unverified on production. Name it in the report instead of skipping it silently.
 
 This rule is about verification. It does not limit a production change the owner asked for, such as deleting a duplicate card so a migration can run.
@@ -97,7 +98,7 @@ Do not use the E2E fixture session for this. Its GitHub cookie is the literal st
 
 **⚠️ WARNING:** Do NOT use `https://vercel.com/ryota-murakamis-projects/gitbox` - this is an incorrect duplicate project.
 **⚠️ WARNING:** `vercel env pull` を実行すると `.env.local` が本番認証情報で上書きされます。
-開発環境では Local Supabase (`supabase start`) を使用してください。
+開発環境では Local Supabase (`pnpm db:start`) を使用してください。
 
 ---
 
@@ -153,7 +154,7 @@ supabase migration new <description>
 # Edit the SQL file in supabase/migrations/
 
 # Reset local DB and re-apply all migrations
-supabase db reset
+pnpm db:reset
 ```
 
 ### GitHub OAuth Apps
@@ -188,7 +189,7 @@ supabase db reset
 
 3. **Restart Supabase** after adding/changing `.env`:
    ```bash
-   supabase stop && supabase start
+   pnpm db:stop && pnpm db:start
    ```
 
 **⚠️ Note:** `supabase/.env` is gitignored. Each developer must create their own from the GitHub OAuth App settings.
@@ -209,8 +210,22 @@ supabase db reset
 
 1. Create migration file: `supabase migration new <description>`
 2. Write SQL in `supabase/migrations/YYYYMMDDHHMMSS_<description>.sql`
-3. Test on dev: `supabase link --project-ref jqtxjzdxczqwsrvevmyk` → `supabase db push --linked`
+3. Test locally: `pnpm db:reset` applies every migration to a fresh local database
 4. Merge to `main` → the workflow runs `supabase db push` on production right away. There is no approval step, so remove any data the migration would reject before merging
+
+The workflow installs the Supabase CLI at the version it pins (`version:` in `.github/workflows/supabase-production.yml`). The pin and the local CLI are raised together, so a migration is tested with the CLI that runs it.
+
+**Migrations that move or delete data:**
+
+- Count what the migration will touch, and print counts only: the job log of this repository is public.
+- Refuse to run when a row cannot be carried over. Raise before the first write, so a refusal changes nothing. Put what to do next into `DETAIL`: the CLI prints a failed migration's message and `DETAIL`, not its `HINT` or `NOTICE` (seen on 2.120.0).
+- Do the work in one transaction (one `DO` block) that returns early when the work is already done, so a second run does nothing.
+- Dump the data first, to a file outside the repository and outside synced folders.
+- Compare production's schema with the repository's before trusting a local result: `diff` a `supabase db dump --linked --schema public` against a `supabase db dump --local --schema public` of a database built from the migrations.
+- Rehearse on a local copy of production's data, with the CLI version the workflow pins.
+- Write a manifest (ids, owners, timestamps, content hashes) before and after the run, and compare the two files with `diff`.
+
+`docs/plans/2026-10-12-issue-213-rollout-runbook.md` is a worked example. Each of its blocks can be pasted and names its input, the expected result and when to stop.
 
 **Required Setup:**
 
@@ -263,7 +278,6 @@ src/app/
 ├── boards/new/page.tsx      # New board creation
 ├── board/[id]/page.tsx      # Kanban board
 ├── public/[slug]/page.tsx   # Public board (read-only, unauthenticated)
-├── maintenance/             # Archived projects
 ├── settings/                # Display settings (Compact Mode, Card Metadata)
 ├── account/                 # Profile, stats, account deletion
 ├── privacy/                 # Privacy policy
@@ -271,15 +285,16 @@ src/app/
 └── login/                   # Login redirect
 ```
 
-### Database Schema (7 tables with RLS)
+### Database Schema (6 tables with RLS)
 
 - **board** - Kanban boards per user (position, subtitle, is_public, share_slug, settings JSONB). RLS shows a board, its columns and its cards to their owner only. A shared board is read through the `get_public_board(p_slug)` function, which returns the name and subtitle of the board with that share slug, its columns and its cards (1000 each at most), without any `user_id`; `/public/[slug]` is the only caller. A field the shared page needs has to be added to the function in a migration
 - **statuslist** - Columns (2D grid layout: gridRow, gridCol)
 - **repocard** - GitHub repos as cards. One card per user and repo across all boards: `user_id` is copied from the board by the `set_repocard_user_id` trigger and `repocard_unique_repo_per_user` is unique on `(user_id, lower(repo_owner), lower(repo_name))`. A card's column must be a column of its own board (`check_repocard_status_board` trigger), and a column cannot change boards (`forbid_statuslist_board_change` trigger on `statuslist`). App code reads ownership through the `board` join and never names, filters on or writes `repocard.user_id`. Card reads that reach the client select `REPO_CARD_COLUMNS` (`src/lib/actions/mappers.ts`), which leaves it out; the remaining wildcard selects are server-side ownership checks
-- **projectinfo** - Extended card data (notes, links, comments)
-- **maintenance** - Archived repos
+- **projectinfo** - Extended card data (notes, links, comments). `repo_card_id` is `NOT NULL` and unique: a row always belongs to one card and is deleted with it
 - **user_link_presets** - User-defined custom link types
 - **user_settings** - Per-user page customization (boards page title/subtitle)
+
+A board is created together with its columns by `create_board_with_status_lists(p_name, p_columns)`, which `createBoard` and the first-board creation at sign-in (`createFirstBoardIfNeeded`) call, so the app never leaves a board without columns. `p_columns` is a JSON array of `{ name, color }` in column order, and `createBoard` returns `{ id, name, statusLists }`. The function runs with the caller's rights, checks its own input and is executable by `authenticated` only.
 
 ### Server Actions
 
@@ -291,8 +306,7 @@ src/lib/actions/
 ├── repo-cards.ts              # RepoCard CRUD + D&D
 ├── repo-card-duplicates.ts    # One-repo-per-user rules: placement lookup, split, 23505 mapping (not 'use server')
 ├── project-info.ts            # Notes, links
-├── shared-project-info.ts     # Shared project info helpers
-├── maintenance-project-info.ts # Maintenance CRUD + delete
+├── project-info-core.ts       # Project info logic keyed by card id (not 'use server')
 ├── public-board.ts            # Public board sharing (read-only view, via the get_public_board RPC)
 ├── user-presets.ts            # Custom link type presets
 ├── user-settings.ts           # Boards page title/subtitle customization
@@ -322,7 +336,11 @@ All client-consumed Server Actions return `ActionResult<T>` (`{ success: true, d
 
 ### Board data and optimistic writes
 
-`useBoardServerSync` (called once by `BoardPageClient`) is the only place the page's server data enters the Redux store, and the only code that fetches a board again (`router.refresh()`). Card and column drags, undo, remove and move to Maintenance wrap their server action in `trackBoardWrite(dispatch, …)` (`src/lib/redux/slices/boardSyncSlice.ts`). Data fetched for the board on screen is not applied while one of those saves is pending or after the board changed mid-fetch; it is dropped and the board is fetched once more. Column create, rename and delete, adding repositories and comment edits are not counted yet (see TODOS.md). A failed save calls `useBoardRollback`, which restores the previous cards or columns only when the store still holds what that write put there, and otherwise dispatches `boardRefreshRequested()`; `notifyFailedBoardSave` words the toast from what the rollback returned. Do not call `router.refresh()` or dispatch `setRepoCards(initialData…)` from anywhere else on the board page.
+`useBoardServerSync` (called once by `BoardPageClient`) is the only place the page's server data enters the Redux store, and the only code that fetches a board again (`router.refresh()`). Card and column drags, undo, remove and Move to Another Board wrap their server action in `trackBoardWrite(dispatch, …)` (`src/lib/redux/slices/boardSyncSlice.ts`). Data fetched for the board on screen is not applied while one of those saves is pending or after the board changed mid-fetch; it is dropped and the board is fetched once more. Column create, rename and delete, adding repositories and comment edits are not counted yet (see TODOS.md). A failed optimistic save (drag, undo, remove) calls `useBoardRollback`, which restores the previous cards or columns only when the store still holds what that write put there, and otherwise dispatches `boardRefreshRequested()`; `notifyFailedBoardSave` words the toast from what the rollback returned. Move to Another Board is not optimistic: the card leaves the store when the server has answered, through `removeMovedRepoCard`, and only while the store still holds the board the card came from; a refused move shows its error in the dialog. Do not call `router.refresh()` or dispatch `setRepoCards(initialData…)` from anywhere else on the board page.
+
+### Focus after a card dialog closes
+
+A dialog opened from a card's menu has no trigger element Radix could hand the focus back to, so without help the focus lands on the page itself. `useCardDialogFocusReturn(cardId)` (`src/hooks/board/useCardDialogFocusReturn.ts`) returns `handleCloseAutoFocus` for the dialog content's `onCloseAutoFocus` and `rememberCardSuccessor()`, which is called right before the card leaves the board. Focus then goes to the card (Cancel), or to its neighbor in the column (`findCardFocusSuccessor` in `src/lib/utils/card-focus-target.ts`, which reads `data-repo-card-id`, `data-status-column-id` and `data-column-add-repo` from the page). Move to Another Board and the Remove from Board confirmation use it; a new dialog that is opened from a card should too.
 
 ### Client Components rendered by Server Components
 
@@ -420,7 +438,7 @@ pnpm e2e --headed
 
 ### E2E fixture auth (Playwright only)
 
-Playwright (`pnpm e2e`, `pnpm e2e:parallel`) injects a fake session so tests can open `/boards` and `/maintenance` without GitHub OAuth. This is not local verification and not bug investigation.
+Playwright (`pnpm e2e`, `pnpm e2e:parallel`) injects a fake session so tests can open `/boards` and `/account` without GitHub OAuth. This is not local verification and not bug investigation.
 
 What this environment can exercise is the fixture world only: page chrome, navigation, and flows asserted against `seed.sql` plus MSW repositories such as "A test repository for GitBox". It cannot show `ryota-murakami`'s repositories, org membership, private repos, or any bug that depends on a real GitHub payload. `e2e/auth.setup.ts` also records that `supabase.auth.getUser()` returns null for this token, so server-side mutations are not a faithful check.
 
@@ -471,7 +489,7 @@ agent-browser --session local-auth open http://localhost:3008/boards
 #### Notes
 
 - If `APP_ENV=test` is missing, server-side auth checks redirect to `/login`.
-- After cookie injection, open the target route again (`/boards`, `/maintenance`).
+- After cookie injection, open the target route again (`/boards`, `/account`).
 - Close session when done: `agent-browser --session local-auth close`.
 
 #### Troubleshooting

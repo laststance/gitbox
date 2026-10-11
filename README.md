@@ -24,6 +24,7 @@ When you have dozens (or hundreds) of repos from side projects, experiments, and
 - Kanban boards for GitHub repositories
 - Drag-and-drop organization (cards, columns, boards)
 - Move cards between boards
+- Set repositories aside on a board of their own, notes and links kept
 - GitHub OAuth-based access
 - Supabase-backed persistence with RLS
 - Rich text project notes (Plate.js editor)
@@ -31,7 +32,6 @@ When you have dozens (or hundreds) of repos from side projects, experiments, and
 - Inline comments on repo cards with color customization
 - Inline editable board title and subtitle
 - Public board sharing with unique share links
-- Maintenance mode for archived projects
 - 14 themes (7 light + 7 dark) + system preference
 - Collapsible sidebar with state persistence
 - Command palette (⌘K)
@@ -55,16 +55,53 @@ When you have dozens (or hundreds) of repos from side projects, experiments, and
 ### Prerequisites
 
 - Node.js >=24.12.0
-- pnpm 10.26.2
+- pnpm 11.1.2 (the `packageManager` field of `package.json`)
+- Docker Desktop, running (it hosts the local Supabase)
+- A GitHub account, to register the OAuth App that signs you in
 
 ### Setup
 
-```bash
-pnpm install
-cp .env.local.example .env
-```
+Follow the steps in this order. `pnpm db:start` reads `supabase/.env`, so the OAuth App and that file come first.
 
-Fill in the values in `.env` with your configuration.
+1. Install dependencies:
+
+   ```bash
+   pnpm install
+   ```
+
+2. Register a GitHub OAuth App at https://github.com/settings/developers:
+
+   - Application name: `GitBox Local Dev`
+   - Homepage URL: `http://localhost:3008`
+   - Authorization callback URL: `http://127.0.0.1:54321/auth/v1/callback`
+
+   Then copy its client ID and generate a client secret.
+
+3. Create `supabase/.env` with that client ID and secret. The Supabase CLI reads OAuth credentials from this file, not from the root `.env`:
+
+   ```bash
+   GITHUB_CLIENT_ID="your-github-oauth-client-id"
+   GITHUB_CLIENT_SECRET="your-github-oauth-client-secret"
+   ```
+
+4. Start local Supabase. The script loads `supabase/.env` and applies every migration:
+
+   ```bash
+   pnpm db:start
+   ```
+
+5. Create the app's `.env` and replace its placeholders (the variables are described under [Environment Variables](#environment-variables)). The Supabase values come from the running local stack, the GitHub values are the ones from step 3:
+
+   ```bash
+   cp .env.local.example .env
+   supabase status -o env
+   ```
+
+6. Start the dev server and open `http://localhost:3008` in your browser:
+
+   ```bash
+   pnpm dev
+   ```
 
 ### Environment Variables
 
@@ -73,8 +110,8 @@ Fill in the values in `.env` with your configuration.
 | `NEXT_PUBLIC_SUPABASE_URL`      | ✅       | Supabase project URL                                   |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅       | Supabase anonymous key                                 |
 | `SUPABASE_SERVICE_ROLE_KEY`     | ✅       | Supabase service role key (server-only)                |
-| `GITHUB_CLIENT_ID`              | ✅       | GitHub OAuth App client ID                             |
-| `GITHUB_CLIENT_SECRET`          | ✅       | GitHub OAuth App client secret                         |
+| `GITHUB_CLIENT_ID`              | ✅       | GitHub OAuth App client ID (in `supabase/.env`)        |
+| `GITHUB_CLIENT_SECRET`          | ✅       | GitHub OAuth App client secret (in `supabase/.env`)    |
 | `NEXT_PUBLIC_SITE_URL`          | ✅       | Site URL for OAuth callbacks                           |
 | `SENTRY_AUTH_TOKEN`             | ❌       | Sentry authentication token (optional)                 |
 | `APP_ENV`                       | ❌       | Environment mode (`development`, `test`, `production`) |
@@ -88,55 +125,31 @@ When deploying to Vercel, the following are auto-injected:
 - `VERCEL_ENV` - Current deployment environment
 - `VERCEL_URL` - Deployment URL
 
-### Local Supabase Setup
+### Running the Local Supabase
 
-**Prerequisites:** Docker Desktop running
+Run the local stack through the package scripts, never a bare `supabase start` or `supabase stop`: `pnpm db:start` and `pnpm db:reset` load `supabase/.env` first.
 
 ```bash
-# Start local Supabase (sources OAuth env vars + applies migrations)
+# Start (applies every migration)
 pnpm db:start
-
-# Check status and credentials
-supabase status
 
 # Stop when done
 pnpm db:stop
 
-# Reset database (re-apply all migrations)
+# Restart, after adding or changing supabase/.env
+pnpm db:stop && pnpm db:start
+
+# Reset the database (re-apply all migrations)
 pnpm db:reset
+
+# Check status and credentials
+supabase status
 ```
 
 **Local URLs:**
 
 - Studio: http://127.0.0.1:54323
 - API: http://127.0.0.1:54321
-
-### GitHub OAuth for Local Development
-
-Supabase CLI reads OAuth credentials from `supabase/.env` (not root `.env`).
-
-1. Create `supabase/.env`:
-
-```bash
-GITHUB_CLIENT_ID="your-github-oauth-client-id"
-GITHUB_CLIENT_SECRET="your-github-oauth-client-secret"
-```
-
-2. Configure GitHub OAuth App with callback URL: `http://127.0.0.1:54321/auth/v1/callback`
-
-3. Restart Supabase after adding/changing `.env`:
-
-```bash
-supabase stop && supabase start
-```
-
-### Start Development Server
-
-```bash
-pnpm dev
-```
-
-Open `http://localhost:3008` in your browser.
 
 ## Scripts
 
