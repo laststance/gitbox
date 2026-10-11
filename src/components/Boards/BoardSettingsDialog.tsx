@@ -67,6 +67,7 @@ import {
   DEFAULT_CARD_DISPLAY_SETTINGS,
   parseBoardSettings,
 } from '@/lib/types/board-settings'
+import { toPublicBoardUrl } from '@/lib/utils/to-public-board-url'
 import {
   BOARD_NAME_MAX_LENGTH,
   BOARD_SUBTITLE_MAX_LENGTH,
@@ -333,7 +334,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
   /** Copy share URL to clipboard */
   async function handleCopyShareLink(): Promise<void> {
     if (!boardShareSlug) return
-    const url = `${window.location.origin}/public/${boardShareSlug}`
+    const url = toPublicBoardUrl(window.location.origin, boardShareSlug)
     try {
       await navigator.clipboard.writeText(url)
       setCopied(true)
@@ -852,7 +853,12 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                     <div className="flex items-center gap-2">
                       <Input
                         readOnly
-                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/public/${boardShareSlug}`}
+                        value={toPublicBoardUrl(
+                          typeof window !== 'undefined'
+                            ? window.location.origin
+                            : '',
+                          boardShareSlug,
+                        )}
                         className="text-muted-foreground text-sm"
                         data-testid="share-link-input"
                       />

@@ -6,6 +6,7 @@
  * - Display name (for optimistic rename)
  * - Display subtitle (for optimistic update)
  * - Card display settings
+ * - Share slug while the board is shared by link
  *
  * Note: Theme is now managed globally via Redux and Sidebar ThemeToggle.
  */
@@ -25,6 +26,10 @@ interface UseBoardSettingsParams {
   boardSubtitle: string | null
   /** Board settings JSON from database */
   boardSettings: unknown
+  /** Whether the board is shared by link when the page loads (default: false) */
+  isPublic?: boolean
+  /** The board's share slug; a board that was shared once keeps it while private */
+  shareSlug?: string | null
 }
 
 interface UseBoardSettingsReturn {
@@ -38,6 +43,8 @@ interface UseBoardSettingsReturn {
   cardDisplaySettings: CardDisplaySettings
   /** Whether to show subtitle in the board header */
   showSubtitle: boolean
+  /** Share slug while the board is shared by link, `null` while it is private */
+  publicShareSlug: string | null
   /** Open the settings dialog */
   open: () => void
   /** Close the settings dialog */
@@ -50,6 +57,8 @@ interface UseBoardSettingsReturn {
   handleCardDisplayChange: (newSettings: CardDisplaySettings) => void
   /** Handle show subtitle toggle change (optimistic update) */
   handleShowSubtitleChange: (show: boolean) => void
+  /** Handle the sharing switch being turned on or off */
+  handlePublicChange: (isPublic: boolean, shareSlug: string | null) => void
 }
 
 /**
@@ -63,6 +72,8 @@ interface UseBoardSettingsReturn {
  *   boardName: board.name,
  *   boardSubtitle: board.subtitle,
  *   boardSettings: board.settings,
+ *   isPublic: board.is_public,
+ *   shareSlug: board.share_slug,
  * })
  *
  * // In render
@@ -71,6 +82,7 @@ interface UseBoardSettingsReturn {
  *   onClose={settings.close}
  *   onRenameSuccess={settings.handleRenameSuccess}
  *   onCardDisplayChange={settings.handleCardDisplayChange}
+ *   onPublicChange={settings.handlePublicChange}
  *   ...
  * />
  */
@@ -78,6 +90,8 @@ export function useBoardSettings({
   boardName,
   boardSubtitle,
   boardSettings,
+  isPublic = false,
+  shareSlug = null,
 }: UseBoardSettingsParams): UseBoardSettingsReturn {
   const [isOpen, setIsOpen] = useState(false)
   const [displayName, setDisplayName] = useState(boardName)
@@ -91,6 +105,9 @@ export function useBoardSettings({
     const parsed = parseBoardSettings(boardSettings)
     return parsed.showSubtitle ?? true
   })
+  const [publicShareSlug, setPublicShareSlug] = useState<string | null>(
+    isPublic ? shareSlug : null,
+  )
 
   const open = useCallback(() => {
     setIsOpen(true)
@@ -121,17 +138,27 @@ export function useBoardSettings({
     setShowSubtitle(show)
   }, [])
 
+  const handlePublicChange = useCallback(
+    (nextIsPublic: boolean, nextShareSlug: string | null) => {
+      // The slug outlives the switch being turned off, so it alone says nothing
+      setPublicShareSlug(nextIsPublic ? nextShareSlug : null)
+    },
+    [],
+  )
+
   return {
     isOpen,
     displayName,
     displaySubtitle,
     cardDisplaySettings,
     showSubtitle,
+    publicShareSlug,
     open,
     close,
     handleRenameSuccess,
     handleSubtitleChange,
     handleCardDisplayChange,
     handleShowSubtitleChange,
+    handlePublicChange,
   }
 }

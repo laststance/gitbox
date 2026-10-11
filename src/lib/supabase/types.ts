@@ -323,6 +323,10 @@ export type Database = {
         Args: { p_updates: Json }
         Returns: undefined
       }
+      get_public_board: {
+        Args: { p_slug: string }
+        Returns: Json
+      }
       move_to_maintenance: {
         Args: {
           p_card_id: string

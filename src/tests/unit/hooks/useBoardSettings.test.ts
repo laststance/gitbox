@@ -252,4 +252,78 @@ describe('useBoardSettings', () => {
       })
     })
   })
+
+  describe('Share link', () => {
+    test('offers the share slug of a board that is shared when the page loads', () => {
+      // Arrange / Act
+      const { result } = renderHook(() =>
+        useBoardSettings({
+          boardName: 'Test Board',
+          boardSubtitle: null,
+          boardSettings: defaultBoardSettings,
+          isPublic: true,
+          shareSlug: 'a1b2c3d4e5f6',
+        }),
+      )
+
+      // Assert
+      expect(result.current.publicShareSlug).toBe('a1b2c3d4e5f6')
+    })
+
+    test('offers no share slug for a private board that kept its slug from earlier sharing', () => {
+      // Arrange / Act: sharing was turned off, the slug stays in the database
+      const { result } = renderHook(() =>
+        useBoardSettings({
+          boardName: 'Test Board',
+          boardSubtitle: null,
+          boardSettings: defaultBoardSettings,
+          isPublic: false,
+          shareSlug: 'a1b2c3d4e5f6',
+        }),
+      )
+
+      // Assert
+      expect(result.current.publicShareSlug).toBeNull()
+    })
+
+    test('offers the share slug as soon as sharing is turned on', () => {
+      // Arrange
+      const { result } = renderHook(() =>
+        useBoardSettings({
+          boardName: 'Test Board',
+          boardSubtitle: null,
+          boardSettings: defaultBoardSettings,
+        }),
+      )
+
+      // Act
+      act(() => {
+        result.current.handlePublicChange(true, 'a1b2c3d4e5f6')
+      })
+
+      // Assert
+      expect(result.current.publicShareSlug).toBe('a1b2c3d4e5f6')
+    })
+
+    test('stops offering the share slug as soon as sharing is turned off', () => {
+      // Arrange
+      const { result } = renderHook(() =>
+        useBoardSettings({
+          boardName: 'Test Board',
+          boardSubtitle: null,
+          boardSettings: defaultBoardSettings,
+          isPublic: true,
+          shareSlug: 'a1b2c3d4e5f6',
+        }),
+      )
+
+      // Act: the server keeps the slug when the board goes private
+      act(() => {
+        result.current.handlePublicChange(false, 'a1b2c3d4e5f6')
+      })
+
+      // Assert
+      expect(result.current.publicShareSlug).toBeNull()
+    })
+  })
 })

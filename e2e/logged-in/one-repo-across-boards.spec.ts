@@ -14,7 +14,8 @@
  * Database rules (asserted directly against PostgREST):
  * - Unique index per (user, lower(owner), lower(name))
  * - `repocard.user_id` always equals the board owner and cannot be forged
- * - RLS refuses an insert into another user's public board (42501)
+ * - An insert into another user's public board is refused (23514: the column
+ *   of a board that is not yours cannot be seen, so no card can go into it)
  * - A card's column must be a column of the card's board, and a column cannot
  *   change boards (`check_repocard_status_board`,
  *   `forbid_statuslist_board_change`, 23514)
@@ -669,8 +670,10 @@ test.describe('One repository per user - database rules', () => {
       meta: {},
     })
 
-    // Assert: row-level security violation, nothing written
-    expect(error?.code).toBe('42501')
+    // Assert: refused, nothing written. Another user's column is invisible to
+    // the test user even on a public board, so check_repocard_status_board
+    // rejects the row (23514) before row-level security gets to (42501).
+    expect(error?.code).toBe('23514')
     const probeCards = await querySupabase('repocard', {
       repo_name: 'rls-probe',
     })

@@ -29,6 +29,7 @@ import {
 import type { ISOTimestamp, Visibility } from '@/lib/types/domain-primitives'
 import { addRepositoriesRequestSchema } from '@/lib/validations/repo-card'
 
+import { REPO_CARD_COLUMNS } from './mappers'
 import {
   ADD_RACE_MESSAGE,
   findBoardPlacement,
@@ -206,9 +207,7 @@ export async function addRepositoriesToBoard(
       const { data: insertedCards, error: insertError } = await supabase
         .from('repocard')
         .insert(cardsToInsert)
-        .select(
-          'id, board_id, status_id, repo_owner, repo_name, order, meta, created_at, updated_at',
-        )
+        .select(REPO_CARD_COLUMNS)
 
       if (insertError) {
         // Another tab placed one of these repositories after the lookup. The

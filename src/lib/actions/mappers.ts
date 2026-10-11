@@ -23,8 +23,17 @@ import { DEFAULT_COMMENT_COLOR } from '@/lib/validations/project-info'
 
 import type { CommentData } from './shared-project-info'
 
+/**
+ * The `repocard` columns the app reads, as a PostgREST select list. Leaves out
+ * `user_id`, which only the database uses (unique index and triggers), so it
+ * is never fetched into a page. The public board page reads its cards through
+ * the `get_public_board` database function, which returns the same columns.
+ */
+export const REPO_CARD_COLUMNS =
+  'id, board_id, status_id, repo_owner, repo_name, order, meta, created_at, updated_at'
+
 type StatusListRow = Tables<'statuslist'>
-type RepoCardRow = Tables<'repocard'>
+type RepoCardRow = Omit<Tables<'repocard'>, 'user_id'>
 
 /**
  * Convert a raw Supabase `statuslist` row into a {@link StatusListDomain}.
@@ -89,15 +98,15 @@ export function toRepoCardDomain(row: RepoCardRow): RepoCardDomain {
 /**
  * Raw shape of one board fetched with its children embedded via PostgREST.
  * Mirrors the embed select string in `getBoardBundle`
- * (`*, statuslist(*), repocard(*, projectinfo(comment, comment_color))`).
+ * (`*, statuslist(*), repocard(<REPO_CARD_COLUMNS>, projectinfo(comment, comment_color))`).
  * `projectinfo` is an object-or-null (NOT an array) because
  * `projectinfo_repo_card_id_fkey` is one-to-one; it is `null` whenever the
- * card has no project info, or when RLS hides it from a non-owner.
+ * card has no project info. `getBoardBundle` returns the owner's boards only.
  */
 export type BoardBundleRow = Tables<'board'> & {
   statuslist: Tables<'statuslist'>[]
   repocard: Array<
-    Tables<'repocard'> & {
+    RepoCardRow & {
       projectinfo: Pick<
         Tables<'projectinfo'>,
         'comment' | 'comment_color'
@@ -129,7 +138,7 @@ export interface BoardBundle {
  * embed resolves. Sorts columns by gridRow then gridCol and cards by order
  * ascending, and builds a comments map with one entry per card — filling
  * `{ comment: '', color: DEFAULT_COMMENT_COLOR }` whenever `projectinfo` is
- * absent (no info yet, or RLS-hidden for non-owners).
+ * absent (the card has no info yet).
  *
  * @param row - Raw board row with embedded `statuslist` + `repocard(+projectinfo)`.
  * @returns A {@link BoardBundle}: raw board, sorted columns/cards, parity comments map.
