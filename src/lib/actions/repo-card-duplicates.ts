@@ -105,9 +105,9 @@ interface RequestedRepository {
  *
  * Called by `addRepositoriesToBoard`, `restoreToBoard` and
  * `getUserRepoPlacements`, so the owner filter exists in exactly one place.
- * RLS alone is not enough here: the policy "Anyone can view public board repo
- * cards" also returns other users' public cards, hence the explicit
- * `board.user_id` filter.
+ * Row level security already limits these reads to the user's own boards; the
+ * explicit `board.user_id` filter keeps the lookup correct by itself, so a
+ * future read policy cannot make another user's cards block this user.
  *
  * @param supabase - Authenticated Supabase client (RLS applies).
  * @param userId - The current user's id (`claims.sub`).
