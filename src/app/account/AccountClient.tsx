@@ -3,13 +3,13 @@
  *
  * Client component for account management UI
  * - Profile section (avatar, username, linked since)
- * - Account Data section (boards, cards, maintenance counts)
+ * - Account Data section (boards, cards counts)
  * - Danger Zone section (account deletion)
  */
 
 'use client'
 
-import { LayoutDashboard, FileText, Archive, LogOut } from 'lucide-react'
+import { LayoutDashboard, FileText, LogOut } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { memo, useCallback, useState, useTransition } from 'react'
@@ -126,7 +126,7 @@ export const AccountClient = memo(function AccountClient({
             <CardDescription>Summary of your GitBox data</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col items-center rounded-lg border p-4">
                 <LayoutDashboard className="text-muted-foreground mb-2 h-6 w-6" />
                 <span className="text-2xl font-bold">
@@ -141,15 +141,6 @@ export const AccountClient = memo(function AccountClient({
                 </span>
                 <span className="text-muted-foreground text-sm">
                   Repository Cards
-                </span>
-              </div>
-              <div className="flex flex-col items-center rounded-lg border p-4">
-                <Archive className="text-muted-foreground mb-2 h-6 w-6" />
-                <span className="text-2xl font-bold">
-                  {accountData.maintenanceCount}
-                </span>
-                <span className="text-muted-foreground text-sm">
-                  Maintenance Items
                 </span>
               </div>
             </div>

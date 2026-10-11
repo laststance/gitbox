@@ -48,11 +48,7 @@ import {
 } from '@/hooks/board'
 import { renameBoardDirect, updateBoardSubtitle } from '@/lib/actions/board'
 import type { BoardInitialData } from '@/lib/actions/board-data'
-import {
-  moveToMaintenance,
-  deleteRepoCard,
-  type CreatedRepoCard,
-} from '@/lib/actions/repo-cards'
+import { deleteRepoCard, type CreatedRepoCard } from '@/lib/actions/repo-cards'
 import type { RepoCardForRedux } from '@/lib/models/domain'
 import {
   setActiveBoard,
@@ -137,16 +133,6 @@ export const BoardPageClient = memo(function BoardPageClient({
   // ========================================
 
   const executeCardAction = useOptimisticCardAction()
-
-  const handleMoveToMaintenance = useCallback(
-    async (cardId: RepoCardId) =>
-      executeCardAction(cardId, moveToMaintenance, {
-        actionName: 'moveToMaintenance',
-        errorMessage: 'Failed to move to maintenance',
-        successMessage: 'Moved to maintenance',
-      }),
-    [executeCardAction],
-  )
 
   const handleRemoveFromBoard = useCallback(
     async (cardId: RepoCardId) =>
@@ -278,9 +264,6 @@ export const BoardPageClient = memo(function BoardPageClient({
                 statusId={addRepoCombobox.statusId}
                 isOpen={addRepoCombobox.isOpen}
                 onOpenChange={addRepoCombobox.handleOpenChange}
-                maintenanceRepoIdentifiers={
-                  initialData.maintenanceRepoIdentifiers
-                }
                 onRepositoriesAdded={(createdCards: CreatedRepoCard[]) => {
                   // Optimistic UI update: cards appear instantly without a reload.
                   const newCards: RepoCardForRedux[] = createdCards.map(
@@ -333,7 +316,6 @@ export const BoardPageClient = memo(function BoardPageClient({
             boardId={boardId}
             initialComments={initialData.comments}
             cardDisplaySettings={boardSettings.cardDisplaySettings}
-            onMoveToMaintenance={handleMoveToMaintenance}
             onMoveToAnotherBoard={handleMoveToAnotherBoard}
             onNote={noteModal.open}
             onRemove={handleRemoveFromBoard}

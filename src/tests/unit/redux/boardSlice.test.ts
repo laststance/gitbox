@@ -70,7 +70,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: [],
-        lastVisitedBoard: null,
       }
 
       const newCards = [
@@ -97,7 +96,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
-        lastVisitedBoard: null,
       }
 
       const newCards = [
@@ -120,7 +118,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
-        lastVisitedBoard: null,
       }
 
       const nextState = boardSlice(initialState, addRepoCards([]))
@@ -134,7 +131,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: [],
-        lastVisitedBoard: null,
       }
 
       const newCard = createMockCard({
@@ -169,7 +165,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
-        lastVisitedBoard: null,
       }
 
       const newCards = [createMockCard({ id: toRepoCardId('new-1') })]
@@ -190,7 +185,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
-        lastVisitedBoard: null,
       }
 
       const nextState = boardSlice(initialState, setRepoCards([]))
@@ -211,7 +205,6 @@ describe('boardSlice', () => {
           activeBoard: null,
           statusLists: [],
           repoCards: cards,
-          lastVisitedBoard: null,
         },
       }
 
@@ -230,7 +223,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
-        lastVisitedBoard: null,
       }
 
       // Optimistic add
@@ -259,7 +251,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
-        lastVisitedBoard: null,
       }
 
       const newCard = createMockCard({ id: toRepoCardId('card-3'), order: 2 })
@@ -293,7 +284,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: [],
-        lastVisitedBoard: null,
       }
 
       const board = createMockBoard()
@@ -313,7 +303,6 @@ describe('boardSlice', () => {
         activeBoard: existingBoard,
         statusLists: [],
         repoCards: [],
-        lastVisitedBoard: null,
       }
 
       const newBoard = createMockBoard({
@@ -332,7 +321,6 @@ describe('boardSlice', () => {
         activeBoard: existingBoard,
         statusLists: [],
         repoCards: [],
-        lastVisitedBoard: null,
       }
 
       const nextState = boardSlice(initialState, setActiveBoard(null))
@@ -345,7 +333,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: [],
-        lastVisitedBoard: null,
       }
 
       const board = createMockBoard({
@@ -365,7 +352,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: [],
-        lastVisitedBoard: null,
       }
 
       const newStatuses = [
@@ -391,7 +377,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: existingStatuses,
         repoCards: [],
-        lastVisitedBoard: null,
       }
 
       const newStatuses = [
@@ -415,7 +400,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
-        lastVisitedBoard: null,
       }
 
       const nextState = boardSlice(
@@ -433,7 +417,6 @@ describe('boardSlice', () => {
         activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
-        lastVisitedBoard: null,
       }
 
       const nextState = boardSlice(
@@ -456,7 +439,6 @@ describe('boardSlice', () => {
           activeBoard: null,
           statusLists: statuses,
           repoCards: [],
-          lastVisitedBoard: null,
         },
       }
 

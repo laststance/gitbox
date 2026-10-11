@@ -333,7 +333,7 @@ describe('RepoCard', () => {
      * Regression: previously the Card swallowed every Enter key bubbling up
      * through the React tree, including ones forwarded from descendants such
      * as the OverflowMenu's portal-rendered DropdownMenuItem. Pressing Enter
-     * on "Move to Maintenance" therefore opened the Note modal instead of
+     * on "Move to Another Board" therefore opened the Note modal instead of
      * triggering the menu action.
      *
      * The handler now ignores events whose target differs from the Card

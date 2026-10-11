@@ -255,7 +255,7 @@ describe('Client Components that Server Components render', () => {
     ])
   })
 
-  test('include the page components of the board, the boards list and Maintenance', () => {
+  test('include the page components of the board and the boards list', () => {
     // Arrange / Act
     const components = findServerRenderedClientComponents().map(
       ({ component }) => component,
@@ -267,9 +267,6 @@ describe('Client Components that Server Components render', () => {
     )
     expect(components).toContain(
       'src/components/Boards/BoardGrid.tsx#BoardGrid',
-    )
-    expect(components).toContain(
-      'src/app/maintenance/MaintenanceClient.tsx#MaintenanceClient',
     )
   })
 })

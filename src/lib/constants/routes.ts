@@ -9,7 +9,6 @@ export const ROUTES = {
   BOARDS_NEW: '/boards/new',
   FAVORITES: '/boards/favorites',
   ACCOUNT: '/account',
-  MAINTENANCE: '/maintenance',
   SETTINGS: '/settings',
   TERMS: '/terms',
   PRIVACY: '/privacy',

@@ -1,12 +1,11 @@
 /**
  * Unit Tests: placing actions enforce "one repository, one card per user" (Issue #215)
  *
- * Runs `addRepositoriesToBoard`, `restoreToBoard` and `moveCardToBoard` against
- * a stubbed Supabase client to lock in the paths E2E cannot reach reliably:
+ * Runs `addRepositoriesToBoard` and `moveCardToBoard` against a stubbed
+ * Supabase client to lock in the paths E2E cannot reach reliably:
  * - a failed placement lookup must abort before any write (fail closed)
  * - a malformed payload must be rejected before any query
  * - a write rejected by the unique index must surface the race sentence
- * - a repository that is only in Maintenance must stay restorable
  *
  * The happy paths and the real database constraints are covered by E2E
  * (`e2e/logged-in/one-repo-across-boards.spec.ts`).
@@ -20,7 +19,6 @@ import type { GitHubRepository } from '@/lib/actions/github'
 import {
   addRepositoriesToBoard,
   moveCardToBoard,
-  restoreToBoard,
 } from '@/lib/actions/repo-cards'
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 
@@ -79,11 +77,11 @@ function makeQuery(
 /**
  * Sign in as `user-1` with a Supabase stub that answers per table.
  *
- * `repocard` and `maintenance` answer the list reads of the placement lookup.
- * The optional `*Single` / `*MaybeSingle` entries answer the single-row reads
- * of the same table (the card or maintenance item being acted on, the highest
- * order in a column, the duplicate check in the target board). `rpc` is the
- * answer of the database function the action calls.
+ * `repocard` answers the list read of the placement lookup. The optional
+ * `repocardSingle` / `repocardMaybeSingle` entries answer the single-row reads
+ * of the same table (the card being acted on, the highest order in a column,
+ * the duplicate check in the target board). `rpc` is the answer of the
+ * database function the action calls.
  */
 function signInWithSupabaseStub(tables: {
   board?: QueryResult
@@ -91,8 +89,6 @@ function signInWithSupabaseStub(tables: {
   repocard: QueryResult
   repocardSingle?: QueryResult
   repocardMaybeSingle?: QueryResult
-  maintenance: QueryResult
-  maintenanceSingle?: QueryResult
   insert?: QueryResult
   rpc?: QueryResult
 }) {
@@ -123,7 +119,7 @@ function signInWithSupabaseStub(tables: {
         maybeSingle: tables.repocardMaybeSingle,
       })
     }
-    return makeQuery(tables.maintenance, { single: tables.maintenanceSingle })
+    throw new Error(`Unexpected table read: ${table}`)
   })
 
   vi.mocked(getCachedClaims).mockResolvedValue({
@@ -159,27 +155,6 @@ describe('addRepositoriesToBoard', () => {
     // Arrange
     const { insert } = signInWithSupabaseStub({
       repocard: { data: null, error: { message: 'connection reset' } },
-      maintenance: { data: [], error: null },
-    })
-
-    // Act
-    const result = await addRepositoriesToBoard('board-1', 'status-1', [
-      makeRepository('laststance', 'gitbox'),
-    ])
-
-    // Assert
-    expect(result).toEqual({
-      success: false,
-      error: 'An unexpected error occurred',
-    })
-    expect(insert).not.toHaveBeenCalled()
-  })
-
-  test('adds nothing when the lookup of Maintenance repositories fails', async () => {
-    // Arrange
-    const { insert } = signInWithSupabaseStub({
-      repocard: { data: [], error: null },
-      maintenance: { data: null, error: { message: 'connection reset' } },
     })
 
     // Act
@@ -199,7 +174,6 @@ describe('addRepositoriesToBoard', () => {
     // Arrange
     const { from } = signInWithSupabaseStub({
       repocard: { data: [], error: null },
-      maintenance: { data: [], error: null },
     })
 
     // Act
@@ -225,7 +199,6 @@ describe('addRepositoriesToBoard', () => {
     // Arrange
     const { from } = signInWithSupabaseStub({
       repocard: { data: [], error: null },
-      maintenance: { data: [], error: null },
     })
     const oversizedSelection = Array.from({ length: 101 }, (_, index) => ({
       ...makeRepository('laststance', `repo-${index}`),
@@ -257,11 +230,12 @@ describe('addRepositoriesToBoard', () => {
             repo_name: 'gitbox',
             board: { id: 'board-2', user_id: 'user-1', name: 'Work Projects' },
           },
+          {
+            repo_owner: 'laststance',
+            repo_name: 'old-project',
+            board: { id: 'board-3', user_id: 'user-1', name: 'Side Projects' },
+          },
         ],
-        error: null,
-      },
-      maintenance: {
-        data: [{ repo_owner: 'laststance', repo_name: 'old-project' }],
         error: null,
       },
     })
@@ -288,8 +262,11 @@ describe('addRepositoriesToBoard', () => {
           },
           {
             fullName: 'laststance/old-project',
-            reason: 'maintenance',
-            message: 'laststance/old-project is in Maintenance',
+            reason: 'other-board',
+            message:
+              'laststance/old-project is already on board "Side Projects"',
+            boardId: 'board-3',
+            boardName: 'Side Projects',
           },
         ],
       },
@@ -321,7 +298,6 @@ describe('addRepositoriesToBoard', () => {
       },
       // Highest order in the target column
       repocardSingle: { data: { order: 4 }, error: null },
-      maintenance: { data: [], error: null },
       insert: {
         data: [
           {
@@ -408,7 +384,6 @@ describe('addRepositoriesToBoard', () => {
     // Arrange
     const { from } = signInWithSupabaseStub({
       repocard: { data: [], error: null },
-      maintenance: { data: [], error: null },
     })
     // What a tampered browser request could carry: one repository, no list
     const singleRepositoryPayload: GitHubRepository[] = JSON.parse(
@@ -434,7 +409,6 @@ describe('addRepositoriesToBoard', () => {
     // Arrange
     signInWithSupabaseStub({
       repocard: { data: [], error: null },
-      maintenance: { data: [], error: null },
       insert: {
         data: null,
         error: {
@@ -455,142 +429,6 @@ describe('addRepositoriesToBoard', () => {
       success: false,
       error:
         'Nothing was added. One of the selected repositories was just placed on a board. Reload the page and try again.',
-    })
-  })
-})
-
-describe('restoreToBoard', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
-  test('restores nothing when the lookup of existing cards fails', async () => {
-    // Arrange
-    const { rpc } = signInWithSupabaseStub({
-      board: { data: { id: 'board-1' }, error: null },
-      repocard: { data: null, error: { message: 'connection reset' } },
-      maintenance: {
-        data: { id: 'maint-1', repo_owner: 'laststance', repo_name: 'gitbox' },
-        error: null,
-      },
-    })
-
-    // Act
-    const result = await restoreToBoard('maint-1', 'board-1', 'status-1')
-
-    // Assert
-    expect(result).toEqual({
-      success: false,
-      error: 'An unexpected error occurred',
-    })
-    expect(rpc).not.toHaveBeenCalled()
-  })
-
-  // Generated by /ship test coverage audit (pass 1).
-  // Value: protects=a repository that sits only in Maintenance can still be
-  //   restored to a board;
-  //   fails_when=the placement pre-check also counts the Maintenance entry
-  //   (which every restored repository has) or any other repository's card,
-  //   so every restore is refused;
-  //   why_new=no test runs a successful restore: E2E covers only the refusal
-  //   and findBoardPlacement is tested without the action around it;
-  //   seam=none
-  test('restores a repository that is in Maintenance and on none of the boards', async () => {
-    // Arrange
-    const { rpc } = signInWithSupabaseStub({
-      board: { data: { id: 'board-1' }, error: null },
-      // Another repository of the user sits on a board
-      repocard: {
-        data: [
-          {
-            repo_owner: 'laststance',
-            repo_name: 'gitbox',
-            board: { id: 'board-2', user_id: 'user-1', name: 'Work Projects' },
-          },
-        ],
-        error: null,
-      },
-      // Highest order in the target column
-      repocardMaybeSingle: { data: { order: 4 }, error: null },
-      maintenance: {
-        data: [{ repo_owner: 'laststance', repo_name: 'old-project' }],
-        error: null,
-      },
-      maintenanceSingle: {
-        data: {
-          id: 'maint-1',
-          repo_owner: 'laststance',
-          repo_name: 'old-project',
-        },
-        error: null,
-      },
-      rpc: { data: 'restored-card-id', error: null },
-    })
-
-    // Act
-    const result = await restoreToBoard('maint-1', 'board-1', 'status-1')
-
-    // Assert
-    expect(result).toEqual({
-      success: true,
-      data: { cardId: 'restored-card-id' },
-    })
-    expect(rpc).toHaveBeenCalledTimes(1)
-    expect(rpc).toHaveBeenCalledWith('restore_to_board', {
-      p_maintenance_id: 'maint-1',
-      p_board_id: 'board-1',
-      p_status_id: 'status-1',
-      p_repo_owner: 'laststance',
-      p_repo_name: 'old-project',
-      p_next_order: 5,
-    })
-  })
-
-  // Generated by /ship test coverage audit (pass 1).
-  // Value: protects=a restore the unique index rejected tells the user the
-  //   repository was just placed and to try again;
-  //   fails_when=the 23505 branch of restoreToBoard is removed or reordered
-  //   after the generic handler, so the user sees "An unexpected error
-  //   occurred";
-  //   why_new=toUniqueViolationError is tested alone and E2E asserts the RPC's
-  //   23505, but nothing runs the action that connects the two;
-  //   seam=none
-  test('explains that the repository was just placed when another tab restored it first', async () => {
-    // Arrange
-    signInWithSupabaseStub({
-      board: { data: { id: 'board-1' }, error: null },
-      repocard: { data: [], error: null },
-      repocardMaybeSingle: { data: null, error: null },
-      maintenance: {
-        data: [{ repo_owner: 'laststance', repo_name: 'old-project' }],
-        error: null,
-      },
-      maintenanceSingle: {
-        data: {
-          id: 'maint-1',
-          repo_owner: 'laststance',
-          repo_name: 'old-project',
-        },
-        error: null,
-      },
-      rpc: {
-        data: null,
-        error: {
-          code: '23505',
-          message:
-            'duplicate key value violates unique constraint "repocard_unique_repo_per_user"',
-        },
-      },
-    })
-
-    // Act
-    const result = await restoreToBoard('maint-1', 'board-1', 'status-1')
-
-    // Assert
-    expect(result).toEqual({
-      success: false,
-      error:
-        'laststance/old-project was just placed on a board. Close this dialog and try again.',
     })
   })
 })
@@ -632,7 +470,6 @@ describe('moveCardToBoard', () => {
       },
       // The target board held no such repository when it was checked
       repocardMaybeSingle: { data: null, error: null },
-      maintenance: { data: [], error: null },
       rpc: {
         data: null,
         error: {
@@ -692,7 +529,6 @@ describe('moveCardToBoard', () => {
         data: { id: '00000000-0000-0000-0000-000000000399' },
         error: null,
       },
-      maintenance: { data: [], error: null },
     })
 
     // Act

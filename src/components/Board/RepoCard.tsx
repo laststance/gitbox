@@ -47,7 +47,6 @@ interface RepoCardProps {
   commentText?: CommentTextSettings
   /** Whether to show the comment section */
   showComment?: boolean
-  onMaintenance?: (id: RepoCardId) => void
   /** Callback when card is moved to another board */
   onMoveToBoard?: (id: RepoCardId) => void
   /** Callback when Note button is clicked (opens unified NoteModal with notes + links) */
@@ -79,7 +78,6 @@ export const RepoCard = memo<RepoCardProps>(
     commentData,
     commentText,
     showComment = true,
-    onMaintenance,
     onMoveToBoard,
     onNote,
     onRemove,
@@ -230,7 +228,6 @@ export const RepoCard = memo<RepoCardProps>(
                   cardId={card.id}
                   repoOwner={card.repoOwner}
                   repoName={card.repoName}
-                  onMoveToMaintenance={onMaintenance}
                   onMoveToAnotherBoard={
                     onMoveToBoard
                       ? (): void => onMoveToBoard(card.id)
@@ -239,7 +236,6 @@ export const RepoCard = memo<RepoCardProps>(
                   onRemove={onRemove}
                   open={menuOpen}
                   onOpenChange={handleMenuOpenChange}
-                  context="board"
                 />
               </div>
 

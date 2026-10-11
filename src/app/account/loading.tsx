@@ -26,9 +26,9 @@ const Loading = memo(function Loading() {
         </div>
       </div>
 
-      {/* Data summary */}
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, i) => (
+      {/* Data summary: two tiles (Boards, Repository Cards), same grid as AccountClient */}
+      <div className="mb-6 grid grid-cols-2 gap-4">
+        {Array.from({ length: 2 }).map((_, i) => (
           <div key={i} className="bg-card rounded-lg border p-4">
             <Skeleton className="h-4 w-20" />
             <Skeleton className="mt-2 h-8 w-12" />

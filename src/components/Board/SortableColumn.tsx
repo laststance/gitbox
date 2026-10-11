@@ -22,7 +22,6 @@ interface SortableColumnProps {
   comments?: Record<string, CommentData>
   /** Card display settings from board.settings */
   cardDisplaySettings?: CardDisplaySettings
-  onMaintenance?: (id: RepoCardId) => void
   /** Callback when card is moved to another board */
   onMoveToBoard?: (id: RepoCardId) => void
   /** Callback when Note button is clicked (opens unified NoteModal) */
@@ -68,7 +67,6 @@ export const SortableColumn = memo<SortableColumnProps>(
     cards,
     comments,
     cardDisplaySettings,
-    onMaintenance,
     onMoveToBoard,
     onNote,
     onRemove,
@@ -117,7 +115,6 @@ export const SortableColumn = memo<SortableColumnProps>(
             cards={cards}
             comments={comments}
             cardDisplaySettings={cardDisplaySettings}
-            onMaintenance={onMaintenance}
             onMoveToBoard={onMoveToBoard}
             onNote={onNote}
             onRemove={onRemove}

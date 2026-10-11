@@ -230,7 +230,7 @@ export const ContextMenuOpens: Story = {
   args: {
     card: mockCard,
     onNote: fn(),
-    onMaintenance: fn(),
+    onMoveToBoard: fn(),
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)

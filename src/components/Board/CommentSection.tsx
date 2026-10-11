@@ -35,7 +35,7 @@ interface CommentSectionProps {
  * Shared comment section with Activity-toggled inline edit / display.
  *
  * Encapsulates the CommentInlineEdit ↔ CommentDisplay toggle pattern
- * that is repeated across RepoCard (board) and MaintenanceClient (grid + list).
+ * so RepoCard renders its comment through one component.
  *
  * @example
  * <CommentSection

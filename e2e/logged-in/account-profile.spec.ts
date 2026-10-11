@@ -3,7 +3,7 @@
  *
  * Tests for the Account page (/account) which displays:
  * - Profile section (avatar, username, GitHub connection info)
- * - Account Data section (boards, cards, maintenance item counts)
+ * - Account Data section (boards and repository card counts)
  * - Danger Zone section (account deletion flow)
  * - Navigation actions (Back to Boards, Sign Out)
  *
@@ -45,12 +45,11 @@ test.describe('Account Profile Page (Authenticated)', () => {
       timeout: 10000,
     })
     await expect(main.getByText('Repository Cards')).toBeVisible()
-    await expect(main.getByText('Maintenance Items')).toBeVisible()
 
     // Verify counts are rendered as numbers (not empty)
     const statValues = main.locator('.text-2xl.font-bold')
     const count = await statValues.count()
-    expect(count).toBe(3)
+    expect(count).toBe(2)
 
     for (let i = 0; i < count; i++) {
       const text = await statValues.nth(i).textContent()

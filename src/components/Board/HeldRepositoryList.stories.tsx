@@ -32,24 +32,22 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 /**
- * One repository on another board and one in Maintenance.
+ * Two repositories, each on a different board.
  */
-export const OnAnotherBoardAndInMaintenance: Story = {
+export const OnAnotherBoard: Story = {
   args: {
     repositories: [
       {
         id: 1,
         fullName: 'laststance/gitbox',
-        location: {
-          kind: 'board',
-          boardId: '00000000-0000-0000-0000-000000000101',
-          boardName: 'Work Projects',
-        },
+        boardId: '00000000-0000-0000-0000-000000000101',
+        boardName: 'Work Projects',
       },
       {
         id: 2,
         fullName: 'laststance/old-project',
-        location: { kind: 'maintenance' },
+        boardId: '00000000-0000-0000-0000-000000000102',
+        boardName: 'Side Projects',
       },
     ],
   },
@@ -64,9 +62,9 @@ export const OnAnotherBoardAndInMaintenance: Story = {
     ).toHaveAttribute('href', '/board/00000000-0000-0000-0000-000000000101')
     await expect(
       canvas.getByRole('link', {
-        name: 'In Maintenance, which holds laststance/old-project',
+        name: 'On Side Projects, which holds laststance/old-project',
       }),
-    ).toHaveAttribute('href', '/maintenance')
+    ).toHaveAttribute('href', '/board/00000000-0000-0000-0000-000000000102')
   },
 }
 
@@ -80,12 +78,8 @@ export const LongNames: Story = {
         id: 3,
         fullName:
           'a-very-long-organization-name/a-very-long-repository-name-that-does-not-fit-the-panel',
-        location: {
-          kind: 'board',
-          boardId: '00000000-0000-0000-0000-000000000101',
-          boardName:
-            'A board with a remarkably long name that also does not fit',
-        },
+        boardId: '00000000-0000-0000-0000-000000000101',
+        boardName: 'A board with a remarkably long name that also does not fit',
       },
     ],
   },
@@ -99,11 +93,8 @@ export const ManyRows: Story = {
     repositories: Array.from({ length: 8 }, (_, index) => ({
       id: 100 + index,
       fullName: `laststance/project-${index + 1}`,
-      location: {
-        kind: 'board' as const,
-        boardId: '00000000-0000-0000-0000-000000000101',
-        boardName: 'Work Projects',
-      },
+      boardId: '00000000-0000-0000-0000-000000000101',
+      boardName: 'Work Projects',
     })),
   },
 }

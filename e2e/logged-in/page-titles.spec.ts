@@ -39,13 +39,6 @@ test.describe('Page Titles (Authenticated)', () => {
     await expect(page).toHaveTitle('Settings | GitBox')
   })
 
-  test('maintenance page title should be "Maintenance | GitBox"', async ({
-    page,
-  }) => {
-    await page.goto('/maintenance')
-    await expect(page).toHaveTitle('Maintenance | GitBox')
-  })
-
   test('account page title should be "Account | GitBox"', async ({ page }) => {
     await page.goto('/account')
     await expect(page).toHaveTitle('Account | GitBox')
@@ -85,7 +78,6 @@ test.describe('Page Titles (Authenticated)', () => {
       '/boards/favorites',
       '/boards/new',
       '/settings',
-      '/maintenance',
       '/account',
     ]
 

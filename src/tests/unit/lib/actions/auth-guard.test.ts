@@ -49,7 +49,7 @@ describe('auth guard error pass-through', () => {
   test('read actions show an expected error message to the user without reporting it', async () => {
     // Arrange
     const failingAction = async () => {
-      throw new ActionUserError('laststance/gitbox is in Maintenance')
+      throw new ActionUserError('laststance/gitbox is already on board "Work"')
     }
 
     // Act
@@ -58,7 +58,7 @@ describe('auth guard error pass-through', () => {
     // Assert
     expect(result).toEqual({
       success: false,
-      error: 'laststance/gitbox is in Maintenance',
+      error: 'laststance/gitbox is already on board "Work"',
     })
     expect(Sentry.captureException).not.toHaveBeenCalled()
   })

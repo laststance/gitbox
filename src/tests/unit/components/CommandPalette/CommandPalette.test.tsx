@@ -178,7 +178,6 @@ describe('CommandPalette', () => {
       openPalette()
 
       expect(screen.getByText('Go to Boards')).toBeInTheDocument()
-      expect(screen.getByText('Go to Maintenance')).toBeInTheDocument()
       expect(screen.getByText('Go to Settings')).toBeInTheDocument()
     })
 
@@ -206,7 +205,6 @@ describe('CommandPalette', () => {
       openPalette()
 
       expect(screen.getByText('G B')).toBeInTheDocument()
-      expect(screen.getByText('G M')).toBeInTheDocument()
       expect(screen.getByText('G S')).toBeInTheDocument()
       expect(screen.getByText('N')).toBeInTheDocument()
     })
@@ -240,7 +238,7 @@ describe('CommandPalette', () => {
 
       expect(screen.getByText('Go to Boards')).toBeInTheDocument()
       expect(screen.getByText('Create New Board')).toBeInTheDocument()
-      expect(screen.queryByText('Go to Maintenance')).not.toBeInTheDocument()
+      expect(screen.queryByText('Go to Settings')).not.toBeInTheDocument()
     })
 
     test('should show "No commands found" when search has no matches', () => {
@@ -258,9 +256,9 @@ describe('CommandPalette', () => {
 
       openPalette()
       const input = screen.getByPlaceholderText('Search commands...')
-      fireEvent.change(input, { target: { value: 'MAINTENANCE' } })
+      fireEvent.change(input, { target: { value: 'SETTINGS' } })
 
-      expect(screen.getByText('Go to Maintenance')).toBeInTheDocument()
+      expect(screen.getByText('Go to Settings')).toBeInTheDocument()
     })
 
     test('should reset search when reopened', () => {
@@ -293,9 +291,7 @@ describe('CommandPalette', () => {
       // Press ArrowDown to select next
       fireEvent.keyDown(input, { key: 'ArrowDown' })
 
-      const secondButton = screen
-        .getByText('Go to Maintenance')
-        .closest('button')!
+      const secondButton = screen.getByText('Go to Settings').closest('button')!
       expect(secondButton.className).toContain('bg-primary')
     })
 
@@ -363,14 +359,14 @@ describe('CommandPalette', () => {
       expect(mockPush).toHaveBeenCalledWith('/boards')
     })
 
-    test('should navigate to /maintenance when "Go to Maintenance" is clicked', () => {
+    test('should navigate to /settings when "Go to Settings" is clicked', () => {
       render(<CommandPalette />)
 
       openPalette()
-      const button = screen.getByText('Go to Maintenance').closest('button')!
+      const button = screen.getByText('Go to Settings').closest('button')!
       fireEvent.click(button)
 
-      expect(mockPush).toHaveBeenCalledWith('/maintenance')
+      expect(mockPush).toHaveBeenCalledWith('/settings')
     })
 
     test('should navigate to /boards/new when "Create New Board" is clicked', () => {
@@ -413,8 +409,7 @@ describe('CommandPalette', () => {
       openPalette()
       const input = screen.getByPlaceholderText('Search commands...')
 
-      // "Go to Settings" is the 3rd command (index 2)
-      fireEvent.keyDown(input, { key: 'ArrowDown' })
+      // "Go to Settings" is the 2nd command (index 1)
       fireEvent.keyDown(input, { key: 'ArrowDown' })
       fireEvent.keyDown(input, { key: 'Enter' })
 
@@ -447,11 +442,11 @@ describe('CommandPalette', () => {
       openPalette()
       const input = screen.getByPlaceholderText('Search commands...')
 
-      // Search for maintenance
-      fireEvent.change(input, { target: { value: 'maintenance' } })
+      // Search for settings
+      fireEvent.change(input, { target: { value: 'settings' } })
       fireEvent.keyDown(input, { key: 'Enter' })
 
-      expect(mockPush).toHaveBeenCalledWith('/maintenance')
+      expect(mockPush).toHaveBeenCalledWith('/settings')
     })
   })
 })

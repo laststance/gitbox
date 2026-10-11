@@ -97,7 +97,6 @@ describe('Sidebar', () => {
 
       expect(screen.getByText('All Boards')).toBeInTheDocument()
       expect(screen.getByText('Favorites')).toBeInTheDocument()
-      expect(screen.getByText('Maintenance Mode')).toBeInTheDocument()
       expect(screen.getByText('Settings')).toBeInTheDocument()
       expect(screen.getByText('Shortcuts')).toBeInTheDocument()
     })
@@ -220,13 +219,6 @@ describe('Sidebar', () => {
       expect(link).toHaveAttribute('href', '/boards/favorites')
     })
 
-    test('should render Maintenance Mode link', () => {
-      renderSidebar()
-
-      const link = screen.getByRole('link', { name: /maintenance mode/i })
-      expect(link).toHaveAttribute('href', '/maintenance')
-    })
-
     test('should render Settings link', () => {
       renderSidebar()
 
@@ -240,6 +232,52 @@ describe('Sidebar', () => {
       // /boards is mocked as current path
       const allBoardsLink = screen.getByRole('link', { name: /all boards/i })
       expect(allBoardsLink).toHaveClass('bg-primary/10')
+    })
+  })
+
+  describe('Navigation Dividers', () => {
+    test('shows exactly one divider between the board links and Settings when expanded', () => {
+      // Arrange
+      renderSidebar()
+
+      // Act
+      const navigation = screen.getByRole('navigation')
+      const dividers = Array.from(navigation.children).filter((child) =>
+        child.classList.contains('border-t'),
+      )
+
+      // Assert
+      expect(dividers).toHaveLength(1)
+      expect(dividers[0]?.previousElementSibling).toHaveTextContent(
+        'All BoardsFavorites',
+      )
+      expect(dividers[0]?.nextElementSibling).toHaveAttribute(
+        'href',
+        '/settings',
+      )
+    })
+
+    test('shows exactly one divider between the board links and Settings when collapsed', () => {
+      // Arrange
+      renderSidebar({}, true)
+
+      // Act
+      const navigation = screen.getByRole('navigation')
+      const dividers = Array.from(navigation.children).filter((child) =>
+        child.classList.contains('border-t'),
+      )
+
+      // Assert
+      expect(dividers).toHaveLength(1)
+      expect(
+        dividers[0]?.previousElementSibling?.querySelector(
+          'a[href="/boards/favorites"]',
+        ),
+      ).not.toBeNull()
+      expect(dividers[0]?.nextElementSibling).toHaveAttribute(
+        'href',
+        '/settings',
+      )
     })
   })
 

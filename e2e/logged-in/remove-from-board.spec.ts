@@ -88,6 +88,11 @@ test.describe('Remove from Board Feature', () => {
       ),
     ).toBeVisible()
     await expect(
+      alertDialog.getByText(
+        /To keep them, use Move to Another Board instead\./,
+      ),
+    ).toBeVisible()
+    await expect(
       alertDialog.getByText(/The repository on GitHub is not affected\./),
     ).toBeVisible()
 
@@ -279,7 +284,7 @@ test.describe('Remove from Board Feature', () => {
     }
   })
 
-  test('should only show Remove from Board in board context (not maintenance)', async ({
+  test('should offer Move to Another Board next to Remove from Board in the card menu', async ({
     page,
   }) => {
     await page.goto(BOARD_URL)
@@ -300,17 +305,17 @@ test.describe('Remove from Board Feature', () => {
     const dropdownMenu = page.getByTestId('overflow-menu')
     await expect(dropdownMenu).toBeVisible({ timeout: 5000 })
 
-    // Remove from Board should be visible (board context)
+    // Remove from Board should be visible
     const removeMenuItem = page
       .locator('[data-testid^="remove-from-board-"]')
       .first()
     await expect(removeMenuItem).toBeVisible()
 
-    // Move to Maintenance should also be visible (board context)
-    const maintenanceMenuItem = page
-      .locator('[data-testid^="move-to-maintenance-"]')
+    // Move to Another Board, the way to keep the note, should be visible too
+    const moveMenuItem = page
+      .locator('[data-testid^="move-to-another-board-"]')
       .first()
-    await expect(maintenanceMenuItem).toBeVisible()
+    await expect(moveMenuItem).toBeVisible()
 
     // Close the menu
     await page.keyboard.press('Escape')

@@ -62,8 +62,8 @@ test.describe('Command Palette (Authenticated)', () => {
     // "Go to Boards" should be visible (unique to command palette)
     await expect(page.getByText('Go to Boards')).toBeVisible()
 
-    // Unrelated command "Go to Maintenance" should be filtered out (unique to palette)
-    await expect(page.getByText('Go to Maintenance')).not.toBeVisible()
+    // Unrelated command "Go to Settings" should be filtered out (unique to palette)
+    await expect(page.getByText('Go to Settings')).not.toBeVisible()
 
     // Verify filtered command count: only "Go to Boards" should match "boards"
     const commandButtons = page.locator('[data-index]')

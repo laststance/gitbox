@@ -35,7 +35,6 @@ interface StatusColumnProps {
   comments?: Record<string, CommentData>
   /** Card display settings from board.settings */
   cardDisplaySettings?: CardDisplaySettings
-  onMaintenance?: (id: RepoCardId) => void
   /** Callback when card is moved to another board */
   onMoveToBoard?: (id: RepoCardId) => void
   /** Callback when Note button is clicked (opens unified NoteModal) */
@@ -72,7 +71,6 @@ export const StatusColumn = memo<StatusColumnProps>(
     cards,
     comments,
     cardDisplaySettings,
-    onMaintenance,
     onMoveToBoard,
     onNote,
     onRemove,
@@ -174,7 +172,6 @@ export const StatusColumn = memo<StatusColumnProps>(
                     commentData={comments?.[card.id]}
                     showComment={cardDisplaySettings?.showComment}
                     commentText={cardDisplaySettings?.commentText}
-                    onMaintenance={onMaintenance}
                     onMoveToBoard={onMoveToBoard}
                     onNote={onNote}
                     onRemove={onRemove}

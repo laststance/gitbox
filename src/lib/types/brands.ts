@@ -61,15 +61,8 @@ export type RepoCardId = Brand<string, 'RepoCardId'>
 export type ProjectInfoId = Brand<string, 'ProjectInfoId'>
 
 /**
- * UUID v4 identifier for an archived/maintenance repository
- * (`maintenance.id`).
- * @example '11223344-5566-4778-8899-aabbccddeeff'
- */
-export type MaintenanceId = Brand<string, 'MaintenanceId'>
-
-/**
  * UUID v4 identifier for a Supabase auth user (`auth.users.id` /
- * `board.user_id` / `maintenance.user_id` / `user_link_presets.user_id`).
+ * `board.user_id` / `user_link_presets.user_id`).
  * @example 'deadbeef-cafe-4123-8456-000000000000'
  */
 export type UserId = Brand<string, 'UserId'>
@@ -80,22 +73,6 @@ export type UserId = Brand<string, 'UserId'>
  * @example '0a1b2c3d-4e5f-4617-8b89-0c1d2e3f4a5b'
  */
 export type UserLinkPresetId = Brand<string, 'UserLinkPresetId'>
-
-/**
- * Union of identifier brands that can appear in shared card UI
- * (e.g. {@link ./../../components/Board/OverflowMenu.tsx OverflowMenu},
- * {@link ./../../components/Modals/NoteModal.tsx NoteModal}, draft slice).
- *
- * Components that render or forward a card ID through callbacks shouldn't
- * care whether the card is on a board ({@link RepoCardId}) or archived
- * ({@link MaintenanceId}) — they just need a stable string key. Callers that
- * *act* on the ID continue to use the narrower brand (`RepoCardId` inside
- * board code, `MaintenanceId` inside maintenance code).
- *
- * @example
- * const cardIds: CardIdentifier[] = [toRepoCardId(row.id), toMaintenanceId(row.id)]
- */
-export type CardIdentifier = RepoCardId | MaintenanceId
 
 /**
  * URL-safe public share slug for a board (`board.share_slug` when not null).
@@ -141,13 +118,6 @@ export const toRepoCardId = (id: string): RepoCardId => id as RepoCardId
  */
 export const toProjectInfoId = (id: string): ProjectInfoId =>
   id as ProjectInfoId
-
-/**
- * Mark a raw string as a {@link MaintenanceId}. Use at the DB→domain boundary.
- * @example const id = toMaintenanceId(row.id)
- */
-export const toMaintenanceId = (id: string): MaintenanceId =>
-  id as MaintenanceId
 
 /**
  * Mark a raw string as a {@link UserId}. Typically called once after fetching

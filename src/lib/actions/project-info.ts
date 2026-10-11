@@ -1,13 +1,12 @@
 /**
- * Project Info CRUD Operations (RepoCard-linked)
+ * Project Info CRUD Operations
  *
- * Thin wrappers around shared-project-info.ts core functions.
- * All logic is centralized in the shared module; this file only provides
- * the 'use server' boundary, binds the repo_card_id foreign key,
- * and returns ActionResult<T> for type-safe error handling.
+ * Thin wrappers around project-info-core.ts core functions.
+ * All logic is centralized in the core module; this file only provides
+ * the 'use server' boundary and returns ActionResult<T> for type-safe
+ * error handling.
  *
- * @see shared-project-info.ts for core implementation
- * @see maintenance-project-info.ts for Maintenance-linked wrappers
+ * @see project-info-core.ts for core implementation
  */
 
 'use server'
@@ -22,17 +21,14 @@ import {
   updateCommentCore,
   updateCommentColorCore,
   deleteCommentCore,
-  type FkConfig,
   type ProjectInfoData,
-} from './shared-project-info'
+} from './project-info-core'
 import type { ActionResult } from './types'
 export type {
   ProjectLink,
   ProjectInfoData,
   CommentData,
-} from './shared-project-info'
-
-const FK: FkConfig = { column: 'repo_card_id', label: 'project info' }
+} from './project-info-core'
 
 /**
  * Get project info for a repo card
@@ -50,7 +46,7 @@ export async function getProjectInfo(
   repoCardId: string,
 ): Promise<ActionResult<ProjectInfoData | null>> {
   try {
-    const data = await getProjectInfoCore(FK, repoCardId)
+    const data = await getProjectInfoCore(repoCardId)
     return { success: true, data }
   } catch (error) {
     Sentry.captureException(error, {
@@ -85,7 +81,7 @@ export async function upsertProjectInfo(
   data: ProjectInfoData,
 ): Promise<ActionResult<void>> {
   try {
-    await upsertProjectInfoCore(FK, repoCardId, data)
+    await upsertProjectInfoCore(repoCardId, data)
     return { success: true, data: undefined }
   } catch (error) {
     Sentry.captureException(error, {
@@ -118,7 +114,7 @@ export async function updateComment(
   color?: CommentColor,
 ): Promise<ActionResult<void>> {
   try {
-    await updateCommentCore(FK, repoCardId, comment, color)
+    await updateCommentCore(repoCardId, comment, color)
     return { success: true, data: undefined }
   } catch (error) {
     Sentry.captureException(error, {
@@ -149,7 +145,7 @@ export async function updateCommentColor(
   color: CommentColor,
 ): Promise<ActionResult<void>> {
   try {
-    await updateCommentColorCore(FK, repoCardId, color)
+    await updateCommentColorCore(repoCardId, color)
     return { success: true, data: undefined }
   } catch (error) {
     Sentry.captureException(error, {
@@ -183,7 +179,7 @@ export async function deleteComment(
   repoCardId: string,
 ): Promise<ActionResult<void>> {
   try {
-    await deleteCommentCore(FK, repoCardId)
+    await deleteCommentCore(repoCardId)
     return { success: true, data: undefined }
   } catch (error) {
     Sentry.captureException(error, {

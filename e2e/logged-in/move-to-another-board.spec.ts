@@ -51,12 +51,6 @@ test.describe('Move to Another Board Feature', () => {
       .locator('[data-testid^="move-to-another-board-"]')
       .first()
     await expect(moveMenuItem).toBeVisible()
-
-    // Verify positioned after "Move to Maintenance"
-    const maintenanceMenuItem = page
-      .locator('[data-testid^="move-to-maintenance-"]')
-      .first()
-    await expect(maintenanceMenuItem).toBeVisible()
   })
 
   test('should open dialog with board list (current board excluded)', async ({

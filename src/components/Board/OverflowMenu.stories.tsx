@@ -1,10 +1,9 @@
 /**
  * OverflowMenu Component Stories
  *
- * A dropdown menu component for repository card actions.
- * Provides context-specific actions for Board and Maintenance modes.
+ * A dropdown menu component for the actions of a repository card on a board.
  * Includes actions like opening GitHub, production URLs, tracking dashboards,
- * Supabase dashboards, editing project info, and moving/restoring cards.
+ * Supabase dashboards, moving the card to another board and removing it.
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
@@ -33,19 +32,8 @@ export const BoardContext: Story = {
     productionUrl: 'https://example.com',
     trackingUrl: 'https://tracking.example.com',
     supabaseUrl: 'https://supabase.example.com',
-    context: 'board',
-    onMoveToMaintenance: (id) => console.log('Move to maintenance:', id),
+    onMoveToAnotherBoard: (id) => console.log('Move to another board:', id),
     onRemove: (id) => console.log('Remove from board:', id),
-  },
-}
-
-export const MaintenanceContext: Story = {
-  args: {
-    cardId: toRepoCardId('card-2'),
-    repoOwner: 'octocat',
-    repoName: 'example-repo',
-    context: 'maintenance',
-    onRestoreToBoard: (id) => console.log('Restore to board:', id),
   },
 }
 
@@ -54,7 +42,6 @@ export const Minimal: Story = {
     cardId: toRepoCardId('card-3'),
     repoOwner: 'octocat',
     repoName: 'example-repo',
-    context: 'board',
   },
 }
 
@@ -66,8 +53,7 @@ export const WithAllUrls: Story = {
     productionUrl: 'https://production.example.com',
     trackingUrl: 'https://tracking.example.com',
     supabaseUrl: 'https://supabase.example.com',
-    context: 'board',
-    onMoveToMaintenance: (id) => console.log('Move to maintenance:', id),
+    onMoveToAnotherBoard: (id) => console.log('Move to another board:', id),
     onRemove: (id) => console.log('Remove from board:', id),
   },
 }
@@ -81,7 +67,6 @@ export const WithRemoveAction: Story = {
     cardId: toRepoCardId('card-5'),
     repoOwner: 'laststance',
     repoName: 'gitbox',
-    context: 'board',
     onRemove: (id) => console.log('Remove from board:', id),
   },
 }

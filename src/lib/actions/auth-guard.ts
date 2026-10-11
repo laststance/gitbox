@@ -79,8 +79,8 @@ function toErrorMessage(): string {
  * - {@link ActionUserError}: its own message, not reported to Sentry
  * - anything else: the generic message, reported to Sentry
  * @example
- * toFailedResult(new ActionUserError('a/b is in Maintenance'), 'withAuthResult')
- * // => { success: false, error: 'a/b is in Maintenance' }
+ * toFailedResult(new ActionUserError('a/b is already on board "Work"'), 'withAuthResult')
+ * // => { success: false, error: 'a/b is already on board "Work"' }
  * toFailedResult(new Error('relation "x" does not exist'), 'withAuthResult')
  * // => { success: false, error: 'An unexpected error occurred' }
  */

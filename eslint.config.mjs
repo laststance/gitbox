@@ -68,7 +68,6 @@ export default defineConfig([
     '**/.husky/**',
     '_trials/**',
     'src/lib/supabase/types.ts',
-    'src/lib/supabase/database.types.ts',
     'src/lib/github/api.ts',
     'e2e/**',
     // supabase start drops transient edge-runtime sources here while local Supabase runs
@@ -371,10 +370,7 @@ export default defineConfig([
 
   // Combobox/Dialog patterns
   {
-    files: [
-      'src/components/Board/AddRepositoryCombobox.tsx',
-      'src/app/maintenance/MaintenanceClient.tsx',
-    ],
+    files: ['src/components/Board/AddRepositoryCombobox.tsx'],
     rules: {
       'react-you-might-not-need-an-effect/no-event-handler': 'off',
       'react-you-might-not-need-an-effect/no-derived-state': 'off',

@@ -2,10 +2,9 @@
  * E2E: fetching a page's server data again keeps what the user has open
  *
  * `router.refresh()` asks the server for the page's data again. The board
- * calls it after a save failed and the board changed in the meantime, and the
- * Maintenance page calls it after a restore or a delete. The new data has to
- * arrive without the page being built again: an open dialog stays open and
- * text that is typed but not saved stays in its field.
+ * calls it after a save failed and the board changed in the meantime. The new
+ * data has to arrive without the page being built again: an open dialog stays
+ * open and text that is typed but not saved stays in its field.
  *
  * A Client Component that is exported as `memo(fn)` and rendered by a Server
  * Component is created anew on every server render (vercel/next.js#44901).

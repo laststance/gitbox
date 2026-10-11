@@ -3,7 +3,6 @@
 import {
   LayoutDashboard,
   Star,
-  Archive,
   Settings,
   Keyboard,
   User,
@@ -34,7 +33,6 @@ import { cn } from '@/lib/utils'
 
 const ICON_LAYOUT_DASHBOARD = <LayoutDashboard className="h-4 w-4" />
 const ICON_STAR = <Star className="h-4 w-4" />
-const ICON_ARCHIVE = <Archive className="h-4 w-4" />
 const ICON_SETTINGS = <Settings className="h-4 w-4" />
 const ICON_KEYBOARD = <Keyboard className="h-4 w-4" />
 
@@ -181,7 +179,6 @@ interface SidebarProps {
  * A collapsible navigation sidebar for authenticated users.
  * - GitBox logo
  * - Boards section (All Boards, Favorites)
- * - Maintenance Mode navigation
  * - Settings and Shortcuts links
  * - Theme toggle
  * - User profile with sign out option
@@ -311,21 +308,6 @@ export const Sidebar = memo(function Sidebar({
               />
             </div>
           )}
-
-          {/* Divider */}
-          <div className="border-sidebar-border my-4 border-t" />
-
-          {/* Maintenance Mode */}
-          <NavItem
-            href="/maintenance"
-            icon={ICON_ARCHIVE}
-            label="Maintenance Mode"
-            isActive={
-              pathname === '/maintenance' ||
-              pathname.startsWith('/maintenance/')
-            }
-            isCollapsed={mounted && isCollapsed}
-          />
 
           {/* Divider */}
           <div className="border-sidebar-border my-4 border-t" />

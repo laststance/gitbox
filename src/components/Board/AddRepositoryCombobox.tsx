@@ -15,7 +15,7 @@ import { useRepoPlacements } from '@/hooks/board/useRepoPlacements'
 import { useRepositoryCatalog } from '@/hooks/board/useRepositoryCatalog'
 import { useRepositorySearch } from '@/hooks/board/useRepositorySearch'
 import type { GitHubRepository } from '@/lib/actions/github'
-import type { RepoPlacements } from '@/lib/actions/repo-card-duplicates'
+import type { BoardPlacement } from '@/lib/actions/repo-card-duplicates'
 import {
   addRepositoriesToBoard,
   type CreatedRepoCard,
@@ -55,12 +55,6 @@ interface AddRepositoryComboboxProps {
    * Called when the combobox should open or close
    */
   onOpenChange?: (open: boolean) => void
-  /**
-   * Lowercase "owner/repo" identifiers of repos in maintenance mode, as loaded
-   * with the page. Only a fallback: the picker fetches fresh placements each
-   * time it opens and uses this list (to hide those repos) when that fetch fails.
-   */
-  maintenanceRepoIdentifiers?: RepoIdentifier[]
 }
 
 /**
@@ -73,8 +67,8 @@ interface AddRepositoryComboboxProps {
  * - Performance optimized (<1s response)
  * - WCAG AA accessibility compliance
  * - One repository per user (Issue #215): repositories already on another
- *   board or in Maintenance are listed under "Already placed elsewhere" with a
- *   link to where they live, instead of being offered
+ *   board are listed under "Already placed elsewhere" with a link to where
+ *   they live, instead of being offered
  */
 export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   boardId,
@@ -82,7 +76,6 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   onRepositoriesAdded,
   isOpen: controlledIsOpen,
   onOpenChange,
-  maintenanceRepoIdentifiers,
 }: AddRepositoryComboboxProps) {
   // State - supports both controlled and uncontrolled modes
   const [internalIsOpen, setInternalIsOpen] = useState(false)
@@ -175,16 +168,6 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   )
 
   /**
-   * Set of "owner/repo" identifiers for repos in maintenance mode, from the
-   * page load. Fallback for when the placement fetch fails.
-   * @example Set { "archived/project", "old/repo" }
-   */
-  const maintenanceIdentifiers = useMemo(
-    () => new Set(maintenanceRepoIdentifiers || []),
-    [maintenanceRepoIdentifiers],
-  )
-
-  /**
    * Guarded organization filter change handler
    * Dispatches Redux action to persist organization filter to localStorage
    */
@@ -247,15 +230,8 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
         currentBoardId: boardId,
         currentBoardIdentifiers: existingRepoIdentifiers,
         placements,
-        fallbackMaintenanceIdentifiers: maintenanceIdentifiers,
       }),
-    [
-      matchingRepositories,
-      boardId,
-      existingRepoIdentifiers,
-      placements,
-      maintenanceIdentifiers,
-    ],
+    [matchingRepositories, boardId, existingRepoIdentifiers, placements],
   )
 
   // Options and held rows render only once both the catalog and the placements
@@ -727,7 +703,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
               </div>
             )}
 
-          {/* Repositories already on another board or in Maintenance */}
+          {/* Repositories already on another board */}
           {!isLoading && <HeldRepositoryList repositories={heldRepositories} />}
 
           {/* Add button */}
@@ -766,55 +742,43 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
  * Called by {@link AddRepositoryCombobox} on every filter or placement change.
  * - Hidden (in neither list): on the current board, according to the live
  *   Redux cards or to the fetched placements.
- * - Held: on another board of the user, or in Maintenance.
+ * - Held: on another board of the user.
  * - Addable: everything else.
  *
- * When `placements` is `null` (the fetch failed) the picker degrades to the
- * old behavior: maintenance repositories from the page load are hidden and
- * nothing is listed as held. The server still rejects an already placed repository.
+ * When `placements` is `null` (the fetch failed) nothing is listed as held and
+ * only repositories on the current board are hidden. The server still rejects
+ * an already placed repository.
  *
  * @param params.repositories - Catalog repositories after search and filters.
  * @param params.currentBoardId - Board the picker adds to.
  * @param params.currentBoardIdentifiers - Lowercase `owner/name` of cards on the current board (Redux).
  * @param params.placements - Fetched placements, or `null` when unknown.
- * @param params.fallbackMaintenanceIdentifiers - Maintenance identifiers from the page load.
  * @returns `{ addable, held }`, both in catalog order.
  * @example
  * classifyRepositories({
  *   repositories: [repoA, repoB],
  *   currentBoardId: 'b1',
  *   currentBoardIdentifiers: new Set(),
- *   placements: { boards: [{ identifier: 'o/b', boardId: 'b2', boardName: 'Work' }], maintenance: [] },
- *   fallbackMaintenanceIdentifiers: new Set(),
+ *   placements: [{ identifier: 'o/b', boardId: 'b2', boardName: 'Work' }],
  * })
- * // => { addable: [repoA], held: [{ id: repoB.id, fullName: 'o/b', location: { kind: 'board', boardId: 'b2', boardName: 'Work' } }] }
+ * // => { addable: [repoA], held: [{ id: repoB.id, fullName: 'o/b', boardId: 'b2', boardName: 'Work' }] }
  */
 function classifyRepositories(params: {
   repositories: GitHubRepository[]
   currentBoardId: string
   currentBoardIdentifiers: Set<RepoIdentifier>
-  placements: RepoPlacements | null
-  fallbackMaintenanceIdentifiers: Set<RepoIdentifier>
+  placements: BoardPlacement[] | null
 }): { addable: GitHubRepository[]; held: HeldRepository[] } {
-  const {
-    repositories,
-    currentBoardId,
-    currentBoardIdentifiers,
-    placements,
-    fallbackMaintenanceIdentifiers,
-  } = params
+  const { repositories, currentBoardId, currentBoardIdentifiers, placements } =
+    params
 
   // First card wins if legacy data holds the same repository on two boards
-  const boardPlacementByIdentifier = new Map<
-    RepoIdentifier,
-    RepoPlacements['boards'][number]
-  >()
-  for (const placement of placements?.boards ?? []) {
+  const boardPlacementByIdentifier = new Map<RepoIdentifier, BoardPlacement>()
+  for (const placement of placements ?? []) {
     if (!boardPlacementByIdentifier.has(placement.identifier)) {
       boardPlacementByIdentifier.set(placement.identifier, placement)
     }
   }
-  const maintenanceIdentifiers = new Set(placements?.maintenance ?? [])
 
   const addable: GitHubRepository[] = []
   const held: HeldRepository[] = []
@@ -837,26 +801,9 @@ function classifyRepositories(params: {
       held.push({
         id: repository.id,
         fullName: repository.full_name,
-        location: {
-          kind: 'board',
-          boardId: boardPlacement.boardId,
-          boardName: boardPlacement.boardName,
-        },
+        boardId: boardPlacement.boardId,
+        boardName: boardPlacement.boardName,
       })
-      continue
-    }
-
-    if (maintenanceIdentifiers.has(identifier)) {
-      held.push({
-        id: repository.id,
-        fullName: repository.full_name,
-        location: { kind: 'maintenance' },
-      })
-      continue
-    }
-
-    // Placements unknown: keep hiding maintenance repositories from the page load
-    if (!placements && fallbackMaintenanceIdentifiers.has(identifier)) {
       continue
     }
 

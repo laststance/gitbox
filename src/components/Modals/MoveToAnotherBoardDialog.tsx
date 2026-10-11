@@ -40,9 +40,8 @@ import {
   moveCardToBoard,
   getUserBoardsWithStatusLists,
 } from '@/lib/actions/repo-cards'
+import type { BoardOption } from '@/lib/actions/types'
 import type { RepoCardId } from '@/lib/types/brands'
-
-import type { BoardOption } from './RestoreToBoardDialog'
 
 interface MoveToAnotherBoardDialogProps {
   /** Whether the dialog is open */

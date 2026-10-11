@@ -3,9 +3,9 @@
  *
  * Test targets:
  * - Menu rendering and open/close behavior
- * - Context-specific menu items (Board vs Maintenance)
+ * - Board menu items (Move to Another Board, Remove from Board)
  * - URL opening functionality
- * - Delete confirmation dialog
+ * - Remove from Board confirmation dialog
  * - Callback invocations
  * - Accessibility
  */
@@ -18,8 +18,7 @@ import { OverflowMenu } from '@/components/Board/OverflowMenu'
 import { toRepoCardId } from '@/lib/types/brands'
 
 describe('OverflowMenu', () => {
-  const mockOnMoveToMaintenance = vi.fn()
-  const mockOnRestoreToBoard = vi.fn()
+  const mockOnMoveToAnotherBoard = vi.fn()
   const mockOnRemove = vi.fn()
   const mockOnOpenChange = vi.fn()
 
@@ -63,7 +62,7 @@ describe('OverflowMenu', () => {
     })
   })
 
-  describe('Menu Content - Board Context', () => {
+  describe('Menu Content', () => {
     test('should render Open on GitHub item when repoOwner and repoName are provided', () => {
       render(<OverflowMenu {...defaultProps} open={true} />)
 
@@ -83,71 +82,24 @@ describe('OverflowMenu', () => {
       expect(screen.queryByText('Open on GitHub')).not.toBeInTheDocument()
     })
 
-    test('should render Move to Maintenance in board context', () => {
+    test('should render Move to Another Board when the callback is provided', () => {
       render(
         <OverflowMenu
           {...defaultProps}
           open={true}
-          context="board"
-          onMoveToMaintenance={mockOnMoveToMaintenance}
+          onMoveToAnotherBoard={mockOnMoveToAnotherBoard}
         />,
       )
 
-      expect(screen.getByText('Move to Maintenance')).toBeInTheDocument()
+      expect(screen.getByText('Move to Another Board')).toBeInTheDocument()
     })
 
-    test('should render Remove from Board in board context', () => {
+    test('should render Remove from Board when the callback is provided', () => {
       render(
-        <OverflowMenu
-          {...defaultProps}
-          open={true}
-          context="board"
-          onRemove={mockOnRemove}
-        />,
+        <OverflowMenu {...defaultProps} open={true} onRemove={mockOnRemove} />,
       )
 
       expect(screen.getByText('Remove from Board')).toBeInTheDocument()
-    })
-  })
-
-  describe('Menu Content - Maintenance Context', () => {
-    test('should render Restore to Board in maintenance context', () => {
-      render(
-        <OverflowMenu
-          {...defaultProps}
-          open={true}
-          context="maintenance"
-          onRestoreToBoard={mockOnRestoreToBoard}
-        />,
-      )
-
-      expect(screen.getByText('Restore to Board')).toBeInTheDocument()
-    })
-
-    test('should not render Move to Maintenance in maintenance context', () => {
-      render(
-        <OverflowMenu
-          {...defaultProps}
-          open={true}
-          context="maintenance"
-          onMoveToMaintenance={mockOnMoveToMaintenance}
-        />,
-      )
-
-      expect(screen.queryByText('Move to Maintenance')).not.toBeInTheDocument()
-    })
-
-    test('should not render Remove from Board in maintenance context', () => {
-      render(
-        <OverflowMenu
-          {...defaultProps}
-          open={true}
-          context="maintenance"
-          onRemove={mockOnRemove}
-        />,
-      )
-
-      expect(screen.queryByText('Remove from Board')).not.toBeInTheDocument()
     })
   })
 
@@ -224,49 +176,27 @@ describe('OverflowMenu', () => {
   })
 
   describe('Callback Invocations', () => {
-    test('should call onMoveToMaintenance when clicked', async () => {
+    test('should call onMoveToAnotherBoard when clicked', async () => {
       const user = userEvent.setup()
       render(
         <OverflowMenu
           {...defaultProps}
           open={true}
-          context="board"
-          onMoveToMaintenance={mockOnMoveToMaintenance}
+          onMoveToAnotherBoard={mockOnMoveToAnotherBoard}
         />,
       )
 
-      await user.click(screen.getByText('Move to Maintenance'))
+      await user.click(screen.getByText('Move to Another Board'))
 
-      expect(mockOnMoveToMaintenance).toHaveBeenCalledWith('card-1')
-    })
-
-    test('should call onRestoreToBoard when clicked', async () => {
-      const user = userEvent.setup()
-      render(
-        <OverflowMenu
-          {...defaultProps}
-          open={true}
-          context="maintenance"
-          onRestoreToBoard={mockOnRestoreToBoard}
-        />,
-      )
-
-      await user.click(screen.getByText('Restore to Board'))
-
-      expect(mockOnRestoreToBoard).toHaveBeenCalledWith('card-1')
+      expect(mockOnMoveToAnotherBoard).toHaveBeenCalledWith('card-1')
     })
   })
 
-  describe('Delete Confirmation Dialog', () => {
+  describe('Remove from Board Confirmation Dialog', () => {
     test('should open delete dialog when Remove from Board is clicked', async () => {
       const user = userEvent.setup()
       render(
-        <OverflowMenu
-          {...defaultProps}
-          open={true}
-          context="board"
-          onRemove={mockOnRemove}
-        />,
+        <OverflowMenu {...defaultProps} open={true} onRemove={mockOnRemove} />,
       )
 
       await user.click(screen.getByText('Remove from Board'))
@@ -282,12 +212,7 @@ describe('OverflowMenu', () => {
     test('should show repository name in delete confirmation', async () => {
       const user = userEvent.setup()
       render(
-        <OverflowMenu
-          {...defaultProps}
-          open={true}
-          context="board"
-          onRemove={mockOnRemove}
-        />,
+        <OverflowMenu {...defaultProps} open={true} onRemove={mockOnRemove} />,
       )
 
       await user.click(screen.getByText('Remove from Board'))
@@ -297,15 +222,28 @@ describe('OverflowMenu', () => {
       })
     })
 
+    test('tells the user that Move to Another Board keeps the note, links and comment', async () => {
+      // Arrange
+      const user = userEvent.setup()
+      render(
+        <OverflowMenu {...defaultProps} open={true} onRemove={mockOnRemove} />,
+      )
+
+      // Act
+      await user.click(screen.getByText('Remove from Board'))
+
+      // Assert
+      const confirmation = await screen.findByRole('alertdialog')
+      expect(confirmation).toBeVisible()
+      expect(confirmation).toHaveTextContent(
+        'permanently deletes its note, links and comment. Adding the repository again will not restore them. To keep them, use Move to Another Board instead.',
+      )
+    })
+
     test('should call onRemove when confirmation is accepted', async () => {
       const user = userEvent.setup()
       render(
-        <OverflowMenu
-          {...defaultProps}
-          open={true}
-          context="board"
-          onRemove={mockOnRemove}
-        />,
+        <OverflowMenu {...defaultProps} open={true} onRemove={mockOnRemove} />,
       )
 
       await user.click(screen.getByText('Remove from Board'))
@@ -324,12 +262,7 @@ describe('OverflowMenu', () => {
     test('should close dialog when Cancel is clicked', async () => {
       const user = userEvent.setup()
       render(
-        <OverflowMenu
-          {...defaultProps}
-          open={true}
-          context="board"
-          onRemove={mockOnRemove}
-        />,
+        <OverflowMenu {...defaultProps} open={true} onRemove={mockOnRemove} />,
       )
 
       await user.click(screen.getByText('Remove from Board'))
@@ -352,12 +285,7 @@ describe('OverflowMenu', () => {
     test('should not call onRemove when cancelled', async () => {
       const user = userEvent.setup()
       render(
-        <OverflowMenu
-          {...defaultProps}
-          open={true}
-          context="board"
-          onRemove={mockOnRemove}
-        />,
+        <OverflowMenu {...defaultProps} open={true} onRemove={mockOnRemove} />,
       )
 
       await user.click(screen.getByText('Remove from Board'))
@@ -380,8 +308,7 @@ describe('OverflowMenu', () => {
         <OverflowMenu
           {...defaultProps}
           open={true}
-          context="board"
-          onMoveToMaintenance={mockOnMoveToMaintenance}
+          onMoveToAnotherBoard={mockOnMoveToAnotherBoard}
           onRemove={mockOnRemove}
         />,
       )
@@ -392,19 +319,14 @@ describe('OverflowMenu', () => {
       expect(screen.getByTestId('overflow-menu')).toBeInTheDocument()
       expect(screen.getByTestId('open-github-card-1')).toBeInTheDocument()
       expect(
-        screen.getByTestId('move-to-maintenance-card-1'),
+        screen.getByTestId('move-to-another-board-card-1'),
       ).toBeInTheDocument()
       expect(screen.getByTestId('remove-from-board-card-1')).toBeInTheDocument()
     })
 
     test('should have destructive styling on Remove button', () => {
       render(
-        <OverflowMenu
-          {...defaultProps}
-          open={true}
-          context="board"
-          onRemove={mockOnRemove}
-        />,
+        <OverflowMenu {...defaultProps} open={true} onRemove={mockOnRemove} />,
       )
 
       const removeButton = screen.getByTestId('remove-from-board-card-1')
@@ -418,8 +340,7 @@ describe('OverflowMenu', () => {
         <OverflowMenu
           {...defaultProps}
           open={true}
-          context="board"
-          onMoveToMaintenance={mockOnMoveToMaintenance}
+          onMoveToAnotherBoard={mockOnMoveToAnotherBoard}
         />,
       )
 
@@ -452,8 +373,7 @@ describe('OverflowMenu', () => {
         <OverflowMenu
           {...defaultProps}
           open={true}
-          context="board"
-          onMoveToMaintenance={mockOnMoveToMaintenance}
+          onMoveToAnotherBoard={mockOnMoveToAnotherBoard}
         />,
       )
 
@@ -480,15 +400,14 @@ describe('OverflowMenu', () => {
           <OverflowMenu
             {...defaultProps}
             open={true}
-            context="board"
-            onMoveToMaintenance={mockOnMoveToMaintenance}
+            onMoveToAnotherBoard={mockOnMoveToAnotherBoard}
           />
         </div>,
       )
 
-      await user.click(screen.getByTestId('move-to-maintenance-card-1'))
+      await user.click(screen.getByTestId('move-to-another-board-card-1'))
 
-      expect(mockOnMoveToMaintenance).toHaveBeenCalledWith('card-1')
+      expect(mockOnMoveToAnotherBoard).toHaveBeenCalledWith('card-1')
       expect(ancestorClickSpy).not.toHaveBeenCalled()
       expect(ancestorPointerDownSpy).not.toHaveBeenCalled()
       expect(ancestorMouseDownSpy).not.toHaveBeenCalled()
@@ -507,8 +426,7 @@ describe('OverflowMenu', () => {
         >
           <OverflowMenu
             {...defaultProps}
-            context="board"
-            onMoveToMaintenance={mockOnMoveToMaintenance}
+            onMoveToAnotherBoard={mockOnMoveToAnotherBoard}
           />
         </div>,
       )
@@ -528,8 +446,7 @@ describe('OverflowMenu', () => {
         <div data-testid="draggable-ancestor" onKeyDown={ancestorKeyDownSpy}>
           <OverflowMenu
             {...defaultProps}
-            context="board"
-            onMoveToMaintenance={mockOnMoveToMaintenance}
+            onMoveToAnotherBoard={mockOnMoveToAnotherBoard}
           />
         </div>,
       )

@@ -2,9 +2,8 @@
  * Board Slice
  *
  * Holds the currently-viewed board's hydrated contents (status columns,
- * cards) plus a bookmark to the last-visited board for quick resume. The
- * slice is persisted to LocalStorage via `redux-storage-middleware` so
- * reloads don't blank the UI while we re-fetch.
+ * cards). The slice is persisted to LocalStorage via
+ * `redux-storage-middleware` so reloads don't blank the UI while we re-fetch.
  */
 
 import type { PayloadAction } from '@reduxjs/toolkit'
@@ -12,7 +11,7 @@ import { createSlice } from '@reduxjs/toolkit'
 
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import type { Board } from '@/lib/supabase/types'
-import type { BoardId, RepoCardId } from '@/lib/types/brands'
+import type { RepoCardId } from '@/lib/types/brands'
 
 /**
  * {@link Board} with `settings` widened to `unknown`.
@@ -24,12 +23,6 @@ import type { BoardId, RepoCardId } from '@/lib/types/brands'
  */
 type SimplifiedBoard = Omit<Board, 'settings'> & { settings: unknown }
 
-/** Lightweight bookmark for "resume where you left off" navigation. */
-interface LastVisitedBoard {
-  id: BoardId
-  name: string
-}
-
 /** Shape of the `state.board` Redux slice. */
 interface BoardState {
   /** Currently-viewed board, or `null` before any board is opened. */
@@ -38,15 +31,12 @@ interface BoardState {
   statusLists: StatusListDomain[]
   /** Repo cards for the active board (meta widened for Immer). */
   repoCards: RepoCardForRedux[]
-  /** Bookmark to the most recently opened board. */
-  lastVisitedBoard: LastVisitedBoard | null
 }
 
 const initialState: BoardState = {
   activeBoard: null,
   statusLists: [],
   repoCards: [],
-  lastVisitedBoard: null,
 }
 
 export const boardSlice = createSlice({
@@ -55,12 +45,6 @@ export const boardSlice = createSlice({
   reducers: {
     setActiveBoard: (state, action: PayloadAction<SimplifiedBoard | null>) => {
       state.activeBoard = action.payload
-      if (action.payload) {
-        state.lastVisitedBoard = {
-          id: action.payload.id as BoardId,
-          name: action.payload.name,
-        }
-      }
     },
     setStatusLists: (state, action: PayloadAction<StatusListDomain[]>) => {
       state.statusLists = action.payload
@@ -103,5 +87,3 @@ export const selectStatusLists = (state: { board: BoardState }) =>
   state.board.statusLists
 export const selectRepoCards = (state: { board: BoardState }) =>
   state.board.repoCards
-export const selectLastVisitedBoard = (state: { board: BoardState }) =>
-  state.board.lastVisitedBoard

@@ -3,8 +3,7 @@
  *
  * Test targets:
  * - Redux store hydration via useLayoutEffect
- * - lastVisitedBoard updates in Redux
- * - Handler functions (moveToMaintenance, removeFromBoard)
+ * - Handler functions (removeFromBoard)
  * - Component rendering with mocked hooks
  */
 
@@ -51,10 +50,8 @@ vi.mock('sonner', () => ({
 }))
 
 // Mock server actions
-const mockMoveToMaintenance = vi.fn()
 const mockDeleteRepoCard = vi.fn()
 vi.mock('@/lib/actions/repo-cards', () => ({
-  moveToMaintenance: (...args: unknown[]) => mockMoveToMaintenance(...args),
   deleteRepoCard: (...args: unknown[]) => mockDeleteRepoCard(...args),
 }))
 
@@ -176,7 +173,6 @@ function createMockStore() {
         activeBoard: null,
         statusLists: [],
         repoCards: [],
-        lastVisitedBoard: null,
       },
     },
   })
@@ -247,7 +243,6 @@ function createMockInitialData(
       },
     ],
     comments: {},
-    maintenanceRepoIdentifiers: [],
     ...overrides,
   }
 }
@@ -459,27 +454,6 @@ describe('BoardPageClient Component', () => {
         const state = store.getState()
         expect(state.board.activeBoard).not.toBeNull()
         expect(state.board.activeBoard?.id).toBe('board-1')
-      })
-    })
-  })
-
-  describe('lastVisitedBoard', () => {
-    test('should save lastVisitedBoard to Redux state', async () => {
-      const board = createMockBoard()
-      const initialData = createMockInitialData()
-
-      render(
-        <Provider store={store}>
-          <BoardPageClient board={board} initialData={initialData} />
-        </Provider>,
-      )
-
-      await waitFor(() => {
-        const state = store.getState()
-        expect(state.board.lastVisitedBoard).toEqual({
-          id: 'board-1',
-          name: 'Test Board',
-        })
       })
     })
   })

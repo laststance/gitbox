@@ -35,7 +35,6 @@ vi.mock('@/lib/auth/get-cached-claims', () => ({
 
 vi.mock('@/lib/actions/board-data', () => ({
   getBoardBundle: vi.fn(async () => null),
-  getUserMaintenanceRepoIdentifiers: vi.fn(async () => []),
 }))
 
 // The client tree is not rendered here; only the page's own decisions are.

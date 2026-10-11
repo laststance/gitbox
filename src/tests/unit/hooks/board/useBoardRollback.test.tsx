@@ -169,7 +169,6 @@ function createBoardStore(
         activeBoard: null,
         statusLists,
         repoCards,
-        lastVisitedBoard: null,
       },
     },
   })

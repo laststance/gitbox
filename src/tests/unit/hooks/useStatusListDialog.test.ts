@@ -80,7 +80,6 @@ const createTestStore = (statusLists: StatusListDomain[] = []) => {
         activeBoard: null,
         statusLists,
         repoCards: [],
-        lastVisitedBoard: null,
       },
     },
   })

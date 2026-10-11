@@ -54,7 +54,6 @@ function createMockStore() {
           },
         ],
         repoCards: [],
-        lastVisitedBoard: null,
       },
     },
   })
@@ -562,7 +561,6 @@ describe('KanbanBoard Loading States', () => {
           activeBoard: null,
           statusLists: [],
           repoCards: [],
-          lastVisitedBoard: null,
         },
       },
     })
@@ -602,7 +600,6 @@ describe('KanbanBoard Loading States', () => {
             },
           ],
           repoCards: [],
-          lastVisitedBoard: null,
         },
       },
     })
@@ -682,7 +679,6 @@ describe('KanbanBoard with Data', () => {
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
           ],
-          lastVisitedBoard: null,
         },
       },
     })
@@ -741,7 +737,6 @@ describe('KanbanBoard with Data', () => {
             },
           ],
           repoCards: [],
-          lastVisitedBoard: null,
         },
       },
     })
@@ -765,7 +760,7 @@ describe('KanbanBoard with Data', () => {
  * Unit Tests: KanbanBoard Callbacks
  *
  * Test targets:
- * - onMoveToMaintenance callback
+ * - onMoveToAnotherBoard callback
  * - onNote callback
  * - onRemove callback
  * - onEditStatus callback
@@ -778,7 +773,7 @@ describe('KanbanBoard Callbacks', () => {
   })
 
   test('should pass callbacks to child components', async () => {
-    const mockOnMoveToMaintenance = vi.fn()
+    const mockOnMoveToAnotherBoard = vi.fn()
     const mockOnNote = vi.fn()
     const mockOnRemove = vi.fn()
     const mockOnEditStatus = vi.fn()
@@ -805,7 +800,6 @@ describe('KanbanBoard Callbacks', () => {
             },
           ],
           repoCards: [],
-          lastVisitedBoard: null,
         },
       },
     })
@@ -815,7 +809,7 @@ describe('KanbanBoard Callbacks', () => {
         <KanbanBoard
           boardId="test-board"
           initialComments={{}}
-          onMoveToMaintenance={mockOnMoveToMaintenance}
+          onMoveToAnotherBoard={mockOnMoveToAnotherBoard}
           onNote={mockOnNote}
           onRemove={mockOnRemove}
           onEditStatus={mockOnEditStatus}
@@ -880,7 +874,6 @@ describe('KanbanBoard Initial Comments', () => {
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
           ],
-          lastVisitedBoard: null,
         },
       },
     })
@@ -937,7 +930,6 @@ describe('KanbanBoard Card Display Settings', () => {
             },
           ],
           repoCards: [],
-          lastVisitedBoard: null,
         },
       },
     })
@@ -988,7 +980,6 @@ describe('KanbanBoard Card Display Settings', () => {
             },
           ],
           repoCards: [],
-          lastVisitedBoard: null,
         },
       },
     })
@@ -1052,7 +1043,6 @@ describe('KanbanBoard Undo Keyboard Shortcut', () => {
             },
           ],
           repoCards: [],
-          lastVisitedBoard: null,
         },
       },
     })
@@ -1100,7 +1090,6 @@ describe('KanbanBoard Undo Keyboard Shortcut', () => {
             },
           ],
           repoCards: [],
-          lastVisitedBoard: null,
         },
       },
     })
@@ -1157,7 +1146,6 @@ describe('KanbanBoard Undo Keyboard Shortcut', () => {
             },
           ],
           repoCards: [],
-          lastVisitedBoard: null,
         },
       },
     })
@@ -1230,7 +1218,6 @@ describe('KanbanBoard DndContext Configuration', () => {
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
           ],
-          lastVisitedBoard: null,
         },
       },
     })
@@ -1304,7 +1291,6 @@ describe('KanbanBoard Multi-Row Layout', () => {
             },
           ],
           repoCards: [],
-          lastVisitedBoard: null,
         },
       },
     })
@@ -1382,7 +1368,6 @@ describe('KanbanBoard Multi-Row Layout', () => {
             },
           ],
           repoCards: [],
-          lastVisitedBoard: null,
         },
       },
     })

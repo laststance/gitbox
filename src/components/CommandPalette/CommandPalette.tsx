@@ -12,7 +12,6 @@ import {
   Home,
   Settings,
   PlusCircle,
-  Archive,
   HelpCircle,
   LogOut,
   Keyboard,
@@ -85,14 +84,6 @@ export const CommandPalette = memo(function CommandPalette() {
         category: 'navigation',
       },
       {
-        id: 'maintenance',
-        label: 'Go to Maintenance',
-        icon: <Archive className="h-4 w-4" />,
-        shortcut: 'G M',
-        action: (): void => router.push('/maintenance'),
-        category: 'navigation',
-      },
-      {
         id: 'settings',
         label: 'Go to Settings',
         icon: <Settings className="h-4 w-4" />,
@@ -119,7 +110,7 @@ export const CommandPalette = memo(function CommandPalette() {
           setIsOpen(false)
           toast.info('Keyboard Shortcuts', {
             description:
-              '⌘K - Command Palette | ? - Shortcuts Help | G B - Go to Boards | G M - Go to Maintenance | G S - Go to Settings | N - New Board | Z - Undo | . - Card Menu',
+              '⌘K - Command Palette | ? - Shortcuts Help | G B - Go to Boards | G S - Go to Settings | N - New Board | Z - Undo | . - Card Menu',
             duration: 8000,
           })
         },

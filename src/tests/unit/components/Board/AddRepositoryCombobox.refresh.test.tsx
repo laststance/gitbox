@@ -21,7 +21,7 @@ vi.mock('@/lib/actions/github', () => ({
 vi.mock('@/lib/actions/board-data', () => ({
   getUserRepoPlacements: vi.fn(async () => ({
     success: true,
-    data: { boards: [], maintenance: [] },
+    data: [],
   })),
 }))
 

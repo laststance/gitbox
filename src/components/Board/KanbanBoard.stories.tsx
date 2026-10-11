@@ -101,7 +101,6 @@ export const Default: Story = {
   args: {
     boardId: toBoardId('board-1'),
     onNote: (id) => console.log('Edit project info:', id),
-    onMoveToMaintenance: (id) => console.log('Move to maintenance:', id),
     onEditStatus: (status) => console.log('Edit status:', status),
     onDeleteStatus: (id) => console.log('Delete status:', id),
     onAddCard: (id) => console.log('Add card to status:', id),
@@ -113,9 +112,6 @@ export const WithCallbacks: Story = {
     boardId: toBoardId('board-1'),
     onNote: (id) => {
       console.log('Opening project info modal for:', id)
-    },
-    onMoveToMaintenance: (id) => {
-      console.log('Moving card to maintenance:', id)
     },
     onEditStatus: (status) => {
       console.log('Editing status column:', status.title)
@@ -136,7 +132,6 @@ export const LoadingState: Story = {
   args: {
     boardId: toBoardId('board-1'),
     onNote: () => {},
-    onMoveToMaintenance: () => {},
     onEditStatus: () => {},
     onDeleteStatus: () => {},
     onAddCard: () => {},
@@ -170,7 +165,6 @@ export const WithCardDisplaySettings: Story = {
       },
     },
     onNote: () => {},
-    onMoveToMaintenance: () => {},
     onEditStatus: () => {},
     onDeleteStatus: () => {},
     onAddCard: () => {},
@@ -198,7 +192,6 @@ export const WithInitialComments: Story = {
       'card-2': { comment: 'Another comment', color: 'neutral' },
     },
     onNote: () => {},
-    onMoveToMaintenance: () => {},
     onEditStatus: () => {},
     onDeleteStatus: () => {},
     onAddCard: () => {},
@@ -230,7 +223,6 @@ export const WithCommentTextSettings: Story = {
       },
     },
     onNote: () => {},
-    onMoveToMaintenance: () => {},
     onEditStatus: () => {},
     onDeleteStatus: () => {},
     onAddCard: () => {},
@@ -253,7 +245,6 @@ export const DndContextActive: Story = {
   args: {
     boardId: toBoardId('board-1'),
     onNote: () => {},
-    onMoveToMaintenance: () => {},
     onEditStatus: () => {},
     onDeleteStatus: () => {},
     onAddCard: () => {},
@@ -286,7 +277,6 @@ export const WithShowComment: Story = {
       'card-1': { comment: 'Visible comment', color: 'primary' },
     },
     onNote: () => {},
-    onMoveToMaintenance: () => {},
     onEditStatus: () => {},
     onDeleteStatus: () => {},
     onAddCard: () => {},
@@ -317,7 +307,6 @@ export const WithoutShowComment: Story = {
       'card-1': { comment: 'Hidden comment', color: 'primary' },
     },
     onNote: () => {},
-    onMoveToMaintenance: () => {},
     onEditStatus: () => {},
     onDeleteStatus: () => {},
     onAddCard: () => {},

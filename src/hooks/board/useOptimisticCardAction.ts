@@ -1,8 +1,9 @@
 /**
  * useOptimisticCardAction Hook
  *
- * Extracts the shared optimistic remove + revert pattern used by
- * handleMoveToMaintenance and handleRemoveFromBoard in BoardPageClient.
+ * Runs the optimistic remove + revert pattern of Remove from Board
+ * (handleRemoveFromBoard in BoardPageClient), its one caller. Optimistic
+ * removal, rollback and the counted board write stay together in one hook.
  *
  * Pattern: dispatch optimistic remove → await server action → revert on error.
  */
@@ -20,7 +21,7 @@ import { notifyFailedBoardSave } from '@/lib/utils/notify-failed-board-save'
 import { useBoardRollback } from './useBoardRollback'
 
 /**
- * Server action result shape (matches moveToMaintenance / deleteRepoCard)
+ * Server action result shape (matches deleteRepoCard)
  */
 interface CardActionResult {
   success: boolean
@@ -30,7 +31,7 @@ interface CardActionResult {
 /**
  * Options for a card action execution
  *
- * @param actionName - Sentry tag for error tracking (e.g., 'moveToMaintenance')
+ * @param actionName - Sentry tag for error tracking (e.g., 'removeFromBoard')
  * @param errorMessage - User-facing toast title on failure
  * @param successMessage - Optional toast on success (omit for silent success)
  */
@@ -41,7 +42,8 @@ interface CardActionOptions {
 }
 
 /**
- * Hook that provides a function to execute card actions with optimistic Redux updates.
+ * Hook that provides a function to execute a card action with an optimistic
+ * Redux update. Called by {@link BoardPageClient} for Remove from Board.
  *
  * @returns executeCardAction - Call with cardId, serverAction, and display options
  *

@@ -5,9 +5,7 @@ import {
   ExternalLink,
   BarChart2,
   Database,
-  Archive,
   ArrowRightLeft,
-  RotateCcw,
   Trash2,
 } from 'lucide-react'
 import React, { memo, useState } from 'react'
@@ -30,62 +28,47 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import type { CardIdentifier, RepoCardId } from '@/lib/types/brands'
+import type { RepoCardId } from '@/lib/types/brands'
 
-interface OverflowMenuProps<TId extends CardIdentifier = RepoCardId> {
-  cardId: TId
+interface OverflowMenuProps {
+  cardId: RepoCardId
   repoOwner?: string
   repoName?: string
   productionUrl?: string
   trackingUrl?: string
   supabaseUrl?: string
-  onMoveToMaintenance?: (id: TId) => void
-  onMoveToAnotherBoard?: (id: TId) => void
-  onRestoreToBoard?: (id: TId) => void
+  onMoveToAnotherBoard?: (id: RepoCardId) => void
   /** Callback when repository is removed from board */
-  onRemove?: (id: TId) => void
-  /** Callback when maintenance item is permanently deleted */
-  onDelete?: (id: TId) => void
+  onRemove?: (id: RepoCardId) => void
   open?: boolean
   onOpenChange?: (open: boolean) => void
-  /** Board or Maintenance context */
-  context?: 'board' | 'maintenance'
 }
 
 /**
  * Overflow Menu Component
  *
- * A dropdown menu component for repository card actions.
- * Provides context-specific actions for Board and Maintenance modes.
+ * A dropdown menu component for the actions of a repository card on a board.
  * - Open on GitHub
  * - Open Production URL
  * - Open Tracking dashboard
  * - Open Supabase dashboard
- * - Move to Maintenance (Board only)
- * - Remove from Board (Board only) - Permanently deletes the card
- * - Restore to Board (Maintenance only)
+ * - Move to Another Board - Keeps the note, links and comment
+ * - Remove from Board - Permanently deletes the card
  *
  * Note: "Edit Project Info" was consolidated into NoteModal (Issue #37)
  */
-// Wrapped with memo at export; cannot use `memo(function…)` because the
-// generic parameter is erased. See export below.
-// eslint-disable-next-line @laststance/react-next/all-memo
-function OverflowMenuInner<TId extends CardIdentifier>({
+export const OverflowMenu = memo(function OverflowMenu({
   cardId,
   repoOwner,
   repoName,
   productionUrl,
   trackingUrl,
   supabaseUrl,
-  onMoveToMaintenance,
   onMoveToAnotherBoard,
-  onRestoreToBoard,
   onRemove,
-  onDelete,
   open,
   onOpenChange,
-  context = 'board',
-}: OverflowMenuProps<TId>) {
+}: OverflowMenuProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const githubUrl =
@@ -130,7 +113,7 @@ function OverflowMenuInner<TId extends CardIdentifier>({
    *   draggable parent never sees the event.
    *
    * @example
-   * // Without this guard, "Move to Maintenance" silently does nothing on
+   * // Without this guard, "Move to Another Board" silently does nothing on
    * // production: the menu closes, the action never executes.
    */
   const stopPointerBubble = (
@@ -207,24 +190,10 @@ function OverflowMenuInner<TId extends CardIdentifier>({
 
           {/* Separator before actions */}
           {(githubUrl || productionUrl || trackingUrl || supabaseUrl) &&
-            (onMoveToMaintenance ||
-              onRestoreToBoard ||
-              onRemove ||
-              onDelete) && <DropdownMenuSeparator />}
+            (onMoveToAnotherBoard || onRemove) && <DropdownMenuSeparator />}
 
-          {/* Move to Maintenance (Board context only) */}
-          {context === 'board' && onMoveToMaintenance && (
-            <DropdownMenuItem
-              onClick={() => onMoveToMaintenance(cardId)}
-              data-testid={`move-to-maintenance-${cardId}`}
-            >
-              <Archive className="mr-2 h-4 w-4" />
-              Move to Maintenance
-            </DropdownMenuItem>
-          )}
-
-          {/* Move to Another Board (Board context only) */}
-          {context === 'board' && onMoveToAnotherBoard && (
+          {/* Move to Another Board */}
+          {onMoveToAnotherBoard && (
             <DropdownMenuItem
               onClick={() => onMoveToAnotherBoard(cardId)}
               data-testid={`move-to-another-board-${cardId}`}
@@ -234,8 +203,8 @@ function OverflowMenuInner<TId extends CardIdentifier>({
             </DropdownMenuItem>
           )}
 
-          {/* Remove from Board (Board context only) - Destructive action */}
-          {context === 'board' && onRemove && (
+          {/* Remove from Board - Destructive action */}
+          {onRemove && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -245,32 +214,6 @@ function OverflowMenuInner<TId extends CardIdentifier>({
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Remove from Board
-              </DropdownMenuItem>
-            </>
-          )}
-
-          {/* Restore to Board (Maintenance context only) */}
-          {context === 'maintenance' && onRestoreToBoard && (
-            <DropdownMenuItem
-              onClick={() => onRestoreToBoard(cardId)}
-              data-testid={`restore-to-board-${cardId}`}
-            >
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Restore to Board
-            </DropdownMenuItem>
-          )}
-
-          {/* Delete (Maintenance context only) - Destructive action */}
-          {context === 'maintenance' && onDelete && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => onDelete(cardId)}
-                className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                data-testid={`delete-maintenance-${cardId}`}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
               </DropdownMenuItem>
             </>
           )}
@@ -288,8 +231,9 @@ function OverflowMenuInner<TId extends CardIdentifier>({
                 {repoOwner}/{repoName}
               </span>{' '}
               from this board and permanently deletes its note, links and
-              comment. Adding the repository again will not restore them. The
-              repository on GitHub is not affected.
+              comment. Adding the repository again will not restore them. To
+              keep them, use Move to Another Board instead. The repository on
+              GitHub is not affected.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -306,9 +250,4 @@ function OverflowMenuInner<TId extends CardIdentifier>({
       </AlertDialog>
     </div>
   )
-}
-
-// `memo` strips the type parameter; the cast reattaches it so each call site
-// keeps its own `TId` (e.g. `RepoCardId` from `RepoCard`, `MaintenanceId` from
-// `MaintenanceClient`). Callbacks therefore stay strictly typed end-to-end.
-export const OverflowMenu = memo(OverflowMenuInner) as typeof OverflowMenuInner
+})

@@ -4,25 +4,22 @@ import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { memo } from 'react'
 
-import { ROUTES } from '@/lib/constants/routes'
-
 /**
- * A catalog repository the user cannot add because it is already placed:
- * on another of their boards, or in Maintenance.
+ * A catalog repository the user cannot add because it is already placed on
+ * another of their boards.
  *
  * @example
- * { id: 42, fullName: 'laststance/gitbox', location: { kind: 'board', boardId: 'uuid', boardName: 'Work' } }
- * { id: 43, fullName: 'laststance/old-project', location: { kind: 'maintenance' } }
+ * { id: 42, fullName: 'laststance/gitbox', boardId: 'uuid', boardName: 'Work' }
  */
 export interface HeldRepository {
   /** GitHub repository id (stable list key). */
   id: number
   /** `owner/name` as GitHub reports it. */
   fullName: string
-  /** Where the repository currently lives. */
-  location:
-    | { kind: 'board'; boardId: string; boardName: string }
-    | { kind: 'maintenance' }
+  /** Board that holds the repository. */
+  boardId: string
+  /** Display name of the board that holds the repository. */
+  boardName: string
 }
 
 interface HeldRepositoryListProps {
@@ -96,14 +93,12 @@ export const HeldRepositoryList = memo(function HeldRepositoryList({
  * Resolves the link target and copy for a held repository row.
  *
  * @param repository - The held repository to describe.
- * @returns
- * - On a board: `{ href: '/board/<id>', label: 'On <board name>', accessibleName: 'On <board name>, which holds owner/name' }`
- * - In Maintenance: `{ href: '/maintenance', label: 'In Maintenance', accessibleName: 'In Maintenance, which holds owner/name' }`
+ * @returns `{ href: '/board/<id>', label: 'On <board name>', accessibleName: 'On <board name>, which holds owner/name' }`
  *
  * The accessible name starts with the visible label so that speech-control
  * users can say what they see (WCAG 2.5.3 Label in Name).
  * @example
- * toDestination({ id: 1, fullName: 'a/b', location: { kind: 'board', boardId: 'x', boardName: 'Work' } })
+ * toDestination({ id: 1, fullName: 'a/b', boardId: 'x', boardName: 'Work' })
  * // => { href: '/board/x', label: 'On Work', accessibleName: 'On Work, which holds a/b' }
  */
 function toDestination(repository: HeldRepository): {
@@ -111,17 +106,9 @@ function toDestination(repository: HeldRepository): {
   label: string
   accessibleName: string
 } {
-  if (repository.location.kind === 'maintenance') {
-    return {
-      href: ROUTES.MAINTENANCE,
-      label: 'In Maintenance',
-      accessibleName: `In Maintenance, which holds ${repository.fullName}`,
-    }
-  }
-
   return {
-    href: `/board/${repository.location.boardId}`,
-    label: `On ${repository.location.boardName}`,
-    accessibleName: `On ${repository.location.boardName}, which holds ${repository.fullName}`,
+    href: `/board/${repository.boardId}`,
+    label: `On ${repository.boardName}`,
+    accessibleName: `On ${repository.boardName}, which holds ${repository.fullName}`,
   }
 }
