@@ -323,6 +323,10 @@ export type Database = {
         Args: { p_updates: Json }
         Returns: undefined
       }
+      create_board_with_status_lists: {
+        Args: { p_name: string; p_columns: Json }
+        Returns: Json
+      }
       get_public_board: {
         Args: { p_slug: string }
         Returns: Json
