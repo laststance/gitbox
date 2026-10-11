@@ -27,6 +27,10 @@ export const SENTRY_ENVELOPE_URL = `${sentryIngestBaseUrl}/envelope/?hsts=0`
  * `@sentry/replay`). Sentry accepts less than that anyway: 1 MiB for an error
  * or a transaction and 10 MiB for a compressed replay. 20 MiB leaves room for
  * the envelope headers on top of the largest segment.
+ *
+ * On Vercel a body that large never reaches the proxy: the platform answers
+ * 413 `FUNCTION_PAYLOAD_TOO_LARGE` to a request body above 4.5 MB. This cap
+ * is the one that applies on any other host, the local server included.
  */
 export const SENTRY_TUNNEL_MAX_BODY_BYTES = 20 * 1024 * 1024
 

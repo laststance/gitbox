@@ -254,6 +254,8 @@ describe('useBoardSettings', () => {
   })
 
   describe('Share link', () => {
+    type FetchedSharing = { isPublic: boolean; shareSlug: string | null }
+
     test('offers the share slug of a board that is shared when the page loads', () => {
       // Arrange / Act
       const { result } = renderHook(() =>
@@ -324,6 +326,107 @@ describe('useBoardSettings', () => {
 
       // Assert
       expect(result.current.publicShareSlug).toBeNull()
+    })
+
+    test('offers the share slug once the board is fetched again after sharing was turned on in another tab', () => {
+      // Arrange: the page loaded while the board was private
+      const privateBoard: FetchedSharing = { isPublic: false, shareSlug: null }
+      const { result, rerender } = renderHook(
+        (board: FetchedSharing) =>
+          useBoardSettings({
+            boardName: 'Test Board',
+            boardSubtitle: null,
+            boardSettings: defaultBoardSettings,
+            isPublic: board.isPublic,
+            shareSlug: board.shareSlug,
+          }),
+        { initialProps: privateBoard },
+      )
+      expect(result.current.publicShareSlug).toBeNull()
+
+      // Act: the fetched board is shared now
+      rerender({ isPublic: true, shareSlug: 'a1b2c3d4e5f6' })
+
+      // Assert
+      expect(result.current.publicShareSlug).toBe('a1b2c3d4e5f6')
+    })
+
+    test('stops offering the share slug once the board is fetched again after sharing was turned off in another tab', () => {
+      // Arrange: the page loaded while the board was shared
+      const sharedBoard: FetchedSharing = {
+        isPublic: true,
+        shareSlug: 'a1b2c3d4e5f6',
+      }
+      const { result, rerender } = renderHook(
+        (board: FetchedSharing) =>
+          useBoardSettings({
+            boardName: 'Test Board',
+            boardSubtitle: null,
+            boardSettings: defaultBoardSettings,
+            isPublic: board.isPublic,
+            shareSlug: board.shareSlug,
+          }),
+        { initialProps: sharedBoard },
+      )
+      expect(result.current.publicShareSlug).toBe('a1b2c3d4e5f6')
+
+      // Act: the fetched board is private now and keeps its slug
+      rerender({ isPublic: false, shareSlug: 'a1b2c3d4e5f6' })
+
+      // Assert
+      expect(result.current.publicShareSlug).toBeNull()
+    })
+
+    test('offers the new share slug once the board is fetched again with another slug', () => {
+      // Arrange
+      const sharedBoard: FetchedSharing = {
+        isPublic: true,
+        shareSlug: 'a1b2c3d4e5f6',
+      }
+      const { result, rerender } = renderHook(
+        (board: FetchedSharing) =>
+          useBoardSettings({
+            boardName: 'Test Board',
+            boardSubtitle: null,
+            boardSettings: defaultBoardSettings,
+            isPublic: board.isPublic,
+            shareSlug: board.shareSlug,
+          }),
+        { initialProps: sharedBoard },
+      )
+
+      // Act: still shared, under another slug
+      rerender({ isPublic: true, shareSlug: 'f6e5d4c3b2a1' })
+
+      // Assert
+      expect(result.current.publicShareSlug).toBe('f6e5d4c3b2a1')
+    })
+
+    test('keeps the share slug the settings dialog reported when the board is fetched again unchanged', () => {
+      // Arrange: sharing was turned on in the dialog of a page that loaded
+      // while the board was private
+      const privateBoard: FetchedSharing = { isPublic: false, shareSlug: null }
+      const { result, rerender } = renderHook(
+        (board: FetchedSharing) =>
+          useBoardSettings({
+            boardName: 'Test Board',
+            boardSubtitle: null,
+            boardSettings: defaultBoardSettings,
+            isPublic: board.isPublic,
+            shareSlug: board.shareSlug,
+          }),
+        { initialProps: privateBoard },
+      )
+      act(() => {
+        result.current.handlePublicChange(true, 'a1b2c3d4e5f6')
+      })
+
+      // Act: a fetch that started before the switch was saved brings the
+      // same private board again
+      rerender({ isPublic: false, shareSlug: null })
+
+      // Assert: the dialog's change is not undone
+      expect(result.current.publicShareSlug).toBe('a1b2c3d4e5f6')
     })
   })
 })

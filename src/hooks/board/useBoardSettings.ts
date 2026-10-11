@@ -26,7 +26,7 @@ interface UseBoardSettingsParams {
   boardSubtitle: string | null
   /** Board settings JSON from database */
   boardSettings: unknown
-  /** Whether the board is shared by link when the page loads (default: false) */
+  /** Whether the fetched board is shared by link (default: false). Followed when it changes */
   isPublic?: boolean
   /** The board's share slug; a board that was shared once keeps it while private */
   shareSlug?: string | null
@@ -105,9 +105,19 @@ export function useBoardSettings({
     const parsed = parseBoardSettings(boardSettings)
     return parsed.showSubtitle ?? true
   })
-  const [publicShareSlug, setPublicShareSlug] = useState<string | null>(
-    isPublic ? shareSlug : null,
-  )
+  // The slug Copy Link uses: what the fetched board says, until the settings
+  // dialog reports a change. `fromBoard` remembers which fetched value the
+  // state was last set from.
+  const shareSlugFromBoard = isPublic ? shareSlug : null
+  const [shareLink, setShareLink] = useState<{
+    fromBoard: string | null
+    slug: string | null
+  }>({ fromBoard: shareSlugFromBoard, slug: shareSlugFromBoard })
+  // The board was fetched again with another sharing state (it was changed in
+  // another tab): what the server holds now replaces what this page showed
+  if (shareLink.fromBoard !== shareSlugFromBoard) {
+    setShareLink({ fromBoard: shareSlugFromBoard, slug: shareSlugFromBoard })
+  }
 
   const open = useCallback(() => {
     setIsOpen(true)
@@ -141,7 +151,10 @@ export function useBoardSettings({
   const handlePublicChange = useCallback(
     (nextIsPublic: boolean, nextShareSlug: string | null) => {
       // The slug outlives the switch being turned off, so it alone says nothing
-      setPublicShareSlug(nextIsPublic ? nextShareSlug : null)
+      setShareLink((previousShareLink) => ({
+        ...previousShareLink,
+        slug: nextIsPublic ? nextShareSlug : null,
+      }))
     },
     [],
   )
@@ -152,7 +165,7 @@ export function useBoardSettings({
     displaySubtitle,
     cardDisplaySettings,
     showSubtitle,
-    publicShareSlug,
+    publicShareSlug: shareLink.slug,
     open,
     close,
     handleRenameSuccess,
