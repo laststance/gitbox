@@ -26,6 +26,15 @@ Claude Chrome may complete GitHub OAuth on localhost as `ryota-murakami` without
 
 Local GitBox writes boards and cards to local Supabase. Deleting a card, archiving a repo, or removing a board does not call GitHub's delete-repository API, so the repository on GitHub stays. On production the boards and cards are the owner's real data.
 
+**🔴 A board without repositories verifies nothing. Add repositories to the board before the check.**
+
+Both E2E commands empty the local database down to the seed: `pnpm e2e:parallel` runs `pnpm db:reset` as its second step, and `pnpm e2e` resets it in `e2e/global-setup.ts`. The `ryota-murakami` user, its boards and its cards are gone afterwards, and the old session redirects to `/login`. Signing in again creates one board with no card on it.
+
+- On local, sign in, open the board, press **Add Repositories** and add repositories of `ryota-murakami` from the picker: cards in at least two columns, and a private or organization repository when the change reads GitHub data. Exercise the change on those cards: open one, drag one, run the flow under test.
+- On production, checks that only read use the owner's existing boards and cards. A check that changes data runs on a scratch board, and that board needs cards too. Add repositories that sit on no board and not in Maintenance: the picker lists the others under "Already placed elsewhere" and does not offer them (one repository per user). Deleting the scratch board deletes its cards. A card that was moved to Maintenance during the check has to be deleted there.
+- Run the E2E suite before signing in for the check. Running it afterwards means signing in and adding the repositories again.
+- Say in the report which board the check used and how many cards it held. A check on a board without cards is reported as that, not as verified.
+
 **🔴 Destructive flows on production run on scratch data only.** Remove from board, Move to Maintenance, delete column, delete board, account deletion and anything else that cannot be undone from the UI:
 
 - Create a board (and the cards or columns the check needs) for the check, exercise the flow on that board only, and delete the board afterwards.
