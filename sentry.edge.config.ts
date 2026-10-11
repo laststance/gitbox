@@ -5,6 +5,8 @@
 
 import * as Sentry from '@sentry/nextjs'
 
+import { SENTRY_DSN as dsn } from '@/lib/constants/sentry'
+
 /**
  * Determines if Sentry should be enabled.
  * Only enables in production environment, NOT in:
@@ -28,7 +30,7 @@ function isSentryEnabled(): boolean {
 }
 
 Sentry.init({
-  dsn: 'https://06b1775946774ab1527986b339ea85ed@o1245861.ingest.us.sentry.io/4510597804261376',
+  dsn,
 
   // Only enable Sentry in production environment
   enabled: isSentryEnabled(),
