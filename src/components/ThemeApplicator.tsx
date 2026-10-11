@@ -11,6 +11,7 @@
 import { memo } from 'react'
 
 import { useTheme } from '@/hooks/use-theme'
+import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 
 /**
  * Renders nothing but applies theme to document via useTheme hook.
@@ -22,4 +23,4 @@ export const ThemeApplicator = memo(function ThemeApplicator() {
 
   // This component renders nothing - it just triggers the theme effects
   return null
-})
+}, areServerRenderedPropsEqual)

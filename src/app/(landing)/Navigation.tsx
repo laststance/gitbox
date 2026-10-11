@@ -6,6 +6,7 @@ import React, { memo, useState } from 'react'
 
 import { GithubIcon } from '@/components/icons/GithubIcon'
 import { Button } from '@/components/ui/button'
+import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 
 /**
  * Fixed top navigation bar with desktop/mobile menus and GitHub sign-in CTA.
@@ -113,4 +114,4 @@ export const Navigation = memo(function Navigation() {
       )}
     </header>
   )
-})
+}, areServerRenderedPropsEqual)

@@ -7,6 +7,7 @@ import { GithubIcon } from '@/components/icons/GithubIcon'
 import { Card, CardContent } from '@/components/ui/card'
 import type { PublicBoardData } from '@/lib/actions/public-board'
 import type { RepoCardDomain, StatusListDomain } from '@/lib/models/domain'
+import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 
 interface PublicBoardClientProps {
   data: PublicBoardData
@@ -99,7 +100,7 @@ export const PublicBoardClient = memo(function PublicBoardClient({
       </footer>
     </div>
   )
-})
+}, areServerRenderedPropsEqual)
 
 // ─── Column ──────────────────────────────────────────────
 

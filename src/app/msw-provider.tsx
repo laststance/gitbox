@@ -16,6 +16,7 @@
 
 import { memo, useLayoutEffect, useState } from 'react'
 
+import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 import { isMSWEnabled } from '@/lib/utils/isMSWEnabled'
 
 type MSWProviderProps = Readonly<{
@@ -79,4 +80,7 @@ function MSWProviderComponent({ children }: MSWProviderProps): React.ReactNode {
   return children
 }
 
-export const MSWProvider = memo(MSWProviderComponent)
+export const MSWProvider = memo(
+  MSWProviderComponent,
+  areServerRenderedPropsEqual,
+)

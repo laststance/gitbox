@@ -327,7 +327,7 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 **What:** Let `useBoardServerSync` read the board's columns and cards with a server action and pass the answer through `selectMayApplyServerSnapshot`, instead of calling `router.refresh()`. Give each fetch a request id so a late answer for a board that was left and reopened is dropped, and offer a retry when the fetch fails.
 
-**Why:** `router.refresh()` has two costs on the board page. (1) When the browser reports "online" but the server cannot be reached, Next.js falls back to a full navigation and the app is replaced by the browser's error page; saves fail in exactly that situation, and a failed save is what asks for the fetch. (2) It rebuilds the page, which closes an open dialog, cancels a drag and empties the undo history at a moment the user cannot predict. A server action can fail without leaving the app and remounts nothing.
+**Why:** When the browser reports "online" but the server cannot be reached, `router.refresh()` makes Next.js fall back to a full navigation and the app is replaced by the browser's error page; saves fail in exactly that situation, and a failed save is what asks for the fetch. A server action can fail without leaving the app.
 
 **Context:** `src/hooks/board/useBoardServerSync.ts`, `src/lib/redux/slices/boardSyncSlice.ts`. Server actions run one at a time, so the read is ordered after every write already sent. Three smaller gaps close with the same change or become harmless: column create, rename and delete, adding repositories and comment edits are not counted by `trackBoardWrite`, so a fetch can be sent while one of them is in flight; a save of board A that fails after board B was opened asks for a fetch of B; and `useStatusListDialog` builds the next column list from the list it captured before its await.
 
@@ -335,16 +335,16 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 **Priority:** P2
 **Depends on:** None
 
-### Find out why `router.refresh()` rebuilds everything below `<body>`
+### Show the fetched board name, subtitle and card display settings after a refetch
 
-**What:** Find the cause of the full remount on `router.refresh()` and remove it.
+**What:** Let `useBoardSettings` take the board name, the subtitle, the card display settings and the show-subtitle switch from the board that was fetched again, the way it already does for the share slug.
 
-**Why:** A refresh should keep client state. Here it rebuilds the React tree on every page (`/boards`, `/settings`, `/privacy`, the board page), in development and in a production build: DOM nodes are replaced and open dialogs close. Only module-level state such as the Redux store survives.
+**Why:** Since `router.refresh()` keeps the page's state (Issue #218), these four keep the value this tab showed. Changed in another tab, they stay old until the page is reloaded. Before, the refetch built the page again and they were read anew as a side effect.
 
-**Context:** Measured in a real browser on 2026-10-11 by marking DOM nodes before a refresh. `useBoardServerSync` is written around it: every decision reads the store, not component state. Possibly related to the hydration mismatch described under "Fix the hydration mismatch on the board page for returning users".
+**Context:** `src/hooks/board/useBoardSettings.ts`: the four are `useState` values that start from the props. `shareLink` there remembers which fetched value it was set from and resets when that changes; the same applies here. Compare the settings by content, not by reference: the fetched `board.settings` is a new object on every fetch, and a copy read before a save landed must not put the old settings back.
 
-**Effort:** M
-**Priority:** P2
+**Effort:** S
+**Priority:** P3
 **Depends on:** None
 
 ### Fix the hydration mismatch on the board page for returning users

@@ -54,8 +54,11 @@ interface BoardServerSnapshot {
  * - A wanted fetch waits for pending writes to settle and for the browser to
  *   be online. While it waits for the connection, a notice says so.
  *
- * `router.refresh()` remounts this page, so nothing here may depend on
- * whether the component has rendered before: every decision reads the store.
+ * The store outlives this component: a board that is left and opened again
+ * is mounted anew while the store still holds its cards. So nothing here may
+ * depend on whether the component has rendered before: every decision reads
+ * the store. A fetch sent from here does not mount the page again; its data
+ * arrives as new `statusLists` and `repoCards` on the same instance.
  *
  * @param serverSnapshot - Board id plus the columns and cards of the page data.
  * @example
@@ -90,7 +93,7 @@ export function useBoardServerSync(serverSnapshot: BoardServerSnapshot): void {
 
     // Read before a save landed or before the board changed: keep what is on
     // screen and fetch again. The decision reads the store, never this
-    // component's own state, because a refresh remounts the page.
+    // component's own state, because the store outlives the component.
     if (!selectMayApplyServerSnapshot(store.getState(), boardId)) {
       dispatch(serverSnapshotSkipped())
       return

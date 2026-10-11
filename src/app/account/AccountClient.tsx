@@ -25,6 +25,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { signOut } from '@/lib/actions/auth'
+import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 
 import type { AccountData, UserProfile } from './page'
 
@@ -207,4 +208,4 @@ export const AccountClient = memo(function AccountClient({
       />
     </div>
   )
-})
+}, areServerRenderedPropsEqual)

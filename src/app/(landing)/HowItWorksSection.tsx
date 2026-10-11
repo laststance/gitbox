@@ -2,6 +2,8 @@
 
 import React, { memo } from 'react'
 
+import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
+
 /**
  * Four-step "How It Works" section with numbered process cards.
  */
@@ -68,4 +70,4 @@ export const HowItWorksSection = memo(function HowItWorksSection() {
       </div>
     </section>
   )
-})
+}, areServerRenderedPropsEqual)

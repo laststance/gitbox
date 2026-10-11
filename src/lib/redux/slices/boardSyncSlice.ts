@@ -36,9 +36,9 @@ interface BoardSyncState {
   isRefreshWanted: boolean
   /**
    * Board whose server data the store holds, or `null` before any board was
-   * opened. Kept here and not in a component because `router.refresh()`
-   * remounts the page, which would make every refreshed copy look like the
-   * first data of a board.
+   * opened. Kept here and not in a component because the store outlives the
+   * board page: to a page that is mounted again (the board was left and
+   * opened again) every copy would look like the first data of a board.
    */
   hydratedBoardId: BoardId | null
 }

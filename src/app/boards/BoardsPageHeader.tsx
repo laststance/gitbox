@@ -8,6 +8,7 @@ import {
   updateBoardsPageSubtitle,
   updateBoardsPageTitle,
 } from '@/lib/actions/user-settings'
+import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 import {
   BOARDS_PAGE_DEFAULTS,
   BOARDS_PAGE_SUBTITLE_MAX_LENGTH,
@@ -70,4 +71,5 @@ export const BoardsPageHeader = memo<BoardsPageHeaderProps>(
       </div>
     )
   },
+  areServerRenderedPropsEqual,
 )

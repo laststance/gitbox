@@ -264,8 +264,9 @@ describe('board data from the server', () => {
     expect(fetchBoardAgain).not.toHaveBeenCalled()
   })
 
-  // router.refresh() rebuilds the whole page in this app, so the copy it
-  // fetched reaches a hook instance that has never seen the board before.
+  // The store outlives the page: a board that is left and opened again is
+  // mounted anew, so a copy fetched earlier can reach a hook instance that
+  // has never seen the board before.
   test('a refreshed copy that arrives after the page was rebuilt still does not replace a card dragged meanwhile', async () => {
     // Arrange: a fetch is on its way
     const { store, wrapper } = createAppStore()

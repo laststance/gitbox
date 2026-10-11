@@ -53,6 +53,7 @@ import type { CommentData } from '@/lib/actions/maintenance-project-info'
 import { selectLastVisitedBoard } from '@/lib/redux/slices/boardSlice'
 import { useAppSelector } from '@/lib/redux/store'
 import type { MaintenanceId } from '@/lib/types/brands'
+import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 
 import { useMaintenanceComments } from './hooks/useMaintenanceComments'
 import { useMaintenanceNoteModal } from './hooks/useMaintenanceNoteModal'
@@ -586,4 +587,4 @@ export const MaintenanceClient = memo(function MaintenanceClient({
       </div>
     </LazyMotion>
   )
-})
+}, areServerRenderedPropsEqual)

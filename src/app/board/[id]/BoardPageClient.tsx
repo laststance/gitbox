@@ -65,6 +65,7 @@ import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { Board } from '@/lib/supabase/types'
 import { parseBoardSettings } from '@/lib/types/board-settings'
 import { toBoardId, type RepoCardId } from '@/lib/types/brands'
+import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 import { toPublicBoardUrl } from '@/lib/utils/to-public-board-url'
 import {
   BOARD_NAME_MAX_LENGTH,
@@ -435,4 +436,4 @@ export const BoardPageClient = memo(function BoardPageClient({
       </AlertDialog>
     </>
   )
-})
+}, areServerRenderedPropsEqual)

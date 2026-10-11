@@ -3,6 +3,8 @@
 import { Columns3, GripVertical, FileText, Archive } from 'lucide-react'
 import React, { memo, useSyncExternalStore } from 'react'
 
+import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
+
 const FEATURE_SUBTITLES = [
   'Tame the repo chaos from AI-powered development',
   'Your repos multiply faster than ever. We help you stay organized.',
@@ -102,4 +104,4 @@ export const FeaturesSection = memo(function FeaturesSection() {
       </div>
     </section>
   )
-})
+}, areServerRenderedPropsEqual)

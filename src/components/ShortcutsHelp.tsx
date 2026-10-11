@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { OPEN_SHORTCUTS_HELP } from '@/lib/events'
+import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 
 interface ShortcutItem {
   key: string
@@ -232,4 +233,4 @@ export const ShortcutsHelp = memo(function ShortcutsHelp({
       </DialogContent>
     </Dialog>
   )
-})
+}, areServerRenderedPropsEqual)

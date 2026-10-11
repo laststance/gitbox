@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createBoard } from '@/lib/actions/board'
 import { DEFAULT_PRESET_ID, type PresetId } from '@/lib/constants/board-presets'
+import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 import { boardNameSchema } from '@/lib/validations/board'
 
 import { PresetSelector } from './PresetSelector'
@@ -113,4 +114,4 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
       </div>
     </form>
   )
-})
+}, areServerRenderedPropsEqual)

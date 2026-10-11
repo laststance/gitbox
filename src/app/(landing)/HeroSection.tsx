@@ -6,6 +6,7 @@ import React, { memo, useState, useEffect } from 'react'
 
 import { GithubIcon } from '@/components/icons/GithubIcon'
 import { Button } from '@/components/ui/button'
+import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 
 import { Glow } from './Glow'
 import { KanbanPreview } from './KanbanPreview'
@@ -148,4 +149,4 @@ export const HeroSection = memo(function HeroSection() {
       </div>
     </section>
   )
-})
+}, areServerRenderedPropsEqual)

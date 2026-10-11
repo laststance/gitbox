@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { memo } from 'react'
 
 import { GithubIcon } from '@/components/icons/GithubIcon'
+import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 
 /**
  * Simple footer with logo, GitHub link, and credits.
@@ -55,4 +56,4 @@ export const Footer = memo(function Footer() {
       </div>
     </footer>
   )
-})
+}, areServerRenderedPropsEqual)

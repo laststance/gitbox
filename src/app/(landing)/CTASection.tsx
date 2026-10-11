@@ -6,6 +6,7 @@ import React, { memo } from 'react'
 
 import { GithubIcon } from '@/components/icons/GithubIcon'
 import { Button } from '@/components/ui/button'
+import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 
 import { Glow } from './Glow'
 
@@ -43,4 +44,4 @@ export const CTASection = memo(function CTASection() {
       </div>
     </section>
   )
-})
+}, areServerRenderedPropsEqual)

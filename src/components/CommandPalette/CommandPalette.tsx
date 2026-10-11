@@ -29,6 +29,7 @@ import React, {
 import { toast } from 'sonner'
 
 import { signOut } from '@/lib/actions/auth'
+import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 
 /** Base styles for command item button */
 const COMMAND_BUTTON_BASE =
@@ -390,4 +391,4 @@ export const CommandPalette = memo(function CommandPalette() {
       </AnimatePresence>
     </LazyMotion>
   )
-})
+}, areServerRenderedPropsEqual)

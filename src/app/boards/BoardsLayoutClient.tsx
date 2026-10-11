@@ -11,6 +11,7 @@ import React, { memo } from 'react'
 
 import { Sidebar } from '@/components/Sidebar'
 import { ThemeApplicator } from '@/components/ThemeApplicator'
+import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 
 interface BoardsLayoutClientProps {
   children: React.ReactNode
@@ -35,4 +36,4 @@ export const BoardsLayoutClient = memo(function BoardsLayoutClient({
       </div>
     </>
   )
-})
+}, areServerRenderedPropsEqual)

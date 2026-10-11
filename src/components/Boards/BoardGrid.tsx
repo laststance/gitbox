@@ -34,6 +34,7 @@ import { match } from 'ts-pattern'
 import { Button } from '@/components/ui/button'
 import { updateBoardPositions } from '@/lib/actions/board'
 import type { Tables } from '@/lib/supabase/types'
+import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 
 import { BoardCard } from './BoardCard'
 import { SortableBoardCard } from './SortableBoardCard'
@@ -258,7 +259,7 @@ export const BoardGrid = memo(function BoardGrid({
       </DragOverlay>
     </DndContext>
   )
-})
+}, areServerRenderedPropsEqual)
 
 // ========================================
 // Empty State Component

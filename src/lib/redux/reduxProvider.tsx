@@ -10,6 +10,8 @@
 import { memo } from 'react'
 import { Provider } from 'react-redux'
 
+import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
+
 import { store } from './store'
 
 export const ReduxProvider = memo(function ReduxProvider({
@@ -18,4 +20,4 @@ export const ReduxProvider = memo(function ReduxProvider({
   children: React.ReactNode
 }) {
   return <Provider store={store}>{children}</Provider>
-})
+}, areServerRenderedPropsEqual)
