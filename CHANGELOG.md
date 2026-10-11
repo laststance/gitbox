@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1.0] - 2026-10-11
+
+### Fixed
+
+- Errors on pages seen while signed out (the landing page, the login page, a shared board) are now reported. Their reports were redirected to the login page and lost.
+- A save that fails no longer puts an older board layout over newer changes. The board puts back only what that save changed, and reloads when something else changed in the meantime. This covers card and column drags, undo, Remove from Board and Move to Maintenance.
+- Reloading the board after a failed save no longer replaces a drag made while the reload was on its way.
+- The message after a failed drag or undo says what happens next: "You're offline. Try again when the connection is back." without a connection, "Reloading the board to show what was saved." when the board is fetched again. Repeated failed drags replace one message instead of stacking.
+- Opening a board link while signed out leads to the login page instead of "Board not found".
+- The app manifest and the link preview images load without a session. They were redirected to the login page.
+
+### Changed
+
+- A board opens at `/board/<id>` for its owner only. To show a board to someone else, turn on Public Sharing and send the public link. A `/board/<id>` link sent to another person earlier now shows "Board not found", and that page says to ask for the public link.
+- Copy Link copies the public link when the board is shared, and says that only you can open the link when it is not.
+- A shared board can be opened only with its link. Shared boards can no longer be listed, and the shared page no longer receives the owner's user id or the board's settings. It shows at most 1000 columns and 1000 cards.
+- A share link that is mistyped or no longer shared shows its own "This shared board isn't available" page.
+- Error reports go to this app's own Sentry project only, and session cookies are no longer sent along with them.
+
 ## [0.4.0.0] - 2026-10-11
 
 ### Added

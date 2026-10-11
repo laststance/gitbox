@@ -79,10 +79,6 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
       _v0.3.1.0: the embed now orders `repocard` by `order` ascending, so truncation drops the
       highest-order cards deterministically rather than an arbitrary subset; the silent
       undercount / hard-fail / pagination work above remains open._
-- [ ] **`/board/[id]` passes the full `board` row (incl. `user_id`) to the client for public
-      boards** — pre-existing: the old page also used `select('*')` and passed the raw row.
-      Public-board RLS lets any authenticated user read a public board by UUID, so consider
-      stripping `user_id`/owner-only `settings` on this path the way `public-board.ts` already does.
 
 ### Accepted tradeoff
 
@@ -251,18 +247,6 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 **Priority:** P2
 **Depends on:** None
 
-### Filter the board page by owner
-
-**What:** Add the owner filter to `getBoardBundle` (`src/lib/actions/board-data.ts`) or strip `user_id` before passing the board to the client.
-
-**Why:** The bundle relies on RLS alone, and RLS also returns other users' public boards. A signed-in user who opens `/board/<id>` of someone else's public board gets the owner UI (every write is still refused by RLS) and the raw board row, including `board.user_id`.
-
-**Context:** Found by the red team pass of #215; older than that change. The board id is discoverable from the public page. While there, select explicit `repocard` columns in `public-board.ts` and in the bundle embed so the new `repocard.user_id` column cannot leak through a future mapper change.
-
-**Effort:** S
-**Priority:** P1
-**Depends on:** None
-
 ### Load placements without waiting behind the catalog action
 
 **What:** Fetch the picker's placements through a GET route handler (or return them with the catalog), and keep the cached options on screen, non-interactive, while only placements are pending.
@@ -311,18 +295,6 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 **Priority:** P2
 **Depends on:** None
 
-### Guard optimistic rollbacks against newer board state
-
-**What:** When a drag or an undo fails to save, roll the screen back only if the board still shows the state that write produced; otherwise refetch the active board.
-
-**Why:** The failure handlers of `useKanbanDnD` and `useKanbanUndo` dispatch the cards array captured when the action started. If the board changed while the request was in flight, that brings back a card removed meanwhile, drops a card added meanwhile, or, after navigating to another board, replaces that board's cards until reload.
-
-**Context:** Needs a failed write plus a change inside the request window, so it is rare. The drag handler has behaved this way since before #215; the undo handler gained the same rollback in #215 (before, a failed undo left the screen and the database disagreeing). Found by the final adversarial pass of #215 (three reviewers agreed). A fix belongs in the reducer (compare a revision or the array identity) so both call sites share it; add tests with a deferred rejection.
-
-**Effort:** S
-**Priority:** P1
-**Depends on:** None
-
 ### Harden the #215 triggers and the undo history
 
 **What:** (1) Let `check_repocard_status_board` return early on an UPDATE that changes neither `board_id` nor `status_id`. (2) Schema-qualify `public.board` and `public.statuslist` inside the three trigger functions. (3) Do not push an undo entry for a drag that changed nothing, or skip such entries when Z is pressed. (4) Reword the duplicate guard's message to "more than one card for the same user and repository".
@@ -345,6 +317,262 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 **Effort:** S
 **Priority:** P3
+**Depends on:** None
+
+## Board sync, shared boards and the Sentry tunnel — deferred follow-ups
+
+From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
+
+### Fetch the board again through a server action, not `router.refresh()`
+
+**What:** Let `useBoardServerSync` read the board's columns and cards with a server action and pass the answer through `selectMayApplyServerSnapshot`, instead of calling `router.refresh()`. Give each fetch a request id so a late answer for a board that was left and reopened is dropped, and offer a retry when the fetch fails.
+
+**Why:** `router.refresh()` has two costs on the board page. (1) When the browser reports "online" but the server cannot be reached, Next.js falls back to a full navigation and the app is replaced by the browser's error page; saves fail in exactly that situation, and a failed save is what asks for the fetch. (2) It rebuilds the page, which closes an open dialog, cancels a drag and empties the undo history at a moment the user cannot predict. A server action can fail without leaving the app and remounts nothing.
+
+**Context:** `src/hooks/board/useBoardServerSync.ts`, `src/lib/redux/slices/boardSyncSlice.ts`. Server actions run one at a time, so the read is ordered after every write already sent. Three smaller gaps close with the same change or become harmless: column create, rename and delete, adding repositories and comment edits are not counted by `trackBoardWrite`, so a fetch can be sent while one of them is in flight; a save of board A that fails after board B was opened asks for a fetch of B; and `useStatusListDialog` builds the next column list from the list it captured before its await.
+
+**Effort:** M
+**Priority:** P2
+**Depends on:** None
+
+### Find out why `router.refresh()` rebuilds everything below `<body>`
+
+**What:** Find the cause of the full remount on `router.refresh()` and remove it.
+
+**Why:** A refresh should keep client state. Here it rebuilds the React tree on every page (`/boards`, `/settings`, `/privacy`, the board page), in development and in a production build: DOM nodes are replaced and open dialogs close. Only module-level state such as the Redux store survives.
+
+**Context:** Measured in a real browser on 2026-10-11 by marking DOM nodes before a refresh. `useBoardServerSync` is written around it: every decision reads the store, not component state. Possibly related to the hydration mismatch described under "Fix the hydration mismatch on the board page for returning users".
+
+**Effort:** M
+**Priority:** P2
+**Depends on:** None
+
+### Fix the hydration mismatch on the board page for returning users
+
+**What:** Make the first client render of `KanbanBoard` match the server HTML when the browser already holds a persisted board in localStorage.
+
+**Why:** The server renders `KanbanSkeleton` because the Redux store is empty there, while the browser's first render already has the persisted columns and renders the grid. React reports "Hydration failed" (minified error #418 in production) and regenerates the tree on every board visit.
+
+**Context:** Seen on production and on `localhost:3008` with the real account on 2026-10-11. `ssr-hydration-board.spec.ts` does not catch it because the fixture browser starts with an empty localStorage. The store is filled from `initialData` by `useBoardServerSync` in a `useLayoutEffect`; rendering the board from `initialData` on the server and on the first client render would remove both the skeleton flash and the mismatch.
+
+**Effort:** M
+**Priority:** P2
+**Depends on:** None
+
+### Fail a card or column move that matched no row
+
+**What:** Add `.select('id')` to the position updates in `src/lib/actions/board.ts` and throw when nothing came back.
+
+**Why:** A move of a card that another tab removed, or that row level security hides because the tab's session changed, resolves as a success. Nothing is rolled back and nothing is fetched again, so the card stays in its new column on screen with nothing saved. The rollback and refetch added for failed saves only react to rejected writes.
+
+**Context:** `updateRepoCardPosition` and its batch and column siblings check `error` only. Older than the rollback guard.
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** None
+
+### Clear the persisted board data on sign-out
+
+**What:** On sign-out and account deletion, clear the `board` and `draft` slices stored under `gitbox-state` in localStorage (keep the theme and display settings), or store the owner's user id with them and drop them when it differs from the signed-in user.
+
+**Why:** On a shared browser the next account still holds the previous user's columns, cards (private repository names included), note drafts and last board name. The Maintenance page then shows "Back to <previous user's board>", a link that ends at "Board not found".
+
+**Context:** `slices: ['settings', 'board', 'draft']` in `src/lib/redux/store.ts`; `signOut` in `src/lib/actions/auth.ts` redirects without touching client state. Older than this change.
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** None
+
+### Forward only the headers Sentry needs through the tunnel
+
+**What:** Build the headers of the forwarded tunnel request from a short allowlist (`content-type`, `content-encoding`, `user-agent`, `origin`, `referer`, `x-forwarded-for`, `accept-encoding`) instead of copying every header and deleting `cookie`. While there, match the tunnel path with one anchored pattern instead of `replace(/\/+$/, '')`, refuse bodies above Sentry's envelope size by `Content-Length`, and apply the edge rate limit before the rewrite.
+
+**Why:** Every header the proxy sees except `Cookie` goes to sentry.io with each report. The browser sends nothing else that is secret, but headers the platform adds for a function would go along if the proxy receives them: Vercel documents `x-vercel-oidc-token` as a request header of its functions. Whether the proxy gets it was not checked on a deployment. Before this change the whole header set, cookies included, was forwarded for signed-in users, so this is hardening, not a regression. The trailing-slash pattern is quadratic on a long run of slashes that is not at the end of the path (about 70 ms for a 14 kB path). The tunnel now answers signed-out requests too, and nothing bounds their size or rate; three review passes named this first. It gives no new way to reach Sentry, since the DSN is public and the same report can be posted to the ingest host directly, but each request costs a proxy run here.
+
+**Context:** `forwardSentryReport` and `isSentryTunnelPath` in `src/proxy.ts`. `NextResponse.rewrite(..., { request: { headers } })` lists every remaining header name in `x-middleware-override-headers`, which is how `src/tests/unit/middleware.test.ts` sees what is forwarded. Before reusing `edgeRateLimit` for every report, see "Evict expired keys from the edge rate-limit store".
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** None
+
+### Pin the proxy matcher and Sentry's own tunnel rewrite in tests
+
+**What:** Add a unit test that compiles `config.matcher[0]` of `src/proxy.ts` and expects `/monitoring`, `/Monitoring` and `/monitoring/` to match, and one that reads the rewrites `withSentryConfig` adds and pins their `source`.
+
+**Why:** `tunnelRoute` keeps Sentry's rewrite registered. It takes the Sentry project from the query string and forwards cookies. It stays unreachable only while the proxy runs for the path and the proxy's path check is at least as wide as the rewrite's source (`/monitoring(/?)` in `@sentry/nextjs` 11.4.0). Excluding the route from the matcher, which Sentry's setup text suggests, or an SDK upgrade that widens the source would reopen it with every test green.
+
+**Context:** `src/proxy.ts`, `next.config.ts`, `node_modules/@sentry/nextjs/build/cjs/config/withSentryConfig/tunnel.js`. The alternative is to drop `tunnelRoute` and set `tunnel` in `Sentry.init`, which loses the SDK's dropping of tunnel spans.
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** None
+
+### Word every failed board save from what the rollback did
+
+**What:** (1) In `useOptimisticCardAction`, pass the rollback outcome to `notifyFailedBoardSave` on the `{ success: false }` branch too, and keep the server's message as the description when the card was put back. (2) Give a refused undo its own text: "Please try again." is wrong there because the undo step is gone. (3) Show one notice when a save fails offline, not the failed-save toast plus "You're offline", and keep the offline notice up while a save is pending. (4) Give the offline notice a close button. (5) After a save that threw, ask for a fresh copy of the board as well as putting the previous layout back.
+
+**Why:** (1) Remove from Board and Move to Maintenance are refused through `{ success: false }`. When the board changed in the meantime the card is not put back and the board reloads without saying so, and a burst of refusals stacks toasts. (2) to (4) The two notices disagree, the offline one disappears whenever a save starts, and it stays up with no button to close it. (5) A request can be committed before the connection drops; the screen then shows the old layout while the database holds the new one until the next reload. Do (5) after "Fetch the board again through a server action, not `router.refresh()`": a refetch sent while the server cannot be reached replaces the app with the browser's error page today.
+
+**Context:** `src/hooks/board/useOptimisticCardAction.ts`, `src/hooks/board/useKanbanUndo.ts`, `src/hooks/board/useBoardServerSync.ts`, `src/hooks/board/useBoardRollback.ts`, `src/lib/utils/notify-failed-board-save.ts`. See also "Let a refused undo be tried again".
+
+**Effort:** M
+**Priority:** P2
+**Depends on:** None
+
+### Cover the board-sync and sharing wiring the unit tests mock away
+
+**What:** Add tests for (1) the owner filter of `lookupRepoPlacements`, with a query stub that records `eq()` and expects `['board.user_id', userId]`, and correct the Arrange comment of "still offers and adds a repository that sits on another user's public board" in `e2e/logged-in/one-repo-across-boards.spec.ts`; (2) `BoardSettingsDialog` calling `onPublicChange`, and `BoardPageClient` copying the public link with the real `useBoardSettings`; (3) `setStatusLists`, `addRepoCards` and `removeRepoCard` each making a fetch in flight out of date, plus a test that lists `boardSlice`'s actions so a new reducer forces the decision; (4) the rate-limit refusal of `getPublicBoardBySlug`.
+
+**Why:** Removing any of these leaves every test green. (1) lost its only failing test when the public read policies were dropped: row level security now hides other users' cards with or without the filter. (3) `addRepoCards` and `removeRepoCard` are not wrapped in `trackBoardWrite`, so the revision bump is their only protection against a stale fetch.
+
+**Context:** `src/tests/unit/lib/actions/repo-card-duplicates.test.ts`, `src/tests/unit/app/board/BoardPageClient.test.tsx`, `src/tests/unit/hooks/board/useBoardServerSync.test.tsx`, `src/tests/unit/lib/actions/public-board.test.ts`, the `isAnyOf(...)` matcher in `src/lib/redux/slices/boardSyncSlice.ts`.
+
+**Effort:** M
+**Priority:** P2
+**Depends on:** None
+
+### Tell a failed lookup apart from a missing shared board
+
+**What:** Give `/public/[slug]` its own answers for "too many requests" and "the lookup failed" instead of the 404 page.
+
+**Why:** `getPublicBoardBySlug` returns `null` for a rate-limited visitor and for a database error as well as for an unknown slug, so a working share link can say "This shared board isn't available" for a minute.
+
+**Context:** `src/lib/actions/public-board.ts`, `src/app/public/[slug]/not-found.tsx`. Older than this change.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Let a refused undo be tried again
+
+**What:** Decide what happens to an undo step whose save was refused. Today the step is gone: the board goes back to the layout before the undo and pressing Z again undoes the step before it.
+
+**Why:** After a network blip the user has to drag the card back by hand. Putting the step back on the stack is not enough on its own: a refusal that will not go away (the old column was deleted) would then block every older step behind it, because the top of the stack is always tried first.
+
+**Context:** `handleUndo` in `src/hooks/board/useKanbanUndo.ts`. The rollback returns `'restored'` or `'reload-requested'`, which says whether the board on screen is still the one the step belongs to.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Skip the localStorage save after actions that change nothing persisted
+
+**What:** Make `@laststance/redux-storage-middleware` schedule its debounced save only when a persisted slice changed.
+
+**Why:** It schedules a save after every action. The `boardSync` slice is not persisted and dispatches several actions per drag, each of which serializes the whole persisted state again 300 ms later.
+
+**Context:** The middleware lives in its own package; the fix belongs there, not in the app.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Check the board after browser Back following a drag
+
+**What:** Drag a card, open `/boards`, press the browser's Back button and check where the card is. Fix it if the card shows in its old column.
+
+**Why:** Back may restore page data that Next.js cached before the drag. With nothing in flight `useBoardServerSync` treats page data as current and puts it in the store. This is a review hypothesis that was not reproduced, and if it is real it is older than the rollback guard.
+
+**Context:** `selectMayApplyServerSnapshot` in `src/lib/redux/slices/boardSyncSlice.ts`.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Stabilize the "Optimistic Favorite Toggle" story test
+
+**What:** Find why `BoardGrid.stories > Optimistic Favorite Toggle` fails now and then when the unit, lint and typecheck lanes run in parallel.
+
+**Why:** It failed in some of the full local runs on 2026-10-11 and passed in others with no change to the code it covers. A test that fails under load hides real failures.
+
+**Context:** Storybook project of `pnpm test` (browser mode). Not touched by this change.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Give the board-sync gates a deadline
+
+**What:** Give tracked board writes a deadline, or count pending writes per board, and release the "fetch sent" marker when a refetch delivers no data.
+
+**Why:** `pendingWriteCount` is counted for the whole app and drops only when a write settles. One save that never answers holds back every board refresh and drops fetched data, while the failed-save toast of another write says the board is reloading. `sentRefreshRevision` is cleared only when page data arrives; a refetch that is interrupted without a reload or a new page render leaves it set, and later refresh requests wait for it.
+
+**Context:** `trackBoardWrite`, `boardRefreshSent`, `selectIsBoardRefreshDue` and `selectMayApplyServerSnapshot` in `src/lib/redux/slices/boardSyncSlice.ts`. Both are review hypotheses that were not reproduced: a server action normally ends with the platform's function timeout, and a failed refetch reloads the page, which starts from an empty `boardSync` state.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Trim what a shared board link gives away
+
+**What:** (1) Issue a new slug when sharing is turned on again, or add a "reset link" action. (2) Leave `board_id` out of the JSON `get_public_board` returns and map shared columns and cards without it. (3) Return only the card `meta` fields the shared page renders (description, language, stars), say in the validator's comment that nested objects are not filtered, and decide whether the description of a private repository belongs on a shared board. (4) Decide whether the function needs a limit of its own: the app's `publicBoardView` rate limit does not cover a direct call through the REST API, and its key is the first `X-Forwarded-For` entry, or a new UUID per request when the header is missing.
+
+**Why:** The 12-hex slug is now the only thing between a visitor and a shared board. A leaked link cannot be revoked, because turning sharing off and on keeps the slug. The board's id and each card's `visibility`, `topics` and `updatedAt` reach the page payload although the page shows none of them.
+
+**Context:** `supabase/migrations/20261011030000_public_board_by_slug_only.sql` (change it through a new migration once applied), `toggleBoardPublic` and `generateSlug` in `src/lib/actions/board.ts`, `src/lib/validations/public-board.ts`, `src/lib/actions/mappers.ts`, `src/lib/utils/get-client-ip.ts`. None of this is new with this change: before it, shared boards could be listed without knowing a slug.
+
+**Effort:** M
+**Priority:** P3
+**Depends on:** None
+
+### Correct the board-sync docstrings and the shape-check report
+
+**What:** (1) Wrap the server action in `trackBoardWrite` in the `@example` of `useBoardRollback`, and state that the optimistic array must be created for that write. (2) In the JSDoc of `useBoardServerSync`, say that only saves tracked with `trackBoardWrite` are protected and that pending saves are counted for the whole app. (3) Send the slug with the "unexpected get_public_board shape" report, as the RPC-error report does, and assert the whole call in its test. (4) Add a note above `reducers` in `boardSlice.ts` that points at the stale-fetch matcher.
+
+**Why:** A write copied from the example is not counted as pending. The JSDoc promises more than the code does. A shape report without the slug cannot be traced to a board.
+
+**Context:** `src/hooks/board/useBoardRollback.ts`, `src/hooks/board/useBoardServerSync.ts`, `src/lib/actions/public-board.ts`, `src/lib/redux/slices/boardSlice.ts`.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Keep the Copy Link target in step with the board's sharing state
+
+**What:** (1) Derive the share slug Copy Link uses from the board props and let the dialog's change override it, and show on the button whether it copies a public or an owner-only link. (2) Make `toggleBoardPublic` write a new slug only where none is stored (`.is('share_slug', null)`) and return the stored one. (3) Catch a failed toggle in `handleTogglePublic` and say so.
+
+**Why:** `useBoardSettings` reads the slug once. After sharing was changed in another tab, Copy Link hands out the owner-only address, or a dead public link with the wrong toast text, until the page is reloaded. The button looks the same in both states. Two toggles sent at once can each generate a slug, and the dialog keeps one the database does not hold. A toggle that fails on the network shows nothing.
+
+**Context:** `src/hooks/board/useBoardSettings.ts`, `handleCopyBoardLink` in `src/app/board/[id]/BoardPageClient.tsx`, `toggleBoardPublic` in `src/lib/actions/board.ts`, `handleTogglePublic` in `src/components/Boards/BoardSettingsDialog.tsx`. The server code and the missing catch are older than this change; Copy Link now reads their result.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Drop a deleted column from the column undo history
+
+**What:** When a column is deleted, remove it from the entries of `columnHistory`, or skip entries that hold a column the board no longer has.
+
+**Why:** Delete a column, then press Z while an earlier column move is on the stack: the whole earlier column list is put back, the deleted column included. The position update for its id matches no row and reports success, so nothing is rolled back and the column stays on screen until reload.
+
+**Context:** `handleUndo` in `src/hooks/board/useKanbanUndo.ts` (the card path filters against the current cards, the column path does not), `confirmDelete` in `src/hooks/board/useStatusListDialog.ts`. Older than this change. Related: "Keep Redux in step when a column is deleted, and drop late picker notices" and "Fail a card or column move that matched no row".
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Evict expired keys from the edge rate-limit store
+
+**What:** Sweep expired entries from the map in `src/lib/rate-limit/edge-memory.ts`, as `src/lib/rate-limit/memory.ts` does, or cap its size.
+
+**Why:** The store has no delete path. Every distinct first `X-Forwarded-For` value on `/auth/callback` leaves an entry for the life of the process.
+
+**Context:** Older than this change and outside it. The spoofable key is tracked as #182.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Polish and simplification left from the board-sync review
+
+**What:** (1) Label the URL field of the Sharing tab in `BoardSettingsDialog`. (2) Give the shared-board 404 page the app's name and logo. (3) Consider turning `useBoardRollback` into two thunks next to `trackBoardWrite`, which removes the hook, its types and four threaded parameters (about 70 lines). (4) Consider sending a signed-in visitor of someone else's shared board from `/board/<id>` to its public link instead of "Board not found". (5) Put `createDefaultStatusLists` behind an auth guard or out of the `'use server'` file: it is exported from one and can be called directly, where row level security limits it to adding default columns to the caller's own boards.
+
+**Why:** Small accessibility, identity and structure gaps. None changes what is saved. The unlabelled field is older than this change.
+
+**Context:** `src/components/Boards/BoardSettingsDialog.tsx`, `src/app/public/[slug]/not-found.tsx`, `src/hooks/board/useBoardRollback.ts`, `src/app/board/[id]/not-found.tsx`, `src/lib/actions/board.ts`.
+
+**Effort:** M
+**Priority:** P4
 **Depends on:** None
 
 ## Completed
