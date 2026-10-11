@@ -379,6 +379,7 @@ interface BoardSettings {
 #### Specifications
 
 - **Algorithm**: Sliding window, in-memory per-process
+- **Scope of a count**: one server instance. Production runs many, so a client gets a multiple of the configured number through before it is refused
 - **Bypass**: Disabled in test mode (`APP_ENV=test`)
 - **Edge**: Fixed-window variant in `proxy.ts` for the OAuth callback and the Sentry tunnel. The tunnel limit also applies in test mode
 

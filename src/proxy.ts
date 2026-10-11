@@ -188,10 +188,11 @@ const isSentryTunnelPath = (pathname: string): boolean =>
  * The Cookie header stays behind: the session cookies are not Sentry's to
  * see, and their size makes the ingest host answer 400.
  *
- * The route answers without a session, so it bounds what one client can send
+ * The route answers without a session, so it limits what one client can send
  * through it: a number of reports per minute, and the size a report declares.
- * The proxy never reads the body, so a report sent without `Content-Length`
- * is counted but not measured.
+ * The count lives in this instance's memory, so with several instances a
+ * client gets that number through each of them. The proxy never reads the
+ * body, so a report sent without `Content-Length` is counted but not measured.
  *
  * @param request - A request whose path is the Sentry tunnel route.
  * @returns
