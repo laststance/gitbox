@@ -140,6 +140,7 @@
   - **Sharing**: Public board toggle, share link generation/copy
   - **Danger Zone**: Delete board with confirmation
 - **Public Board Sharing**: Make boards publicly viewable via unique share slug (read-only for visitors)
+- **Copy Link** (board header): Copies the public share link while the board is shared; otherwise the board's own address, with a note that only the owner can open it
 - **Move to Another Board**: Move repo cards between boards via dialog (DB RPC `move_card_to_board`)
 - **Board D&D Reorder**: Drag & drop board cards on `/boards` page to reorder (position persisted to DB)
   - GripVertical drag handle (visible on hover)
@@ -406,6 +407,7 @@ interface BoardSettings {
 
 | Header                                | Value                                                                        |
 | ------------------------------------- | ---------------------------------------------------------------------------- |
+| `X-DNS-Prefetch-Control`              | `on`                                                                         |
 | `Strict-Transport-Security`           | `max-age=63072000; includeSubDomains; preload`                               |
 | `X-Frame-Options`                     | `SAMEORIGIN`                                                                 |
 | `X-Content-Type-Options`              | `nosniff`                                                                    |
@@ -416,11 +418,14 @@ interface BoardSettings {
 #### CSP Directives (Report-Only)
 
 ```
-default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com;
+default-src 'self'; script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com;
 style-src 'self' 'unsafe-inline'; img-src 'self' https://avatars.githubusercontent.com https://github.com data: blob:;
 connect-src 'self' https://*.supabase.co http://127.0.0.1:* https://api.github.com https://*.ingest.us.sentry.io https://vitals.vercel-insights.com;
-font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none';
+upgrade-insecure-requests; report-uri <SENTRY_CSP_REPORT_URI>
 ```
+
+`SENTRY_CSP_REPORT_URI` is the security endpoint of this app's Sentry project, derived from `SENTRY_DSN` in `src/lib/constants/sentry.ts`. `upgrade-insecure-requests` has no effect while the policy is report-only.
 
 #### Security Event Logging
 
@@ -880,7 +885,7 @@ interface RepoCardMeta {
 - Security headers: HSTS, CSP (report-only), X-Frame-Options, Permissions-Policy
 - Security event audit trail via Sentry (`logSecurityEvent()`)
 - GitHub token cookie TTL aligned with OAuth token expiry, cleared on 401
-- Build-time guards prevent test env vars (`APP_ENV=test`, `ENABLE_MSW_MOCK=true`) in Vercel deployments
+- Build-time guards prevent test env vars (`APP_ENV=test`, `NEXT_PUBLIC_ENABLE_MSW_MOCK=true`) in Vercel deployments
 
 ---
 
@@ -1064,6 +1069,8 @@ additional_redirect_urls = [
 #### RLS (Row Level Security)
 
 All tables have RLS enabled. Users can only access their own data via `user_id` match.
+
+A shared board (`is_public`) is the one exception, and it does not go through the tables: visitors read it with the `get_public_board(p_slug)` function, which returns the name and subtitle of the board with that share slug, its columns and its cards, without any `user_id`. Public boards cannot be listed.
 
 ---
 
@@ -1376,6 +1383,7 @@ export async function cdpBoardDragAndDrop(
 | Unauth      | `login.spec.ts`                            | Login page                   |
 | Unauth      | `page-titles.spec.ts`                      | Unauthenticated page titles  |
 | Unauth      | `public-board.spec.ts`                     | Public board (read-only)     |
+| Unauth      | `public-board-data-access.spec.ts`         | Public board database access |
 | Unauth      | `ssr-hydration.spec.ts`                    | SSR hydration (unauth)       |
 | Security    | `xss-smoke.spec.ts`                        | XSS injection prevention     |
 
