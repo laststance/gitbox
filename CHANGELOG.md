@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2.0] - 2026-10-11
+
+### Fixed
+
+- Reloading the board after a failed save no longer closes an open dialog, drops text that was typed but not saved, or empties the undo history. Every page was built again from scratch whenever its data was fetched again; now only what changed is updated.
+- The Maintenance page keeps its search text, sort order and view after a repository is restored or deleted.
+
 ## [0.4.1.0] - 2026-10-11
 
 ### Fixed
