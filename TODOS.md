@@ -347,6 +347,18 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 **Priority:** P3
 **Depends on:** None
 
+### Fit a column undo to the columns that are on the board now
+
+**What:** Make a column undo (Z after a column drag) put back positions only: keep each column's current name, leave out a column that was deleted since the drag, and keep a column that was added since.
+
+**Why:** `useKanbanUndo` puts the snapshot taken before the drag back as it is. After a column drag, a rename and Z, the old name is shown again while the database keeps the new one. A column deleted since the drag comes back on screen and its position is sent to the server, and a column added since disappears until reload. Card undo already handles this through `reconcileUndoSnapshot`.
+
+**Context:** `src/hooks/board/useKanbanUndo.ts` (`columnsAfterUndo`). Seen at hook level on 2026-10-11: with a snapshot of three columns, then one renamed, one deleted and one added, the undo dispatched the three old columns and sent all three ids. Not tried in a browser. A refetch no longer empties the undo history (Issue #218), so a column changed in another tab reaches the same path.
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** None
+
 ### Fix the hydration mismatch on the board page for returning users
 
 **What:** Make the first client render of `KanbanBoard` match the server HTML when the browser already holds a persisted board in localStorage.
