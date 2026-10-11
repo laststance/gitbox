@@ -9,7 +9,7 @@
  * - Active drag state (activeId, activeDragType)
  *
  * @example
- * const dnd = useKanbanDnD({ statuses, cards, cardsByStatus, EMPTY_CARDS, dispatch, pushCardHistory, pushColumnHistory })
+ * const dnd = useKanbanDnD({ statuses, cards, cardsByStatus, EMPTY_CARDS, dispatch, pushCardHistory, pushColumnHistory, rollbackRepoCards, rollbackStatusLists })
  * <DndContext sensors={dnd.sensors} collisionDetection={forgivingCollisionDetection}
  *   onDragStart={dnd.handleDragStart} onDragEnd={dnd.handleDragEnd}>
  *   <SortableContext items={dnd.columnIds}>...</SortableContext>
@@ -47,8 +47,12 @@ import {
 } from '@/lib/actions/board'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import { setStatusLists, setRepoCards } from '@/lib/redux/slices/boardSlice'
+import { trackBoardWrite } from '@/lib/redux/slices/boardSyncSlice'
 import type { AppDispatch } from '@/lib/redux/store'
 import type { StatusListId } from '@/lib/types/brands'
+import { notifyFailedBoardSave } from '@/lib/utils/notify-failed-board-save'
+
+import type { BoardRollback } from './useBoardRollback'
 
 /**
  * Custom collision detection algorithm for more forgiving column swap.
@@ -71,6 +75,12 @@ export const forgivingCollisionDetection: CollisionDetection = (args) => {
 /** Drag type identifier for active drag detection */
 type DragType = 'column' | 'card' | null
 
+/** First line of the toast shown when a card drag was not saved. */
+const CARD_MOVE_FAILED_TOAST_TITLE = 'Failed to move card'
+
+/** First line of the toast shown when a column drag was not saved. */
+const COLUMN_MOVE_FAILED_TOAST_TITLE = 'Failed to move column'
+
 interface UseKanbanDnDParams {
   /** Status lists (columns) from Redux */
   statuses: StatusListDomain[]
@@ -86,6 +96,10 @@ interface UseKanbanDnDParams {
   pushCardHistory: (snapshot: RepoCardForRedux[]) => void
   /** Push a column snapshot to the undo history stack */
   pushColumnHistory: (snapshot: StatusListDomain[]) => void
+  /** Puts the cards back when a card drag fails to save (from {@link useBoardRollback}) */
+  rollbackRepoCards: BoardRollback['rollbackRepoCards']
+  /** Puts the columns back when a column drag fails to save (from {@link useBoardRollback}) */
+  rollbackStatusLists: BoardRollback['rollbackStatusLists']
 }
 
 interface UseKanbanDnDReturn {
@@ -118,7 +132,7 @@ interface UseKanbanDnDReturn {
  * @example
  * const { sensors, handleDragStart, handleDragEnd, columnIds } = useKanbanDnD({
  *   statuses, cards, cardsByStatus, EMPTY_CARDS, dispatch,
- *   pushCardHistory, pushColumnHistory,
+ *   pushCardHistory, pushColumnHistory, rollbackRepoCards, rollbackStatusLists,
  * })
  */
 export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
@@ -130,6 +144,8 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
     dispatch,
     pushCardHistory,
     pushColumnHistory,
+    rollbackRepoCards,
+    rollbackStatusLists,
   } = params
 
   // Active drag state
@@ -222,15 +238,21 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
       dispatch(setStatusLists(updatedStatuses))
 
       try {
-        await updateStatusListPosition(activeStatus.id, targetRow, targetCol)
+        await trackBoardWrite(
+          dispatch,
+          updateStatusListPosition(activeStatus.id, targetRow, targetCol),
+        )
       } catch (error) {
         Sentry.captureException(error, {
           tags: { action: 'moveColumnToNewRow' },
         })
-        dispatch(setStatusLists(statuses))
+        notifyFailedBoardSave(
+          COLUMN_MOVE_FAILED_TOAST_TITLE,
+          rollbackStatusLists(updatedStatuses, statuses),
+        )
       }
     },
-    [statuses, dispatch, recordColumnHistory],
+    [statuses, dispatch, recordColumnHistory, rollbackStatusLists],
   )
 
   /** Handle column dropped on ColumnInsertZone (empty grid position) */
@@ -284,13 +306,16 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
       dispatch(setStatusLists(updatedStatuses))
 
       try {
-        await batchUpdateStatusListPositions(updates)
+        await trackBoardWrite(dispatch, batchUpdateStatusListPositions(updates))
       } catch (error) {
         Sentry.captureException(error, { tags: { action: 'insertColumn' } })
-        dispatch(setStatusLists(statuses))
+        notifyFailedBoardSave(
+          COLUMN_MOVE_FAILED_TOAST_TITLE,
+          rollbackStatusLists(updatedStatuses, statuses),
+        )
       }
     },
-    [statuses, dispatch, recordColumnHistory],
+    [statuses, dispatch, recordColumnHistory, rollbackStatusLists],
   )
 
   /** Handle column swap (drop on another column) */
@@ -318,15 +343,21 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
       dispatch(setStatusLists(updatedStatuses))
 
       try {
-        await swapStatusListPositions(activeStatus.id, overStatus.id)
+        await trackBoardWrite(
+          dispatch,
+          swapStatusListPositions(activeStatus.id, overStatus.id),
+        )
       } catch (error) {
         Sentry.captureException(error, {
           tags: { action: 'swapColumnPositions' },
         })
-        dispatch(setStatusLists(statuses))
+        notifyFailedBoardSave(
+          COLUMN_MOVE_FAILED_TOAST_TITLE,
+          rollbackStatusLists(updatedStatuses, statuses),
+        )
       }
     },
-    [statuses, dispatch, recordColumnHistory],
+    [statuses, dispatch, recordColumnHistory, rollbackStatusLists],
   )
 
   /** Handle drag start — detects column vs card drag */
@@ -423,7 +454,8 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
         if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
           const reordered = arrayMove(columnCards, oldIndex, newIndex)
           const otherCards = cards.filter((c) => c.statusId !== targetStatusId)
-          dispatch(setRepoCards([...otherCards, ...reordered]))
+          const reorderedCards = [...otherCards, ...reordered]
+          dispatch(setRepoCards(reorderedCards))
 
           const updates = reordered.map((card, index) => ({
             id: card.id,
@@ -431,12 +463,15 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
             order: index,
           }))
           try {
-            await batchUpdateRepoCardOrders(updates)
+            await trackBoardWrite(dispatch, batchUpdateRepoCardOrders(updates))
           } catch (error) {
             Sentry.captureException(error, {
               tags: { action: 'syncCardOrder' },
             })
-            dispatch(setRepoCards(cards))
+            notifyFailedBoardSave(
+              CARD_MOVE_FAILED_TOAST_TITLE,
+              rollbackRepoCards(reorderedCards, cards),
+            )
           }
         }
       } else {
@@ -453,12 +488,18 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
           const newOrder = targetColumnCards.findIndex(
             (c) => c.id === activeCard.id,
           )
-          await updateRepoCardPosition(activeCard.id, targetStatusId, newOrder)
+          await trackBoardWrite(
+            dispatch,
+            updateRepoCardPosition(activeCard.id, targetStatusId, newOrder),
+          )
         } catch (error) {
           Sentry.captureException(error, {
             tags: { action: 'syncCardPosition' },
           })
-          dispatch(setRepoCards(cards))
+          notifyFailedBoardSave(
+            CARD_MOVE_FAILED_TOAST_TITLE,
+            rollbackRepoCards(updatedCards, cards),
+          )
         }
       }
     },
@@ -469,6 +510,7 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
       EMPTY_CARDS,
       dispatch,
       pushCardHistory,
+      rollbackRepoCards,
       handleNewRowDrop,
       handleColumnInsertDrop,
       handleColumnSwap,

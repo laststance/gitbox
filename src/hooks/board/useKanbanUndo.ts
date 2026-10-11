@@ -8,7 +8,7 @@
  * Column undo takes priority over card undo.
  *
  * @example
- * const { pushCardHistory, pushColumnHistory } = useKanbanUndo({ dispatch, cards })
+ * const { pushCardHistory, pushColumnHistory } = useKanbanUndo({ dispatch, cards, statuses, rollbackRepoCards, rollbackStatusLists })
  * // Pass to useKanbanDnD:
  * useKanbanDnD({ ...params, pushCardHistory, pushColumnHistory })
  */
@@ -23,18 +23,37 @@ import {
 } from '@/lib/actions/board'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import { setStatusLists, setRepoCards } from '@/lib/redux/slices/boardSlice'
+import { trackBoardWrite } from '@/lib/redux/slices/boardSyncSlice'
 import type { AppDispatch } from '@/lib/redux/store'
+import { notifyFailedBoardSave } from '@/lib/utils/notify-failed-board-save'
 import { reconcileUndoSnapshot } from '@/lib/utils/reconcile-undo-snapshot'
 import {
   toColumnPositions,
   type CardColumnPosition,
 } from '@/lib/utils/to-column-positions'
 
+import type { BoardRollback } from './useBoardRollback'
+
+/**
+ * Sonner id shared by an undo's "restored" toast and its "failed" toast, so a
+ * refused undo replaces the success message instead of standing next to it.
+ */
+const UNDO_TOAST_ID = 'board-undo'
+
+/** First line of the toast shown when an undo was not saved. */
+const UNDO_FAILED_TOAST_TITLE = 'Failed to sync undo to database'
+
 interface UseKanbanUndoParams {
   /** Redux dispatch function */
   dispatch: AppDispatch
   /** Cards on the board right now; an undo never touches a card that left it */
   cards: RepoCardForRedux[]
+  /** Columns on the board right now; a refused column undo goes back to them */
+  statuses: StatusListDomain[]
+  /** Puts the cards back when the undo fails to save (from {@link useBoardRollback}) */
+  rollbackRepoCards: BoardRollback['rollbackRepoCards']
+  /** Puts the columns back when the undo fails to save (from {@link useBoardRollback}) */
+  rollbackStatusLists: BoardRollback['rollbackStatusLists']
 }
 
 interface UseKanbanUndoReturn {
@@ -50,17 +69,18 @@ interface UseKanbanUndoReturn {
  * Manages card and column history stacks, handles undo operations with
  * DB sync, and registers the Z-key keyboard shortcut internally.
  *
- * @param params - Redux dispatch and the board's current cards
+ * @param params - Redux dispatch, the board's current cards and columns, and the failed-save rollbacks
  * @returns Push callbacks for DnD handlers to record history
  *
  * @example
- * const { pushCardHistory, pushColumnHistory } = useKanbanUndo({ dispatch, cards })
+ * const { pushCardHistory, pushColumnHistory } = useKanbanUndo({ dispatch, cards, statuses, rollbackRepoCards, rollbackStatusLists })
  * // DnD handlers call pushCardHistory(cards) before mutations
  */
 export function useKanbanUndo(
   params: UseKanbanUndoParams,
 ): UseKanbanUndoReturn {
-  const { dispatch, cards } = params
+  const { dispatch, cards, statuses, rollbackRepoCards, rollbackStatusLists } =
+    params
 
   // History stacks (max 10 entries each)
   const [history, setHistory] = useState<RepoCardForRedux[][]>([])
@@ -81,25 +101,38 @@ export function useKanbanUndo(
    */
   const handleUndo = useCallback(() => {
     if (columnHistory.length > 0) {
-      // Non-null: `length > 0` guarantees the last entry exists; runtime
-      // `!previousState` was redundant since `columnHistory` only holds
-      // `StatusListDomain[]` snapshots pushed by `pushColumnHistory`.
-      const previousState = columnHistory[columnHistory.length - 1]!
-      dispatch(setStatusLists(previousState))
+      // Non-null: `length > 0` guarantees the last entry exists, and
+      // `columnHistory` only holds `StatusListDomain[]` snapshots pushed by
+      // `pushColumnHistory`. A copy, because the next drag pushes the store's
+      // array back onto the history: a second undo would dispatch the very
+      // same array, and the failed-save rollback tells writes apart by it.
+      const columnsAfterUndo = [...columnHistory[columnHistory.length - 1]!]
+      dispatch(setStatusLists(columnsAfterUndo))
       setColumnHistory((prev) => prev.slice(0, -1))
-      toast.success('Column order restored')
+      toast.success('Column order restored', { id: UNDO_TOAST_ID })
 
-      const updates = previousState.map((s) => ({
+      const updates = columnsAfterUndo.map((s) => ({
         id: s.id,
         gridRow: s.gridRow,
         gridCol: s.gridCol,
       }))
-      batchUpdateStatusListPositions(updates).catch((error) => {
-        Sentry.captureException(error, {
-          tags: { action: 'undoColumnPositions' },
-        })
-        toast.error('Failed to sync undo to database')
-      })
+      trackBoardWrite(dispatch, batchUpdateStatusListPositions(updates)).catch(
+        (error) => {
+          Sentry.captureException(error, {
+            tags: { action: 'undoColumnPositions' },
+          })
+          // The write was refused: go back to the columns the database still holds
+          const rollbackOutcome = rollbackStatusLists(
+            columnsAfterUndo,
+            statuses,
+          )
+          notifyFailedBoardSave(
+            UNDO_FAILED_TOAST_TITLE,
+            rollbackOutcome,
+            UNDO_TOAST_ID,
+          )
+        },
+      )
       return
     }
 
@@ -119,20 +152,35 @@ export function useKanbanUndo(
     }
 
     dispatch(setRepoCards(cardsAfterUndo))
-    toast.success('Card operation undone')
+    toast.success('Card operation undone', { id: UNDO_TOAST_ID })
 
     // Positions come from the restored layout, not from each card's `order`
     // field, which drags never update
-    batchUpdateRepoCardOrders(positionsAfterUndo).catch((error) => {
+    trackBoardWrite(
+      dispatch,
+      batchUpdateRepoCardOrders(positionsAfterUndo),
+    ).catch((error) => {
       Sentry.captureException(error, {
         tags: { action: 'undoCardPositions' },
       })
       // The write was refused (e.g. the old column was deleted since): go
       // back to the layout the database still holds
-      dispatch(setRepoCards(cards))
-      toast.error('Failed to sync undo to database')
+      const rollbackOutcome = rollbackRepoCards(cardsAfterUndo, cards)
+      notifyFailedBoardSave(
+        UNDO_FAILED_TOAST_TITLE,
+        rollbackOutcome,
+        UNDO_TOAST_ID,
+      )
     })
-  }, [history, columnHistory, dispatch, cards])
+  }, [
+    history,
+    columnHistory,
+    dispatch,
+    cards,
+    statuses,
+    rollbackRepoCards,
+    rollbackStatusLists,
+  ])
 
   // Keyboard shortcut: Z key to execute undo
   useEffect(() => {

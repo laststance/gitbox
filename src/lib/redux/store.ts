@@ -3,6 +3,7 @@
  *
  * Application-wide state management store
  * - boardSlice: Board state
+ * - boardSyncSlice: Pending board writes and refreshes (not persisted)
  * - settingsSlice: Settings (theme, language)
  * - storageMiddleware: LocalStorage synchronization
  *
@@ -12,15 +13,17 @@
 import { createStorageMiddleware } from '@laststance/redux-storage-middleware'
 import { combineReducers, configureStore } from '@reduxjs/toolkit'
 import type { TypedUseSelectorHook } from 'react-redux'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch, useSelector, useStore } from 'react-redux'
 
 import boardReducer from './slices/boardSlice'
+import boardSyncReducer from './slices/boardSyncSlice'
 import draftReducer from './slices/draftSlice'
 import settingsReducer from './slices/settingsSlice'
 
 // Combine all reducers
 const rootReducer = combineReducers({
   board: boardReducer,
+  boardSync: boardSyncReducer,
   draft: draftReducer,
   settings: settingsReducer,
 })
@@ -62,3 +65,18 @@ export type AppDispatch = typeof store.dispatch
 // Typed hooks (recommended to export in separate file, but simplified here)
 export const useAppDispatch = () => useDispatch<AppDispatch>()
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector
+/**
+ * Gives a callback access to the live store. Exists because a callback that
+ * resumes after an `await` holds the selector values of the render that
+ * created it, and some decisions need the state as it is now. Called by
+ * {@link useBoardRollback} and {@link useBoardServerSync}. Components keep using {@link useAppSelector} for
+ * anything they render: `getState()` does not subscribe.
+ *
+ * @returns The Redux store of the surrounding provider.
+ * @example
+ * const store = useAppStore()
+ * const onSaveFailed = () => {
+ *   store.getState().board.repoCards // => the cards on screen right now
+ * }
+ */
+export const useAppStore = () => useStore<RootState>()

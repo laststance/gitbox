@@ -18,7 +18,7 @@
 import * as Sentry from '@sentry/nextjs'
 import { Link, Plus, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState, useCallback, memo, useEffect, useLayoutEffect } from 'react'
+import { useState, useCallback, memo, useEffect } from 'react'
 import { toast } from 'sonner'
 
 import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox'
@@ -44,6 +44,7 @@ import {
   useNoteModal,
   useAddRepositoryCombobox,
   useOptimisticCardAction,
+  useBoardServerSync,
 } from '@/hooks/board'
 import { renameBoardDirect, updateBoardSubtitle } from '@/lib/actions/board'
 import type { BoardInitialData } from '@/lib/actions/board-data'
@@ -54,8 +55,6 @@ import {
 } from '@/lib/actions/repo-cards'
 import type { RepoCardForRedux } from '@/lib/models/domain'
 import {
-  setStatusLists,
-  setRepoCards,
   setActiveBoard,
   addRepoCards,
   removeRepoCard,
@@ -66,6 +65,7 @@ import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { Board } from '@/lib/supabase/types'
 import { parseBoardSettings } from '@/lib/types/board-settings'
 import { toBoardId, type RepoCardId } from '@/lib/types/brands'
+import { toPublicBoardUrl } from '@/lib/utils/to-public-board-url'
 import {
   BOARD_NAME_MAX_LENGTH,
   BOARD_SUBTITLE_MAX_LENGTH,
@@ -91,12 +91,13 @@ export const BoardPageClient = memo(function BoardPageClient({
   const statusLists = useAppSelector(selectStatusLists)
   const repoCards = useAppSelector(selectRepoCards)
 
-  // Phase 4: Hydrate Redux store with server-fetched data
-  // useLayoutEffect ensures data is available before first paint (no flicker)
-  useLayoutEffect(() => {
-    dispatch(setStatusLists(initialData.statusLists))
-    dispatch(setRepoCards(initialData.repoCards))
-  }, [dispatch, initialData.statusLists, initialData.repoCards])
+  // Phase 4: Hydrate Redux store with server-fetched data, and fetch the board
+  // again when a failed save leaves the store out of step with the database
+  useBoardServerSync({
+    boardId,
+    statusLists: initialData.statusLists,
+    repoCards: initialData.repoCards,
+  })
 
   // ========================================
   // Custom Hooks for State Management
@@ -107,6 +108,8 @@ export const BoardPageClient = memo(function BoardPageClient({
     boardName,
     boardSubtitle: board.subtitle,
     boardSettings: board.settings,
+    isPublic: board.is_public,
+    shareSlug: board.share_slug,
   })
 
   // StatusList Dialog (5 states extracted: 3 original + 2 delete confirmation)
@@ -185,18 +188,27 @@ export const BoardPageClient = memo(function BoardPageClient({
     router.push('/boards')
   }, [router])
 
+  // Set while the board is shared by link; follows the Sharing switch live
+  const { publicShareSlug } = boardSettings
+
   /**
    * Copy Board Link to Clipboard
    *
-   * Copies the current board URL to clipboard for easy sharing.
-   * Enables boards to function as "Better GitHub Repository Lists".
+   * A shared board has a public link that anyone can open, so that is the
+   * link worth handing out. A private board only has this page's address,
+   * which opens for its owner alone; the toast says so, because everyone else
+   * who follows it lands on "Board not found".
    */
   const handleCopyBoardLink = useCallback(async () => {
+    const boardLink = publicShareSlug
+      ? toPublicBoardUrl(window.location.origin, publicShareSlug)
+      : window.location.href
     try {
-      const url = window.location.href
-      await navigator.clipboard.writeText(url)
+      await navigator.clipboard.writeText(boardLink)
       toast.success('Link copied!', {
-        description: 'Board URL has been copied to clipboard.',
+        description: publicShareSlug
+          ? 'Anyone with this link can view the board.'
+          : 'Only you can open this link. Turn on Public Sharing in the board settings to get one for others.',
       })
     } catch (error) {
       Sentry.captureException(error, { tags: { action: 'copyBoardLink' } })
@@ -204,7 +216,7 @@ export const BoardPageClient = memo(function BoardPageClient({
         description: 'Please try again.',
       })
     }
-  }, [])
+  }, [publicShareSlug])
 
   return (
     <>
@@ -368,6 +380,7 @@ export const BoardPageClient = memo(function BoardPageClient({
         onShowSubtitleChange={boardSettings.handleShowSubtitleChange}
         onRenameSuccess={boardSettings.handleRenameSuccess}
         onCardDisplayChange={boardSettings.handleCardDisplayChange}
+        onPublicChange={boardSettings.handlePublicChange}
         onDeleteSuccess={handleDeleteSuccess}
       />
 

@@ -9,22 +9,30 @@
  */
 
 import { configureStore } from '@reduxjs/toolkit'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { Provider } from 'react-redux'
-import { describe, test, expect, vi, beforeEach } from 'vitest'
+import { toast } from 'sonner'
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { BoardPageClient } from '@/app/board/[id]/BoardPageClient'
+import type * as BoardServerSyncModule from '@/hooks/board/useBoardServerSync'
 import type { BoardInitialData } from '@/lib/actions/board-data'
-import boardSlice from '@/lib/redux/slices/boardSlice'
+import boardSlice, { setRepoCards } from '@/lib/redux/slices/boardSlice'
+import boardSyncSlice, {
+  boardRefreshRequested,
+  trackBoardWrite,
+} from '@/lib/redux/slices/boardSyncSlice'
 import type { Board } from '@/lib/supabase/types'
 import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
 
 // Mock dependencies
 const mockPush = vi.fn()
+const mockRefresh = vi.fn()
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
-    refresh: vi.fn(),
+    refresh: mockRefresh,
   }),
 }))
 
@@ -50,18 +58,32 @@ vi.mock('@/lib/actions/repo-cards', () => ({
   deleteRepoCard: (...args: unknown[]) => mockDeleteRepoCard(...args),
 }))
 
-// Mock hooks with minimal implementations
-vi.mock('@/hooks/board', () => ({
+// Share slug the mocked useBoardSettings reports: set while the board under
+// test is shared by link, null while it is private.
+const boardSettingsMock = vi.hoisted(() => ({
+  publicShareSlug: null as string | null,
+}))
+
+// Mock hooks with minimal implementations. useBoardServerSync is the real
+// one: it is what puts the page data into the store.
+vi.mock('@/hooks/board', async () => ({
+  useBoardServerSync: (
+    await vi.importActual<typeof BoardServerSyncModule>(
+      '@/hooks/board/useBoardServerSync',
+    )
+  ).useBoardServerSync,
   useBoardSettings: () => ({
     isOpen: false,
     displayName: 'Test Board',
     displaySubtitle: '',
     cardDisplaySettings: { showStars: true, showLanguage: true },
+    publicShareSlug: boardSettingsMock.publicShareSlug,
     open: vi.fn(),
     close: vi.fn(),
     handleRenameSuccess: vi.fn(),
     handleSubtitleChange: vi.fn(),
     handleCardDisplayChange: vi.fn(),
+    handlePublicChange: vi.fn(),
   }),
   useProjectInfoModal: () => ({
     isOpen: false,
@@ -147,6 +169,7 @@ function createMockStore() {
   return configureStore({
     reducer: {
       board: boardSlice,
+      boardSync: boardSyncSlice,
     },
     preloadedState: {
       board: {
@@ -340,6 +363,88 @@ describe('BoardPageClient Component', () => {
       })
     })
 
+    test('shows the cards and columns the server sends when the board is fetched again', async () => {
+      // Arrange: the board is on screen with the first server snapshot, and a
+      // failed save asks for a fresh copy
+      const board = createMockBoard()
+      const { rerender } = render(
+        <Provider store={store}>
+          <BoardPageClient
+            board={board}
+            initialData={createMockInitialData()}
+          />
+        </Provider>,
+      )
+      await waitFor(() => {
+        expect(store.getState().board.repoCards).toHaveLength(1)
+      })
+      act(() => {
+        store.dispatch(boardRefreshRequested())
+      })
+      await waitFor(() => {
+        expect(mockRefresh).toHaveBeenCalledTimes(1)
+      })
+      const refreshedInitialData = createMockInitialData({
+        statusLists: [],
+        repoCards: [],
+      })
+
+      // Act: router.refresh() delivers a new snapshot as props
+      rerender(
+        <Provider store={store}>
+          <BoardPageClient board={board} initialData={refreshedInitialData} />
+        </Provider>,
+      )
+
+      // Assert: the store follows the server
+      await waitFor(() => {
+        expect(store.getState().board.repoCards).toEqual([])
+      })
+      expect(store.getState().board.statusLists).toEqual([])
+    })
+
+    test('keeps a card the user moved while the board was being fetched again', async () => {
+      // Arrange: the board is on screen and a fetch is on its way
+      const board = createMockBoard()
+      const firstInitialData = createMockInitialData()
+      const { rerender } = render(
+        <Provider store={store}>
+          <BoardPageClient board={board} initialData={firstInitialData} />
+        </Provider>,
+      )
+      await waitFor(() => {
+        expect(store.getState().board.repoCards).toHaveLength(1)
+      })
+      act(() => {
+        store.dispatch(boardRefreshRequested())
+      })
+      await waitFor(() => {
+        expect(mockRefresh).toHaveBeenCalledTimes(1)
+      })
+      // The user drags the card to Done; the save has not come back yet
+      const cardInDone = {
+        ...firstInitialData.repoCards[0]!,
+        statusId: toStatusListId('status-2'),
+      }
+      act(() => {
+        store.dispatch(setRepoCards([cardInDone]))
+        void trackBoardWrite(store.dispatch, new Promise<void>(() => undefined))
+      })
+
+      // Act: the fetch answers with the card where it was before the drag
+      rerender(
+        <Provider store={store}>
+          <BoardPageClient
+            board={board}
+            initialData={createMockInitialData()}
+          />
+        </Provider>,
+      )
+
+      // Assert: the card stays where the user put it
+      expect(store.getState().board.repoCards).toEqual([cardInDone])
+    })
+
     test('should set activeBoard in Redux', async () => {
       const board = createMockBoard()
       const initialData = createMockInitialData()
@@ -471,6 +576,93 @@ describe('BoardPageClient Board Settings', () => {
     // Component should render
     await waitFor(() => {
       expect(screen.getByTestId('kanban-board')).toBeInTheDocument()
+    })
+  })
+})
+
+describe('BoardPageClient Copy Link', () => {
+  let store: ReturnType<typeof createMockStore>
+  let originalLocation: Location
+  const writeToClipboard = vi.fn(async (_text: string): Promise<void> => {})
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+    store = createMockStore()
+    boardSettingsMock.publicShareSlug = null
+    // The page is open at the board's own address
+    originalLocation = window.location
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      writable: true,
+      value: {
+        ...originalLocation,
+        origin: 'https://gitbox.example',
+        href: 'https://gitbox.example/board/board-1',
+      },
+    })
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: writeToClipboard },
+    })
+  })
+
+  afterEach(() => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      writable: true,
+      value: originalLocation,
+    })
+  })
+
+  test('copies the public share link of a shared board and says anyone can open it', async () => {
+    // Arrange
+    boardSettingsMock.publicShareSlug = 'a1b2c3d4e5f6'
+    render(
+      <Provider store={store}>
+        <BoardPageClient
+          board={createMockBoard({
+            is_public: true,
+            share_slug: 'a1b2c3d4e5f6',
+          })}
+          initialData={createMockInitialData()}
+        />
+      </Provider>,
+    )
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: /Copy Link/i }))
+
+    // Assert
+    expect(writeToClipboard).toHaveBeenCalledWith(
+      'https://gitbox.example/public/a1b2c3d4e5f6',
+    )
+    expect(toast.success).toHaveBeenCalledWith('Link copied!', {
+      description: 'Anyone with this link can view the board.',
+    })
+  })
+
+  test('copies the page address of a private board and says only the owner can open it', async () => {
+    // Arrange
+    render(
+      <Provider store={store}>
+        <BoardPageClient
+          board={createMockBoard()}
+          initialData={createMockInitialData()}
+        />
+      </Provider>,
+    )
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: /Copy Link/i }))
+
+    // Assert
+    expect(writeToClipboard).toHaveBeenCalledWith(
+      'https://gitbox.example/board/board-1',
+    )
+    expect(toast.success).toHaveBeenCalledWith('Link copied!', {
+      description:
+        'Only you can open this link. Turn on Public Sharing in the board settings to get one for others.',
     })
   })
 })
