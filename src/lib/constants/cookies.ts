@@ -39,15 +39,16 @@ export const GITHUB_TOKEN_COOKIE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60
  * Get environment-specific GitHub token cookie name
  *
  * Uses Supabase project ID (first 8 chars) to differentiate between environments.
- * This prevents cookie conflicts when switching between dev/prod on localhost.
+ * This prevents cookie conflicts when switching between local/prod on localhost.
  *
- * @returns Cookie name like "gh_token_jqtxjzdx" (dev) or "gh_token_zfcwvzaz" (prod)
+ * @returns Cookie name like "gh_token_zfcwvzaz" (prod), or "gh_token_default"
+ * when the URL is not a hosted project's (the local Supabase)
  * @example
- * // Dev: https://jqtxjzdxczqwsrvevmyk.supabase.co
- * getGitHubTokenCookieName() // => "gh_token_jqtxjzdx"
- *
  * // Prod: https://zfcwvzazzzsefbkztsyp.supabase.co
  * getGitHubTokenCookieName() // => "gh_token_zfcwvzaz"
+ *
+ * // Local: http://127.0.0.1:54321
+ * getGitHubTokenCookieName() // => "gh_token_default"
  */
 export function getGitHubTokenCookieName(): string {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''

@@ -13,11 +13,10 @@
 
 /**
  * Supabase base URL from environment
- * Falls back to development instance if not set
+ * Falls back to the local Supabase if not set
  */
 export const SUPABASE_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL ??
-  'https://jqtxjzdxczqwsrvevmyk.supabase.co'
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://127.0.0.1:54321'
 
 export const GITHUB_API_URL = 'https://api.github.com'
 
