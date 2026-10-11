@@ -5,20 +5,22 @@ import { memo } from 'react'
 
 import {
   BOARD_PRESETS,
-  PRESET_IDS,
-  type PresetId,
+  SELECTABLE_PRESET_IDS,
+  type SelectablePresetId,
 } from '@/lib/constants/board-presets'
 import { cn } from '@/lib/utils'
 
 interface PresetSelectorProps {
-  value: PresetId
-  onChange: (value: PresetId) => void
+  value: SelectablePresetId
+  onChange: (value: SelectablePresetId) => void
   disabled?: boolean
 }
 
 /**
  * Radio card grid for selecting a board preset.
- * Shows 6 preset cards with color-coded column previews.
+ * Shows one card per entry of {@link SELECTABLE_PRESET_IDS} (6 today) with
+ * color-coded column previews. Presets that only the server accepts
+ * ({@link PRESET_IDS} holds them too) get no card here.
  *
  * @param value - Currently selected preset ID
  * @param onChange - Callback when preset selection changes
@@ -34,11 +36,17 @@ export const PresetSelector = memo(function PresetSelector({
   return (
     <RadioGroupPrimitive.Root
       value={value}
-      onValueChange={(v) => onChange(v as PresetId)}
+      onValueChange={(selectedValue) => {
+        // Radix hands back a plain string; take the matching id from the list
+        const selectedPresetId = SELECTABLE_PRESET_IDS.find(
+          (presetId) => presetId === selectedValue,
+        )
+        if (selectedPresetId) onChange(selectedPresetId)
+      }}
       disabled={disabled}
       className="grid grid-cols-2 gap-3 sm:grid-cols-3"
     >
-      {PRESET_IDS.map((presetId) => {
+      {SELECTABLE_PRESET_IDS.map((presetId) => {
         const preset = BOARD_PRESETS[presetId]
         const isSelected = value === presetId
         return (

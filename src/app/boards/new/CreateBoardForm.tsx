@@ -16,7 +16,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createBoard } from '@/lib/actions/board'
-import { DEFAULT_PRESET_ID, type PresetId } from '@/lib/constants/board-presets'
+import {
+  DEFAULT_PRESET_ID,
+  type SelectablePresetId,
+} from '@/lib/constants/board-presets'
 import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 import { boardNameSchema } from '@/lib/validations/board'
 
@@ -26,7 +29,8 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [name, setName] = useState('')
-  const [presetId, setPresetId] = useState<PresetId>(DEFAULT_PRESET_ID)
+  const [presetId, setPresetId] =
+    useState<SelectablePresetId>(DEFAULT_PRESET_ID)
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = (e: React.FormEvent): void => {

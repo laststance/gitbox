@@ -78,3 +78,29 @@ export class ActionUserError extends Error {
     this.name = 'ActionUserError'
   }
 }
+
+/**
+ * A board with the id, name and color of each of its columns, in column
+ * order: everything a picker needs to offer the board and one of its columns.
+ *
+ * {@link getUserBoardsWithStatusLists} lists the user's boards in this shape
+ * and {@link createBoard} returns the board it made in it, so
+ * {@link MoveToAnotherBoardDialog} can offer a board created inside the dialog
+ * without loading the list again.
+ *
+ * @example
+ * const option: BoardOption = {
+ *   id: 'board-uuid-456',
+ *   name: 'Work',
+ *   statusLists: [{ id: 'status-uuid-1', name: 'Repositories', color: '#6B7280' }],
+ * }
+ */
+export interface BoardOption {
+  id: string
+  name: string
+  statusLists: Array<{
+    id: string
+    name: string
+    color: string
+  }>
+}

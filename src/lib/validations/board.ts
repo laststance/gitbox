@@ -50,6 +50,34 @@ export const boardNameSchema = z
 export const presetIdSchema = z.enum(PRESET_IDS)
 
 // ========================================
+// Created Board Schema
+// ========================================
+
+/**
+ * Shape of the JSON the `create_board_with_status_lists` database function
+ * returns: the new board and its columns in their order. The function builds
+ * the document by hand in SQL, so nothing ties it to the TypeScript types:
+ * this schema is that tie. {@link createBoard} and
+ * {@link createFirstBoardIfNeeded} check the result with it before use.
+ *
+ * @example
+ * createdBoardRowSchema.safeParse({
+ *   id: 'b1',
+ *   name: 'Side Projects',
+ *   status_lists: [{ id: 'c1', name: 'Repositories', color: '#6B7280' }],
+ * }) // => { success: true, data: { id, name, status_lists } }
+ * createdBoardRowSchema.safeParse({ id: 'b1', name: 'Side Projects', status_lists: [] })
+ * // => { success: false, error: ... } (a board is never created without a column)
+ */
+export const createdBoardRowSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  status_lists: z
+    .array(z.object({ id: z.string(), name: z.string(), color: z.string() }))
+    .min(1),
+})
+
+// ========================================
 // Board Subtitle Schema
 // ========================================
 

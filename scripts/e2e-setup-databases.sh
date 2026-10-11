@@ -125,7 +125,14 @@ setup() {
     #   (test JWT sets auth.uid() for RLS policy evaluation)
     # - service_role: bypasses RLS for E2E setup/teardown helpers (db-query.ts)
     # RLS stays ENABLED — policies enforce access via auth.uid() from test JWT
+    # USAGE on schema auth: a function that runs with the caller's rights
+    # (create_board_with_status_lists) looks up auth.uid() by name when it
+    # runs, which needs USAGE on the schema. Supabase grants it to these three
+    # roles; a policy does not need it because it stores the function's OID.
     db_exec psql -U "$PG_USER" -d "$DB_NAME" -c "
+      GRANT USAGE ON SCHEMA auth TO anon;
+      GRANT USAGE ON SCHEMA auth TO authenticated;
+      GRANT USAGE ON SCHEMA auth TO service_role;
       GRANT USAGE ON SCHEMA public TO anon;
       GRANT USAGE ON SCHEMA public TO authenticated;
       GRANT USAGE ON SCHEMA public TO service_role;

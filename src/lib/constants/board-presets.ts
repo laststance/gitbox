@@ -3,6 +3,8 @@
  *
  * Status List preset patterns for board creation.
  * Shared between client (CreateBoardForm) and server (board.ts actions).
+ * Two lists exist: SELECTABLE_PRESET_IDS is what `/boards/new` shows, and
+ * PRESET_IDS is what the server accepts.
  *
  * @example
  * import { BOARD_PRESETS, DEFAULT_PRESET_ID, getPresetById } from '@/lib/constants/board-presets'
@@ -36,7 +38,11 @@ export interface BoardPreset {
   columns: readonly PresetColumn[]
 }
 
-export const PRESET_IDS = [
+/**
+ * The presets a user can pick, in the order of their cards on `/boards/new`.
+ * Rendered by {@link PresetSelector}.
+ */
+export const SELECTABLE_PRESET_IDS = [
   'software-release',
   'web-app',
   'electron-desktop',
@@ -45,10 +51,29 @@ export const PRESET_IDS = [
   'macos',
 ] as const
 
+/**
+ * Every preset {@link createBoard} accepts: the selectable ones plus
+ * `single-column`. {@link presetIdSchema} validates against this list.
+ *
+ * `single-column` has no card on `/boards/new`. It is what
+ * {@link MoveToAnotherBoardDialog} creates when the user makes the
+ * destination board inside the dialog: a board that only has to hold cards.
+ */
+export const PRESET_IDS = [...SELECTABLE_PRESET_IDS, 'single-column'] as const
+
+/** A preset offered on `/boards/new`. */
+export type SelectablePresetId = (typeof SELECTABLE_PRESET_IDS)[number]
+
+/** Any preset `createBoard` accepts. */
 export type PresetId = (typeof PRESET_IDS)[number]
 
-export const DEFAULT_PRESET_ID: PresetId = 'web-app'
+export const DEFAULT_PRESET_ID: SelectablePresetId = 'web-app'
 
+/**
+ * Column definitions of every preset, keyed by id. Covers {@link PRESET_IDS},
+ * so it also holds `single-column`, which {@link SELECTABLE_PRESET_IDS} leaves
+ * out.
+ */
 export const BOARD_PRESETS: Record<PresetId, BoardPreset> = {
   'software-release': {
     id: 'software-release',
@@ -121,6 +146,14 @@ export const BOARD_PRESETS: Record<PresetId, BoardPreset> = {
       { name: 'Utility', color: '#14B8A6' },
       { name: 'System Extension', color: '#64748B' },
     ],
+  },
+  'single-column': {
+    id: 'single-column',
+    label: 'Single Column',
+    description: 'One column that holds repositories',
+    // Name and color of the column the migration of issue #213 gave the
+    // board it created, so a board made in the move dialog looks the same
+    columns: [{ name: 'Repositories', color: '#6B7280' }],
   },
 } as const
 
