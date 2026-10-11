@@ -96,7 +96,12 @@ export const StatusColumn = memo<StatusColumnProps>(
     })
 
     return (
-      <div className="flex flex-col" data-testid={`status-column-${status.id}`}>
+      <div
+        className="flex flex-col"
+        data-testid={`status-column-${status.id}`}
+        // Read by card-focus-target.ts: the cards of one column are neighbors
+        data-status-column-id={status.id}
+      >
         {/* Draggable Column Header */}
         <div
           {...dragAttributes}
@@ -203,6 +208,8 @@ export const StatusColumn = memo<StatusColumnProps>(
             onClick={() => onAddCard(status.id)}
             className="text-muted-foreground hover:text-foreground hover:bg-accent mt-3 w-full justify-start"
             data-testid="add-repo-button"
+            // Read by card-focus-target.ts: takes the focus when the column empties
+            data-column-add-repo
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Repo

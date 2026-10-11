@@ -214,6 +214,8 @@ export const RepoCard = memo<RepoCardProps>(
           className="bg-card focus-within:ring-ring border transition-all duration-200 focus-within:ring-2 focus-within:ring-offset-2 hover:shadow-md dark:hover:shadow-lg"
           tabIndex={0}
           onKeyDown={handleKeyDown}
+          // Read by card-focus-target.ts: where the focus goes around this card
+          data-repo-card-id={card.id}
         >
           <CardContent className="p-4">
             <div className="space-y-3">

@@ -12,10 +12,48 @@
 
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { memo, useState } from 'react'
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { OverflowMenu } from '@/components/Board/OverflowMenu'
-import { toRepoCardId } from '@/lib/types/brands'
+import { toRepoCardId, type RepoCardId } from '@/lib/types/brands'
+
+/**
+ * One column with the cards card-1 (laststance/gitbox, with its menu) and
+ * card-2 (laststance/docs), marked the way the board page marks them. The
+ * menu opens and closes as on the page.
+ */
+const ColumnWithCardMenu = memo(function ColumnWithCardMenu({
+  onRemove,
+}: {
+  onRemove: (cardId: RepoCardId) => void
+}) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+
+  return (
+    <div data-status-column-id="status-1">
+      <div
+        tabIndex={0}
+        data-repo-card-id="card-1"
+        aria-label="laststance/gitbox"
+      >
+        <OverflowMenu
+          cardId={toRepoCardId('card-1')}
+          repoOwner="laststance"
+          repoName="gitbox"
+          open={isMenuOpen}
+          onOpenChange={(open) => setIsMenuOpen(open)}
+          onRemove={onRemove}
+        />
+      </div>
+      <div
+        tabIndex={0}
+        data-repo-card-id="card-2"
+        aria-label="laststance/docs"
+      />
+    </div>
+  )
+})
 
 describe('OverflowMenu', () => {
   const mockOnMoveToAnotherBoard = vi.fn()
@@ -298,6 +336,40 @@ describe('OverflowMenu', () => {
 
       await user.click(screen.getByText('Cancel'))
 
+      expect(mockOnRemove).not.toHaveBeenCalled()
+    })
+
+    test('puts the keyboard focus on the next card of the column after a confirmed removal', async () => {
+      // Arrange
+      const user = userEvent.setup()
+      render(<ColumnWithCardMenu onRemove={mockOnRemove} />)
+      await user.click(screen.getByTestId('overflow-menu-trigger-card-1'))
+      await user.click(await screen.findByText('Remove from Board'))
+
+      // Act
+      await user.click(await screen.findByTestId('confirm-remove-card-1'))
+
+      // Assert
+      await waitFor(() =>
+        expect(screen.getByLabelText('laststance/docs')).toHaveFocus(),
+      )
+      expect(mockOnRemove).toHaveBeenCalledWith('card-1')
+    })
+
+    test('puts the keyboard focus back on the card when the removal is cancelled', async () => {
+      // Arrange
+      const user = userEvent.setup()
+      render(<ColumnWithCardMenu onRemove={mockOnRemove} />)
+      await user.click(screen.getByTestId('overflow-menu-trigger-card-1'))
+      await user.click(await screen.findByText('Remove from Board'))
+
+      // Act
+      await user.click(await screen.findByRole('button', { name: 'Cancel' }))
+
+      // Assert
+      await waitFor(() =>
+        expect(screen.getByLabelText('laststance/gitbox')).toHaveFocus(),
+      )
       expect(mockOnRemove).not.toHaveBeenCalled()
     })
   })

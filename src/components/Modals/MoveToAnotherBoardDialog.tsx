@@ -41,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useCardDialogFocusReturn } from '@/hooks/board/useCardDialogFocusReturn'
 import {
   useMoveDestinations,
   type MoveDestinations,
@@ -159,6 +160,8 @@ const OpenMoveToAnotherBoardDialog = memo(
     )
     const { destinations, reloadDestinations, addDestination } =
       useMoveDestinations(currentBoardId)
+    const { rememberCardSuccessor, handleCloseAutoFocus } =
+      useCardDialogFocusReturn(cardId)
 
     const [selection, setSelection] = useState<DestinationSelection | null>(
       null,
@@ -235,6 +238,8 @@ const OpenMoveToAnotherBoardDialog = memo(
             onClick: () => router.push(`/board/${selectedBoard.id}`),
           },
         })
+        // Before the card is gone: its neighbor takes the keyboard focus
+        rememberCardSuccessor()
         onMoved(cardId)
         onClose()
       } catch {
@@ -292,6 +297,7 @@ const OpenMoveToAnotherBoardDialog = memo(
         <DialogContent
           className="sm:max-w-md"
           accessibleTitle="Move to Another Board"
+          onCloseAutoFocus={handleCloseAutoFocus}
         >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">

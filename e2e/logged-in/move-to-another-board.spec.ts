@@ -409,4 +409,45 @@ test.describe('Move to Another Board Feature', () => {
       })),
     ).toEqual([{ name: 'Repositories', order: 0, grid_row: 0, grid_col: 0 }])
   })
+
+  test('puts the keyboard focus on the next card of the column after a move', async ({
+    page,
+  }) => {
+    // Arrange: Planning holds card-1, card-4 and card-5, top to bottom
+    await resetRepoCards()
+    const cardId = CARD_IDS.card1
+    await page.goto(BOARD_URL)
+    const dialog = await openMoveDialog(page, cardId)
+    await dialog.locator('#board-select').click()
+    await page.getByRole('option', { name: 'Work Projects' }).click()
+
+    // Act
+    await dialog.getByRole('button', { name: 'Move', exact: true }).click()
+
+    // Assert: card-4 has the focus, also once card-1 has left the page
+    const nextCard = page.locator(`[data-repo-card-id="${CARD_IDS.card4}"]`)
+    await expect(nextCard).toBeFocused({ timeout: 10000 })
+    await expect(
+      page.locator(`[data-testid="repo-card-${cardId}"]`),
+    ).toHaveCount(0, { timeout: 10000 })
+    await expect(nextCard).toBeFocused()
+  })
+
+  test('puts the keyboard focus back on the card when the dialog is cancelled', async ({
+    page,
+  }) => {
+    // Arrange
+    const cardId = CARD_IDS.card1
+    await page.goto(BOARD_URL)
+    const dialog = await openMoveDialog(page, cardId)
+
+    // Act
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+
+    // Assert
+    await expect(dialog).toBeHidden({ timeout: 5000 })
+    await expect(page.locator(`[data-repo-card-id="${cardId}"]`)).toBeFocused({
+      timeout: 10000,
+    })
+  })
 })

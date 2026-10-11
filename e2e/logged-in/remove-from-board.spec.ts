@@ -358,4 +358,61 @@ test.describe('Remove from Board - Keyboard Accessibility', () => {
     // Dialog should close
     await expect(alertDialog).not.toBeVisible({ timeout: 5000 })
   })
+
+  test('puts the keyboard focus on the next card of the column after a confirmed removal', async ({
+    page,
+  }) => {
+    // Arrange: Planning holds card-1, card-4 and card-5, top to bottom
+    await resetRepoCards()
+    const cardId = CARD_IDS.card1
+    await page.goto(BOARD_URL)
+    const overflowMenuTrigger = page.locator(
+      `[data-testid="overflow-menu-trigger-${cardId}"]`,
+    )
+    await expect(overflowMenuTrigger).toBeVisible({ timeout: 15000 })
+    await overflowMenuTrigger.click()
+    await page.locator(`[data-testid="remove-from-board-${cardId}"]`).click()
+
+    // Act
+    await page.locator(`[data-testid="confirm-remove-${cardId}"]`).click()
+
+    // Assert: card-4 has the focus, also once card-1 has left the page
+    const nextCard = page.locator(`[data-repo-card-id="${CARD_IDS.card4}"]`)
+    await expect(nextCard).toBeFocused({ timeout: 10000 })
+    await expect(
+      page.locator(`[data-testid="repo-card-${cardId}"]`),
+    ).toHaveCount(0, { timeout: 10000 })
+    await expect(nextCard).toBeFocused()
+
+    // Cleanup: wait for the delete to land so the reset is not undone by it
+    await expect(async () => {
+      expect(await querySingle('repocard', { id: cardId })).toBeNull()
+    }).toPass({ timeout: 10000 })
+    await resetRepoCards()
+  })
+
+  test('puts the keyboard focus back on the card when the removal is cancelled', async ({
+    page,
+  }) => {
+    // Arrange
+    const cardId = CARD_IDS.card1
+    await page.goto(BOARD_URL)
+    const overflowMenuTrigger = page.locator(
+      `[data-testid="overflow-menu-trigger-${cardId}"]`,
+    )
+    await expect(overflowMenuTrigger).toBeVisible({ timeout: 15000 })
+    await overflowMenuTrigger.click()
+    await page.locator(`[data-testid="remove-from-board-${cardId}"]`).click()
+    const alertDialog = page.getByRole('alertdialog')
+    await expect(alertDialog).toBeVisible({ timeout: 5000 })
+
+    // Act
+    await alertDialog.getByRole('button', { name: 'Cancel' }).click()
+
+    // Assert
+    await expect(alertDialog).toBeHidden({ timeout: 5000 })
+    await expect(page.locator(`[data-repo-card-id="${cardId}"]`)).toBeFocused({
+      timeout: 10000,
+    })
+  })
 })

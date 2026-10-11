@@ -13,6 +13,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { memo, useState } from 'react'
 import { Provider } from 'react-redux'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
@@ -25,7 +26,7 @@ import {
 import type { BoardOption } from '@/lib/actions/types'
 import boardSyncReducer from '@/lib/redux/slices/boardSyncSlice'
 import settingsReducer from '@/lib/redux/slices/settingsSlice'
-import { toRepoCardId } from '@/lib/types/brands'
+import { toRepoCardId, type RepoCardId } from '@/lib/types/brands'
 
 /**
  * `pushRoute`: where the "Open board" action of the success toast navigates to.
@@ -144,6 +145,49 @@ function renderOpenDialog(rememberedDestinations: Record<string, string> = {}) {
   )
   return { onClose, onMoved, store }
 }
+
+/**
+ * One column with the cards card-1 (laststance/gitbox) and card-2
+ * (laststance/docs), and the move dialog open for card-1. As on the board
+ * page, a moved card leaves the column and the dialog is gone once it closes.
+ */
+const ColumnWithOpenMoveDialog = memo(function ColumnWithOpenMoveDialog() {
+  const [isDialogOpen, setIsDialogOpen] = useState(true)
+  const [cardsInColumn, setCardsInColumn] = useState([
+    { id: toRepoCardId('card-1'), repoName: 'laststance/gitbox' },
+    { id: toRepoCardId('card-2'), repoName: 'laststance/docs' },
+  ])
+
+  const handleMoved = (movedCardId: RepoCardId): void => {
+    setCardsInColumn((cards) => cards.filter((card) => card.id !== movedCardId))
+    setIsDialogOpen(false)
+  }
+
+  return (
+    <>
+      <div data-status-column-id="status-11">
+        {cardsInColumn.map((card) => (
+          <div
+            key={card.id}
+            tabIndex={0}
+            data-repo-card-id={card.id}
+            aria-label={card.repoName}
+          />
+        ))}
+      </div>
+      {isDialogOpen && (
+        <MoveToAnotherBoardDialog
+          isOpen
+          onClose={() => setIsDialogOpen(false)}
+          cardId={toRepoCardId('card-1')}
+          repoName="laststance/gitbox"
+          currentBoardId="board-1"
+          onMoved={handleMoved}
+        />
+      )}
+    </>
+  )
+})
 
 describe('MoveToAnotherBoardDialog', () => {
   beforeEach(() => {
@@ -561,6 +605,54 @@ describe('MoveToAnotherBoardDialog', () => {
       expect(
         await screen.findByRole('combobox', { name: 'Board' }),
       ).toHaveTextContent('Archive')
+    })
+  })
+
+  describe('keyboard focus once the dialog is gone', () => {
+    test('goes to the next card of the column after the card was moved away', async () => {
+      // Arrange
+      const user = userEvent.setup()
+      mockBoards()
+      vi.mocked(moveCardToBoard).mockResolvedValue({
+        success: true,
+        data: undefined,
+      })
+      render(
+        <Provider store={createDialogStore({})}>
+          <ColumnWithOpenMoveDialog />
+        </Provider>,
+      )
+
+      // Act
+      await user.click(await screen.findByRole('button', { name: 'Move' }))
+
+      // Assert
+      await waitFor(() =>
+        expect(screen.getByLabelText('laststance/docs')).toHaveFocus(),
+      )
+      expect(screen.queryByLabelText('laststance/gitbox')).toBeNull()
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+
+    test('goes back to the card when the dialog is cancelled', async () => {
+      // Arrange
+      const user = userEvent.setup()
+      mockBoards()
+      render(
+        <Provider store={createDialogStore({})}>
+          <ColumnWithOpenMoveDialog />
+        </Provider>,
+      )
+
+      // Act
+      await user.click(await screen.findByRole('button', { name: 'Cancel' }))
+
+      // Assert
+      await waitFor(() =>
+        expect(screen.getByLabelText('laststance/gitbox')).toHaveFocus(),
+      )
+      expect(screen.queryByRole('dialog')).toBeNull()
+      expect(moveCardToBoard).not.toHaveBeenCalled()
     })
   })
 })

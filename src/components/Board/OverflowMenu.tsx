@@ -28,6 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useCardDialogFocusReturn } from '@/hooks/board/useCardDialogFocusReturn'
 import type { RepoCardId } from '@/lib/types/brands'
 
 interface OverflowMenuProps {
@@ -70,6 +71,8 @@ export const OverflowMenu = memo(function OverflowMenu({
   onOpenChange,
 }: OverflowMenuProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const { rememberCardSuccessor, handleCloseAutoFocus } =
+    useCardDialogFocusReturn(cardId)
 
   const githubUrl =
     repoOwner && repoName ? `https://github.com/${repoOwner}/${repoName}` : null
@@ -87,6 +90,8 @@ export const OverflowMenu = memo(function OverflowMenu({
    * Calls onRemove callback and closes the dialog.
    */
   const handleConfirmRemove = (): void => {
+    // Before the card is gone: its neighbor takes the keyboard focus
+    rememberCardSuccessor()
     onRemove?.(cardId)
     setShowDeleteDialog(false)
   }
@@ -222,7 +227,7 @@ export const OverflowMenu = memo(function OverflowMenu({
 
       {/* Remove Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent onCloseAutoFocus={handleCloseAutoFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Repository from Board?</AlertDialogTitle>
             <AlertDialogDescription>
