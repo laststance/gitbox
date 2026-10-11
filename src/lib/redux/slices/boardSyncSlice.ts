@@ -12,7 +12,7 @@
 import type { Dispatch, PayloadAction } from '@reduxjs/toolkit'
 import { createSlice, isAnyOf } from '@reduxjs/toolkit'
 
-import type { BoardId } from '@/lib/types/brands'
+import type { BoardId, RepoCardId } from '@/lib/types/brands'
 
 import {
   addRepoCards,
@@ -132,11 +132,11 @@ export const {
 export default boardSyncSlice.reducer
 
 /**
- * Counts an optimistic board write as pending until the server answers.
+ * Counts a board write as pending until the server answers.
  * Exists so data fetched from the server is never put in the store while a
  * save is still on its way: that data may not contain the save yet. Called by
- * {@link useKanbanDnD}, {@link useKanbanUndo} and
- * {@link useOptimisticCardAction} around every server action they send.
+ * {@link useKanbanDnD}, {@link useKanbanUndo}, {@link useOptimisticCardAction}
+ * and {@link MoveToAnotherBoardDialog} around every server action they send.
  *
  * @param dispatch - Dispatch of the store that holds the board.
  * @param write - The server action call, already started.
@@ -156,6 +156,29 @@ export async function trackBoardWrite<WriteResult>(
     dispatch(boardWriteSettled())
   }
 }
+
+/**
+ * Takes a card out of the store after it was moved to another board, unless
+ * the store holds a different board by now. The answer of a slow move can
+ * arrive after the user opened another board, the destination for one;
+ * removing the id then would take the card off the board it was just moved
+ * to. Dispatched by {@link BoardPageClient} when
+ * {@link MoveToAnotherBoardDialog} reports a finished move.
+ *
+ * @param sourceBoardId - Board the card was moved away from.
+ * @param cardId - The moved card.
+ * @returns A thunk that removes the card only while the store still holds
+ * the source board.
+ * @example
+ * dispatch(removeMovedRepoCard(toBoardId('board-1'), toRepoCardId('card-1')))
+ */
+export const removeMovedRepoCard =
+  (sourceBoardId: BoardId, cardId: RepoCardId) =>
+  (dispatch: Dispatch, getState: () => { boardSync: BoardSyncState }): void => {
+    // Another board is in the store: its cards are not this move's to change
+    if (getState().boardSync.hydratedBoardId !== sourceBoardId) return
+    dispatch(removeRepoCard(cardId))
+  }
 
 // Selectors
 

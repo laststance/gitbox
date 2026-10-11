@@ -53,10 +53,10 @@ import type { RepoCardForRedux } from '@/lib/models/domain'
 import {
   setActiveBoard,
   addRepoCards,
-  removeRepoCard,
   selectStatusLists,
   selectRepoCards,
 } from '@/lib/redux/slices/boardSlice'
+import { removeMovedRepoCard } from '@/lib/redux/slices/boardSyncSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { Board } from '@/lib/supabase/types'
 import { parseBoardSettings } from '@/lib/types/board-settings'
@@ -158,10 +158,12 @@ export const BoardPageClient = memo(function BoardPageClient({
 
   const handleMoveSuccess = useCallback(
     (cardId: RepoCardId) => {
-      dispatch(removeRepoCard(cardId))
+      // Leaves the store alone when another board was opened before the
+      // answer of the move arrived
+      dispatch(removeMovedRepoCard(boardId, cardId))
       setMoveDialogCardId(null)
     },
-    [dispatch],
+    [dispatch, boardId],
   )
 
   // ========================================

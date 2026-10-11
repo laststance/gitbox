@@ -8,6 +8,7 @@
  * - setOrganizationFilter action
  * - setSidebarCollapsed action
  * - toggleSidebarCollapsed action
+ * - setMoveDestination action
  * - All selectors with hydration safety
  */
 
@@ -21,11 +22,13 @@ import settingsSlice, {
   setOrganizationFilter,
   setSidebarCollapsed,
   toggleSidebarCollapsed,
+  setMoveDestination,
   selectTheme,
   selectCompactMode,
   selectShowCardMetadata,
   selectOrganizationFilter,
   selectSidebarCollapsed,
+  selectMoveDestination,
 } from '@/lib/redux/slices/settingsSlice'
 
 describe('settingsSlice', () => {
@@ -320,6 +323,140 @@ describe('settingsSlice', () => {
         const result = selectSidebarCollapsed(rootState)
 
         expect(result).toBe(false)
+      })
+    })
+
+    describe('selectMoveDestination', () => {
+      test('returns the board the last move from a board went to', () => {
+        // Arrange
+        const rootState = {
+          settings: {
+            ...initialState,
+            moveDestinationByBoard: { 'board-work': 'board-archive' },
+          },
+        }
+
+        // Act
+        const destinationBoardId = selectMoveDestination(
+          rootState,
+          'board-work',
+        )
+
+        // Assert
+        expect(destinationBoardId).toBe('board-archive')
+      })
+
+      test('returns nothing for a board no card was moved from', () => {
+        // Arrange
+        const rootState = {
+          settings: {
+            ...initialState,
+            moveDestinationByBoard: { 'board-work': 'board-archive' },
+          },
+        }
+
+        // Act
+        const destinationBoardId = selectMoveDestination(
+          rootState,
+          'board-side',
+        )
+
+        // Assert
+        expect(destinationBoardId).toBeUndefined()
+      })
+
+      test('returns nothing for settings saved before moves were remembered', () => {
+        // Arrange: persisted state of an older version has no such key
+        const rootState = { settings: initialState }
+
+        // Act
+        const destinationBoardId = selectMoveDestination(
+          rootState,
+          'board-work',
+        )
+
+        // Assert
+        expect(destinationBoardId).toBeUndefined()
+      })
+
+      test('returns nothing while the settings are still hydrating', () => {
+        // Arrange
+        const rootState = { settings: undefined }
+
+        // Act
+        const destinationBoardId = selectMoveDestination(
+          rootState,
+          'board-work',
+        )
+
+        // Assert
+        expect(destinationBoardId).toBeUndefined()
+      })
+    })
+  })
+
+  describe('setMoveDestination action', () => {
+    test('remembers where a move went, separately for each board a card came from', () => {
+      // Arrange
+      const stateWithOneMove = {
+        ...initialState,
+        moveDestinationByBoard: { 'board-work': 'board-archive' },
+      }
+
+      // Act
+      const nextState = settingsSlice(
+        stateWithOneMove,
+        setMoveDestination({
+          sourceBoardId: 'board-side',
+          destinationBoardId: 'board-work',
+        }),
+      )
+
+      // Assert
+      expect(nextState.moveDestinationByBoard).toEqual({
+        'board-work': 'board-archive',
+        'board-side': 'board-work',
+      })
+    })
+
+    test('replaces the remembered board when a later move from the same board goes elsewhere', () => {
+      // Arrange
+      const stateWithOneMove = {
+        ...initialState,
+        moveDestinationByBoard: { 'board-work': 'board-archive' },
+      }
+
+      // Act
+      const nextState = settingsSlice(
+        stateWithOneMove,
+        setMoveDestination({
+          sourceBoardId: 'board-work',
+          destinationBoardId: 'board-side',
+        }),
+      )
+
+      // Assert
+      expect(nextState.moveDestinationByBoard).toEqual({
+        'board-work': 'board-side',
+      })
+    })
+
+    test('remembers a move in settings saved before moves were remembered', () => {
+      // Arrange: persisted state of an older version has no such key
+      const stateSavedByAnOlderVersion = initialState
+
+      // Act
+      const nextState = settingsSlice(
+        stateSavedByAnOlderVersion,
+        setMoveDestination({
+          sourceBoardId: 'board-work',
+          destinationBoardId: 'board-archive',
+        }),
+      )
+
+      // Assert
+      expect(nextState.moveDestinationByBoard).toEqual({
+        'board-work': 'board-archive',
       })
     })
   })

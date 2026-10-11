@@ -9,15 +9,46 @@
  * - Dialog opens with board/column selects (current board excluded)
  * - Card moves atomically via RPC, preserving projectinfo FK
  * - Card disappears from source board after move
+ *
+ * Setting a repository aside (Issue #213): a card is parked on another board
+ * and brought back with its note, and the destination board can be created
+ * inside the dialog.
  */
+
+import type { Page } from '@playwright/test'
 
 import { test, expect } from '../fixtures/coverage'
 import {
   querySingle,
+  querySupabase,
   CARD_IDS,
   BOARD_IDS,
+  STATUS_IDS,
+  createServiceRoleSupabaseClient,
   resetRepoCards,
 } from '../helpers/db-query'
+
+/** Name of the board one test creates inside the dialog. No other spec uses it. */
+const BOARD_CREATED_IN_DIALOG = 'Move spec: parked repositories'
+
+/**
+ * Open the Move to Another Board dialog of a card on the board on screen.
+ * @param page - Page showing the board that holds the card.
+ * @param cardId - Id of the card to move.
+ * @returns The open dialog.
+ */
+async function openMoveDialog(page: Page, cardId: string) {
+  const overflowMenuTrigger = page.locator(
+    `[data-testid="overflow-menu-trigger-${cardId}"]`,
+  )
+  await expect(overflowMenuTrigger).toBeVisible({ timeout: 15000 })
+  await overflowMenuTrigger.click()
+  await page.locator(`[data-testid="move-to-another-board-${cardId}"]`).click()
+
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toBeVisible({ timeout: 5000 })
+  return dialog
+}
 
 test.describe('Move to Another Board Feature', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
@@ -27,6 +58,15 @@ test.describe('Move to Another Board Feature', () => {
   test.afterEach(async () => {
     // Restore all cards to original board for test isolation
     await resetRepoCards()
+
+    // Later specs count the seed boards; take away the one a test created
+    const { error } = await createServiceRoleSupabaseClient()
+      .from('board')
+      .delete()
+      .eq('name', BOARD_CREATED_IN_DIALOG)
+    if (error) {
+      throw new Error(`cleanup of the created board failed: ${error.message}`)
+    }
   })
 
   test('should display Move to Another Board option in overflow menu', async ({
@@ -223,5 +263,150 @@ test.describe('Move to Another Board Feature', () => {
         (projInfoBefore as { id: string }).id,
       )
     }).toPass({ timeout: 10000 })
+  })
+
+  test('says which board the card went to, and the toast opens that board with the card on it', async ({
+    page,
+  }) => {
+    // Arrange
+    await resetRepoCards()
+    const cardId = CARD_IDS.card5 // laststance/use-app-state
+    await page.goto(BOARD_URL)
+    const dialog = await openMoveDialog(page, cardId)
+    await dialog.locator('#board-select').click()
+    await page.getByRole('option', { name: 'Work Projects' }).click()
+
+    // Act
+    await dialog.getByRole('button', { name: 'Move', exact: true }).click()
+
+    // Assert: the toast names the destination and the repository
+    const toast = page
+      .locator('[data-sonner-toast]')
+      .filter({ hasText: 'Moved to Work Projects' })
+    await expect(toast).toBeVisible({ timeout: 10000 })
+    await expect(toast).toContainText('laststance/use-app-state')
+
+    // Act: follow the toast
+    await toast.getByRole('button', { name: 'Open board' }).click()
+
+    // Assert: the destination board shows the card
+    await expect(page).toHaveURL(`/board/${BOARD_IDS.workProjects}`)
+    await expect(
+      page.locator(`[data-testid="repo-card-${cardId}"]`),
+    ).toBeVisible({ timeout: 15000 })
+  })
+
+  test('a repository set aside on another board comes back with its note', async ({
+    page,
+  }) => {
+    // Arrange: card-1 carries a note
+    await resetRepoCards()
+    const cardId = CARD_IDS.card1 // testuser/test-repo
+    const noteBefore = await querySingle<{ id: string; note: string }>(
+      'projectinfo',
+      { repo_card_id: cardId },
+    )
+    expect(noteBefore?.note).toBe('Important project notes here')
+    await page.goto(BOARD_URL)
+
+    // Act: set it aside on Work Projects ...
+    const parkDialog = await openMoveDialog(page, cardId)
+    await parkDialog.locator('#board-select').click()
+    await page.getByRole('option', { name: 'Work Projects' }).click()
+    await parkDialog.getByRole('button', { name: 'Move', exact: true }).click()
+    await expect(parkDialog).toBeHidden({ timeout: 10000 })
+    await expect(
+      page.locator(`[data-testid="repo-card-${cardId}"]`),
+    ).toHaveCount(0, { timeout: 10000 })
+
+    // ... and bring it back from there
+    await page.goto(`/board/${BOARD_IDS.workProjects}`)
+    const returnDialog = await openMoveDialog(page, cardId)
+    await expect(returnDialog.locator('#board-select')).toHaveText('Test Board')
+    await returnDialog
+      .getByRole('button', { name: 'Move', exact: true })
+      .click()
+    await expect(returnDialog).toBeHidden({ timeout: 10000 })
+
+    // Assert: the card is on Test Board again, in the first column the dialog
+    // offered, and the note is the same row with the same text
+    await page.goto(BOARD_URL)
+    await expect(
+      page
+        .locator(`[data-testid="status-column-${STATUS_IDS.pending}"]`)
+        .locator(`[data-testid="repo-card-${cardId}"]`),
+    ).toBeVisible({ timeout: 15000 })
+    const noteAfter = await querySingle<{ id: string; note: string }>(
+      'projectinfo',
+      { repo_card_id: cardId },
+    )
+    expect(noteAfter).toMatchObject({
+      id: '00000000-0000-0000-0000-000000000401',
+      note: 'Important project notes here',
+    })
+  })
+
+  test('moves a card to a board created inside the dialog, which has the one column "Repositories"', async ({
+    page,
+  }) => {
+    // Arrange
+    await resetRepoCards()
+    const cardId = CARD_IDS.card5 // laststance/use-app-state
+    await page.goto(BOARD_URL)
+    const dialog = await openMoveDialog(page, cardId)
+
+    // Act: create the destination without leaving the dialog ...
+    await dialog.getByRole('button', { name: 'New board…' }).click()
+    await dialog.getByLabel('Board name').fill(BOARD_CREATED_IN_DIALOG)
+    await dialog.getByRole('button', { name: 'Create board' }).click()
+
+    // ... which selects the new board and its column, with Move under the keyboard
+    await expect(dialog.locator('#board-select')).toHaveText(
+      BOARD_CREATED_IN_DIALOG,
+      { timeout: 10000 },
+    )
+    await expect(dialog.locator('#status-select')).toHaveText('Repositories')
+    const moveButton = dialog.getByRole('button', { name: 'Move', exact: true })
+    await expect(moveButton).toBeFocused()
+    await page.keyboard.press('Enter')
+
+    // Assert: the toast leads to the new board
+    const toast = page
+      .locator('[data-sonner-toast]')
+      .filter({ hasText: `Moved to ${BOARD_CREATED_IN_DIALOG}` })
+    await expect(toast).toBeVisible({ timeout: 10000 })
+    await toast.getByRole('button', { name: 'Open board' }).click()
+    await expect(page.getByTestId('board-title')).toHaveText(
+      BOARD_CREATED_IN_DIALOG,
+      { timeout: 15000 },
+    )
+
+    // Assert: that board has exactly one column, and the card is in it
+    const columns = page.locator('[data-testid^="status-column-"]')
+    await expect(columns).toHaveCount(1)
+    await expect(columns.locator('h3')).toHaveText('Repositories')
+    await expect(
+      columns.locator(`[data-testid="repo-card-${cardId}"]`),
+    ).toBeVisible()
+
+    // Assert: one board of that name exists, with one column
+    const createdBoards = await querySupabase<{ id: string }>('board', {
+      name: BOARD_CREATED_IN_DIALOG,
+    })
+    expect(createdBoards).toHaveLength(1)
+    const createdColumns = await querySupabase<{
+      name: string
+      order: number
+      grid_row: number
+      grid_col: number
+    }>('statuslist', { board_id: createdBoards[0]?.id ?? '' })
+    expect(
+      createdColumns.map(({ name, order, grid_row, grid_col }) => ({
+        name,
+        order,
+        grid_row,
+        grid_col,
+      })),
+    ).toEqual([{ name: 'Repositories', order: 0, grid_row: 0, grid_col: 0 }])
   })
 })
