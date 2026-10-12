@@ -11,7 +11,13 @@
  * Note: Theme is now managed globally via Sidebar ThemeToggle.
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { BoardSettingsDialog } from '@/components/Boards/BoardSettingsDialog'
@@ -67,8 +73,7 @@ describe('BoardSettingsDialog', () => {
       const dialog = screen.getByRole('dialog')
       expect(dialog).toBeInTheDocument()
 
-      // There are multiple h2s (visually hidden a11y title + visible title)
-      // Check for the visible description text instead
+      // The description names the board the settings belong to
       expect(
         screen.getByText(/Configure settings for "Test Board"/),
       ).toBeInTheDocument()
@@ -487,5 +492,39 @@ describe('BoardSettingsDialog', () => {
         ),
       ).toBeVisible()
     })
+  })
+
+  describe('Headings and panel names', () => {
+    // Value: protects=a screen reader that lists the headings of the Cards tab finds its sections one level under the title of the dialog, as in the other tabs; fails_when=the sections of the Cards tab are h4 again, two levels under the h2 with no h3 between; why_new=no test read the level of a heading in this dialog; seam=none; no_claim=how large the headings are drawn, which their classes decide
+    test('puts the sections of the Cards tab one heading level under the title of the dialog', () => {
+      // Arrange
+      render(<BoardSettingsDialog {...defaultProps} />)
+
+      // Act
+      fireEvent.click(screen.getByRole('tab', { name: 'Cards' }))
+
+      // Assert
+      const headings = within(screen.getByRole('dialog')).getAllByRole(
+        'heading',
+      )
+      expect(
+        headings.map((heading) => `${heading.tagName} ${heading.textContent}`),
+      ).toEqual(['H2 Board Settings', 'H3 Card Visibility', 'H3 Comment Text'])
+    })
+
+    // Value: protects=a screen reader that enters a panel of the dialog says which tab it belongs to; fails_when=a tab loses the id its panel is labelled by, so the panel has no name; why_new=the tests of the tabs read aria-controls, the way from a tab to its panel, and nothing read the way back; seam=none; no_claim=none
+    test.each(['General', 'Cards', 'Sharing', 'Danger Zone'])(
+      'names the panel of the %s tab after that tab',
+      (tabName) => {
+        // Arrange
+        render(<BoardSettingsDialog {...defaultProps} />)
+
+        // Act
+        fireEvent.click(screen.getByRole('tab', { name: tabName }))
+
+        // Assert: only the panel of the chosen tab is rendered
+        expect(screen.getByRole('tabpanel')).toHaveAccessibleName(tabName)
+      },
+    )
   })
 })

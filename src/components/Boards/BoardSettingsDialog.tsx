@@ -483,14 +483,18 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
             </DialogDescription>
           </DialogHeader>
 
-          {/* Tab Navigation */}
+          {/* Tab Navigation. The four tabs in one row are wider than a
+              phone, so they take a second row there: a row that does not
+              wrap made the whole dialog scroll sideways. Each tab has the id
+              its panel is labelled by. */}
           <nav
-            className="border-border flex gap-1 border-b pb-2"
+            className="border-border flex flex-wrap gap-1 border-b pb-2"
             role="tablist"
           >
             <button
               type="button"
               role="tab"
+              id="tab-general"
               aria-selected={activeTab === 'general'}
               aria-controls="panel-general"
               onClick={() => setActiveTab('general')}
@@ -502,6 +506,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
             <button
               type="button"
               role="tab"
+              id="tab-card-display"
               aria-selected={activeTab === 'card-display'}
               aria-controls="panel-card-display"
               onClick={() => setActiveTab('card-display')}
@@ -514,6 +519,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
             <button
               type="button"
               role="tab"
+              id="tab-sharing"
               aria-selected={activeTab === 'sharing'}
               aria-controls="panel-sharing"
               onClick={() => setActiveTab('sharing')}
@@ -526,6 +532,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
             <button
               type="button"
               role="tab"
+              id="tab-danger"
               aria-selected={activeTab === 'danger'}
               aria-controls="panel-danger"
               onClick={() => setActiveTab('danger')}
@@ -685,7 +692,9 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
 
                 {/* Visibility Toggles */}
                 <div className="space-y-4">
-                  <h4 className="text-sm font-semibold">Card Visibility</h4>
+                  {/* h3 under the dialog's h2, as in the other panels: the
+                      size comes from the class, not from the level */}
+                  <h3 className="text-sm font-semibold">Card Visibility</h3>
 
                   {/* Show GitHub Description */}
                   <div className="flex items-center justify-between rounded-lg border p-4">
@@ -737,7 +746,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                 {/* Comment Text Options (only show when comments are enabled) */}
                 {cardDisplay.showComment && (
                   <div className="space-y-4">
-                    <h4 className="text-sm font-semibold">Comment Text</h4>
+                    <h3 className="text-sm font-semibold">Comment Text</h3>
 
                     {/* Font Size */}
                     <div className="space-y-2">
