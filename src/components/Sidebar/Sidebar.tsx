@@ -16,7 +16,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import React, { useState, memo, useEffect, useMemo, useRef } from 'react'
-import { flushSync } from 'react-dom'
 
 import { GithubIcon } from '@/components/icons/GithubIcon'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -220,7 +219,7 @@ export const Sidebar = memo(function Sidebar({
   const [boardsExpanded, setBoardsExpanded] = useState(true)
   const { isCollapsed, isOverPage, toggle, closeOverPage, mounted } =
     useSidebar()
-  // Whichever toggle button is on screen: the two layouts each render one
+  // The toggle button, one element for both layouts
   const toggleButtonRef = useRef<HTMLButtonElement>(null)
   // The sidebar's place in the row of the page: what stands beside it there
   // is the page
@@ -247,7 +246,7 @@ export const Sidebar = memo(function Sidebar({
         event.target !== document.body &&
         !place.contains(event.target)
       if (isInAnotherLayer) return
-      flushSync(closeOverPage)
+      closeOverPage()
       toggleButtonRef.current?.focus()
     }
     document.addEventListener('keydown', closeOnEscape)
@@ -262,30 +261,22 @@ export const Sidebar = memo(function Sidebar({
     await signOut()
   }
 
-  /**
-   * Collapses or expands, and keeps the keyboard where it was: the pressed
-   * button leaves the page with its layout and another one takes its place.
-   */
-  const handleToggle = (): void => {
-    // flushSync: the other button is on the page once this returns
-    flushSync(toggle)
-    toggleButtonRef.current?.focus()
-  }
-
   const handleOpenShortcuts = (): void => {
     closeOverPage()
     openShortcutsHelp()
   }
 
+  // The icon rail. SSR always renders the expanded sidebar, for stable
+  // hydration; the client applies the stored state once it has mounted.
+  const isRail = mounted && isCollapsed
+
   // Determine sidebar width class
-  // SSR: Always render expanded (w-64) for stable hydration
-  // Client: Use persisted collapsed state from Redux/localStorage
   // max-md: the rail's width from the first paint on a phone, before the
-  // client has swapped the labels for icons; what does not fit yet is cut
-  // off. Not while it is open over the page: then it has its full width.
+  // client has swapped the labels for icons. Not while it is open over the
+  // page: then it has its full width.
   const sidebarWidth = cn(
-    mounted && isCollapsed ? 'w-16' : 'w-64',
-    !isOverPage && 'max-md:w-16 max-md:overflow-hidden',
+    isRail ? 'w-16' : 'w-64',
+    !isOverPage && 'max-md:w-16',
   )
 
   return (
@@ -312,6 +303,9 @@ export const Sidebar = memo(function Sidebar({
           suppressHydrationWarning
           className={cn(
             'border-border bg-sidebar text-sidebar-foreground flex h-screen flex-col border-r',
+            // The width is animated: what does not fit yet is cut off at the
+            // edge, and no label wraps onto a second line on the way
+            'overflow-hidden whitespace-nowrap',
             // Below 768px over the page, not beside it: as the rail it covers
             // its place, opened it covers the left of the page
             'max-md:fixed max-md:inset-y-0 max-md:left-0',
@@ -320,56 +314,49 @@ export const Sidebar = memo(function Sidebar({
             sidebarWidth,
           )}
         >
-          {/* Logo + Toggle */}
+          {/* Logo + Toggle. The toggle is one element in both layouts, the
+              second child of this block each time, so React keeps it and the
+              keyboard focus stays on it when the sidebar collapses or
+              expands. As the rail the block is a column: the button stands
+              under a divider, in a row of its own. */}
           <div
             suppressHydrationWarning
             className={cn(
-              'border-sidebar-border flex items-center border-b px-2 py-4',
-              mounted && isCollapsed ? 'justify-center' : 'justify-between',
+              'border-sidebar-border flex items-center border-b px-2 pt-4',
+              isRail ? 'flex-col pb-2' : 'justify-between pb-4',
             )}
           >
-            <div
-              className={cn(
-                'flex items-center gap-2',
-                mounted && isCollapsed && 'justify-center',
-              )}
-            >
+            <div className="flex items-center gap-2">
               <GithubIcon className="text-sidebar-primary h-6 w-6 shrink-0" />
-              {(!mounted || !isCollapsed) && (
-                <span className="text-lg font-semibold">GitBox</span>
-              )}
+              {!isRail && <span className="text-lg font-semibold">GitBox</span>}
             </div>
-            {mounted && !isCollapsed && (
-              <SidebarToggleButton
-                ref={toggleButtonRef}
-                isCollapsed={isCollapsed}
-                onToggle={handleToggle}
-              />
+            {mounted && (
+              <div
+                className={cn(
+                  isRail &&
+                    'border-sidebar-border -mx-2 mt-4 flex justify-center self-stretch border-t pt-2',
+                )}
+              >
+                <SidebarToggleButton
+                  ref={toggleButtonRef}
+                  isCollapsed={isCollapsed}
+                  onToggle={toggle}
+                />
+              </div>
             )}
           </div>
-
-          {/* Toggle button when collapsed - shown below logo */}
-          {isCollapsed && mounted && (
-            <div className="border-sidebar-border flex justify-center border-b py-2">
-              <SidebarToggleButton
-                ref={toggleButtonRef}
-                isCollapsed={isCollapsed}
-                onToggle={handleToggle}
-              />
-            </div>
-          )}
 
           {/* Navigation */}
           <nav
             suppressHydrationWarning
             className={cn(
-              'flex-1 overflow-y-auto py-4',
-              mounted && isCollapsed ? 'px-2' : 'px-3',
+              'flex-1 overflow-x-hidden overflow-y-auto py-4',
+              isRail ? 'px-2' : 'px-3',
             )}
           >
             {/* Boards Section - collapsible header only when expanded */}
             {/* SSR: Always render expanded content for stable hydration */}
-            {(!mounted || !isCollapsed) && (
+            {!isRail && (
               <div className="mb-4">
                 <button
                   type="button"
@@ -393,7 +380,7 @@ export const Sidebar = memo(function Sidebar({
                       icon={ICON_LAYOUT_DASHBOARD}
                       label="All Boards"
                       isActive={pathname === '/boards'}
-                      isCollapsed={mounted && isCollapsed}
+                      isCollapsed={isRail}
                       onNavigate={closeOverPage}
                     />
                     <NavItem
@@ -401,7 +388,7 @@ export const Sidebar = memo(function Sidebar({
                       icon={ICON_STAR}
                       label="Favorites"
                       isActive={pathname === '/boards/favorites'}
-                      isCollapsed={mounted && isCollapsed}
+                      isCollapsed={isRail}
                       onNavigate={closeOverPage}
                     />
                   </div>
@@ -411,21 +398,21 @@ export const Sidebar = memo(function Sidebar({
 
             {/* Boards Section - flat icons when collapsed */}
             {/* Only render collapsed content after hydration completes */}
-            {mounted && isCollapsed && (
+            {isRail && (
               <div className="mb-4 space-y-1">
                 <NavItem
                   href="/boards"
                   icon={ICON_LAYOUT_DASHBOARD}
                   label="All Boards"
                   isActive={pathname === '/boards'}
-                  isCollapsed={mounted && isCollapsed}
+                  isCollapsed={isRail}
                 />
                 <NavItem
                   href="/boards/favorites"
                   icon={ICON_STAR}
                   label="Favorites"
                   isActive={pathname === '/boards/favorites'}
-                  isCollapsed={mounted && isCollapsed}
+                  isCollapsed={isRail}
                 />
               </div>
             )}
@@ -439,7 +426,7 @@ export const Sidebar = memo(function Sidebar({
               icon={ICON_SETTINGS}
               label="Settings"
               isActive={pathname === '/settings'}
-              isCollapsed={mounted && isCollapsed}
+              isCollapsed={isRail}
               onNavigate={closeOverPage}
             />
 
@@ -448,11 +435,11 @@ export const Sidebar = memo(function Sidebar({
               icon={ICON_KEYBOARD}
               label="Shortcuts"
               onClick={handleOpenShortcuts}
-              isCollapsed={mounted && isCollapsed}
+              isCollapsed={isRail}
             />
 
             {/* Theme Toggle */}
-            <ThemeToggle isCollapsed={mounted && isCollapsed} />
+            <ThemeToggle isCollapsed={isRail} />
           </nav>
 
           {/* Profile & Sign Out */}
@@ -460,11 +447,11 @@ export const Sidebar = memo(function Sidebar({
             suppressHydrationWarning
             className={cn(
               'border-sidebar-border border-t py-4',
-              mounted && isCollapsed ? 'px-2' : 'px-3',
+              isRail ? 'px-2' : 'px-3',
             )}
           >
             {/* Profile Link */}
-            {mounted && isCollapsed ? (
+            {isRail ? (
               <Tooltip delayDuration={0}>
                 <TooltipTrigger asChild>
                   <Link
@@ -516,7 +503,7 @@ export const Sidebar = memo(function Sidebar({
             )}
 
             {/* Sign Out Button */}
-            {mounted && isCollapsed ? (
+            {isRail ? (
               <Tooltip delayDuration={0}>
                 <TooltipTrigger asChild>
                   <Button

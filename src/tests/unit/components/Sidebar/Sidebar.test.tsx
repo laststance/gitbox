@@ -12,6 +12,7 @@
 
 import { configureStore } from '@reduxjs/toolkit'
 import { render, screen, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { Provider } from 'react-redux'
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 
@@ -203,21 +204,24 @@ describe('Sidebar', () => {
       expect(store.getState().settings.sidebarCollapsed).toBe(false)
     })
 
-    test('keeps the keyboard focus on the toggle when the sidebar is collapsed and when it is expanded again', () => {
-      // Arrange: the pressed button leaves the page with its layout, and the
-      // button of the other layout takes its place
+    test('keeps the keyboard focus on the toggle when the sidebar is collapsed and when it is expanded again', async () => {
+      // Arrange: a keyboard user stands on the toggle
+      const user = userEvent.setup()
       renderSidebar()
+      const toggle = screen.getByRole('button', { name: 'Collapse sidebar' })
+      toggle.focus()
 
       // Act
-      fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
+      await user.keyboard('{Enter}')
 
-      // Assert
-      expect(
-        screen.getByRole('button', { name: 'Expand sidebar' }),
-      ).toHaveFocus()
+      // Assert: the rail shows the same button, not a second one that would
+      // have taken its place and left the focus on nothing
+      const railToggle = screen.getByRole('button', { name: 'Expand sidebar' })
+      expect(railToggle).toBe(toggle)
+      expect(railToggle).toHaveFocus()
 
       // Act
-      fireEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }))
+      await user.keyboard('{Enter}')
 
       // Assert
       expect(
