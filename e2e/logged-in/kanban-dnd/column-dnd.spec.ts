@@ -4,7 +4,7 @@
  * PRD Section 10.3 - Column Drag & Drop
  *
  * Tests for @dnd-kit column drag operations using CDP (Chrome DevTools Protocol)
- * to generate `isTrusted: true` events that @dnd-kit accepts.
+ * to press, move in steps and release the mouse.
  *
  * Structure:
  * - 10.3.1 カラムSwap（位置入れ替え）

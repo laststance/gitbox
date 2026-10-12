@@ -7,7 +7,7 @@
  * - Save/Cancel functionality
  * - Keyboard shortcuts (Enter, Escape)
  * - Auto-save on blur
- * - Event propagation prevention for DnD isolation
+ * - Presses in the editor that the card around it must not take for a drag
  */
 
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
@@ -15,6 +15,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { CommentInlineEdit } from '@/components/Board/CommentInlineEdit'
+import { mayStartDrag } from '@/lib/utils/may-start-drag'
 
 // Mock CommentDisplay for constants
 vi.mock('@/components/Board/CommentDisplay', () => ({
@@ -307,17 +308,41 @@ describe('CommentInlineEdit', () => {
 
       expect(mockOnCancel).toHaveBeenCalled()
     })
+  })
 
-    test('should stop event propagation to prevent DnD interference', () => {
-      render(<CommentInlineEdit {...defaultProps} />)
+  describe('Inside a draggable card', () => {
+    // Value: protects=a press on the counter of the editor does not pick up the card that holds it; fails_when=the editor loses its data-no-drag mark, the one thing the drag sensors of the board know its box by; why_new=the test before pinned a stopped pointerdown, an event no sensor of the board listens for; seam=the editor inside an element that asks mayStartDrag, with React events; no_claim=the board in a browser, see e2e/logged-in/what-starts-a-drag.spec.ts
+    test('keeps a press on its counter from picking up the card that holds it', () => {
+      // Arrange
+      const answers: boolean[] = []
+      render(
+        <div onMouseDown={(event) => answers.push(mayStartDrag(event))}>
+          <CommentInlineEdit {...defaultProps} />
+        </div>,
+      )
 
-      const container = screen.getByTestId('comment-inline-edit')
-      const pointerEvent = new PointerEvent('pointerdown', { bubbles: true })
-      const stopPropagation = vi.spyOn(pointerEvent, 'stopPropagation')
+      // Act
+      fireEvent.mouseDown(screen.getByTestId('character-counter'))
 
-      container.dispatchEvent(pointerEvent)
+      // Assert
+      expect(answers).toEqual([false])
+    })
 
-      expect(stopPropagation).toHaveBeenCalled()
+    // Value: protects=a press on the edge of the editor, between its field and its counter, does not pick up the card; fails_when=the mark sits on the field or the counter and not on the box around them; why_new=the box is neither a field nor a button, so only the mark covers it; seam=the editor inside an element that asks mayStartDrag, with React events; no_claim=the board in a browser
+    test('keeps a press on its own box from picking up the card that holds it', () => {
+      // Arrange
+      const answers: boolean[] = []
+      render(
+        <div onMouseDown={(event) => answers.push(mayStartDrag(event))}>
+          <CommentInlineEdit {...defaultProps} />
+        </div>,
+      )
+
+      // Act
+      fireEvent.mouseDown(screen.getByTestId('comment-inline-edit'))
+
+      // Assert
+      expect(answers).toEqual([false])
     })
   })
 

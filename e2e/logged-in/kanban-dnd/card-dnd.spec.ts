@@ -4,7 +4,7 @@
  * PRD Section 10.2 - Card Drag & Drop
  *
  * Tests for @dnd-kit card drag operations using CDP (Chrome DevTools Protocol)
- * to generate `isTrusted: true` events that @dnd-kit accepts.
+ * to press, move in steps and release the mouse.
  *
  * Structure:
  * - 10.2.1 同一カラム内カード並び替え (Intra-column card reorder)

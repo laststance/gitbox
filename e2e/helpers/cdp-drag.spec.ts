@@ -6,7 +6,7 @@
  *
  * @remarks
  * - Tests CDP session creation and mouse event dispatching
- * - Verifies isTrusted: true events for @dnd-kit compatibility
+ * - Verifies that its events are trusted ones (`isTrusted: true`)
  * - Only works with Chromium-based browsers
  */
 
@@ -109,8 +109,8 @@ test.describe('CDP Drag Helper Integration', () => {
   })
 
   /**
-   * Test that CDP events have isTrusted = true.
-   * This is the critical requirement for @dnd-kit compatibility.
+   * Test that CDP events have isTrusted = true, as the events of a person
+   * have. @dnd-kit does not ask for it.
    */
   test('should generate isTrusted events via CDP', async ({ page }) => {
     await page.goto(BOARD_URL)

@@ -5,6 +5,8 @@
  * A card renders menus that are drawn in a portal, and React hands an event
  * in such a menu up to the card. These tests render a card with a menu item
  * in a portal and press both with React events.
+ *
+ * @see src/tests/unit/lib/utils/may-start-drag.test.tsx for the question of the drag sensors, which asks it
  */
 
 import { fireEvent, render, screen } from '@testing-library/react'

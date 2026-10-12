@@ -226,7 +226,9 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
     return (
       <div
         data-testid="comment-inline-edit"
-        onPointerDown={(e) => e.stopPropagation()}
+        // Read by may-start-drag.ts: no press in the editor picks the card up,
+        // on its field and its button as on its counter and the space around them
+        data-no-drag
         className={cn(
           // Container styles matching CommentDisplay - full rounded card
           'rounded-md p-3',

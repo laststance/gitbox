@@ -24,9 +24,6 @@ import type {
   UniqueIdentifier,
 } from '@dnd-kit/core'
 import {
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
   closestCenter,
   pointerWithin,
   useSensor,
@@ -52,6 +49,11 @@ import { trackBoardWrite } from '@/lib/redux/slices/boardSyncSlice'
 import type { AppDispatch } from '@/lib/redux/store'
 import type { StatusListId } from '@/lib/types/brands'
 import { notifyFailedBoardSave } from '@/lib/utils/notify-failed-board-save'
+import {
+  OwnElementKeyboardSensor,
+  OwnElementMouseSensor,
+  OwnElementTouchSensor,
+} from '@/lib/utils/own-element-sensors'
 import { reportUnconfirmedBoardSave } from '@/lib/utils/report-unconfirmed-board-save'
 
 import type { BoardRollback } from './useBoardRollback'
@@ -204,20 +206,24 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
     [sortedStatuses],
   )
 
-  // Sensor configuration
+  // Sensor configuration. A drag starts only from a press or a key on the
+  // card or the column header itself (mayStartDrag): not from one in a menu
+  // or a dialog they render, which React hands up here although it is drawn
+  // elsewhere on the page, and not from one on a button, a link or a field
+  // inside them or in the box of the comment editor
   const sensors = useSensors(
-    useSensor(MouseSensor, {
+    useSensor(OwnElementMouseSensor, {
       activationConstraint: {
         distance: 8,
       },
     }),
-    useSensor(TouchSensor, {
+    useSensor(OwnElementTouchSensor, {
       activationConstraint: {
         delay: 200,
         tolerance: 6,
       },
     }),
-    useSensor(KeyboardSensor),
+    useSensor(OwnElementKeyboardSensor),
   )
 
   /** Save current column state to undo history (max 10 entries) */

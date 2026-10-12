@@ -8,7 +8,8 @@ import type { SyntheticEvent } from 'react'
  * still rendered by the element that holds it. A card, a column header and a
  * comment each hold such menus and answer clicks, keys or presses themselves,
  * so each has to tell the events of its menus from its own. Called by the
- * click and key handlers of {@link CommentDisplay}.
+ * click and key handlers of {@link CommentDisplay} and by {@link mayStartDrag},
+ * which the drag sensors of the board ask.
  *
  * @param event - The event as React hands it to the listening element.
  * @returns

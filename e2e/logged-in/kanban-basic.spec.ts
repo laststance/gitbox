@@ -5,8 +5,8 @@
  * Requires authentication (uses storageState from auth.setup.ts)
  *
  * @remarks
- * For @dnd-kit drag operations, see kanban-dnd/ which uses
- * CDP (Chrome DevTools Protocol) to generate `isTrusted: true` events.
+ * For @dnd-kit drag operations, see kanban-dnd/ which presses, moves and
+ * releases the mouse through CDP (Chrome DevTools Protocol).
  * These tests focus on non-drag interactions and UI elements.
  */
 
