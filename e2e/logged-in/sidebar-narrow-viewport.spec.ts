@@ -102,6 +102,47 @@ test.describe('Sidebar below 768px', () => {
     expect(pageWidthPx).toBe(375)
   })
 
+  // Value: protects=the sidebar opens over the page as one clean edge that uncovers its labels; fails_when=a label wraps while the sidebar is still narrow, or the header draws its toggle beyond the edge that is still moving; why_new=the other tests look at the sidebar when the opening has ended; seam=none; no_claim=how the motion looks frame by frame (that is checked on a recording)
+  test('while it opens, no label breaks onto a second line and nothing is drawn beyond its moving edge', async ({
+    page,
+  }) => {
+    // Arrange: the opening takes 100s instead of 0.3s, so the test looks at
+    // its first moments, when the labels are laid out and the sidebar has
+    // hardly grown
+    const { sidebar, expandButton } = await openBoardsWithRail(page)
+    await page.addStyleTag({
+      content: 'aside { transition-duration: 100s !important; }',
+    })
+
+    // Act
+    await expandButton.click()
+    const allBoardsLink = sidebar.getByRole('link', { name: 'All Boards' })
+    await expect(allBoardsLink).toBeAttached()
+    const widthWhileOpeningPx = (await measureHorizontally(sidebar))?.width
+    const linkHeightWhileOpeningPx = (await allBoardsLink.boundingBox())?.height
+    const testIdBeyondTheEdge = await page.evaluate(() =>
+      // A point in the row of the logo, right of a sidebar of under 100px
+      document.elementFromPoint(120, 28)?.getAttribute('data-testid'),
+    )
+
+    // Assert: still narrow, "All Boards" is one line (20px of text and 8px
+    // above and below it), and right of the edge lies the backdrop
+    expect(widthWhileOpeningPx).toBeLessThan(100)
+    expect(linkHeightWhileOpeningPx).toBe(36)
+    expect(testIdBeyondTheEdge).toBe('sidebar-backdrop')
+
+    // Act: the opening ends
+    await sidebar.evaluate((aside) =>
+      aside.getAnimations().forEach((animation) => animation.finish()),
+    )
+
+    // Assert: the line has the height it had on the way
+    await expect
+      .poll(async () => (await measureHorizontally(sidebar))?.width)
+      .toBe(256)
+    expect((await allBoardsLink.boundingBox())?.height).toBe(36)
+  })
+
   test('closes when the page behind it is pressed, and the page is within reach again', async ({
     page,
   }) => {
