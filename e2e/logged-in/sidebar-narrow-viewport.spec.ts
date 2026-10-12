@@ -103,7 +103,6 @@ test.describe('Sidebar below 768px', () => {
     expect(pageWidthPx).toBe(375)
   })
 
-  // Value: protects=the sidebar opens over the page as one clean edge that uncovers its labels, with its toggle in view all the way; fails_when=a label wraps while the sidebar is still narrow, the name beside the logo is drawn beyond the edge that is still moving, or the toggle leaves its place; why_new=the other tests look at the sidebar when the opening has ended; seam=none; no_claim=how the motion looks frame by frame (that is checked on a recording)
   // Value: protects=a key typed while the sidebar lies over a board or over the account page cannot reach that page, so Z does not undo a drag behind the sidebar; fails_when=one of these layouts wraps the sidebar in an element of its own, which leaves it no sibling to set aside; why_new=the tests above open the sidebar on the boards list only, and the unit tests render a page of their own beside it; seam=none; no_claim=that Z does nothing on an inert page, which useKanbanUndo.test.tsx checks
   for (const { pageName, url } of [
     { pageName: 'a board', url: `/board/${BOARD_IDS.testBoard}` },
@@ -128,6 +127,7 @@ test.describe('Sidebar below 768px', () => {
     })
   }
 
+  // Value: protects=the sidebar opens over the page as one clean edge that uncovers its labels, with its toggle in view all the way; fails_when=a label wraps while the sidebar is still narrow, the name beside the logo is drawn beyond the edge that is still moving, or the toggle leaves its place; why_new=the other tests look at the sidebar when the opening has ended; seam=none; no_claim=how the motion looks frame by frame (that is checked on a recording)
   test('while it opens, no label breaks onto a second line, nothing is drawn beyond its moving edge and the toggle stays where it was', async ({
     page,
   }) => {

@@ -536,18 +536,36 @@ describe('MoveToAnotherBoardDialog', () => {
       expect(onMoved).not.toHaveBeenCalled()
     })
 
-    test('puts the keyboard back on Move, which was disabled while the move ran', async () => {
-      // Arrange
+    // Value: protects=after a move the server refused, the keyboard is on Move again, the control needed next; fails_when=the dialog shows the error and leaves the focus where the browser put it when it disabled the button; why_new=the test before this one clicked Move and looked at Move, and happy-dom leaves the focus on a button that becomes disabled, so it passed with the focus call taken out; seam=the dialog in happy-dom, with the focus moved off the disabled button by hand as a browser does; no_claim=that a browser takes the focus off a disabled button, which CreateBoardForm.stories.tsx shows for a field
+    test('puts the keyboard back on Move after the focus left the button that was disabled while the move ran', async () => {
+      // Arrange: a move the server has not answered yet
       const user = userEvent.setup()
       mockBoards()
-      vi.mocked(moveCardToBoard).mockResolvedValue({
-        success: false,
-        error: 'An unexpected error occurred',
-      })
+      let refuseMove: (result: {
+        success: false
+        error: string
+      }) => void = () => {}
+      vi.mocked(moveCardToBoard).mockReturnValue(
+        new Promise((resolve) => {
+          refuseMove = resolve
+        }),
+      )
       renderOpenDialog()
+      await user.click(await screen.findByRole('button', { name: 'Move' }))
+      expect(
+        await screen.findByRole('button', { name: 'Moving...' }),
+      ).toBeDisabled()
+      // A browser takes the focus off a control that becomes disabled.
+      // happy-dom leaves it there, so the test moves it as the browser does
+      act(() => {
+        screen.getByRole('dialog').focus()
+      })
+      expect(screen.getByRole('dialog')).toHaveFocus()
 
       // Act
-      await user.click(await screen.findByRole('button', { name: 'Move' }))
+      await act(async () => {
+        refuseMove({ success: false, error: 'An unexpected error occurred' })
+      })
 
       // Assert
       expect(await screen.findByRole('alert')).toHaveTextContent(
