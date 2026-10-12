@@ -160,14 +160,17 @@ export const BoardCard = memo(function BoardCard({
           {/* Favorite star button. The outline (amber 700, amber 400 on the
               dark themes) is what has to stand out from the card: 4.49:1 or
               more on every theme, where an icon needs 3:1. The gold fill
-              alone was 2.1:1 on white. */}
+              alone was 2.1:1 on white. The star of a board that is no
+              favorite is muted and not dimmed on top of that: at 70% it was
+              2.7:1 on white where it is always on screen (touch, narrow
+              screens). Checked in board-card-star-contrast.test.ts. */}
           <Button
             variant="ghost"
             size="icon"
             className={`h-8 w-8 transition-all ${
               localIsFavorite
                 ? 'text-amber-700 opacity-100 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300'
-                : 'text-muted-foreground opacity-70 hover:text-amber-700 focus-visible:opacity-100 dark:hover:text-amber-400 md:pointer-fine:opacity-0 md:pointer-fine:group-hover:opacity-100'
+                : 'text-muted-foreground hover:text-amber-700 focus-visible:opacity-100 dark:hover:text-amber-400 md:pointer-fine:opacity-0 md:pointer-fine:group-hover:opacity-100'
             }`}
             aria-label={
               localIsFavorite

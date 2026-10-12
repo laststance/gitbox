@@ -448,7 +448,7 @@ test.describe('Board Favorites Feature', () => {
       await page.goto('/boards')
       await page.waitForLoadState('networkidle')
 
-      // Star buttons should be visible on mobile (opacity-70)
+      // Star buttons should be visible on mobile (never hidden, never dimmed)
       const starButtons = page.locator('button[aria-label*="favorite"]')
       await expect(starButtons.first()).toBeVisible()
     })
