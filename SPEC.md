@@ -112,6 +112,7 @@
 - **One repository, one card per user** ([#215](https://github.com/laststance/gitbox/issues/215)): a repository can sit on at most one of a user's boards. Identity is `owner/name`, case-insensitive. The database enforces it.
 - **Shared board**: on a board that is shared by a public link, the combobox says above its buttons that anyone who has the link will see the added repositories with their descriptions
 - **Already placed elsewhere**: the combobox lists repos held by another board (`On <board name>`) under their own heading, each with a link to that board, instead of offering them. Repos on the current board stay hidden. Placements are fetched every time the combobox opens.
+- **Panel**: the combobox panel is 480px wide. From 640px of window width it stands below the Add Repositories button and ends at the right edge of the header, so all of it is on the page; below 640px it spans the screen. It ends above the bottom edge of the window, however far down its button stands: its two lists give up height and scroll by themselves, and the search box and Cancel / Add stay in view
 - **First Board auto-creation**: On sign-in, a user who has no board gets a board named "First Board" with the Software Release columns (`createFirstBoardIfNeeded` in the OAuth callback; the board and its columns are written together by the `create_board_with_status_lists` database function)
 
 #### Acceptance Criteria
@@ -146,9 +147,9 @@
   - The dialog opens on the board the last move from this board went to, when that board is still offered (remembered in this browser). Without one it opens on the newest board that is not shared by a public link
   - A board that is shared by a public link carries the mark of a public board in the list. When it is the destination, the dialog says that anyone who has the link will see the repository there with its description, and that notes, links and comments stay private
   - The columns of the destination are listed in the order its board shows them, and the first one (the left-most of the first row) is selected until another is picked
-  - While the move or a board creation waits for the server the dialog stays open and its controls are disabled. After 15 seconds without an answer it says that the outcome could not be confirmed and can be closed again. After every move that was not confirmed the board is fetched again, and the same move can be sent a second time without harm. That fetch waits until the request has settled, so the dialog offers **Reload page** next to the message of a move with an unknown outcome
-  - A board creation that could not be confirmed is not sent a second time from the dialog, because the board may exist: **Reload boards** loads the list again and shows it
-  - The keyboard focus is on the Board select once the boards are loaded, and after a request that did not go through on the control needed next (Move, the name field, Reload boards)
+  - While the move or a board creation waits for the server the dialog stays open and its controls are disabled. After 15 seconds without an answer it says that the outcome could not be confirmed and can be closed again. After every move that was not confirmed the board is fetched again, and the same move can be sent a second time without harm. That fetch waits until the request has settled, so the dialog offers **Reload page** next to the message of a move with an unknown outcome. A move the server itself could not confirm (the database gave it no answer) is shown the same way
+  - A board creation that could not be confirmed is not sent a second time from the dialog, because the board may exist: **Reload boards** loads the list again and shows it. When the creation got no answer in 15 seconds its request is still running and that load would wait behind it, so **Reload page** takes the place of Reload boards
+  - The keyboard focus is on the Board select once the boards are loaded, and after a request that did not go through on the control needed next (Move, the name field, Reload boards, Reload page)
 - **Remove from Board**: Deletes the card together with its note, links and comment, after a confirmation. The repository on GitHub is not affected
 - **Board D&D Reorder**: Drag & drop board cards on `/boards` page to reorder (position persisted to DB)
   - GripVertical drag handle (visible on hover)
@@ -313,7 +314,7 @@ interface BoardSettings {
 
 - **useSidebar Hook**: Mounted state management for hydration safety
 - **CSS**: `transition-[width] duration-300 ease-out`
-- **Responsive**: Below 768px the sidebar is the 64px icon rail at the left edge, whatever state is stored, and the page lies beside it. The toggle opens the full sidebar over the page, which keeps its place; the backdrop, Escape and a link of the sidebar close it again. This opened state is not stored
+- **Responsive**: Below 768px the sidebar is the 64px icon rail at the left edge, whatever state is stored, and the page lies beside it. The toggle opens the full sidebar over the page, which keeps its place; the backdrop, Escape, a link of the sidebar and a second press on the toggle, which stays where it was in the rail, close it again. The sidebar is as high as the part of the screen that is in view. This opened state is not stored
 - **SSR**: Renders expanded (default) state on server, applies persisted state after mount
 
 #### Acceptance Criteria
@@ -450,8 +451,14 @@ Standardized return type for client-consumed Server Actions (`src/lib/actions/ty
 
 ```typescript
 type ActionResult<T> =
-  { success: true; data: T } | { success: false; error: string }
+  | { success: true; data: T }
+  | { success: false; error: string; errorCode?: ActionErrorCode }
+
+type ActionErrorCode =
+  'GITHUB_TOKEN_MISSING' | 'BOARD_CREATION_UNCONFIRMED' | 'MOVE_UNCONFIRMED'
 ```
+
+`error` is the sentence the user reads. `errorCode` is set only where the browser has to tell one failure from another, and the browser branches on the code, never on the sentence: it signs in again without asking (`GITHUB_TOKEN_MISSING`), or it treats the outcome as unknown because the database gave the server no answer, so the board may exist (`BOARD_CREATION_UNCONFIRMED`) or the card may have moved (`MOVE_UNCONFIRMED`).
 
 #### Auth Guard Wrappers (`src/lib/actions/auth-guard.ts`)
 
@@ -485,7 +492,7 @@ Remove from Board       // Destructive, confirmation dialog; deletes the card wi
 - `.` — Focused card's Overflow menu
 - `Enter` — Open card
 - `⌘K` / `Ctrl+K` — Command Palette
-- `Z` — Undo last operation (not while a dialog, a menu or a list of options is open)
+- `Z` — Undo last operation (not while a dialog, a menu or a list of options is open, and not while the sidebar lies over the page on a phone)
 - `Tab` — Focus navigation
 - `Escape` — Close menu/dialog
 - `?` — Shortcuts help
@@ -602,7 +609,7 @@ Remove from Board       // Destructive, confirmation dialog; deletes the card wi
 
 **Theme** (via Sidebar):
 
-- **Access**: Sidebar Theme dropdown
+- **Access**: Sidebar Theme dropdown. Its list opens beside the sidebar; in the sidebar that lies over the page below 768px it opens below its button, where all of it is on the screen
 - **Scope**: App-wide (no board-specific settings)
 - **14 themes + System**: Light 7 + Dark 7 + OS preference follow
 

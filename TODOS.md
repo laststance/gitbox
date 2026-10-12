@@ -289,13 +289,13 @@ A repository that was renamed or transferred keeps its former owner and name on 
 **Priority:** P3
 **Depends on:** None
 
-### Give a board without columns its default columns once
+### Give a board without columns its default columns once, and a new account one first board
 
-**What:** Make the write in `createDefaultStatusLists` safe against two requests that read the same board without columns at the same moment: a database function that inserts the default columns only while the board has none (it takes a lock on the board row first), or a unique index on `(board_id, grid_row, grid_col)` with `ON CONFLICT DO NOTHING`.
+**What:** (1) Make the write in `createDefaultStatusLists` safe against two requests that read the same board without columns at the same moment: a database function that inserts the default columns only while the board has none (it takes a lock on the board row first), or a unique index on `(board_id, grid_row, grid_col)` with `ON CONFLICT DO NOTHING`. (2) Do the "only when the user has no board" check of `createFirstBoardIfNeeded` inside the database function, under a lock for that user (`pg_advisory_xact_lock`).
 
-**Why:** `getBoardBundle` reads the board, sees no column and inserts five. Two tabs that open the board at once both see none, and the board gets ten. It takes a board whose last column was deleted (or one made before boards were created with their columns) and two first views within the same moment, so it is rare, and the extra columns can be deleted by hand. Seen in the review of issue #213; the behavior is older than that change.
+**Why:** (1) `getBoardBundle` reads the board, sees no column and inserts five. Two tabs that open the board at once both see none, and the board gets ten. It takes a board whose last column was deleted (or one made before boards were created with their columns) and two first views within the same moment, so it is rare, and the extra columns can be deleted by hand. (2) Two first sign-ins of one account that end at the same moment both count no board and both create "First Board". The second board can be deleted by hand. Both were seen in the reviews of issue #213; the behavior is older than that change.
 
-**Context:** `src/lib/actions/board-creation.ts` (`createDefaultStatusLists`), `src/lib/actions/board-data.ts` (`getBoardBundle`). `e2e/logged-in/board-without-columns.spec.ts` covers the single view. A unique index on the grid cell would also have to hold during a column swap, which writes two rows one after the other.
+**Context:** `src/lib/actions/board-creation.ts` (`createDefaultStatusLists`, `createFirstBoardIfNeeded`), `src/lib/actions/board-data.ts` (`getBoardBundle`), `supabase/migrations/20261012085900_create_board_with_status_lists.sql`. `e2e/logged-in/board-without-columns.spec.ts` covers the single view. A unique index on the grid cell would also have to hold during a column swap, which writes two rows one after the other.
 
 **Effort:** S
 **Priority:** P3
@@ -311,6 +311,30 @@ A repository that was renamed or transferred keeps its former owner and name on 
 
 **Effort:** S
 **Priority:** P2
+**Depends on:** None
+
+### Bound the grid position of a column
+
+**What:** Give `statuslist.grid_row` and `statuslist.grid_col` an upper bound in the table (a `CHECK` such as `BETWEEN 0 AND 999`, after counting the rows it would refuse), and let the actions that write a position answer a refusal with a sentence.
+
+**Why:** A signed-in user can write any integer into the two columns through the API. The board page builds one drop zone per cell of the grid (`useKanbanDnD`), so a column at row or column 2147483647 makes that user's own board page hang, and each request for it runs until the function times out. The shared page prints the numbers into `repeat(N, …)`: Chromium laid out `repeat(2147483648, …)` in under half a second (measured on 2026-10-12), so a visitor sees a very wide page and nothing worse. The column color got its check in issue #213 for the same reason: the table refuses whoever writes. Older than that change.
+
+**Context:** `src/hooks/board/useKanbanDnD.ts` (the loop over rows and columns), `src/app/public/[slug]/PublicBoardClient.tsx`, `supabase/migrations/20261012085950_statuslist_color_check.sql` (the pattern to follow: count first, then add the constraint), the column drag and "new row" writes in `src/lib/actions/board.ts`.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Say "this page is out of date" for an action the server no longer has
+
+**What:** Tell a Server Action call the server rejected without running it (a tab of the build before a deployment calls an action id the new build does not have) from a request with an unknown outcome, and offer "Reload page" with a sentence that says the page is out of date.
+
+**Why:** `requestBoardCreation` and the move dialog count every request that failed on the way as "may have happened". For such a tab that is wrong in a harmless direction: the user is told to check the boards, and the way offered there ("Open your boards", "Reload page") loads the new build. Seen in the review of issue #213, which renames arguments of `createBoard` and removes actions, so the first deployment is one where it can happen.
+
+**Context:** `src/lib/utils/request-board-creation.ts`, `toMoveFailure` in `src/components/Modals/MoveToAnotherBoardDialog.tsx`. Next.js exports `unstable_isUnrecognizedActionError` from `next/navigation`; the name says that it may change. Vercel's skew protection would keep an old tab on its own build instead.
+
+**Effort:** S
+**Priority:** P4
 **Depends on:** None
 
 ## Board sync, shared boards and the Sentry tunnel — deferred follow-ups
