@@ -24,14 +24,12 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const BoardContext: Story = {
+/** The menu as a card on a board shows it: the GitHub link and the two board actions. */
+export const WithBoardActions: Story = {
   args: {
     cardId: toRepoCardId('card-1'),
     repoOwner: 'octocat',
     repoName: 'example-repo',
-    productionUrl: 'https://example.com',
-    trackingUrl: 'https://tracking.example.com',
-    supabaseUrl: 'https://supabase.example.com',
     onMoveToAnotherBoard: (id) => console.log('Move to another board:', id),
     onRemove: (id) => console.log('Remove from board:', id),
   },

@@ -2,11 +2,27 @@ import type { Preview, StoryContext } from '@storybook/nextjs-vite'
 import React, { useEffect } from 'react'
 
 import { mswLoader } from 'msw-storybook-addon/csf3'
+import { sb } from 'storybook/test'
 
 import { Provider as ReduxStoreProvider } from 'react-redux'
 import { store } from '@/lib/redux/store'
 import { storybookHandlers } from '../mocks/handlers/index'
 import '@/styles/globals.css'
+
+/**
+ * The board Server Actions become spies: each one still runs as written until
+ * a story says what it returns (`mocked(action).mockResolvedValue(...)` in the
+ * story's `beforeEach`). A story is rendered without a Next.js server, so an
+ * action that is not overridden answers "Authentication required".
+ *
+ * Registered here, not with `vi.mock` in `vitest.setup.ts`: Storybook rewrites
+ * the module while it is transformed, so every story file gets the spies. The
+ * mock of the setup file was put in place while the tests ran and lost a race
+ * against a story file's own import now and then: the real action ran, the
+ * favorite star went back, and "Optimistic Favorite Toggle" failed about one
+ * run in ten. It also never applied to the Storybook UI.
+ */
+sb.mock(import('../src/lib/actions/board.ts'), { spy: true })
 
 // Theme constants (duplicated from lib/constants/themes.ts to avoid bundling issues)
 const DARK_THEME_IDS = [
