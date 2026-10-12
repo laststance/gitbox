@@ -875,8 +875,9 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                       </Button>
                     </div>
                     <p className="text-muted-foreground text-xs">
-                      Visible: board name, columns, and card titles. Hidden:
-                      comments, notes, and links.
+                      Visible: board name, columns, and each repository&apos;s
+                      name, description, language, and stars. Hidden: comments,
+                      notes, and links.
                     </p>
                   </div>
                 )}
