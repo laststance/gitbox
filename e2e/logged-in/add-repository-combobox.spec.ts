@@ -12,7 +12,12 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
-import { BOARD_IDS, resetRepoCards } from '../helpers/db-query'
+import {
+  BOARD_IDS,
+  TEST_USER_ID,
+  createServiceRoleSupabaseClient,
+  resetRepoCards,
+} from '../helpers/db-query'
 
 /**
  * AddRepositoryCombobox E2E Tests - Existing Repo Filtering
@@ -865,51 +870,55 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
 /**
  * AddRepositoryCombobox E2E Tests - Short Viewport
  *
- * The panel is capped to the height of the screen. With both lists full it
- * is taller than a small laptop screen: then the lists scroll, and the search
- * box above them and the Cancel / Add row below them stay where they are.
- * Only a browser lays the panel out, so this is measured here. The test
- * account has one repository left to add, so the window is made short enough
- * (360px) that this one already needs more room than the screen leaves.
+ * The panel is capped to the height of the screen. When there is more to show,
+ * its lists give up height (each scrolls by itself) and the search box above
+ * them and the Cancel / Add row below them stay where they are. On a window
+ * too short for one row of a list, the whole panel scrolls instead.
+ * Only a browser lays the panel out, so this is measured here.
  */
 test.describe('AddRepositoryCombobox - Short Viewport', () => {
-  test.use({
-    storageState: 'e2e/.auth/user.json',
-    viewport: { width: 1280, height: 360 },
-  })
+  test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
   test.beforeEach(async () => {
-    // The tests before this one add repositories; the list needs some left
+    // No card on any board: all five repositories of the test account are
+    // free to add, the longest list this account can show
+    await removeEveryRepoCard()
+  })
+
+  test.afterEach(async () => {
     await resetRepoCards()
   })
 
-  test('keeps the search box and the Cancel / Add row on screen while the lists scroll', async ({
+  test('keeps the search box and the Cancel / Add row in view on a short window: the list gives up height', async ({
     page,
   }) => {
-    // Arrange: the panel with its repositories listed
+    // Arrange: five rows need 480px, the list shows 300px of them at most,
+    // and a window of 500px leaves the panel 404px
+    await page.setViewportSize({ width: 1280, height: 500 })
     await page.goto(BOARD_URL)
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+
+    // Act
     await page.getByRole('button', { name: /add repositories/i }).click()
+
+    // Assert: the list holds all five and is shorter than they are ...
     const panel = page.getByRole('combobox', { expanded: true })
-    const scrollArea = panel.getByTestId('repository-picker-scroll-area')
-    // [role="option"]: the repositories, not the options of the filter select
-    await expect(scrollArea.locator('[role="option"]').first()).toBeVisible({
+    const list = panel.getByRole('listbox', { name: 'Repository options' })
+    await expect(list.locator('[role="option"]')).toHaveCount(5, {
       timeout: 10000,
     })
-    // The lists are taller than the room the screen leaves them
-    const isTallerThanItsRoom = await scrollArea.evaluate(
-      (area) => area.scrollHeight > area.clientHeight,
+    const listScrolls = await list.evaluate(
+      (element) => element.scrollHeight > element.clientHeight,
     )
-    expect(isTallerThanItsRoom).toBe(true)
-
-    // Act: scroll the lists to their end
-    await scrollArea.evaluate((area) => {
-      area.scrollTop = area.scrollHeight
-    })
-
-    // Assert
+    expect(listScrolls).toBe(true)
+    // ... the panel around it does not scroll ...
+    const panelScrolls = await panel.evaluate(
+      (element) => element.scrollHeight > element.clientHeight,
+    )
+    expect(panelScrolls).toBe(false)
+    // ... and what stands above and below the list is on screen
     await expect(panel.getByPlaceholder(/search repositories/i)).toBeInViewport(
       { ratio: 1 },
     )
@@ -920,4 +929,56 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
       { ratio: 1 },
     )
   })
+
+  test('scrolls the whole panel on a window too short for a row of the list, so Add can still be reached', async ({
+    page,
+  }) => {
+    // Arrange: a window of 300px leaves the panel 204px, less than the
+    // search box, the filters and the buttons need on their own
+    await page.setViewportSize({ width: 1280, height: 300 })
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await page.getByRole('button', { name: /add repositories/i }).click()
+    const panel = page.getByRole('combobox', { expanded: true })
+    await expect(
+      panel
+        .getByRole('listbox', { name: 'Repository options' })
+        .locator('[role="option"]'),
+    ).toHaveCount(5, { timeout: 10000 })
+    const addButton = panel.getByRole('button', { name: 'Add (0)' })
+    await expect(addButton).not.toBeInViewport({ ratio: 1 })
+
+    // Act: scroll the panel to its end
+    await panel.evaluate((element) => {
+      element.scrollTop = element.scrollHeight
+    })
+
+    // Assert
+    await expect(addButton).toBeInViewport({ ratio: 1 })
+  })
 })
+
+/**
+ * Deletes every card of the test user, on all boards, so no repository of the
+ * test account is placed anywhere. `resetRepoCards` puts the seed cards back.
+ */
+async function removeEveryRepoCard(): Promise<void> {
+  const serviceRole = createServiceRoleSupabaseClient()
+  const boards = await serviceRole
+    .from('board')
+    .select('id')
+    .eq('user_id', TEST_USER_ID)
+  if (boards.error) {
+    throw new Error(`board lookup failed: ${boards.error.message}`)
+  }
+  const deleted = await serviceRole
+    .from('repocard')
+    .delete()
+    .in(
+      'board_id',
+      boards.data.map((board) => board.id),
+    )
+  if (deleted.error) {
+    throw new Error(`deleting the cards failed: ${deleted.error.message}`)
+  }
+}

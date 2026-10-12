@@ -403,274 +403,223 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       {isOpen && (
         <div
           // Capped to the viewport: with both lists full the panel is taller
-          // than a small laptop screen. A column whose middle part scrolls:
-          // the search box above it and Cancel / Add below it stay in view.
+          // than a small laptop screen. flex-col: the two lists, which scroll
+          // by themselves, give up height first (down to one row each), so
+          // the search box and Cancel / Add stay in view. overflow-y-auto:
+          // on a window too short even for that the whole panel scrolls.
           // max-sm: below 640px the button sits at the left of a stacked
           // header, and a 480px panel hung from its right edge left the
           // screen on the left; there the panel spans the screen instead.
-          className="border-border bg-background absolute top-full right-0 z-50 mt-2 flex max-h-[calc(100dvh-6rem)] w-120 flex-col rounded-lg border p-4 shadow-xl max-sm:fixed max-sm:inset-x-2 max-sm:top-2 max-sm:mt-0 max-sm:max-h-[calc(100dvh-1rem)] max-sm:w-auto"
+          className="border-border bg-background absolute top-full right-0 z-50 mt-2 flex max-h-[calc(100dvh-6rem)] w-120 flex-col overflow-y-auto rounded-lg border p-4 shadow-xl max-sm:fixed max-sm:inset-x-2 max-sm:top-2 max-sm:mt-0 max-sm:max-h-[calc(100dvh-1rem)] max-sm:w-auto"
           role="combobox"
           aria-expanded={isOpen}
           aria-controls="repository-listbox"
           onKeyDown={handleKeyDown}
         >
-          {/* Stays in view: the search box and the filters */}
-          <div className="shrink-0">
-            {/* Search input */}
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={searchQuery}
-              onChange={(e) => updateSearch(e.target.value)}
-              placeholder="Search repositories..."
-              className="border-input bg-background text-foreground focus:ring-primary w-full rounded-md border px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-              aria-label="Search repositories"
-              autoFocus
-            />
+          {/* Search input */}
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => updateSearch(e.target.value)}
+            placeholder="Search repositories..."
+            className="border-input bg-background text-foreground focus:ring-primary w-full rounded-md border px-3 py-2 text-sm focus:ring-1 focus:outline-none"
+            aria-label="Search repositories"
+            autoFocus
+          />
 
-            {/* Filters */}
-            <div className="mt-3 flex gap-2">
-              {/* Organization Filter */}
-              <Select
-                value={organizationFilter}
-                onValueChange={handleOrganizationFilterChange}
-                disabled={isLoadingCatalog}
+          {/* Filters */}
+          <div className="mt-3 flex gap-2">
+            {/* Organization Filter */}
+            <Select
+              value={organizationFilter}
+              onValueChange={handleOrganizationFilterChange}
+              disabled={isLoadingCatalog}
+            >
+              <SelectTrigger
+                className="h-9 flex-1 text-sm"
+                aria-label="Organization filter"
               >
-                <SelectTrigger
-                  className="h-9 flex-1 text-sm"
-                  aria-label="Organization filter"
-                >
-                  {/* Persisted filters need a label before their catalog options load. */}
-                  <SelectValue>
-                    {organizationFilter === 'all'
-                      ? 'All Organizations'
-                      : organizationFilter === currentUser?.login
-                        ? `${currentUser.login} (Personal)`
-                        : organizationFilter}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Organizations</SelectItem>
-                  {currentUser && (
-                    <SelectItem value={currentUser.login}>
-                      {currentUser.login} (Personal)
-                    </SelectItem>
-                  )}
-                  {filteredOrganizations.map((org) => (
-                    <SelectItem key={org.id} value={org.login}>
-                      {org.login}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {/* One catalog request now loads both organizations and repositories. */}
-              {isLoadingCatalog && (
-                <span className="text-muted-foreground self-center text-xs">
-                  Loading GitHub data...
-                </span>
-              )}
+                {/* Persisted filters need a label before their catalog options load. */}
+                <SelectValue>
+                  {organizationFilter === 'all'
+                    ? 'All Organizations'
+                    : organizationFilter === currentUser?.login
+                      ? `${currentUser.login} (Personal)`
+                      : organizationFilter}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Organizations</SelectItem>
+                {currentUser && (
+                  <SelectItem value={currentUser.login}>
+                    {currentUser.login} (Personal)
+                  </SelectItem>
+                )}
+                {filteredOrganizations.map((org) => (
+                  <SelectItem key={org.id} value={org.login}>
+                    {org.login}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {/* One catalog request now loads both organizations and repositories. */}
+            {isLoadingCatalog && (
+              <span className="text-muted-foreground self-center text-xs">
+                Loading GitHub data...
+              </span>
+            )}
 
-              {/* Visibility filter */}
-              <select
-                value={visibilityFilter}
-                onChange={(e) =>
-                  setVisibilityFilter(
-                    e.target.value as 'all' | 'public' | 'private',
-                  )
-                }
-                className="border-input bg-background text-foreground focus:ring-primary rounded-md border px-3 py-1.5 text-sm focus:ring-1 focus:outline-none"
-                aria-label="Visibility filter"
-              >
-                <option value="all">All</option>
-                <option value="public">Public</option>
-                <option value="private">Private</option>
-              </select>
-            </div>
+            {/* Visibility filter */}
+            <select
+              value={visibilityFilter}
+              onChange={(e) =>
+                setVisibilityFilter(
+                  e.target.value as 'all' | 'public' | 'private',
+                )
+              }
+              className="border-input bg-background text-foreground focus:ring-primary rounded-md border px-3 py-1.5 text-sm focus:ring-1 focus:outline-none"
+              aria-label="Visibility filter"
+            >
+              <option value="all">All</option>
+              <option value="public">Public</option>
+              <option value="private">Private</option>
+            </select>
           </div>
 
-          {/* What scrolls when the panel is taller than the screen: the
-              selection, the notices and both lists. -mx-1 px-1 leaves room
-              for the focus rings of what is inside. */}
-          <div
-            data-testid="repository-picker-scroll-area"
-            className="-mx-1 min-h-0 overflow-y-auto px-1"
-          >
-            {/* Selected repositories badges */}
-            {selectedRepos.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {selectedRepos.map((repo) => (
-                  <span
-                    key={repo.id}
-                    className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
+          {/* Selected repositories badges */}
+          {selectedRepos.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {selectedRepos.map((repo) => (
+                <span
+                  key={repo.id}
+                  className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
+                >
+                  {repo.full_name}
+                  <button
+                    type="button"
+                    onClick={() => removeSelectedRepo(repo.id)}
+                    className="hover:bg-primary/20 ml-1 rounded-full p-0.5"
+                    aria-label={`Remove ${repo.full_name}`}
                   >
-                    {repo.full_name}
-                    <button
-                      type="button"
-                      onClick={() => removeSelectedRepo(repo.id)}
-                      className="hover:bg-primary/20 ml-1 rounded-full p-0.5"
-                      aria-label={`Remove ${repo.full_name}`}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
 
-            {/* Loading indicator */}
-            {isLoading && (
-              <div
-                role="status"
-                className="text-muted-foreground flex items-center justify-center py-8"
-              >
-                <svg className="mr-2 h-5 w-5 animate-spin" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                Loading repositories...
-              </div>
-            )}
+          {/* Loading indicator */}
+          {isLoading && (
+            <div
+              role="status"
+              className="text-muted-foreground flex items-center justify-center py-8"
+            >
+              <svg className="mr-2 h-5 w-5 animate-spin" viewBox="0 0 24 24">
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              Loading repositories...
+            </div>
+          )}
 
-            {/* Error message */}
-            {error && (
-              <div
-                role="alert"
-                className="bg-destructive/10 text-destructive mt-3 rounded-md p-3 text-sm"
-              >
-                Error: {error}
-              </div>
-            )}
+          {/* Error message */}
+          {error && (
+            <div
+              role="alert"
+              className="bg-destructive/10 text-destructive mt-3 rounded-md p-3 text-sm"
+            >
+              Error: {error}
+            </div>
+          )}
 
-            {/* Nothing was added because every selected repository is already
+          {/* Nothing was added because every selected repository is already
               placed: neutral notice, not an error */}
-            {skippedMessages.length > 0 && (
-              <div
-                role="note"
-                aria-live="polite"
-                aria-label="Repositories that were not added"
-                className="border-border bg-muted text-foreground mt-3 rounded-md border p-3 text-sm"
-              >
-                <ul className="space-y-1">
-                  {skippedMessages.map((message) => (
-                    <li key={message}>{message}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+          {skippedMessages.length > 0 && (
+            <div
+              role="note"
+              aria-live="polite"
+              aria-label="Repositories that were not added"
+              className="border-border bg-muted text-foreground mt-3 rounded-md border p-3 text-sm"
+            >
+              <ul className="space-y-1">
+                {skippedMessages.map((message) => (
+                  <li key={message}>{message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-            {/* Repository list with virtual scrolling support */}
-            {!isLoading && filteredRepositories.length > 0 && (
-              <div
-                ref={listRef}
-                id="repository-listbox"
-                role="listbox"
-                aria-label="Repository options"
-                aria-multiselectable="true"
-                className="border-border mt-3 max-h-75 overflow-y-auto rounded-md border"
-                data-virtual-scroll={shouldVirtualize}
-                style={
-                  shouldVirtualize
-                    ? {
-                        height: '300px',
-                        overflowY: 'auto',
-                        contain: 'strict',
-                      }
-                    : undefined
-                }
-              >
-                {shouldVirtualize ? (
-                  <div
-                    style={{
-                      height: `${rowVirtualizer.getTotalSize()}px`,
-                      width: '100%',
-                      position: 'relative',
-                    }}
-                  >
-                    {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-                      const repo = filteredRepositories[virtualItem.index]
-                      if (!repo) return null
-                      const isSelected = selectedRepos.some(
-                        (r) => r.id === repo.id,
-                      )
-                      return (
-                        <div
-                          key={repo.id}
-                          data-index={virtualItem.index}
-                          ref={rowVirtualizer.measureElement}
-                          role="option"
-                          aria-selected={isSelected}
-                          onClick={() => toggleRepoSelection(repo)}
-                          className={`border-border hover:bg-accent flex cursor-pointer items-center justify-between border-b p-3 transition-colors ${isSelected ? 'bg-accent' : ''}`}
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault()
-                              toggleRepoSelection(repo)
-                            }
-                          }}
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            transform: `translateY(${virtualItem.start}px)`,
-                          }}
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="text-foreground truncate font-medium">
-                              {repo.full_name}
-                            </p>
-                            {repo.description && (
-                              <p className="text-muted-foreground mt-0.5 truncate text-sm">
-                                {repo.description}
-                              </p>
-                            )}
-                            <div className="text-muted-foreground mt-1 flex items-center gap-3 text-xs">
-                              <span>⭐ {repo.stargazers_count}</span>
-                              {repo.language && (
-                                <span className="bg-muted rounded px-1.5 py-0.5">
-                                  {repo.language}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          {isSelected && (
-                            <span className="text-primary ml-2">✓</span>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  filteredRepositories.map((repo) => {
+          {/* Repository list with virtual scrolling support */}
+          {!isLoading && filteredRepositories.length > 0 && (
+            <div
+              ref={listRef}
+              id="repository-listbox"
+              role="listbox"
+              aria-label="Repository options"
+              aria-multiselectable="true"
+              // min-h-16: what is left of it when the panel is short of room,
+              // about one repository
+              className="border-border mt-3 max-h-75 min-h-16 overflow-y-auto rounded-md border"
+              data-virtual-scroll={shouldVirtualize}
+              style={
+                shouldVirtualize
+                  ? {
+                      height: '300px',
+                      overflowY: 'auto',
+                      contain: 'strict',
+                    }
+                  : undefined
+              }
+            >
+              {shouldVirtualize ? (
+                <div
+                  style={{
+                    height: `${rowVirtualizer.getTotalSize()}px`,
+                    width: '100%',
+                    position: 'relative',
+                  }}
+                >
+                  {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+                    const repo = filteredRepositories[virtualItem.index]
+                    if (!repo) return null
                     const isSelected = selectedRepos.some(
                       (r) => r.id === repo.id,
                     )
                     return (
                       <div
                         key={repo.id}
+                        data-index={virtualItem.index}
+                        ref={rowVirtualizer.measureElement}
                         role="option"
                         aria-selected={isSelected}
                         onClick={() => toggleRepoSelection(repo)}
-                        className={`border-border hover:bg-accent flex cursor-pointer items-center justify-between border-b p-3 transition-colors last:border-b-0 ${isSelected ? 'bg-accent' : ''}`}
+                        className={`border-border hover:bg-accent flex cursor-pointer items-center justify-between border-b p-3 transition-colors ${isSelected ? 'bg-accent' : ''}`}
                         tabIndex={0}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault()
                             toggleRepoSelection(repo)
                           }
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          transform: `translateY(${virtualItem.start}px)`,
                         }}
                       >
                         <div className="min-w-0 flex-1">
@@ -696,103 +645,137 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                         )}
                       </div>
                     )
-                  })
-                )}
+                  })}
+                </div>
+              ) : (
+                filteredRepositories.map((repo) => {
+                  const isSelected = selectedRepos.some((r) => r.id === repo.id)
+                  return (
+                    <div
+                      key={repo.id}
+                      role="option"
+                      aria-selected={isSelected}
+                      onClick={() => toggleRepoSelection(repo)}
+                      className={`border-border hover:bg-accent flex cursor-pointer items-center justify-between border-b p-3 transition-colors last:border-b-0 ${isSelected ? 'bg-accent' : ''}`}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          toggleRepoSelection(repo)
+                        }
+                      }}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-foreground truncate font-medium">
+                          {repo.full_name}
+                        </p>
+                        {repo.description && (
+                          <p className="text-muted-foreground mt-0.5 truncate text-sm">
+                            {repo.description}
+                          </p>
+                        )}
+                        <div className="text-muted-foreground mt-1 flex items-center gap-3 text-xs">
+                          <span>⭐ {repo.stargazers_count}</span>
+                          {repo.language && (
+                            <span className="bg-muted rounded px-1.5 py-0.5">
+                              {repo.language}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <span className="text-primary ml-2">✓</span>
+                      )}
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          )}
+
+          {/* No results: only when neither list has a match for the query */}
+          {!isLoading &&
+            deferredSearchQuery &&
+            filteredRepositories.length === 0 &&
+            heldRepositories.length === 0 && (
+              <div className="text-muted-foreground py-8 text-center text-sm">
+                No repositories found matching &quot;{deferredSearchQuery}&quot;
               </div>
             )}
 
-            {/* No results: only when neither list has a match for the query */}
-            {!isLoading &&
-              deferredSearchQuery &&
-              filteredRepositories.length === 0 &&
-              heldRepositories.length === 0 && (
-                <div className="text-muted-foreground py-8 text-center text-sm">
-                  No repositories found matching &quot;{deferredSearchQuery}
-                  &quot;
-                </div>
-              )}
-
-            {/* Nothing addable, but some repositories are placed elsewhere */}
-            {!isLoading &&
-              filteredRepositories.length === 0 &&
-              heldRepositories.length > 0 && (
-                <p className="text-muted-foreground mt-3 text-sm">
-                  {deferredSearchQuery || hasActiveFilter
-                    ? 'Nothing to add matches the search or filters. The ones below are already placed.'
-                    : 'No repositories to add. The ones below are already placed.'}
-                </p>
-              )}
-
-            {/* Nothing addable and nothing held, without a search */}
-            {!isLoading &&
-              !catalogError &&
-              !deferredSearchQuery &&
-              filteredRepositories.length === 0 &&
-              heldRepositories.length === 0 && (
-                <div className="text-muted-foreground py-8 text-center text-sm">
-                  {hasActiveFilter
-                    ? 'No repositories match the current filters.'
-                    : 'No repositories left to add.'}
-                </div>
-              )}
-
-            {/* Repositories already on another board */}
-            {!isLoading && (
-              <HeldRepositoryList repositories={heldRepositories} />
-            )}
-          </div>
-
-          {/* Stays in view: what Add means on a shared board, and the two
-              buttons. On a phone the panel covers the screen, and Cancel is
-              the way out of it. */}
-          <div className="shrink-0">
-            {/* A card on a shared board is readable through its public link,
-              a private repository as much as a public one */}
-            {isBoardShared && (
-              <p
-                id={SHARED_BOARD_TEXT_ID}
-                className="text-foreground mt-4 flex items-start gap-2 text-sm"
-              >
-                <Globe
-                  className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0"
-                  aria-hidden="true"
-                />
-                <span>
-                  This board is shared by a public link. Anyone who has the link
-                  will see the repositories you add, with their descriptions.
-                </span>
+          {/* Nothing addable, but some repositories are placed elsewhere */}
+          {!isLoading &&
+            filteredRepositories.length === 0 &&
+            heldRepositories.length > 0 && (
+              <p className="text-muted-foreground mt-3 text-sm">
+                {deferredSearchQuery || hasActiveFilter
+                  ? 'Nothing to add matches the search or filters. The ones below are already placed.'
+                  : 'No repositories to add. The ones below are already placed.'}
               </p>
             )}
 
-            {/* Add button */}
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="border-input bg-background text-foreground hover:bg-accent rounded-md border px-4 py-2 text-sm font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleAddRepositories}
-                // Read with the button: pressing it makes the repositories public
-                aria-describedby={
-                  isBoardShared ? SHARED_BOARD_TEXT_ID : undefined
-                }
-                disabled={selectedRepos.length === 0 || isLoading || !statusId}
-                title={
-                  !statusId
-                    ? 'Add a column before adding repositories'
-                    : undefined
-                }
-                // The theme's primary, like every other main action: a fixed blue is
-                // off-palette in the 14 themes
-                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Add ({selectedRepos.length})
-              </button>
-            </div>
+          {/* Nothing addable and nothing held, without a search */}
+          {!isLoading &&
+            !catalogError &&
+            !deferredSearchQuery &&
+            filteredRepositories.length === 0 &&
+            heldRepositories.length === 0 && (
+              <div className="text-muted-foreground py-8 text-center text-sm">
+                {hasActiveFilter
+                  ? 'No repositories match the current filters.'
+                  : 'No repositories left to add.'}
+              </div>
+            )}
+
+          {/* Repositories already on another board */}
+          {!isLoading && <HeldRepositoryList repositories={heldRepositories} />}
+
+          {/* A card on a shared board is readable through its public link,
+              a private repository as much as a public one */}
+          {isBoardShared && (
+            <p
+              id={SHARED_BOARD_TEXT_ID}
+              className="text-foreground mt-4 flex items-start gap-2 text-sm"
+            >
+              <Globe
+                className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0"
+                aria-hidden="true"
+              />
+              <span>
+                This board is shared by a public link. Anyone who has the link
+                will see the repositories you add, with their descriptions.
+              </span>
+            </p>
+          )}
+
+          {/* Add button */}
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="border-input bg-background text-foreground hover:bg-accent rounded-md border px-4 py-2 text-sm font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleAddRepositories}
+              // Read with the button: pressing it makes the repositories public
+              aria-describedby={
+                isBoardShared ? SHARED_BOARD_TEXT_ID : undefined
+              }
+              disabled={selectedRepos.length === 0 || isLoading || !statusId}
+              title={
+                !statusId
+                  ? 'Add a column before adding repositories'
+                  : undefined
+              }
+              // The theme's primary, like every other main action: a fixed blue is
+              // off-palette in the 14 themes
+              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Add ({selectedRepos.length})
+            </button>
           </div>
         </div>
       )}

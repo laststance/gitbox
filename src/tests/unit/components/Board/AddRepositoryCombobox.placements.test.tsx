@@ -191,7 +191,41 @@ describe('AddRepositoryCombobox panel that is taller than the screen', () => {
     vi.clearAllMocks()
   })
 
-  test('scrolls its lists only: the search box and the Cancel / Add row stay outside the part that scrolls', async () => {
+  test('lets its two lists give up height, so the search box and the Cancel / Add row keep their place', async () => {
+    // Arrange: one repository to add and one that another board holds
+    mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: true,
+      data: [
+        {
+          identifier: 'laststance/gitbox',
+          boardId: 'board-2',
+          boardName: 'Work Projects',
+        },
+      ],
+    })
+
+    // Act
+    renderOpenPicker(true)
+
+    // Assert: the panel is a column, and of everything in it only the two
+    // lists may shrink: each scrolls by itself and keeps about one row
+    const options = await screen.findByRole('listbox', {
+      name: 'Repository options',
+    })
+    const panel = screen.getByRole('combobox', { expanded: true })
+    expect(panel).toHaveClass('flex', 'flex-col')
+    expect(options.parentElement).toBe(panel)
+    expect(options).toHaveClass('min-h-16', 'overflow-y-auto')
+    const heldList = await screen.findByRole('list', {
+      name: 'Already placed elsewhere',
+    })
+    expect(heldList).toHaveClass('overflow-y-auto')
+    expect(heldList.parentElement).toHaveClass('flex', 'flex-col', 'min-h-16')
+    expect(heldList.parentElement?.parentElement).toBe(panel)
+  })
+
+  test('scrolls as a whole on a window too short for one row of each list, so Cancel and Add can still be reached', async () => {
     // Arrange
     mockCatalog([makeRepository(1, 'free-repo')])
     vi.mocked(getUserRepoPlacements).mockResolvedValue({
@@ -200,27 +234,12 @@ describe('AddRepositoryCombobox panel that is taller than the screen', () => {
     })
 
     // Act
-    renderOpenPicker(true)
+    renderOpenPicker()
 
-    // Assert: on a phone the panel covers the screen, and Cancel is the way
-    // out of it; under two full lists it must not need a scroll to be found
+    // Assert
     await findRepositoryOptions()
-    const scrollArea = screen.getByTestId('repository-picker-scroll-area')
-    expect(scrollArea).toContainElement(
-      screen.getByRole('listbox', { name: 'Repository options' }),
-    )
-    expect(scrollArea).not.toContainElement(
-      screen.getByRole('textbox', { name: 'Search repositories' }),
-    )
-    expect(scrollArea).not.toContainElement(
-      screen.getByRole('button', { name: 'Cancel' }),
-    )
-    expect(scrollArea).not.toContainElement(
-      screen.getByRole('button', { name: 'Add (0)' }),
-    )
-    // Assert: what Add means on a shared board is read next to the button
-    expect(scrollArea).not.toContainElement(
-      screen.getByText(/This board is shared by a public link/),
+    expect(screen.getByRole('combobox', { expanded: true })).toHaveClass(
+      'overflow-y-auto',
     )
   })
 })

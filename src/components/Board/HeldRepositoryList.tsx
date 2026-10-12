@@ -44,7 +44,9 @@ export const HeldRepositoryList = memo(function HeldRepositoryList({
   if (repositories.length === 0) return null
 
   return (
-    <section className="mt-3">
+    // flex-col + min-h-16: in a panel that is short of room the list gives
+    // up height, down to its heading and about one row
+    <section className="mt-3 flex min-h-16 flex-col">
       <h3 className="text-muted-foreground text-xs font-medium">
         Already placed elsewhere ({repositories.length})
       </h3>
