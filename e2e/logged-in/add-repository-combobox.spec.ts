@@ -861,3 +861,63 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
     }
   })
 })
+
+/**
+ * AddRepositoryCombobox E2E Tests - Short Viewport
+ *
+ * The panel is capped to the height of the screen. With both lists full it
+ * is taller than a small laptop screen: then the lists scroll, and the search
+ * box above them and the Cancel / Add row below them stay where they are.
+ * Only a browser lays the panel out, so this is measured here. The test
+ * account has one repository left to add, so the window is made short enough
+ * (360px) that this one already needs more room than the screen leaves.
+ */
+test.describe('AddRepositoryCombobox - Short Viewport', () => {
+  test.use({
+    storageState: 'e2e/.auth/user.json',
+    viewport: { width: 1280, height: 360 },
+  })
+
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
+
+  test.beforeEach(async () => {
+    // The tests before this one add repositories; the list needs some left
+    await resetRepoCards()
+  })
+
+  test('keeps the search box and the Cancel / Add row on screen while the lists scroll', async ({
+    page,
+  }) => {
+    // Arrange: the panel with its repositories listed
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await page.getByRole('button', { name: /add repositories/i }).click()
+    const panel = page.getByRole('combobox', { expanded: true })
+    const scrollArea = panel.getByTestId('repository-picker-scroll-area')
+    // [role="option"]: the repositories, not the options of the filter select
+    await expect(scrollArea.locator('[role="option"]').first()).toBeVisible({
+      timeout: 10000,
+    })
+    // The lists are taller than the room the screen leaves them
+    const isTallerThanItsRoom = await scrollArea.evaluate(
+      (area) => area.scrollHeight > area.clientHeight,
+    )
+    expect(isTallerThanItsRoom).toBe(true)
+
+    // Act: scroll the lists to their end
+    await scrollArea.evaluate((area) => {
+      area.scrollTop = area.scrollHeight
+    })
+
+    // Assert
+    await expect(panel.getByPlaceholder(/search repositories/i)).toBeInViewport(
+      { ratio: 1 },
+    )
+    await expect(panel.getByRole('button', { name: 'Cancel' })).toBeInViewport({
+      ratio: 1,
+    })
+    await expect(panel.getByRole('button', { name: 'Add (0)' })).toBeInViewport(
+      { ratio: 1 },
+    )
+  })
+})

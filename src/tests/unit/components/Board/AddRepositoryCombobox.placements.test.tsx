@@ -186,6 +186,45 @@ describe('AddRepositoryCombobox on a board that is shared by a public link', () 
   })
 })
 
+describe('AddRepositoryCombobox panel that is taller than the screen', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  test('scrolls its lists only: the search box and the Cancel / Add row stay outside the part that scrolls', async () => {
+    // Arrange
+    mockCatalog([makeRepository(1, 'free-repo')])
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: true,
+      data: [],
+    })
+
+    // Act
+    renderOpenPicker(true)
+
+    // Assert: on a phone the panel covers the screen, and Cancel is the way
+    // out of it; under two full lists it must not need a scroll to be found
+    await findRepositoryOptions()
+    const scrollArea = screen.getByTestId('repository-picker-scroll-area')
+    expect(scrollArea).toContainElement(
+      screen.getByRole('listbox', { name: 'Repository options' }),
+    )
+    expect(scrollArea).not.toContainElement(
+      screen.getByRole('textbox', { name: 'Search repositories' }),
+    )
+    expect(scrollArea).not.toContainElement(
+      screen.getByRole('button', { name: 'Cancel' }),
+    )
+    expect(scrollArea).not.toContainElement(
+      screen.getByRole('button', { name: 'Add (0)' }),
+    )
+    // Assert: what Add means on a shared board is read next to the button
+    expect(scrollArea).not.toContainElement(
+      screen.getByText(/This board is shared by a public link/),
+    )
+  })
+})
+
 describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
   beforeEach(() => {
     vi.clearAllMocks()
