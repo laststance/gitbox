@@ -103,6 +103,8 @@ export const ThemeToggle = memo(function ThemeToggle({
         'text-muted-foreground hover:text-foreground',
         isCollapsed ? 'h-8 w-full' : 'w-full justify-start gap-2',
       )}
+      // The rail shows the icon alone: the name the labels gave is kept
+      aria-label={isCollapsed ? `Theme: ${currentThemeName}` : undefined}
     >
       <ThemeIcon className="h-4 w-4" />
       {!isCollapsed && (

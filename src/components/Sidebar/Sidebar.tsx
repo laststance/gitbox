@@ -72,7 +72,12 @@ const NavItem = memo(function NavItem({
   )
 
   const linkContent = (
-    <Link href={href} className={linkClassName}>
+    <Link
+      href={href}
+      className={linkClassName}
+      // The rail shows the icon alone: the name the label gave is kept
+      aria-label={isCollapsed ? label : undefined}
+    >
       {icon}
       {!isCollapsed && <span>{label}</span>}
     </Link>
@@ -114,7 +119,12 @@ const NavButton = memo(function NavButton({
   )
 
   const buttonContent = (
-    <button type="button" onClick={onClick} className={buttonClassName}>
+    <button
+      type="button"
+      onClick={onClick}
+      className={buttonClassName}
+      aria-label={isCollapsed ? label : undefined}
+    >
       {icon}
       {!isCollapsed && <span>{label}</span>}
     </button>
@@ -183,6 +193,8 @@ interface SidebarProps {
  * - Theme toggle
  * - User profile with sign out option
  * - Collapse/expand toggle with state persistence via Redux
+ * - Below 768px always the icon rail, without the toggle: the open sidebar
+ *   (256px) leaves a phone 119px for the page
  */
 export const Sidebar = memo(function Sidebar({
   userName = 'User',
@@ -190,7 +202,7 @@ export const Sidebar = memo(function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname()
   const [boardsExpanded, setBoardsExpanded] = useState(true)
-  const { isCollapsed, toggle, mounted } = useSidebar()
+  const { isCollapsed, canExpand, toggle, mounted } = useSidebar()
 
   const handleSignOut = async (): Promise<void> => {
     await signOut()
@@ -199,7 +211,12 @@ export const Sidebar = memo(function Sidebar({
   // Determine sidebar width class
   // SSR: Always render expanded (w-64) for stable hydration
   // Client: Use persisted collapsed state from Redux/localStorage
-  const sidebarWidth = mounted && isCollapsed ? 'w-16' : 'w-64'
+  // max-md: the rail's width from the first paint on a phone, before the
+  // client has swapped the labels for icons; what does not fit yet is cut off
+  const sidebarWidth = cn(
+    mounted && isCollapsed ? 'w-16' : 'w-64',
+    'max-md:w-16 max-md:overflow-hidden',
+  )
 
   return (
     <TooltipProvider>
@@ -235,8 +252,9 @@ export const Sidebar = memo(function Sidebar({
           )}
         </div>
 
-        {/* Toggle button when collapsed - shown below logo */}
-        {isCollapsed && mounted && (
+        {/* Toggle button when collapsed - shown below logo.
+            Not on a phone: the rail is all that fits there. */}
+        {isCollapsed && mounted && canExpand && (
           <div className="border-sidebar-border flex justify-center border-b py-2">
             <SidebarToggleButton isCollapsed={isCollapsed} onToggle={toggle} />
           </div>
@@ -348,6 +366,8 @@ export const Sidebar = memo(function Sidebar({
                 <Link
                   href="/account"
                   className="hover:bg-sidebar-accent flex items-center justify-center rounded-lg py-2 transition-colors"
+                  // Without an avatar image nothing else names the link
+                  aria-label={userName}
                 >
                   {userAvatar ? (
                     <Image
