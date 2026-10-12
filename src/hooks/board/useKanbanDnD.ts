@@ -4,14 +4,15 @@
  * Extracts all drag-and-drop logic from KanbanBoard:
  * - Sensor configuration (Mouse, Touch, Keyboard)
  * - Custom collision detection (forgivingCollisionDetection)
- * - Drag start/end handlers with column sub-handlers
+ * - Drag start/end/cancel handlers with column sub-handlers
  * - Grid dimension calculations and insertion zone detection
  * - Active drag state (activeId, activeDragType)
  *
  * @example
  * const dnd = useKanbanDnD({ statuses, cards, cardsByStatus, EMPTY_CARDS, dispatch, pushCardHistory, pushColumnHistory, rollbackRepoCards, rollbackStatusLists })
  * <DndContext sensors={dnd.sensors} collisionDetection={forgivingCollisionDetection}
- *   onDragStart={dnd.handleDragStart} onDragEnd={dnd.handleDragEnd}>
+ *   onDragStart={dnd.handleDragStart} onDragEnd={dnd.handleDragEnd}
+ *   onDragCancel={dnd.handleDragCancel}>
  *   <SortableContext items={dnd.columnIds}>...</SortableContext>
  * </DndContext>
  */
@@ -118,6 +119,8 @@ interface UseKanbanDnDReturn {
   handleDragStart: (event: DragStartEvent) => void
   /** Handle drag end — dispatches to column/card sub-handlers */
   handleDragEnd: (event: DragEndEvent) => Promise<void>
+  /** Handle a cancelled drag: forgets the dragged item, nothing is saved */
+  handleDragCancel: () => void
   /** Grid dimensions for CSS grid template */
   gridDimensions: { maxRow: number; maxCol: number }
   /** Statuses sorted by gridRow then gridCol for rendering */
@@ -376,6 +379,17 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
     )
   }, [])
 
+  /**
+   * Handle a cancelled drag: Escape, a window that is resized or hidden
+   * during the drag, or a touch that the browser takes over. dnd-kit reports
+   * those here and not to handleDragEnd, so the drop zones of a column drag
+   * stayed on the board until the next drag ended.
+   */
+  const handleDragCancel = useCallback(() => {
+    setActiveId(null)
+    setActiveDragType(null)
+  }, [])
+
   /** Handle drag end — dispatches to column/card sub-handlers */
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
@@ -537,6 +551,7 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
     insertionZones,
     handleDragStart,
     handleDragEnd,
+    handleDragCancel,
     gridDimensions,
     sortedStatuses,
   }

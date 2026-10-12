@@ -111,6 +111,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       insertionZones,
       handleDragStart,
       handleDragEnd,
+      handleDragCancel,
       gridDimensions,
       sortedStatuses,
     } = useKanbanDnD({
@@ -158,6 +159,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
             collisionDetection={forgivingCollisionDetection}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
             modifiers={[restrictToWindowEdges]}
           >
             {/* Column-level SortableContext for 2D grid reordering */}
