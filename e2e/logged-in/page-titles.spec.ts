@@ -83,11 +83,16 @@ test.describe('Page Titles (Authenticated)', () => {
 
     for (const path of authenticatedPages) {
       await page.goto(path)
-      await page.waitForLoadState('domcontentloaded')
-      const title = await page.title()
-      const gitboxCount = (title.match(/GitBox/gi) || []).length
-
-      expect(gitboxCount, `${path} has duplicate GitBox: "${title}"`).toBe(1)
+      // Wait for the title rather than reading it once, as the test of the
+      // public pages does. Read once right after DOMContentLoaded on a busy
+      // machine, the title was still empty and the count 0, while the page
+      // showed the placeholder of the mock worker ("Initializing MSW...").
+      await expect
+        .poll(
+          async () => ((await page.title()).match(/GitBox/gi) ?? []).length,
+          { message: `${path} must include GitBox exactly once` },
+        )
+        .toBe(1)
     }
   })
 })
