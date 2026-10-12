@@ -10,13 +10,18 @@
  *   request failed on the way or got no answer in time) is worded as that and
  *   ends the form: the board may exist and a second try could make a second
  *   board, so "Open your boards" takes the place of "Create Board"
+ * - The field and the buttons are disabled while the request runs, and a
+ *   disabled control loses the focus. Each ending hands it to the control
+ *   needed next: the name field after a refusal, "Open your boards" after a
+ *   creation that could not be confirmed
  */
 
 'use client'
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useRef, useState, useTransition, memo } from 'react'
+import { useRef, useState, memo } from 'react'
+import { flushSync } from 'react-dom'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -52,17 +57,18 @@ interface FormProblem {
 
 export const CreateBoardForm = memo(function CreateBoardForm() {
   const router = useRouter()
-  const [isPending, startTransition] = useTransition()
+  const [isPending, setIsPending] = useState(false)
   const [name, setName] = useState('')
   const [presetId, setPresetId] =
     useState<SelectablePresetId>(DEFAULT_PRESET_ID)
   const [problem, setProblem] = useState<FormProblem | null>(null)
 
+  const formRef = useRef<HTMLFormElement>(null)
   const nameFieldRef = useRef<HTMLInputElement>(null)
 
   const isOutcomeUnknown = problem?.kind === 'unconfirmed'
 
-  const handleSubmit = (e: React.FormEvent): void => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     // The board may exist: a second creation could make a second board
     if (isOutcomeUnknown) return
@@ -82,26 +88,38 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
 
     const validatedName = nameValidation.data
 
-    startTransition(async () => {
-      // Never rejects and never waits without end: a rejection here would
-      // put the error page of the route in place of the form
-      const attempt = await requestBoardCreation(validatedName, presetId)
-      if (attempt.status === 'created') {
-        toast.success('Board created', {
-          description: `"${validatedName}" has been created.`,
-        })
-        router.push(`/board/${attempt.board.id}`)
-        return
-      }
+    setIsPending(true)
+    // Never rejects and never waits without end: a rejection here would
+    // put the error page of the route in place of the form
+    const attempt = await requestBoardCreation(validatedName, presetId)
+    if (attempt.status === 'created') {
+      toast.success('Board created', {
+        description: `"${validatedName}" has been created.`,
+      })
+      // Still pending: the form stays locked until the board takes its place
+      router.push(`/board/${attempt.board.id}`)
+      return
+    }
 
-      // Said once, in the form, next to the buttons: a toast with the same
-      // words lands on those buttons on a laptop screen
+    // Said once, in the form, next to the buttons: a toast with the same
+    // words lands on those buttons on a laptop screen.
+    // flushSync: the field is enabled again once this returns. It lost the
+    // focus when it was disabled for the request, and after a refusal the
+    // name is what the user can change, so the keyboard goes back to it.
+    flushSync(() => {
+      setIsPending(false)
       setProblem({ kind: attempt.status, message: attempt.message })
     })
+    if (
+      attempt.status === 'not-created' &&
+      isFocusLostByForm(formRef.current)
+    ) {
+      nameFieldRef.current?.focus()
+    }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-8">
       {/* Board Name */}
       <div className="space-y-2">
         <Label htmlFor="board-name">Board Name</Label>
@@ -211,4 +229,28 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
  */
 function focusWhenShown(element: HTMLElement | null): void {
   element?.focus()
+}
+
+/**
+ * Says whether the keyboard focus is where the form left it when it disabled
+ * its controls: on nothing, or still on one of the form's own controls.
+ * Called when a refused creation has ended, before the name field takes the
+ * focus, so a user who went on to the sidebar meanwhile is not pulled back.
+ *
+ * @param form - The form element, or `null` before it is mounted.
+ * @returns
+ * - `true` when no element has the focus (the browser reports the body), or
+ *   when a control of the form still has it
+ * - `false` when the user moved the focus to something outside the form
+ * @example
+ * // The pressed "Create Board" button was disabled and let go of the focus
+ * isFocusLostByForm(form) // => true
+ */
+function isFocusLostByForm(form: HTMLFormElement | null): boolean {
+  const focusedElement = document.activeElement
+  return (
+    focusedElement === null ||
+    focusedElement === document.body ||
+    Boolean(form?.contains(focusedElement))
+  )
 }

@@ -237,28 +237,65 @@ describe('CreateBoardForm', () => {
     ).toHaveFocus()
   })
 
-  test('tells a creation that may have happened by the code of the answer, whatever its text says', async () => {
-    // Arrange: the same code under another sentence
+  // Value: protects=after a refused creation a keyboard user is back in the name field and can change the name or send it again; fails_when=the form leaves the focus on the page, where it fell when the field and the buttons were disabled for the request; why_new=the test of the refusal reads the text and the buttons, not the focus; seam=none; no_claim=a creation sent with Enter: happy-dom leaves the focus on a field that is disabled, a browser does not, so the story "Focus Returns To Name After Refusal" checks that one in a browser
+  test('puts the keyboard back on the name after a creation the server refused', async () => {
+    // Arrange: nothing was written
     const user = userEvent.setup()
     vi.mocked(createBoard).mockResolvedValue({
       success: false,
-      error: 'We are not sure the board exists.',
-      errorCode: 'BOARD_CREATION_UNCONFIRMED',
+      error: 'The board was not created. Try again.',
     })
     render(<CreateBoardForm />)
+    const nameField = screen.getByLabelText('Board Name')
+    await user.type(nameField, 'Side Projects')
 
-    // Act
-    await user.type(screen.getByLabelText('Board Name'), 'Side Projects')
+    // Act: sent with the button, which is disabled while the request runs
     await user.click(screen.getByRole('button', { name: 'Create Board' }))
 
     // Assert
-    expect(
-      await screen.findByRole('link', { name: 'Open your boards' }),
-    ).toBeVisible()
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'We are not sure the board exists.',
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The board was not created. Try again.',
     )
-    expect(showErrorToast).not.toHaveBeenCalled()
+    expect(nameField).toHaveFocus()
+    expect(nameField).toHaveValue('Side Projects')
+  })
+
+  // Value: protects=a user who went on to another part of the page while the creation ran is not pulled back into the form; fails_when=the refusal takes the focus whatever holds it; why_new=the test above has the focus fall out of the form's own button; seam=none; no_claim=none
+  test('leaves the keyboard where the user moved it while the request ran when the refusal arrives', async () => {
+    // Arrange: the answer comes when the test says so, and the page has a
+    // link beside the form, as the sidebar has
+    const user = userEvent.setup()
+    let answerCreation: (
+      answer: Awaited<ReturnType<typeof createBoard>>,
+    ) => void = () => {}
+    vi.mocked(createBoard).mockReturnValue(
+      new Promise((resolve) => {
+        answerCreation = resolve
+      }),
+    )
+    render(
+      <>
+        <a href="/settings">Settings</a>
+        <CreateBoardForm />
+      </>,
+    )
+    await user.type(screen.getByLabelText('Board Name'), 'Side Projects{Enter}')
+    const settingsLink = screen.getByRole('link', { name: 'Settings' })
+    settingsLink.focus()
+
+    // Act
+    await act(async () => {
+      answerCreation({
+        success: false,
+        error: 'The board was not created. Try again.',
+      })
+    })
+
+    // Assert
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The board was not created. Try again.',
+    )
+    expect(settingsLink).toHaveFocus()
   })
 
   test('announces a refused empty name, ties it to the name field and keeps the keyboard there', async () => {
