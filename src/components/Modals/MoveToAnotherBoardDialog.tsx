@@ -539,7 +539,7 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
                     </SelectContent>
                   </Select>
                   {selectedBoard.statusLists.length === 0 && (
-                    <p className="text-muted-foreground text-xs">
+                    <p className="text-muted-foreground text-sm">
                       This board has no columns. Add columns to the board first.{' '}
                       {/* Opening a board without columns gives it the default ones.
                             text-foreground + underline: text-primary is below
