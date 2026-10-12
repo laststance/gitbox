@@ -142,7 +142,10 @@ export const OverflowMenu = memo(function OverflowMenu({
           data-testid={`overflow-menu-trigger-${cardId}`}
         >
           <MoreHorizontal className="h-4 w-4" />
-          <span className="sr-only">Open menu</span>
+          {/* Named after the repository: a board has one such button per card */}
+          <span className="sr-only">
+            {repoName ? `Open menu for ${repoName}` : 'Open menu'}
+          </span>
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"

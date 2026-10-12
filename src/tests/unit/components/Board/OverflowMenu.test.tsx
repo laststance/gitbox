@@ -84,10 +84,22 @@ describe('OverflowMenu', () => {
       expect(trigger).toBeInTheDocument()
     })
 
-    test('should have accessible label for screen readers', () => {
+    test('names the menu button after the repository of its card', () => {
+      // Arrange & Act
       render(<OverflowMenu {...defaultProps} />)
 
-      expect(screen.getByText('Open menu')).toBeInTheDocument()
+      // Assert: a board has one menu button per card, so each says whose it is
+      expect(
+        screen.getByRole('button', { name: 'Open menu for gitbox' }),
+      ).toBeVisible()
+    })
+
+    test('names the menu button "Open menu" when the card has no repository name', () => {
+      // Arrange & Act
+      render(<OverflowMenu {...defaultProps} repoName={undefined} />)
+
+      // Assert
+      expect(screen.getByRole('button', { name: 'Open menu' })).toBeVisible()
     })
 
     test('should open menu when trigger is clicked', async () => {
