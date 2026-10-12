@@ -549,6 +549,20 @@ agent-browser --session local-auth open http://localhost:3008/boards
 
 A command that names a thing of the app is in Title Case: Create Board, Add Column, New Board..., Move to Another Board. So is a command of the app itself: Sign Out. A phrase that recovers or leads somewhere is in sentence case: Try again, Reload page, Reload boards, Open your boards, Choose an existing board.
 
+### Names that cannot break
+
+A board name, a column name and the title of the boards page may have 50 characters, a subtitle 100 and a repository name 100, and none of them needs a space or a hyphen. Left to itself a flex item does not get narrower than its longest word (its automatic minimum width), so a name of one word pushed the control beside it out of reach: the menu of a card, "Column options", "Create Board", the four buttons of a board's header. Two classes break such a word, and they differ in what they do to an ordinary one.
+
+`wrap-anywhere` breaks the word where the line ends and lets the box get narrower than the word. The title of a card (a repository name) and the title of a column have it. A mark of a fixed size beside it (a color dot) needs `shrink-0`, or it gives way with the name: the dot of a column was 3px wide. `DialogContent` and `AlertDialogContent` carry the class for what is drawn inside the dialog's own element, which scrolled sideways on a phone. A list that Radix draws in a portal does not inherit it: `SelectContent` carries the class itself and ends where the screen does (`max-w-(--radix-select-content-available-width)`). The select of a dialog shows one line of the chosen name and cuts the rest (`line-clamp-1`).
+
+In a row that gets tight, a box with `wrap-anywhere` is squeezed below an ordinary word and breaks it: a board name of eleven letters lost its last two to a second line in a board card of 216px, and a title of ten letters broke beside "Create Board" on a phone (both seen on the boards of the real account). There the word keeps its width up to a limit and breaks beyond it, with `wrap-break-word`, which does not lower the least width of the box:
+
+- The name of a board card may run on under the card's buttons, as far as the card's padding: `max-w-[calc(100%+4rem)]` on the box of name and globe, `min-w-0` on the name.
+- The title block of a board's header keeps the least width of an ordinary name and is capped at the row less 10rem (`sm:max-w-[calc(100%-10rem)]`).
+- The header of the boards page is a column below 640px, with "Create Board" under the texts, as the header of a board is. From 640px on its text block gives way (`min-w-0`) in a row that leaves it 320px at least.
+
+`e2e/logged-in/names-that-cannot-break.spec.ts` measures each place with a name of one long word, and holds a board name of eleven letters and a title of ten on one line. A new place that shows a name beside a control gets one of the two classes and a test there, for the long word and for an ordinary one; the places that are left are in TODOS.md.
+
 ### Redux Storage Middleware
 
 Uses `@laststance/redux-storage-middleware` (npm) for localStorage persistence of Redux state.
@@ -566,7 +580,7 @@ The label on a destructive fill is `text-destructive-foreground`, never `text-wh
 
 What stands on the accent fill (`bg-accent`: a row under the pointer, a selected row, a menu item under the pointer or the keyboard) is `text-accent-foreground`, set on the row so that its lines inherit it (`OPTION_ROW_COLOR_CLASS` of the Add Repositories picker). On that fill `text-muted-foreground` is between 1.9:1 and 2.4:1 in six dark themes and `text-primary` between 1.3:1 and 1.8:1. A check mark in a menu item has no color of its own. `src/tests/unit/styles/accent-fill-contrast.test.ts` computes the pairs; a browser test of the picker and the stories of `ThemeToggle` and `CommentActionsMenu` ask the browser which color is painted.
 
-A label on the theme tint (`bg-primary/10`) is `text-foreground`: the sidebar's current page, the badge of a selected repository, the chosen Font Size and Font Weight. `text-primary` is below 4.5:1 on that tint in 12 of the 14 themes. A character counter near its limit has `NEAR_LIMIT_COUNTER_TEXT_CLASS` (`src/lib/constants/character-counter.ts`), which `comment-counter-contrast.test.ts` reads its colors from. Where `text-primary` still colors text on the page background, see TODOS.md.
+A label on the theme tint (`bg-primary/10`) keeps the text color of the surface it stands on: `text-foreground` for the badge of a selected repository and the chosen Font Size and Font Weight, `text-sidebar-foreground` for the sidebar's current page (the sidebar keeps the neutral colors of the system default in every theme, so `text-foreground` is not its text color). `text-primary` is below 4.5:1 on that tint in 12 of the 14 themes, on the sidebar in 11. A character counter near its limit has `NEAR_LIMIT_COUNTER_TEXT_CLASS` (`src/lib/constants/character-counter.ts`), which `comment-counter-contrast.test.ts` reads its colors from. Where `text-primary` still colors text on the page background, see TODOS.md.
 
 ### Shortcuts
 
@@ -579,6 +593,8 @@ A label on the theme tint (`bg-primary/10`) is `text-foreground`: the sidebar's 
 | `?`             | Help            |
 
 `Z` does nothing while a dialog, a menu, a list of options, the command palette or the Add Repositories panel is open, or while the sidebar lies over the page below 768px (`isOverlayOpen`, `src/lib/utils/is-overlay-open.ts`): a key typed there belongs to that layer, and a Radix Select lets it travel on to the window. The function knows a Radix layer by its role, the covered page by its `inert` attribute, and a layer the app builds by hand by `data-overlay`. A new layer that is built by hand carries that attribute on an element that is on the page only while the layer is open.
+
+Escape belongs to the topmost layer as well. Radix prevents the default of an Escape that closed one of its layers (a list of options, a menu, a tooltip that is on screen), in a capture listener on the document, so an `onKeyDown` handler of React sees `e.defaultPrevented`; an `onKeyDownCapture` handler runs before that listener and does not. The Add Repositories panel returns from its Escape branch then (`handleKeyDown` of `AddRepositoryCombobox`): its list of organizations is drawn in a portal, React hands the keys of that list up to the panel all the same, and without the check one Escape closed the list and the picker with it. The sidebar that lies over the page asks where the key came from instead (`isInAnotherLayer` in `Sidebar`). A new handler that closes something on Escape should do one of the two.
 
 ---
 

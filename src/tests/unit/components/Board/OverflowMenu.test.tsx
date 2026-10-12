@@ -476,14 +476,17 @@ describe('OverflowMenu', () => {
    * - `RepoCard` spreads `useSortable` `attributes` and `listeners` on its
    *   wrapper div, making the entire card a drag handle.
    * - Radix renders menu items inside a Portal. React still bubbles synthetic
-   *   events from those portal children up through the React tree, so without
-   *   isolation `pointerdown` from a menu item would reach `MouseSensor`.
-   *   `MouseSensor` would then start a drag on small cursor jitter and
-   *   suppress the trailing `click`, leaving the menu item's `onClick`
+   *   events from those portal children up through the React tree, so the
+   *   `mousedown` of a menu item reached dnd-kit's `MouseSensor` on the card.
+   *   `MouseSensor` then started a drag on small cursor jitter and
+   *   suppressed the trailing `click`, leaving the menu item's `onClick`
    *   silently unfired.
    *
    * `OverflowMenu` mounts a `display: contents` wrapper that stops bubbling
    * for pointer / mouse / click / key events. These tests pin that contract.
+   * The drag sensors of the board ask {@link mayStartDrag} themselves by now,
+   * which also covers a finger (see may-start-drag.test.tsx and
+   * e2e/logged-in/what-starts-a-drag.spec.ts): the wrapper is a second guard.
    */
   describe('Event Propagation Isolation (dnd-kit guard)', () => {
     test('should render an isolation wrapper that catches bubbling events', () => {

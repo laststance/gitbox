@@ -135,7 +135,9 @@
 - **Favorites**: Add board to favorites (star icon, prioritized in sidebar)
 - **Board Subtitle**: Optional description below board title (max 100 chars, inline editable)
 - **Inline Editable Header**: Board title and subtitle are click-to-edit (`InlineEditableText` component)
-- **Board Settings**: 4-tab dialog (General, Cards, Sharing, Danger Zone)
+- **Names without a space**: a board name, a column name, a repository name, a subtitle or the title of the boards page that is one long word (snake_case, no hyphen) breaks where its line ends: in the header of a board, in a column header, on a card, on a board's card in the boards list, in a dialog and in the lists of boards and columns of the move dialog. The controls beside it stay in reach (the buttons of the board header, "Column options", the menu of a card, "Create Board"), and a dialog and its lists stay as wide as the screen on a phone. A select shows one line of the chosen name. An ordinary word is not broken to make room: a board name of one word that fits its card stays on one line there (it may run on under the star and the menu of the card), and so does a title of the boards page that fits the line
+- **Boards page header**: the title and the subtitle are click-to-edit. From 640px on "Create Board" stands at the right end of their row; below 640px it stands under them, as the buttons of a board's header do
+- **Board Settings**: 4-tab dialog (General, Cards, Sharing, Danger Zone). On a phone, where the dialog is as wide as the screen, the tabs take a second row, so the dialog does not scroll sideways
   - **General**: Rename board, subtitle edit form, "Show Subtitle" visibility toggle
   - **Cards**: Card display settings (description, comment, font size/weight)
   - **Sharing**: Public board toggle, share link generation/copy, and a line that says what the link shows (board name, subtitle, columns, each repository's name, description, language and stars) and what it hides (comments, notes, links)
@@ -303,7 +305,7 @@ interface BoardSettings {
 
 #### Specifications
 
-- **Toggle Button**: Button at sidebar bottom to expand/collapse
+- **Toggle Button**: Button in the sidebar's header to expand/collapse: beside the name while the sidebar is expanded from 768px, in a row of its own under the logo as the 64px rail and as the sidebar that lies over the page
 - **Expanded State**: Width 256px (w-64), full text display
 - **Collapsed State**: Width 64px (w-16), icons only
 - **Transition Animation**: 300ms ease-out smooth width change
@@ -495,7 +497,7 @@ Remove from Board       // Destructive, confirmation dialog; deletes the card wi
 - `⌘K` / `Ctrl+K` — Command Palette
 - `Z` — Undo last operation (not while a dialog, a menu, a list of options, the command palette or the Add Repositories panel is open, and not while the sidebar lies over the page on a phone)
 - `Tab` — Focus navigation
-- `Escape` — Close menu/dialog
+- `Escape` — Close the topmost menu, list or dialog. In the Add Repositories panel the open list of organizations closes first, and the panel with the next press
 - `?` — Shortcuts help
 
 ---
@@ -508,7 +510,7 @@ Remove from Board       // Destructive, confirmation dialog; deletes the card wi
 
 ```
 ┌───────────────────────────────┐
-│ GitBox                         │
+│ [Logo] GitBox             [«]  │  ← Collapse toggle button, beside the name
 │ ───────────────────────────── │
 │ Boards                    [▼]  │  ← Collapsible
 │  • All Boards                  │
@@ -518,10 +520,8 @@ Remove from Board       // Destructive, confirmation dialog; deletes the card wi
 │ Shortcuts                      │
 │ Theme: [Sunrise ▾]             │  ← Global theme selector (14 themes + System)
 │ ───────────────────────────── │
-│ Account                        │  ← Profile, stats, deletion
-│ Sign out                       │
-│ ───────────────────────────── │
-│ [« Collapse]                   │  ← Collapse toggle button
+│ [Avatar] User name             │  ← Account: profile, stats, deletion
+│ Sign Out                       │
 └───────────────────────────────┘
 ```
 
@@ -531,29 +531,29 @@ Remove from Board       // Destructive, confirmation dialog; deletes the card wi
 ┌────────┐
 │ [Logo] │
 │ ────── │
-│  [📋]  │  ← Boards (Tooltip: "Boards")
+│  [»]   │  ← Expand toggle button, in a row of its own under the logo
+│ ────── │
+│  [📋]  │  ← All Boards (Tooltip: "All Boards")
 │  [⭐]  │  ← Favorites (Tooltip: "Favorites")
 │ ────── │
 │  [⚙️]  │  ← Settings (Tooltip: "Settings")
 │  [⌨️]  │  ← Shortcuts (Tooltip: "Shortcuts")
 │  [🎨]  │  ← Theme (Tooltip: "Theme")
 │ ────── │
-│  [👤]  │  ← Account (Tooltip: "Account")
-│  [🚪]  │  ← Sign out (Tooltip: "Sign out")
-│ ────── │
-│  [»]   │  ← Expand toggle button
+│  [👤]  │  ← Account (Tooltip: the user's name)
+│  [🚪]  │  ← Sign Out (Tooltip: "Sign Out")
 └────────┘
 ```
 
 #### Specifications
 
-| Item          | Expanded     | Collapsed           |
-| ------------- | ------------ | ------------------- |
-| Width         | 256px (w-64) | 64px (w-16)         |
-| Text          | Full display | Hidden              |
-| Icons         | Left of text | Centered            |
-| Tooltip       | None         | Right side on hover |
-| Toggle button | "« Collapse" | "»" icon            |
+| Item          | Expanded                       | Collapsed                    |
+| ------------- | ------------------------------ | ---------------------------- |
+| Width         | 256px (w-64)                   | 64px (w-16)                  |
+| Text          | Full display                   | Hidden                       |
+| Icons         | Left of text                   | Centered                     |
+| Tooltip       | None                           | Right side on hover          |
+| Toggle button | Icon, named "Collapse sidebar" | Icon, named "Expand sidebar" |
 
 #### Animation
 
@@ -1315,6 +1315,7 @@ export async function cdpBoardDragAndDrop(
 | Board      | `board-settings.spec.ts`                   | Board settings dialog                 |
 | Board      | `board-settings-card-display.spec.ts`      | Card display settings                 |
 | Board      | `board-settings-subtitle.spec.ts`          | Subtitle edit & visibility            |
+| Board      | `board-settings-narrow-viewport.spec.ts`   | Board settings on a 375px phone       |
 | Board      | `board-header-inline-edit.spec.ts`         | Inline editable board header          |
 | Board      | `boards-page-header-inline-edit.spec.ts`   | Boards page header edit               |
 | Board      | `create-board.spec.ts`                     | Board creation                        |
@@ -1340,6 +1341,7 @@ export async function cdpBoardDragAndDrop(
 | Theme      | `theme-visual-application.spec.ts`         | Theme visual application              |
 | Sidebar    | `sidebar-collapse.spec.ts`                 | Sidebar collapse                      |
 | Sidebar    | `sidebar-narrow-viewport.spec.ts`          | Sidebar below 768px                   |
+| Layout     | `names-that-cannot-break.spec.ts`          | Long names and ordinary words         |
 | SSR        | `ssr-hydration-board.spec.ts`              | SSR hydration (board)                 |
 | Page       | `page-titles.spec.ts`                      | Page titles                           |
 | Unauth     | `landing.spec.ts`                          | Landing page                          |

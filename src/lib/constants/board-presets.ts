@@ -60,7 +60,7 @@ export const PRESET_IDS = [...SELECTABLE_PRESET_IDS, 'single-column'] as const
 /** A preset offered on `/boards/new`. */
 export type SelectablePresetId = (typeof SELECTABLE_PRESET_IDS)[number]
 
-/** Any preset `createBoard` accepts. */
+/** Any preset {@link createBoard} accepts. */
 export type PresetId = (typeof PRESET_IDS)[number]
 
 export const DEFAULT_PRESET_ID: SelectablePresetId = 'web-app'

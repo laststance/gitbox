@@ -101,28 +101,35 @@ export const OverflowMenu = memo(function OverflowMenu({
 
   /**
    * Stop propagation of pointer / mouse / click / keyboard events so they
-   * never reach a draggable ancestor (e.g. a `useSortable` wrapper on
-   * `RepoCard`).
+   * never reach an ancestor that listens for them (e.g. the `useSortable`
+   * wrapper of `RepoCard`).
    *
-   * Why this is needed:
+   * Why this is here:
    * - Radix UI renders `DropdownMenuContent` and `AlertDialogContent` inside
-   *   a Portal, but React replays synthetic events through the React tree —
+   *   a Portal, but React hands synthetic events up through the React tree,
    *   not the DOM tree.
-   * - When a menu item is clicked, the synthetic event bubbles back up
-   *   through `OverflowMenu` to whatever ancestor mounted it.
-   * - If that ancestor has `dnd-kit` listeners (`{...listeners}` spread on
-   *   the wrapper), `MouseSensor` records the pointerdown and may trigger a
-   *   drag if the cursor moves more than `activationConstraint.distance`
-   *   between pointerdown and pointerup. Once a drag starts, dnd-kit
-   *   suppresses the trailing `click`, so the menu item's `onClick` never
-   *   fires.
+   * - When a menu item is pressed or clicked, the synthetic event bubbles
+   *   back up through `OverflowMenu` to whatever ancestor mounted it.
+   * - The drag sensors of the board do not take such an event for a press on
+   *   the card: they ask {@link mayStartDrag} first, for a mouse, a finger
+   *   and a key alike. This wrapper is a second guard for the mouse, the
+   *   click and the keys. It does not stop a touch, and the `pointerdown` it
+   *   stops is an event no sensor of the board listens for.
    * - Stopping propagation here lets Radix's own handlers run first (they
    *   are deeper in the React tree) and then short-circuits bubbling so the
-   *   draggable parent never sees the event.
+   *   ancestor never sees the event.
    *
+   * Before the sensors asked, this wrapper was the only guard: dnd-kit's
+   * `MouseSensor` took the mousedown of a menu item, started a drag once the
+   * cursor had moved more than `activationConstraint.distance`, and the drag
+   * swallowed the click. "Move to Another Board" closed the menu and did
+   * nothing.
+   *
+   * @param event - The event that reached the wrapper around the menu.
    * @example
-   * // Without this guard, "Move to Another Board" silently does nothing on
-   * // production: the menu closes, the action never executes.
+   * <div className="contents" onMouseDown={stopPointerBubble}>
+   *   <DropdownMenu>...</DropdownMenu>
+   * </div>
    */
   const stopPointerBubble = (
     event: React.PointerEvent | React.MouseEvent | React.KeyboardEvent,

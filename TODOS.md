@@ -349,6 +349,18 @@ A repository that was renamed or transferred keeps its former owner and name on 
 **Priority:** P3
 **Depends on:** None
 
+### Two simplifications named in the last review round of #213
+
+**What:** (1) Hand the outcome of a board creation to the form of the move dialog as it is (`BoardCreationAttempt` without its `created` case) and let the form choose from it, as `CreateBoardForm` of `/boards/new` does. Today it is renamed twice on the way: `toCreationFailure` makes a `BoardCreationFailure` with a `nextStep`, and `toFormProblem` makes a `FormProblem` with a `recovery`. (2) Render a comment's menu beside the element that opens the editor, not inside it: wrap both in a `group relative` element, keep the role of a button on the text alone and make the menu its sibling.
+
+**Why:** Neither changes what the app does. (1) The mapping is one to one and `BoardCreationFailure` has one producer and one reader, about 50 lines. (2) The clicks and keys of the menu then never reach the handlers that open the editor, so `isOnCommentItself`, its ref and its two guards go (about 30 lines), and no button stands inside an element with the role of a button. Both were advice of the simplification reader on 2026-10-12, left out because each rewrites code that the tests and the checks of #213 had just pinned.
+
+**Context:** `src/components/Modals/CreateDestinationBoardForm.tsx`, `toCreationFailure` in `src/components/Modals/MoveToAnotherBoardDialog.tsx`, `src/lib/utils/request-board-creation.ts`; `src/components/Board/CommentDisplay.tsx`, whose one user is `CommentSection`. `startedOnOwnElement` stays: `mayStartDrag` asks it. The comment remains a place where a card can be picked up, so the drag tests of `e2e/logged-in/what-starts-a-drag.spec.ts` and the stories of `CommentEditingWorkflow.stories.tsx` decide whether (2) is right.
+
+**Effort:** S
+**Priority:** P4
+**Depends on:** None
+
 ## Board sync, shared boards and the Sentry tunnel — deferred follow-ups
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
@@ -449,6 +461,30 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 **Priority:** P3
 **Depends on:** None
 
+### Break a name of one long word in the places that are left
+
+**What:** Break a name of one long word in three more places, as the board, the cards, the dialogs and the select lists do: (1) the badge of a selected repository in the Add Repositories picker, with `shrink-0` on its remove button; (2) the column title of a shared board; (3) the title of the column that is being dragged. Then look once more for a name that is shown beside something it can cover.
+
+**Why:** #213 fixed the places where a name without a space or a hyphen pushed a control out of reach (the menu of a card, "Column options", the buttons of a board's header, "Create Board"), made a dialog scroll sideways or made a list wider than a phone. These three were read from the code on 2026-10-13 and not measured. (1) A repository name near the 100 characters GitHub allows makes the badge wider than the panel and takes its remove button along; the repository can still be taken out of the selection by its row in the list. (2) and (3) put nothing out of reach: on the shared page a column title of one long word is drawn across the next column, and the picture of a dragged column lets it run out of its frame.
+
+**Context:** The badge in `src/components/Board/AddRepositoryCombobox.tsx` (the repositories of the browser tests have short names, so a test needs a story or a fixture with a long one), the `h2` of the column header in `src/app/public/[slug]/PublicBoardClient.tsx` and of the `DragOverlay` in `src/components/Board/KanbanBoard.tsx`. `e2e/logged-in/names-that-cannot-break.spec.ts` has the measuring helpers; the rule is in `CLAUDE.md` under "Names that cannot break", with the two classes and what each does to an ordinary word.
+
+**Effort:** S
+**Priority:** P4
+**Depends on:** None
+
+### Return the keyboard to what opened the Add Repositories picker
+
+**What:** When the picker closes (Cancel, Escape, or after repositories were added), put the focus on the control that opened it: "Add Repositories" in the header, or "Add Repo" of the column it was opened from. A picker that the page opened again after a GitHub sign-in has no such control; the header button is the place then.
+
+**Why:** Closing takes the panel off the page, and the focus falls to the page (`document.body`), so a keyboard user starts again from the top of the board. The Escape branch of the panel's key handler even calls `blur()` on the search box. Named in the last review round of #213 on 2026-10-12, read from the code. The dialogs a card opens give the focus back since #213; the picker has three ways in and was left as it is.
+
+**Context:** `handleClose` and `handleToggleOpen` of `src/components/Board/AddRepositoryCombobox.tsx`; `openForStatus` and `handleOpenChange` of `src/hooks/board/useAddRepositoryCombobox.ts`, which open it from a column and after the return from GitHub (`ADD_REPOSITORY_RETURN_PARAM`). The search box takes the focus when the panel is put on the page, before a ref of the panel is attached, so the opener has to be remembered where the picker is opened, not where it appears. Safari does not focus a button that is clicked. Older than #213.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
 ### Give a card one tab stop
 
 **What:** Make a card one stop of the Tab key. Today it is two: the element that has the drag listeners (dnd-kit gives it `tabIndex` 0 and the role of a button) and the `Card` inside it, which has a `tabIndex` of its own.
@@ -535,11 +571,11 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 ### Cover the board-sync and sharing wiring the unit tests mock away
 
-**What:** Add tests for (1) the owner filter of `lookupRepoPlacements`, with a query stub that records `eq()` and expects `['board.user_id', userId]`, and correct the Arrange comment of "still offers and adds a repository that sits on another user's public board" in `e2e/logged-in/one-repo-across-boards.spec.ts`; (2) `BoardSettingsDialog` calling `onPublicChange`, and `BoardPageClient` copying the public link with the real `useBoardSettings`; (3) `setStatusLists`, `addRepoCards` and `removeRepoCard` each making a fetch in flight out of date, plus a test that lists `boardSlice`'s actions so a new reducer forces the decision; (4) the rate-limit refusal of `getPublicBoardBySlug`.
+**What:** (1) Correct the Arrange comment of "still offers and adds a repository that sits on another user's public board" in `e2e/logged-in/one-repo-across-boards.spec.ts`. Add tests for (2) `BoardSettingsDialog` calling `onPublicChange`, and `BoardPageClient` copying the public link with the real `useBoardSettings`; (3) `setStatusLists`, `addRepoCards` and `removeRepoCard` each making a fetch in flight out of date, plus a test that lists `boardSlice`'s actions so a new reducer forces the decision; (4) the rate-limit refusal of `getPublicBoardBySlug`.
 
-**Why:** Removing any of these leaves every test green. (1) lost its only failing test when the public read policies were dropped: row level security now hides other users' cards with or without the filter. (3) `addRepoCards` and `removeRepoCard` are not wrapped in `trackBoardWrite`, so the revision bump is their only protection against a stale fetch.
+**Why:** Removing any of (2) to (4) leaves every test green. (1) The browser test stopped proving the owner filter of `lookupRepoPlacements` when the public read policies were dropped: row level security now hides other users' cards with or without the filter. The filter has a unit test of its own since #213 ("reads only the cards on boards owned by the given user" in `repo-card-duplicates.test.ts`); the comment still names the fixture as what the test relies on. (3) `addRepoCards` and `removeRepoCard` are not wrapped in `trackBoardWrite`, so the revision bump is their only protection against a stale fetch.
 
-**Context:** `src/tests/unit/lib/actions/repo-card-duplicates.test.ts`, `src/tests/unit/app/board/BoardPageClient.test.tsx`, `src/tests/unit/hooks/board/useBoardServerSync.test.tsx`, `src/tests/unit/lib/actions/public-board.test.ts`, the `isAnyOf(...)` matcher in `src/lib/redux/slices/boardSyncSlice.ts`.
+**Context:** `e2e/logged-in/one-repo-across-boards.spec.ts`, `src/tests/unit/app/board/BoardPageClient.test.tsx`, `src/tests/unit/hooks/board/useBoardServerSync.test.tsx`, `src/tests/unit/lib/actions/public-board.test.ts`, the `isAnyOf(...)` matcher in `src/lib/redux/slices/boardSyncSlice.ts`.
 
 **Effort:** M
 **Priority:** P2
