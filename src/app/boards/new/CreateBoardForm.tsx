@@ -132,6 +132,17 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
         <p id={NAME_HINT_ID} className="text-muted-foreground text-xs">
           {name.length}/{BOARD_NAME_MAX_LENGTH} characters
         </p>
+        {/* What is wrong with the name stands under the name; what the
+            server answered stands above the buttons that were pressed */}
+        {problem?.kind === 'invalid-name' && (
+          <p
+            id={PROBLEM_TEXT_ID}
+            role="alert"
+            className="text-destructive text-sm"
+          >
+            {problem.message}
+          </p>
+        )}
       </div>
 
       {/* Preset Selection */}
@@ -150,7 +161,7 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
       </div>
 
       {/* Error Message */}
-      {problem && (
+      {problem && problem.kind !== 'invalid-name' && (
         <div className="bg-destructive/10 border-destructive/20 rounded-lg border p-3">
           <p
             id={PROBLEM_TEXT_ID}
