@@ -101,14 +101,8 @@ describe('CreateBoardForm', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Could not confirm that the board was created. Check your boards before trying again.',
     )
-    expect(showErrorToast).toHaveBeenCalledTimes(1)
-    expect(showErrorToast).toHaveBeenCalledWith(
-      'Board creation not confirmed',
-      {
-        description:
-          'Could not confirm that the board was created. Check your boards before trying again.',
-      },
-    )
+    // Said once, in the form: no toast lands on the way to the boards
+    expect(showErrorToast).not.toHaveBeenCalled()
     expect(
       screen.getByRole('link', { name: 'Open your boards' }),
     ).toHaveAttribute('href', '/boards')
@@ -135,13 +129,8 @@ describe('CreateBoardForm', () => {
       screen.getByRole('link', { name: 'Open your boards' }),
     ).toHaveAttribute('href', '/boards')
     expect(screen.queryByRole('button', { name: 'Create Board' })).toBeNull()
-    expect(showErrorToast).toHaveBeenCalledWith(
-      'Board creation not confirmed',
-      {
-        description:
-          'Could not confirm that the board was created. Check your boards before trying again.',
-      },
-    )
+    // Said once, in the form: no toast lands on the way to the boards
+    expect(showErrorToast).not.toHaveBeenCalled()
     expect(Sentry.captureException).toHaveBeenCalledWith(networkError, {
       tags: { action: 'createBoard' },
     })
@@ -195,9 +184,8 @@ describe('CreateBoardForm', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'The board was not created. Try again.',
     )
-    expect(showErrorToast).toHaveBeenCalledWith('Failed to create board', {
-      description: 'The board was not created. Try again.',
-    })
+    // Said once, in the form: no toast lands on the Create Board button
+    expect(showErrorToast).not.toHaveBeenCalled()
     expect(screen.queryByRole('link', { name: 'Open your boards' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Create Board' })).toBeEnabled()
   })
@@ -267,10 +255,10 @@ describe('CreateBoardForm', () => {
     expect(
       await screen.findByRole('link', { name: 'Open your boards' }),
     ).toBeVisible()
-    expect(showErrorToast).toHaveBeenCalledWith(
-      'Board creation not confirmed',
-      { description: 'We are not sure the board exists.' },
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'We are not sure the board exists.',
     )
+    expect(showErrorToast).not.toHaveBeenCalled()
   })
 
   test('announces a refused empty name, ties it to the name field and keeps the keyboard there', async () => {

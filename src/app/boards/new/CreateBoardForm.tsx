@@ -4,6 +4,8 @@
  * Client Component for board creation.
  * - Name input with validation
  * - Preset selector for status list column templates
+ * - A problem is said once, in the form: under the name when the name is
+ *   wrong, above the buttons when the server answered. No toast repeats it
  * - A creation that could not be confirmed (by the server, or because the
  *   request failed on the way or got no answer in time) is worded as that and
  *   ends the form: the board may exist and a second try could make a second
@@ -92,14 +94,9 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
         return
       }
 
+      // Said once, in the form, next to the buttons: a toast with the same
+      // words lands on those buttons on a laptop screen
       setProblem({ kind: attempt.status, message: attempt.message })
-      // "Could not confirm" is no failure to create
-      toast.error(
-        attempt.status === 'unconfirmed'
-          ? 'Board creation not confirmed'
-          : 'Failed to create board',
-        { description: attempt.message },
-      )
     })
   }
 
