@@ -141,14 +141,14 @@ describe('RenameBoardDialog', () => {
       fireEvent.change(input, { target: { value: longName } })
 
       const charCount = screen.getByText('42/50')
-      expect(charCount).toHaveClass('text-orange-500')
+      expect(charCount).toHaveClass('text-orange-800')
     })
 
     test('should not show warning color when under threshold', () => {
       render(<RenameBoardDialog {...defaultProps} />)
 
       const charCount = screen.getByText('10/50')
-      expect(charCount).not.toHaveClass('text-orange-500')
+      expect(charCount).not.toHaveClass('text-orange-800')
       expect(charCount).toHaveClass('text-muted-foreground')
     })
 

@@ -157,14 +157,17 @@ export const BoardCard = memo(function BoardCard({
             Hidden until hover only where there is a mouse (pointer-fine):
             a touch screen never hovers, so there they stay visible. */}
         <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
-          {/* Favorite star button */}
+          {/* Favorite star button. The outline (amber 700, amber 400 on the
+              dark themes) is what has to stand out from the card: 4.49:1 or
+              more on every theme, where an icon needs 3:1. The gold fill
+              alone was 2.1:1 on white. */}
           <Button
             variant="ghost"
             size="icon"
             className={`h-8 w-8 transition-all ${
               localIsFavorite
-                ? 'text-amber-500 opacity-100 hover:text-amber-600'
-                : 'text-muted-foreground opacity-70 hover:text-amber-500 focus-visible:opacity-100 md:pointer-fine:opacity-0 md:pointer-fine:group-hover:opacity-100'
+                ? 'text-amber-700 opacity-100 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300'
+                : 'text-muted-foreground opacity-70 hover:text-amber-700 focus-visible:opacity-100 dark:hover:text-amber-400 md:pointer-fine:opacity-0 md:pointer-fine:group-hover:opacity-100'
             }`}
             aria-label={
               localIsFavorite
@@ -176,7 +179,7 @@ export const BoardCard = memo(function BoardCard({
           >
             <Star
               className={`h-4 w-4 transition-transform ${isPending ? 'animate-pulse' : ''} ${
-                localIsFavorite ? 'fill-current' : ''
+                localIsFavorite ? 'fill-amber-400' : ''
               }`}
             />
           </Button>

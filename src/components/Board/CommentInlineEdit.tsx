@@ -253,14 +253,17 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
 
         {/* Controls row */}
         <div className="mt-2 flex items-center justify-between">
-          {/* Character counter */}
+          {/* Character counter. It stands on the comment's tinted box, where
+              text-muted-foreground drops to 3.1:1 (default theme) and orange
+              400 to 4.4:1 (Dark): these two pass 4.5:1 on all eight tints
+              of all 14 themes. */}
           <span
             data-testid="character-counter"
             className={cn(
               'text-xs transition-colors',
               isOverLimit && 'text-destructive font-medium',
-              isWarning && 'text-orange-500',
-              !isOverLimit && !isWarning && 'text-muted-foreground',
+              isWarning && 'text-orange-800 dark:text-orange-300',
+              !isOverLimit && !isWarning && 'text-foreground/70',
             )}
           >
             {charCount}/{maxLength}

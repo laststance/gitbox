@@ -92,7 +92,7 @@ export const RenameBoardDialog = memo(function RenameBoardDialog({
   const isNearLimit = charCount >= BOARD_NAME_MAX_LENGTH - 10
   const hasError = state.errors?.name && state.errors.name.length > 0
   const charCountClass = isNearLimit
-    ? 'text-sm text-orange-500'
+    ? 'text-sm text-orange-800 dark:text-orange-300'
     : 'text-muted-foreground text-sm'
 
   return (

@@ -134,10 +134,14 @@ const FONT_WEIGHT_LABELS: Record<keyof typeof COMMENT_FONT_WEIGHTS, string> = {
   semibold: 'Bold',
 }
 
-/** CSS class for character counter; turns orange near the limit. */
+/**
+ * CSS class for character counter; turns orange near the limit.
+ * Orange 800 on the light themes and orange 300 on the dark ones: both pass
+ * 4.5:1 on every theme's dialog background, which orange 500 did not (2.9:1).
+ */
 function charCountClass(count: number, max: number): string {
   return count >= max - 10
-    ? 'text-sm text-orange-500'
+    ? 'text-sm text-orange-800 dark:text-orange-300'
     : 'text-muted-foreground text-sm'
 }
 

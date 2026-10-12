@@ -103,7 +103,7 @@ describe('CommentInlineEdit', () => {
 
       const counter = screen.getByTestId('character-counter')
       expect(counter).toHaveTextContent('100/2000')
-      expect(counter).toHaveClass('text-muted-foreground')
+      expect(counter).toHaveClass('text-foreground/70')
     })
 
     test('should show warning color when at warning threshold (270+)', () => {
@@ -117,7 +117,7 @@ describe('CommentInlineEdit', () => {
 
       const counter = screen.getByTestId('character-counter')
       expect(counter).toHaveTextContent('270/300')
-      expect(counter).toHaveClass('text-orange-500')
+      expect(counter).toHaveClass('text-orange-800')
     })
 
     test('should show error color when over limit (300+)', () => {
