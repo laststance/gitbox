@@ -198,7 +198,9 @@ export const BoardPageClient = memo(function BoardPageClient({
 
   return (
     <>
-      <main className="flex h-screen flex-col">
+      {/* A div, not a second <main>: the layout around this page is the
+          main region of the document (BoardLayoutClient) */}
+      <div className="flex h-screen flex-col">
         {/* Header */}
         <header className="border-border bg-background border-b px-6 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -316,7 +318,7 @@ export const BoardPageClient = memo(function BoardPageClient({
             onAddCard={addRepoCombobox.openForStatus}
           />
         </div>
-      </main>
+      </div>
 
       {/* StatusList Dialog */}
       <StatusListDialog

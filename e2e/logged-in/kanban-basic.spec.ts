@@ -27,9 +27,11 @@ test.describe('Kanban Board (Authenticated)', () => {
     // Wait for page to stabilize
     await page.waitForLoadState('networkidle')
 
-    // Page should have main elements loaded (use first() since there are multiple main elements)
-    const main = page.locator('main').first()
+    // The page is one main region, the layout's, and the board is in it. A
+    // second <main> around the board made this locator match two elements.
+    const main = page.getByRole('main')
     await expect(main).toBeVisible({ timeout: 10000 })
+    await expect(main.getByRole('heading', { level: 1 })).toBeVisible()
   })
 
   test('should display board header with action buttons', async ({ page }) => {

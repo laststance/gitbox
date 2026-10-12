@@ -57,7 +57,7 @@ test.describe('SSR Hydration - Board Page (Authenticated)', () => {
     await page.waitForLoadState('networkidle')
 
     // The board content area should be visible
-    const boardContent = page.locator('main').first()
+    const boardContent = page.getByRole('main')
     await expect(boardContent).toBeVisible({ timeout: 10000 })
 
     // Grid container should have proper CSS grid applied after hydration
@@ -91,7 +91,7 @@ test.describe('SSR Hydration - Board Page (Authenticated)', () => {
     await page.goto(BOARD_URL)
 
     // Main layout should be visible quickly (SSR)
-    const main = page.locator('main').first()
+    const main = page.getByRole('main')
     await expect(main).toBeVisible({ timeout: 3000 })
 
     // Wait for full hydration
