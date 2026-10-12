@@ -237,6 +237,29 @@ describe('CreateBoardForm', () => {
     ).toHaveFocus()
   })
 
+  // Value: protects=a screen reader that follows the focus to "Open your boards" reads why the link stands where "Create Board" stood; fails_when=the link is not described by the message, so it is read as a bare link and the reason stays in a paragraph the focus never visits; why_new=the tests of an unconfirmed creation read the message and the focus, not what the link is described by; seam=none; no_claim=what a screen reader says aloud, and whether it reads the alert when the message appears
+  test('reads the message of a creation nobody could confirm with "Open your boards"', async () => {
+    // Arrange: the board may exist
+    const user = userEvent.setup()
+    vi.mocked(createBoard).mockResolvedValue({
+      success: false,
+      error:
+        'Could not confirm that the board was created. Check your boards before trying again.',
+      errorCode: 'BOARD_CREATION_UNCONFIRMED',
+    })
+    render(<CreateBoardForm />)
+
+    // Act
+    await user.type(screen.getByLabelText('Board Name'), 'Side Projects{Enter}')
+
+    // Assert
+    expect(
+      await screen.findByRole('link', { name: 'Open your boards' }),
+    ).toHaveAccessibleDescription(
+      'Could not confirm that the board was created. Check your boards before trying again.',
+    )
+  })
+
   // Value: protects=after a refused creation a keyboard user is back in the name field and can change the name or send it again; fails_when=the form leaves the focus on the page, where it fell when the field and the buttons were disabled for the request; why_new=the test of the refusal reads the text and the buttons, not the focus; seam=none; no_claim=a creation sent with Enter: happy-dom leaves the focus on a field that is disabled, a browser does not, so the story "Focus Returns To Name After Refusal" checks that one in a browser
   test('puts the keyboard back on the name after a creation the server refused', async () => {
     // Arrange: nothing was written

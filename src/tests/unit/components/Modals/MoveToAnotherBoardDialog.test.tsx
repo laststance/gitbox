@@ -573,6 +573,86 @@ describe('MoveToAnotherBoardDialog', () => {
       )
       expect(screen.getByRole('button', { name: 'Move' })).toHaveFocus()
     })
+
+    // Value: protects=a screen reader that follows the focus back to Move reads why the card is still on this board; fails_when=Move is not described by the message of the refusal, so it is read as a bare button and the reason stays in a paragraph the focus never visits; why_new=the tests of a refused move read the alert and the focus, not what Move is described by; seam=none; no_claim=what a screen reader says aloud, and whether it reads the alert when the message appears
+    test('reads the refusal with Move, which takes the keyboard back after it', async () => {
+      // Arrange
+      const user = userEvent.setup()
+      mockBoards()
+      vi.mocked(moveCardToBoard).mockResolvedValue({
+        success: false,
+        error: 'An unexpected error occurred',
+      })
+      renderOpenDialog()
+
+      // Act
+      await user.click(await screen.findByRole('button', { name: 'Move' }))
+
+      // Assert
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'An unexpected error occurred',
+      )
+      expect(
+        screen.getByRole('button', { name: 'Move' }),
+      ).toHaveAccessibleDescription('An unexpected error occurred')
+    })
+
+    // Value: protects=after a refused move to a shared board, Move still says who will see the repository, and the refusal after it; fails_when=the refusal takes the place of the sentence about the public link, so a second press of Move makes the card public unannounced, or the refusal is left out; why_new=the test of the public sentence has no refusal and the test of the refusal has no shared board; seam=none; no_claim=what a screen reader says aloud
+    test('reads who will see the repository and then the refusal with Move, after a refused move to a shared board', async () => {
+      // Arrange
+      const user = userEvent.setup()
+      mockBoards([SHARED_BOARD, ...OTHER_BOARDS])
+      vi.mocked(moveCardToBoard).mockResolvedValue({
+        success: false,
+        error: 'An unexpected error occurred',
+      })
+      renderOpenDialog()
+      await user.click(await screen.findByRole('combobox', { name: 'Board' }))
+      await user.click(
+        await screen.findByRole('option', { name: 'Portfolio Public board' }),
+      )
+
+      // Act
+      await user.click(screen.getByRole('button', { name: 'Move' }))
+
+      // Assert
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'An unexpected error occurred',
+      )
+      expect(
+        screen.getByRole('button', { name: 'Move' }),
+      ).toHaveAccessibleDescription(
+        'Portfolio is shared by a public link. Anyone who has the link will see this repository there, with its description. Notes, links, and comments stay private. An unexpected error occurred',
+      )
+    })
+
+    // Value: protects=Move names no text that is not on the page: once the refusal is gone, so is the reference to it; fails_when=the button keeps an aria-describedby for the message of a failed move after another column was chosen, an id without an element, which an accessibility checker reports; why_new=the tests that hide the refusal read the alert, not what Move refers to; seam=the attribute itself, because a reference without a target computes to no description and would pass a check of the description; no_claim=none
+    test('names no message with Move once another column is chosen after a refusal', async () => {
+      // Arrange
+      const user = userEvent.setup()
+      mockBoards()
+      vi.mocked(moveCardToBoard).mockResolvedValue({
+        success: false,
+        error: 'An unexpected error occurred',
+      })
+      renderOpenDialog()
+      await user.click(await screen.findByRole('button', { name: 'Move' }))
+      expect(
+        await screen.findByRole('button', { name: 'Move' }),
+      ).toHaveAccessibleDescription('An unexpected error occurred')
+
+      // Act
+      await user.click(screen.getByRole('combobox', { name: 'Column' }))
+      await user.click(
+        await screen.findByRole('option', { name: 'In Progress' }),
+      )
+
+      // Assert
+      expect(screen.queryByRole('alert')).toBeNull()
+      expect(screen.getByRole('button', { name: 'Move' })).not.toHaveAttribute(
+        'aria-describedby',
+      )
+    })
   })
 
   describe('a finished move', () => {
@@ -715,6 +795,23 @@ describe('MoveToAnotherBoardDialog', () => {
       expect(
         await screen.findByRole('combobox', { name: 'Board' }),
       ).toHaveTextContent('Work Projects')
+    })
+
+    // Value: protects=a screen reader that follows the focus to "Try again" reads what failed; fails_when=the button is not described by the message of the failed load, so it is read as a bare "Try again"; why_new=the tests of a failed load read the alert and the focus, not what the button is described by; seam=none; no_claim=what a screen reader says aloud, and whether it reads the alert when the message appears
+    test('reads the message of a failed load with "Try again"', async () => {
+      // Arrange
+      vi.mocked(getUserBoardsWithStatusLists).mockResolvedValue({
+        success: false,
+        error: 'An unexpected error occurred',
+      })
+
+      // Act
+      renderOpenDialog()
+
+      // Assert
+      expect(
+        await screen.findByRole('button', { name: 'Try again' }),
+      ).toHaveAccessibleDescription('An unexpected error occurred')
     })
   })
 
@@ -1089,6 +1186,27 @@ describe('MoveToAnotherBoardDialog', () => {
       expect(screen.getByRole('button', { name: 'Move' })).not.toHaveFocus()
     })
 
+    // Value: protects=a screen reader that follows the focus to "Reload page" reads that the move could not be confirmed; fails_when=the button is not described by the message, so it is read as a bare "Reload page" with no reason; why_new=the tests of an unconfirmed move read the alert and the focus, not what the button is described by; seam=none; no_claim=what a screen reader says aloud, and whether it reads the alert when the message appears
+    test('reads the message of a move nobody could confirm with "Reload page"', async () => {
+      // Arrange: the request fails on the way, so nobody knows where the card is
+      const user = userEvent.setup()
+      mockBoards()
+      vi.mocked(moveCardToBoard).mockRejectedValue(
+        new TypeError('Failed to fetch'),
+      )
+      renderOpenDialog()
+
+      // Act
+      await user.click(await screen.findByRole('button', { name: 'Move' }))
+
+      // Assert
+      expect(
+        await screen.findByRole('button', { name: 'Reload page' }),
+      ).toHaveAccessibleDescription(
+        'Could not confirm that the card was moved. Check the board before trying again.',
+      )
+    })
+
     test('offers no reload for a move the server refused: the board on screen is not in doubt', async () => {
       // Arrange
       const user = userEvent.setup()
@@ -1331,6 +1449,26 @@ describe('MoveToAnotherBoardDialog', () => {
       expect(Sentry.captureException).toHaveBeenCalledWith(networkError, {
         tags: { action: 'createBoard' },
       })
+    })
+
+    // Value: protects=a screen reader that follows the focus to "Reload boards" reads that the creation could not be confirmed; fails_when=the button is not described by the message under the name, so it is read as a bare "Reload boards" with no reason; why_new=the test before this one reads the alert and the focus, not what the button is described by; seam=none; no_claim=what a screen reader says aloud, and whether it reads the alert when the message appears
+    test('reads the message of a creation nobody could confirm with "Reload boards"', async () => {
+      // Arrange: the request fails on the way, so the board may exist
+      const user = userEvent.setup()
+      mockBoards([])
+      vi.mocked(createBoard).mockRejectedValue(new TypeError('Failed to fetch'))
+      renderOpenDialog()
+
+      // Act
+      await user.type(await screen.findByLabelText('Board Name'), 'Archive')
+      await user.click(screen.getByRole('button', { name: 'Create Board' }))
+
+      // Assert
+      expect(
+        await screen.findByRole('button', { name: 'Reload boards' }),
+      ).toHaveAccessibleDescription(
+        'Could not confirm that the board was created. Check your boards before trying again.',
+      )
     })
 
     test('shows the board that exists after all once the boards are loaded again', async () => {

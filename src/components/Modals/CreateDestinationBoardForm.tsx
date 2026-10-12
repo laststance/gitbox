@@ -213,6 +213,9 @@ export const CreateDestinationBoardForm = memo(
             <Button
               type="button"
               ref={recoveryButtonRef}
+              // It takes the focus: read with it, the message says why it
+              // stands where "Create Board" stood
+              aria-describedby={NAME_ERROR_ID}
               onClick={
                 problem.recovery === 'reload-page' ? reloadPage : onReloadBoards
               }

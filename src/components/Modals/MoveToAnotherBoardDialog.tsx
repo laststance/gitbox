@@ -106,6 +106,19 @@ const PUBLIC_DESTINATION_TEXT_ID = 'move-dialog-public-destination'
  */
 const NO_OTHER_BOARD_TEXT_ID = 'move-dialog-no-other-board'
 
+/**
+ * Id of the message of a load of the boards that failed. "Try again", which
+ * takes the focus then, is described by it.
+ */
+const LOAD_FAILURE_TEXT_ID = 'move-dialog-load-failure'
+
+/**
+ * Id of the message of a move that failed. The control that takes the focus
+ * next is described by it: Move after a refusal, "Reload page" after a move
+ * nobody could confirm.
+ */
+const MOVE_FAILURE_TEXT_ID = 'move-dialog-move-failure'
+
 interface MoveToAnotherBoardDialogProps {
   /** Callback when dialog should close */
   onClose: () => void
@@ -401,7 +414,11 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
           ))
           .with({ kind: 'load-failed' }, ({ message }) => (
             <div className="space-y-3 py-8 text-center">
-              <p className="text-destructive text-sm" role="alert">
+              <p
+                id={LOAD_FAILURE_TEXT_ID}
+                className="text-destructive text-sm"
+                role="alert"
+              >
                 {message}
               </p>
               <Button
@@ -409,6 +426,7 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
                 type="button"
                 variant="outline"
                 size="sm"
+                aria-describedby={LOAD_FAILURE_TEXT_ID}
                 onClick={reloadDestinations}
               >
                 Try again
@@ -578,7 +596,11 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
 
                 {moveFailure && (
                   <div className="space-y-2">
-                    <p className="text-destructive text-sm" role="alert">
+                    <p
+                      id={MOVE_FAILURE_TEXT_ID}
+                      className="text-destructive text-sm"
+                      role="alert"
+                    >
                       {moveFailure.message}
                     </p>
                     {/* Where the card is has to be looked up. A reload does
@@ -591,6 +613,7 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
                         variant="outline"
                         size="sm"
                         className="pointer-coarse:min-h-11"
+                        aria-describedby={MOVE_FAILURE_TEXT_ID}
                         onClick={reloadPage}
                       >
                         Reload page
@@ -617,12 +640,12 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
             type="button"
             ref={moveButtonRef}
             onClick={handleMove}
-            // Read with the button: pressing it makes the card public
-            aria-describedby={
-              view.kind === 'choose-destination' && view.selectedBoard.isPublic
-                ? PUBLIC_DESTINATION_TEXT_ID
-                : undefined
-            }
+            // Read with the button: pressing it makes the card public, and
+            // after a move that failed it takes the focus back
+            aria-describedby={toMoveButtonDescription(
+              view.kind === 'choose-destination' && view.selectedBoard.isPublic,
+              view.kind === 'choose-destination' && moveFailure !== null,
+            )}
             disabled={
               isBusy ||
               view.kind !== 'choose-destination' ||
@@ -702,6 +725,35 @@ function toCreationFailure(
     .with({ status: 'unconfirmed' }, () => 'reload-boards')
     .exhaustive()
   return { message: attempt.message, nextStep }
+}
+
+/**
+ * Names the texts a screen reader reads with the Move button.
+ *
+ * Exists because the button has up to two of them: the sentence about a
+ * shared destination, since pressing Move makes the card public, and the
+ * message of a failed move, since the button takes the focus back after a
+ * refusal. Called by {@link MoveToAnotherBoardDialog} when it renders Move.
+ *
+ * @param isDestinationShared - Whether the sentence about the public link is on screen.
+ * @param hasMoveFailed - Whether the message of a failed move is on screen.
+ * @returns
+ * - the ids of the texts on screen, separated by a space
+ * - `undefined` when neither is shown, so the button gets no attribute
+ * @example
+ * toMoveButtonDescription(true, false) // => 'move-dialog-public-destination'
+ * toMoveButtonDescription(true, true) // => 'move-dialog-public-destination move-dialog-move-failure'
+ * toMoveButtonDescription(false, false) // => undefined
+ */
+function toMoveButtonDescription(
+  isDestinationShared: boolean,
+  hasMoveFailed: boolean,
+): string | undefined {
+  const textIds = [
+    isDestinationShared && PUBLIC_DESTINATION_TEXT_ID,
+    hasMoveFailed && MOVE_FAILURE_TEXT_ID,
+  ].filter(Boolean)
+  return textIds.length > 0 ? textIds.join(' ') : undefined
 }
 
 /**

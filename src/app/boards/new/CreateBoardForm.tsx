@@ -206,8 +206,14 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
         {isOutcomeUnknown ? (
           // The text above says "check your boards": this is the way there.
           // handleSubmit gives it the keyboard the disabled form let go of.
+          // Described by that text: a screen reader that follows the focus
+          // reads why the link took the place of "Create Board".
           <Button asChild className="flex-1">
-            <Link ref={boardsLinkRef} href="/boards">
+            <Link
+              ref={boardsLinkRef}
+              href="/boards"
+              aria-describedby={PROBLEM_TEXT_ID}
+            >
               Open your boards
             </Link>
           </Button>
