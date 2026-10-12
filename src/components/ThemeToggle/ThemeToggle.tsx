@@ -244,8 +244,11 @@ const ThemeMenuItem = memo(function ThemeMenuItem({
       )}
       {/* Theme name */}
       <span className="flex-1">{info?.name}</span>
-      {/* Check mark for selected theme */}
-      {isSelected && <Check className="text-primary h-4 w-4" />}
+      {/* Check mark for selected theme. No color of its own: it has the
+          item's, also on the accent fill of the item under the pointer or
+          the keyboard, where the theme color was between 1.3:1 and 1.8:1 in
+          six dark themes */}
+      {isSelected && <Check className="h-4 w-4" />}
     </DropdownMenuItem>
   )
 })

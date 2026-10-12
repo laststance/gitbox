@@ -149,8 +149,11 @@ export const CommentActionsMenu = memo<CommentActionsMenuProps>(
                     className={`mr-2 h-3 w-3 rounded-full ${option.dotClass}`}
                   />
                   <span className="flex-1">{option.label}</span>
+                  {/* No color of its own: the theme color was between
+                      1.3:1 and 1.8:1 on the accent fill of the item under
+                      the pointer or the keyboard in six dark themes */}
                   {currentColor === option.value && (
-                    <Check className="text-primary ml-2 h-4 w-4" />
+                    <Check className="ml-2 h-4 w-4" />
                   )}
                 </DropdownMenuItem>
               ))}

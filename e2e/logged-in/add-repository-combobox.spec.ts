@@ -11,6 +11,8 @@
  * 3. Opening AddRepositoryCombobox should NOT crash
  */
 
+import type { Locator } from '@playwright/test'
+
 import { test, expect } from '../fixtures/coverage'
 import {
   BOARD_IDS,
@@ -1227,6 +1229,86 @@ test.describe('AddRepositoryCombobox - Panel Position', () => {
 })
 
 /**
+ * AddRepositoryCombobox E2E Tests - Colors of an Option Row
+ *
+ * A row under the pointer and a selected row are filled with the accent
+ * color. What stands on that fill under the repository's name (description,
+ * stars, language) and the check mark of a selected row have to take the
+ * color made for it: in the muted color the description was between 1.9:1 and
+ * 2.4:1 on the fill in six dark themes, and the check mark in the theme color
+ * between 1.3:1 and 1.8:1. The browser's cascade decides which color an
+ * element ends up with, so it is asked here, in Plum, where the theme color
+ * and the muted color are both far from the color made for the fill.
+ * src/tests/unit/styles/accent-fill-contrast.test.ts computes the contrast of
+ * that color for every theme.
+ */
+test.describe('AddRepositoryCombobox - Option Row Colors', () => {
+  test.use({ storageState: 'e2e/.auth/user.json' })
+
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
+
+  test.beforeEach(async () => {
+    // No card on any board: the picker offers all five repositories of the
+    // test account, enough for a selected, a hovered and a resting row
+    await removeEveryRepoCard()
+  })
+
+  test.afterEach(async () => {
+    await resetRepoCards()
+  })
+
+  // Value: protects=the description and the check mark of a repository that is selected or under the pointer can be read on the accent fill; fails_when=they keep the muted color or the theme color on that fill, as before, or the fill and the text color come apart; why_new=no test looked at the colors of a row, and only a browser knows which of two classes wins; seam=none; no_claim=the contrast of the colors, which accent-fill-contrast.test.ts computes for every theme
+  test('a selected repository and the one under the pointer show their description and check mark in the color made for the accent fill', async ({
+    page,
+  }) => {
+    // Arrange: the picker is open in Plum
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await page.getByRole('button', { name: /add repositories/i }).click()
+    // Of the list of repositories: the visibility filter has options too
+    const options = page
+      .getByRole('listbox', { name: 'Repository options' })
+      .getByRole('option')
+    await expect(options).toHaveCount(5)
+    await page.evaluate(() => {
+      document.documentElement.setAttribute('data-theme', 'plum')
+      document.documentElement.classList.add('dark')
+    })
+    const selectedRow = options.nth(0)
+    const hoveredRow = options.nth(1)
+    const restingRow = options.nth(2)
+
+    // Act: the first row is selected, then the pointer rests on the second
+    await selectedRow.click()
+    await hoveredRow.hover()
+
+    // Assert
+    await expect
+      .poll(() => readRowPaint(selectedRow))
+      .toEqual({
+        fill: 'accent',
+        description: 'accent-foreground',
+        checkMark: 'accent-foreground',
+      })
+    await expect
+      .poll(() => readRowPaint(hoveredRow))
+      .toEqual({
+        fill: 'accent',
+        description: 'accent-foreground',
+        checkMark: 'no check mark',
+      })
+    // ... and a row at rest is as it was: muted lines on the panel
+    await expect
+      .poll(() => readRowPaint(restingRow))
+      .toEqual({
+        fill: 'rgba(0, 0, 0, 0)',
+        description: 'muted-foreground',
+        checkMark: 'no check mark',
+      })
+  })
+})
+
+/**
  * Places repositories on the Work Projects board, bypassing the app, so the
  * picker of another board lists them under "Already placed elsewhere".
  * `resetRepoCards` removes them again.
@@ -1275,4 +1357,60 @@ async function removeEveryRepoCard(): Promise<void> {
   if (deleted.error) {
     throw new Error(`deleting the cards failed: ${deleted.error.message}`)
   }
+}
+
+/**
+ * Reads how the browser paints an option row of the picker, in the names of
+ * the theme's colors. Exists because a class name says what was asked for and
+ * the cascade decides what is painted. Called while a color may still be in
+ * its transition, so poll it.
+ * @param row - An element with the role `option`.
+ * @returns
+ * - `fill`: the row's background, `description`: the color of its second
+ *   line, `checkMark`: the color of its check mark. Each is the name of the
+ *   theme color that is painted (`accent`, `accent-foreground`,
+ *   `muted-foreground` or `primary`), or the color itself when it is none of
+ *   them, such as `rgba(0, 0, 0, 0)` for no fill
+ * - `description` and `checkMark` say `no description` and `no check mark`
+ *   when the row has none
+ * @example
+ * await readRowPaint(page.getByRole('option').first())
+ * // => { fill: 'accent', description: 'accent-foreground', checkMark: 'accent-foreground' }
+ */
+async function readRowPaint(
+  row: Locator,
+): Promise<{ fill: string; description: string; checkMark: string }> {
+  return row.evaluate((rowElement) => {
+    // The color a theme token has on this page, as the browser writes it
+    const readToken = (tokenName: string): string => {
+      const probe = document.createElement('span')
+      probe.style.color = `var(--${tokenName})`
+      document.body.append(probe)
+      const tokenColor = getComputedStyle(probe).color
+      probe.remove()
+      return tokenColor
+    }
+    const tokenNames = [
+      'accent-foreground',
+      'muted-foreground',
+      'primary',
+      'accent',
+    ]
+    const nameColor = (color: string): string =>
+      tokenNames.find((tokenName) => readToken(tokenName) === color) ?? color
+
+    const description = rowElement.querySelector('p + p')
+    const checkMark = [...rowElement.querySelectorAll('span')].find(
+      (span) => span.textContent === '✓',
+    )
+    return {
+      fill: nameColor(getComputedStyle(rowElement).backgroundColor),
+      description: description
+        ? nameColor(getComputedStyle(description).color)
+        : 'no description',
+      checkMark: checkMark
+        ? nameColor(getComputedStyle(checkMark).color)
+        : 'no check mark',
+    }
+  })
 }

@@ -39,6 +39,19 @@ import { HeldRepositoryList, type HeldRepository } from './HeldRepositoryList'
  */
 const SHARED_BOARD_TEXT_ID = 'add-repositories-shared-board'
 
+/**
+ * Colors of an option row of the list. Hovered or selected it has the accent
+ * fill, and what stands under the repository's name (description, stars,
+ * language) and the check mark take the color made for that fill. In the
+ * muted color those lines were between 1.9:1 and 2.4:1 on it in six dark
+ * themes, and the check mark in the theme color between 1.3:1 and 1.8:1.
+ * src/tests/unit/styles/accent-fill-contrast.test.ts computes the contrast
+ * of the color they have now. The lines and the check mark have no color of
+ * their own: they inherit the row's.
+ */
+const OPTION_ROW_COLOR_CLASS =
+  'text-muted-foreground hover:bg-accent hover:text-accent-foreground aria-selected:bg-accent aria-selected:text-accent-foreground'
+
 interface AddRepositoryComboboxProps {
   boardId: BoardId
   /**
@@ -619,7 +632,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                         role="option"
                         aria-selected={isSelected}
                         onClick={() => toggleRepoSelection(repo)}
-                        className={`border-border hover:bg-accent flex cursor-pointer items-center justify-between border-b p-3 transition-colors ${isSelected ? 'bg-accent' : ''}`}
+                        className={`border-border flex cursor-pointer items-center justify-between border-b p-3 transition-colors ${OPTION_ROW_COLOR_CLASS}`}
                         tabIndex={0}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
@@ -640,11 +653,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                             {repo.full_name}
                           </p>
                           {repo.description && (
-                            <p className="text-muted-foreground mt-0.5 truncate text-sm">
+                            <p className="mt-0.5 truncate text-sm">
                               {repo.description}
                             </p>
                           )}
-                          <div className="text-muted-foreground mt-1 flex items-center gap-3 text-xs">
+                          <div className="mt-1 flex items-center gap-3 text-xs">
                             <span>⭐ {repo.stargazers_count}</span>
                             {repo.language && (
                               <span className="bg-muted rounded px-1.5 py-0.5">
@@ -653,9 +666,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                             )}
                           </div>
                         </div>
-                        {isSelected && (
-                          <span className="text-primary ml-2">✓</span>
-                        )}
+                        {isSelected && <span className="ml-2">✓</span>}
                       </div>
                     )
                   })}
@@ -669,7 +680,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                       role="option"
                       aria-selected={isSelected}
                       onClick={() => toggleRepoSelection(repo)}
-                      className={`border-border hover:bg-accent flex cursor-pointer items-center justify-between border-b p-3 transition-colors last:border-b-0 ${isSelected ? 'bg-accent' : ''}`}
+                      className={`border-border flex cursor-pointer items-center justify-between border-b p-3 transition-colors last:border-b-0 ${OPTION_ROW_COLOR_CLASS}`}
                       tabIndex={0}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
@@ -683,11 +694,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                           {repo.full_name}
                         </p>
                         {repo.description && (
-                          <p className="text-muted-foreground mt-0.5 truncate text-sm">
+                          <p className="mt-0.5 truncate text-sm">
                             {repo.description}
                           </p>
                         )}
-                        <div className="text-muted-foreground mt-1 flex items-center gap-3 text-xs">
+                        <div className="mt-1 flex items-center gap-3 text-xs">
                           <span>⭐ {repo.stargazers_count}</span>
                           {repo.language && (
                             <span className="bg-muted rounded px-1.5 py-0.5">
@@ -696,9 +707,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                           )}
                         </div>
                       </div>
-                      {isSelected && (
-                        <span className="text-primary ml-2">✓</span>
-                      )}
+                      {isSelected && <span className="ml-2">✓</span>}
                     </div>
                   )
                 })

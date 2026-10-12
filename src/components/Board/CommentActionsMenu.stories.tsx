@@ -9,6 +9,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
 import { CommentActionsMenu } from './CommentActionsMenu'
 
@@ -134,5 +135,52 @@ This provides accurate visual preview while remaining visible in small dot size.
         `,
       },
     },
+  },
+}
+
+/**
+ * The check mark of the chosen color has the color of its menu item, also
+ * while the pointer is on the item and the item is filled with the accent
+ * color. Shown in Plum, whose theme color is the furthest from the color of
+ * a highlighted item.
+ */
+export const CheckMarkHasTheColorOfItsItem: Story = {
+  args: {
+    currentColor: 'blue',
+    onEdit: fn(),
+    onColorChange: fn(),
+    onDelete: fn(),
+  },
+  globals: {
+    theme: 'plum',
+  },
+  // Value: protects=the check mark of the chosen comment color can be seen while the pointer or the keyboard is on its item; fails_when=the check mark gets a color of its own again, such as the theme color it had (1.3:1 on the highlighted item in Plum); why_new=no story and no test looked at the check mark; seam=none; no_claim=the contrast of an item's color on its fill, which accent-fill-contrast.test.ts computes for every theme
+  play: async ({ canvasElement }) => {
+    // Arrange: the page is in Plum and the list of colors is open
+    const page = within(document.body)
+    await waitFor(async () => {
+      await expect(document.documentElement).toHaveAttribute(
+        'data-theme',
+        'plum',
+      )
+    })
+    await userEvent.click(
+      within(canvasElement).getByRole('button', { name: 'Comment actions' }),
+    )
+    await userEvent.click(await page.findByRole('menuitem', { name: 'Color' }))
+    const chosenItem = await page.findByRole('menuitem', { name: 'Blue' })
+    const checkMark = chosenItem.querySelector('.lucide-check')
+    if (!checkMark) throw new Error('The chosen color has no check mark')
+
+    // Act: the pointer goes to the item, which fills with the accent color
+    await userEvent.hover(chosenItem)
+
+    // Assert
+    await expect(chosenItem).toHaveAttribute('data-highlighted')
+    await waitFor(async () => {
+      await expect(getComputedStyle(checkMark).color).toBe(
+        getComputedStyle(chosenItem).color,
+      )
+    })
   },
 }
