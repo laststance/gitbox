@@ -11,6 +11,7 @@ import {
   boardSettingsSchema,
   renameBoardFormSchema,
   deleteBoardFormSchema,
+  statusListColorSchema,
   updateSettingsFormSchema,
 } from '@/lib/validations/board'
 
@@ -232,5 +233,35 @@ describe('updateSettingsFormSchema', () => {
     if (result.success) {
       expect(result.data.settings).not.toHaveProperty('customProperty')
     }
+  })
+})
+
+describe('statusListColorSchema', () => {
+  test.each(['#6B7280', '#a1b2c3', '#A1B2C3'])(
+    'accepts %s, a color of six hex digits in either case',
+    (color) => {
+      // Arrange & Act
+      const result = statusListColorSchema.safeParse(color)
+
+      // Assert
+      expect(result.success).toBe(true)
+    },
+  )
+
+  // Value: protects=a column color cannot carry CSS declarations into a style attribute, on a shared board into the page a visitor loads; fails_when=the pattern loses its end or its start anchor, so a value that only begins or ends as #RRGGBB passes; why_new=every refused color in the tests had no #RRGGBB in it, which a pattern without anchors refuses as well; seam=none; no_claim=the check constraint of the table and the check of create_board_with_status_lists, which e2e/logged-in/column-color-data-access.spec.ts and board-creation-data-access.spec.ts ask with the same values
+  test.each([
+    '#a1b2c3; position: fixed; inset: 0',
+    '#a1b2c3ff',
+    '#abc',
+    'x#a1b2c3',
+    '#a1b2c3\n',
+    'red',
+    '',
+  ])('refuses %j, which is not exactly #RRGGBB', (color) => {
+    // Arrange & Act
+    const result = statusListColorSchema.safeParse(color)
+
+    // Assert
+    expect(result.success).toBe(false)
   })
 })

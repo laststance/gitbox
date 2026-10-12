@@ -91,6 +91,16 @@ const REFUSED_CALLS = [
       'create_board_with_status_lists: 1 column(s) lack a name of 1 to 50 characters or a #RRGGBB color',
   },
   {
+    title: 'a column color that begins as #RRGGBB and goes on',
+    boardName: BOARD_NAMES.refusedInput,
+    columns: [
+      VALID_COLUMN,
+      { name: 'Done', color: '#a1b2c3; position: fixed' },
+    ],
+    message:
+      'create_board_with_status_lists: 1 column(s) lack a name of 1 to 50 characters or a #RRGGBB color',
+  },
+  {
     title: 'a column that is a text instead of an object',
     boardName: BOARD_NAMES.refusedInput,
     columns: ['Todo'],

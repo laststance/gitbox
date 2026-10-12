@@ -112,6 +112,29 @@ test.describe('Column color data access', () => {
     expect(await readColorsOfColumnsNamed(SPEC_COLUMN_NAME)).toEqual([])
   })
 
+  // Value: protects=the table refuses a color that carries CSS declarations behind or before a valid #RRGGBB, whoever writes it; fails_when=the pattern of statuslist_color_hex loses its end or its start anchor; why_new=the two refused colors above have no #RRGGBB in them, which a pattern without anchors refuses as well; seam=none; no_claim=none
+  for (const color of [
+    '#a1b2c3; position: fixed; inset: 0',
+    '#a1b2c3ff',
+    '#abc',
+    'x#a1b2c3',
+    '#a1b2c3\n',
+  ]) {
+    test(`a column cannot be created with a color that only begins or ends as #RRGGBB: ${JSON.stringify(color)}`, async () => {
+      // Arrange
+      const testUser = createTestUserSupabaseClient()
+
+      // Act
+      const created = await testUser
+        .from('statuslist')
+        .insert(specColumnWithColor(color))
+
+      // Assert
+      expect(created.error?.code).toBe('23514')
+      expect(await readColorsOfColumnsNamed(SPEC_COLUMN_NAME)).toEqual([])
+    })
+  }
+
   test('a #RRGGBB color is stored as it was sent, lower case included', async () => {
     // Arrange
     const testUser = createTestUserSupabaseClient()
