@@ -1091,6 +1091,32 @@ describe('MoveToAnotherBoardDialog', () => {
       expect(screen.queryByRole('button', { name: 'Reload page' })).toBeNull()
     })
 
+    // Value: protects=a move the server itself could not confirm is shown as that, with the way to look at the board; fails_when=the dialog reads every answer of the server as a refusal, or tells this case by its text; why_new=the tests above lose the request in the browser, and the refusal test has an answer without a code; seam=none; no_claim=when the server answers with this code (repo-cards.placement.test.ts)
+    test('treats a move the server could not confirm as unknown by the code of its answer, whatever its text says: the keyboard goes to "Reload page" and the board is fetched again', async () => {
+      // Arrange: the database gave the server no answer, so the card may have
+      // moved. The code under another sentence.
+      const user = userEvent.setup()
+      mockBoards()
+      vi.mocked(moveCardToBoard).mockResolvedValue({
+        success: false,
+        error: 'The move may have gone through.',
+        errorCode: 'MOVE_UNCONFIRMED',
+      })
+      const { onMoved, store } = renderOpenDialog()
+
+      // Act
+      await user.click(await screen.findByRole('button', { name: 'Move' }))
+
+      // Assert
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'The move may have gone through.',
+      )
+      expect(screen.getByRole('button', { name: 'Reload page' })).toHaveFocus()
+      expect(selectIsBoardRefreshDue(store.getState())).toBe(true)
+      expect(onMoved).not.toHaveBeenCalled()
+      expect(showSuccessToast).not.toHaveBeenCalled()
+    })
+
     test('stops waiting after 15 seconds without an answer and can be closed again', async () => {
       // Arrange: a move the server never answers
       mockBoards()

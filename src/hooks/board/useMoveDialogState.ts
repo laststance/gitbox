@@ -45,9 +45,11 @@ export interface MoveFailure {
   /** Text shown in the dialog. */
   message: string
   /**
-   * `false` when the card may have moved all the same: the request failed on
-   * the way or got no answer in time. The dialog then offers to reload the
-   * page, the one way to see where the card is that waits for nothing.
+   * `false` when the card may have moved all the same: the server answered
+   * that the database gave it no answer (`MOVE_UNCONFIRMED`), or the request
+   * failed on the way or got no answer in time. The dialog then offers to
+   * reload the page, the one way to see where the card is that waits for
+   * nothing.
    */
   isOutcomeKnown: boolean
 }

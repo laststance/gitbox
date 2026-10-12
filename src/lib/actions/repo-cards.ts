@@ -17,6 +17,7 @@ import {
   withAuthResultRateLimit,
 } from '@/lib/actions/auth-guard'
 import type { GitHubRepository } from '@/lib/actions/github'
+import { MOVE_UNCONFIRMED_MESSAGE } from '@/lib/constants/card-move'
 import { createModuleLogger } from '@/lib/logger'
 import {
   toBoardId,
@@ -27,6 +28,7 @@ import {
   type StatusListId,
 } from '@/lib/types/brands'
 import type { ISOTimestamp, Visibility } from '@/lib/types/domain-primitives'
+import { didDatabaseRefuse } from '@/lib/utils/did-database-refuse'
 import { addRepositoriesRequestSchema } from '@/lib/validations/repo-card'
 
 import { REPO_CARD_COLUMNS } from './mappers'
@@ -371,8 +373,11 @@ export async function getUserBoardsWithStatusLists(): Promise<
  * - On success: `{ success: true }`
  * - On a malformed id: `{ success: false, error: 'Invalid ID format' }`
  * - On auth error: `{ success: false, error: 'Authentication required' }`
+ * - When the database gave no answer to the move itself, so the card may
+ *   have moved: `{ success: false, error: MOVE_UNCONFIRMED_MESSAGE,
+ *   errorCode: 'MOVE_UNCONFIRMED' }`
  * - On anything else (card or board not found, not the owner, column of
- *   another board, a failure of the database):
+ *   another board, a move the database refused):
  *   `{ success: false, error: 'An unexpected error occurred' }`
  *
  * @example
@@ -448,17 +453,30 @@ export async function moveCardToBoard(
     // moves it again without harm.
 
     // Atomic move via RPC (calculates next order position)
-    const { error: rpcError } = await supabase.rpc('move_card_to_board', {
-      p_card_id: cardId,
-      p_target_board_id: targetBoardId,
-      p_target_status_id: targetStatusId,
-    })
+    const failure = await supabase
+      .rpc('move_card_to_board', {
+        p_card_id: cardId,
+        p_target_board_id: targetBoardId,
+        p_target_status_id: targetStatusId,
+      })
+      .then(
+        ({ error }) =>
+          error && { cause: error, isRefusal: didDatabaseRefuse(error) },
+        // The client answers with an error and does not throw. If something
+        // throws all the same, the request may be on its way.
+        (thrown: unknown) => ({ cause: thrown, isRefusal: false }),
+      )
 
-    if (rpcError) {
-      log.error({ error: rpcError }, 'move_card_to_board RPC error')
-      Sentry.captureException(rpcError, {
+    if (failure) {
+      log.error({ error: failure.cause }, 'move_card_to_board RPC error')
+      Sentry.captureException(failure.cause, {
         extra: { context: 'move_card_to_board RPC', cardId, targetBoardId },
       })
+      // The function moves the card in one transaction. Only a code of the
+      // database proves that it did not: without one the card may have moved.
+      if (!failure.isRefusal) {
+        throw new ActionUserError(MOVE_UNCONFIRMED_MESSAGE, 'MOVE_UNCONFIRMED')
+      }
       throw new Error('Failed to move card')
     }
   })

@@ -563,6 +563,105 @@ describe('moveCardToBoard', () => {
     })
   })
 
+  // Value: protects=a move whose answer from the database was lost is not reported as refused: the card may be on the other board; fails_when=every error of the database function is answered as a refusal; why_new=the test above has the database refuse with a code of its own; seam=none; no_claim=which codes count as an answer of the database (did-database-refuse.test.ts)
+  test('says the move could not be confirmed, with the code MOVE_UNCONFIRMED, when the database gave no answer', async () => {
+    // Arrange: every check passes and the request to the database function
+    // was lost on the way, as the Supabase client reports it
+    const lostAnswer = { code: '', message: 'TypeError: fetch failed' }
+    signInWithSupabaseStub({
+      board: {
+        data: { id: '00000000-0000-0000-0000-000000000102' },
+        error: null,
+      },
+      statuslist: {
+        data: { id: '00000000-0000-0000-0000-000000000211' },
+        error: null,
+      },
+      repocard: { data: [], error: null },
+      repocardSingle: {
+        data: {
+          id: '00000000-0000-0000-0000-000000000301',
+          repo_owner: 'laststance',
+          repo_name: 'gitbox',
+          board: { user_id: 'user-1' },
+        },
+        error: null,
+      },
+      rpc: { data: null, error: lostAnswer },
+    })
+
+    // Act
+    const result = await moveCardToBoard(
+      '00000000-0000-0000-0000-000000000301',
+      '00000000-0000-0000-0000-000000000102',
+      '00000000-0000-0000-0000-000000000211',
+    )
+
+    // Assert
+    expect(result).toEqual({
+      success: false,
+      error:
+        'Could not confirm that the card was moved. Check the board before trying again.',
+      errorCode: 'MOVE_UNCONFIRMED',
+    })
+    expect(Sentry.captureException).toHaveBeenCalledWith(lostAnswer, {
+      extra: {
+        context: 'move_card_to_board RPC',
+        cardId: '00000000-0000-0000-0000-000000000301',
+        targetBoardId: '00000000-0000-0000-0000-000000000102',
+      },
+    })
+  })
+
+  // Value: protects=a call to the database that throws instead of answering is not reported as a refusal either; fails_when=the action lets the guard turn the thrown error into "An unexpected error occurred", which the dialog reads as "nothing happened"; why_new=the cases above get an error object, as the Supabase client normally returns; seam=none; no_claim=whether the client ever throws in production (it is written not to)
+  test('says the move could not be confirmed when the call to the database throws instead of answering', async () => {
+    // Arrange: every check passes and the call itself throws
+    const thrownError = new TypeError('fetch failed')
+    const { rpc } = signInWithSupabaseStub({
+      board: {
+        data: { id: '00000000-0000-0000-0000-000000000102' },
+        error: null,
+      },
+      statuslist: {
+        data: { id: '00000000-0000-0000-0000-000000000211' },
+        error: null,
+      },
+      repocard: { data: [], error: null },
+      repocardSingle: {
+        data: {
+          id: '00000000-0000-0000-0000-000000000301',
+          repo_owner: 'laststance',
+          repo_name: 'gitbox',
+          board: { user_id: 'user-1' },
+        },
+        error: null,
+      },
+    })
+    rpc.mockRejectedValue(thrownError)
+
+    // Act
+    const result = await moveCardToBoard(
+      '00000000-0000-0000-0000-000000000301',
+      '00000000-0000-0000-0000-000000000102',
+      '00000000-0000-0000-0000-000000000211',
+    )
+
+    // Assert
+    expect(result).toEqual({
+      success: false,
+      error:
+        'Could not confirm that the card was moved. Check the board before trying again.',
+      errorCode: 'MOVE_UNCONFIRMED',
+    })
+    expect(Sentry.captureException).toHaveBeenCalledWith(thrownError, {
+      extra: {
+        context: 'move_card_to_board RPC',
+        cardId: '00000000-0000-0000-0000-000000000301',
+        targetBoardId: '00000000-0000-0000-0000-000000000102',
+      },
+    })
+  })
+
   test('moves a card again that is already on the target board, so a move whose answer was lost can be repeated', async () => {
     // Arrange: an earlier request moved the card to board 102, and its answer
     // never reached the browser

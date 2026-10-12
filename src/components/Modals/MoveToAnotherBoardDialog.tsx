@@ -66,6 +66,7 @@ import {
 } from '@/hooks/board/useMoveDialogState'
 import { moveCardToBoard } from '@/lib/actions/repo-cards'
 import type { ActionResult } from '@/lib/actions/types'
+import { MOVE_UNCONFIRMED_MESSAGE } from '@/lib/constants/card-move'
 import { SERVER_ANSWER_TIME_LIMIT_MS } from '@/lib/constants/requests'
 import { TOAST_WITH_ACTION_DURATION_MS } from '@/lib/constants/toast'
 import {
@@ -89,15 +90,6 @@ import {
 
 /** Shown when a refused move comes without a message of its own. */
 const MOVE_FAILED_MESSAGE = 'Failed to move card'
-
-/**
- * Shown when it is not known whether the card was moved: the request failed
- * on the way or got no answer in time. The board is fetched again then, so
- * the screen shows where the card is. That fetch waits for the request to
- * settle, so "Reload page" is offered next to this text.
- */
-const MOVE_UNCONFIRMED_MESSAGE =
-  'Could not confirm that the card was moved. Check the board before trying again.'
 
 /**
  * Id of the sentence shown when the selected board is shared through a
@@ -275,7 +267,8 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
       // takes back the focus Move lost when it was disabled for the request.
       // After a refusal the board is as it was and Move can be pressed again.
       // With an outcome nobody knows the next step is to look at the board,
-      // and a second Move would wait behind the first: "Reload page" it is.
+      // and a second Move could wait behind a first one that is still
+      // running: "Reload page" it is.
       flushSync(() => failMove(failure))
       if (failure.isOutcomeKnown) {
         moveButtonRef.current?.focus()
@@ -587,8 +580,9 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
                     <p className="text-destructive text-sm" role="alert">
                       {moveFailure.message}
                     </p>
-                    {/* The fetch of the board waits behind a request that
-                          has no answer yet; a reload does not */}
+                    {/* Where the card is has to be looked up. A reload does
+                          that at once; the board's own fetch can wait behind
+                          a move that has no answer yet */}
                     {!moveFailure.isOutcomeKnown && (
                       <Button
                         ref={reloadButtonRef}
@@ -681,13 +675,21 @@ function isFocusAtRest(
 /**
  * Says what the dialog shows for a move that did not go through.
  *
+ * The board is fetched again after every one of them. When nobody knows the
+ * outcome, "Reload page" is offered next to the text as well: after a request
+ * without an answer that fetch waits for the request to settle, and a reload
+ * does not.
+ *
  * @param outcome - How the move request ended.
  * @returns
  * - `null` when the server confirmed the move
  * - the server's reason when it refused the move (`isOutcomeKnown: true`)
+ * - the server's text with `isOutcomeKnown: false` when its answer carries
+ *   the code `MOVE_UNCONFIRMED`: the database gave it no answer, so the card
+ *   may have moved all the same. The code decides, never the text.
  * - {@link MOVE_UNCONFIRMED_MESSAGE} with `isOutcomeKnown: false` when the
- *   request failed on the way or got no answer in time, so the card may have
- *   moved all the same
+ *   request failed on the way or got no answer in time: the same case, seen
+ *   from the browser.
  * @example
  * toMoveFailure({ status: 'overdue' })
  * // => { message: 'Could not confirm that the card was moved. Check the board before trying again.',
@@ -702,7 +704,7 @@ function toMoveFailure(
         ? null
         : {
             message: answer.error || MOVE_FAILED_MESSAGE,
-            isOutcomeKnown: true,
+            isOutcomeKnown: answer.errorCode !== 'MOVE_UNCONFIRMED',
           },
     )
     .with({ status: 'failed' }, { status: 'overdue' }, () => ({

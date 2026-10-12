@@ -42,6 +42,9 @@
  * - `BOARD_CREATION_UNCONFIRMED`: {@link createBoard} got no answer it could
  *   read, so the board may exist; the client offers the boards and not a
  *   second try, which could make a second board
+ * - `MOVE_UNCONFIRMED`: {@link moveCardToBoard} got no answer from the
+ *   database, so the card may be on the other board; the client says so,
+ *   fetches the board again and offers "Reload page"
  *
  * @example
  * if (!result.success && result.errorCode === 'GITHUB_TOKEN_MISSING') {
@@ -49,7 +52,7 @@
  * }
  */
 export type ActionErrorCode =
-  'GITHUB_TOKEN_MISSING' | 'BOARD_CREATION_UNCONFIRMED'
+  'GITHUB_TOKEN_MISSING' | 'BOARD_CREATION_UNCONFIRMED' | 'MOVE_UNCONFIRMED'
 
 /**
  * Discriminated union for Server Action results.
