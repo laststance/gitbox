@@ -151,18 +151,6 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 **Priority:** P3
 **Depends on:** None
 
-### Pin the Cancel / Add row of the Add Repositories panel
-
-**What:** Keep the Cancel / Add row of the picker panel in view while its lists scroll.
-
-**Why:** The panel's height is capped to the viewport since #215 (the panel scrolls), but the Cancel / Add row is not pinned: with both lists full the panel is about 700px tall, so at viewport heights of about 800px and below the Add button needs a scroll inside the panel, past two nested scrolling lists. A `flex flex-col` panel with a `shrink-0` footer and a shrinking listbox fixes it.
-
-**Context:** Pre-existing. `src/components/Board/AddRepositoryCombobox.tsx`. The width is done: below 640px the panel is fixed to the screen with 8px margins (design review of 2026-10-12; it used to hang 230px off the left edge of a 375px screen).
-
-**Effort:** M
-**Priority:** P3
-**Depends on:** None
-
 ### Separate "Adding" state in the picker
 
 **What:** Show an adding state on submit instead of `Loading repositories...`.
@@ -615,7 +603,7 @@ From `/design-review` of the change for issue #213. The review found 27 issues a
 
 **Why:** Medium impact, AI slop (FINDING-022). Three cards under each other with tiles inside one is the layout a generator produces; the page has nothing to compare side by side that would need cards.
 
-**Context:** `src/app/account/AccountClient.tsx` and its skeleton `src/app/account/loading.tsx`, which mirrors the layout block by block and has to change with it.
+**Context:** `src/app/account/AccountClient.tsx` and its skeleton `src/app/account/loading.tsx`, which mirrors the layout block by block and has to change with it. One difference is left between the two: below about 434px the label "Repository Cards" takes two lines and the skeleton shows one, so the two tiles grow by a line when the data arrives.
 
 **Effort:** S
 **Priority:** P4
@@ -637,7 +625,7 @@ From `/design-review` of the change for issue #213. The review found 27 issues a
 
 **What:** Add `--warning` and `--favorite` (with foregrounds) to the 14 themes and use them where the app now reaches for `orange-*` and `amber-*`.
 
-**Why:** Each theme picks its own red, green and primary, but orange and amber are the same fixed shades on all of them. This review fixed the two places where that cost contrast (the character counters and the favorite star) with fixed shades that were measured on every theme; a token would let a theme choose, and would give "outcome unknown" messages a color of their own instead of red.
+**Why:** Each theme picks its own red, green and primary, but orange and amber are the same fixed shades on all of them. This review fixed the two places where that cost contrast (the character counters and the favorite star) with fixed shades that were measured on every theme; a token would let a theme choose, and would give "outcome unknown" messages a color of their own instead of red. The counter of a card's comment stands on a tinted box, where no single orange passes on every tint; it paints a chip of the page background under its orange, and a warning token needs a surface like that too.
 
 **Context:** `src/styles/globals.css` (theme definitions), `src/components/Boards/BoardCard.tsx`, `src/components/Boards/RenameBoardDialog.tsx`, `src/components/Boards/BoardSettingsDialog.tsx`, `src/components/Board/CommentInlineEdit.tsx`, `src/app/boards/favorites/page.tsx`. The toast colors come from sonner's palette, not from the themes (`src/components/ThemedToaster.tsx`).
 
@@ -647,7 +635,7 @@ From `/design-review` of the change for issue #213. The review found 27 issues a
 
 ### Smaller design gaps left from the 2026-10-12 review
 
-**What:** (1) Replace `transition-all` (18 places) with the properties that change, and stop animating the sidebar's `width`, which moves the whole page on every frame. (2) Return the focus to the card after every dialog that a card opens: `useCardDialogFocusReturn` is used by Move to Another Board and Remove from Board only. (3) Use one component for inline error messages and one pattern for a pending button; they are built by hand in each form. (4) `/settings` renders without the sidebar every other signed-in page has. (5) A card's menu has separators and a column's menu has none. (6) The picker has a native `<select>` next to a Radix select. (7) Star counts use an emoji where the rest of the app uses icons.
+**What:** (1) Replace `transition-all` (18 places) with the properties that change, and stop animating the sidebar's `width`, which from 768px moves the whole page on every frame (below, the sidebar lies over the page). (2) Return the focus to the card after every dialog that a card opens: `useCardDialogFocusReturn` is used by Move to Another Board and Remove from Board only. (3) Use one component for inline error messages and one pattern for a pending button; they are built by hand in each form. (4) `/settings` renders without the sidebar every other signed-in page has. (5) A card's menu has separators and a column's menu has none. (6) The picker has a native `<select>` next to a Radix select. (7) Star counts use an emoji where the rest of the app uses icons.
 
 **Why:** Polish (FINDING-013, FINDING-023 and the consistency review). None of them stops anyone; together they are why the app feels slightly different from page to page.
 
@@ -667,3 +655,5 @@ From `/design-review` of the change for issue #213. The review found 27 issues a
       **Completed:** 2026-10-12, with the change for issue #213 (`46e892b`). The mocked server action is registered with `sb.mock`, and the two stories that press the star say what the server answers. 30 runs in a row passed.
 - [x] **Fit the Add Repositories panel on a narrow screen** (the width half of "Viewport-aware layout for the Add Repositories panel")
       **Completed:** 2026-10-12, fixed by `/design-review` of the change for issue #213 (`d3bc24d`).
+- [x] **Pin the Cancel / Add row of the Add Repositories panel** (the height half)
+      **Completed:** 2026-10-12, with the change for issue #213 (`a4b20e0`). The panel is a column: its lists scroll between the search box and the Cancel / Add row, which stay in view.
