@@ -165,6 +165,37 @@ psql_local -At -c "select name, color, grid_row, grid_col, (select count(*) from
 
 Expected: the board of the second user is created at the same highest position instead of failing, and the cards and the note are where the successful run above puts them. The column `Todo` has the default color; its name, its place and its card are as they were. The table has the constraint `statuslist_color_hex`. As a signed-in user, an `UPDATE` or `INSERT` of a column with a color such as `rgb(1, 2, 3)` then fails with `23514`, and `create_board_with_status_lists` called by the second user creates a board at position `2147483647` too.
 
+One more case, run after the second review (2026-10-12): the write stop of section 5. Start again from section 1 and the rows above, then take the rights away before the first `migration up`:
+
+```bash
+psql_local -q -c "REVOKE INSERT, UPDATE, DELETE ON public.maintenance FROM authenticated, anon"
+# A signed-in account tries to add the second spelling of a repository it has an entry for ...
+psql_local -At <<'SQL'
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claims', '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', false);
+INSERT INTO maintenance (user_id, repo_owner, repo_name) VALUES ('11111111-1111-1111-1111-111111111111', 'OCTO', 'ALPHA');
+SQL
+# expect: ERROR:  permission denied for table maintenance
+# ... and to delete one of its entries
+psql_local -At <<'SQL'
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claims', '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', false);
+DELETE FROM maintenance WHERE id = 'a1000000-0000-4000-8000-000000000001';
+SQL
+# expect: ERROR:  permission denied for table maintenance
+# ... and the second account restores its entry to its board, as the build before this PR does it
+psql_local -At <<'SQL'
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claims', '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}', false);
+SELECT restore_to_board('a2000000-0000-4000-8000-000000000001', 'b2000000-0000-4000-8000-000000000001', 'c2000000-0000-4000-8000-000000000001', 'octo', 'delta', 1);
+SQL
+# expect: ERROR:  permission denied for table maintenance (the function runs with the caller's rights)
+psql_local -At -c "select (select count(*) from maintenance), (select count(*) from repocard)"   # expect: 3|1, as inserted above
+supabase_local migration up --local   # expect: "Migrations applied" (all three)
+```
+
+Expected: the three statements are refused and leave no row behind (the card `restore_to_board` had inserted is rolled back with it), the migration runs as it does without the write stop, and its result is the one of the successful run above. Ran this way on 2026-10-12 with 2.120.0; `UPDATE` and `move_to_maintenance` were refused the same way, and the entries could still be read.
+
 ## 3. Rehearsal, scenario B: a copy of production
 
 Needs: production reachable, the local database free to be reset.
@@ -341,7 +372,27 @@ Expected: `COMMIT`. Stop on any error (the transaction rolls back). Reload the a
 
 ## 5. Right before the merge
 
-Needs: the PR green, production reachable. Nothing below changes production.
+Needs: the PR green, production reachable. The first block takes the rights to add, change and delete Maintenance entries from the roles of the API. Nothing after it changes production.
+
+```bash
+cat supabase/.temp/project-ref
+MAY_WRITE="SELECT
+  has_table_privilege('authenticated', 'public.maintenance', 'INSERT') AS signed_in_may_add,
+  has_table_privilege('authenticated', 'public.maintenance', 'UPDATE') AS signed_in_may_change,
+  has_table_privilege('authenticated', 'public.maintenance', 'DELETE') AS signed_in_may_delete,
+  has_table_privilege('anon', 'public.maintenance', 'INSERT') AS visitors_may_add,
+  has_table_privilege('anon', 'public.maintenance', 'UPDATE') AS visitors_may_change,
+  has_table_privilege('anon', 'public.maintenance', 'DELETE') AS visitors_may_delete"
+supabase db query --linked "$MAY_WRITE"   # note the six values: section 9 gives back what was true
+supabase db query --linked "REVOKE INSERT, UPDATE, DELETE ON public.maintenance FROM authenticated, anon"
+supabase db query --linked "$MAY_WRITE"
+```
+
+Expected: the second answer is false six times. Stop when one of them is still true: the right was granted by another role, and the statement has to run as that role. Checked on 2026-10-12: all six rights were granted on production, by `postgres`, the role these commands run as.
+
+Why: the policy of `maintenance` lets every signed-in account write rows of its own through the API, and anyone with a GitHub account can sign in. Two entries that differ only in letter case, written between the counts below and the migration, make the removal refuse, and every later migration waits behind it. Many thousands of entries make it hold its locks for as long as it takes to move them. An entry that is deleted, or restored to a board, after the manifest below was written shows up in section 6 as an entry that is missing. From this block on the entries are what the counts and the manifest say: no account can add, change, delete or restore one. In the build before this PR, "Move to Maintenance", restoring an entry and deleting an entry answer with an error from now until the new build is live. The migration runs as the owner of the table and is not affected, and it drops the table, so after a rollout that went through nothing has to be given back. This one statement is run by hand and not by a migration because it has to hold before the counts are read, and a migration runs at the merge.
+
+The write stop does not cover two things. The note of an entry is a row of `projectinfo`, which the cards use too, so it can still be edited; section 6 says how such an edit shows. And an account that has entries can still put one of those repositories on a board, which is a conflict. No account without entries can make one, because it cannot make an entry any more.
 
 ```bash
 cat supabase/.temp/project-ref
@@ -378,7 +429,7 @@ supabase db query --linked "SELECT
 supabase db push --linked --dry-run
 ```
 
-Expected: `entries_also_on_a_board`, `case_variant_groups` and `entries_sharing_an_id_with_a_card` are 0, `projectinfo_policies` and `projectinfo_policies_of_the_migrations` are both 2 (the two policies the removal drops and creates again, and no other), `row_security_applies` is false, `session_role`, `table_owners` and `function_owners` are all `postgres` (the role `supabase db push` runs as owns the tables and the two functions, so it may lock them, switch a trigger off and drop them), `signed_in_users_may_call_auth_uid` is true (the new function runs with the caller's rights and asks `auth.uid()` who that is), and the dry run lists the three migrations of this PR and nothing else. These are the conditions the removal checks itself before its first write, read here without changing anything. Note the `entries` count and `users_with_entries`. Stop when a conflict count is above 0 (section 7) or when the dry run lists another file.
+Expected: `entries_also_on_a_board`, `case_variant_groups` and `entries_sharing_an_id_with_a_card` are 0, `projectinfo_policies` and `projectinfo_policies_of_the_migrations` are both 2 (the two policies the removal drops and creates again, and no other), `row_security_applies` is false, `session_role`, `table_owners` and `function_owners` are all `postgres` (the role `supabase db push` runs as owns the tables and the two functions, so it may lock them, switch a trigger off and drop them), `signed_in_users_may_call_auth_uid` is true (the new function runs with the caller's rights and asks `auth.uid()` who that is), and the dry run lists the three migrations of this PR and nothing else. These are the conditions the removal checks itself before its first write, read here without changing anything. Note the `entries` count and `users_with_entries`. Stop when a conflict count is above 0 (section 7) or when the dry run lists another file. `users_with_entries` is the number of accounts that can still make a conflict, by adding a repository they have in Maintenance to a board. On 2026-10-12 it was 1, the owner's account, so nobody else could. When it is higher, merge right after this section, and expect section 7 when the migration refuses.
 
 `columns_with_another_color` is the number of columns the color check will give the default color. It does not stop the rollout. When it is not 0, look at those columns first, by hand: `supabase db query --linked "SELECT id, board_id, name, color FROM statuslist WHERE color IS NOT NULL AND NOT (color ~ '^#[0-9A-Fa-f]{6}\$')"`. (`NOT (color ~ …)` and not `color !~ …`: an interactive shell reads `!~` inside double quotes as a history reference.) Checked on 2026-10-12: all counts 0, 21 columns, `postgres` (no superuser), no row level security for the session.
 
@@ -397,7 +448,7 @@ ls -l $B/
 echo "STAMP=$STAMP"   # note this value: sections 6 and 8 start from it
 ```
 
-Expected: the `entry` count equals `entries` above, no line says that the manifest is empty, every file is `-rw-------`, and the last line prints the `STAMP` that names the files. An empty manifest stops the rollout here: after the merge there is nothing left to take it from. Sections 6 and 8 run in another shell, hours later, and find the files through that value. Between this step and the migration nothing may write to Maintenance, and no check on production or on a preview deployment may add a repository that is in Maintenance to a board.
+Expected: the `entry` count equals `entries` above, no line says that the manifest is empty, every file is `-rw-------`, and the last line prints the `STAMP` that names the files. An empty manifest stops the rollout here: after the merge there is nothing left to take it from. Sections 6 and 8 run in another shell, hours later, and find the files through that value. Between this step and the migration nothing writes to Maintenance: the first block of this section saw to that for the API, and nothing may be run against the table by hand. No check on production or on a preview deployment may add a repository that is in Maintenance to a board.
 
 ## 6. After the merge
 
@@ -446,7 +497,7 @@ The block reads nothing and compares nothing without the manifest before: an uns
 
 How to read it:
 
-- `entry` and `entry_note` lines must not appear at all. One of them means an entry or a note is not where it has to be: stop the rollout and repair from the dump (section 9).
+- `entry` and `entry_note` lines must not appear at all. One of them means an entry or a note is not where it has to be: stop the rollout and repair from the dump (section 9). One exception: the write stop of section 5 does not cover notes, so an `entry_note` line whose entry is a card now can be a note that was edited after the manifest was written. Read its text on the card before repairing anything; a newer text is not a loss.
 - One `> board Maintenance` and one `> column Repositories` per user who had entries are the expected additions. With nothing else written since section 5, `lines that differ` is twice the number of those users.
 - A `card`, `card_note`, `board` or `column` line of a row that existed before means a user wrote something after the manifest was taken (a moved card has another column, `order` or `updated_at`). Look at it by hand; it is not a loss as long as the id, the board and the repository are still there.
 
@@ -654,6 +705,8 @@ Two cases the log of the migration does not show:
 | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | The migration run is green and the Vercel deployment of the merge commit failed or was cancelled               | The build before this PR keeps running on the new schema. Boards, drags, notes, links and comments work. Adding repositories fails (its lookup reads the dropped table) and `/maintenance` is empty | Deploy the merge commit again (Vercel dashboard, or `vercel redeploy <url> --scope laststance`). Do not promote an older deployment: no build before this PR fits the new schema |
 | Right after the migration, creating a board answers "The board was not created. Try again." (Sentry: PGRST202) | The API has not loaded the new function yet. Supabase reloads its schema cache on every schema change, so this should not last                                                                      | `supabase db query --linked "NOTIFY pgrst, 'reload schema'"`, then create the board again                                                                                        |
+
+When the rollout is called off after section 5 and the PR is not merged: give back each right whose value in the first answer of section 5 was true, and no other. With all six true, as on 2026-10-12, that is `supabase db query --linked "GRANT INSERT, UPDATE, DELETE ON public.maintenance TO authenticated, anon"`; with fewer, name only those rights and roles. Without it the build before this PR can neither move a repository to Maintenance nor restore or delete an entry.
 
 Fixing the migration file: a push to `main` that touches `supabase/migrations/` runs `supabase db push` on production at once, with no approval step, so the changed file is tried before it gets there. Run sections 2 and 3 again with it, then `supabase db push --linked --dry-run` (it must list that one file and nothing else), and send the fix through a pull request so the checks run on it first. A migration that failed is not recorded, so the same file name runs again; do not add a second file for the fix.
 
