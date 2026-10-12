@@ -1226,6 +1226,41 @@ test.describe('AddRepositoryCombobox - Panel Position', () => {
     )
     expect(pageWidthPx).toBe(375)
   })
+
+  // Value: protects=the sidebar that opens over the page on a window between 640px and 767px is not covered by the open Add Repositories panel; fails_when=the panel is put back on the sidebar's own level, where the element that comes later in the page is drawn on top; why_new=the tests of the panel's place never open the sidebar, and the tests of the sidebar run at 375px, where the panel spans the screen and covers the toggle; seam=none; no_claim=other window widths
+  test('lies under the sidebar and its backdrop when the sidebar opens over the page on a 700px window', async ({
+    page,
+  }) => {
+    // Arrange: the panel is open. At 700px it begins at 196px, right of the
+    // rail, so the rail's toggle is still in reach
+    await page.setViewportSize({ width: 700, height: 900 })
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await page.getByRole('button', { name: /add repositories/i }).click()
+    // Found by its attributes: the opened sidebar sets the page aside, and a
+    // locator by role does not see what is set aside
+    const panel = page.locator('main [role="combobox"][aria-expanded="true"]')
+    await expect(panel).toBeVisible()
+
+    // Act
+    await page.getByRole('button', { name: 'Expand sidebar' }).click()
+
+    // Assert: the sidebar reaches 256px, so the two share 60px of the
+    // screen ...
+    const sidebar = page.locator('aside')
+    await expect
+      .poll(async () => Math.round((await sidebar.boundingBox())?.width ?? -1))
+      .toBe(256)
+    expect(Math.round((await panel.boundingBox())?.x ?? -1)).toBe(196)
+    // ... and of the three layers the sidebar is the upper one and the
+    // panel the lowest, dimmed by the backdrop like the rest of the page
+    await expect(sidebar).toHaveCSS('z-index', '50')
+    await expect(page.getByTestId('sidebar-backdrop')).toHaveCSS(
+      'z-index',
+      '40',
+    )
+    await expect(panel).toHaveCSS('z-index', '30')
+  })
 })
 
 /**

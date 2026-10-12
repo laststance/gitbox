@@ -434,7 +434,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
           // the page wherever the button stood less than 480px into it:
           // from 640px to about 1135px of window width.
           // max-sm: below 640px the panel spans the screen instead.
-          className="border-border bg-background fixed top-(--panel-top) right-6 z-50 flex max-h-[calc(100dvh-var(--panel-top)-1rem)] w-120 flex-col overflow-y-auto rounded-lg border p-4 shadow-xl [--panel-top:max(0.5rem,min(calc(var(--button-bottom,4rem)+0.5rem),calc(100dvh-27rem)))] max-sm:inset-x-2 max-sm:top-2 max-sm:max-h-[calc(100dvh-1rem)] max-sm:w-auto"
+          // z-30: under the sidebar that opens over the page below 768px
+          // (z-50) and under its backdrop (z-40). From 640px the panel
+          // begins right of the rail, whose toggle stays in reach; on the
+          // sidebar's own level it was drawn over the opened sidebar.
+          className="border-border bg-background fixed top-(--panel-top) right-6 z-30 flex max-h-[calc(100dvh-var(--panel-top)-1rem)] w-120 flex-col overflow-y-auto rounded-lg border p-4 shadow-xl [--panel-top:max(0.5rem,min(calc(var(--button-bottom,4rem)+0.5rem),calc(100dvh-27rem)))] max-sm:inset-x-2 max-sm:top-2 max-sm:max-h-[calc(100dvh-1rem)] max-sm:w-auto"
           role="combobox"
           aria-expanded={isOpen}
           aria-controls="repository-listbox"
