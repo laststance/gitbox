@@ -23,6 +23,7 @@ mkdir -p ~/gitbox-backups && chmod 700 ~/gitbox-backups && umask 077
 ```
 
 - The Supabase CLI version is the one `.github/workflows/supabase-production.yml` pins (`supabase --version` must print the same number). The rehearsal below ran on 2.120.0.
+- `supabase db query` prints a table for a person and JSON (`{"rows": [...]}`) when it finds itself run by an AI agent. A block that reads the answer with `jq` asks for the JSON by name, with `--agent yes`. Without it such a block works for an agent and fails for a person (`jq: parse error`), and what it wrote is empty.
 
 What the CLI shows, observed with 2.120.0: a failed migration prints the exception message and its `DETAIL`, then the whole statement. It prints neither a `HINT` nor a `NOTICE`. That is why the next step of every refusal is written into `DETAIL`, and why no step below reads the `NOTICE`.
 
@@ -230,8 +231,9 @@ ORDER BY kind, id;
 SQL
 
 TSV='.rows[] | [.kind, .id, .holder, .repo, .created_at, .updated_at, .extra] | @tsv'
-supabase db query --local -f ~/gitbox-backups/manifest-before.sql 2>/dev/null > ~/gitbox-backups/manifest-before.json
+supabase db query --local --agent yes -f ~/gitbox-backups/manifest-before.sql 2>/dev/null > ~/gitbox-backups/manifest-before.json
 jq -r "$TSV" ~/gitbox-backups/manifest-before.json > ~/gitbox-backups/manifest-before.tsv
+[ -s ~/gitbox-backups/manifest-before.tsv ] || echo "the manifest before is empty: stop here"
 cut -f1 ~/gitbox-backups/manifest-before.tsv | sort | uniq -c   # counts per kind
 ```
 
@@ -294,7 +296,7 @@ B=~/gitbox-backups
 TSV='.rows[] | [.kind, .id, .holder, .repo, .created_at, .updated_at, .extra] | @tsv'
 write_manifest_after $B/manifest-before.json $B/manifest-after.sql &&
   supabase_local migration up --local   # expect: "uuid lists ok", then all three migrations applied
-supabase db query --local -f $B/manifest-after.sql 2>/dev/null > $B/manifest-after.json
+supabase db query --local --agent yes -f $B/manifest-after.sql 2>/dev/null > $B/manifest-after.json
 jq -r "$TSV" $B/manifest-after.json > $B/manifest-after.tsv
 [ -s $B/manifest-after.tsv ] || echo "the manifest after is empty: stop here"
 diff $B/manifest-before.tsv $B/manifest-after.tsv | grep '^[<>]' | awk -F'\t' '{print $1, $4, $7}' | sed 's/[0-9a-f]\{8\}-[0-9a-f-]\{27\}/<uuid>/g'
@@ -387,14 +389,15 @@ STAMP=$(date +%Y%m%d-%H%M); B=~/gitbox-backups
 TSV='.rows[] | [.kind, .id, .holder, .repo, .created_at, .updated_at, .extra] | @tsv'
 [ -s $B/manifest-before.sql ] && echo "statement found" || echo "NO $B/manifest-before.sql (section 3 writes it): stop here"
 supabase db dump --linked --data-only --schema public --file $B/prod-public-data-before-merge-$STAMP.sql
-supabase db query --linked -f $B/manifest-before.sql 2>/dev/null > $B/prod-manifest-before-$STAMP.json
+supabase db query --linked --agent yes -f $B/manifest-before.sql 2>/dev/null > $B/prod-manifest-before-$STAMP.json
 jq -r "$TSV" $B/prod-manifest-before-$STAMP.json > $B/prod-manifest-before-$STAMP.tsv
+[ -s $B/prod-manifest-before-$STAMP.tsv ] || echo "the manifest before is empty: stop here, do not merge"
 cut -f1 $B/prod-manifest-before-$STAMP.tsv | sort | uniq -c
 ls -l $B/
 echo "STAMP=$STAMP"   # note this value: sections 6 and 8 start from it
 ```
 
-Expected: the `entry` count equals `entries` above, every file is `-rw-------`, and the last line prints the `STAMP` that names the files. Sections 6 and 8 run in another shell, hours later, and find the files through that value. Between this step and the migration nothing may write to Maintenance, and no check on production or on a preview deployment may add a repository that is in Maintenance to a board.
+Expected: the `entry` count equals `entries` above, no line says that the manifest is empty, every file is `-rw-------`, and the last line prints the `STAMP` that names the files. An empty manifest stops the rollout here: after the merge there is nothing left to take it from. Sections 6 and 8 run in another shell, hours later, and find the files through that value. Between this step and the migration nothing may write to Maintenance, and no check on production or on a preview deployment may add a repository that is in Maintenance to a board.
 
 ## 6. After the merge
 
@@ -429,7 +432,7 @@ B=~/gitbox-backups; BEFORE=$B/prod-manifest-before-$STAMP; AFTER=$B/prod-manifes
 TSV='.rows[] | [.kind, .id, .holder, .repo, .created_at, .updated_at, .extra] | @tsv'
 # write_manifest_after is the function of section 3
 if [ -n "$STAMP" ] && [ -s "$BEFORE.tsv" ] && write_manifest_after "$BEFORE.json" "$AFTER.sql"; then
-  supabase db query --linked -f "$AFTER.sql" 2>/dev/null > "$AFTER.json"
+  supabase db query --linked --agent yes -f "$AFTER.sql" 2>/dev/null > "$AFTER.json"
   jq -r "$TSV" "$AFTER.json" > "$AFTER.tsv"
   [ -s "$AFTER.tsv" ] || echo "the manifest after is empty: stop here"
   diff "$BEFORE.tsv" "$AFTER.tsv" | grep '^[<>]' | awk -F'\t' '{print $1, $4, $7}' | sed 's/[0-9a-f]\{8\}-[0-9a-f-]\{27\}/<uuid>/g'
@@ -519,7 +522,7 @@ B=~/gitbox-backups; MANIFEST=$B/prod-manifest-before-$STAMP.json
 # The GitBox account that belongs to this token, found through the GitHub id the token itself reports
 GITHUB_ID=$(gh api user --jq .id)
 printf '%s' "$GITHUB_ID" | grep -Eq '^[0-9]+$' && echo "github id ok" || echo "NOT a number: stop here"
-OWNER_ID=$(supabase db query --linked "SELECT user_id::text AS id FROM auth.identities WHERE provider = 'github' AND provider_id = '$GITHUB_ID'" 2>/dev/null | jq -r '.rows[].id')
+OWNER_ID=$(supabase db query --linked --agent yes "SELECT user_id::text AS id FROM auth.identities WHERE provider = 'github' AND provider_id = '$GITHUB_ID'" 2>/dev/null | jq -r '.rows[].id')
 printf '%s' "$OWNER_ID" | grep -Eq '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' && echo "owner id ok" || echo "NOT one uuid: stop here"
 jq -r --arg owner "$OWNER_ID" '[.rows[] | select(.kind == "entry" and .holder != $owner)] | length' "$MANIFEST"   # entries of other accounts; they are not filled
 
@@ -603,7 +606,7 @@ The check, by id and not by count:
 B=~/gitbox-backups
 [ -s $B/meta-fill.jsonl ] && echo "document found" || echo "NO $B/meta-fill.jsonl: stop here"
 FILLED_IDS=$(jq -s -r 'map("'"'"'" + .id + "'"'"'") | join(",")' $B/meta-fill.jsonl)
-supabase db query --linked "SELECT id::text AS id, meta FROM repocard WHERE id = ANY(ARRAY[$FILLED_IDS]::uuid[]) ORDER BY id" 2>/dev/null | jq -S -c '.rows[] | {id, meta}' > $B/meta-read-back.jsonl
+supabase db query --linked --agent yes "SELECT id::text AS id, meta FROM repocard WHERE id = ANY(ARRAY[$FILLED_IDS]::uuid[]) ORDER BY id" 2>/dev/null | jq -S -c '.rows[] | {id, meta}' > $B/meta-read-back.jsonl
 jq -S -c '{id, meta}' $B/meta-fill.jsonl | sort > $B/meta-sent.jsonl
 [ -s $B/meta-read-back.jsonl ] && sort $B/meta-read-back.jsonl | diff - $B/meta-sent.jsonl && echo "every card holds what was sent: $(wc -l < $B/meta-sent.jsonl | tr -d ' ') card(s)" || echo "NOT what was sent, or nothing was read back: stop here"
 supabase db query --linked "SELECT tgenabled FROM pg_trigger WHERE tgname = 'update_repocard_updated_at' AND tgrelid = 'public.repocard'::regclass"   # expect O
