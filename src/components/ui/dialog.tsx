@@ -92,9 +92,11 @@ const DialogContent = React.memo(function DialogContent({
           </VisuallyHidden.Root>
         )}
         {children}
+        {/* A 32px target (44px for a finger) around the 16px cross, which
+            stays where it was: 16px from the top and from the right */}
         <DialogPrimitive.Close
           disabled={isCloseDisabled}
-          className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none disabled:opacity-30"
+          className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-2 right-2 flex size-8 items-center justify-center rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none disabled:opacity-30 pointer-coarse:top-0.5 pointer-coarse:right-0.5 pointer-coarse:size-11"
         >
           <X className="h-4 w-4" />
           <span className="sr-only">Close</span>
