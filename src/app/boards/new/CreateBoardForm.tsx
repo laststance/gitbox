@@ -65,6 +65,7 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
 
   const formRef = useRef<HTMLFormElement>(null)
   const nameFieldRef = useRef<HTMLInputElement>(null)
+  const boardsLinkRef = useRef<HTMLAnchorElement>(null)
 
   const isOutcomeUnknown = problem?.kind === 'unconfirmed'
 
@@ -103,18 +104,21 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
 
     // Said once, in the form, next to the buttons: a toast with the same
     // words lands on those buttons on a laptop screen.
-    // flushSync: the field is enabled again once this returns. It lost the
-    // focus when it was disabled for the request, and after a refusal the
-    // name is what the user can change, so the keyboard goes back to it.
+    // flushSync: once this returns the field is enabled again after a
+    // refusal, and "Open your boards" is on the page after an unknown outcome
     flushSync(() => {
       setIsPending(false)
       setProblem({ kind: attempt.status, message: attempt.message })
     })
-    if (
-      attempt.status === 'not-created' &&
-      isFocusLostByForm(formRef.current)
-    ) {
+    // The form let go of the focus when it disabled its controls for the
+    // request. A user who went on to the sidebar meanwhile stays there
+    if (!isFocusLostByForm(formRef.current)) return
+    if (attempt.status === 'not-created') {
+      // After a refusal the name is what the user can change
       nameFieldRef.current?.focus()
+    } else {
+      // The board may exist: the way to the boards is the next step
+      boardsLinkRef.current?.focus()
     }
   }
 
@@ -201,9 +205,9 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
         </Button>
         {isOutcomeUnknown ? (
           // The text above says "check your boards": this is the way there.
-          // It takes the keyboard the disabled form let go of.
+          // handleSubmit gives it the keyboard the disabled form let go of.
           <Button asChild className="flex-1">
-            <Link ref={focusWhenShown} href="/boards">
+            <Link ref={boardsLinkRef} href="/boards">
               Open your boards
             </Link>
           </Button>
@@ -218,24 +222,11 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
 }, areServerRenderedPropsEqual)
 
 /**
- * Ref callback that puts the keyboard focus on an element when React adds it
- * to the page. Defined outside the component so it stays the same function:
- * React calls a new one on every render, and the focus would jump back each
- * time.
- *
- * @param element - The element that was added, or `null` when it is removed.
- * @example
- * <Link ref={focusWhenShown} href="/boards">Open your boards</Link>
- */
-function focusWhenShown(element: HTMLElement | null): void {
-  element?.focus()
-}
-
-/**
  * Says whether the keyboard focus is where the form left it when it disabled
  * its controls: on nothing, or still on one of the form's own controls.
- * Called when a refused creation has ended, before the name field takes the
- * focus, so a user who went on to the sidebar meanwhile is not pulled back.
+ * Called when a creation has ended without a board to open, before the name
+ * field or "Open your boards" takes the focus, so a user who went on to the
+ * sidebar meanwhile is not pulled back.
  *
  * @param form - The form element, or `null` before it is mounted.
  * @returns

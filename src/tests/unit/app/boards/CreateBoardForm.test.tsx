@@ -298,6 +298,46 @@ describe('CreateBoardForm', () => {
     expect(settingsLink).toHaveFocus()
   })
 
+  // Value: protects=a user who went on to another part of the page while the creation ran is not pulled back into the form when nobody could confirm the board; fails_when="Open your boards" takes the focus whatever holds it, as its ref callback did; why_new=the test of this path has the focus fall out of the form's own field, and the test above covers the refusal only; seam=none; no_claim=none
+  test('leaves the keyboard where the user moved it while the request ran when the creation could not be confirmed', async () => {
+    // Arrange: the answer comes when the test says so, and the page has a
+    // link beside the form, as the sidebar has
+    const user = userEvent.setup()
+    let answerCreation: (
+      answer: Awaited<ReturnType<typeof createBoard>>,
+    ) => void = () => {}
+    vi.mocked(createBoard).mockReturnValue(
+      new Promise((resolve) => {
+        answerCreation = resolve
+      }),
+    )
+    render(
+      <>
+        <a href="/settings">Settings</a>
+        <CreateBoardForm />
+      </>,
+    )
+    await user.type(screen.getByLabelText('Board Name'), 'Side Projects{Enter}')
+    const settingsLink = screen.getByRole('link', { name: 'Settings' })
+    settingsLink.focus()
+
+    // Act
+    await act(async () => {
+      answerCreation({
+        success: false,
+        error:
+          'Could not confirm that the board was created. Check your boards before trying again.',
+        errorCode: 'BOARD_CREATION_UNCONFIRMED',
+      })
+    })
+
+    // Assert: the way to the boards is there, and the keyboard stayed
+    expect(
+      await screen.findByRole('link', { name: 'Open your boards' }),
+    ).toBeVisible()
+    expect(settingsLink).toHaveFocus()
+  })
+
   test('announces a refused empty name, ties it to the name field and keeps the keyboard there', async () => {
     // Arrange
     const user = userEvent.setup()

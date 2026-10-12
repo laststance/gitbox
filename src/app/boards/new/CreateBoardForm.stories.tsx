@@ -79,6 +79,43 @@ export const FocusReturnsToNameAfterRefusal: Story = {
 }
 
 /**
+ * Nobody could confirm a creation that was sent with Enter. The name field
+ * stays disabled, so the focus the browser took away from it has no way
+ * back. "Open your boards" takes it: the next step is under the keyboard.
+ */
+export const FocusGoesToBoardsLinkWhenUnconfirmed: Story = {
+  beforeEach: () => {
+    // After two frames, as in the story above: the focus is on the page
+    // itself by the time the answer arrives
+    mocked(createBoard).mockImplementation(async () => {
+      await waitForNextFrames()
+      return {
+        success: false,
+        error:
+          'Could not confirm that the board was created. Check your boards before trying again.',
+        errorCode: 'BOARD_CREATION_UNCONFIRMED',
+      }
+    })
+  },
+  // Value: protects=after a creation nobody could confirm, sent with Enter, the keyboard is on the way to the boards; fails_when=the form gives the focus on only while one of its own controls still holds it, which a browser ends two frames after it disabled the field; why_new=happy-dom leaves the focus on a disabled field, so the unit test of this path passes for that form; seam=none; no_claim=none
+  play: async ({ canvasElement }) => {
+    // Arrange
+    const canvas = within(canvasElement)
+
+    // Act: sent from the field itself, which stays disabled afterwards
+    await userEvent.type(
+      canvas.getByLabelText('Board Name'),
+      'Side Projects{Enter}',
+    )
+
+    // Assert
+    await expect(
+      await canvas.findByRole('link', { name: 'Open your boards' }),
+    ).toHaveFocus()
+  },
+}
+
+/**
  * Waits until the browser has drawn the page twice.
  * Exists for stories whose mocked server has to answer after a frame, called
  * from their `beforeEach`.
