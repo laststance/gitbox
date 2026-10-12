@@ -24,6 +24,8 @@ Signing in needs no password and no OAuth prompt: copy the cookies of the logged
 
 Claude Chrome may complete GitHub OAuth on localhost as `ryota-murakami` without an extra confirmation prompt. GitHub OAuth login on production is permitted too. Confirm the signed-in login is `ryota-murakami` before exercising the app.
 
+A local production build (`pnpm build`, then `pnpm start`) ends the GitHub sign-in on `https://localhost:3008/boards`, which does not load: outside `next dev` the callback builds its redirect with `https`. The session exists by then, so open `http://localhost:3008/boards` by hand.
+
 Local GitBox writes boards and cards to local Supabase. Deleting a card or removing a board does not call GitHub's delete-repository API, so the repository on GitHub stays. On production the boards and cards are the owner's real data.
 
 **🔴 A board without repositories verifies nothing. Add repositories to the board before the check.**
@@ -157,6 +159,8 @@ supabase migration new <description>
 pnpm db:reset
 ```
 
+A migration that takes `EXECUTE` on a function away from a role needs the same `REVOKE` and `GRANT` lines in `scripts/e2e-setup-databases.sh`. The shard databases of `pnpm e2e:parallel` are loaded from a dump without privileges, so a function there is executable by everyone unless the script says otherwise.
+
 ### GitHub OAuth Apps
 
 | Environment | OAuth App Name     | Callback URL                                   |
@@ -213,7 +217,7 @@ pnpm db:reset
 3. Test locally: `pnpm db:reset` applies every migration to a fresh local database
 4. Merge to `main` → the workflow runs `supabase db push` on production right away. There is no approval step, so remove any data the migration would reject before merging
 
-The workflow installs the Supabase CLI at the version it pins (`version:` in `.github/workflows/supabase-production.yml`). The pin and the local CLI are raised together, so a migration is tested with the CLI that runs it.
+The workflow installs the Supabase CLI at the version it pins (`version:` in `.github/workflows/supabase-production.yml`), and `.github/workflows/e2e.yml` pins the same one. The two pins and the local CLI are raised together, so a migration is tested with the CLI that runs it.
 
 **Migrations that move or delete data:**
 
@@ -288,21 +292,22 @@ src/app/
 ### Database Schema (6 tables with RLS)
 
 - **board** - Kanban boards per user (position, subtitle, is_public, share_slug, settings JSONB). RLS shows a board, its columns and its cards to their owner only. A shared board is read through the `get_public_board(p_slug)` function, which returns the name and subtitle of the board with that share slug, its columns and its cards (1000 each at most), without any `user_id`; `/public/[slug]` is the only caller. A field the shared page needs has to be added to the function in a migration
-- **statuslist** - Columns (2D grid layout: gridRow, gridCol)
+- **statuslist** - Columns (2D grid layout: gridRow, gridCol). `color` is `#RRGGBB` or `NULL` (`statuslist_color_hex` check): it is printed into a style attribute, on a shared board into the page a visitor loads, so the table refuses anything else whoever writes
 - **repocard** - GitHub repos as cards. One card per user and repo across all boards: `user_id` is copied from the board by the `set_repocard_user_id` trigger and `repocard_unique_repo_per_user` is unique on `(user_id, lower(repo_owner), lower(repo_name))`. A card's column must be a column of its own board (`check_repocard_status_board` trigger), and a column cannot change boards (`forbid_statuslist_board_change` trigger on `statuslist`). App code reads ownership through the `board` join and never names, filters on or writes `repocard.user_id`. Card reads that reach the client select `REPO_CARD_COLUMNS` (`src/lib/actions/mappers.ts`), which leaves it out; the remaining wildcard selects are server-side ownership checks
 - **projectinfo** - Extended card data (notes, links, comments). `repo_card_id` is `NOT NULL` and unique: a row always belongs to one card and is deleted with it
 - **user_link_presets** - User-defined custom link types
 - **user_settings** - Per-user page customization (boards page title/subtitle)
 
-A board is created together with its columns by `create_board_with_status_lists(p_name, p_columns)`, which `createBoard` and the first-board creation at sign-in (`createFirstBoardIfNeeded`) call, so the app never leaves a board without columns. `p_columns` is a JSON array of `{ name, color }` in column order, and `createBoard` returns `{ id, name, statusLists }`. The function runs with the caller's rights, checks its own input and is executable by `authenticated` only.
+A board is created together with its columns by `create_board_with_status_lists(p_name, p_columns)`, which `createBoard` and the first-board creation at sign-in (`createFirstBoardIfNeeded`) call through `createBoardFromPreset` (`src/lib/actions/board-creation.ts`), so the app never leaves a board without columns. `p_columns` is a JSON array of 1 to 100 `{ name, color }` in column order, and `createBoard` returns `{ id, name, isPublic, statusLists }` (`BoardOption`; a new board is never shared). The function runs with the caller's rights, checks its own input and is executable by `authenticated` only. `createBoardFromPreset` tells a refusal from silence: an error whose code is a SQLSTATE or a PostgREST code (`PGRST` and three digits) came from the database, so nothing was written ("The board was not created. Try again."); an error without such a code (none, a number, a gateway's own text), or with one that says the connection broke (it starts with `08`, `57P` or `PGRST00`), means no answer came back and the board may exist (`BOARD_CREATION_UNCONFIRMED_MESSAGE`). `createBoard` answers with the same text when the board exists and its answer cannot be read, and marks both cases with `errorCode: 'BOARD_CREATION_UNCONFIRMED'`. The browser reads that code, never the text. Both places that create a board call `requestBoardCreation` (`src/lib/utils/request-board-creation.ts`), which waits 15 seconds at most, never rejects, and counts a request that failed on the way or got no answer as unconfirmed too. After an unconfirmed creation the user is led to their boards, not to a second try, which could make a second board: the move dialog offers "Reload Boards" in place of "Create Board", and `/boards/new` offers "Open your boards". `createFirstBoardIfNeeded` never throws: a failure at sign-in is reported and the user lands on an empty board list.
 
 ### Server Actions
 
 ```
 src/lib/actions/
 ├── types.ts                   # ActionResult<T> discriminated union
-├── auth-guard.ts              # withAuthResult, withAuthResultRateLimit, withAuthRateLimit wrappers
+├── auth-guard.ts              # withAuthResult, withAuthResultRateLimit, withAuthRateLimit wrappers (not 'use server')
 ├── board.ts, board-data.ts    # Board CRUD + D&D reorder
+├── board-creation.ts          # Board creation, first board at sign-in, default columns: called by server code only (not 'use server')
 ├── repo-cards.ts              # RepoCard CRUD + D&D
 ├── repo-card-duplicates.ts    # One-repo-per-user rules: placement lookup, split, 23505 mapping (not 'use server')
 ├── project-info.ts            # Notes, links
@@ -332,15 +337,19 @@ Stored in the httpOnly cookie named by `getGitHubTokenCookieName()` in `src/lib/
 
 ### ActionResult\<T\> Pattern
 
-All client-consumed Server Actions return `ActionResult<T>` (`{ success: true, data: T } | { success: false, error: string }`). The guards replace every thrown message with a generic one; throw `ActionUserError` (`src/lib/actions/types.ts`) when the message is meant for the user, and the guards return it verbatim without reporting to Sentry. Three auth guard wrappers: `withAuthResult(action)` for reads, `withAuthResultRateLimit(key, action)` for mutations, `withAuthRateLimit(key, action)` for DnD (throws).
+All client-consumed Server Actions return `ActionResult<T>` (`{ success: true, data: T } | { success: false, error: string, errorCode?: ActionErrorCode }`). The guards replace every thrown message with a generic one; throw `ActionUserError` (`src/lib/actions/types.ts`) when the message is meant for the user, and the guards return it verbatim without reporting to Sentry. Its optional second argument is an `ActionErrorCode`, which the guards pass on as `errorCode`: a client that has to tell one failure from another branches on the code, never on the text. Three auth guard wrappers: `withAuthResult(action)` for reads, `withAuthResultRateLimit(key, action)` for mutations, `withAuthRateLimit(key, action)` for DnD (throws).
+
+Every `export async function` of a `'use server'` file is an endpoint a signed-in browser can call with arguments of its choice, whether or not a component imports it. A function that only server code calls (the OAuth callback, another action) lives in a file without `'use server'`: `auth-guard.ts`, `board-creation.ts`, `repo-card-duplicates.ts`, `project-info-core.ts`. `src/tests/unit/lib/actions/browser-callable-actions.test.ts` lists every endpoint of `src/lib/actions` and fails for an export it does not list: add a new Server Action there, after checking who may call it, with what and how often.
 
 ### Board data and optimistic writes
 
-`useBoardServerSync` (called once by `BoardPageClient`) is the only place the page's server data enters the Redux store, and the only code that fetches a board again (`router.refresh()`). Card and column drags, undo, remove and Move to Another Board wrap their server action in `trackBoardWrite(dispatch, …)` (`src/lib/redux/slices/boardSyncSlice.ts`). Data fetched for the board on screen is not applied while one of those saves is pending or after the board changed mid-fetch; it is dropped and the board is fetched once more. Column create, rename and delete, adding repositories and comment edits are not counted yet (see TODOS.md). A failed optimistic save (drag, undo, remove) calls `useBoardRollback`, which restores the previous cards or columns only when the store still holds what that write put there, and otherwise dispatches `boardRefreshRequested()`; `notifyFailedBoardSave` words the toast from what the rollback returned. Move to Another Board is not optimistic: the card leaves the store when the server has answered, through `removeMovedRepoCard`, and only while the store still holds the board the card came from; a refused move shows its error in the dialog. Do not call `router.refresh()` or dispatch `setRepoCards(initialData…)` from anywhere else on the board page.
+`useBoardServerSync` (called once by `BoardPageClient`) is the only place the page's server data enters the Redux store, and the only code that fetches a board again (`router.refresh()`). Card and column drags, undo, remove and Move to Another Board wrap their server action in `trackBoardWrite(dispatch, …)` (`src/lib/redux/slices/boardSyncSlice.ts`). Data fetched for the board on screen is not applied while one of those saves is pending or after the board changed mid-fetch; it is dropped and the board is fetched once more. A save is counted as pending for 15 seconds at most (`SERVER_ANSWER_TIME_LIMIT_MS`, `src/lib/constants/requests.ts`). At that limit `trackBoardWrite` stops counting it, dispatches `boardRefreshRequested()` and calls its third argument: drags, undo and remove pass `reportUnconfirmedBoardSave` (`src/lib/utils/report-unconfirmed-board-save.ts`), which leaves a warning in Sentry and shows "Could not confirm that the change was saved" with the action "Reload page". An answer that arrives later asks for one more fetch. Next.js sends Server Actions and `router.refresh()` one after another (one queue; only a navigation goes ahead of it), so the fetch after an overdue save goes out when that save has settled, and the limit starts when the action is called, which can be before it is sent. `reloadPage` (`src/lib/utils/reload-page.ts`) is the way that waits for nothing, and every notice of an unknown outcome offers it. Column create, rename and delete, adding repositories and comment edits are not counted yet (see TODOS.md). A failed optimistic save (drag, undo, remove) calls `useBoardRollback`, which restores the previous cards or columns only when the store still holds what that write put there, and otherwise dispatches `boardRefreshRequested()`; `notifyFailedBoardSave` words the toast from what the rollback returned. Move to Another Board is not optimistic: the card leaves the store when the server has answered, through `removeMovedRepoCard`, and only while the store still holds the board the card came from; a refused move shows its error in the dialog. The dialog waits the same 15 seconds for an answer (`settleWithin`, `src/lib/utils/settle-within.ts`) and stays open meanwhile. A move that was refused, failed on the way or got no answer in that time dispatches `boardRefreshRequested()`, because the card may have moved all the same, and `moveCardToBoard` can be sent again without harm: a card that is already on the target board is put at the end of the chosen column once more. After a move with an unknown outcome the dialog offers "Reload page" under its message. `getUserBoardsWithStatusLists` returns `isPublic` for each board: the dialog marks a shared board in its list, says what the public link shows of the repository when one is the destination, and opens on a shared board only when the last move from this board went there or the user has no other. The Add Repositories picker says the same on a shared board (`isBoardShared`). Do not call `router.refresh()` or dispatch `setRepoCards(initialData…)` from anywhere else on the board page.
 
 ### Focus after a card dialog closes
 
-A dialog opened from a card's menu has no trigger element Radix could hand the focus back to, so without help the focus lands on the page itself. `useCardDialogFocusReturn(cardId)` (`src/hooks/board/useCardDialogFocusReturn.ts`) returns `handleCloseAutoFocus` for the dialog content's `onCloseAutoFocus` and `rememberCardSuccessor()`, which is called right before the card leaves the board. Focus then goes to the card (Cancel), or to its neighbor in the column (`findCardFocusSuccessor` in `src/lib/utils/card-focus-target.ts`, which reads `data-repo-card-id`, `data-status-column-id` and `data-column-add-repo` from the page). Move to Another Board and the Remove from Board confirmation use it; a new dialog that is opened from a card should too.
+A dialog opened from a card's menu has no trigger element Radix could hand the focus back to, so without help the focus lands on the page itself. `useCardDialogFocusReturn(cardId)` (`src/hooks/board/useCardDialogFocusReturn.ts`) returns `handleCloseAutoFocus` for the dialog content's `onCloseAutoFocus` and `rememberCardSuccessor()`, which is called right before the card leaves the board. Focus then goes to the card (Cancel), or to its neighbor in the column (`findCardFocusSuccessor` in `src/lib/utils/card-focus-target.ts`, which reads `data-repo-card-id`, `data-status-column-id` and `data-column-add-repo` from the page). Move to Another Board and the Remove from Board confirmation use it; a new dialog that is opened from a card should too. The hook also returns `rememberCardMayLeave()`, for a card that may be gone when the dialog closes without the dialog knowing: the move dialog calls it when it sends a move, while the card surely stands in its column, because a move without an answer has the board fetched again before the dialog learns of it. On close the card takes the focus when it is still on the page, and the neighbor picked at that moment takes it otherwise.
+
+Inside the Move dialog every control is disabled while a request runs, and a disabled control loses the focus. Each ending therefore puts the focus on the control needed next (`flushSync`, then `.focus()`): Move after a move that did not go through, the name field after a refused creation, "Reload Boards" after one that could not be confirmed. The first control of a view that appears (the Board select once the boards are loaded, "Try again" after a failed load) takes the focus when nothing else holds it (`isFocusAtRest`). What one opening of the dialog holds (the destination picked so far, the create form, the request it waits for, the reason of a failed move) lives in `useMoveDialogState` (`src/hooks/board/useMoveDialogState.ts`), which returns one view and named steps; a step that is followed by `.focus()` is called inside `flushSync` by the dialog.
 
 ### Client Components rendered by Server Components
 
@@ -363,6 +372,10 @@ Sliding window, in-memory per-process. Config in `src/lib/rate-limit/config.ts`.
 ### Security Event Logging
 
 `logSecurityEvent(type, context)` in `src/lib/security-events.ts`. Sentry-based audit trail for auth lifecycle events.
+
+### Server Actions in stories
+
+`pnpm test` also runs every story in a browser (the `storybook` project of `vitest.config.ts`), without a Next.js server. A Server Action that a component calls there runs as written and answers "Authentication required". `.storybook/preview.tsx` registers `src/lib/actions/board.ts` with `sb.mock(import('../src/lib/actions/board.ts'), { spy: true })`, which turns its exports into spies while the module is transformed, and a story that needs an answer sets it in `beforeEach`: `mocked(toggleBoardFavorite).mockResolvedValue({ success: true, isFavorite: true })`. Register another action file the same way. Do not use `vi.mock` in `.storybook/vitest.setup.ts`: that mock is put in place while the tests run and loses against a story file's own import now and then. The story "Optimistic Favorite Toggle" failed that way about one run in ten until 2026-10-12, on `main` too.
 
 ---
 
@@ -515,6 +528,8 @@ Uses `@laststance/redux-storage-middleware` (npm) for localStorage persistence o
 Light: default, sunrise, sandstone, mint, sky, lavender, rose
 Dark: dark, midnight, graphite, forest, ocean, plum, rust
 
+The label on a destructive fill is `text-destructive-foreground`, never `text-white`: the token is near-white in the light themes and black in the dark ones, whose reds are too light for a white label (2.8:1 on the default dark theme). `src/tests/unit/styles/destructive-color-contrast.test.ts` computes the contrast of `--destructive` for every theme: the label at rest and on hover (`/90`), red text on each surface and on its own 5% and 10% tint. Change a red, or the opacity of a hover or a tint, only together with that test.
+
 ### Shortcuts
 
 | Key             | Action          |
@@ -524,6 +539,8 @@ Dark: dark, midnight, graphite, forest, ocean, plum, rust
 | `Enter`         | Open card       |
 | `Z`             | Undo            |
 | `?`             | Help            |
+
+`Z` does nothing while a dialog, a menu or a list of options is open (`isOverlayOpen`, `src/lib/utils/is-overlay-open.ts`): a key typed there belongs to that layer, and a Radix Select lets it travel on to the window.
 
 ---
 

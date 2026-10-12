@@ -110,6 +110,7 @@
 - Batch addition / duplicate detection
 - **Organization Filter**: Filter repositories by user/org (persisted to Redux/localStorage)
 - **One repository, one card per user** ([#215](https://github.com/laststance/gitbox/issues/215)): a repository can sit on at most one of a user's boards. Identity is `owner/name`, case-insensitive. The database enforces it.
+- **Shared board**: on a board that is shared by a public link, the combobox says above its buttons that anyone who has the link will see the added repositories with their descriptions
 - **Already placed elsewhere**: the combobox lists repos held by another board (`On <board name>`) under their own heading, each with a link to that board, instead of offering them. Repos on the current board stay hidden. Placements are fetched every time the combobox opens.
 - **First Board auto-creation**: On sign-in, a user who has no board gets a board named "First Board" with the Software Release columns (`createFirstBoardIfNeeded` in the OAuth callback; the board and its columns are written together by the `create_board_with_status_lists` database function)
 
@@ -129,6 +130,7 @@
 - **Column Width Constraint**: CSS variable `--column-width: 320px`, `minmax(280px, var(--column-width))`
 - **Card**: repo name, quick note, optional meta (Stars/Updated/Visibility/Language/Topics)
 - **⋯ (Overflow menu)**: external links, Move to Another Board and Remove from Board (see 4.1). Notes and links open from the card's Note button
+- **A save without an answer**: a drag, an undo or a removal that gets no answer from the server within 15 seconds stays on screen. A notice says that the change could not be confirmed and offers **Reload page**, and the board is fetched again once the request has settled
 - **Favorites**: Add board to favorites (star icon, prioritized in sidebar)
 - **Board Subtitle**: Optional description below board title (max 100 chars, inline editable)
 - **Inline Editable Header**: Board title and subtitle are click-to-edit (`InlineEditableText` component)
@@ -140,8 +142,13 @@
 - **Public Board Sharing**: Make boards publicly viewable via unique share slug (read-only for visitors)
 - **Copy Link** (board header): Copies the public share link while the board is shared; otherwise the board's own address, with a note that only the owner can open it
 - **Move to Another Board**: Move repo cards between boards via dialog (DB RPC `move_card_to_board`). The card keeps its note, links and comment, so this is how a repository is set aside and brought back: move it to a board of your own, and move it again later
-  - The dialog can create the destination board: **New board…** under the board selector, or the create form directly when the user has no other board. A board made there has one column, "Repositories"
-  - The dialog opens on the board the last move from this board went to, when that board is still offered (remembered in this browser)
+  - The dialog can create the destination board: **New Board...** under the board selector, or the create form directly when the user has no other board. A board made there has one column, "Repositories"
+  - The dialog opens on the board the last move from this board went to, when that board is still offered (remembered in this browser). Without one it opens on the newest board that is not shared by a public link
+  - A board that is shared by a public link carries the mark of a public board in the list. When it is the destination, the dialog says that anyone who has the link will see the repository there with its description, and that notes, links and comments stay private
+  - The columns of the destination are listed in the order its board shows them, and the first one (the left-most of the first row) is selected until another is picked
+  - While the move or a board creation waits for the server the dialog stays open and its controls are disabled. After 15 seconds without an answer it says that the outcome could not be confirmed and can be closed again. After every move that was not confirmed the board is fetched again, and the same move can be sent a second time without harm. That fetch waits until the request has settled, so the dialog offers **Reload page** next to the message of a move with an unknown outcome
+  - A board creation that could not be confirmed is not sent a second time from the dialog, because the board may exist: **Reload Boards** loads the list again and shows it
+  - The keyboard focus is on the Board select once the boards are loaded, and after a request that did not go through on the control needed next (Move, the name field, Reload Boards)
 - **Remove from Board**: Deletes the card together with its note, links and comment, after a confirmation. The repository on GitHub is not affected
 - **Board D&D Reorder**: Drag & drop board cards on `/boards` page to reorder (position persisted to DB)
   - GripVertical drag handle (visible on hover)
@@ -478,7 +485,7 @@ Remove from Board       // Destructive, confirmation dialog; deletes the card wi
 - `.` — Focused card's Overflow menu
 - `Enter` — Open card
 - `⌘K` / `Ctrl+K` — Command Palette
-- `Z` — Undo last operation
+- `Z` — Undo last operation (not while a dialog, a menu or a list of options is open)
 - `Tab` — Focus navigation
 - `Escape` — Close menu/dialog
 - `?` — Shortcuts help
@@ -691,7 +698,7 @@ statuslist {
   id uuid PRIMARY KEY,
   board_id uuid REFERENCES board,
   name text NOT NULL,
-  color text,
+  color text,                  -- #RRGGBB or NULL (CHECK statuslist_color_hex)
   order integer,
   grid_row integer DEFAULT 0,  -- 2D grid row position
   grid_col integer DEFAULT 0,  -- 2D grid column position
@@ -758,7 +765,6 @@ interface SettingsState {
 
 // Board Slice (Persistence: localStorage; the board on screen, replaced by server data when a board opens)
 interface BoardState {
-  activeBoard: SimplifiedBoard | null
   statusLists: StatusListDomain[]
   repoCards: RepoCardForRedux[]
 }
@@ -838,7 +844,7 @@ interface RepoCardMeta {
 ### Accessibility
 
 - All 14 themes meet **4.5:1** for body text, **3:1+** for UI elements (includes automated tests)
-- The keyboard focus stays on the board when a dialog opened from a card's menu closes: on the card after Cancel, and after Move to Another Board or Remove from Board on the next card of the column (the card above when it was the last one, the column's "Add Repo" button when it was the only one)
+- The keyboard focus stays on the board when a dialog opened from a card's menu closes: on the card after Cancel, and after Move to Another Board or Remove from Board on the next card of the column (the card above when it was the last one, the column's "Add Repo" button when it was the only one). The same holds when a move without a confirmation went through all the same and the card is gone by the time its dialog is closed
 
 ---
 

@@ -229,11 +229,11 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 **Why:** The action sends these queries one after the other, and none of them needs the answer of another.
 
-**Context:** `src/lib/actions/repo-cards.ts`. The unit tests stub the queries in call order, so they need updating together. Once the production migration is applied and no legacy duplicate remains, the target-board pre-check in `moveCardToBoard` can go as well (the unique index covers it).
+**Context:** `src/lib/actions/repo-cards.ts`. The unit tests stub the queries in call order, so they need updating together.
 
 **Effort:** S
 **Priority:** P3
-**Depends on:** Production migration of #215 applied
+**Depends on:** None
 
 ### Tie `repocard.user_id` and `repocard.status_id` to the board declaratively
 
@@ -285,7 +285,7 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 ## Set Work Aside on Boards (#213): deferred follow-ups
 
-From the `/autoplan` review of issue #213 (a repository that is set aside is a card on an ordinary board). The one follow-up does not block that change.
+From the `/autoplan` review and the code review of issue #213 (a repository that is set aside is a card on an ordinary board). None of the follow-ups blocks that change.
 
 ### Refresh a card's GitHub metadata
 
@@ -293,10 +293,36 @@ From the `/autoplan` review of issue #213 (a repository that is set aside is a c
 
 **Why:** `meta` is a snapshot from the moment a card is added and nothing updates it. A new description, star count, language or visibility on GitHub never reaches the card. Removing the card and adding it again would refresh it, but Remove from Board also deletes the note, links and comment.
 
-**Context:** `meta` is written in one place, `addRepositoriesToBoard` in `src/lib/actions/repo-cards.ts`, from the repository object the browser sends. A refresh should read GitHub on the server (`src/lib/actions/github.ts`) rather than trust a browser payload. It is a feature of its own: a server action with its own rate-limit key, a card-menu entry or a board-level button, and tests, about ten files in all.
+A repository that was renamed or transferred keeps its former owner and name on the card. GitHub answers the former name with the repository at its new place, so the card still opens. But the picker compares names: it offers the repository under its new name as one that sits on no board, and it can be added a second time. Seen on 2026-10-12 in the local check of issue #213, with one migrated card whose repository had moved from the organization to the owner's account.
+
+**Context:** `meta` is written in one place, `addRepositoriesToBoard` in `src/lib/actions/repo-cards.ts`, from the repository object the browser sends. A refresh should read GitHub on the server (`src/lib/actions/github.ts`) rather than trust a browser payload. It is a feature of its own: a server action with its own rate-limit key, a card-menu entry or a board-level button, and tests, about ten files in all. `meta.githubId` is the value that tells a renamed repository from another one: the picker has stored it since 2026-10-11, and the metadata fill of issue #213 wrote it for the migrated cards. Cards added before that date have none (19 on production on 2026-10-12), so a refresh has to write it too.
 
 **Effort:** M
 **Priority:** P3
+**Depends on:** None
+
+### Give a board without columns its default columns once
+
+**What:** Make the write in `createDefaultStatusLists` safe against two requests that read the same board without columns at the same moment: a database function that inserts the default columns only while the board has none (it takes a lock on the board row first), or a unique index on `(board_id, grid_row, grid_col)` with `ON CONFLICT DO NOTHING`.
+
+**Why:** `getBoardBundle` reads the board, sees no column and inserts five. Two tabs that open the board at once both see none, and the board gets ten. It takes a board whose last column was deleted (or one made before boards were created with their columns) and two first views within the same moment, so it is rare, and the extra columns can be deleted by hand. Seen in the review of issue #213; the behavior is older than that change.
+
+**Context:** `src/lib/actions/board-creation.ts` (`createDefaultStatusLists`), `src/lib/actions/board-data.ts` (`getBoardBundle`). `e2e/logged-in/board-without-columns.spec.ts` covers the single view. A unique index on the grid cell would also have to hold during a column swap, which writes two rows one after the other.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Decide what a shared board shows of a private repository
+
+**What:** Leave private repositories out of the public page, or show them without their description, in `get_public_board`; and say in the Sharing tab of the board settings how many private repositories the board holds when it is made public.
+
+**Why:** A shared board shows the owner, the name and the stored `meta` of every card to whoever has the link, with no filter on `meta.visibility`. Since issue #213 the move dialog and the Add Repositories picker say so at the moment a repository is put on a shared board. Making a board public that already holds private repositories says nothing, and the choice itself (should a public page ever show a private repository) was never made.
+
+**Context:** `supabase/migrations/20261011030000_public_board_by_slug_only.sql` (`get_public_board`), `src/app/public/[slug]/PublicBoardClient.tsx`, `src/components/Boards/BoardSettingsDialog.tsx`. The sentences are in `src/components/Modals/MoveToAnotherBoardDialog.tsx` and `src/components/Board/AddRepositoryCombobox.tsx`. `meta.visibility` is a snapshot from when the card was added (see "Refresh a card's GitHub metadata").
+
+**Effort:** S
+**Priority:** P2
 **Depends on:** None
 
 ## Board sync, shared boards and the Sentry tunnel — deferred follow-ups
@@ -309,7 +335,7 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 **Why:** When the browser reports "online" but the server cannot be reached, `router.refresh()` makes Next.js fall back to a full navigation and the app is replaced by the browser's error page; saves fail in exactly that situation, and a failed save is what asks for the fetch. A server action can fail without leaving the app.
 
-**Context:** `src/hooks/board/useBoardServerSync.ts`, `src/lib/redux/slices/boardSyncSlice.ts`. Server actions run one at a time, so the read is ordered after every write already sent. Three smaller gaps close with the same change or become harmless: column create, rename and delete, adding repositories and comment edits are not counted by `trackBoardWrite`, so a fetch can be sent while one of them is in flight; a save of board A that fails after board B was opened asks for a fetch of B; and `useStatusListDialog` builds the next column list from the list it captured before its await.
+**Context:** `src/hooks/board/useBoardServerSync.ts`, `src/lib/redux/slices/boardSyncSlice.ts`. Server actions run one at a time, so the read is ordered after every write already sent. That order is also a wait: `router.refresh()` and a server action both stand in the queue of Next.js behind a write that has no answer yet, so the fetch after an overdue save (issue #213) goes out only when that save has settled, and until then "Reload page" is the way to the saved board. A read that has to get past such a write needs a way outside the queue, a route handler called with `fetch` for one. Three smaller gaps close with the same change or become harmless: column create, rename and delete, adding repositories and comment edits are not counted by `trackBoardWrite`, so a fetch can be sent while one of them is in flight; a save of board A that fails after board B was opened asks for a fetch of B; and `useStatusListDialog` builds the next column list from the list it captured before its await.
 
 **Effort:** M
 **Priority:** P2
@@ -557,11 +583,11 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 ### Polish and simplification left from the board-sync review
 
-**What:** (1) Label the URL field of the Sharing tab in `BoardSettingsDialog`. (2) Give the shared-board 404 page the app's name and logo. (3) Consider turning `useBoardRollback` into two thunks next to `trackBoardWrite`, which removes the hook, its types and four threaded parameters (about 70 lines). (4) Consider sending a signed-in visitor of someone else's shared board from `/board/<id>` to its public link instead of "Board not found". (5) Put `createDefaultStatusLists` behind an auth guard or out of the `'use server'` file: it is exported from one and can be called directly, where row level security limits it to adding default columns to the caller's own boards.
+**What:** (1) Label the URL field of the Sharing tab in `BoardSettingsDialog`. (2) Give the shared-board 404 page the app's name and logo. (3) Consider turning `useBoardRollback` into two thunks next to `trackBoardWrite`, which removes the hook, its types and four threaded parameters (about 70 lines). (4) Consider sending a signed-in visitor of someone else's shared board from `/board/<id>` to its public link instead of "Board not found".
 
 **Why:** Small accessibility, identity and structure gaps. None changes what is saved. The unlabelled field is older than this change.
 
-**Context:** `src/components/Boards/BoardSettingsDialog.tsx`, `src/app/public/[slug]/not-found.tsx`, `src/hooks/board/useBoardRollback.ts`, `src/app/board/[id]/not-found.tsx`, `src/lib/actions/board.ts`.
+**Context:** `src/components/Boards/BoardSettingsDialog.tsx`, `src/app/public/[slug]/not-found.tsx`, `src/hooks/board/useBoardRollback.ts`, `src/app/board/[id]/not-found.tsx`.
 
 **Effort:** M
 **Priority:** P4
