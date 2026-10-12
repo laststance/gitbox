@@ -280,6 +280,40 @@ describe('useKanbanUndo: Z while something lies on top of the board', () => {
     expect(toast.success).not.toHaveBeenCalled()
   })
 
+  // Value: protects=a board change is not taken back from behind the sidebar that lies over the page below 768px; fails_when=the undo shortcut asks only for dialogs, menus and lists, which the opened sidebar is not; why_new=the layers above all have a role, the sidebar sets the page aside with inert; seam=none; no_claim=that the sidebar sets inert (Sidebar.narrow-viewport.test.tsx)
+  test('does not undo the last drag on a board that the opened sidebar has set aside', () => {
+    // Arrange: card-1 was dragged from To Do to Done, and the page is inert,
+    // as the sidebar makes it while it lies over the page on a phone
+    const dispatch = vi.fn()
+    const snapshotBeforeDrag = [makeCard('card-1', 'gitbox', 'status-todo', 0)]
+    const { result, rerender } = renderHook(
+      ({ cards }) =>
+        useKanbanUndo({
+          dispatch,
+          cards,
+          statuses: [],
+          rollbackRepoCards: vi.fn(),
+          rollbackStatusLists: vi.fn(),
+        }),
+      { initialProps: { cards: snapshotBeforeDrag } },
+    )
+    act(() => {
+      result.current.pushCardHistory(snapshotBeforeDrag)
+    })
+    rerender({ cards: [makeCard('card-1', 'gitbox', 'status-done', 0)] })
+    openLayer = document.createElement('main')
+    openLayer.setAttribute('inert', '')
+    document.body.append(openLayer)
+
+    // Act: Z typed on a link of the sidebar reaches the window
+    pressUndoKey()
+
+    // Assert: the card stays in Done, on screen and in the database
+    expect(dispatch).not.toHaveBeenCalled()
+    expect(batchUpdateRepoCardOrders).not.toHaveBeenCalled()
+    expect(toast.success).not.toHaveBeenCalled()
+  })
+
   test('undoes the last drag again once the layer is closed', () => {
     // Arrange: the same drag, and a dialog that was open and is gone again
     const dispatch = vi.fn()
