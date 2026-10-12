@@ -103,7 +103,7 @@ psql_local -At -c "select (select count(*) from board), to_regclass('public.main
 The successful run:
 
 ```bash
-supabase_local migration up --local   # expect: "Migrations applied"
+supabase_local migration up --local   # expect: "Applying migration 20261012090000_remove_maintenance_mode.sql...", then "Local database is up to date."
 psql_local -c "select b.user_id::text like '1111%' as first_user, b.name as board, b.position, s.name as col, r.repo_owner||'/'||r.repo_name as repo, r.\"order\", r.meta, r.updated_at, r.user_id = b.user_id as owner_ok from board b join statuslist s on s.board_id=b.id left join repocard r on r.status_id=s.id order by b.user_id, b.position, r.\"order\""
 psql_local -c "select id, repo_card_id, note, comment, links, updated_at from projectinfo"
 ```
@@ -130,7 +130,7 @@ A second run does nothing. Without the repair the CLI skips the file and the ear
 
 ```bash
 supabase_local migration repair --status reverted 20261012090000 --local
-supabase_local migration up --local   # expect: "Migrations applied"; the counts above are unchanged
+supabase_local migration up --local   # expect: the same two lines; the counts above are unchanged
 ```
 
 The function, called as a signed-in user and as nobody:
@@ -156,7 +156,7 @@ Two more cases, run after the code review (2026-10-12). Start again from section
 psql_local -q -c "UPDATE board SET position = 2147483647 WHERE id = 'b2000000-0000-4000-8000-000000000001'"
 # A column color that carries CSS declarations
 psql_local -q -c "UPDATE statuslist SET color = 'red; position: fixed' WHERE id = 'c2000000-0000-4000-8000-000000000001'"
-supabase_local migration up --local   # expect: "Migrations applied" (all three)
+supabase_local migration up --local   # expect: "Applying migration ..." for each of the three files, then "Local database is up to date."
 psql_local -At -c "select string_agg(name || '@' || position, ', ' order by user_id, position, name) from board"
 # expect: Maintenance@0, Maintenance@2147483647, Work@2147483647
 psql_local -At -c "select name, color, grid_row, grid_col, (select count(*) from repocard r where r.status_id = s.id) from statuslist s where id = 'c2000000-0000-4000-8000-000000000001'"
@@ -168,7 +168,27 @@ Expected: the board of the second user is created at the same highest position i
 One more case, run after the second review (2026-10-12): the write stop of section 5. Start again from section 1 and the rows above, then take the rights away before the first `migration up`:
 
 ```bash
-psql_local -q -c "REVOKE INSERT, UPDATE, DELETE ON public.maintenance FROM authenticated, anon"
+WRITE_STOP="DO \$\$
+BEGIN
+  SET LOCAL lock_timeout = '10s';
+  LOCK TABLE public.maintenance IN SHARE ROW EXCLUSIVE MODE;
+  REVOKE INSERT, UPDATE, DELETE ON public.maintenance FROM authenticated, anon;
+END
+\$\$"
+# A write is under way when the write stop starts: a signed-in account holds the table as every
+# write does (this one deletes nothing) and commits 4 seconds later
+psql_local -q > /dev/null <<'SQL' &
+BEGIN;
+SET LOCAL ROLE authenticated;
+DELETE FROM maintenance WHERE false;
+SELECT pg_sleep(4);
+COMMIT;
+SQL
+sleep 1
+STARTED=$(date +%s)
+psql_local -q -c "$WRITE_STOP"
+echo "the write stop took $(( $(date +%s) - STARTED )) s"   # expect: 3 or 4, the time the open write still took
+wait
 # A signed-in account tries to add the second spelling of a repository it has an entry for ...
 psql_local -At <<'SQL'
 SET ROLE authenticated;
@@ -191,10 +211,12 @@ SELECT restore_to_board('a2000000-0000-4000-8000-000000000001', 'b2000000-0000-4
 SQL
 # expect: ERROR:  permission denied for table maintenance (the function runs with the caller's rights)
 psql_local -At -c "select (select count(*) from maintenance), (select count(*) from repocard)"   # expect: 3|1, as inserted above
-supabase_local migration up --local   # expect: "Migrations applied" (all three)
+supabase_local migration up --local   # expect: "Applying migration ..." for each of the three files, then "Local database is up to date."
 ```
 
-Expected: the three statements are refused and leave no row behind (the card `restore_to_board` had inserted is rolled back with it), the migration runs as it does without the write stop, and its result is the one of the successful run above. Ran this way on 2026-10-12 with 2.120.0; `UPDATE` and `move_to_maintenance` were refused the same way, and the entries could still be read.
+Expected: the write stop waits for the write that is under way and then takes the rights away, the three statements after it are refused and leave no row behind (the card `restore_to_board` had inserted is rolled back with it), the migration runs as it does without the write stop, and its result is the one of the successful run above. Ran this way on 2026-10-12 with 2.120.0; `UPDATE` and `move_to_maintenance` were refused the same way, and the entries could still be read.
+
+What the lock is for, seen the same day on a scratch table with the same rights: without it, an `INSERT` that was running when the rights were taken away wrote its row three seconds later; with it, a write that arrived while the write stop waited was refused when its turn came, and a write stop that waited longer than its `lock_timeout` ended with `canceling statement due to lock timeout` and had changed nothing.
 
 ## 3. Rehearsal, scenario B: a copy of production
 
@@ -383,16 +405,23 @@ MAY_WRITE="SELECT
   has_table_privilege('anon', 'public.maintenance', 'INSERT') AS visitors_may_add,
   has_table_privilege('anon', 'public.maintenance', 'UPDATE') AS visitors_may_change,
   has_table_privilege('anon', 'public.maintenance', 'DELETE') AS visitors_may_delete"
+WRITE_STOP="DO \$\$
+BEGIN
+  SET LOCAL lock_timeout = '10s';
+  LOCK TABLE public.maintenance IN SHARE ROW EXCLUSIVE MODE;
+  REVOKE INSERT, UPDATE, DELETE ON public.maintenance FROM authenticated, anon;
+END
+\$\$"
 supabase db query --linked "$MAY_WRITE"   # note the six values: section 9 gives back what was true
-supabase db query --linked "REVOKE INSERT, UPDATE, DELETE ON public.maintenance FROM authenticated, anon"
+supabase db query --linked "$WRITE_STOP"
 supabase db query --linked "$MAY_WRITE"
 ```
 
-Expected: the second answer is false six times. Stop when one of them is still true: the right was granted by another role, and the statement has to run as that role. Checked on 2026-10-12: all six rights were granted on production, by `postgres`, the role these commands run as.
+Expected: the command in the middle answers `DO`, and the second answer is false six times. `canceling statement due to lock timeout` in place of `DO` means a write to the table was under way for longer than 10 seconds: nothing was changed, run the block again. Stop when one of the six is still true after a run without that error: the right was granted by another role, and the statement has to run as that role. Checked on 2026-10-12: all six rights were granted on production, by `postgres`, the role these commands run as.
 
-Why: the policy of `maintenance` lets every signed-in account write rows of its own through the API, and anyone with a GitHub account can sign in. Two entries that differ only in letter case, written between the counts below and the migration, make the removal refuse, and every later migration waits behind it. Many thousands of entries make it hold its locks for as long as it takes to move them. An entry that is deleted, or restored to a board, after the manifest below was written shows up in section 6 as an entry that is missing. From this block on the entries are what the counts and the manifest say: no account can add, change, delete or restore one. In the build before this PR, "Move to Maintenance", restoring an entry and deleting an entry answer with an error from now until the new build is live. The migration runs as the owner of the table and is not affected, and it drops the table, so after a rollout that went through nothing has to be given back. This one statement is run by hand and not by a migration because it has to hold before the counts are read, and a migration runs at the merge.
+Why: the policy of `maintenance` lets every signed-in account write rows of its own through the API, and anyone with a GitHub account can sign in. Two entries that differ only in letter case, written between the counts below and the migration, make the removal refuse, and every later migration waits behind it. Many thousands of entries make it hold its locks for as long as it takes to move them. An entry that is deleted, or restored to a board, after the manifest below was written shows up in section 6 as an entry that is missing. From this block on the entries are what the counts and the manifest say: no account can add, change, delete or restore one. The block takes a lock on the table before it takes the rights away, because rights alone do not stop a statement that is already running: a write that is under way finishes first and is counted below, and one that arrives meanwhile is refused when its turn comes (section 2 rehearses it). In the build before this PR, "Move to Maintenance", restoring an entry and deleting an entry answer with an error from now until the new build is live. The migration runs as the owner of the table and is not affected, and it drops the table, so after a rollout that went through nothing has to be given back. This one statement is run by hand and not by a migration because it has to hold before the counts are read, and a migration runs at the merge.
 
-The write stop does not cover two things. The note of an entry is a row of `projectinfo`, which the cards use too, so it can still be edited; section 6 says how such an edit shows. And an account that has entries can still put one of those repositories on a board, which is a conflict. No account without entries can make one, because it cannot make an entry any more.
+The write stop does not cover three things. The note of an entry is a row of `projectinfo`, which the cards use too, so it can still be edited; section 6 says how such an edit shows. An account that has entries can still put one of those repositories on a board, which is a conflict. No account without entries can make one, because it cannot make an entry any more. And an account can still be deleted: the app removes the user with the service role, and the user's entries go with it as its boards and cards do (`ON DELETE CASCADE`); section 6 says how that shows too.
 
 ```bash
 cat supabase/.temp/project-ref
@@ -497,7 +526,7 @@ The block reads nothing and compares nothing without the manifest before: an uns
 
 How to read it:
 
-- `entry` and `entry_note` lines must not appear at all. One of them means an entry or a note is not where it has to be: stop the rollout and repair from the dump (section 9). One exception: the write stop of section 5 does not cover notes, so an `entry_note` line whose entry is a card now can be a note that was edited after the manifest was written. Read its text on the card before repairing anything; a newer text is not a loss.
+- `entry` and `entry_note` lines must not appear at all. One of them means an entry or a note is not where it has to be: stop the rollout and repair from the dump (section 9). One exception: the write stop of section 5 does not cover notes, so an `entry_note` line whose entry is a card now can be a note that was edited after the manifest was written. Read its text on the card before repairing anything; a newer text is not a loss. A second exception: an account that was deleted after the manifest was written took everything it had with it. Then every line of one `holder` (the third column of the two `.tsv` files) is a `<` line, its boards, columns and cards as well as its entries, and `supabase db query --linked "SELECT count(*) FROM auth.users WHERE id = '<holder>'"` answers 0. That is the user's own deletion: nothing of it is repaired from the dump.
 - One `> board Maintenance` and one `> column Repositories` per user who had entries are the expected additions. With nothing else written since section 5, `lines that differ` is twice the number of those users.
 - A `card`, `card_note`, `board` or `column` line of a row that existed before means a user wrote something after the manifest was taken (a moved card has another column, `order` or `updated_at`). Look at it by hand; it is not a loss as long as the id, the board and the repository are still there.
 
