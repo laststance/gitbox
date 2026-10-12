@@ -19,6 +19,15 @@
    Light Themes
    ============================================ */
 
+/* --destructive is oklch(0.5 0.2 27) in every light theme. It is a fill
+   under a near-white label (6.4:1, and 5.7:1 on hover, where the fill is 90%
+   over the surface behind it) and it is red text: at least 5.4:1 on the
+   page, and 4.6:1 on its own 10% tint, as in an error box (WCAG AA asks for
+   4.5:1). The reds before, oklch(0.577 0.245 27.325) and oklch(0.55 0.22 27),
+   read as low as 4.1:1 as text on the page and 3.5:1 on the tint.
+   src/tests/unit/styles/destructive-color-contrast.test.ts computes all of
+   it for every theme. */
+
 /* Default - Warm neutral with subtle cream tint */
 html[data-theme='default'] {
   --background: oklch(0.95 0.012 80);
@@ -35,7 +44,7 @@ html[data-theme='default'] {
   --muted-foreground: oklch(0.45 0.015 75);
   --accent: oklch(0.88 0.02 78);
   --accent-foreground: oklch(0.2 0.01 70);
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: oklch(0.5 0.2 27);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.86 0.018 80);
   --input: oklch(0.88 0.015 80);
@@ -62,7 +71,7 @@ html[data-theme='sunrise'] {
   --muted-foreground: oklch(0.43 0.03 65);
   --accent: oklch(0.85 0.055 68);
   --accent-foreground: oklch(0.18 0.03 55);
-  --destructive: oklch(0.55 0.22 27);
+  --destructive: oklch(0.5 0.2 27);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.84 0.045 70);
   --input: oklch(0.86 0.04 72);
@@ -86,7 +95,7 @@ html[data-theme='sandstone'] {
   --muted-foreground: oklch(0.45 0.025 50);
   --accent: oklch(0.85 0.045 52);
   --accent-foreground: oklch(0.2 0.02 45);
-  --destructive: oklch(0.55 0.22 27);
+  --destructive: oklch(0.5 0.2 27);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.84 0.035 50);
   --input: oklch(0.86 0.032 52);
@@ -110,7 +119,7 @@ html[data-theme='mint'] {
   --muted-foreground: oklch(0.45 0.04 152);
   --accent: oklch(0.85 0.055 155);
   --accent-foreground: oklch(0.18 0.04 150);
-  --destructive: oklch(0.55 0.22 27);
+  --destructive: oklch(0.5 0.2 27);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.84 0.045 150);
   --input: oklch(0.86 0.04 152);
@@ -134,7 +143,7 @@ html[data-theme='sky'] {
   --muted-foreground: oklch(0.45 0.04 218);
   --accent: oklch(0.85 0.05 215);
   --accent-foreground: oklch(0.18 0.04 215);
-  --destructive: oklch(0.55 0.22 27);
+  --destructive: oklch(0.5 0.2 27);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.84 0.04 218);
   --input: oklch(0.86 0.035 218);
@@ -158,7 +167,7 @@ html[data-theme='lavender'] {
   --muted-foreground: oklch(0.45 0.05 285);
   --accent: oklch(0.85 0.055 285);
   --accent-foreground: oklch(0.18 0.05 280);
-  --destructive: oklch(0.55 0.22 27);
+  --destructive: oklch(0.5 0.2 27);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.84 0.045 285);
   --input: oklch(0.86 0.04 288);
@@ -182,7 +191,7 @@ html[data-theme='rose'] {
   --muted-foreground: oklch(0.45 0.05 358);
   --accent: oklch(0.85 0.055 358);
   --accent-foreground: oklch(0.18 0.05 355);
-  --destructive: oklch(0.55 0.22 27);
+  --destructive: oklch(0.5 0.2 27);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.84 0.045 0);
   --input: oklch(0.86 0.04 2);
@@ -193,6 +202,14 @@ html[data-theme='rose'] {
 /* ============================================
    Dark Themes
    ============================================ */
+
+/* The label on a destructive fill (--destructive-foreground) is black in
+   every dark theme. Their reds are light enough to read on a dark page, so
+   the near-white label of the light themes fails on them: 2.8:1 on
+   oklch(0.704 0.191 22.216) and 3.6:1 on oklch(0.64 0.2 22). Black reads
+   7.3:1 and 5.7:1 at rest, 6.0:1 and 4.7:1 on hover (WCAG AA asks for
+   4.5:1). The six tinted themes had oklch(0.6 0.2 22) before: black on the
+   hovered fill read 4.0:1 there, and red text on the page as low as 4.3:1. */
 
 /* Dark - shadcn/ui default dark theme */
 html[data-theme='dark'] {
@@ -211,7 +228,7 @@ html[data-theme='dark'] {
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
+  --destructive-foreground: oklch(0 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
@@ -234,8 +251,8 @@ html[data-theme='midnight'] {
   --muted-foreground: oklch(0.65 0.02 255);
   --accent: oklch(0.45 0.15 262);
   --accent-foreground: oklch(0.95 0.01 250);
-  --destructive: oklch(0.6 0.2 22);
-  --destructive-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.64 0.2 22);
+  --destructive-foreground: oklch(0 0 0);
   --border: oklch(0.25 0.03 258);
   --input: oklch(0.22 0.028 258);
   --ring: oklch(0.55 0.2 260);
@@ -258,8 +275,8 @@ html[data-theme='graphite'] {
   --muted-foreground: oklch(0.62 0 0);
   --accent: oklch(0.42 0.015 240);
   --accent-foreground: oklch(0.95 0 0);
-  --destructive: oklch(0.6 0.2 22);
-  --destructive-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.64 0.2 22);
+  --destructive-foreground: oklch(0 0 0);
   --border: oklch(0.28 0 0);
   --input: oklch(0.24 0 0);
   --ring: oklch(0.55 0.02 240);
@@ -282,8 +299,8 @@ html[data-theme='forest'] {
   --muted-foreground: oklch(0.62 0.02 142);
   --accent: oklch(0.42 0.11 146);
   --accent-foreground: oklch(0.95 0.01 140);
-  --destructive: oklch(0.6 0.2 22);
-  --destructive-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.64 0.2 22);
+  --destructive-foreground: oklch(0 0 0);
   --border: oklch(0.25 0.03 143);
   --input: oklch(0.22 0.028 143);
   --ring: oklch(0.5 0.14 145);
@@ -306,8 +323,8 @@ html[data-theme='ocean'] {
   --muted-foreground: oklch(0.62 0.02 197);
   --accent: oklch(0.45 0.1 202);
   --accent-foreground: oklch(0.95 0.01 195);
-  --destructive: oklch(0.6 0.2 22);
-  --destructive-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.64 0.2 22);
+  --destructive-foreground: oklch(0 0 0);
   --border: oklch(0.25 0.03 198);
   --input: oklch(0.22 0.028 198);
   --ring: oklch(0.52 0.12 200);
@@ -330,8 +347,8 @@ html[data-theme='plum'] {
   --muted-foreground: oklch(0.62 0.025 297);
   --accent: oklch(0.45 0.18 302);
   --accent-foreground: oklch(0.95 0.01 295);
-  --destructive: oklch(0.6 0.2 22);
-  --destructive-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.64 0.2 22);
+  --destructive-foreground: oklch(0 0 0);
   --border: oklch(0.25 0.04 298);
   --input: oklch(0.22 0.038 298);
   --ring: oklch(0.52 0.22 300);
@@ -354,8 +371,8 @@ html[data-theme='rust'] {
   --muted-foreground: oklch(0.62 0.02 37);
   --accent: oklch(0.45 0.13 42);
   --accent-foreground: oklch(0.95 0.01 35);
-  --destructive: oklch(0.6 0.2 22);
-  --destructive-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.64 0.2 22);
+  --destructive-foreground: oklch(0 0 0);
   --border: oklch(0.25 0.03 38);
   --input: oklch(0.22 0.028 38);
   --ring: oklch(0.52 0.16 40);

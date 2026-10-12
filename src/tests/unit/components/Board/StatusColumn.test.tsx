@@ -481,4 +481,28 @@ describe('StatusColumn', () => {
       expect(screen.getByTestId('repo-card-card-49')).toBeInTheDocument()
     })
   })
+
+  describe('Keyboard focus hand-over', () => {
+    test('marks the column and its Add Repo button, which take the focus when the last card of the column leaves', () => {
+      // Arrange
+      const noCards: RepoCardForRedux[] = []
+
+      // Act
+      render(
+        <StatusColumn
+          status={defaultStatus}
+          cards={noCards}
+          onAddCard={mockOnAddCard}
+        />,
+      )
+
+      // Assert: card-focus-target.ts finds the column by its id attribute and
+      // the button inside it by its own attribute
+      const column = screen.getByTestId('status-column-status-1')
+      const addRepoButton = screen.getByTestId('add-repo-button')
+      expect(column).toHaveAttribute('data-status-column-id', 'status-1')
+      expect(addRepoButton).toHaveAttribute('data-column-add-repo')
+      expect(column.querySelector('[data-column-add-repo]')).toBe(addRepoButton)
+    })
+  })
 })

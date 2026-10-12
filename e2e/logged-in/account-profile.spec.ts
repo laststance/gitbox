@@ -58,6 +58,31 @@ test.describe('Account Profile Page (Authenticated)', () => {
     }
   })
 
+  test('shows the Boards and Repository Cards tiles side by side, equally wide', async ({
+    page,
+  }) => {
+    // Arrange
+    const main = page.getByRole('main')
+    const boardsTile = main.getByText('Boards', { exact: true }).locator('..')
+    const repositoryCardsTile = main.getByText('Repository Cards').locator('..')
+    await expect(boardsTile).toBeVisible({ timeout: 10000 })
+
+    // Act
+    const boardsBox = await boardsTile.boundingBox()
+    const repositoryCardsBox = await repositoryCardsTile.boundingBox()
+
+    // Assert: one row, the second tile to the right of the first
+    expect(boardsBox).not.toBeNull()
+    expect(repositoryCardsBox).not.toBeNull()
+    expect(repositoryCardsBox!.y).toBe(boardsBox!.y)
+    expect(repositoryCardsBox!.x).toBeGreaterThanOrEqual(
+      boardsBox!.x + boardsBox!.width,
+    )
+    expect(Math.round(repositoryCardsBox!.width)).toBe(
+      Math.round(boardsBox!.width),
+    )
+  })
+
   test('should open delete confirmation dialog', async ({ page }) => {
     // Click Delete Account button
     const deleteButton = page.getByTestId('delete-account-button')

@@ -245,7 +245,9 @@ export const OverflowMenu = memo(function OverflowMenu({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmRemove}
-              className="bg-destructive hover:bg-destructive/90 text-white"
+              // The token, not text-white: white is below AA contrast on the
+              // destructive fill of the dark themes
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               data-testid={`confirm-remove-${cardId}`}
             >
               Remove

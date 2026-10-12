@@ -4,11 +4,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 /**
  * Loading skeleton for account page.
- * Matches layout: profile section, data summary, danger zone.
+ * Matches layout: profile section, data summary, danger zone, in a column as
+ * wide as the one of AccountClient, so the page does not jump when the data
+ * arrives.
  */
 const Loading = memo(function Loading() {
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto max-w-2xl px-4 py-8">
       {/* Header */}
       <div className="mb-6">
         <Skeleton className="h-8 w-32" />

@@ -163,7 +163,7 @@ export const CommentActionsMenu = memo<CommentActionsMenuProps>(
               e.stopPropagation()
               onDelete()
             }}
-            className="text-destructive focus:text-destructive"
+            className="text-destructive focus:text-destructive focus:bg-destructive/10"
             data-testid="comment-action-delete"
           >
             <Trash2 className="mr-2 h-4 w-4" />

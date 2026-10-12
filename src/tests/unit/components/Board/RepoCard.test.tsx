@@ -526,4 +526,22 @@ describe('RepoCard', () => {
       )
     })
   })
+
+  describe('Keyboard focus hand-over', () => {
+    test('carries the card id on the element that can take the keyboard focus', () => {
+      // Arrange
+      const card = defaultCard
+
+      // Act
+      render(<RepoCard card={card} />)
+
+      // Assert: card-focus-target.ts looks this element up to put the focus
+      // back on a card, or on its neighbor when the card leaves
+      const focusableCard = screen
+        .getByTestId('repo-card-card-1')
+        .querySelector('[data-repo-card-id]')
+      expect(focusableCard).toHaveAttribute('data-repo-card-id', 'card-1')
+      expect(focusableCard).toHaveAttribute('tabindex', '0')
+    })
+  })
 })
