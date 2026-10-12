@@ -415,6 +415,17 @@ describe('RepoCard', () => {
       const noteButton = screen.getByLabelText('Open note')
       expect(noteButton).toBeInTheDocument()
     })
+
+    // Value: protects=a card's title is a level-3 heading, one level under its column (h2); fails_when=the title goes back to h4 or stops being a heading; why_new=the card tests find the title through its test id, never by its level; seam=none; no_claim=how a screen reader announces the outline (roles only)
+    test('lists a card in the heading outline under its column: its title is a level-3 heading', () => {
+      // Arrange & Act
+      render(<RepoCard card={defaultCard} />)
+
+      // Assert
+      expect(
+        screen.getByRole('heading', { level: 3, name: 'test-repo' }),
+      ).toBeVisible()
+    })
   })
 
   describe('Comment Actions', () => {

@@ -233,6 +233,29 @@ describe('Sidebar', () => {
       const allBoardsLink = screen.getByRole('link', { name: /all boards/i })
       expect(allBoardsLink).toHaveClass('bg-primary/10')
     })
+
+    // Value: protects=a screen reader is told which page is open, in the open sidebar and in the icon rail; fails_when=aria-current leaves the active link or lands on another link; why_new=the one active-link test reads a CSS class, which a screen reader does not; seam=none; no_claim=how a screen reader announces it (DOM attribute only)
+    test.each([
+      { state: 'open', isCollapsed: false },
+      { state: 'collapsed to the icon rail', isCollapsed: true },
+    ])(
+      'tells a screen reader which page is open when the sidebar is $state: the current link says so and no other link does',
+      ({ isCollapsed }) => {
+        // Arrange / Act: /boards is mocked as the current path
+        renderSidebar({}, isCollapsed)
+
+        // Assert
+        expect(
+          screen.getByRole('link', { name: 'All Boards' }),
+        ).toHaveAttribute('aria-current', 'page')
+        expect(
+          screen.getByRole('link', { name: 'Favorites' }),
+        ).not.toHaveAttribute('aria-current')
+        expect(
+          screen.getByRole('link', { name: 'Settings' }),
+        ).not.toHaveAttribute('aria-current')
+      },
+    )
   })
 
   describe('Navigation Dividers', () => {
@@ -418,6 +441,20 @@ describe('Sidebar', () => {
       expect(
         screen.queryByRole('link', { name: /favorites/i }),
       ).not.toBeInTheDocument()
+    })
+
+    // Value: protects=a screen reader hears whether the links of the Boards section are shown; fails_when=aria-expanded leaves the Boards header or stops following the click; why_new=the toggle test above checks that the links disappear, not the state assistive technology reads; seam=none; no_claim=how a screen reader announces the state (attribute only)
+    test('tells a screen reader whether the Boards links are shown: the header says expanded, and collapsed after a click', () => {
+      // Arrange
+      renderSidebar()
+      const boardsHeader = screen.getByRole('button', { name: /boards/i })
+      expect(boardsHeader).toHaveAttribute('aria-expanded', 'true')
+
+      // Act
+      fireEvent.click(boardsHeader)
+
+      // Assert
+      expect(boardsHeader).toHaveAttribute('aria-expanded', 'false')
     })
   })
 })

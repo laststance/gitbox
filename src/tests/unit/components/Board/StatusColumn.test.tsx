@@ -173,6 +173,17 @@ describe('StatusColumn', () => {
         .querySelector('.cursor-grab')
       expect(header).toBeInTheDocument()
     })
+
+    // Value: protects=a column's title is a level-2 heading, the level right under the board's name (h1); fails_when=the title goes back to h3, which leaves a hole in the heading list, or stops being a heading; why_new=the header tests find the title by its text, never by its level; seam=none; no_claim=how a screen reader announces the outline (roles only)
+    test('lists a column in the heading outline right under the board name: its title is a level-2 heading', () => {
+      // Arrange & Act
+      render(<StatusColumn status={defaultStatus} cards={[]} />)
+
+      // Assert
+      expect(
+        screen.getByRole('heading', { level: 2, name: 'In Progress' }),
+      ).toBeVisible()
+    })
   })
 
   describe('Card List Rendering', () => {
