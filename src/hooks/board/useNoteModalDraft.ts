@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { type ProjectLink } from '@/components/ui/editable-url-item'
+import { NEAR_LIMIT_COUNTER_TEXT_CLASS } from '@/lib/constants/character-counter'
 import {
   deleteDraftNote,
   selectDraftNote,
@@ -210,7 +211,7 @@ export function useNoteModalDraft({
 
   const isNearLimit = charCount >= NOTE_WARNING_THRESHOLD
   const charCountClass = isNearLimit
-    ? 'text-sm text-right text-orange-500'
+    ? `text-sm text-right ${NEAR_LIMIT_COUNTER_TEXT_CLASS}`
     : 'text-sm text-right text-muted-foreground'
 
   const isFormValid = links.every(

@@ -61,6 +61,7 @@ import {
   type RenameBoardState,
   type UpdateBoardSettingsState,
 } from '@/lib/actions/board'
+import { NEAR_LIMIT_COUNTER_TEXT_CLASS } from '@/lib/constants/character-counter'
 import {
   type CardDisplaySettings,
   type CommentTextSettings,
@@ -134,14 +135,10 @@ const FONT_WEIGHT_LABELS: Record<keyof typeof COMMENT_FONT_WEIGHTS, string> = {
   semibold: 'Bold',
 }
 
-/**
- * CSS class for character counter; turns orange near the limit.
- * Orange 800 on the light themes and orange 300 on the dark ones: both pass
- * 4.5:1 on every theme's dialog background, which orange 500 did not (2.9:1).
- */
+/** CSS class for character counter; turns orange near the limit. */
 function charCountClass(count: number, max: number): string {
   return count >= max - 10
-    ? 'text-sm text-orange-800 dark:text-orange-300'
+    ? `text-sm ${NEAR_LIMIT_COUNTER_TEXT_CLASS}`
     : 'text-muted-foreground text-sm'
 }
 

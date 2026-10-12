@@ -22,6 +22,7 @@ import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { NEAR_LIMIT_COUNTER_TEXT_CLASS } from '@/lib/constants/character-counter'
 import { cn } from '@/lib/utils'
 import { COMMENT_MAX_LENGTH } from '@/lib/validations/project-info'
 
@@ -275,7 +276,7 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
               '-ml-1.5 rounded px-1.5 py-0.5 text-xs transition-colors',
               isOverLimit &&
                 'bg-destructive text-destructive-foreground font-medium',
-              isWarning && 'bg-background text-orange-800 dark:text-orange-300',
+              isWarning && `bg-background ${NEAR_LIMIT_COUNTER_TEXT_CLASS}`,
               !isOverLimit && !isWarning && 'text-foreground/70',
             )}
           >
