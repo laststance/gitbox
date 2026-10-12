@@ -16,9 +16,9 @@ import { test, expect } from '../fixtures/coverage'
 import { BOARD_IDS } from '../helpers/db-query'
 
 /**
- * The sidebar's own width class as a whole word. The sidebar always carries
- * `max-md:w-16` (the icon rail below 768px), which a bare /w-16/ would match
- * whether the sidebar is collapsed or not.
+ * The sidebar's own width class as a whole word. At this width the sidebar
+ * always carries `max-md:w-16` (the icon rail below 768px), which a bare
+ * /w-16/ would match whether the sidebar is collapsed or not.
  */
 const COLLAPSED_WIDTH_CLASS = /(?:^|\s)w-16(?:\s|$)/
 const EXPANDED_WIDTH_CLASS = /(?:^|\s)w-64(?:\s|$)/

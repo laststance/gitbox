@@ -202,6 +202,28 @@ describe('Sidebar', () => {
 
       expect(store.getState().settings.sidebarCollapsed).toBe(false)
     })
+
+    test('keeps the keyboard focus on the toggle when the sidebar is collapsed and when it is expanded again', () => {
+      // Arrange: the pressed button leaves the page with its layout, and the
+      // button of the other layout takes its place
+      renderSidebar()
+
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
+
+      // Assert
+      expect(
+        screen.getByRole('button', { name: 'Expand sidebar' }),
+      ).toHaveFocus()
+
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }))
+
+      // Assert
+      expect(
+        screen.getByRole('button', { name: 'Collapse sidebar' }),
+      ).toHaveFocus()
+    })
   })
 
   describe('Navigation Links', () => {

@@ -15,7 +15,8 @@ import {
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import React, { useState, memo, useMemo } from 'react'
+import React, { useState, memo, useEffect, useMemo, useRef } from 'react'
+import { flushSync } from 'react-dom'
 
 import { GithubIcon } from '@/components/icons/GithubIcon'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -49,6 +50,8 @@ interface NavItemProps {
   label: string
   isActive: boolean
   isCollapsed?: boolean
+  /** Called when the link is chosen, before the page changes. */
+  onNavigate?: () => void
 }
 
 /**
@@ -60,6 +63,7 @@ const NavItem = memo(function NavItem({
   label,
   isActive,
   isCollapsed = false,
+  onNavigate,
 }: NavItemProps) {
   const linkClassName = useMemo(
     () =>
@@ -75,6 +79,7 @@ const NavItem = memo(function NavItem({
     <Link
       href={href}
       className={linkClassName}
+      onClick={onNavigate}
       // The rail shows the icon alone: the name the label gave is kept
       aria-label={isCollapsed ? label : undefined}
       // Color alone marks the page the user is on
@@ -147,6 +152,8 @@ const NavButton = memo(function NavButton({
 interface SidebarToggleButtonProps {
   isCollapsed: boolean
   onToggle: () => void
+  /** The button element, so the keyboard focus can be put on it. */
+  ref?: React.Ref<HTMLButtonElement>
 }
 
 /**
@@ -155,15 +162,19 @@ interface SidebarToggleButtonProps {
 const SidebarToggleButton = memo(function SidebarToggleButton({
   isCollapsed,
   onToggle,
+  ref,
 }: SidebarToggleButtonProps) {
   return (
     <Tooltip delayDuration={0}>
       <TooltipTrigger asChild>
         <Button
+          ref={ref}
           variant="ghost"
           size="icon"
           onClick={onToggle}
-          className="h-8 w-8 shrink-0"
+          // pointer-coarse: on a touch screen this button is the way to the
+          // labels, so it gets a finger-sized target
+          className="h-8 w-8 shrink-0 pointer-coarse:h-11 pointer-coarse:w-11"
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? (
@@ -195,8 +206,11 @@ interface SidebarProps {
  * - Theme toggle
  * - User profile with sign out option
  * - Collapse/expand toggle with state persistence via Redux
- * - Below 768px always the icon rail, without the toggle: the open sidebar
- *   (256px) leaves a phone 119px for the page
+ * - Below 768px the icon rail: the open sidebar (256px) leaves a phone 119px
+ *   for the page. The toggle opens it over the page there, with its labels,
+ *   until a link, the page behind it or Escape closes it. A touch screen
+ *   shows no tooltip, so that is where the icons get their names. While it
+ *   lies over the page, the page is out of reach as it is under a dialog.
  */
 export const Sidebar = memo(function Sidebar({
   userName = 'User',
@@ -204,245 +218,333 @@ export const Sidebar = memo(function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname()
   const [boardsExpanded, setBoardsExpanded] = useState(true)
-  const { isCollapsed, canExpand, toggle, mounted } = useSidebar()
+  const { isCollapsed, isOverPage, toggle, closeOverPage, mounted } =
+    useSidebar()
+  // Whichever toggle button is on screen: the two layouts each render one
+  const toggleButtonRef = useRef<HTMLButtonElement>(null)
+  // The sidebar's place in the row of the page: what stands beside it there
+  // is the page
+  const placeRef = useRef<HTMLDivElement>(null)
+
+  // While the sidebar lies over the page, the page is out of reach: the
+  // keyboard and a screen reader stay in the sidebar, and Escape closes it
+  // wherever the focus is
+  useEffect(() => {
+    const place = placeRef.current
+    if (!isOverPage || !place?.parentElement) return
+
+    const pageParts = Array.from(place.parentElement.children).filter(
+      (element) => element !== place && !element.hasAttribute('inert'),
+    )
+    pageParts.forEach((pagePart) => pagePart.setAttribute('inert', ''))
+
+    const closeOnEscape = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') return
+      // A menu of the sidebar (the theme list) is drawn outside of it and
+      // closes itself on Escape: that key press is not for the sidebar
+      const isInAnotherLayer =
+        event.target instanceof Node &&
+        event.target !== document.body &&
+        !place.contains(event.target)
+      if (isInAnotherLayer) return
+      flushSync(closeOverPage)
+      toggleButtonRef.current?.focus()
+    }
+    document.addEventListener('keydown', closeOnEscape)
+
+    return (): void => {
+      pageParts.forEach((pagePart) => pagePart.removeAttribute('inert'))
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [isOverPage, closeOverPage])
 
   const handleSignOut = async (): Promise<void> => {
     await signOut()
+  }
+
+  /**
+   * Collapses or expands, and keeps the keyboard where it was: the pressed
+   * button leaves the page with its layout and another one takes its place.
+   */
+  const handleToggle = (): void => {
+    // flushSync: the other button is on the page once this returns
+    flushSync(toggle)
+    toggleButtonRef.current?.focus()
+  }
+
+  const handleOpenShortcuts = (): void => {
+    closeOverPage()
+    openShortcutsHelp()
   }
 
   // Determine sidebar width class
   // SSR: Always render expanded (w-64) for stable hydration
   // Client: Use persisted collapsed state from Redux/localStorage
   // max-md: the rail's width from the first paint on a phone, before the
-  // client has swapped the labels for icons; what does not fit yet is cut off
+  // client has swapped the labels for icons; what does not fit yet is cut
+  // off. Not while it is open over the page: then it has its full width.
   const sidebarWidth = cn(
     mounted && isCollapsed ? 'w-16' : 'w-64',
-    'max-md:w-16 max-md:overflow-hidden',
+    !isOverPage && 'max-md:w-16 max-md:overflow-hidden',
   )
 
   return (
     <TooltipProvider>
-      <aside
-        suppressHydrationWarning
-        className={cn(
-          'border-border bg-sidebar text-sidebar-foreground flex h-screen flex-col border-r',
-          'transition-[width] duration-300 ease-out',
-          sidebarWidth,
-        )}
+      {/* The sidebar's place in the row of the page. From 768px it is the
+          sidebar itself (md:contents). Below, the sidebar is fixed to the
+          left edge and this keeps the 64px of the rail: the page starts
+          beside the rail and does not move when the sidebar opens over it */}
+      <div
+        ref={placeRef}
+        data-testid="sidebar-place"
+        className="max-md:w-16 max-md:shrink-0 md:contents"
       >
-        {/* Logo + Toggle */}
-        <div
+        {/* The page behind the opened sidebar: pressing it closes the sidebar */}
+        {isOverPage && (
+          <div
+            data-testid="sidebar-backdrop"
+            aria-hidden="true"
+            onClick={closeOverPage}
+            className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          />
+        )}
+        <aside
           suppressHydrationWarning
           className={cn(
-            'border-sidebar-border flex items-center border-b px-2 py-4',
-            mounted && isCollapsed ? 'justify-center' : 'justify-between',
+            'border-border bg-sidebar text-sidebar-foreground flex h-screen flex-col border-r',
+            // Below 768px over the page, not beside it: as the rail it covers
+            // its place, opened it covers the left of the page
+            'max-md:fixed max-md:inset-y-0 max-md:left-0',
+            isOverPage ? 'max-md:z-50 max-md:shadow-xl' : 'max-md:z-30',
+            'transition-[width] duration-300 ease-out',
+            sidebarWidth,
           )}
         >
+          {/* Logo + Toggle */}
           <div
+            suppressHydrationWarning
             className={cn(
-              'flex items-center gap-2',
-              mounted && isCollapsed && 'justify-center',
+              'border-sidebar-border flex items-center border-b px-2 py-4',
+              mounted && isCollapsed ? 'justify-center' : 'justify-between',
             )}
           >
-            <GithubIcon className="text-sidebar-primary h-6 w-6 shrink-0" />
-            {(!mounted || !isCollapsed) && (
-              <span className="text-lg font-semibold">GitBox</span>
+            <div
+              className={cn(
+                'flex items-center gap-2',
+                mounted && isCollapsed && 'justify-center',
+              )}
+            >
+              <GithubIcon className="text-sidebar-primary h-6 w-6 shrink-0" />
+              {(!mounted || !isCollapsed) && (
+                <span className="text-lg font-semibold">GitBox</span>
+              )}
+            </div>
+            {mounted && !isCollapsed && (
+              <SidebarToggleButton
+                ref={toggleButtonRef}
+                isCollapsed={isCollapsed}
+                onToggle={handleToggle}
+              />
             )}
           </div>
-          {mounted && !isCollapsed && (
-            <SidebarToggleButton isCollapsed={isCollapsed} onToggle={toggle} />
-          )}
-        </div>
 
-        {/* Toggle button when collapsed - shown below logo.
-            Not on a phone: the rail is all that fits there. */}
-        {isCollapsed && mounted && canExpand && (
-          <div className="border-sidebar-border flex justify-center border-b py-2">
-            <SidebarToggleButton isCollapsed={isCollapsed} onToggle={toggle} />
-          </div>
-        )}
-
-        {/* Navigation */}
-        <nav
-          suppressHydrationWarning
-          className={cn(
-            'flex-1 overflow-y-auto py-4',
-            mounted && isCollapsed ? 'px-2' : 'px-3',
-          )}
-        >
-          {/* Boards Section - collapsible header only when expanded */}
-          {/* SSR: Always render expanded content for stable hydration */}
-          {(!mounted || !isCollapsed) && (
-            <div className="mb-4">
-              <button
-                type="button"
-                onClick={() => setBoardsExpanded(!boardsExpanded)}
-                className="text-sidebar-foreground hover:bg-sidebar-accent flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold"
-                // The chevron alone says whether the links below are shown
-                aria-expanded={boardsExpanded}
-              >
-                <span>Boards</span>
-                {boardsExpanded ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </button>
-
-              {boardsExpanded && (
-                <div className="mt-1 ml-2 space-y-1">
-                  <NavItem
-                    href="/boards"
-                    icon={ICON_LAYOUT_DASHBOARD}
-                    label="All Boards"
-                    isActive={pathname === '/boards'}
-                    isCollapsed={mounted && isCollapsed}
-                  />
-                  <NavItem
-                    href="/boards/favorites"
-                    icon={ICON_STAR}
-                    label="Favorites"
-                    isActive={pathname === '/boards/favorites'}
-                    isCollapsed={mounted && isCollapsed}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Boards Section - flat icons when collapsed */}
-          {/* Only render collapsed content after hydration completes */}
-          {mounted && isCollapsed && (
-            <div className="mb-4 space-y-1">
-              <NavItem
-                href="/boards"
-                icon={ICON_LAYOUT_DASHBOARD}
-                label="All Boards"
-                isActive={pathname === '/boards'}
-                isCollapsed={mounted && isCollapsed}
-              />
-              <NavItem
-                href="/boards/favorites"
-                icon={ICON_STAR}
-                label="Favorites"
-                isActive={pathname === '/boards/favorites'}
-                isCollapsed={mounted && isCollapsed}
+          {/* Toggle button when collapsed - shown below logo */}
+          {isCollapsed && mounted && (
+            <div className="border-sidebar-border flex justify-center border-b py-2">
+              <SidebarToggleButton
+                ref={toggleButtonRef}
+                isCollapsed={isCollapsed}
+                onToggle={handleToggle}
               />
             </div>
           )}
 
-          {/* Divider */}
-          <div className="border-sidebar-border my-4 border-t" />
-
-          {/* Settings */}
-          <NavItem
-            href="/settings"
-            icon={ICON_SETTINGS}
-            label="Settings"
-            isActive={pathname === '/settings'}
-            isCollapsed={mounted && isCollapsed}
-          />
-
-          {/* Shortcuts - button that opens ShortcutsHelp modal */}
-          <NavButton
-            icon={ICON_KEYBOARD}
-            label="Shortcuts"
-            onClick={openShortcutsHelp}
-            isCollapsed={mounted && isCollapsed}
-          />
-
-          {/* Theme Toggle */}
-          <ThemeToggle isCollapsed={mounted && isCollapsed} />
-        </nav>
-
-        {/* Profile & Sign Out */}
-        <div
-          suppressHydrationWarning
-          className={cn(
-            'border-sidebar-border border-t py-4',
-            mounted && isCollapsed ? 'px-2' : 'px-3',
-          )}
-        >
-          {/* Profile Link */}
-          {mounted && isCollapsed ? (
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>
-                <Link
-                  href="/account"
-                  className="hover:bg-sidebar-accent flex items-center justify-center rounded-lg py-2 transition-colors"
-                  // Without an avatar image nothing else names the link
-                  aria-label={userName}
+          {/* Navigation */}
+          <nav
+            suppressHydrationWarning
+            className={cn(
+              'flex-1 overflow-y-auto py-4',
+              mounted && isCollapsed ? 'px-2' : 'px-3',
+            )}
+          >
+            {/* Boards Section - collapsible header only when expanded */}
+            {/* SSR: Always render expanded content for stable hydration */}
+            {(!mounted || !isCollapsed) && (
+              <div className="mb-4">
+                <button
+                  type="button"
+                  onClick={() => setBoardsExpanded(!boardsExpanded)}
+                  className="text-sidebar-foreground hover:bg-sidebar-accent flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold"
+                  // The chevron alone says whether the links below are shown
+                  aria-expanded={boardsExpanded}
                 >
-                  {userAvatar ? (
-                    <Image
-                      src={userAvatar}
-                      alt={userName}
-                      width={32}
-                      height={32}
-                      className="h-8 w-8 rounded-full"
-                    />
+                  <span>Boards</span>
+                  {boardsExpanded ? (
+                    <ChevronDown className="h-4 w-4" />
                   ) : (
-                    <div className="bg-sidebar-accent flex h-8 w-8 items-center justify-center rounded-full">
-                      <User className="h-4 w-4" />
-                    </div>
+                    <ChevronRight className="h-4 w-4" />
                   )}
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent side="right">{userName}</TooltipContent>
-            </Tooltip>
-          ) : (
-            <Link
-              href="/account"
-              className="hover:bg-sidebar-accent flex items-center gap-3 rounded-lg px-3 py-2 transition-colors"
-            >
-              {userAvatar ? (
-                <Image
-                  src={userAvatar}
-                  alt={userName}
-                  width={32}
-                  height={32}
-                  className="h-8 w-8 rounded-full"
-                />
-              ) : (
-                <div className="bg-sidebar-accent flex h-8 w-8 items-center justify-center rounded-full">
-                  <User className="h-4 w-4" />
-                </div>
-              )}
-              <div className="flex-1 truncate">
-                <p className="truncate text-sm font-medium">{userName}</p>
-              </div>
-            </Link>
-          )}
+                </button>
 
-          {/* Sign Out Button */}
-          {mounted && isCollapsed ? (
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleSignOut}
-                  className="text-muted-foreground hover:text-foreground mt-2 w-full"
-                  aria-label="Sign Out"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Sign Out</TooltipContent>
-            </Tooltip>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSignOut}
-              className="text-muted-foreground hover:text-foreground mt-2 w-full justify-start gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </Button>
-          )}
-        </div>
-      </aside>
+                {boardsExpanded && (
+                  <div className="mt-1 ml-2 space-y-1">
+                    <NavItem
+                      href="/boards"
+                      icon={ICON_LAYOUT_DASHBOARD}
+                      label="All Boards"
+                      isActive={pathname === '/boards'}
+                      isCollapsed={mounted && isCollapsed}
+                      onNavigate={closeOverPage}
+                    />
+                    <NavItem
+                      href="/boards/favorites"
+                      icon={ICON_STAR}
+                      label="Favorites"
+                      isActive={pathname === '/boards/favorites'}
+                      isCollapsed={mounted && isCollapsed}
+                      onNavigate={closeOverPage}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Boards Section - flat icons when collapsed */}
+            {/* Only render collapsed content after hydration completes */}
+            {mounted && isCollapsed && (
+              <div className="mb-4 space-y-1">
+                <NavItem
+                  href="/boards"
+                  icon={ICON_LAYOUT_DASHBOARD}
+                  label="All Boards"
+                  isActive={pathname === '/boards'}
+                  isCollapsed={mounted && isCollapsed}
+                />
+                <NavItem
+                  href="/boards/favorites"
+                  icon={ICON_STAR}
+                  label="Favorites"
+                  isActive={pathname === '/boards/favorites'}
+                  isCollapsed={mounted && isCollapsed}
+                />
+              </div>
+            )}
+
+            {/* Divider */}
+            <div className="border-sidebar-border my-4 border-t" />
+
+            {/* Settings */}
+            <NavItem
+              href="/settings"
+              icon={ICON_SETTINGS}
+              label="Settings"
+              isActive={pathname === '/settings'}
+              isCollapsed={mounted && isCollapsed}
+              onNavigate={closeOverPage}
+            />
+
+            {/* Shortcuts - button that opens ShortcutsHelp modal */}
+            <NavButton
+              icon={ICON_KEYBOARD}
+              label="Shortcuts"
+              onClick={handleOpenShortcuts}
+              isCollapsed={mounted && isCollapsed}
+            />
+
+            {/* Theme Toggle */}
+            <ThemeToggle isCollapsed={mounted && isCollapsed} />
+          </nav>
+
+          {/* Profile & Sign Out */}
+          <div
+            suppressHydrationWarning
+            className={cn(
+              'border-sidebar-border border-t py-4',
+              mounted && isCollapsed ? 'px-2' : 'px-3',
+            )}
+          >
+            {/* Profile Link */}
+            {mounted && isCollapsed ? (
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <Link
+                    href="/account"
+                    className="hover:bg-sidebar-accent flex items-center justify-center rounded-lg py-2 transition-colors"
+                    // Without an avatar image nothing else names the link
+                    aria-label={userName}
+                  >
+                    {userAvatar ? (
+                      <Image
+                        src={userAvatar}
+                        alt={userName}
+                        width={32}
+                        height={32}
+                        className="h-8 w-8 rounded-full"
+                      />
+                    ) : (
+                      <div className="bg-sidebar-accent flex h-8 w-8 items-center justify-center rounded-full">
+                        <User className="h-4 w-4" />
+                      </div>
+                    )}
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="right">{userName}</TooltipContent>
+              </Tooltip>
+            ) : (
+              <Link
+                href="/account"
+                onClick={closeOverPage}
+                className="hover:bg-sidebar-accent flex items-center gap-3 rounded-lg px-3 py-2 transition-colors"
+              >
+                {userAvatar ? (
+                  <Image
+                    src={userAvatar}
+                    alt={userName}
+                    width={32}
+                    height={32}
+                    className="h-8 w-8 rounded-full"
+                  />
+                ) : (
+                  <div className="bg-sidebar-accent flex h-8 w-8 items-center justify-center rounded-full">
+                    <User className="h-4 w-4" />
+                  </div>
+                )}
+                <div className="flex-1 truncate">
+                  <p className="truncate text-sm font-medium">{userName}</p>
+                </div>
+              </Link>
+            )}
+
+            {/* Sign Out Button */}
+            {mounted && isCollapsed ? (
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleSignOut}
+                    className="text-muted-foreground hover:text-foreground mt-2 w-full"
+                    aria-label="Sign Out"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">Sign Out</TooltipContent>
+              </Tooltip>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSignOut}
+                className="text-muted-foreground hover:text-foreground mt-2 w-full justify-start gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </Button>
+            )}
+          </div>
+        </aside>
+      </div>
     </TooltipProvider>
   )
 })

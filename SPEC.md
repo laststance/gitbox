@@ -313,7 +313,7 @@ interface BoardSettings {
 
 - **useSidebar Hook**: Mounted state management for hydration safety
 - **CSS**: `transition-[width] duration-300 ease-out`
-- **Responsive**: Desktop only (different layout for mobile)
+- **Responsive**: Below 768px the sidebar is the 64px icon rail at the left edge, whatever state is stored, and the page lies beside it. The toggle opens the full sidebar over the page, which keeps its place; the backdrop, Escape and a link of the sidebar close it again. This opened state is not stored
 - **SSR**: Renders expanded (default) state on server, applies persisted state after mount
 
 #### Acceptance Criteria
@@ -1314,6 +1314,7 @@ export async function cdpBoardDragAndDrop(
 | Theme      | `theme-persistence.spec.ts`                | Theme persistence            |
 | Theme      | `theme-visual-application.spec.ts`         | Theme visual application     |
 | Sidebar    | `sidebar-collapse.spec.ts`                 | Sidebar collapse             |
+| Sidebar    | `sidebar-narrow-viewport.spec.ts`          | Sidebar below 768px          |
 | SSR        | `ssr-hydration-board.spec.ts`              | SSR hydration (board)        |
 | Page       | `page-titles.spec.ts`                      | Page titles                  |
 | Unauth     | `landing.spec.ts`                          | Landing page                 |

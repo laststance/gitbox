@@ -18,7 +18,7 @@ const getServerSnapshot = () => false
  * - `true` while the query matches
  * - `false` while it does not, and during SSR and hydration
  * @example
- * const isNarrowViewport = useMediaQuery('(max-width: 767.98px)')
+ * const isNarrowViewport = useMediaQuery('not all and (min-width: 48rem)')
  * // 375px wide phone => true, 1440px wide window => false
  */
 export function useMediaQuery(mediaQuery: string): boolean {
