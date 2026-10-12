@@ -15,6 +15,7 @@ import { test, expect } from '../fixtures/coverage'
 import {
   BOARD_IDS,
   TEST_USER_ID,
+  WORK_PROJECTS_STATUS_IDS,
   createServiceRoleSupabaseClient,
   resetRepoCards,
 } from '../helpers/db-query'
@@ -895,7 +896,8 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
     page,
   }) => {
     // Arrange: five rows need 480px, the list shows 300px of them at most,
-    // and a window of 500px leaves the panel 404px
+    // and a window of 500px leaves the panel 413px (it starts 71px down and
+    // keeps 16px free under it)
     await page.setViewportSize({ width: 1280, height: 500 })
     await page.goto(BOARD_URL)
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -933,7 +935,7 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
   test('scrolls the whole panel on a window too short for a row of the list, so Add can still be reached', async ({
     page,
   }) => {
-    // Arrange: a window of 300px leaves the panel 204px, less than the
+    // Arrange: a window of 300px leaves the panel 213px, less than the
     // search box, the filters and the buttons need on their own
     await page.setViewportSize({ width: 1280, height: 300 })
     await page.goto(BOARD_URL)
@@ -956,7 +958,213 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
     // Assert
     await expect(addButton).toBeInViewport({ ratio: 1 })
   })
+
+  // Value: protects=Cancel and Add are on screen wherever the header puts the button the panel stands under; fails_when=the panel's height is capped by a constant again (the window less 6rem), which is right only while the panel starts 5rem down; why_new=the other tests of this group have the header at its usual height; seam=none; no_claim=which title and subtitle make the header that high (the test pushes its content down itself)
+  test('ends above the bottom edge of the window when the header stands lower than usual', async ({
+    page,
+  }) => {
+    // Arrange: a header whose content begins 120px further down, as a title
+    // and a subtitle that wrap can push it, in a window of 600px
+    await page.setViewportSize({ width: 1280, height: 600 })
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await page.addStyleTag({
+      content: 'header { padding-top: 136px !important; }',
+    })
+
+    // Act
+    await page.getByRole('button', { name: /add repositories/i }).click()
+
+    // Assert: the panel starts 120px lower than its usual 71px ...
+    const panel = page.getByRole('combobox', { expanded: true })
+    await expect(
+      panel
+        .getByRole('listbox', { name: 'Repository options' })
+        .locator('[role="option"]'),
+    ).toHaveCount(5, { timeout: 10000 })
+    const panelBox = await panel.boundingBox()
+    expect(Math.round(panelBox?.y ?? -1)).toBe(191)
+    // ... and ends 16px above the bottom edge, with its buttons on screen
+    expect(Math.round((panelBox?.y ?? 0) + (panelBox?.height ?? 0))).toBe(584)
+    await expect(panel.getByRole('button', { name: 'Cancel' })).toBeInViewport({
+      ratio: 1,
+    })
+    await expect(panel.getByRole('button', { name: 'Add (0)' })).toBeInViewport(
+      { ratio: 1 },
+    )
+  })
+
+  // Value: protects=with repositories placed on another board the picker still shows its search box and Cancel / Add on a short window; fails_when=the list "Already placed elsewhere" keeps its full height, so the panel outgrows the window and scrolls as a whole; why_new=the two tests above empty every board, so that list is never on screen; seam=none; no_claim=the exact heights (they depend on how the font wraps the notice of a shared board)
+  test('keeps the search box and the Cancel / Add row in view on a short window with repositories placed elsewhere: that list gives up height too', async ({
+    page,
+  }) => {
+    // Arrange: four of the five repositories sit on Work Projects, one is
+    // free. Four rows need more than the 184px the list shows at most, and a
+    // window of 560px leaves the panel 473px, about 80px less than it needs.
+    await placeOnWorkProjects([
+      { owner: 'testuser', name: 'test-repo' },
+      { owner: 'testuser', name: 'another-repo' },
+      { owner: 'testuser', name: 'private-project' },
+      { owner: 'laststance', name: 'create-react-app-vite' },
+    ])
+    await page.setViewportSize({ width: 1280, height: 560 })
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+
+    // Act
+    await page.getByRole('button', { name: /add repositories/i }).click()
+
+    // Assert: both lists are there, and the list of placed repositories is
+    // lower than the 184px (max-h-46) it has when the window has room ...
+    const panel = page.getByRole('combobox', { expanded: true })
+    await expect(
+      panel
+        .getByRole('listbox', { name: 'Repository options' })
+        .locator('[role="option"]'),
+    ).toHaveCount(1, { timeout: 10000 })
+    const heldList = panel.getByRole('list', {
+      name: 'Already placed elsewhere',
+    })
+    await expect(heldList.getByRole('listitem')).toHaveCount(4)
+    const heldListHeightPx = (await heldList.boundingBox())?.height
+    expect(heldListHeightPx).toBeLessThan(184)
+    // ... the panel around the lists does not scroll ...
+    const panelScrolls = await panel.evaluate(
+      (element) => element.scrollHeight > element.clientHeight,
+    )
+    expect(panelScrolls).toBe(false)
+    // ... and what stands above and below the lists is on screen
+    await expect(panel.getByPlaceholder(/search repositories/i)).toBeInViewport(
+      { ratio: 1 },
+    )
+    await expect(panel.getByRole('button', { name: 'Cancel' })).toBeInViewport({
+      ratio: 1,
+    })
+    await expect(panel.getByRole('button', { name: 'Add (0)' })).toBeInViewport(
+      { ratio: 1 },
+    )
+  })
 })
+
+/**
+ * AddRepositoryCombobox E2E Tests - Panel Position
+ *
+ * From 640px of window width the panel stands below its button and ends 24px
+ * from the right edge of the window, where the header ends. Hung from the
+ * button's own right edge it began left of the page between 640px and about
+ * 1135px: the button stood less than the panel's 480px into the page. Below
+ * 640px the panel spans the screen. Only a browser lays the panel out, so
+ * this is measured here.
+ */
+test.describe('AddRepositoryCombobox - Panel Position', () => {
+  test.use({ storageState: 'e2e/.auth/user.json' })
+
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
+
+  test.beforeEach(async ({ page }) => {
+    // The sidebar as a new account has it: open, 256px wide from 768px up.
+    // That leaves the page the least room, so a stored choice must not decide.
+    await page.addInitScript(() => {
+      if (sessionStorage.getItem('gitbox-e2e-storage-cleared')) return
+
+      localStorage.removeItem('gitbox-state')
+      sessionStorage.setItem('gitbox-e2e-storage-cleared', 'true')
+    })
+  })
+
+  // Value: protects=the whole Add Repositories panel is on the page at every window width from 640px up; fails_when=the panel is hung from the button's right edge again, which puts its left part under the sidebar or off the screen wherever the button stands less than 480px into the page; why_new=the other tests of the panel open it at 1280px, where both placements fit; seam=none; no_claim=window widths other than the four measured
+  for (const { widthPx, heightPx, pageLeftPx, panelLeftPx } of [
+    { widthPx: 640, heightPx: 900, pageLeftPx: 64, panelLeftPx: 136 },
+    { widthPx: 768, heightPx: 1024, pageLeftPx: 256, panelLeftPx: 264 },
+    { widthPx: 1024, heightPx: 768, pageLeftPx: 256, panelLeftPx: 520 },
+    { widthPx: 1280, heightPx: 800, pageLeftPx: 256, panelLeftPx: 776 },
+  ]) {
+    test(`lies on the page, below its button and 24px from the right edge, on a ${widthPx}px window`, async ({
+      page,
+    }) => {
+      // Arrange
+      await page.setViewportSize({ width: widthPx, height: heightPx })
+      await page.goto(BOARD_URL)
+      await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+      const addRepositoriesButton = page.getByRole('button', {
+        name: /add repositories/i,
+      })
+
+      // Act
+      await addRepositoriesButton.click()
+
+      // Assert: 480px wide, ending 24px before the right edge, so it begins
+      // right of where the page begins ...
+      const panelBox = await page
+        .getByRole('combobox', { expanded: true })
+        .boundingBox()
+      const pageBox = await page.getByRole('main').boundingBox()
+      expect(Math.round(pageBox?.x ?? -1)).toBe(pageLeftPx)
+      expect(Math.round(panelBox?.x ?? -1)).toBe(panelLeftPx)
+      expect(Math.round(panelBox?.width ?? -1)).toBe(480)
+      // ... and 8px below the button that opened it
+      const buttonBox = await addRepositoriesButton.boundingBox()
+      expect(
+        Math.round(
+          (panelBox?.y ?? -1) - (buttonBox?.y ?? 0) - (buttonBox?.height ?? 0),
+        ),
+      ).toBe(8)
+    })
+  }
+
+  // Value: protects=on a phone the panel fills the screen from edge to edge instead of hanging off it; fails_when=the panel keeps its 480px or its place below the button on a 375px screen; why_new=no browser test opened the panel below 640px; seam=none; no_claim=other phone widths
+  test('spans the screen on a 375px phone, 8px from its left, right and top edge', async ({
+    page,
+  }) => {
+    // Arrange
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+
+    // Act
+    await page.getByRole('button', { name: /add repositories/i }).click()
+
+    // Assert
+    const panelBox = await page
+      .getByRole('combobox', { expanded: true })
+      .boundingBox()
+    expect({
+      x: Math.round(panelBox?.x ?? -1),
+      y: Math.round(panelBox?.y ?? -1),
+      width: Math.round(panelBox?.width ?? -1),
+    }).toEqual({ x: 8, y: 8, width: 359 })
+    const pageWidthPx = await page.evaluate(
+      () => document.documentElement.scrollWidth,
+    )
+    expect(pageWidthPx).toBe(375)
+  })
+})
+
+/**
+ * Places repositories on the Work Projects board, bypassing the app, so the
+ * picker of another board lists them under "Already placed elsewhere".
+ * `resetRepoCards` removes them again.
+ * @param repositories - Owner and name of each repository to place.
+ */
+async function placeOnWorkProjects(
+  repositories: { owner: string; name: string }[],
+): Promise<void> {
+  const { error } = await createServiceRoleSupabaseClient()
+    .from('repocard')
+    .insert(
+      repositories.map((repository, index) => ({
+        board_id: BOARD_IDS.workProjects,
+        status_id: WORK_PROJECTS_STATUS_IDS.backlog,
+        repo_owner: repository.owner,
+        repo_name: repository.name,
+        order: index,
+        meta: {},
+      })),
+    )
+  if (error) {
+    throw new Error(`placeOnWorkProjects failed: ${error.message}`)
+  }
+}
 
 /**
  * Deletes every card of the test user, on all boards, so no repository of the

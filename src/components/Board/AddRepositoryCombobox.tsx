@@ -374,7 +374,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   }
 
   return (
-    <div className="relative" ref={comboboxRef}>
+    <div ref={comboboxRef}>
       {/* Combobox trigger button */}
       <button
         type="button"
@@ -402,15 +402,21 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       {/* Combobox panel */}
       {isOpen && (
         <div
-          // Capped to the viewport: with both lists full the panel is taller
-          // than a small laptop screen. flex-col: the two lists, which scroll
-          // by themselves, give up height first (down to one row each), so
-          // the search box and Cancel / Add stay in view. overflow-y-auto:
-          // on a window too short even for that the whole panel scrolls.
-          // max-sm: below 640px the button sits at the left of a stacked
-          // header, and a 480px panel hung from its right edge left the
-          // screen on the left; there the panel spans the screen instead.
-          className="border-border bg-background absolute top-full right-0 z-50 mt-2 flex max-h-[calc(100dvh-6rem)] w-120 flex-col overflow-y-auto rounded-lg border p-4 shadow-xl max-sm:fixed max-sm:inset-x-2 max-sm:top-2 max-sm:mt-0 max-sm:max-h-[calc(100dvh-1rem)] max-sm:w-auto"
+          ref={trackPanelTop}
+          // Capped to the room below its own top edge (--panel-top, which
+          // trackPanelTop measures; 1rem stays free under the panel): with
+          // both lists full it is taller than a small laptop screen.
+          // flex-col: the two lists, which scroll by themselves, give up
+          // height first (down to one row each), so the search box and
+          // Cancel / Add stay in view. overflow-y-auto: on a window too short
+          // even for that the whole panel scrolls.
+          // fixed right-6, no top: the panel stands below the button, where
+          // the page flow puts it, and ends at the right edge of the header
+          // (px-6). Hung from the button's own right edge it began left of
+          // the page wherever the button stood less than 480px into it:
+          // from 640px to about 1135px of window width.
+          // max-sm: below 640px the panel spans the screen instead.
+          className="border-border bg-background fixed right-6 z-50 mt-2 flex max-h-[calc(100dvh-var(--panel-top,5rem)-1rem)] w-120 flex-col overflow-y-auto rounded-lg border p-4 shadow-xl max-sm:inset-x-2 max-sm:top-2 max-sm:mt-0 max-sm:max-h-[calc(100dvh-1rem)] max-sm:w-auto"
           role="combobox"
           aria-expanded={isOpen}
           aria-controls="repository-listbox"
@@ -784,6 +790,36 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     </div>
   )
 })
+
+/**
+ * Ref callback of the picker's panel: tells the panel where its top edge is
+ * (`--panel-top`), so its class can cap its height to the room between that
+ * edge and the bottom of the window. The panel stands below its button, and
+ * how far down that is depends on how the header wraps: a constant would let
+ * Cancel and Add end below the window under a high header. Measured when
+ * React adds the panel to the page and whenever the window is resized.
+ * Defined outside the component so it stays the same function: React would
+ * run a new one on every render.
+ *
+ * @param panel - The panel React just added, or `null`.
+ * @returns What React calls when the panel is removed: it stops listening.
+ * `undefined` when there is no panel.
+ * @example
+ * <div ref={trackPanelTop} className="max-h-[calc(100dvh-var(--panel-top,5rem)-1rem)]" />
+ */
+function trackPanelTop(panel: HTMLDivElement | null): (() => void) | undefined {
+  if (!panel) return undefined
+
+  const measurePanelTop = (): void => {
+    panel.style.setProperty(
+      '--panel-top',
+      `${panel.getBoundingClientRect().top}px`,
+    )
+  }
+  measurePanelTop()
+  window.addEventListener('resize', measurePanelTop)
+  return (): void => window.removeEventListener('resize', measurePanelTop)
+}
 
 /**
  * Splits catalog repositories into those the user can add to the current board
