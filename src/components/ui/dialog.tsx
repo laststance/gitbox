@@ -113,7 +113,9 @@ const DialogHeader = React.memo(function DialogHeader({
   return (
     <div
       className={cn(
-        'flex flex-col space-y-1.5 text-center sm:text-left',
+        // Left at every width: a title with an icon is a flex row and never
+        // centered, so centered text under it looked misplaced on a phone
+        'flex flex-col space-y-1.5 text-left',
         className,
       )}
       {...props}
@@ -128,7 +130,8 @@ const DialogFooter = React.memo(function DialogFooter({
   return (
     <div
       className={cn(
-        'flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2',
+        // gap-2 also when the buttons are stacked (below 640px)
+        'flex flex-col-reverse gap-2 sm:flex-row sm:justify-end',
         className,
       )}
       {...props}

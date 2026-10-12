@@ -62,7 +62,8 @@ function AlertDialogHeader({
   return (
     <div
       className={cn(
-        'flex flex-col space-y-2 text-center sm:text-left',
+        // Left at every width, like DialogHeader
+        'flex flex-col space-y-2 text-left',
         className,
       )}
       {...props}
@@ -77,7 +78,8 @@ function AlertDialogFooter({
   return (
     <div
       className={cn(
-        'flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2',
+        // gap-2 also when the buttons are stacked (below 640px)
+        'flex flex-col-reverse gap-2 sm:flex-row sm:justify-end',
         className,
       )}
       {...props}
@@ -143,11 +145,7 @@ function AlertDialogCancel({
   return (
     <AlertDialogPrimitive.Cancel
       ref={ref}
-      className={cn(
-        buttonVariants({ variant: 'outline' }),
-        'mt-2 sm:mt-0',
-        className,
-      )}
+      className={cn(buttonVariants({ variant: 'outline' }), className)}
       {...props}
     />
   )
