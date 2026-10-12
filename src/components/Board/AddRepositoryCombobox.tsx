@@ -403,8 +403,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       {isOpen && (
         <div
           // Capped to the viewport: with both lists full the panel is taller
-          // than a small laptop screen, and the buttons must stay reachable
-          className="border-border bg-background absolute top-full right-0 z-50 mt-2 max-h-[calc(100dvh-6rem)] w-120 overflow-y-auto rounded-lg border p-4 shadow-xl"
+          // than a small laptop screen, and the buttons must stay reachable.
+          // max-sm: below 640px the button sits at the left of a stacked
+          // header, and a 480px panel hung from its right edge left the
+          // screen on the left; there the panel spans the screen instead.
+          className="border-border bg-background absolute top-full right-0 z-50 mt-2 max-h-[calc(100dvh-6rem)] w-120 overflow-y-auto rounded-lg border p-4 shadow-xl max-sm:fixed max-sm:inset-x-2 max-sm:top-2 max-sm:mt-0 max-sm:max-h-[calc(100dvh-1rem)] max-sm:w-auto"
           role="combobox"
           aria-expanded={isOpen}
           aria-controls="repository-listbox"
