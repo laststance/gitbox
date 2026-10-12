@@ -153,7 +153,9 @@ export const BoardCard = memo(function BoardCard({
           aria-label={`Open board ${board.name}`}
         />
 
-        {/* Top-right actions: Favorite star + Menu */}
+        {/* Top-right actions: Favorite star + Menu.
+            Hidden until hover only where there is a mouse (pointer-fine):
+            a touch screen never hovers, so there they stay visible. */}
         <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
           {/* Favorite star button */}
           <Button
@@ -162,7 +164,7 @@ export const BoardCard = memo(function BoardCard({
             className={`h-8 w-8 transition-all ${
               localIsFavorite
                 ? 'text-amber-500 opacity-100 hover:text-amber-600'
-                : 'text-muted-foreground opacity-70 hover:text-amber-500 focus-visible:opacity-100 md:opacity-0 md:group-hover:opacity-100'
+                : 'text-muted-foreground opacity-70 hover:text-amber-500 focus-visible:opacity-100 md:pointer-fine:opacity-0 md:pointer-fine:group-hover:opacity-100'
             }`}
             aria-label={
               localIsFavorite
@@ -185,7 +187,7 @@ export const BoardCard = memo(function BoardCard({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 opacity-70 transition-opacity focus-visible:opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                className="h-8 w-8 opacity-70 transition-opacity focus-visible:opacity-100 md:pointer-fine:opacity-0 md:pointer-fine:group-hover:opacity-100"
                 aria-label={`Open menu for ${board.name}`}
                 onClick={(e) => e.stopPropagation()}
               >

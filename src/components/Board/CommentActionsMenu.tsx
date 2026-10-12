@@ -108,7 +108,8 @@ export const CommentActionsMenu = memo<CommentActionsMenuProps>(
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 w-6 p-0 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+            // pointer-coarse: a touch screen never hovers, so the button stays visible there
+            className="h-6 w-6 p-0 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 pointer-coarse:opacity-100"
             disabled={disabled}
             aria-label="Comment actions"
             data-testid="comment-actions-trigger"
