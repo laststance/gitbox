@@ -1052,6 +1052,25 @@ describe('MoveToAnotherBoardDialog', () => {
       expect(reloadPage).toHaveBeenCalledTimes(1)
     })
 
+    test('puts the keyboard on "Reload page" after a move that could not be confirmed, not on Move', async () => {
+      // Arrange: the request fails on the way, so nobody knows where the card is
+      const user = userEvent.setup()
+      mockBoards()
+      vi.mocked(moveCardToBoard).mockRejectedValue(
+        new TypeError('Failed to fetch'),
+      )
+      renderOpenDialog()
+
+      // Act
+      await user.click(await screen.findByRole('button', { name: 'Move' }))
+
+      // Assert
+      expect(
+        await screen.findByRole('button', { name: 'Reload page' }),
+      ).toHaveFocus()
+      expect(screen.getByRole('button', { name: 'Move' })).not.toHaveFocus()
+    })
+
     test('offers no reload for a move the server refused: the board on screen is not in doubt', async () => {
       // Arrange
       const user = userEvent.setup()

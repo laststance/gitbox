@@ -194,6 +194,7 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
   const dialogContentRef = useRef<HTMLDivElement>(null)
   const cancelButtonRef = useRef<HTMLButtonElement>(null)
   const moveButtonRef = useRef<HTMLButtonElement>(null)
+  const reloadButtonRef = useRef<HTMLButtonElement>(null)
   const boardSelectRef = useRef<HTMLButtonElement>(null)
 
   // Ref callback of the control a view opens on. The dialog opens while the
@@ -270,10 +271,17 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
           tags: { action: 'moveCardToBoard' },
         })
       }
-      // flushSync: Move is enabled again once this returns, and takes back
-      // the focus it lost when it was disabled for the request
+      // flushSync: the buttons are enabled again once this returns, and one
+      // takes back the focus Move lost when it was disabled for the request.
+      // After a refusal the board is as it was and Move can be pressed again.
+      // With an outcome nobody knows the next step is to look at the board,
+      // and a second Move would wait behind the first: "Reload page" it is.
       flushSync(() => failMove(failure))
-      moveButtonRef.current?.focus()
+      if (failure.isOutcomeKnown) {
+        moveButtonRef.current?.focus()
+      } else {
+        reloadButtonRef.current?.focus()
+      }
       // The card may have moved all the same (an answer that was lost on the
       // way, or a refused second try of a move that went through): fetch the
       // board again so the screen shows where it is
@@ -583,6 +591,7 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
                           has no answer yet; a reload does not */}
                     {!moveFailure.isOutcomeKnown && (
                       <Button
+                        ref={reloadButtonRef}
                         type="button"
                         variant="outline"
                         size="sm"
