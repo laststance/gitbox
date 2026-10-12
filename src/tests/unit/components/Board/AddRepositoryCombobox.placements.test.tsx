@@ -242,7 +242,13 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     const heldList = await screen.findByRole('list', {
       name: 'Already placed elsewhere',
     })
-    expect(screen.getByText('Already placed elsewhere (1)')).toBeVisible()
+    // Level 2: the panel stands in the header, right under the board's h1
+    expect(
+      screen.getByRole('heading', {
+        level: 2,
+        name: 'Already placed elsewhere (1)',
+      }),
+    ).toBeVisible()
     expect(within(heldList).getByText('laststance/gitbox')).toBeVisible()
     const boardLink = within(heldList).getByRole('link', {
       name: 'On Work Projects, which holds laststance/gitbox',

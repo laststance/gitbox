@@ -47,9 +47,10 @@ export const HeldRepositoryList = memo(function HeldRepositoryList({
     // flex-col + min-h-16: in a panel that is short of room the list gives
     // up height, down to its heading and about one row
     <section className="mt-3 flex min-h-16 flex-col">
-      <h3 className="text-muted-foreground text-xs font-medium">
+      {/* h2: the panel stands in the header, right under the board's h1 */}
+      <h2 className="text-muted-foreground text-xs font-medium">
         Already placed elsewhere ({repositories.length})
-      </h3>
+      </h2>
       <ul
         aria-label="Already placed elsewhere"
         // About 3.5 rows: a cut-off row shows that the list scrolls
