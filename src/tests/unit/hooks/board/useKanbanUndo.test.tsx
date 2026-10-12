@@ -10,7 +10,8 @@
  * Z is a shortcut of the board. While a dialog, a menu or a list of options
  * lies on top of the board, the key belongs to that layer: a Radix Select
  * reads a typed letter as "jump to the option that starts with it" and lets
- * the key travel on to the window.
+ * the key travel on to the window. The sidebar that lies over the page below
+ * 768px is such a layer too: the page behind it is inert.
  *
  * @see src/hooks/board/useKanbanUndo.ts
  */

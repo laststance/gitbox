@@ -203,10 +203,11 @@ export function useKanbanUndo(
         !event.altKey
       if (!isBareZKey) return
 
-      // A dialog, a menu or a list of options is open: the key belongs to
-      // that layer (a Select reads a letter as "jump to this option"), and
-      // the board behind it must not change. Asked last: it searches the
-      // document, and every other key should not pay for that.
+      // A dialog, a menu or a list of options is open, or the sidebar lies
+      // over the page below 768px: the key belongs to that layer (a Select
+      // reads a letter as "jump to this option"), and the board behind it
+      // must not change. Asked last: it searches the document, and every
+      // other key should not pay for that.
       if (isOverlayOpen()) return
 
       event.preventDefault()

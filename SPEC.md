@@ -458,7 +458,7 @@ type ActionErrorCode =
   'GITHUB_TOKEN_MISSING' | 'BOARD_CREATION_UNCONFIRMED' | 'MOVE_UNCONFIRMED'
 ```
 
-`error` is the sentence the user reads. `errorCode` is set only where the browser has to tell one failure from another, and the browser branches on the code, never on the sentence: it signs in again without asking (`GITHUB_TOKEN_MISSING`), or it treats the outcome as unknown because the database gave the server no answer, so the board may exist (`BOARD_CREATION_UNCONFIRMED`) or the card may have moved (`MOVE_UNCONFIRMED`).
+`error` is the sentence the user reads. `errorCode` is set only where the browser has to tell one failure from another, and the browser branches on the code, never on the sentence. It signs in again without asking (`GITHUB_TOKEN_MISSING`). Or it treats the outcome as unknown: the board may exist, because the database gave the server no answer or one the server could not read (`BOARD_CREATION_UNCONFIRMED`), or the card may have moved, because the database gave no answer (`MOVE_UNCONFIRMED`).
 
 #### Auth Guard Wrappers (`src/lib/actions/auth-guard.ts`)
 
