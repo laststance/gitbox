@@ -242,64 +242,6 @@ describe('createBoard()', () => {
     )
   })
 
-  test.each([
-    { code: '08006', meaning: 'the connection to the database failed' },
-    { code: '08007', meaning: 'the outcome of the transaction is unknown' },
-    { code: '57P01', meaning: 'the database was shut down' },
-    { code: 'PGRST001', meaning: 'the API lost its database connection' },
-  ])(
-    'does not promise that nothing was written when $meaning ($code)',
-    async ({ code }) => {
-      // Arrange: an error with a code, but one that says the connection broke
-      // while the function may already have committed
-      callDatabaseFunction.mockResolvedValue({
-        data: null,
-        error: { code, message: 'connection lost' },
-      })
-
-      // Act
-      const result = await createBoard('Archive', 'single-column')
-
-      // Assert
-      expect(result).toEqual({
-        success: false,
-        error:
-          'Could not confirm that the board was created. Check your boards before trying again.',
-        errorCode: 'BOARD_CREATION_UNCONFIRMED',
-      })
-    },
-  )
-
-  test.each([
-    { code: 502, meaning: 'a gateway answered with a number as its code' },
-    {
-      code: 'BAD_GATEWAY',
-      meaning: 'a gateway answered with a code the database never writes',
-    },
-    { code: null, meaning: 'the answer carried no code at all' },
-  ])(
-    'does not promise that nothing was written when $meaning',
-    async ({ code }) => {
-      // Arrange: JSON that neither PostgreSQL nor PostgREST wrote. The
-      // request may have reached the database behind whatever answered.
-      callDatabaseFunction.mockResolvedValue({
-        data: null,
-        error: { code, message: 'Bad Gateway' },
-      })
-
-      // Act
-      const result = await createBoard('Archive', 'single-column')
-
-      // Assert
-      expect(result).toEqual({
-        success: false,
-        error:
-          'Could not confirm that the board was created. Check your boards before trying again.',
-        errorCode: 'BOARD_CREATION_UNCONFIRMED',
-      })
-    },
-  )
-
   test('does not promise that nothing was written when the call to the database throws', async () => {
     // Arrange: the request may be on its way when this happens
     const thrownError = new Error('socket hang up')
@@ -321,27 +263,6 @@ describe('createBoard()', () => {
         presetId: 'single-column',
         status: 'unconfirmed',
       },
-    })
-  })
-
-  test.each([
-    { code: '57014', meaning: 'the statement was cancelled and rolled back' },
-    { code: 'PGRST202', meaning: 'the API does not know the function' },
-    { code: '42501', meaning: 'the caller may not run the function' },
-  ])('tells the user to try again when $meaning ($code)', async ({ code }) => {
-    // Arrange
-    callDatabaseFunction.mockResolvedValue({
-      data: null,
-      error: { code, message: 'refused' },
-    })
-
-    // Act
-    const result = await createBoard('Archive', 'single-column')
-
-    // Assert
-    expect(result).toEqual({
-      success: false,
-      error: 'The board was not created. Try again.',
     })
   })
 

@@ -18,6 +18,7 @@ import { BOARD_PRESETS, type PresetId } from '@/lib/constants/board-presets'
 import type { StatusListDomain } from '@/lib/models/domain'
 import { createClient } from '@/lib/supabase/server'
 import type { Database, TablesInsert } from '@/lib/supabase/types'
+import { didDatabaseRefuse } from '@/lib/utils/did-database-refuse'
 import { createdBoardRowSchema } from '@/lib/validations/board'
 
 import type { BoardOption } from './types'
@@ -27,25 +28,6 @@ import type { BoardOption } from './types'
  * a user, and a board that is found without columns.
  */
 const FALLBACK_COLUMNS_PRESET_ID = 'software-release' satisfies PresetId
-
-/**
- * Start of the codes of an error that says the connection to the database
- * broke while the request was running: SQLSTATE class 08 (connection
- * exception) and 57P (the server shut down or ended the session), and
- * PostgREST's PGRST000 to PGRST003 (it lost, or never got, its own connection
- * to the database). The function may have committed before the break, so
- * such an error does not prove that nothing was written.
- */
-const BROKEN_CONNECTION_CODE_PREFIXES = ['08', '57P', 'PGRST00']
-
-/**
- * A code PostgreSQL writes (a SQLSTATE: five digits or capitals) or PostgREST
- * does (`PGRST` and three digits). Only such a code shows that the database
- * or its API answered. The client hands over whatever JSON a failed request
- * came back with, so a gateway's own reply can carry any `code`, a number
- * included.
- */
-const DATABASE_ERROR_CODE_PATTERN = /^(?:[0-9A-Z]{5}|PGRST\d{3})$/
 
 /**
  * Result of {@link createBoardFromPreset}.
@@ -126,40 +108,6 @@ export async function createBoardFromPreset(
     // throws all the same, the request may be on its way: no proof either way
     return { status: 'unconfirmed', error }
   }
-}
-
-/**
- * Tells whether an error of the database function proves that nothing was
- * written. Called by {@link createBoardFromPreset} to choose between
- * `not-created` and `unconfirmed`.
- *
- * PostgreSQL and PostgREST answer with a code of their own instead of
- * committing. An error without such a code did not come from them: the
- * request failed on the way or a gateway replied, and the function may have
- * run all the same. A code that says the connection broke is no proof either.
- *
- * @param error - The error of the `create_board_with_status_lists` call.
- * @returns
- * - `true` for a refusal: a check of the function, a missing right, a
- *   cancelled statement, a function the API does not know
- * - `false` when the board may exist: no code, a code that is neither a
- *   SQLSTATE nor a PostgREST code ({@link DATABASE_ERROR_CODE_PATTERN}), or
- *   one that starts with one of {@link BROKEN_CONNECTION_CODE_PREFIXES}
- * @example
- * didDatabaseRefuse({ code: '23514', ... }) // => true (check violation)
- * didDatabaseRefuse({ code: '', ... })      // => false (fetch failed)
- * didDatabaseRefuse({ code: 502, ... })     // => false (a gateway's own JSON)
- * didDatabaseRefuse({ code: '08006', ... }) // => false (connection failure)
- */
-function didDatabaseRefuse(error: PostgrestError): boolean {
-  // Typed as a string, but it is whatever the JSON of the answer held
-  const code: unknown = error.code
-  if (typeof code !== 'string' || !DATABASE_ERROR_CODE_PATTERN.test(code)) {
-    return false
-  }
-  return !BROKEN_CONNECTION_CODE_PREFIXES.some((prefix) =>
-    code.startsWith(prefix),
-  )
 }
 
 /**
