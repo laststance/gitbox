@@ -147,8 +147,8 @@
   - A board that is shared by a public link carries the mark of a public board in the list. When it is the destination, the dialog says that anyone who has the link will see the repository there with its description, and that notes, links and comments stay private
   - The columns of the destination are listed in the order its board shows them, and the first one (the left-most of the first row) is selected until another is picked
   - While the move or a board creation waits for the server the dialog stays open and its controls are disabled. After 15 seconds without an answer it says that the outcome could not be confirmed and can be closed again. After every move that was not confirmed the board is fetched again, and the same move can be sent a second time without harm. That fetch waits until the request has settled, so the dialog offers **Reload page** next to the message of a move with an unknown outcome
-  - A board creation that could not be confirmed is not sent a second time from the dialog, because the board may exist: **Reload Boards** loads the list again and shows it
-  - The keyboard focus is on the Board select once the boards are loaded, and after a request that did not go through on the control needed next (Move, the name field, Reload Boards)
+  - A board creation that could not be confirmed is not sent a second time from the dialog, because the board may exist: **Reload boards** loads the list again and shows it
+  - The keyboard focus is on the Board select once the boards are loaded, and after a request that did not go through on the control needed next (Move, the name field, Reload boards)
 - **Remove from Board**: Deletes the card together with its note, links and comment, after a confirmation. The repository on GitHub is not affected
 - **Board D&D Reorder**: Drag & drop board cards on `/boards` page to reorder (position persisted to DB)
   - GripVertical drag handle (visible on hover)

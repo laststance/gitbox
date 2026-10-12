@@ -57,7 +57,7 @@ export function useMoveDestinations(currentBoardId: string): {
   const [loadedBoards, setLoadedBoards] = useState<MoveDestinations>({
     status: 'loading',
   })
-  // Goes up on every "Try again" and "Reload Boards"; a new value runs the
+  // Goes up on every "Try again" and "Reload boards"; a new value runs the
   // load once more
   const [loadAttempt, setLoadAttempt] = useState(0)
 

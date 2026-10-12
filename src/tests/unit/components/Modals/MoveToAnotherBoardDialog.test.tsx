@@ -1281,7 +1281,7 @@ describe('MoveToAnotherBoardDialog', () => {
       expect(screen.getByLabelText('Board Name')).toBeDisabled()
       expect(screen.queryByRole('button', { name: 'Create Board' })).toBeNull()
       expect(
-        screen.getByRole('button', { name: 'Reload Boards' }),
+        screen.getByRole('button', { name: 'Reload boards' }),
       ).toHaveFocus()
       expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled()
       expect(Sentry.captureException).toHaveBeenCalledWith(networkError, {
@@ -1306,7 +1306,7 @@ describe('MoveToAnotherBoardDialog', () => {
 
       // Act
       await user.click(
-        await screen.findByRole('button', { name: 'Reload Boards' }),
+        await screen.findByRole('button', { name: 'Reload boards' }),
       )
 
       // Assert: the board is there to move the card to, and was created once
@@ -1338,7 +1338,7 @@ describe('MoveToAnotherBoardDialog', () => {
 
       // Assert
       expect(
-        await screen.findByRole('button', { name: 'Reload Boards' }),
+        await screen.findByRole('button', { name: 'Reload boards' }),
       ).toHaveFocus()
       expect(screen.queryByRole('button', { name: 'Create Board' })).toBeNull()
       // The list this would go back to may lack the board
@@ -1372,7 +1372,7 @@ describe('MoveToAnotherBoardDialog', () => {
         'We are not sure the board exists.',
       )
       expect(
-        screen.getByRole('button', { name: 'Reload Boards' }),
+        screen.getByRole('button', { name: 'Reload boards' }),
       ).toBeVisible()
       expect(screen.queryByRole('button', { name: 'Create Board' })).toBeNull()
     })
@@ -1398,7 +1398,7 @@ describe('MoveToAnotherBoardDialog', () => {
       // Assert
       expect(await screen.findByRole('alert')).toBeVisible()
       expect(screen.getByRole('button', { name: 'Create Board' })).toBeEnabled()
-      expect(screen.queryByRole('button', { name: 'Reload Boards' })).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Reload boards' })).toBeNull()
     })
 
     test('stops waiting after 15 seconds without an answer, offers to load the boards again and can be closed', async () => {
@@ -1423,7 +1423,7 @@ describe('MoveToAnotherBoardDialog', () => {
       )
       expect(screen.getByLabelText('Board Name')).toHaveValue('Archive')
       expect(
-        screen.getByRole('button', { name: 'Reload Boards' }),
+        screen.getByRole('button', { name: 'Reload boards' }),
       ).toHaveFocus()
       // A request without an answer leaves a trace for the owner
       expect(Sentry.captureMessage).toHaveBeenCalledWith(

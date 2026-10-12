@@ -40,7 +40,7 @@ export interface BoardCreationFailure {
  * What the form shows under the name field.
  * - `invalid-name`: the name did not pass the check, so nothing was sent
  * - `not-created`: the server answered and no board was created
- * - `unconfirmed`: a board may exist; "Reload Boards" takes the place of
+ * - `unconfirmed`: a board may exist; "Reload boards" takes the place of
  *   "Create Board"
  */
 interface FormProblem {
@@ -207,7 +207,7 @@ export const CreateDestinationBoardForm = memo(
               ref={reloadButtonRef}
               onClick={onReloadBoards}
             >
-              Reload Boards
+              Reload boards
             </Button>
           ) : (
             <Button type="submit" disabled={isCreating}>
@@ -222,7 +222,7 @@ export const CreateDestinationBoardForm = memo(
             </Button>
           )}
           {/* After an unknown outcome the list this would go back to may lack
-              a board that exists; "Reload Boards" shows the current one */}
+              a board that exists; "Reload boards" shows the current one */}
           {onChooseExisting && !isOutcomeUnknown && (
             <Button
               type="button"
