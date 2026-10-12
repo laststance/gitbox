@@ -37,12 +37,19 @@
  * (e.g., trigger silent re-auth on `GITHUB_TOKEN_MISSING`). The human-readable
  * `error` field remains the source of UI copy.
  *
+ * - `GITHUB_TOKEN_MISSING`: the GitHub token cookie is gone; the client signs
+ *   in again without asking
+ * - `BOARD_CREATION_UNCONFIRMED`: {@link createBoard} got no answer it could
+ *   read, so the board may exist; the client offers the boards and not a
+ *   second try, which could make a second board
+ *
  * @example
  * if (!result.success && result.errorCode === 'GITHUB_TOKEN_MISSING') {
  *   handleGitHubTokenMissing(window.location.pathname)
  * }
  */
-export type ActionErrorCode = 'GITHUB_TOKEN_MISSING'
+export type ActionErrorCode =
+  'GITHUB_TOKEN_MISSING' | 'BOARD_CREATION_UNCONFIRMED'
 
 /**
  * Discriminated union for Server Action results.
@@ -68,14 +75,24 @@ export type ActionResult<T> =
  *
  * Never put internal details (table names, DB error strings, ids) in the message.
  *
+ * @param message - What the user reads.
+ * @param errorCode - Set when the client has to tell this failure from the
+ *   others; the guards hand it on as `errorCode` of the result.
+ *
  * @example
  * throw new ActionUserError('laststance/gitbox is already on board "Work"')
  * // caller receives => { success: false, error: 'laststance/gitbox is already on board "Work"' }
+ * throw new ActionUserError(BOARD_CREATION_UNCONFIRMED_MESSAGE, 'BOARD_CREATION_UNCONFIRMED')
+ * // caller receives => { success: false, error: 'Could not confirm ...', errorCode: 'BOARD_CREATION_UNCONFIRMED' }
  */
 export class ActionUserError extends Error {
-  constructor(message: string) {
+  /** Code the client branches on, when the failure has one. */
+  readonly errorCode?: ActionErrorCode
+
+  constructor(message: string, errorCode?: ActionErrorCode) {
     super(message)
     this.name = 'ActionUserError'
+    if (errorCode) this.errorCode = errorCode
   }
 }
 
@@ -92,12 +109,19 @@ export class ActionUserError extends Error {
  * const option: BoardOption = {
  *   id: 'board-uuid-456',
  *   name: 'Work',
+ *   isPublic: false,
  *   statusLists: [{ id: 'status-uuid-1', name: 'Repositories', color: '#6B7280' }],
  * }
  */
 export interface BoardOption {
   id: string
   name: string
+  /**
+   * The board is shared through a public link: everyone who has the link
+   * reads the name and the description of each repository on it. A board
+   * that was just created never is.
+   */
+  isPublic: boolean
   statusLists: Array<{
     id: string
     name: string

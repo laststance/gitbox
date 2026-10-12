@@ -1,6 +1,7 @@
 'use client'
 
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { Globe } from 'lucide-react'
 import { useState, useRef, useMemo, memo, useCallback } from 'react'
 import { toast } from 'sonner'
 
@@ -32,6 +33,12 @@ import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
 
 import { HeldRepositoryList, type HeldRepository } from './HeldRepositoryList'
 
+/**
+ * Id of the sentence shown when the board is shared through a public link.
+ * The Add button is described by it.
+ */
+const SHARED_BOARD_TEXT_ID = 'add-repositories-shared-board'
+
 interface AddRepositoryComboboxProps {
   boardId: BoardId
   /**
@@ -55,6 +62,12 @@ interface AddRepositoryComboboxProps {
    * Called when the combobox should open or close
    */
   onOpenChange?: (open: boolean) => void
+  /**
+   * The board is shared through a public link. The picker then says that
+   * anyone who has the link will see what is added, private repositories
+   * included.
+   */
+  isBoardShared?: boolean
 }
 
 /**
@@ -69,6 +82,8 @@ interface AddRepositoryComboboxProps {
  * - One repository per user (Issue #215): repositories already on another
  *   board are listed under "Already placed elsewhere" with a link to where
  *   they live, instead of being offered
+ * - On a board that is shared through a public link, a sentence above the
+ *   buttons says who will see the added repositories
  */
 export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   boardId,
@@ -76,6 +91,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   onRepositoriesAdded,
   isOpen: controlledIsOpen,
   onOpenChange,
+  isBoardShared = false,
 }: AddRepositoryComboboxProps) {
   // State - supports both controlled and uncontrolled modes
   const [internalIsOpen, setInternalIsOpen] = useState(false)
@@ -706,6 +722,24 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
           {/* Repositories already on another board */}
           {!isLoading && <HeldRepositoryList repositories={heldRepositories} />}
 
+          {/* A card on a shared board is readable through its public link,
+              a private repository as much as a public one */}
+          {isBoardShared && (
+            <p
+              id={SHARED_BOARD_TEXT_ID}
+              className="text-foreground mt-4 flex items-start gap-2 text-sm"
+            >
+              <Globe
+                className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0"
+                aria-hidden="true"
+              />
+              <span>
+                This board is shared by a public link. Anyone who has the link
+                will see the repositories you add, with their descriptions.
+              </span>
+            </p>
+          )}
+
           {/* Add button */}
           <div className="mt-4 flex justify-end gap-2">
             <button
@@ -718,6 +752,10 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             <button
               type="button"
               onClick={handleAddRepositories}
+              // Read with the button: pressing it makes the repositories public
+              aria-describedby={
+                isBoardShared ? SHARED_BOARD_TEXT_ID : undefined
+              }
               disabled={selectedRepos.length === 0 || isLoading || !statusId}
               title={
                 !statusId

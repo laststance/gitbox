@@ -24,7 +24,12 @@ import {
  * @param cardId - Card the dialog was opened for.
  * @returns
  * - `rememberCardSuccessor`: call right before the card leaves the board. It
- *   picks the neighbor now, while the card still stands in its column.
+ *   picks the neighbor now, while the card still stands in its column, and
+ *   the neighbor takes the focus when the dialog closes.
+ * - `rememberCardMayLeave`: call when the card may be gone by the time the
+ *   dialog closes without the dialog knowing (a move whose outcome is
+ *   unknown, before the board is fetched again). The card keeps the focus
+ *   when it is still on the page then; its neighbor takes it otherwise.
  * - `handleCloseAutoFocus`: pass to the dialog content's `onCloseAutoFocus`.
  * @example
  * const { rememberCardSuccessor, handleCloseAutoFocus } =
@@ -34,36 +39,46 @@ import {
  */
 export function useCardDialogFocusReturn(cardId: RepoCardId): {
   rememberCardSuccessor: () => void
+  rememberCardMayLeave: () => void
   handleCloseAutoFocus: (event: Event) => void
 } {
-  // Set while the card is leaving: what takes the focus in its place.
-  // `element` is `null` when the page offers nothing (the card was not found).
-  const leavingCardSuccessorRef = useRef<{
-    element: HTMLElement | null
-  } | null>(null)
+  // What takes the focus in the card's place, picked while the card stood in
+  // its column. `null` until one was picked, or when the page offered nothing.
+  const cardSuccessorRef = useRef<HTMLElement | null>(null)
+  // Set while the card is leaving for sure. Its element can still be on the
+  // page then (it plays its exit animation) and must not take the focus.
+  const isCardLeavingRef = useRef(false)
+
+  const rememberCardMayLeave = useCallback(() => {
+    // A card that is gone already has no neighbors: keep the earlier pick
+    cardSuccessorRef.current =
+      findCardFocusSuccessor(cardId) ?? cardSuccessorRef.current
+  }, [cardId])
 
   const rememberCardSuccessor = useCallback(() => {
-    leavingCardSuccessorRef.current = {
-      element: findCardFocusSuccessor(cardId),
-    }
-  }, [cardId])
+    rememberCardMayLeave()
+    isCardLeavingRef.current = true
+  }, [rememberCardMayLeave])
 
   const handleCloseAutoFocus = useCallback(
     (event: Event) => {
       // Radix would look for a trigger element and find none
       event.preventDefault()
 
-      const leavingCardSuccessor = leavingCardSuccessorRef.current
+      const isCardLeaving = isCardLeavingRef.current
+      const cardSuccessor = cardSuccessorRef.current
       // A refused removal brings the card back; its next dialog starts fresh
-      leavingCardSuccessorRef.current = null
+      isCardLeavingRef.current = false
+      cardSuccessorRef.current = null
 
-      const focusTarget = leavingCardSuccessor
-        ? leavingCardSuccessor.element
-        : findRepoCardElement(cardId)
+      const cardElement = isCardLeaving ? null : findRepoCardElement(cardId)
+      // The successor may have left the page since it was picked
+      const focusTarget =
+        cardElement ?? (cardSuccessor?.isConnected ? cardSuccessor : null)
       focusTarget?.focus()
     },
     [cardId],
   )
 
-  return { rememberCardSuccessor, handleCloseAutoFocus }
+  return { rememberCardSuccessor, rememberCardMayLeave, handleCloseAutoFocus }
 }

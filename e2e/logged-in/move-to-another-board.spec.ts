@@ -24,12 +24,45 @@ import {
   CARD_IDS,
   BOARD_IDS,
   STATUS_IDS,
+  WORK_PROJECTS_STATUS_IDS,
   createServiceRoleSupabaseClient,
+  resetBoardPublicState,
   resetRepoCards,
 } from '../helpers/db-query'
 
 /** Name of the board one test creates inside the dialog. No other spec uses it. */
 const BOARD_CREATED_IN_DIALOG = 'Move spec: parked repositories'
+
+/** Fixed id of the card one test puts on Work Projects; `resetRepoCards` removes it. */
+const CARD_ON_WORK_PROJECTS_ID = '00000000-0000-0000-0000-0000000003d1'
+
+/**
+ * Put the three columns of Work Projects at the given places of its one row,
+ * the way a drag does it: only `grid_col` changes, `order` stays as it was
+ * when the column was made (Backlog 0, Active 1, Complete 2).
+ * @param gridColumns - Place of each column in the row, counted from 0.
+ */
+async function placeWorkProjectsColumns(gridColumns: {
+  backlog: number
+  active: number
+  complete: number
+}): Promise<void> {
+  const supabase = createServiceRoleSupabaseClient()
+  const placements = [
+    { id: WORK_PROJECTS_STATUS_IDS.backlog, grid_col: gridColumns.backlog },
+    { id: WORK_PROJECTS_STATUS_IDS.active, grid_col: gridColumns.active },
+    { id: WORK_PROJECTS_STATUS_IDS.complete, grid_col: gridColumns.complete },
+  ]
+  for (const { id, grid_col } of placements) {
+    const { error } = await supabase
+      .from('statuslist')
+      .update({ grid_col })
+      .eq('id', id)
+    if (error) {
+      throw new Error(`placeWorkProjectsColumns failed: ${error.message}`)
+    }
+  }
+}
 
 /**
  * Open the Move to Another Board dialog of a card on the board on screen.
@@ -58,6 +91,8 @@ test.describe('Move to Another Board Feature', () => {
   test.afterEach(async () => {
     // Restore all cards to original board for test isolation
     await resetRepoCards()
+    // One test drags a column of Work Projects; seed.sql has them in this order
+    await placeWorkProjectsColumns({ backlog: 0, active: 1, complete: 2 })
 
     // Later specs count the seed boards; take away the one a test created
     const { error } = await createServiceRoleSupabaseClient()
@@ -356,9 +391,9 @@ test.describe('Move to Another Board Feature', () => {
     const dialog = await openMoveDialog(page, cardId)
 
     // Act: create the destination without leaving the dialog ...
-    await dialog.getByRole('button', { name: 'New board…' }).click()
-    await dialog.getByLabel('Board name').fill(BOARD_CREATED_IN_DIALOG)
-    await dialog.getByRole('button', { name: 'Create board' }).click()
+    await dialog.getByRole('button', { name: 'New Board...' }).click()
+    await dialog.getByLabel('Board Name').fill(BOARD_CREATED_IN_DIALOG)
+    await dialog.getByRole('button', { name: 'Create Board' }).click()
 
     // ... which selects the new board and its column, with Move under the keyboard
     await expect(dialog.locator('#board-select')).toHaveText(
@@ -408,6 +443,74 @@ test.describe('Move to Another Board Feature', () => {
         grid_col,
       })),
     ).toEqual([{ name: 'Repositories', order: 0, grid_row: 0, grid_col: 0 }])
+  })
+
+  test('lists the columns of the destination in the order its board shows them and starts on the left-most one', async ({
+    page,
+  }) => {
+    // Arrange: on Work Projects "Active" was dragged in front of "Backlog"
+    await placeWorkProjectsColumns({ backlog: 1, active: 0, complete: 2 })
+    await page.goto(BOARD_URL)
+    const dialog = await openMoveDialog(page, CARD_IDS.card1)
+
+    // Act
+    await dialog.locator('#board-select').click()
+    await page.getByRole('option', { name: 'Work Projects' }).click()
+
+    // Assert: the column a move goes to without another choice is the one
+    // the board shows first ...
+    await expect(dialog.locator('#status-select')).toHaveText('Active')
+
+    // ... and the list has the board's order, not the order of creation
+    await dialog.locator('#status-select').click()
+    await expect(page.getByRole('option')).toHaveText([
+      'Active',
+      'Backlog',
+      'Complete',
+    ])
+  })
+
+  test('says that the destination is shared, and what that shows of the repository, when the board has a public link', async ({
+    page,
+  }) => {
+    // Arrange: Test Board has a public link, and a card sits on Work Projects,
+    // whose only possible destination Test Board is
+    await resetBoardPublicState()
+    const placed = await createServiceRoleSupabaseClient()
+      .from('repocard')
+      .insert({
+        id: CARD_ON_WORK_PROJECTS_ID,
+        board_id: BOARD_IDS.workProjects,
+        status_id: WORK_PROJECTS_STATUS_IDS.backlog,
+        repo_owner: 'laststance',
+        repo_name: 'move-spec-private-notes',
+        order: 0,
+        meta: { visibility: 'private' },
+      })
+    expect(placed.error).toBeNull()
+    await page.goto(`/board/${BOARD_IDS.workProjects}`)
+    await page.waitForLoadState('networkidle')
+
+    // Act
+    const dialog = await openMoveDialog(page, CARD_ON_WORK_PROJECTS_ID)
+
+    // Assert: the board carries the mark of a shared board, and the sentence
+    // is read with the button that would make the card readable
+    const boardSelect = dialog.locator('#board-select')
+    await expect(boardSelect).toContainText('Test Board')
+    await expect(
+      boardSelect.getByRole('img', { name: 'Public board' }),
+    ).toBeVisible()
+    await expect(
+      dialog.getByText(
+        'Test Board is shared by a public link. Anyone who has the link will see this repository there, with its description. Notes, links, and comments stay private.',
+      ),
+    ).toBeVisible()
+    await expect(
+      dialog.getByRole('button', { name: 'Move' }),
+    ).toHaveAccessibleDescription(
+      'Test Board is shared by a public link. Anyone who has the link will see this repository there, with its description. Notes, links, and comments stay private.',
+    )
   })
 
   test('puts the keyboard focus on the next card of the column after a move', async ({

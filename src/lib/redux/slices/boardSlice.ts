@@ -10,31 +10,21 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice } from '@reduxjs/toolkit'
 
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
-import type { Board } from '@/lib/supabase/types'
 import type { RepoCardId } from '@/lib/types/brands'
 
 /**
- * {@link Board} with `settings` widened to `unknown`.
- *
- * The raw Supabase row type expands `settings` into a recursive `Json`
- * type, which trips Immer's draft-type inference. Widening to `unknown`
- * keeps the runtime shape identical while letting Immer produce a usable
- * draft type. Components parse the real shape via `parseBoardSettings`.
+ * Shape of the `state.board` Redux slice. Which board the columns and cards
+ * belong to is kept by {@link boardSyncSlice} (`hydratedBoardId`); the board
+ * row itself reaches the page as a prop and is not stored.
  */
-type SimplifiedBoard = Omit<Board, 'settings'> & { settings: unknown }
-
-/** Shape of the `state.board` Redux slice. */
 interface BoardState {
-  /** Currently-viewed board, or `null` before any board is opened. */
-  activeBoard: SimplifiedBoard | null
-  /** Status columns for the active board, ordered by grid position. */
+  /** Status columns of the board on screen, ordered by grid position. */
   statusLists: StatusListDomain[]
-  /** Repo cards for the active board (meta widened for Immer). */
+  /** Repo cards of the board on screen (meta widened for Immer). */
   repoCards: RepoCardForRedux[]
 }
 
 const initialState: BoardState = {
-  activeBoard: null,
   statusLists: [],
   repoCards: [],
 }
@@ -43,9 +33,6 @@ export const boardSlice = createSlice({
   name: 'board',
   initialState,
   reducers: {
-    setActiveBoard: (state, action: PayloadAction<SimplifiedBoard | null>) => {
-      state.activeBoard = action.payload
-    },
     setStatusLists: (state, action: PayloadAction<StatusListDomain[]>) => {
       state.statusLists = action.payload
     },
@@ -72,13 +59,8 @@ export const boardSlice = createSlice({
   },
 })
 
-export const {
-  setActiveBoard,
-  setStatusLists,
-  setRepoCards,
-  addRepoCards,
-  removeRepoCard,
-} = boardSlice.actions
+export const { setStatusLists, setRepoCards, addRepoCards, removeRepoCard } =
+  boardSlice.actions
 
 export default boardSlice.reducer
 

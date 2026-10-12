@@ -35,7 +35,6 @@ import {
   isUniqueViolation,
   lookupRepoPlacements,
   splitRequestedRepos,
-  toDialogRaceMessage,
   toUniqueViolationError,
   type SkippedRepository,
 } from './repo-card-duplicates'
@@ -285,7 +284,12 @@ export async function deleteRepoCard(
  *
  * @returns
  * - On success: `{ success: true, data: BoardOption[] }`, every board of the
- *   user with its columns in column order
+ *   user, newest first, with its columns in the order the board page shows
+ *   them (grid row, then grid column). Newest first on purpose: the dialog
+ *   opens on the first board that is not shared when no move was made from
+ *   this board yet, and the board made last is the likeliest destination.
+ *   `isPublic` says whether the board is shared through a public link, so
+ *   the dialog can say that a card moved there becomes readable through it.
  * - On auth error: `{ success: false, error: 'Authentication required' }`
  *
  * @example
@@ -303,7 +307,7 @@ export async function getUserBoardsWithStatusLists(): Promise<
     // Fetch boards
     const { data: boards, error: boardsError } = await supabase
       .from('board')
-      .select('id, name')
+      .select('id, name, is_public')
       .eq('user_id', claims.sub)
       .order('created_at', { ascending: false })
 
@@ -316,13 +320,16 @@ export async function getUserBoardsWithStatusLists(): Promise<
       return []
     }
 
-    // Fetch status lists for all boards
+    // Fetch status lists for all boards, in the order the board page shows
+    // them. Dragging a column changes grid_row and grid_col and leaves
+    // "order" as it was at creation, so "order" would list them differently.
     const boardIds = boards.map((b) => b.id)
     const { data: statusLists, error: statusError } = await supabase
       .from('statuslist')
       .select('id, name, color, board_id')
       .in('board_id', boardIds)
-      .order('order', { ascending: true })
+      .order('grid_row', { ascending: true })
+      .order('grid_col', { ascending: true })
 
     if (statusError) {
       log.error({ error: statusError }, 'Failed to fetch status lists')
@@ -341,6 +348,7 @@ export async function getUserBoardsWithStatusLists(): Promise<
     return boards.map((board) => ({
       id: board.id,
       name: board.name,
+      isPublic: board.is_public,
       statusLists: statusListsByBoard.get(board.id) || [],
     }))
   })
@@ -352,6 +360,10 @@ export async function getUserBoardsWithStatusLists(): Promise<
  * Transfers a repository card from the current board to a different board.
  * The card ID is preserved, so all projectinfo (notes, links, comments) remains intact.
  *
+ * Sending the same move again is harmless: a card that is already on the
+ * target board is put at the end of the chosen column once more. A move whose
+ * answer was lost on the way can therefore simply be repeated.
+ *
  * @param cardId - RepoCard ID to move
  * @param targetBoardId - Destination board ID
  * @param targetStatusId - Destination status column ID
@@ -359,15 +371,15 @@ export async function getUserBoardsWithStatusLists(): Promise<
  * - On success: `{ success: true }`
  * - On a malformed id: `{ success: false, error: 'Invalid ID format' }`
  * - On auth error: `{ success: false, error: 'Authentication required' }`
- * - On duplicate: `{ success: false, error: 'Repository already exists in target board' }`
- * - On a lost race: `{ success: false, error: 'owner/name was just placed on a board. Close this dialog and try again.' }`
  * - On anything else (card or board not found, not the owner, column of
- *   another board): `{ success: false, error: 'An unexpected error occurred' }`
+ *   another board, a failure of the database):
+ *   `{ success: false, error: 'An unexpected error occurred' }`
  *
  * @example
  * const result = await moveCardToBoard('card-uuid', 'board-uuid', 'status-uuid')
  * if (result.success) {
- *   dispatch(removeRepoCard('card-uuid'))
+ *   // Leaves the store only while it still holds the board the card came from
+ *   dispatch(removeMovedRepoCard(sourceBoardId, 'card-uuid'))
  * }
  */
 export async function moveCardToBoard(
@@ -428,19 +440,12 @@ export async function moveCardToBoard(
       throw new Error('Status column does not belong to target board')
     }
 
-    // Check for duplicate in target board. Still needed on the old schema
-    // while a legacy cross-board duplicate exists (Issue #215).
-    const { data: existing } = await supabase
-      .from('repocard')
-      .select('id')
-      .eq('board_id', targetBoardId)
-      .eq('repo_owner', card.repo_owner)
-      .eq('repo_name', card.repo_name)
-      .maybeSingle()
-
-    if (existing) {
-      throw new ActionUserError('Repository already exists in target board')
-    }
+    // No look into the target board for the same repository, and no answer
+    // of its own for a unique violation: a user has one card per repository
+    // (repocard_unique_repo_per_user) and the card stays with its owner, so
+    // the only card of this repository the target board can hold is this one,
+    // already moved by a request whose answer was lost. The function below
+    // moves it again without harm.
 
     // Atomic move via RPC (calculates next order position)
     const { error: rpcError } = await supabase.rpc('move_card_to_board', {
@@ -450,16 +455,6 @@ export async function moveCardToBoard(
     })
 
     if (rpcError) {
-      // Another tab placed this repository on a board after the check
-      if (isUniqueViolation(rpcError)) {
-        throw toUniqueViolationError({
-          error: rpcError,
-          raceMessage: toDialogRaceMessage(card.repo_owner, card.repo_name),
-          action: 'moveCardToBoard',
-          userId: claims.sub,
-        })
-      }
-
       log.error({ error: rpcError }, 'move_card_to_board RPC error')
       Sentry.captureException(rpcError, {
         extra: { context: 'move_card_to_board RPC', cardId, targetBoardId },

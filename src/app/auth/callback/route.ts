@@ -11,7 +11,7 @@
 
 import { NextResponse } from 'next/server'
 
-import { createFirstBoardIfNeeded } from '@/lib/actions/board'
+import { createFirstBoardIfNeeded } from '@/lib/actions/board-creation'
 import { setGitHubTokenCookie } from '@/lib/constants/cookies'
 import { createModuleLogger } from '@/lib/logger'
 import { logSecurityEvent } from '@/lib/security-events'
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
       // Create "First Board" for new users (idempotent - safe on every login)
       if (data.session?.user?.id) {
         logSecurityEvent('login_success', { userId: data.session.user.id })
-        await createFirstBoardIfNeeded(data.session.user.id)
+        await createFirstBoardIfNeeded(supabase, data.session.user.id)
       }
 
       // Session established successfully - redirect to Boards screen.

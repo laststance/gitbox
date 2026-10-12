@@ -526,6 +526,56 @@ test.describe('One repository per user - database rules', () => {
     })
   })
 
+  test('a move to another board that is sent a second time keeps one card, at the end of the chosen column', async () => {
+    // Arrange: Backlog of Work Projects holds one card, and the test user has
+    // moved card-1 of Test Board behind it
+    await placeOnWorkProjects('testuser', 'private-project')
+    const testUser = createTestUserSupabaseClient()
+    const move = {
+      p_card_id: CARD_IDS.card1,
+      p_target_board_id: BOARD_IDS.workProjects,
+      p_target_status_id: WORK_PROJECTS_STATUS_IDS.backlog,
+    }
+    const firstMove = await testUser.rpc('move_card_to_board', move)
+    expect(firstMove.error).toBeNull()
+
+    // Act: no answer reached the browser, so the dialog sends the move again
+    const secondMove = await testUser.rpc('move_card_to_board', move)
+
+    // Assert: accepted, and there is still one testuser/test-repo card of the
+    // test user, behind the card that was in the column before
+    expect(secondMove.error).toBeNull()
+    const movedCards = await querySupabase<{
+      id: string
+      board_id: string
+      status_id: string
+      order: number
+    }>('repocard', {
+      user_id: TEST_USER_ID,
+      repo_owner: 'testuser',
+      repo_name: 'test-repo',
+    })
+    expect(
+      movedCards.map(({ id, board_id, status_id, order }) => ({
+        id,
+        board_id,
+        status_id,
+        order,
+      })),
+    ).toEqual([
+      {
+        id: '00000000-0000-0000-0000-000000000301',
+        board_id: '00000000-0000-0000-0000-000000000101',
+        status_id: '00000000-0000-0000-0000-000000000211',
+        order: 2,
+      },
+    ])
+    const cardBeforeIt = await querySingle<{ order: number }>('repocard', {
+      id: FIXTURE_CARD_ID,
+    })
+    expect(cardBeforeIt?.order).toBe(0)
+  })
+
   test("refuses a signed-in user's insert into another user's public board", async () => {
     // Arrange: acts as the test user with RLS applied (not the service role)
     const supabase = createTestUserSupabaseClient()

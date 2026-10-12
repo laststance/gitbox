@@ -3,8 +3,9 @@
  *
  * Loads the boards a card can be moved to and keeps that list for
  * {@link MoveToAnotherBoardDialog}: loading, a failed load that can be tried
- * again, and a board created inside the dialog, which is added to the list
- * without loading it a second time.
+ * again, a list that is loaded again because it may lack a board (a creation
+ * whose outcome is unknown), and a board created inside the dialog, which is
+ * added to the list without loading it a second time.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -36,10 +37,12 @@ const LOAD_FAILED_MESSAGE = 'Failed to load boards'
  * @param currentBoardId - Board the card is on; it is left out of the list.
  * @returns
  * - `destinations`: the {@link MoveDestinations} to render
- * - `reloadDestinations`: loads again after a failed load ("Try again")
- * - `addDestination`: puts a board created inside the dialog on the list.
- *   The list is not loaded again, so a created board is never followed by a
- *   failed load that would hide it.
+ * - `reloadDestinations`: loads the boards again, after a failed load ("Try
+ *   again") and after a board creation with an unknown outcome ("Reload
+ *   Boards"), when the list on screen may lack a board that exists
+ * - `addDestination`: puts a board created inside the dialog first on the
+ *   list. The list is not loaded again, so a created board is never followed
+ *   by a failed load that would hide it.
  * @example
  * const { destinations, reloadDestinations, addDestination } =
  *   useMoveDestinations('board-uuid-456')
@@ -54,7 +57,8 @@ export function useMoveDestinations(currentBoardId: string): {
   const [loadedBoards, setLoadedBoards] = useState<MoveDestinations>({
     status: 'loading',
   })
-  // Goes up on every "Try again"; a new value runs the load once more
+  // Goes up on every "Try again" and "Reload Boards"; a new value runs the
+  // load once more
   const [loadAttempt, setLoadAttempt] = useState(0)
 
   useEffect(() => {
@@ -110,9 +114,11 @@ export function useMoveDestinations(currentBoardId: string): {
   }, [])
 
   const addDestination = useCallback((board: BoardOption) => {
+    // First in the list: the server lists boards newest first, so this is
+    // where the board shows up the next time the dialog opens
     setLoadedBoards((current) => ({
       status: 'ready',
-      boards: current.status === 'ready' ? [...current.boards, board] : [board],
+      boards: current.status === 'ready' ? [board, ...current.boards] : [board],
     }))
   }, [])
 

@@ -82,6 +82,43 @@ describe('auth guard error pass-through', () => {
     expect(Sentry.captureException).not.toHaveBeenCalled()
   })
 
+  test('hands the code of an expected error on to the client, which acts on it and not on the text', async () => {
+    // Arrange
+    const failingAction = async () => {
+      throw new ActionUserError(
+        'Could not confirm that the board was created. Check your boards before trying again.',
+        'BOARD_CREATION_UNCONFIRMED',
+      )
+    }
+
+    // Act
+    const result = await withAuthResultRateLimit('boardCrud', failingAction)
+
+    // Assert
+    expect(result).toStrictEqual({
+      success: false,
+      error:
+        'Could not confirm that the board was created. Check your boards before trying again.',
+      errorCode: 'BOARD_CREATION_UNCONFIRMED',
+    })
+  })
+
+  test('answers an expected error that has no code without the field', async () => {
+    // Arrange
+    const failingAction = async () => {
+      throw new ActionUserError('laststance/gitbox is already on board "Work"')
+    }
+
+    // Act
+    const result = await withAuthResult(failingAction)
+
+    // Assert: no `errorCode: undefined` travels to the browser
+    expect(result).toStrictEqual({
+      success: false,
+      error: 'laststance/gitbox is already on board "Work"',
+    })
+  })
+
   test('read actions hide an unexpected error behind the generic message and report it', async () => {
     // Arrange
     const databaseError = new Error('relation "repocard" does not exist')

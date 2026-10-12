@@ -2,20 +2,16 @@
  * Board Preset Definitions
  *
  * Status List preset patterns for board creation.
- * Shared between client (CreateBoardForm) and server (board.ts actions).
+ * Shared between client (CreateBoardForm) and server (board creation).
  * Two lists exist: SELECTABLE_PRESET_IDS is what `/boards/new` shows, and
  * PRESET_IDS is what the server accepts.
  *
  * @example
- * import { BOARD_PRESETS, DEFAULT_PRESET_ID, getPresetById } from '@/lib/constants/board-presets'
+ * import { BOARD_PRESETS, DEFAULT_PRESET_ID } from '@/lib/constants/board-presets'
  *
  * // Get the default preset
  * const preset = BOARD_PRESETS[DEFAULT_PRESET_ID]
  * // => { id: 'web-app', label: 'Web App', columns: [...] }
- *
- * // Get a preset by ID with fallback
- * const preset = getPresetById('cli-tool')
- * // => { id: 'cli-tool', label: 'CLI Tool', columns: [...] }
  */
 
 /** Single column definition within a preset */
@@ -156,15 +152,3 @@ export const BOARD_PRESETS: Record<PresetId, BoardPreset> = {
     columns: [{ name: 'Repositories', color: '#6B7280' }],
   },
 } as const
-
-/**
- * Get preset by ID with fallback to default.
- * @param id - Preset identifier string
- * @returns Matching BoardPreset, or default (web-app) if not found
- * @example
- * getPresetById('cli-tool')  // => { id: 'cli-tool', label: 'CLI Tool', ... }
- * getPresetById('unknown')   // => { id: 'web-app', label: 'Web App', ... }
- */
-export function getPresetById(id: string): BoardPreset {
-  return BOARD_PRESETS[id as PresetId] ?? BOARD_PRESETS[DEFAULT_PRESET_ID]
-}

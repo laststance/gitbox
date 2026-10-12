@@ -40,7 +40,6 @@ function createMockStore() {
     },
     preloadedState: {
       board: {
-        activeBoard: null,
         statusLists: [
           {
             id: toStatusListId('status-1'),
@@ -558,7 +557,6 @@ describe('KanbanBoard Loading States', () => {
       },
       preloadedState: {
         board: {
-          activeBoard: null,
           statusLists: [],
           repoCards: [],
         },
@@ -586,7 +584,6 @@ describe('KanbanBoard Loading States', () => {
       },
       preloadedState: {
         board: {
-          activeBoard: null,
           statusLists: [
             {
               id: toStatusListId('status-1'),
@@ -642,7 +639,6 @@ describe('KanbanBoard with Data', () => {
       },
       preloadedState: {
         board: {
-          activeBoard: null,
           statusLists: [
             {
               id: toStatusListId('status-1'),
@@ -703,7 +699,6 @@ describe('KanbanBoard with Data', () => {
       },
       preloadedState: {
         board: {
-          activeBoard: null,
           statusLists: [
             {
               id: toStatusListId('status-3'),
@@ -786,7 +781,6 @@ describe('KanbanBoard Callbacks', () => {
       },
       preloadedState: {
         board: {
-          activeBoard: null,
           statusLists: [
             {
               id: toStatusListId('status-1'),
@@ -847,7 +841,6 @@ describe('KanbanBoard Initial Comments', () => {
       },
       preloadedState: {
         board: {
-          activeBoard: null,
           statusLists: [
             {
               id: toStatusListId('status-1'),
@@ -916,7 +909,6 @@ describe('KanbanBoard Card Display Settings', () => {
       },
       preloadedState: {
         board: {
-          activeBoard: null,
           statusLists: [
             {
               id: toStatusListId('status-1'),
@@ -966,7 +958,6 @@ describe('KanbanBoard Card Display Settings', () => {
       },
       preloadedState: {
         board: {
-          activeBoard: null,
           statusLists: [
             {
               id: toStatusListId('status-1'),
@@ -1029,7 +1020,6 @@ describe('KanbanBoard Undo Keyboard Shortcut', () => {
       },
       preloadedState: {
         board: {
-          activeBoard: null,
           statusLists: [
             {
               id: toStatusListId('status-1'),
@@ -1076,7 +1066,6 @@ describe('KanbanBoard Undo Keyboard Shortcut', () => {
       },
       preloadedState: {
         board: {
-          activeBoard: null,
           statusLists: [
             {
               id: toStatusListId('status-1'),
@@ -1132,7 +1121,6 @@ describe('KanbanBoard Undo Keyboard Shortcut', () => {
       },
       preloadedState: {
         board: {
-          activeBoard: null,
           statusLists: [
             {
               id: toStatusListId('status-1'),
@@ -1191,7 +1179,6 @@ describe('KanbanBoard DndContext Configuration', () => {
       },
       preloadedState: {
         board: {
-          activeBoard: null,
           statusLists: [
             {
               id: toStatusListId('status-1'),
@@ -1257,7 +1244,6 @@ describe('KanbanBoard Multi-Row Layout', () => {
       },
       preloadedState: {
         board: {
-          activeBoard: null,
           statusLists: [
             {
               id: toStatusListId('status-1'),
@@ -1324,7 +1310,6 @@ describe('KanbanBoard Multi-Row Layout', () => {
       },
       preloadedState: {
         board: {
-          activeBoard: null,
           statusLists: [
             {
               id: toStatusListId('status-1'),

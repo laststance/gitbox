@@ -12,7 +12,7 @@ import { type Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
 
-import { getBoardBundle, type BoardInitialData } from '@/lib/actions/board-data'
+import { getBoardBundle } from '@/lib/actions/board-data'
 import { requireClaims } from '@/lib/auth/require-claims'
 
 import { BoardPageClient } from './BoardPageClient'
@@ -78,11 +78,8 @@ export default async function BoardPage(props: BoardPageProps) {
     notFound()
   }
 
-  const initialData: BoardInitialData = {
-    statusLists: bundle.statusLists,
-    repoCards: bundle.repoCards,
-    comments: bundle.comments,
-  }
+  // The board row goes in on its own; the rest is the page's initial data
+  const { board, ...initialData } = bundle
 
-  return <BoardPageClient board={bundle.board} initialData={initialData} />
+  return <BoardPageClient board={board} initialData={initialData} />
 }

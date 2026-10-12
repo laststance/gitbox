@@ -28,6 +28,7 @@ import React, {
 import { toast } from 'sonner'
 
 import { signOut } from '@/lib/actions/auth'
+import { TOAST_WITH_LONG_TEXT_DURATION_MS } from '@/lib/constants/toast'
 import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 
 /** Base styles for command item button */
@@ -111,7 +112,7 @@ export const CommandPalette = memo(function CommandPalette() {
           toast.info('Keyboard Shortcuts', {
             description:
               '⌘K - Command Palette | ? - Shortcuts Help | G B - Go to Boards | G S - Go to Settings | N - New Board | Z - Undo | . - Card Menu',
-            duration: 8000,
+            duration: TOAST_WITH_LONG_TEXT_DURATION_MS,
           })
         },
         category: 'settings',

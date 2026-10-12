@@ -19,7 +19,6 @@ import {
   isUniqueViolation,
   lookupRepoPlacements,
   splitRequestedRepos,
-  toDialogRaceMessage,
   toUniqueViolationError,
   type BoardPlacement,
 } from '@/lib/actions/repo-card-duplicates'
@@ -365,33 +364,23 @@ describe('unique violation mapping', () => {
     const error = toUniqueViolationError({
       error: violation,
       raceMessage:
-        'laststance/gitbox was just placed on a board. Close this dialog and try again.',
-      action: 'moveCardToBoard',
+        'Nothing was added. One of the selected repositories was just placed on a board. Reload the page and try again.',
+      action: 'addRepositoriesToBoard',
       userId: 'user-1',
     })
 
     // Assert
     expect(error).toBeInstanceOf(ActionUserError)
     expect(error.message).toBe(
-      'laststance/gitbox was just placed on a board. Close this dialog and try again.',
+      'Nothing was added. One of the selected repositories was just placed on a board. Reload the page and try again.',
     )
     expect(warn).toHaveBeenCalledWith(
       {
-        action: 'moveCardToBoard',
+        action: 'addRepositoriesToBoard',
         userId: 'user-1',
         constraint: 'repocard_unique_repo_per_user',
       },
       'Repo placement rejected by unique constraint (concurrent placement)',
-    )
-  })
-
-  test('builds the dialog race sentence from the repository name', () => {
-    // Arrange & Act
-    const message = toDialogRaceMessage('laststance', 'gitbox')
-
-    // Assert
-    expect(message).toBe(
-      'laststance/gitbox was just placed on a board. Close this dialog and try again.',
     )
   })
 })

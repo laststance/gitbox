@@ -52,12 +52,19 @@ interface DialogContentProps extends React.ComponentPropsWithoutRef<
    * Falls back to 'Dialog' if not provided and no DialogTitle is present.
    */
   accessibleTitle?: string
+  /**
+   * Disables the close button in the corner. For a dialog that refuses to
+   * close for a while (a request is running): a button that does nothing
+   * when pressed should not look pressable.
+   */
+  isCloseDisabled?: boolean
 }
 
 const DialogContent = React.memo(function DialogContent({
   className,
   children,
   accessibleTitle = 'Dialog',
+  isCloseDisabled = false,
   ref,
   ...props
 }: DialogContentProps & {
@@ -79,7 +86,10 @@ const DialogContent = React.memo(function DialogContent({
           <DialogPrimitive.Title>{accessibleTitle}</DialogPrimitive.Title>
         </VisuallyHidden.Root>
         {children}
-        <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none">
+        <DialogPrimitive.Close
+          disabled={isCloseDisabled}
+          className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none disabled:opacity-30"
+        >
           <X className="h-4 w-4" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>

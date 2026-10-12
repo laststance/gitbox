@@ -170,7 +170,6 @@ function createMockStore() {
     },
     preloadedState: {
       board: {
-        activeBoard: null,
         statusLists: [],
         repoCards: [],
       },
@@ -438,23 +437,6 @@ describe('BoardPageClient Component', () => {
 
       // Assert: the card stays where the user put it
       expect(store.getState().board.repoCards).toEqual([cardInDone])
-    })
-
-    test('should set activeBoard in Redux', async () => {
-      const board = createMockBoard()
-      const initialData = createMockInitialData()
-
-      render(
-        <Provider store={store}>
-          <BoardPageClient board={board} initialData={initialData} />
-        </Provider>,
-      )
-
-      await waitFor(() => {
-        const state = store.getState()
-        expect(state.board.activeBoard).not.toBeNull()
-        expect(state.board.activeBoard?.id).toBe('board-1')
-      })
     })
   })
 

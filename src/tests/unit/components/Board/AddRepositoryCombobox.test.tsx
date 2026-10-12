@@ -53,7 +53,6 @@ const createMockStore = () =>
     },
     preloadedState: {
       board: {
-        activeBoard: null,
         statusLists: [],
         repoCards: [],
       },

@@ -2,7 +2,6 @@
  * Unit Tests: boardSlice Redux Actions
  *
  * Tests for board state management including:
- * - setActiveBoard action
  * - setStatusLists action
  * - setRepoCards action
  * - addRepoCards action (optimistic updates)
@@ -17,7 +16,6 @@ import boardSlice, {
   setRepoCards,
   addRepoCards,
   selectRepoCards,
-  setActiveBoard,
   setStatusLists,
   removeRepoCard,
   selectStatusLists,
@@ -67,7 +65,6 @@ describe('boardSlice', () => {
   describe('addRepoCards action', () => {
     test('should add new cards to empty state', () => {
       const initialState = {
-        activeBoard: null,
         statusLists: [],
         repoCards: [],
       }
@@ -93,7 +90,6 @@ describe('boardSlice', () => {
       ]
 
       const initialState = {
-        activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
       }
@@ -115,7 +111,6 @@ describe('boardSlice', () => {
       const existingCards = [createMockCard({ id: toRepoCardId('existing-1') })]
 
       const initialState = {
-        activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
       }
@@ -128,7 +123,6 @@ describe('boardSlice', () => {
 
     test('should preserve card metadata', () => {
       const initialState = {
-        activeBoard: null,
         statusLists: [],
         repoCards: [],
       }
@@ -162,7 +156,6 @@ describe('boardSlice', () => {
       ]
 
       const initialState = {
-        activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
       }
@@ -182,7 +175,6 @@ describe('boardSlice', () => {
       ]
 
       const initialState = {
-        activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
       }
@@ -202,7 +194,6 @@ describe('boardSlice', () => {
 
       const state = {
         board: {
-          activeBoard: null,
           statusLists: [],
           repoCards: cards,
         },
@@ -220,7 +211,6 @@ describe('boardSlice', () => {
       const existingCards = [createMockCard({ id: toRepoCardId('existing-1') })]
 
       const initialState = {
-        activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
       }
@@ -248,7 +238,6 @@ describe('boardSlice', () => {
       ]
 
       const initialState = {
-        activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
       }
@@ -260,96 +249,9 @@ describe('boardSlice', () => {
     })
   })
 
-  describe('setActiveBoard action', () => {
-    /**
-     * Helper to create a mock board object
-     */
-    const createMockBoard = (overrides = {}) => ({
-      id: 'board-1',
-      name: 'Test Board',
-      subtitle: null as string | null,
-      settings: null,
-      user_id: 'user-1',
-      is_favorite: false,
-      is_public: false,
-      share_slug: null as string | null,
-      position: 0,
-      created_at: '2024-01-01T00:00:00.000Z',
-      updated_at: '2024-01-01T00:00:00.000Z',
-      ...overrides,
-    })
-
-    test('should set activeBoard from null', () => {
-      const initialState = {
-        activeBoard: null,
-        statusLists: [],
-        repoCards: [],
-      }
-
-      const board = createMockBoard()
-      const nextState = boardSlice(initialState, setActiveBoard(board))
-
-      expect(nextState.activeBoard).not.toBeNull()
-      expect(nextState.activeBoard?.id).toBe('board-1')
-      expect(nextState.activeBoard?.name).toBe('Test Board')
-    })
-
-    test('should update activeBoard when already set', () => {
-      const existingBoard = createMockBoard({
-        id: 'old-board',
-        name: 'Old Board',
-      })
-      const initialState = {
-        activeBoard: existingBoard,
-        statusLists: [],
-        repoCards: [],
-      }
-
-      const newBoard = createMockBoard({
-        id: toBoardId('new-board'),
-        name: 'New Board',
-      })
-      const nextState = boardSlice(initialState, setActiveBoard(newBoard))
-
-      expect(nextState.activeBoard?.id).toBe('new-board')
-      expect(nextState.activeBoard?.name).toBe('New Board')
-    })
-
-    test('should clear activeBoard when set to null', () => {
-      const existingBoard = createMockBoard()
-      const initialState = {
-        activeBoard: existingBoard,
-        statusLists: [],
-        repoCards: [],
-      }
-
-      const nextState = boardSlice(initialState, setActiveBoard(null))
-
-      expect(nextState.activeBoard).toBeNull()
-    })
-
-    test('should preserve board properties including position', () => {
-      const initialState = {
-        activeBoard: null,
-        statusLists: [],
-        repoCards: [],
-      }
-
-      const board = createMockBoard({
-        position: 3,
-        is_favorite: true,
-      })
-      const nextState = boardSlice(initialState, setActiveBoard(board))
-
-      expect(nextState.activeBoard?.position).toBe(3)
-      expect(nextState.activeBoard?.is_favorite).toBe(true)
-    })
-  })
-
   describe('setStatusLists action', () => {
     test('should set status lists from empty state', () => {
       const initialState = {
-        activeBoard: null,
         statusLists: [],
         repoCards: [],
       }
@@ -374,7 +276,6 @@ describe('boardSlice', () => {
         createMockStatus({ id: toStatusListId('old-1'), title: 'Old' }),
       ]
       const initialState = {
-        activeBoard: null,
         statusLists: existingStatuses,
         repoCards: [],
       }
@@ -397,7 +298,6 @@ describe('boardSlice', () => {
         createMockCard({ id: toRepoCardId('card-3') }),
       ]
       const initialState = {
-        activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
       }
@@ -414,7 +314,6 @@ describe('boardSlice', () => {
     test('should not modify state when card ID does not exist', () => {
       const existingCards = [createMockCard({ id: toRepoCardId('card-1') })]
       const initialState = {
-        activeBoard: null,
         statusLists: [],
         repoCards: existingCards,
       }
@@ -436,7 +335,6 @@ describe('boardSlice', () => {
       ]
       const state = {
         board: {
-          activeBoard: null,
           statusLists: statuses,
           repoCards: [],
         },

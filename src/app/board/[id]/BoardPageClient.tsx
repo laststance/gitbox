@@ -18,7 +18,7 @@
 import * as Sentry from '@sentry/nextjs'
 import { Link, Plus, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState, useCallback, memo, useEffect } from 'react'
+import { useState, useCallback, memo } from 'react'
 import { toast } from 'sonner'
 
 import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox'
@@ -51,7 +51,6 @@ import type { BoardInitialData } from '@/lib/actions/board-data'
 import { deleteRepoCard, type CreatedRepoCard } from '@/lib/actions/repo-cards'
 import type { RepoCardForRedux } from '@/lib/models/domain'
 import {
-  setActiveBoard,
   addRepoCards,
   selectStatusLists,
   selectRepoCards,
@@ -117,16 +116,6 @@ export const BoardPageClient = memo(function BoardPageClient({
 
   // AddRepositoryCombobox (2 states extracted)
   const addRepoCombobox = useAddRepositoryCombobox({ statusLists })
-
-  // Set activeBoard in Redux on mount
-  // This enables other components to know which board is currently being viewed
-  useEffect(() => {
-    dispatch(setActiveBoard(board))
-    return (): void => {
-      // Clear activeBoard when leaving the page
-      dispatch(setActiveBoard(null))
-    }
-  }, [dispatch, board])
 
   // ========================================
   // Card Action Handlers (via shared optimistic hook)
@@ -266,6 +255,7 @@ export const BoardPageClient = memo(function BoardPageClient({
                 statusId={addRepoCombobox.statusId}
                 isOpen={addRepoCombobox.isOpen}
                 onOpenChange={addRepoCombobox.handleOpenChange}
+                isBoardShared={publicShareSlug !== null}
                 onRepositoriesAdded={(createdCards: CreatedRepoCard[]) => {
                   // Optimistic UI update: cards appear instantly without a reload.
                   const newCards: RepoCardForRedux[] = createdCards.map(
@@ -369,10 +359,10 @@ export const BoardPageClient = memo(function BoardPageClient({
         onDeleteSuccess={handleDeleteSuccess}
       />
 
-      {/* Move to Another Board Dialog */}
+      {/* Move to Another Board Dialog. Mounted per opening: it has no open
+          prop, so each opening loads the boards afresh. */}
       {moveDialogCardId && (
         <MoveToAnotherBoardDialog
-          isOpen={!!moveDialogCardId}
           onClose={() => setMoveDialogCardId(null)}
           cardId={moveDialogCardId}
           repoName={

@@ -8,9 +8,7 @@
 'use server'
 
 import * as Sentry from '@sentry/nextjs'
-import type { PostgrestError, SupabaseClient } from '@supabase/supabase-js'
 import { destr } from 'destr'
-import type { ZodError } from 'zod'
 
 import {
   withAuthRateLimit,
@@ -18,96 +16,37 @@ import {
 } from '@/lib/actions/auth-guard'
 import { toStatusListDomain } from '@/lib/actions/mappers'
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
-import {
-  BOARD_PRESETS,
-  getPresetById,
-  DEFAULT_PRESET_ID,
-  type PresetId,
-} from '@/lib/constants/board-presets'
+import { BOARD_CREATION_UNCONFIRMED_MESSAGE } from '@/lib/constants/board-creation'
+import { DEFAULT_PRESET_ID, type PresetId } from '@/lib/constants/board-presets'
 import type { StatusListDomain } from '@/lib/models/domain'
 import { createClient } from '@/lib/supabase/server'
-import type { Database, TablesInsert, TablesUpdate } from '@/lib/supabase/types'
+import type { TablesUpdate } from '@/lib/supabase/types'
 import {
   boardNameSchema,
   boardSubtitleSchema,
   boardIdSchema,
   boardSettingsSchema,
   boardPositionUpdatesSchema,
-  createdBoardRowSchema,
   presetIdSchema,
   statusListNameSchema,
   statusListColorSchema,
   gridPositionSchema,
 } from '@/lib/validations/board'
 
-import { ActionUserError, type ActionResult, type BoardOption } from './types'
+import {
+  createBoardFromPreset,
+  type BoardCreationOutcome,
+} from './board-creation'
+import {
+  ActionUserError,
+  type ActionErrorCode,
+  type ActionResult,
+  type BoardOption,
+} from './types'
 
 // ========================================
 // StatusList Operations
 // ========================================
-
-/**
- * Create status lists from a preset definition.
- * Maps preset columns to database rows with grid positioning.
- *
- * @param boardId - Target board UUID
- * @param presetId - Preset identifier from PRESET_IDS
- * @returns Created StatusListDomain array
- * @example
- * await createStatusListsFromPreset(boardId, 'web-app')
- * // Creates: Frontend, Backend, Fullstack, Library, Infrastructure
- */
-async function createStatusListsFromPreset(
-  boardId: string,
-  presetId: PresetId,
-): Promise<StatusListDomain[]> {
-  const supabase = await createClient()
-  const preset = getPresetById(presetId)
-
-  const statusLists: TablesInsert<'statuslist'>[] = preset.columns.map(
-    (col, index) => ({
-      board_id: boardId,
-      name: col.name,
-      color: col.color,
-      order: index,
-      grid_row: 0,
-      grid_col: index,
-    }),
-  )
-
-  const { data, error } = await supabase
-    .from('statuslist')
-    .insert(statusLists)
-    .select()
-
-  if (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'Create status lists from preset', boardId, presetId },
-    })
-    throw new Error('Failed to create status lists')
-  }
-
-  return (data || []).map(toStatusListDomain)
-}
-
-/**
- * Create the default status lists for a board that has none.
- * Delegates to the Software Release preset.
- * Called by {@link getBoardBundle} when it reads a board without columns.
- * New boards do not come this way: {@link createBoardFromPreset} writes a
- * board and its columns together.
- *
- * @param boardId - Target board UUID
- * @returns Created StatusListDomain array
- * @example
- * await createDefaultStatusLists(boardId)
- * // Creates: Pending, Planning, Focus Development, MVP Release, Production Release
- */
-export async function createDefaultStatusLists(
-  boardId: string,
-): Promise<StatusListDomain[]> {
-  return createStatusListsFromPreset(boardId, 'software-release')
-}
 
 /**
  * Create a new status list
@@ -394,98 +333,68 @@ export async function batchUpdateRepoCardOrders(
 // Board Operations
 // ========================================
 
-/** What {@link createBoard} answers when the database did not create the board. */
-const BOARD_NOT_CREATED_MESSAGE = 'The board was not created. Try again.'
-
 /**
- * Result of {@link createBoardFromPreset}.
- * - `created`: the board and its columns exist
- * - `not-created`: the database refused or failed; nothing was written
- * - `unreadable`: the call succeeded, so the board exists, but its answer is
- *   not the JSON {@link createdBoardRowSchema} describes
- */
-type BoardCreationOutcome =
-  | { status: 'created'; board: BoardOption }
-  | { status: 'not-created'; error: PostgrestError }
-  | { status: 'unreadable'; error: ZodError }
-
-/**
- * Creates a board and the columns of a preset in one database transaction,
- * through the `create_board_with_status_lists` function. Exists so no caller
- * can end up with a board that has no columns: the board and all of its
- * columns are written, or nothing is. Called by {@link createBoard} and
- * {@link createFirstBoardIfNeeded}. Neither failure is reported here, because
- * the two callers answer a failure in different ways.
+ * What {@link createBoard} answers when it cannot hand back a board, by the
+ * `status` of the {@link createBoardFromPreset} outcome.
+ * - `not-created`: the database refused and nothing was written, so trying
+ *   again is safe and the text says so
+ * - `unconfirmed`: no answer came, so the board may exist and a second try
+ *   could make a second one
+ * - `unreadable`: the board exists but cannot be handed back. The same text
+ *   sends the user to their boards, where it is.
  *
- * The function takes the owner from the session, so `supabase` has to carry
- * the user's token.
- *
- * @param supabase - Client of the signed-in user (RLS applies).
- * @param boardName - Validated, trimmed board name.
- * @param presetId - Preset whose columns the board gets, in preset order.
- * @returns The {@link BoardCreationOutcome}.
- * @example
- * await createBoardFromPreset(supabase, 'Side Projects', 'single-column')
- * // => { status: 'created', board: { id: 'uuid', name: 'Side Projects',
- * //      statusLists: [{ id: 'uuid', name: 'Repositories', color: '#6B7280' }] } }
+ * The last two carry `BOARD_CREATION_UNCONFIRMED`: the client offers the
+ * boards for them and no second try, and it reads the code for that, not the
+ * text.
  */
-async function createBoardFromPreset(
-  supabase: SupabaseClient<Database>,
-  boardName: string,
-  presetId: PresetId,
-): Promise<BoardCreationOutcome> {
-  const { data: createdBoardJson, error } = await supabase.rpc(
-    'create_board_with_status_lists',
-    {
-      p_name: boardName,
-      // The array order is the column order on the board
-      p_columns: BOARD_PRESETS[presetId].columns.map(({ name, color }) => ({
-        name,
-        color,
-      })),
-    },
-  )
-
-  if (error) return { status: 'not-created', error }
-
-  // The function builds its JSON by hand in SQL; check it before use
-  const parsedBoard = createdBoardRowSchema.safeParse(createdBoardJson)
-  if (!parsedBoard.success) {
-    return { status: 'unreadable', error: parsedBoard.error }
-  }
-
-  const { id, name, status_lists: statusLists } = parsedBoard.data
-  return { status: 'created', board: { id, name, statusLists } }
-}
+const BOARD_CREATION_FAILURES = {
+  'not-created': {
+    message: 'The board was not created. Try again.',
+    errorCode: undefined,
+  },
+  unconfirmed: {
+    message: BOARD_CREATION_UNCONFIRMED_MESSAGE,
+    errorCode: 'BOARD_CREATION_UNCONFIRMED',
+  },
+  unreadable: {
+    message: BOARD_CREATION_UNCONFIRMED_MESSAGE,
+    errorCode: 'BOARD_CREATION_UNCONFIRMED',
+  },
+} as const satisfies Record<
+  Exclude<BoardCreationOutcome['status'], 'created'>,
+  { message: string; errorCode: ActionErrorCode | undefined }
+>
 
 /**
  * Creates a board with the columns of a preset. Board and columns are written
- * in one transaction (see {@link createBoardFromPreset}), so a failed creation
- * leaves nothing behind and can be tried again.
+ * in one transaction (see {@link createBoardFromPreset}), so a refused
+ * creation leaves nothing behind and can be tried again.
  *
  * Called by {@link CreateBoardForm} on `/boards/new` with one of
  * {@link SELECTABLE_PRESET_IDS}, and by {@link MoveToAnotherBoardDialog} with
  * `single-column` for a destination board made inside the dialog.
  *
  * @param name - Board name as typed; validated and trimmed here (1 to 50 characters).
- * @param presetId - One of {@link PRESET_IDS}; `web-app` when left out.
+ * @param presetId - One of {@link PRESET_IDS}; `web-app` when left out. Checked
+ *   here again, because a browser can send any string.
  * @returns
- * - On success: `{ success: true, data: { id, name, statusLists } }`, the
- *   columns in their order
+ * - On success: `{ success: true, data: { id, name, isPublic, statusLists } }`,
+ *   the columns in their order; `isPublic` is `false` for a new board
  * - Invalid name or preset: `{ success: false, error }` with the validation message
  * - Not signed in: `{ success: false, error: 'Authentication required' }`
- * - The database did not create the board:
+ * - The database refused, so nothing was written:
  *   `{ success: false, error: 'The board was not created. Try again.' }`
- * - The board was created but its answer could not be read:
- *   `{ success: false, error: 'An unexpected error occurred' }`
+ * - No answer came from the database, so the board may exist, or the board
+ *   was created and its answer could not be read:
+ *   `{ success: false, error: BOARD_CREATION_UNCONFIRMED_MESSAGE, errorCode: 'BOARD_CREATION_UNCONFIRMED' }`
  * @example
  * await createBoard('Side Projects', 'single-column')
- * // => { success: true, data: { id: 'uuid', name: 'Side Projects',
+ * // => { success: true, data: { id: 'uuid', name: 'Side Projects', isPublic: false,
  * //      statusLists: [{ id: 'uuid', name: 'Repositories', color: '#6B7280' }] } }
  */
 export async function createBoard(
   name: string,
-  presetId?: string,
+  presetId?: PresetId,
 ): Promise<ActionResult<BoardOption>> {
   // Validate board name (P2-3)
   const nameValidation = boardNameSchema.safeParse(name)
@@ -511,24 +420,18 @@ export async function createBoard(
       presetValidation.data,
     )
 
-    if (outcome.status === 'not-created') {
-      Sentry.captureException(outcome.error, {
-        extra: {
-          context: 'createBoard: create_board_with_status_lists',
-          presetId: presetValidation.data,
-        },
-      })
-      // Nothing was written, so trying again is safe: say so
-      throw new ActionUserError(BOARD_NOT_CREATED_MESSAGE)
-    }
+    if (outcome.status === 'created') return outcome.board
 
-    if (outcome.status === 'unreadable') {
-      // The board exists. The guard reports this error and answers with its
-      // generic message, which does not invite a second try.
-      throw outcome.error
-    }
-
-    return outcome.board
+    Sentry.captureException(outcome.error, {
+      extra: {
+        context: 'createBoard: create_board_with_status_lists',
+        presetId: presetValidation.data,
+        status: outcome.status,
+      },
+    })
+    // The outcomes differ in what the user is told about trying again
+    const failure = BOARD_CREATION_FAILURES[outcome.status]
+    throw new ActionUserError(failure.message, failure.errorCode)
   })
 }
 
@@ -784,75 +687,6 @@ export async function toggleBoardFavorite(
   }
 
   return { success: true, isFavorite: newStatus }
-}
-
-// ========================================
-// First Board Auto-Creation
-// ========================================
-
-/**
- * Create a "First Board" for new users if they have no existing boards.
- *
- * This function is idempotent - it only creates a board if the user
- * has zero boards. Safe to call on every login.
- *
- * The board and its default columns (the Software Release preset) are written
- * together by {@link createBoardFromPreset}. A failure is reported and never
- * blocks the sign-in: the user then lands on an empty board list.
- *
- * @param userId - The authenticated user's ID
- * @returns
- * - Created board object if this was the user's first login
- * - null if user already has boards (no action taken)
- *
- * @example
- * // In OAuth callback after session exchange
- * const newBoard = await createFirstBoardIfNeeded(session.user.id)
- * if (newBoard) {
- *   console.log('Created first board for new user:', newBoard.id)
- * }
- */
-export async function createFirstBoardIfNeeded(
-  userId: string,
-): Promise<{ id: string; name: string } | null> {
-  const supabase = await createClient()
-
-  // Check if user already has any boards
-  const { count, error: countError } = await supabase
-    .from('board')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
-
-  if (countError) {
-    Sentry.captureException(countError, {
-      extra: { context: 'Check existing boards', userId },
-    })
-    // Don't block login on error - just skip first board creation
-    return null
-  }
-
-  // User already has boards - no action needed
-  if (count && count > 0) {
-    return null
-  }
-
-  // "First Board" and its default columns in one transaction: the board
-  // never exists without them
-  const outcome = await createBoardFromPreset(
-    supabase,
-    'First Board',
-    'software-release',
-  )
-
-  if (outcome.status !== 'created') {
-    Sentry.captureException(outcome.error, {
-      extra: { context: 'Create first board', userId, status: outcome.status },
-    })
-    // Don't block login on error
-    return null
-  }
-
-  return { id: outcome.board.id, name: outcome.board.name }
 }
 
 // ============================================================================

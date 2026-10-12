@@ -16,6 +16,7 @@ import {
   querySingle,
   CARD_IDS,
   BOARD_IDS,
+  STATUS_IDS,
   resetRepoCards,
 } from '../helpers/db-query'
 
@@ -383,6 +384,42 @@ test.describe('Remove from Board - Keyboard Accessibility', () => {
       page.locator(`[data-testid="repo-card-${cardId}"]`),
     ).toHaveCount(0, { timeout: 10000 })
     await expect(nextCard).toBeFocused()
+
+    // Cleanup: wait for the delete to land so the reset is not undone by it
+    await expect(async () => {
+      expect(await querySingle('repocard', { id: cardId })).toBeNull()
+    }).toPass({ timeout: 10000 })
+    await resetRepoCards()
+  })
+
+  test("puts the keyboard focus on the column's Add Repo button after its only card was removed", async ({
+    page,
+  }) => {
+    // Arrange: Pending holds card-3 and nothing else
+    await resetRepoCards()
+    const cardId = CARD_IDS.card3
+    await page.goto(BOARD_URL)
+    const overflowMenuTrigger = page.locator(
+      `[data-testid="overflow-menu-trigger-${cardId}"]`,
+    )
+    await expect(overflowMenuTrigger).toBeVisible({ timeout: 15000 })
+    await overflowMenuTrigger.click()
+    await page.locator(`[data-testid="remove-from-board-${cardId}"]`).click()
+
+    // Act
+    await page.locator(`[data-testid="confirm-remove-${cardId}"]`).click()
+
+    // Assert: the button of that column has the focus, also once the card
+    // has left the page. A card of another column would be the wrong place.
+    const addRepoButtonOfPending = page.locator(
+      `[data-status-column-id="${STATUS_IDS.pending}"] [data-column-add-repo]`,
+    )
+    await expect(addRepoButtonOfPending).toBeFocused({ timeout: 10000 })
+    await expect(
+      page.locator(`[data-testid="repo-card-${cardId}"]`),
+    ).toHaveCount(0, { timeout: 10000 })
+    await expect(addRepoButtonOfPending).toBeFocused()
+    await expect(addRepoButtonOfPending).toHaveText('Add Repo')
 
     // Cleanup: wait for the delete to land so the reset is not undone by it
     await expect(async () => {

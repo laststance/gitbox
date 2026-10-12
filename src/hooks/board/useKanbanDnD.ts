@@ -51,6 +51,7 @@ import { trackBoardWrite } from '@/lib/redux/slices/boardSyncSlice'
 import type { AppDispatch } from '@/lib/redux/store'
 import type { StatusListId } from '@/lib/types/brands'
 import { notifyFailedBoardSave } from '@/lib/utils/notify-failed-board-save'
+import { reportUnconfirmedBoardSave } from '@/lib/utils/report-unconfirmed-board-save'
 
 import type { BoardRollback } from './useBoardRollback'
 
@@ -241,6 +242,7 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
         await trackBoardWrite(
           dispatch,
           updateStatusListPosition(activeStatus.id, targetRow, targetCol),
+          () => reportUnconfirmedBoardSave('moveColumnToNewRow'),
         )
       } catch (error) {
         Sentry.captureException(error, {
@@ -306,7 +308,11 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
       dispatch(setStatusLists(updatedStatuses))
 
       try {
-        await trackBoardWrite(dispatch, batchUpdateStatusListPositions(updates))
+        await trackBoardWrite(
+          dispatch,
+          batchUpdateStatusListPositions(updates),
+          () => reportUnconfirmedBoardSave('insertColumn'),
+        )
       } catch (error) {
         Sentry.captureException(error, { tags: { action: 'insertColumn' } })
         notifyFailedBoardSave(
@@ -346,6 +352,7 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
         await trackBoardWrite(
           dispatch,
           swapStatusListPositions(activeStatus.id, overStatus.id),
+          () => reportUnconfirmedBoardSave('swapColumnPositions'),
         )
       } catch (error) {
         Sentry.captureException(error, {
@@ -463,7 +470,11 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
             order: index,
           }))
           try {
-            await trackBoardWrite(dispatch, batchUpdateRepoCardOrders(updates))
+            await trackBoardWrite(
+              dispatch,
+              batchUpdateRepoCardOrders(updates),
+              () => reportUnconfirmedBoardSave('syncCardOrder'),
+            )
           } catch (error) {
             Sentry.captureException(error, {
               tags: { action: 'syncCardOrder' },
@@ -491,6 +502,7 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
           await trackBoardWrite(
             dispatch,
             updateRepoCardPosition(activeCard.id, targetStatusId, newOrder),
+            () => reportUnconfirmedBoardSave('syncCardPosition'),
           )
         } catch (error) {
           Sentry.captureException(error, {

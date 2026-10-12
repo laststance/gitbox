@@ -7,12 +7,17 @@
  * on no board, while still holding its repository under the one-card-per-user
  * rule, so the repository could not be added anywhere again.
  *
+ * Z is a shortcut of the board. While a dialog, a menu or a list of options
+ * lies on top of the board, the key belongs to that layer: a Radix Select
+ * reads a typed letter as "jump to the option that starts with it" and lets
+ * the key travel on to the window.
+ *
  * @see src/hooks/board/useKanbanUndo.ts
  */
 
 import { act, renderHook } from '@testing-library/react'
 import { toast } from 'sonner'
-import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { useKanbanUndo } from '@/hooks/board/useKanbanUndo'
 import { batchUpdateRepoCardOrders } from '@/lib/actions/board'
@@ -220,5 +225,92 @@ describe('useKanbanUndo', () => {
     expect(toast.success).not.toHaveBeenCalled()
     expect(dispatch).not.toHaveBeenCalled()
     expect(batchUpdateRepoCardOrders).not.toHaveBeenCalled()
+  })
+})
+
+describe('useKanbanUndo: Z while something lies on top of the board', () => {
+  /** The layer a test opened; closed again after it. */
+  let openLayer: HTMLElement | null = null
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    openLayer?.remove()
+    openLayer = null
+  })
+
+  test.each([
+    { layer: 'a dialog', role: 'dialog' },
+    { layer: 'a confirmation', role: 'alertdialog' },
+    { layer: 'a menu', role: 'menu' },
+    { layer: 'a list of options', role: 'listbox' },
+  ])('does not undo the last drag on the board behind $layer', ({ role }) => {
+    // Arrange: card-1 was dragged from To Do to Done, so there is a drag to
+    // undo, and a layer is open on top of the board
+    const dispatch = vi.fn()
+    const snapshotBeforeDrag = [makeCard('card-1', 'gitbox', 'status-todo', 0)]
+    const { result, rerender } = renderHook(
+      ({ cards }) =>
+        useKanbanUndo({
+          dispatch,
+          cards,
+          statuses: [],
+          rollbackRepoCards: vi.fn(),
+          rollbackStatusLists: vi.fn(),
+        }),
+      { initialProps: { cards: snapshotBeforeDrag } },
+    )
+    act(() => {
+      result.current.pushCardHistory(snapshotBeforeDrag)
+    })
+    rerender({ cards: [makeCard('card-1', 'gitbox', 'status-done', 0)] })
+    openLayer = document.createElement('div')
+    openLayer.setAttribute('role', role)
+    document.body.append(openLayer)
+
+    // Act: the key reaches the window, as it does from a button or a
+    // Select inside the layer
+    pressUndoKey()
+
+    // Assert: the card stays in Done, on screen and in the database
+    expect(dispatch).not.toHaveBeenCalled()
+    expect(batchUpdateRepoCardOrders).not.toHaveBeenCalled()
+    expect(toast.success).not.toHaveBeenCalled()
+  })
+
+  test('undoes the last drag again once the layer is closed', () => {
+    // Arrange: the same drag, and a dialog that was open and is gone again
+    const dispatch = vi.fn()
+    const snapshotBeforeDrag = [makeCard('card-1', 'gitbox', 'status-todo', 0)]
+    const { result, rerender } = renderHook(
+      ({ cards }) =>
+        useKanbanUndo({
+          dispatch,
+          cards,
+          statuses: [],
+          rollbackRepoCards: vi.fn(),
+          rollbackStatusLists: vi.fn(),
+        }),
+      { initialProps: { cards: snapshotBeforeDrag } },
+    )
+    act(() => {
+      result.current.pushCardHistory(snapshotBeforeDrag)
+    })
+    rerender({ cards: [makeCard('card-1', 'gitbox', 'status-done', 0)] })
+    const closedDialog = document.createElement('div')
+    closedDialog.setAttribute('role', 'dialog')
+    document.body.append(closedDialog)
+    closedDialog.remove()
+
+    // Act
+    pressUndoKey()
+
+    // Assert
+    expect(batchUpdateRepoCardOrders).toHaveBeenCalledTimes(1)
+    expect(batchUpdateRepoCardOrders).toHaveBeenCalledWith([
+      { id: 'card-1', statusId: 'status-todo', order: 0 },
+    ])
   })
 })

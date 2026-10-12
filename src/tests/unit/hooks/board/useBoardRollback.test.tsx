@@ -10,11 +10,16 @@
  * Every test here holds the save open with a deferred rejection, changes the
  * store in between when the scenario needs it, then lets the save fail.
  *
+ * The last block covers a save that gets no answer at all: after 15 seconds
+ * the user is told, the board is fetched again and what the user did stays on
+ * screen until that copy arrives.
+ *
  * @see src/hooks/board/useBoardRollback.ts
  */
 
 import type { DragEndEvent } from '@dnd-kit/core'
 import { configureStore } from '@reduxjs/toolkit'
+import * as Sentry from '@sentry/nextjs'
 import { act, renderHook } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { Provider } from 'react-redux'
@@ -50,6 +55,7 @@ import boardSyncReducer, {
 } from '@/lib/redux/slices/boardSyncSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
+import { reloadPage } from '@/lib/utils/reload-page'
 
 const refreshBoardFromServer = vi.fn()
 
@@ -166,7 +172,6 @@ function createBoardStore(
     reducer: { board: boardReducer, boardSync: boardSyncReducer },
     preloadedState: {
       board: {
-        activeBoard: null,
         statusLists,
         repoCards,
       },
@@ -1262,5 +1267,391 @@ describe('a save in flight keeps board data fetched again out of the store', () 
     expect(
       selectMayApplyServerSnapshot(store.getState(), toBoardId('board-1')),
     ).toBe(true)
+  })
+})
+
+describe('a save that gets no answer within 15 seconds', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  test('a card moved to another column stays where it was dropped, the user is told the save is unconfirmed and the board is fetched again', async () => {
+    // Arrange: the server never answers the save
+    vi.mocked(updateRepoCardPosition).mockReturnValueOnce(
+      new Promise<never>(() => {}),
+    )
+    const { store, wrapper } = createBoardStore(
+      [makeCard('card-1', 'gitbox', 'status-todo', 0)],
+      [
+        makeColumn('status-todo', 'To Do', 0),
+        makeColumn('status-done', 'Done', 1),
+      ],
+    )
+    const { result } = renderHook(() => useBoardDragAndUndo(), { wrapper })
+
+    // Act
+    act(() => {
+      void result.current.handleDragEnd(
+        dropCardOnColumn('card-1', 'status-done'),
+      )
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000)
+    })
+
+    // Assert
+    expect(toast.warning).toHaveBeenCalledTimes(1)
+    expect(toast.warning).toHaveBeenCalledWith(
+      'Could not confirm that the change was saved',
+      {
+        id: 'board-save-unconfirmed',
+        description:
+          'The board reloads when the server answers. Reload the page to see what was saved now.',
+        duration: 8000,
+        action: { label: 'Reload page', onClick: reloadPage },
+      },
+    )
+    expect(refreshBoardFromServer).toHaveBeenCalledTimes(1)
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'A board save got no answer in time',
+      { level: 'warning', tags: { action: 'syncCardPosition' } },
+    )
+    // What the user did stays on screen until the fetched board arrives
+    expect(store.getState().board.repoCards).toEqual([
+      makeCard('card-1', 'gitbox', 'status-done', 0),
+    ])
+  })
+
+  test('a card reordered within its column: the user is told the save is unconfirmed and the board is fetched again', async () => {
+    // Arrange: the server never answers the save
+    vi.mocked(batchUpdateRepoCardOrders).mockReturnValueOnce(
+      new Promise<never>(() => {}),
+    )
+    const { wrapper } = createBoardStore(
+      [
+        makeCard('card-1', 'gitbox', 'status-todo', 0),
+        makeCard('card-2', 'corelive', 'status-todo', 1),
+      ],
+      [makeColumn('status-todo', 'To Do', 0)],
+    )
+    const { result } = renderHook(() => useBoardDragAndUndo(), { wrapper })
+
+    // Act
+    act(() => {
+      void result.current.handleDragEnd(dropCardOnCard('card-1', 'card-2'))
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000)
+    })
+
+    // Assert
+    expect(toast.warning).toHaveBeenCalledWith(
+      'Could not confirm that the change was saved',
+      {
+        id: 'board-save-unconfirmed',
+        description:
+          'The board reloads when the server answers. Reload the page to see what was saved now.',
+        duration: 8000,
+        action: { label: 'Reload page', onClick: reloadPage },
+      },
+    )
+    expect(refreshBoardFromServer).toHaveBeenCalledTimes(1)
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'A board save got no answer in time',
+      { level: 'warning', tags: { action: 'syncCardOrder' } },
+    )
+  })
+
+  test('two swapped columns: the user is told the save is unconfirmed and the board is fetched again', async () => {
+    // Arrange: the server never answers the save
+    vi.mocked(swapStatusListPositions).mockReturnValueOnce(
+      new Promise<never>(() => {}),
+    )
+    const { wrapper } = createBoardStore(
+      [],
+      [
+        makeColumn('status-todo', 'To Do', 0),
+        makeColumn('status-done', 'Done', 1),
+      ],
+    )
+    const { result } = renderHook(() => useBoardDragAndUndo(), { wrapper })
+
+    // Act
+    act(() => {
+      void result.current.handleDragEnd(
+        dropColumnOnColumn('status-todo', 'status-done'),
+      )
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000)
+    })
+
+    // Assert
+    expect(toast.warning).toHaveBeenCalledWith(
+      'Could not confirm that the change was saved',
+      {
+        id: 'board-save-unconfirmed',
+        description:
+          'The board reloads when the server answers. Reload the page to see what was saved now.',
+        duration: 8000,
+        action: { label: 'Reload page', onClick: reloadPage },
+      },
+    )
+    expect(refreshBoardFromServer).toHaveBeenCalledTimes(1)
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'A board save got no answer in time',
+      { level: 'warning', tags: { action: 'swapColumnPositions' } },
+    )
+  })
+
+  test('a column dragged to a new row: the user is told the save is unconfirmed and the board is fetched again', async () => {
+    // Arrange: the server never answers the save
+    vi.mocked(updateStatusListPosition).mockReturnValueOnce(
+      new Promise<never>(() => {}),
+    )
+    const { wrapper } = createBoardStore(
+      [],
+      [
+        makeColumn('status-todo', 'To Do', 0),
+        makeColumn('status-done', 'Done', 1),
+      ],
+    )
+    const { result } = renderHook(() => useBoardDragAndUndo(), { wrapper })
+
+    // Act
+    act(() => {
+      void result.current.handleDragEnd(dropColumnOnNewRow('status-done', 1))
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000)
+    })
+
+    // Assert
+    expect(toast.warning).toHaveBeenCalledWith(
+      'Could not confirm that the change was saved',
+      {
+        id: 'board-save-unconfirmed',
+        description:
+          'The board reloads when the server answers. Reload the page to see what was saved now.',
+        duration: 8000,
+        action: { label: 'Reload page', onClick: reloadPage },
+      },
+    )
+    expect(refreshBoardFromServer).toHaveBeenCalledTimes(1)
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'A board save got no answer in time',
+      { level: 'warning', tags: { action: 'moveColumnToNewRow' } },
+    )
+  })
+
+  test('a column dropped on an empty cell: the user is told the save is unconfirmed and the board is fetched again', async () => {
+    // Arrange: the server never answers the save
+    vi.mocked(batchUpdateStatusListPositions).mockReturnValueOnce(
+      new Promise<never>(() => {}),
+    )
+    const { wrapper } = createBoardStore(
+      [],
+      [
+        makeColumn('status-todo', 'To Do', 0),
+        makeColumn('status-done', 'Done', 1),
+      ],
+    )
+    const { result } = renderHook(() => useBoardDragAndUndo(), { wrapper })
+
+    // Act
+    act(() => {
+      void result.current.handleDragEnd(
+        dropColumnOnEmptyCell('status-todo', 0, 2),
+      )
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000)
+    })
+
+    // Assert
+    expect(toast.warning).toHaveBeenCalledWith(
+      'Could not confirm that the change was saved',
+      {
+        id: 'board-save-unconfirmed',
+        description:
+          'The board reloads when the server answers. Reload the page to see what was saved now.',
+        duration: 8000,
+        action: { label: 'Reload page', onClick: reloadPage },
+      },
+    )
+    expect(refreshBoardFromServer).toHaveBeenCalledTimes(1)
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'A board save got no answer in time',
+      { level: 'warning', tags: { action: 'insertColumn' } },
+    )
+  })
+
+  test('the undo of a card drag: the user is told the save is unconfirmed and the board is fetched again', async () => {
+    // Arrange: card-1 was dragged from To Do to Done and that drag was saved;
+    // the server never answers the save of the undo
+    vi.mocked(batchUpdateRepoCardOrders).mockReturnValueOnce(
+      new Promise<never>(() => {}),
+    )
+    const { wrapper } = createBoardStore(
+      [makeCard('card-1', 'gitbox', 'status-todo', 0)],
+      [
+        makeColumn('status-todo', 'To Do', 0),
+        makeColumn('status-done', 'Done', 1),
+      ],
+    )
+    const { result } = renderHook(() => useBoardDragAndUndo(), { wrapper })
+    await act(async () => {
+      await result.current.handleDragEnd(
+        dropCardOnColumn('card-1', 'status-done'),
+      )
+    })
+
+    // Act
+    pressUndoKey()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000)
+    })
+
+    // Assert
+    expect(toast.warning).toHaveBeenCalledWith(
+      'Could not confirm that the change was saved',
+      {
+        id: 'board-save-unconfirmed',
+        description:
+          'The board reloads when the server answers. Reload the page to see what was saved now.',
+        duration: 8000,
+        action: { label: 'Reload page', onClick: reloadPage },
+      },
+    )
+    expect(refreshBoardFromServer).toHaveBeenCalledTimes(1)
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'A board save got no answer in time',
+      { level: 'warning', tags: { action: 'undoCardPositions' } },
+    )
+  })
+
+  test('the undo of a column drag: the user is told the save is unconfirmed and the board is fetched again', async () => {
+    // Arrange: To Do and Done were swapped and that swap was saved; the
+    // server never answers the save of the undo
+    vi.mocked(batchUpdateStatusListPositions).mockReturnValueOnce(
+      new Promise<never>(() => {}),
+    )
+    const { wrapper } = createBoardStore(
+      [],
+      [
+        makeColumn('status-todo', 'To Do', 0),
+        makeColumn('status-done', 'Done', 1),
+      ],
+    )
+    const { result } = renderHook(() => useBoardDragAndUndo(), { wrapper })
+    await act(async () => {
+      await result.current.handleDragEnd(
+        dropColumnOnColumn('status-todo', 'status-done'),
+      )
+    })
+
+    // Act
+    pressUndoKey()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000)
+    })
+
+    // Assert
+    expect(toast.warning).toHaveBeenCalledWith(
+      'Could not confirm that the change was saved',
+      {
+        id: 'board-save-unconfirmed',
+        description:
+          'The board reloads when the server answers. Reload the page to see what was saved now.',
+        duration: 8000,
+        action: { label: 'Reload page', onClick: reloadPage },
+      },
+    )
+    expect(refreshBoardFromServer).toHaveBeenCalledTimes(1)
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'A board save got no answer in time',
+      { level: 'warning', tags: { action: 'undoColumnPositions' } },
+    )
+  })
+
+  test('a card removed from the board stays off the screen, the user is told the save is unconfirmed and the board is fetched again', async () => {
+    // Arrange
+    const { store, wrapper } = createBoardStore(
+      [
+        makeCard('card-1', 'gitbox', 'status-todo', 0),
+        makeCard('card-2', 'corelive', 'status-todo', 1),
+      ],
+      [makeColumn('status-todo', 'To Do', 0)],
+    )
+    const { result } = renderHook(() => useOptimisticCardAction(), { wrapper })
+
+    // Act: the server never answers the removal
+    act(() => {
+      void result.current(
+        toRepoCardId('card-1'),
+        async () => new Promise<never>(() => {}),
+        { actionName: 'removeFromBoard', errorMessage: 'Failed to remove' },
+      )
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000)
+    })
+
+    // Assert
+    expect(toast.warning).toHaveBeenCalledWith(
+      'Could not confirm that the change was saved',
+      {
+        id: 'board-save-unconfirmed',
+        description:
+          'The board reloads when the server answers. Reload the page to see what was saved now.',
+        duration: 8000,
+        action: { label: 'Reload page', onClick: reloadPage },
+      },
+    )
+    expect(refreshBoardFromServer).toHaveBeenCalledTimes(1)
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'A board save got no answer in time',
+      { level: 'warning', tags: { action: 'removeFromBoard' } },
+    )
+    expect(store.getState().board.repoCards).toEqual([
+      makeCard('card-2', 'corelive', 'status-todo', 1),
+    ])
+  })
+
+  test('a save answered one millisecond before the limit says nothing and fetches nothing', async () => {
+    // Arrange
+    const { finishSave, pendingSave } = holdSuccessfulSaveOpen()
+    vi.mocked(updateRepoCardPosition).mockReturnValueOnce(pendingSave)
+    const { wrapper } = createBoardStore(
+      [makeCard('card-1', 'gitbox', 'status-todo', 0)],
+      [
+        makeColumn('status-todo', 'To Do', 0),
+        makeColumn('status-done', 'Done', 1),
+      ],
+    )
+    const { result } = renderHook(() => useBoardDragAndUndo(), { wrapper })
+
+    // Act
+    let drag: Promise<void> = Promise.resolve()
+    act(() => {
+      drag = result.current.handleDragEnd(
+        dropCardOnColumn('card-1', 'status-done'),
+      )
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(14_999)
+      finishSave()
+      await drag
+      await vi.advanceTimersByTimeAsync(60_000)
+    })
+
+    // Assert
+    expect(toast.warning).not.toHaveBeenCalled()
+    expect(refreshBoardFromServer).not.toHaveBeenCalled()
   })
 })

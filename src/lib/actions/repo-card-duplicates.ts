@@ -228,10 +228,11 @@ export function isUniqueViolation(
  * Builds the user-facing error for a unique violation and records that the
  * race happened.
  *
- * Called by the placing actions (add, move) when the database rejects a write
- * the pre-check allowed, i.e. another tab or request placed the repository in
- * between. {@link ActionUserError} skips Sentry, so this writes one structured
- * warning (no repository names) to keep the frequency of the race observable.
+ * Called by {@link addRepositoriesToBoard} when the database rejects an
+ * insert the pre-check allowed, i.e. another tab or request placed the
+ * repository in between. {@link ActionUserError} skips Sentry, so this writes
+ * one structured warning (no repository names) to keep the frequency of the
+ * race observable.
  *
  * @param params.error - The Supabase error whose code is `23505`.
  * @param params.raceMessage - Sentence shown to the user by the calling surface.
@@ -264,18 +265,4 @@ export function toUniqueViolationError(params: {
   )
 
   return new ActionUserError(params.raceMessage)
-}
-
-/**
- * Sentence shown by the move dialog when the unique index rejected the write.
- *
- * @param owner - Repository owner login.
- * @param name - Repository name.
- * @returns The race sentence naming the repository.
- * @example
- * toDialogRaceMessage('laststance', 'gitbox')
- * // => 'laststance/gitbox was just placed on a board. Close this dialog and try again.'
- */
-export function toDialogRaceMessage(owner: string, name: string): string {
-  return `${owner}/${name} was just placed on a board. Close this dialog and try again.`
 }

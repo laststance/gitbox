@@ -25,19 +25,17 @@ import * as Sentry from '@sentry/nextjs'
 
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 import { POSTGREST_MAX_ROWS } from '@/lib/constants/postgrest'
-import type { StatusListDomain, RepoCardDomain } from '@/lib/models/domain'
 import { logBoardTiming } from '@/lib/utils/board-timing'
 import { boardIdSchema } from '@/lib/validations/board'
 
 import { withAuthResult } from './auth-guard'
-import { createDefaultStatusLists } from './board'
+import { createDefaultStatusLists } from './board-creation'
 import {
   REPO_CARD_COLUMNS,
   remapBoardEmbed,
   type BoardBundle,
   type BoardBundleRow,
 } from './mappers'
-import type { CommentData } from './project-info'
 import {
   lookupRepoPlacements,
   type BoardPlacement,
@@ -45,19 +43,12 @@ import {
 import type { ActionResult } from './types'
 
 /**
- * Complete initial data for a board
- *
- * Used by Server Component to pass to Client Component.
- * Contains all data needed to render the board without additional fetches.
+ * What {@link BoardPageClient} needs besides the board row: the columns, the
+ * cards and their comments, as {@link getBoardBundle} reads them. The page (a
+ * Server Component) hands it over, so the board renders without a fetch of
+ * its own.
  */
-export interface BoardInitialData {
-  /** Columns (status lists) sorted by grid position */
-  statusLists: StatusListDomain[]
-  /** Repository cards on the board */
-  repoCards: RepoCardDomain[]
-  /** Map of cardId → comment data (text + color) from projectinfo */
-  comments: Record<string, CommentData>
-}
+export type BoardInitialData = Omit<BoardBundle, 'board'>
 
 /**
  * Get every placement of the current user's repositories: which board holds

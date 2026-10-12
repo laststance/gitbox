@@ -14,6 +14,10 @@ interface PresetSelectorProps {
   value: SelectablePresetId
   onChange: (value: SelectablePresetId) => void
   disabled?: boolean
+  /** Id of the text that names the group, read before its cards. */
+  'aria-labelledby'?: string
+  /** Id of the text that says what the group is for. */
+  'aria-describedby'?: string
 }
 
 /**
@@ -25,16 +29,24 @@ interface PresetSelectorProps {
  * @param value - Currently selected preset ID
  * @param onChange - Callback when preset selection changes
  * @param disabled - Disable all interactions (e.g., during form submission)
+ * @param aria-labelledby - Id of the label of the group. Without it a screen
+ *   reader reads six radio cards and never says what they choose.
+ * @param aria-describedby - Id of the help text of the group.
  * @example
- * <PresetSelector value="web-app" onChange={setPresetId} />
+ * <Label id="preset-label">Column Preset</Label>
+ * <PresetSelector value="web-app" onChange={setPresetId} aria-labelledby="preset-label" />
  */
 export const PresetSelector = memo(function PresetSelector({
   value,
   onChange,
   disabled,
+  'aria-labelledby': labelId,
+  'aria-describedby': descriptionId,
 }: PresetSelectorProps) {
   return (
     <RadioGroupPrimitive.Root
+      aria-labelledby={labelId}
+      aria-describedby={descriptionId}
       value={value}
       onValueChange={(selectedValue) => {
         // Radix hands back a plain string; take the matching id from the list

@@ -17,6 +17,7 @@ import { trackBoardWrite } from '@/lib/redux/slices/boardSyncSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { RepoCardId } from '@/lib/types/brands'
 import { notifyFailedBoardSave } from '@/lib/utils/notify-failed-board-save'
+import { reportUnconfirmedBoardSave } from '@/lib/utils/report-unconfirmed-board-save'
 
 import { useBoardRollback } from './useBoardRollback'
 
@@ -82,7 +83,11 @@ export function useOptimisticCardAction() {
       dispatch(setRepoCards(cardsWithoutCard))
 
       try {
-        const result = await trackBoardWrite(dispatch, serverAction(cardId))
+        const result = await trackBoardWrite(
+          dispatch,
+          serverAction(cardId),
+          () => reportUnconfirmedBoardSave(options.actionName),
+        )
         if (!result.success) {
           rollbackRepoCards(cardsWithoutCard, previousCards)
           Sentry.captureMessage(`${options.actionName} failed`, {
