@@ -76,6 +76,9 @@ export const OverflowMenu = memo(function OverflowMenu({
 
   const githubUrl =
     repoOwner && repoName ? `https://github.com/${repoOwner}/${repoName}` : null
+  // What the menu button calls its card: owner/name, or the name alone
+  const repoLabel =
+    repoOwner && repoName ? `${repoOwner}/${repoName}` : repoName
 
   /**
    * Opens a URL in a new tab securely.
@@ -142,9 +145,11 @@ export const OverflowMenu = memo(function OverflowMenu({
           data-testid={`overflow-menu-trigger-${cardId}`}
         >
           <MoreHorizontal className="h-4 w-4" />
-          {/* Named after the repository: a board has one such button per card */}
+          {/* Named after the repository and its owner: a board has one such
+              button per card, and two owners can each have a repository of
+              the same name */}
           <span className="sr-only">
-            {repoName ? `Open menu for ${repoName}` : 'Open menu'}
+            {repoLabel ? `Open menu for ${repoLabel}` : 'Open menu'}
           </span>
         </DropdownMenuTrigger>
         <DropdownMenuContent

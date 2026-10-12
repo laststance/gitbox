@@ -84,11 +84,45 @@ describe('OverflowMenu', () => {
       expect(trigger).toBeInTheDocument()
     })
 
-    test('names the menu button after the repository of its card', () => {
+    test('names the menu button after the repository of its card, owner included', () => {
       // Arrange & Act
       render(<OverflowMenu {...defaultProps} />)
 
       // Assert: a board has one menu button per card, so each says whose it is
+      expect(
+        screen.getByRole('button', { name: 'Open menu for laststance/gitbox' }),
+      ).toBeVisible()
+    })
+
+    test('tells apart the menu buttons of two repositories with the same name', () => {
+      // Arrange & Act: two owners, one repository name, on the same board
+      render(
+        <>
+          <OverflowMenu {...defaultProps} />
+          <OverflowMenu
+            {...defaultProps}
+            cardId={toRepoCardId('card-2')}
+            repoOwner="ryota-murakami"
+          />
+        </>,
+      )
+
+      // Assert
+      expect(
+        screen.getByRole('button', { name: 'Open menu for laststance/gitbox' }),
+      ).toBeVisible()
+      expect(
+        screen.getByRole('button', {
+          name: 'Open menu for ryota-murakami/gitbox',
+        }),
+      ).toBeVisible()
+    })
+
+    test('names the menu button after the repository alone when the card has no owner', () => {
+      // Arrange & Act
+      render(<OverflowMenu {...defaultProps} repoOwner={undefined} />)
+
+      // Assert
       expect(
         screen.getByRole('button', { name: 'Open menu for gitbox' }),
       ).toBeVisible()
