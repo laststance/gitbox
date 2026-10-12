@@ -2,13 +2,13 @@
  * Unit Tests: getUserBoardsWithStatusLists()
  *
  * The action lists the boards a card can be moved to, with their columns, for
- * the Move to Another Board dialog. The order of a board's columns and the
- * shared flag of a board are read against a real database in
- * `e2e/logged-in/move-to-another-board.spec.ts`. These tests cover what that
- * spec does not reach: the shape the dialog gets for a board without columns,
- * and what the action does when the database cannot answer. The stand-in
- * below ignores filters and sort order, so neither test says anything about
- * the order of the boards.
+ * the Move to Another Board dialog. The order of the boards (newest first),
+ * the order of a board's columns and the shared flag of a board are read
+ * against a real database in `e2e/logged-in/move-to-another-board.spec.ts`.
+ * These tests cover what that spec does not reach: the shape the dialog gets
+ * for a board without columns, and what the action does when the database
+ * cannot answer. The stand-in below ignores filters and sort order, so
+ * neither test says anything about an order.
  *
  * @see src/lib/actions/repo-cards.ts
  * @see src/hooks/board/useMoveDestinations.ts

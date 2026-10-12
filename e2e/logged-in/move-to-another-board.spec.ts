@@ -26,12 +26,16 @@ import {
   STATUS_IDS,
   WORK_PROJECTS_STATUS_IDS,
   createServiceRoleSupabaseClient,
+  createTestUserSupabaseClient,
   resetBoardPublicState,
   resetRepoCards,
 } from '../helpers/db-query'
 
 /** Name of the board one test creates inside the dialog. No other spec uses it. */
 const BOARD_CREATED_IN_DIALOG = 'Move spec: parked repositories'
+
+/** Name of the board one test creates as the user's newest. No other spec uses it. */
+const BOARD_CREATED_LAST = 'Move spec: newest board'
 
 /** Fixed id of the card one test puts on Work Projects; `resetRepoCards` removes it. */
 const CARD_ON_WORK_PROJECTS_ID = '00000000-0000-0000-0000-0000000003d1'
@@ -94,13 +98,13 @@ test.describe('Move to Another Board Feature', () => {
     // One test drags a column of Work Projects; seed.sql has them in this order
     await placeWorkProjectsColumns({ backlog: 0, active: 1, complete: 2 })
 
-    // Later specs count the seed boards; take away the one a test created
+    // Later specs count the seed boards; take away the ones a test created
     const { error } = await createServiceRoleSupabaseClient()
       .from('board')
       .delete()
-      .eq('name', BOARD_CREATED_IN_DIALOG)
+      .in('name', [BOARD_CREATED_IN_DIALOG, BOARD_CREATED_LAST])
     if (error) {
-      throw new Error(`cleanup of the created board failed: ${error.message}`)
+      throw new Error(`cleanup of the created boards failed: ${error.message}`)
     }
   })
 
@@ -443,6 +447,42 @@ test.describe('Move to Another Board Feature', () => {
         grid_col,
       })),
     ).toEqual([{ name: 'Repositories', order: 0, grid_row: 0, grid_col: 0 }])
+  })
+
+  // Value: protects=the dialog opens on the board the user made last, which is where a card that is set aside most likely goes; fails_when=the server lists the boards in another order than newest first, or the dialog stops taking the first board of that list; why_new=the test account has one other board, so no other test gives the dialog a choice, and the unit tests stub the database's sort away; seam=none; no_claim=which board the dialog opens on once a move from this board is remembered (unit tests of the dialog)
+  test('opens on the board the user made last when there are several to choose from', async ({
+    page,
+  }) => {
+    // Arrange: Work Projects is from the seed; this board is made now, so it
+    // is the newest. No move from this board is remembered.
+    const created = await createTestUserSupabaseClient().rpc(
+      'create_board_with_status_lists',
+      {
+        p_name: BOARD_CREATED_LAST,
+        p_columns: [{ name: 'Parked', color: '#111111' }],
+      },
+    )
+    expect(created.error).toBeNull()
+    await page.addInitScript(() => {
+      if (sessionStorage.getItem('gitbox-e2e-storage-cleared')) return
+
+      localStorage.removeItem('gitbox-state')
+      sessionStorage.setItem('gitbox-e2e-storage-cleared', 'true')
+    })
+    await page.goto(BOARD_URL)
+
+    // Act
+    const dialog = await openMoveDialog(page, CARD_IDS.card1)
+
+    // Assert: the newest board and its one column are selected, and the list
+    // has the newest board first
+    await expect(dialog.locator('#board-select')).toHaveText(BOARD_CREATED_LAST)
+    await expect(dialog.locator('#status-select')).toHaveText('Parked')
+    await dialog.locator('#board-select').click()
+    await expect(page.getByRole('option').first()).toHaveText(
+      BOARD_CREATED_LAST,
+    )
+    await expect(page.getByRole('option').nth(1)).toHaveText('Work Projects')
   })
 
   test('lists the columns of the destination in the order its board shows them and starts on the left-most one', async ({
