@@ -53,15 +53,21 @@ export default async function BoardsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
+      {/* Below 640px the button stands under the texts, as the buttons of a
+          board's header do: beside a button of 143px a phone leaves the
+          title 120px, less than one ordinary word. From 640px on they share
+          a row with 16px between them. BoardsPageHeader says how its texts
+          give way there. */}
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <BoardsPageHeader
           initialTitle={settingsResult.data?.boards_page_title ?? null}
           initialSubtitle={settingsResult.data?.boards_page_subtitle ?? null}
         />
 
-        {/* Create New Board Button */}
+        {/* Create New Board Button. self-start: in the column it keeps its
+            own width */}
         <Button asChild>
-          <Link href="/boards/new" className="gap-2">
+          <Link href="/boards/new" className="gap-2 self-start sm:self-auto">
             <Plus className="h-5 w-5" />
             Create Board
           </Link>

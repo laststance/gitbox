@@ -548,7 +548,9 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
                         <SelectItem key={status.id} value={status.id}>
                           <span className="flex items-center gap-2">
                             <span
-                              className="inline-block h-3 w-3 rounded-full"
+                              // shrink-0: beside a name that gives way
+                              // the dot would give way too
+                              className="inline-block h-3 w-3 shrink-0 rounded-full"
                               style={{ backgroundColor: status.color }}
                               aria-hidden="true"
                             />

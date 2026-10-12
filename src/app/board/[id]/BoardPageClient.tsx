@@ -204,7 +204,15 @@ export const BoardPageClient = memo(function BoardPageClient({
         {/* Header */}
         <header className="border-border bg-background border-b px-6 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-1">
+            {/* sm:max-w: in the row the title gives way down to its longest
+                word and no further, so a name without a space (50 characters
+                are allowed) pushed all four buttons off the screen. The cap
+                leaves 10rem, the width of the widest button, and the least
+                width of the title is the smaller of the two. wrap-break-word
+                on the title and the subtitle breaks the word that is wider
+                than that; the least width of an ordinary name stays as it
+                was. */}
+            <div className="flex flex-col gap-1 sm:max-w-[calc(100%-10rem)]">
               {/* Board Title - inline editable */}
               <InlineEditableText
                 value={boardSettings.displayName}
@@ -218,7 +226,7 @@ export const BoardPageClient = memo(function BoardPageClient({
                 }}
                 maxLength={BOARD_NAME_MAX_LENGTH}
                 as="h1"
-                className="text-foreground text-xl font-bold sm:text-2xl"
+                className="text-foreground text-xl font-bold wrap-break-word sm:text-2xl"
                 inputClassName="text-foreground text-xl font-bold sm:text-2xl"
                 ariaLabel="Board title"
                 data-testid="board-title"
@@ -241,7 +249,7 @@ export const BoardPageClient = memo(function BoardPageClient({
                   maxLength={BOARD_SUBTITLE_MAX_LENGTH}
                   placeholder="Add a subtitle..."
                   as="p"
-                  className="text-muted-foreground text-sm"
+                  className="text-muted-foreground text-sm wrap-break-word"
                   inputClassName="text-muted-foreground text-sm"
                   ariaLabel="Board subtitle"
                   data-testid="board-subtitle"

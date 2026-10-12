@@ -6,7 +6,8 @@
  * made the whole dialog scroll sideways. The tabs take a second row there.
  *
  * Only a browser lays the dialog out, so these tests measure it. What the
- * tabs and their panels are named is in the unit tests.
+ * tabs and their panels are named is in the unit tests, and a board name
+ * that cannot break is in names-that-cannot-break.spec.ts.
  *
  * @see src/tests/unit/components/Boards/BoardSettingsDialog.test.tsx
  */

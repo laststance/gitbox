@@ -220,8 +220,13 @@ export const RepoCard = memo<RepoCardProps>(
           <CardContent className="p-4">
             <div className="space-y-3">
               <div className="flex items-start justify-between">
+                {/* wrap-anywhere: a repository name without a hyphen
+                    (snake_case) has no place to break. The title could not
+                    get narrower than that one piece and pushed the menu
+                    button out of the card, where the mouse does not reach
+                    it. Now the piece breaks where the line ends. */}
                 <h3
-                  className="text-foreground flex-1 leading-tight font-semibold"
+                  className="text-foreground flex-1 leading-tight font-semibold wrap-anywhere"
                   data-testid="repo-name"
                 >
                   {card.title}

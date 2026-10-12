@@ -112,11 +112,20 @@ export const StatusColumn = memo<StatusColumnProps>(
           <div className="flex items-center gap-2">
             {status.color && (
               <div
-                className="h-3 w-3 rounded-full"
+                // shrink-0: beside a title that gives way the dot would give
+                // way too, down to 3px of its 12px
+                className="h-3 w-3 shrink-0 rounded-full"
                 style={{ backgroundColor: status.color }}
               />
             )}
-            <h2 className="text-foreground font-semibold">{status.title}</h2>
+            {/* wrap-anywhere: a column name without a space has no place to
+                break. The title could not get narrower than that one word
+                and pushed "Column options" out of the column, where the
+                mouse does not reach it. Now the word breaks where the line
+                ends. */}
+            <h2 className="text-foreground font-semibold wrap-anywhere">
+              {status.title}
+            </h2>
           </div>
           <div className="flex items-center gap-1">
             {/* Column Menu */}
