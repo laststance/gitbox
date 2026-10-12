@@ -370,6 +370,14 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     if (e.nativeEvent.isComposing || e.keyCode === 229) return
 
     if (e.key === 'Escape') {
+      // A layer above the panel has used this Escape. Radix prevents the
+      // default of an Escape that closed one of its layers, before React
+      // calls this handler: the open list of organizations, which is drawn
+      // in a portal while React hands its keys up to this panel all the
+      // same, or a tooltip that is on screen. The picker closes with the
+      // next Escape. Without the check one Escape closed the list and the
+      // picker with it.
+      if (e.defaultPrevented) return
       handleClose()
       searchInputRef.current?.blur()
     } else if (

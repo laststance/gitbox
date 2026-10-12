@@ -355,6 +355,63 @@ describe('AddRepositoryCombobox as a layer over the board', () => {
   })
 })
 
+describe('AddRepositoryCombobox and the Escape key', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  // Value: protects=Escape in the open list of organizations closes that list and leaves the picker open; fails_when=the panel takes the Escape of the list for its own and closes the picker too, which it did because React hands a key of the list up to the panel; why_new=no test pressed Escape in the picker; seam=none; no_claim=where the keyboard focus is while the list is open and that the search box keeps what was typed, which a browser test shows (e2e/logged-in/add-repository-combobox.spec.ts)
+  test('closes the list of organizations and leaves the picker open when Escape is pressed in that list', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    mockCatalog([makeRepository(1, 'free-repo')])
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: true,
+      data: [],
+    })
+    const { onOpenChange } = renderOpenPicker()
+    await findRepositoryOptions()
+    await user.click(
+      screen.getByRole('combobox', { name: 'Organization filter' }),
+    )
+    expect(
+      await screen.findByRole('option', { name: 'All Organizations' }),
+    ).toBeVisible()
+
+    // Act
+    await user.keyboard('{Escape}')
+
+    // Assert
+    expect(
+      screen.queryByRole('option', { name: 'All Organizations' }),
+    ).toBeNull()
+    expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
+  // Value: protects=Escape closes the picker from its search box, the way out for a keyboard user; fails_when=the panel ignores every Escape, not only the one a layer above it has used; why_new=no test pressed Escape in the picker; seam=none; no_claim=where the keyboard focus goes once the picker is closed (TODOS.md)
+  test('closes the picker when Escape is pressed in the search box', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    mockCatalog([makeRepository(1, 'free-repo')])
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: true,
+      data: [],
+    })
+    const { onOpenChange } = renderOpenPicker()
+    await findRepositoryOptions()
+    await user.click(
+      screen.getByRole('textbox', { name: 'Search repositories' }),
+    )
+
+    // Act
+    await user.keyboard('{Escape}')
+
+    // Assert
+    expect(onOpenChange).toHaveBeenCalledTimes(1)
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+})
+
 describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
   beforeEach(() => {
     vi.clearAllMocks()

@@ -1344,6 +1344,59 @@ test.describe('AddRepositoryCombobox - Option Row Colors', () => {
 })
 
 /**
+ * AddRepositoryCombobox E2E Tests - Escape
+ *
+ * The list of organizations is drawn outside the panel, and React hands its
+ * keys up to the panel all the same. Escape in the open list closes the list;
+ * the picker closes with the Escape after it. Where the keyboard focus is
+ * while the list is open, and where it goes when the list closes, is the
+ * browser's and Radix's doing, so a browser presses the keys.
+ */
+test.describe('AddRepositoryCombobox - Escape', () => {
+  test.use({ storageState: 'e2e/.auth/user.json' })
+
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
+
+  // Value: protects=Escape in the open list of organizations closes that list only, and the picker keeps what was typed in it; the next Escape closes the picker; fails_when=the panel takes the Escape of the list for its own and the picker is gone with the search, as it was; why_new=no browser test pressed Escape in the picker; seam=none; no_claim=where the keyboard focus goes once the picker is closed (TODOS.md)
+  test('Escape in the open list of organizations closes the list, and the next Escape closes the picker', async ({
+    page,
+  }) => {
+    // Arrange: the picker holds a search, and its list of organizations is open
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await page.getByRole('button', { name: /add repositories/i }).click()
+    const searchBox = page.getByRole('textbox', {
+      name: 'Search repositories',
+    })
+    await searchBox.fill('repo')
+    const organizationFilter = page.getByRole('combobox', {
+      name: 'Organization filter',
+    })
+    await organizationFilter.click()
+    const allOrganizations = page.getByRole('option', {
+      name: 'All Organizations',
+      exact: true,
+    })
+    await expect(allOrganizations).toBeVisible()
+
+    // Act
+    await page.keyboard.press('Escape')
+
+    // Assert: the list is gone, and the picker is as it was
+    await expect(allOrganizations).toBeHidden()
+    await expect(searchBox).toBeVisible()
+    await expect(searchBox).toHaveValue('repo')
+    await expect(organizationFilter).toBeFocused()
+
+    // Act: once more, from the filter the focus went back to
+    await page.keyboard.press('Escape')
+
+    // Assert
+    await expect(searchBox).toBeHidden()
+  })
+})
+
+/**
  * Places repositories on the Work Projects board, bypassing the app, so the
  * picker of another board lists them under "Already placed elsewhere".
  * `resetRepoCards` removes them again.
