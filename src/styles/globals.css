@@ -80,6 +80,9 @@
 /*---break---
  */
 :root {
+  /* What the browser draws itself (scrollbars, the list of a native select,
+     autofill) in the scheme of the theme; .dark covers the seven dark themes */
+  color-scheme: light;
   --column-width: 320px;
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -125,6 +128,7 @@
 /*---break---
  */
 .dark {
+  color-scheme: dark;
   --column-width: 320px;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
