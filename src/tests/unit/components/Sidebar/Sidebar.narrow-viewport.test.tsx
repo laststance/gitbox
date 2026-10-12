@@ -124,7 +124,7 @@ describe('Sidebar on a narrow viewport', () => {
       'href',
       '/account',
     )
-    expect(screen.getByRole('button', { name: 'Sign out' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Sign Out' })).toBeVisible()
   })
 
   test('stays open with its labels and the collapse button on a 1024px viewport', () => {

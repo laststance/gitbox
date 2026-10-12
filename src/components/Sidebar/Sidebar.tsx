@@ -355,7 +355,7 @@ export const Sidebar = memo(function Sidebar({
           <ThemeToggle isCollapsed={mounted && isCollapsed} />
         </nav>
 
-        {/* Profile & Sign out */}
+        {/* Profile & Sign Out */}
         <div
           suppressHydrationWarning
           className={cn(
@@ -423,12 +423,12 @@ export const Sidebar = memo(function Sidebar({
                   size="icon"
                   onClick={handleSignOut}
                   className="text-muted-foreground hover:text-foreground mt-2 w-full"
-                  aria-label="Sign out"
+                  aria-label="Sign Out"
                 >
                   <LogOut className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right">Sign out</TooltipContent>
+              <TooltipContent side="right">Sign Out</TooltipContent>
             </Tooltip>
           ) : (
             <Button
@@ -438,7 +438,7 @@ export const Sidebar = memo(function Sidebar({
               className="text-muted-foreground hover:text-foreground mt-2 w-full justify-start gap-2"
             >
               <LogOut className="h-4 w-4" />
-              Sign out
+              Sign Out
             </Button>
           )}
         </div>

@@ -107,10 +107,10 @@ describe('Sidebar', () => {
       expect(screen.getByText('testuser')).toBeInTheDocument()
     })
 
-    test('should display "Sign out" button text when expanded', () => {
+    test('should display "Sign Out" button text when expanded', () => {
       renderSidebar()
 
-      expect(screen.getByText('Sign out')).toBeInTheDocument()
+      expect(screen.getByText('Sign Out')).toBeInTheDocument()
     })
 
     test('should display collapsible Boards section header when expanded', () => {
@@ -155,10 +155,10 @@ describe('Sidebar', () => {
       expect(screen.queryByText('testuser')).not.toBeInTheDocument()
     })
 
-    test('should NOT display "Sign out" text when collapsed', () => {
+    test('should NOT display "Sign Out" text when collapsed', () => {
       renderSidebar({}, true)
 
-      expect(screen.queryByText('Sign out')).not.toBeInTheDocument()
+      expect(screen.queryByText('Sign Out')).not.toBeInTheDocument()
     })
   })
 
@@ -329,7 +329,7 @@ describe('Sidebar', () => {
     test('should render sign out button', () => {
       renderSidebar()
 
-      // In expanded mode, there's a button with "Sign out" text
+      // In expanded mode, there's a button with "Sign Out" text
       const signOutButton = screen.getByRole('button', { name: /sign out/i })
       expect(signOutButton).toBeInTheDocument()
     })
@@ -382,7 +382,7 @@ describe('Sidebar', () => {
       renderSidebar({}, true)
 
       const signOutButton = screen.getByRole('button', { name: /sign out/i })
-      expect(signOutButton).toHaveAttribute('aria-label', 'Sign out')
+      expect(signOutButton).toHaveAttribute('aria-label', 'Sign Out')
     })
   })
 

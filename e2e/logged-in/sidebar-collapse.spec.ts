@@ -91,7 +91,7 @@ test.describe('Sidebar Collapse', () => {
     // Verify labels visible when expanded
     await expect(page.locator('aside').getByText('GitBox')).toBeVisible()
     await expect(page.locator('aside').getByText('Theme')).toBeVisible()
-    await expect(page.locator('aside').getByText('Sign out')).toBeVisible()
+    await expect(page.locator('aside').getByText('Sign Out')).toBeVisible()
 
     // Collapse sidebar
     const collapseButton = page.getByRole('button', {
@@ -102,7 +102,7 @@ test.describe('Sidebar Collapse', () => {
     // Text labels should be hidden - Playwright auto-retries assertions
     await expect(page.locator('aside').getByText('GitBox')).not.toBeVisible()
     // Sign out text hidden (only aria-label)
-    await expect(page.locator('aside').getByText('Sign out')).not.toBeVisible()
+    await expect(page.locator('aside').getByText('Sign Out')).not.toBeVisible()
   })
 
   test('should show tooltips on hover in collapsed state', async ({ page }) => {
@@ -248,7 +248,7 @@ test.describe('Sidebar Collapse', () => {
     // Find the theme button (it has Sun, Moon, or Monitor icon)
     // Click it to verify dropdown still works
     const themeIconButton = page.locator(
-      'aside button:not([aria-label="Expand sidebar"]):not([aria-label="Sign out"])',
+      'aside button:not([aria-label="Expand sidebar"]):not([aria-label="Sign Out"])',
     )
 
     // The theme dropdown should still open
