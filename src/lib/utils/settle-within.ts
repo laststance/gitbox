@@ -21,8 +21,9 @@ export type RequestOutcome<Answer> =
 /**
  * Waits for a request for a limited time and reports how it ended. Never
  * rejects, so the caller handles all three endings in one place. Called by
- * {@link MoveToAnotherBoardDialog} for the move and for the board creation,
- * which keep the dialog from closing while they wait.
+ * {@link MoveToAnotherBoardDialog} for the move and by
+ * {@link requestBoardCreation} for a board creation, in that dialog and on
+ * `/boards/new`: both screens lock their controls while they wait.
  *
  * An overdue request is not cancelled: nothing can take back a Server Action
  * that was sent. Its late answer is ignored here.

@@ -2,8 +2,9 @@
  * Board Slice
  *
  * Holds the currently-viewed board's hydrated contents (status columns,
- * cards). The slice is persisted to LocalStorage via
- * `redux-storage-middleware` so reloads don't blank the UI while we re-fetch.
+ * cards). The slice is not persisted: the server sends the board with every
+ * page and {@link useBoardServerSync} puts it into the store. A stored copy
+ * broke the hydration of every board page (see {@link PERSISTED_SLICE_NAMES}).
  */
 
 import type { PayloadAction } from '@reduxjs/toolkit'

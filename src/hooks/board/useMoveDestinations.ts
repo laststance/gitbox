@@ -37,9 +37,9 @@ const LOAD_FAILED_MESSAGE = 'Failed to load boards'
  * @param currentBoardId - Board the card is on; it is left out of the list.
  * @returns
  * - `destinations`: the {@link MoveDestinations} to render
- * - `reloadDestinations`: loads the boards again, after a failed load ("Try
- *   again") and after a board creation with an unknown outcome ("Reload
- *   Boards"), when the list on screen may lack a board that exists
+ * - `reloadDestinations`: loads the boards again, after a failed load
+ *   ("Try again") and after a board creation with an unknown outcome
+ *   ("Reload boards"), when the list on screen may lack a board that exists
  * - `addDestination`: puts a board created inside the dialog first on the
  *   list. The list is not loaded again, so a created board is never followed
  *   by a failed load that would hide it.

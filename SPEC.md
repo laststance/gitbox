@@ -763,7 +763,7 @@ interface SettingsState {
   moveDestinationByBoard?: Record<string, string> // Source board id → destination of the last move from it (Move to Another Board opens on it)
 }
 
-// Board Slice (Persistence: localStorage; the board on screen, replaced by server data when a board opens)
+// Board Slice (not persisted: the board on screen; the server sends it with every page and it is replaced when a board opens)
 interface BoardState {
   statusLists: StatusListDomain[]
   repoCards: RepoCardForRedux[]
