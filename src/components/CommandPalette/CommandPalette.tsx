@@ -300,6 +300,9 @@ export const CommandPalette = memo(function CommandPalette() {
               }
               transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
               className="border-border bg-background fixed top-[20%] left-1/2 z-50 w-full max-w-lg -translate-x-1/2 rounded-xl border shadow-2xl"
+              // A layer over the page for isOverlayOpen: it has no role that
+              // says so, and a key typed here must not act on the board
+              data-overlay
             >
               {/* Search Input */}
               <div className="border-border flex items-center gap-3 border-b px-4">

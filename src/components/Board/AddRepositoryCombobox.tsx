@@ -438,6 +438,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
           role="combobox"
           aria-expanded={isOpen}
           aria-controls="repository-listbox"
+          // A layer over the board for isOverlayOpen, also while it holds no
+          // list of options: loading, or nothing found
+          data-overlay
           onKeyDown={handleKeyDown}
         >
           {/* Search input */}

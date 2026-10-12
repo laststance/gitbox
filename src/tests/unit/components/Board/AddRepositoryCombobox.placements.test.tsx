@@ -29,6 +29,7 @@ import {
 import boardReducer, { setRepoCards } from '@/lib/redux/slices/boardSlice'
 import settingsReducer from '@/lib/redux/slices/settingsSlice'
 import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
+import { isOverlayOpen } from '@/lib/utils/is-overlay-open'
 
 vi.mock('@/lib/actions/github', () => ({
   getAuthenticatedRepositoryCatalog: vi.fn(),
@@ -295,6 +296,62 @@ describe('AddRepositoryCombobox panel and the place of its button', () => {
 
     // Assert
     expect(pageWatcher?.isWatching).toBe(false)
+  })
+})
+
+describe('AddRepositoryCombobox as a layer over the board', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  // Value: protects=Z does not undo a drag on the board behind the open picker while the picker loads its repositories; fails_when=the guard knows the open picker by its list of options only, which is not there while it loads or finds nothing; why_new=the tests of the guard put elements with a role into the page by hand and never render the picker; seam=none; no_claim=that Z does nothing while a layer is open, which useKanbanUndo.test.tsx checks
+  test('counts as a layer over the board while its repositories are still loading, when it has no list of options', () => {
+    // Arrange: neither request is answered for the rest of this test
+    vi.mocked(getAuthenticatedRepositoryCatalog).mockReturnValue(
+      new Promise(() => {}),
+    )
+    vi.mocked(getUserRepoPlacements).mockReturnValue(new Promise(() => {}))
+
+    // Act
+    renderOpenPicker()
+
+    // Assert
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Loading repositories...',
+    )
+    expect(screen.queryByRole('listbox')).toBeNull()
+    expect(isOverlayOpen()).toBe(true)
+  })
+
+  // Value: protects=Z undoes a drag on a board whose picker is closed; fails_when=the mark of a layer sits on a part of the picker that stays on the page, such as its button, which would switch the shortcut off on every board; why_new=the mark is new; seam=none; no_claim=none
+  test('is no layer while it is closed', () => {
+    // Arrange
+    mockCatalog([])
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: true,
+      data: [],
+    })
+    const store = configureStore({
+      reducer: { board: boardReducer, settings: settingsReducer },
+    })
+
+    // Act
+    render(
+      <Provider store={store}>
+        <AddRepositoryCombobox
+          boardId={toBoardId('board-1')}
+          statusId={toStatusListId('status-1')}
+          isOpen={false}
+          onRepositoriesAdded={vi.fn()}
+        />
+      </Provider>,
+    )
+
+    // Assert
+    expect(
+      screen.getByRole('button', { name: /add repositories/i }),
+    ).toBeVisible()
+    expect(isOverlayOpen()).toBe(false)
   })
 })
 

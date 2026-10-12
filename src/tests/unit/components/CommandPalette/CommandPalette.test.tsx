@@ -15,6 +15,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { CommandPalette } from '@/components/CommandPalette/CommandPalette'
+import { isOverlayOpen } from '@/lib/utils/is-overlay-open'
 
 // Mock next/navigation
 const mockPush = vi.fn()
@@ -103,6 +104,19 @@ describe('CommandPalette', () => {
       expect(
         screen.getByPlaceholderText('Search commands...'),
       ).toBeInTheDocument()
+    })
+
+    // Value: protects=Z does not undo a drag on the board behind the open command palette; fails_when=the palette loses the mark that tells the guard it is a layer (it has no role that would); why_new=the tests of the guard put elements with a role into the page by hand and never render the palette; seam=framer-motion (mocked for this file, it passes the attribute on as the real one does); no_claim=that Z does nothing while a layer is open, which useKanbanUndo.test.tsx checks
+    test('counts as a layer over the page while it is open, and as none before', () => {
+      // Arrange
+      render(<CommandPalette />)
+      expect(isOverlayOpen()).toBe(false)
+
+      // Act
+      openPalette()
+
+      // Assert
+      expect(isOverlayOpen()).toBe(true)
     })
 
     test('should open when Ctrl+K is pressed', () => {

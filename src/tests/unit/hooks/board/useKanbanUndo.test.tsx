@@ -11,7 +11,9 @@
  * lies on top of the board, the key belongs to that layer: a Radix Select
  * reads a typed letter as "jump to the option that starts with it" and lets
  * the key travel on to the window. The sidebar that lies over the page below
- * 768px is such a layer too: the page behind it is inert.
+ * 768px is such a layer too: the page behind it is inert. So are the layers
+ * the app builds by hand, the command palette and the Add Repositories
+ * panel: they carry `data-overlay`.
  *
  * @see src/hooks/board/useKanbanUndo.ts
  */
@@ -307,6 +309,40 @@ describe('useKanbanUndo: Z while something lies on top of the board', () => {
     document.body.append(openLayer)
 
     // Act: Z typed on a link of the sidebar reaches the window
+    pressUndoKey()
+
+    // Assert: the card stays in Done, on screen and in the database
+    expect(dispatch).not.toHaveBeenCalled()
+    expect(batchUpdateRepoCardOrders).not.toHaveBeenCalled()
+    expect(toast.success).not.toHaveBeenCalled()
+  })
+
+  // Value: protects=a board change is not taken back from behind the command palette or the Add Repositories panel; fails_when=the undo shortcut stops asking for the mark of a layer the app builds by hand; why_new=those two have no role of a layer (the panel holds a list of options only while it has repositories to offer), so the rows above do not stand for them; seam=none; no_claim=that the palette and the panel carry the mark (CommandPalette.test.tsx, AddRepositoryCombobox.placements.test.tsx)
+  test('does not undo the last drag on the board behind a layer the app builds by hand', () => {
+    // Arrange: card-1 was dragged from To Do to Done, and a layer without a
+    // role is open, marked as the command palette marks itself
+    const dispatch = vi.fn()
+    const snapshotBeforeDrag = [makeCard('card-1', 'gitbox', 'status-todo', 0)]
+    const { result, rerender } = renderHook(
+      ({ cards }) =>
+        useKanbanUndo({
+          dispatch,
+          cards,
+          statuses: [],
+          rollbackRepoCards: vi.fn(),
+          rollbackStatusLists: vi.fn(),
+        }),
+      { initialProps: { cards: snapshotBeforeDrag } },
+    )
+    act(() => {
+      result.current.pushCardHistory(snapshotBeforeDrag)
+    })
+    rerender({ cards: [makeCard('card-1', 'gitbox', 'status-done', 0)] })
+    openLayer = document.createElement('div')
+    openLayer.setAttribute('data-overlay', 'true')
+    document.body.append(openLayer)
+
+    // Act: Z typed on a button of the layer reaches the window
     pressUndoKey()
 
     // Assert: the card stays in Done, on screen and in the database
