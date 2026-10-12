@@ -8,7 +8,8 @@
 -- both writes in one transaction: the board exists with all of its columns,
 -- or nothing was written.
 --
--- Callers: createBoard and createFirstBoardIfNeeded (src/lib/actions/board.ts).
+-- Callers: createBoard (src/lib/actions/board.ts) and createFirstBoardIfNeeded
+-- (src/lib/actions/board-creation.ts), both through createBoardFromPreset.
 --
 -- What it does:
 --   p_columns is a JSON array of {"name": text, "color": "#RRGGBB"}. The array
@@ -16,7 +17,9 @@
 --   "order" i, grid_row 0 and grid_col i. The board page places a column by
 --   grid_row and grid_col, so leaving them at their default of 0 would put
 --   every column into the same cell.
---   The board goes after the caller's last board (position).
+--   The board goes after the caller's last board (position). A position at
+--   the top of the integer range is repeated instead of exceeded, so a board
+--   that sits there cannot make the call fail.
 --   Returns {"id", "name", "status_lists": [{"id", "name", "color"}]}, the
 --   columns in their order.
 --
@@ -25,7 +28,8 @@
 -- The API exposes the function without the server action in front of it, so
 -- it checks its own input. The limits are those of src/lib/validations/board.ts
 -- and src/lib/constants/regex.ts, named next to each check; change both sides
--- together. The number of columns has no upper limit: the app has none.
+-- together. One call takes at most 100 columns, so it cannot write any number
+-- of rows; the app has no such limit of its own and its largest preset has 5.
 --
 -- This file sorts before 20261012090000_remove_maintenance_mode on purpose:
 -- when that migration refuses to run, this function is already applied and
@@ -67,12 +71,17 @@ BEGIN
         USING ERRCODE = 'check_violation';
     END IF;
 
-    -- A board without columns is what this function exists to prevent
-    IF p_columns IS NULL
-      OR jsonb_typeof(p_columns) <> 'array'
-      OR jsonb_array_length(p_columns) = 0
-    THEN
-      RAISE EXCEPTION 'create_board_with_status_lists: p_columns must be an array with at least one column'
+    -- A board without columns is what this function exists to prevent, and
+    -- the upper limit bounds what one call writes. CASE, not OR: the length is
+    -- asked of an array only, whatever order the conditions are evaluated in.
+    -- NULL and every other JSON type fall through to the refusal.
+    IF NOT COALESCE(
+      CASE WHEN jsonb_typeof(p_columns) = 'array'
+        THEN jsonb_array_length(p_columns) BETWEEN 1 AND 100
+      END,
+      false
+    ) THEN
+      RAISE EXCEPTION 'create_board_with_status_lists: p_columns must be an array of 1 to 100 columns'
         USING ERRCODE = 'check_violation';
     END IF;
 
@@ -90,11 +99,18 @@ BEGIN
         USING ERRCODE = 'check_violation';
     END IF;
 
+    -- After the caller's last board. Added as bigint and capped at the top of
+    -- the integer range: a board that sits there must not make the sum
+    -- overflow, and two boards may share a position.
     INSERT INTO board (user_id, name, position)
     VALUES (
       v_user_id,
       v_name,
-      (SELECT COALESCE(MAX(position), -1) + 1 FROM board WHERE user_id = v_user_id)
+      (
+        SELECT LEAST(COALESCE(MAX(position), -1)::bigint + 1, 2147483647)::integer
+        FROM board
+        WHERE user_id = v_user_id
+      )
     )
     RETURNING id INTO v_board_id;
 

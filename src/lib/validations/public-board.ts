@@ -10,12 +10,21 @@
 
 import { z } from 'zod'
 
-/** A column of a shared board, with the `statuslist` column names. */
+import { statusListColorSchema } from './board'
+
+/**
+ * A column of a shared board, with the `statuslist` column names.
+ *
+ * `color` goes into a style attribute of the page a visitor loads. A value
+ * that is not `#RRGGBB` is read as "no color", which the page shows as the
+ * default: the board is still shown and the value is never printed. The table
+ * refuses such a value too (`statuslist_color_hex`); this is the second guard.
+ */
 const publicBoardColumnSchema = z.object({
   id: z.string(),
   board_id: z.string(),
   name: z.string(),
-  color: z.string().nullable(),
+  color: statusListColorSchema.nullable().catch(null),
   order: z.number(),
   grid_row: z.number(),
   grid_col: z.number(),

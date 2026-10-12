@@ -57,8 +57,8 @@ export const presetIdSchema = z.enum(PRESET_IDS)
  * Shape of the JSON the `create_board_with_status_lists` database function
  * returns: the new board and its columns in their order. The function builds
  * the document by hand in SQL, so nothing ties it to the TypeScript types:
- * this schema is that tie. {@link createBoard} and
- * {@link createFirstBoardIfNeeded} check the result with it before use.
+ * this schema is that tie. {@link createBoardFromPreset} checks the result
+ * with it before {@link createBoard} or {@link createFirstBoardIfNeeded} use it.
  *
  * @example
  * createdBoardRowSchema.safeParse({

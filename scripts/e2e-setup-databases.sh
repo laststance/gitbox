@@ -144,6 +144,17 @@ setup() {
       GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
     " > /dev/null 2>&1
 
+    # A function loaded from the dump is executable by everyone (PUBLIC), the
+    # PostgreSQL default, because the dump carries no REVOKE. Repeat the rights
+    # of the migrations that take EXECUTE away from visitors, so a shard
+    # refuses the same callers as a database built from the migrations (CI
+    # and production). A migration that revokes EXECUTE on another function
+    # needs its lines here too.
+    db_exec psql -U "$PG_USER" -d "$DB_NAME" -c "
+      REVOKE ALL ON FUNCTION public.create_board_with_status_lists(text, jsonb) FROM PUBLIC, anon;
+      GRANT EXECUTE ON FUNCTION public.create_board_with_status_lists(text, jsonb) TO authenticated, service_role;
+    " > /dev/null 2>&1
+
     # Start PostgREST container (internal only, no port mapping)
     docker run -d --name "e2e-postgrest-${i}" \
       --network "$DOCKER_NETWORK" \

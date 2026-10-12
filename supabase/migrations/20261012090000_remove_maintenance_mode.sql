@@ -26,8 +26,11 @@
 -- Messages carry counts only: no repository name and no user id (the job log
 -- of a public repository). What to do next is written into DETAIL, not HINT:
 -- the Supabase CLI prints the message and its DETAIL and leaves the HINT out.
--- The query that lists the conflicts is in
--- docs/plans/2026-10-12-issue-213-rollout-runbook.md and is run by hand.
+-- The queries that list the conflicts and resolve them are in
+-- docs/plans/2026-10-12-issue-213-rollout-runbook.md (section 7) and are run
+-- by hand. A conflict is resolved by deleting the entry, never a card: a card
+-- that has the id of an entry can belong to another user. Deleting an entry
+-- deletes its note with it, so the note is copied into the card first.
 --
 -- The whole body is ONE statement (a DO block), so it is atomic no matter how
 -- the CLI wraps the file. A second run after success finds no table and
@@ -130,7 +133,7 @@ BEGIN
     RAISE EXCEPTION
       'remove_maintenance_mode: % entry(ies) whose repository is already on a board of the same user, % group(s) of entries that differ only in letter case, % entry(ies) whose id is already the id of a card.',
       v_entries_on_a_board, v_case_variant_groups, v_entries_sharing_a_card_id
-      USING DETAIL = 'Nothing was changed. Delete the board card or the entry of each conflict, then run the migration again (production: gh workflow run supabase-production.yml; a local database: pnpm db:reset). The query that lists the conflicts is in docs/plans/2026-10-12-issue-213-rollout-runbook.md.';
+      USING DETAIL = 'Nothing was changed. Resolve each conflict by deleting the entry, never a card: a card that has the id of an entry can belong to another user. Deleting an entry deletes its note, so copy the note into the card first. Of a group of entries that differ only in letter case, keep one. Then run the migration again (production: gh workflow run supabase-production.yml; a local database: pnpm db:reset). The queries that list the conflicts, print the note of an entry and delete an entry are in docs/plans/2026-10-12-issue-213-rollout-runbook.md, section 7.';
   END IF;
 
   -- 3. One board, one column and the cards for each user who has entries.
@@ -140,12 +143,18 @@ BEGIN
     SELECT DISTINCT user_id FROM maintenance ORDER BY user_id
   LOOP
     -- After the user's last board. Board names are not unique, so a user who
-    -- already has a board with this name gets a second one.
+    -- already has a board with this name gets a second one. The position is
+    -- added as bigint and capped at the top of the integer range: one board
+    -- that sits there must not abort the migration for every user.
     INSERT INTO board (user_id, name, position)
     VALUES (
       v_owner.user_id,
       'Maintenance',
-      (SELECT COALESCE(MAX(position), -1) + 1 FROM board WHERE user_id = v_owner.user_id)
+      (
+        SELECT LEAST(COALESCE(MAX(position), -1)::bigint + 1, 2147483647)::integer
+        FROM board
+        WHERE user_id = v_owner.user_id
+      )
     )
     RETURNING id INTO v_board_id;
 
