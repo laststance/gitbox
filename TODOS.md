@@ -151,13 +151,13 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 **Priority:** P3
 **Depends on:** None
 
-### Viewport-aware layout for the Add Repositories panel
+### Pin the Cancel / Add row of the Add Repositories panel
 
-**What:** Make the picker panel fit narrow screens.
+**What:** Keep the Cancel / Add row of the picker panel in view while its lists scroll.
 
-**Why:** The panel is a fixed `w-120`, which overflows narrow viewports. Its height is capped to the viewport since #215 (the panel scrolls), but the Cancel / Add row is not pinned: with both lists full the panel is about 700px tall, so at viewport heights of about 800px and below the Add button needs a scroll inside the panel, past two nested scrolling lists. A `flex flex-col` panel with a `shrink-0` footer and a shrinking listbox fixes it.
+**Why:** The panel's height is capped to the viewport since #215 (the panel scrolls), but the Cancel / Add row is not pinned: with both lists full the panel is about 700px tall, so at viewport heights of about 800px and below the Add button needs a scroll inside the panel, past two nested scrolling lists. A `flex flex-col` panel with a `shrink-0` footer and a shrinking listbox fixes it.
 
-**Context:** Pre-existing. `src/components/Board/AddRepositoryCombobox.tsx`.
+**Context:** Pre-existing. `src/components/Board/AddRepositoryCombobox.tsx`. The width is done: below 640px the panel is fixed to the screen with 8px margins (design review of 2026-10-12; it used to hang 230px off the left edge of a 375px screen).
 
 **Effort:** M
 **Priority:** P3
@@ -365,16 +365,16 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 **Priority:** P2
 **Depends on:** None
 
-### Fix the hydration mismatch on the board page for returning users
+### Render the board on the server instead of its skeleton
 
-**What:** Make the first client render of `KanbanBoard` match the server HTML when the browser already holds a persisted board in localStorage.
+**What:** Render `KanbanBoard` from `initialData` on the server and on the first client render.
 
-**Why:** The server renders `KanbanSkeleton` because the Redux store is empty there, while the browser's first render already has the persisted columns and renders the grid. React reports "Hydration failed" (minified error #418 in production) and regenerates the tree on every board visit.
+**Why:** The server renders `KanbanSkeleton` because the Redux store is empty there. The columns and cards appear once the page has hydrated and `useBoardServerSync` has put `initialData` into the store, so a slow device shows a skeleton although the server already had the data. The hydration error this caused for returning visitors (React #418 on every board visit after the first) is fixed: the board is not kept in localStorage any more (see Completed).
 
-**Context:** Seen on production and on `localhost:3008` with the real account on 2026-10-11. `ssr-hydration-board.spec.ts` does not catch it because the fixture browser starts with an empty localStorage. The store is filled from `initialData` by `useBoardServerSync` in a `useLayoutEffect`; rendering the board from `initialData` on the server and on the first client render would remove both the skeleton flash and the mismatch.
+**Context:** `src/hooks/board/useBoardServerSync.ts` fills the store in a `useLayoutEffect`. The components below `KanbanBoard` read columns and cards from the store, so the first render needs either a store that is filled per request on the server, or props that take precedence until the store holds the same board. `e2e/logged-in/board-page-hydration.spec.ts` checks that a board page hydrates without an error when the browser holds state from an older build.
 
 **Effort:** M
-**Priority:** P2
+**Priority:** P3
 **Depends on:** None
 
 ### Fail a card or column move that matched no row
@@ -389,13 +389,13 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 **Priority:** P2
 **Depends on:** None
 
-### Clear the persisted board data on sign-out
+### Clear the persisted drafts on sign-out
 
-**What:** On sign-out and account deletion, clear the `board` and `draft` slices stored under `gitbox-state` in localStorage (keep the theme and display settings), or store the owner's user id with them and drop them when it differs from the signed-in user.
+**What:** On sign-out and account deletion, clear the `draft` slice stored under `gitbox-state` in localStorage and the `moveDestinationByBoard` map of the settings slice (keep the theme and display settings), or store the owner's user id with them and drop them when it differs from the signed-in user.
 
-**Why:** On a shared browser the next account still holds the previous user's columns, cards (private repository names included) and note drafts.
+**Why:** On a shared browser the next account still holds the previous user's note drafts. The columns and cards (private repository names included) are not stored any more since 2026-10-12, and a `board` slice that an older build stored is dropped the first time the app saves its state.
 
-**Context:** `slices: ['settings', 'board', 'draft']` in `src/lib/redux/store.ts`; `signOut` in `src/lib/actions/auth.ts` redirects without touching client state. Older than this change. The settings slice also keeps `moveDestinationByBoard`, a map of board ids to board ids (no names); another account never reads an entry, because its boards have other ids, but the map should be emptied with the rest.
+**Context:** `PERSISTED_SLICE_NAMES` in `src/lib/redux/persisted-slices.ts`; `signOut` in `src/lib/actions/auth.ts` redirects without touching client state. Older than this change. `moveDestinationByBoard` is a map of board ids to board ids (no names); another account never reads an entry, because its boards have other ids, but the map should be emptied with the rest.
 
 **Effort:** S
 **Priority:** P2
@@ -489,7 +489,7 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 **What:** Make `@laststance/redux-storage-middleware` schedule its debounced save only when a persisted slice changed.
 
-**Why:** It schedules a save after every action. The `boardSync` slice is not persisted and dispatches several actions per drag, each of which serializes the whole persisted state again 300 ms later.
+**Why:** It schedules a save after every action. The `board` and `boardSync` slices are not persisted and dispatch several actions per drag, each of which serializes the persisted state again 300 ms later. That state is the settings and the drafts only since 2026-10-12, so a save is small; there are still more of them than needed.
 
 **Context:** The middleware lives in its own package; the fix belongs there, not in the app.
 
@@ -504,18 +504,6 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 **Why:** Back may restore page data that Next.js cached before the drag. With nothing in flight `useBoardServerSync` treats page data as current and puts it in the store. This is a review hypothesis that was not reproduced, and if it is real it is older than the rollback guard.
 
 **Context:** `selectMayApplyServerSnapshot` in `src/lib/redux/slices/boardSyncSlice.ts`.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
-### Stabilize the "Optimistic Favorite Toggle" story test
-
-**What:** Find why `BoardGrid.stories > Optimistic Favorite Toggle` fails now and then when the unit, lint and typecheck lanes run in parallel.
-
-**Why:** It failed in some of the full local runs on 2026-10-11 and passed in others with no change to the code it covers. A test that fails under load hides real failures.
-
-**Context:** Storybook project of `pnpm test` (browser mode). Not touched by this change.
 
 **Effort:** S
 **Priority:** P3
@@ -593,7 +581,89 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 **Priority:** P4
 **Depends on:** None
 
+## Design review of 2026-10-12: deferred design debt
+
+From `/design-review` on `feat/remove-maintenance-mode` (issue #213). The review found 27 issues and fixed 21; these are what is left. All of them are in the app as it was before that change. The full report with screenshots is in `~/.gstack/projects/laststance-gitbox/designs/design-audit-20261012/`.
+
+### Give the landing page a direction of its own
+
+**What:** (1) Choose a display typeface for the headings; they use the system font stack. (2) Drop the gray gradient that every section heading has. (3) Replace "For AI Era Developers" with a headline that says what GitBox does. (4) Give the four feature cards different weights, or use something other than four equal cards. (5) Show the content without waiting for the entrance animation, and take the hover lift off cards that do nothing.
+
+**Why:** High impact, AI slop (FINDING-021). The landing page reads as generated while the app reads as made by someone who uses it. Both outside reviewers and the audit agree; the pattern detector counts `gradient-text` on all four headings.
+
+**Context:** `src/app/(landing)/` (`HeroSection`, `FeaturesSection`, `HowItWorksSection`, `CTASection`, `KanbanPreview`). Typeface, headline and layout are the owner's call, so none of it was changed.
+
+**Effort:** M
+**Priority:** P3
+**Depends on:** None
+
+### Choose one height for controls and a floor for small triggers
+
+**What:** Decide on the control heights (buttons are 32, 36 and 40px: `sm`, `default`, `lg` in `src/components/ui/button.tsx`), make the 24px triggers larger (a card's menu and a comment's menu are a 16px icon with 4px of padding), and enlarge touch targets one way.
+
+**Why:** Medium impact, interaction states (FINDING-016). A 24px target is the minimum WCAG 2.2 allows and half of what a finger needs. Four different ways to enlarge a target are in use: `min-h-11 min-w-11`, `pointer-coarse:min-h-11`, `pointer-coarse:size-11` and a `pointer-coarse:after:` overlay.
+
+**Context:** `src/components/Board/OverflowMenu.tsx`, `src/components/Board/CommentActionsMenu.tsx`, `src/components/ui/dialog.tsx` (the close button got `pointer-coarse:size-11` in this review), `src/components/ui/editable-url-item.tsx`, `src/components/Board/HeldRepositoryList.tsx`, `src/components/Modals/MoveToAnotherBoardDialog.tsx`. Larger triggers change the card layout, which the drag tests measure.
+
+**Effort:** M
+**Priority:** P3
+**Depends on:** None
+
+### Lay out the account page as sections, not stacked cards
+
+**What:** Show Profile, Account Data and Danger Zone as sections of one page, and the two numbers of Account Data without a bordered tile each.
+
+**Why:** Medium impact, AI slop (FINDING-022). Three cards under each other with tiles inside one is the layout a generator produces; the page has nothing to compare side by side that would need cards.
+
+**Context:** `src/app/account/AccountClient.tsx` and its skeleton `src/app/account/loading.tsx`, which mirrors the layout block by block and has to change with it.
+
+**Effort:** S
+**Priority:** P4
+**Depends on:** None
+
+### Use the ellipsis character in loading labels
+
+**What:** Write "…" instead of three dots in the labels that say something is in progress ("Loading repositories...", "Signing out...", "Creating..."), about 27 strings in `src`.
+
+**Why:** Polish, content (FINDING-017). The casing of button labels has a rule in `CLAUDE.md` since this review; the dots are the other half of the same inconsistency.
+
+**Context:** Unit and E2E tests quote many of these strings, and "New Board..." in the move dialog is an option label that means "opens a form", not progress: it keeps its dots or gets the same character by decision.
+
+**Effort:** S
+**Priority:** P4
+**Depends on:** None
+
+### Add theme tokens for warning and favorite
+
+**What:** Add `--warning` and `--favorite` (with foregrounds) to the 14 themes and use them where the app now reaches for `orange-*` and `amber-*`.
+
+**Why:** Each theme picks its own red, green and primary, but orange and amber are the same fixed shades on all of them. This review fixed the two places where that cost contrast (the character counters and the favorite star) with fixed shades that were measured on every theme; a token would let a theme choose, and would give "outcome unknown" messages a color of their own instead of red.
+
+**Context:** `src/styles/globals.css` (theme definitions), `src/components/Boards/BoardCard.tsx`, `src/components/Boards/RenameBoardDialog.tsx`, `src/components/Boards/BoardSettingsDialog.tsx`, `src/components/Board/CommentInlineEdit.tsx`, `src/app/boards/favorites/page.tsx`. The toast colors come from sonner's palette, not from the themes (`src/components/ThemedToaster.tsx`).
+
+**Effort:** M
+**Priority:** P4
+**Depends on:** None
+
+### Smaller design gaps left from the 2026-10-12 review
+
+**What:** (1) Replace `transition-all` (18 places) with the properties that change, and stop animating the sidebar's `width`, which moves the whole page on every frame. (2) Return the focus to the card after every dialog that a card opens: `useCardDialogFocusReturn` is used by Move to Another Board and Remove from Board only. (3) Use one component for inline error messages and one pattern for a pending button; they are built by hand in each form. (4) `/settings` renders without the sidebar every other signed-in page has. (5) A card's menu has separators and a column's menu has none. (6) The picker has a native `<select>` next to a Radix select. (7) Star counts use an emoji where the rest of the app uses icons.
+
+**Why:** Polish (FINDING-013, FINDING-023 and the consistency review). None of them stops anyone; together they are why the app feels slightly different from page to page.
+
+**Context:** `src/components/Sidebar/Sidebar.tsx`, `src/hooks/board/useCardDialogFocusReturn.ts`, `src/app/settings/`, `src/components/Board/OverflowMenu.tsx`, `src/components/Board/StatusColumn.tsx`, `src/components/Board/AddRepositoryCombobox.tsx`.
+
+**Effort:** M
+**Priority:** P4
+**Depends on:** None
+
 ## Completed
 
 - [x] **Preserve `?query` and `#hash` on silent refresh redirect** — [#177](https://github.com/laststance/gitbox/issues/177)
       **Completed:** v0.3.3.0 (2026-10-07). The repository catalog caller now forwards the full board destination, with unit coverage and a real-account OAuth round trip confirming both values survive.
+- [x] **Fix the hydration mismatch on the board page for returning users**
+      **Completed:** 2026-10-12, on `feat/remove-maintenance-mode` (`c88dea8`), found again by `/design-review`. The board is not kept in localStorage any more, so the first client render matches the server's. What is left is under "Render the board on the server instead of its skeleton".
+- [x] **Stabilize the "Optimistic Favorite Toggle" story test**
+      **Completed:** 2026-10-12, on `feat/remove-maintenance-mode` (`8501d46`). The mocked server action is registered with `sb.mock`, and the two stories that press the star say what the server answers. 30 runs in a row passed.
+- [x] **Fit the Add Repositories panel on a narrow screen** (the width half of "Viewport-aware layout for the Add Repositories panel")
+      **Completed:** 2026-10-12, fixed by `/design-review` on `feat/remove-maintenance-mode` (`18e1f2e`).
