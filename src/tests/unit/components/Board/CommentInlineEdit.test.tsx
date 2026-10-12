@@ -115,9 +115,15 @@ describe('CommentInlineEdit', () => {
         />,
       )
 
+      // Orange on a chip of the page background: no warning color passes
+      // 4.5:1 on every comment tint (comment-counter-contrast.test.ts)
       const counter = screen.getByTestId('character-counter')
       expect(counter).toHaveTextContent('270/300')
-      expect(counter).toHaveClass('text-orange-800')
+      expect(counter).toHaveClass(
+        'bg-background',
+        'text-orange-800',
+        'dark:text-orange-300',
+      )
     })
 
     test('should show error color when over limit (300+)', () => {
@@ -129,9 +135,60 @@ describe('CommentInlineEdit', () => {
         />,
       )
 
+      // The label on a destructive fill: red text on a comment tint drops
+      // to 3.0:1 (comment-counter-contrast.test.ts)
       const counter = screen.getByTestId('character-counter')
       expect(counter).toHaveTextContent('310/300')
-      expect(counter).toHaveClass('text-destructive')
+      expect(counter).toHaveClass('bg-destructive text-destructive-foreground')
+      expect(counter).not.toHaveClass('text-destructive')
+    })
+
+    test('keeps the comment readable over the limit: the typed text does not turn red and the field is marked invalid', () => {
+      // Arrange
+      render(
+        <CommentInlineEdit
+          {...defaultProps}
+          maxLength={300}
+          initialValue={'a'.repeat(310)}
+        />,
+      )
+
+      // Act
+      const textarea = screen.getByTestId('comment-textarea')
+
+      // Assert
+      expect(textarea).not.toHaveClass('text-destructive')
+      expect(textarea).toHaveAttribute('aria-invalid', 'true')
+    })
+
+    test('does not mark the field invalid while the comment fits', () => {
+      // Arrange
+      render(
+        <CommentInlineEdit
+          {...defaultProps}
+          maxLength={300}
+          initialValue={'a'.repeat(300)}
+        />,
+      )
+
+      // Act
+      const textarea = screen.getByTestId('comment-textarea')
+
+      // Assert
+      expect(textarea).toHaveAttribute('aria-invalid', 'false')
+    })
+
+    test('a screen reader reads the counter with the field', () => {
+      // Arrange
+      render(
+        <CommentInlineEdit {...defaultProps} initialValue={'a'.repeat(100)} />,
+      )
+
+      // Act
+      const textarea = screen.getByTestId('comment-textarea')
+
+      // Assert
+      expect(textarea).toHaveAccessibleDescription('100/2000')
     })
 
     test('should support custom maxLength', () => {

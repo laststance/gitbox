@@ -516,8 +516,8 @@ export const TestOverLimitDisabled: Story = {
     await step('Verify counter shows error style', async () => {
       const counter = canvas.getByTestId('character-counter')
       expect(counter).toHaveTextContent('301/300')
-      // Error class should be applied (text-destructive)
-      expect(counter).toHaveClass('text-destructive')
+      // Error classes should be applied (the label on a destructive fill)
+      expect(counter).toHaveClass('bg-destructive text-destructive-foreground')
     })
 
     await step('Verify save button is disabled', async () => {
