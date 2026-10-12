@@ -193,6 +193,20 @@
   }
 }
 
+/*
+ * Toast text: the light palette of the toast library puts its text below
+ * 4.5:1 on its own tints (warning 3.07:1, success 4.26:1, error 4.4:1 at
+ * 13px). Same hues, darker, 5.2:1 or more. The dark palette passes as it is.
+ * `html` in front: the library adds its stylesheet after this one, so an
+ * equal selector would lose.
+ */
+html [data-sonner-toaster][data-sonner-theme='light'] {
+  --success-text: hsl(140, 100%, 22%);
+  --info-text: hsl(210, 92%, 38%);
+  --warning-text: hsl(31, 92%, 33%);
+  --error-text: hsl(360, 100%, 40%);
+}
+
 /* High contrast: improve muted text and border visibility (P2-8) */
 @media (prefers-contrast: more) {
   /* Light themes */
