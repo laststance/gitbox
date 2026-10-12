@@ -16,6 +16,7 @@ import { flushSync } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { reloadPage } from '@/lib/utils/reload-page'
 import { BOARD_NAME_MAX_LENGTH, boardNameSchema } from '@/lib/validations/board'
 
 /** Id of the name field; its label, hint and error text point to it. */
@@ -28,25 +29,36 @@ export interface BoardCreationFailure {
   /** Text shown under the name field. */
   message: string
   /**
-   * `false` when a board may exist all the same: the request failed on the
-   * way, got no answer in time, or the server could not confirm it. The form
-   * then offers to load the boards again instead of a second try, which could
-   * make a second board.
+   * What the form offers after it.
+   * - `try-again`: the server answered and nothing was written, so "Create
+   *   Board" stays and the name can be sent again
+   * - `reload-boards`: a board may exist (the request failed on the way, or
+   *   the server could not confirm it). A second try could make a second
+   *   board, so "Reload boards" takes the place of "Create Board"
+   * - `reload-page`: a board may exist and the request got no answer in
+   *   time. It is still running, and loading the boards again would wait
+   *   behind it, so "Reload page", which waits for nothing, takes that place
    */
-  isOutcomeKnown: boolean
+  nextStep: 'try-again' | UnconfirmedCreationRecovery
 }
+
+/** The way out of the form after a creation with an unknown outcome. */
+type UnconfirmedCreationRecovery = 'reload-boards' | 'reload-page'
 
 /**
  * What the form shows under the name field.
  * - `invalid-name`: the name did not pass the check, so nothing was sent
  * - `not-created`: the server answered and no board was created
- * - `unconfirmed`: a board may exist; "Reload boards" takes the place of
- *   "Create Board"
+ * - `unconfirmed`: a board may exist; the button of `recovery` takes the
+ *   place of "Create Board"
  */
-interface FormProblem {
-  kind: 'invalid-name' | 'not-created' | 'unconfirmed'
-  message: string
-}
+type FormProblem =
+  | { kind: 'invalid-name' | 'not-created'; message: string }
+  | {
+      kind: 'unconfirmed'
+      message: string
+      recovery: UnconfirmedCreationRecovery
+    }
 
 interface CreateDestinationBoardFormProps {
   /**
@@ -64,7 +76,8 @@ interface CreateDestinationBoardFormProps {
   createBoardAction: (boardName: string) => Promise<BoardCreationFailure | null>
   /**
    * Loads the boards again and shows them. Offered after a creation with an
-   * unknown outcome: the list on screen may lack a board that exists.
+   * unknown outcome whose request has ended: the list on screen may lack a
+   * board that exists.
    */
   onReloadBoards: () => void
   /**
@@ -98,7 +111,7 @@ interface CreateDestinationBoardFormProps {
  *   createBoardAction={async (boardName) =>
  *     (await createBoard(boardName, 'single-column')).success
  *       ? null
- *       : { message: 'The board was not created. Try again.', isOutcomeKnown: true }
+ *       : { message: 'The board was not created. Try again.', nextStep: 'try-again' }
  *   }
  *   onReloadBoards={reloadDestinations}
  *   onChooseExisting={() => setIsCreateFormRequested(false)}
@@ -116,7 +129,7 @@ export const CreateDestinationBoardForm = memo(
     const [problem, setProblem] = useState<FormProblem | null>(null)
 
     const nameFieldRef = useRef<HTMLInputElement>(null)
-    const reloadButtonRef = useRef<HTMLButtonElement>(null)
+    const recoveryButtonRef = useRef<HTMLButtonElement>(null)
 
     const isOutcomeUnknown = problem?.kind === 'unconfirmed'
 
@@ -144,14 +157,9 @@ export const CreateDestinationBoardForm = memo(
       // flushSync: the control that takes the focus exists and is enabled
       // once this returns. The field lost the focus when it was disabled for
       // the request.
-      flushSync(() =>
-        setProblem({
-          kind: failure.isOutcomeKnown ? 'not-created' : 'unconfirmed',
-          message: failure.message,
-        }),
-      )
-      if (failure.isOutcomeKnown) nameFieldRef.current?.focus()
-      else reloadButtonRef.current?.focus()
+      flushSync(() => setProblem(toFormProblem(failure)))
+      if (failure.nextStep === 'try-again') nameFieldRef.current?.focus()
+      else recoveryButtonRef.current?.focus()
     }
 
     return (
@@ -201,13 +209,17 @@ export const CreateDestinationBoardForm = memo(
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {isOutcomeUnknown ? (
+          {problem?.kind === 'unconfirmed' ? (
             <Button
               type="button"
-              ref={reloadButtonRef}
-              onClick={onReloadBoards}
+              ref={recoveryButtonRef}
+              onClick={
+                problem.recovery === 'reload-page' ? reloadPage : onReloadBoards
+              }
             >
-              Reload boards
+              {problem.recovery === 'reload-page'
+                ? 'Reload page'
+                : 'Reload boards'}
             </Button>
           ) : (
             <Button type="submit" disabled={isCreating}>
@@ -222,7 +234,7 @@ export const CreateDestinationBoardForm = memo(
             </Button>
           )}
           {/* After an unknown outcome the list this would go back to may lack
-              a board that exists; "Reload boards" shows the current one */}
+              a board that exists; the button above shows the current one */}
           {onChooseExisting && !isOutcomeUnknown && (
             <Button
               type="button"
@@ -238,3 +250,25 @@ export const CreateDestinationBoardForm = memo(
     )
   },
 )
+
+/**
+ * Turns the failure of a creation into what the form shows under the name.
+ * Called by the form when {@link CreateDestinationBoardFormProps.createBoardAction}
+ * resolved with a failure.
+ *
+ * @param failure - Why the creation ended without a board to select.
+ * @returns
+ * - `not-created` when the name can be sent again
+ * - `unconfirmed` with the recovery to offer when a board may exist
+ * @example
+ * toFormProblem({ message: 'Could not confirm ...', nextStep: 'reload-page' })
+ * // => { kind: 'unconfirmed', message: 'Could not confirm ...', recovery: 'reload-page' }
+ */
+function toFormProblem({
+  message,
+  nextStep,
+}: BoardCreationFailure): FormProblem {
+  return nextStep === 'try-again'
+    ? { kind: 'not-created', message }
+    : { kind: 'unconfirmed', message, recovery: nextStep }
+}

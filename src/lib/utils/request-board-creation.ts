@@ -15,12 +15,15 @@ import { settleWithin } from './settle-within'
  *   name can be sent again
  * - `unconfirmed`: a board may exist. The request failed on the way, got no
  *   answer in time, or the server itself could not tell. Sending the name
- *   again could make a second board.
+ *   again could make a second board. `isRequestStillRunning` is `true` when
+ *   the wait ended without an answer: Next.js sends Server Actions one after
+ *   another, so the next one (a reload of the boards, say) would wait behind
+ *   this request. Only a navigation or a reload of the page goes ahead of it.
  */
 export type BoardCreationAttempt =
   | { status: 'created'; board: BoardOption }
   | { status: 'not-created'; message: string }
-  | { status: 'unconfirmed'; message: string }
+  | { status: 'unconfirmed'; message: string; isRequestStillRunning: boolean }
 
 /**
  * Asks the server for a new board and waits a limited time for the answer.
@@ -41,7 +44,7 @@ export type BoardCreationAttempt =
  * const attempt = await requestBoardCreation('Side Projects', 'single-column')
  * // => { status: 'created', board: { id: 'uuid', name: 'Side Projects', isPublic: false, statusLists: [...] } }
  * // => { status: 'not-created', message: 'The board was not created. Try again.' }
- * // => { status: 'unconfirmed', message: BOARD_CREATION_UNCONFIRMED_MESSAGE }
+ * // => { status: 'unconfirmed', message: BOARD_CREATION_UNCONFIRMED_MESSAGE, isRequestStillRunning: false }
  */
 export async function requestBoardCreation(
   boardName: string,
@@ -58,6 +61,7 @@ export async function requestBoardCreation(
     return {
       status: 'unconfirmed',
       message: BOARD_CREATION_UNCONFIRMED_MESSAGE,
+      isRequestStillRunning: false,
     }
   }
 
@@ -70,19 +74,20 @@ export async function requestBoardCreation(
     return {
       status: 'unconfirmed',
       message: BOARD_CREATION_UNCONFIRMED_MESSAGE,
+      isRequestStillRunning: true,
     }
   }
 
   const { answer } = outcome
   if (answer.success) return { status: 'created', board: answer.data }
 
-  return {
-    // The code, not the text, says that the board may exist: the server sets
-    // it when the database gave no answer, or one it could not read
-    status:
-      answer.errorCode === 'BOARD_CREATION_UNCONFIRMED'
-        ? 'unconfirmed'
-        : 'not-created',
-    message: answer.error,
-  }
+  // The code, not the text, says that the board may exist: the server sets
+  // it when the database gave no answer, or one it could not read
+  return answer.errorCode === 'BOARD_CREATION_UNCONFIRMED'
+    ? {
+        status: 'unconfirmed',
+        message: answer.error,
+        isRequestStillRunning: false,
+      }
+    : { status: 'not-created', message: answer.error }
 }

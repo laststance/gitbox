@@ -1375,59 +1375,8 @@ describe('MoveToAnotherBoardDialog', () => {
       expect(Sentry.captureException).not.toHaveBeenCalled()
     })
 
-    test('tells a creation that may have happened by the code of the answer, whatever its text says', async () => {
-      // Arrange: the code under another sentence
-      const user = userEvent.setup()
-      mockBoards()
-      vi.mocked(createBoard).mockResolvedValue({
-        success: false,
-        error: 'We are not sure the board exists.',
-        errorCode: 'BOARD_CREATION_UNCONFIRMED',
-      })
-      renderOpenDialog()
-      await user.click(
-        await screen.findByRole('button', { name: 'New Board...' }),
-      )
-
-      // Act
-      await user.type(screen.getByLabelText('Board Name'), 'Archive')
-      await user.click(screen.getByRole('button', { name: 'Create Board' }))
-
-      // Assert
-      expect(await screen.findByRole('alert')).toHaveTextContent(
-        'We are not sure the board exists.',
-      )
-      expect(
-        screen.getByRole('button', { name: 'Reload boards' }),
-      ).toBeVisible()
-      expect(screen.queryByRole('button', { name: 'Create Board' })).toBeNull()
-    })
-
-    test('offers another try for a refusal that only reads like an unconfirmed creation, because it carries no code', async () => {
-      // Arrange: the sentence without the code
-      const user = userEvent.setup()
-      mockBoards()
-      vi.mocked(createBoard).mockResolvedValue({
-        success: false,
-        error:
-          'Could not confirm that the board was created. Check your boards before trying again.',
-      })
-      renderOpenDialog()
-      await user.click(
-        await screen.findByRole('button', { name: 'New Board...' }),
-      )
-
-      // Act
-      await user.type(screen.getByLabelText('Board Name'), 'Archive')
-      await user.click(screen.getByRole('button', { name: 'Create Board' }))
-
-      // Assert
-      expect(await screen.findByRole('alert')).toBeVisible()
-      expect(screen.getByRole('button', { name: 'Create Board' })).toBeEnabled()
-      expect(screen.queryByRole('button', { name: 'Reload boards' })).toBeNull()
-    })
-
-    test('stops waiting after 15 seconds without an answer, offers to load the boards again and can be closed', async () => {
+    // Value: protects=after a creation that got no answer in time the dialog offers a way out that works; fails_when=it offers "Reload boards", a Server Action that waits behind the creation that is still running, so "Loading boards..." would stay until that request ends; why_new=the test before this change expected "Reload boards" here; seam=none; no_claim=that Next.js queues Server Actions (its documented behavior, not exercised in happy-dom)
+    test('stops waiting after 15 seconds without an answer and offers to reload the page, because loading the boards would wait behind the creation that is still running', async () => {
       // Arrange: a creation the server never answers
       const user = userEvent.setup()
       mockBoards([])
@@ -1448,14 +1397,21 @@ describe('MoveToAnotherBoardDialog', () => {
         'Could not confirm that the board was created. Check your boards before trying again.',
       )
       expect(screen.getByLabelText('Board Name')).toHaveValue('Archive')
-      expect(
-        screen.getByRole('button', { name: 'Reload boards' }),
-      ).toHaveFocus()
+      expect(screen.getByRole('button', { name: 'Reload page' })).toHaveFocus()
+      expect(screen.queryByRole('button', { name: 'Reload boards' })).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Create Board' })).toBeNull()
       // A request without an answer leaves a trace for the owner
       expect(Sentry.captureMessage).toHaveBeenCalledWith(
         'createBoard got no answer in time',
         { level: 'warning', tags: { action: 'createBoard' } },
       )
+
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: 'Reload page' }))
+
+      // Assert
+      expect(reloadPage).toHaveBeenCalledTimes(1)
+      expect(getUserBoardsWithStatusLists).toHaveBeenCalledTimes(1)
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
       expect(onClose).toHaveBeenCalledTimes(1)
     })

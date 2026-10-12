@@ -80,7 +80,10 @@ import {
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { RepoCardId } from '@/lib/types/brands'
 import { reloadPage } from '@/lib/utils/reload-page'
-import { requestBoardCreation } from '@/lib/utils/request-board-creation'
+import {
+  requestBoardCreation,
+  type BoardCreationAttempt,
+} from '@/lib/utils/request-board-creation'
 import { settleWithin, type RequestOutcome } from '@/lib/utils/settle-within'
 
 import {
@@ -320,8 +323,8 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
   /**
    * Creates the destination board with one column and selects it.
    * @param boardName - Validated name from the form.
-   * @returns `null` when the board exists; otherwise what the form shows,
-   * with `isOutcomeKnown: false` when a board may exist all the same.
+   * @returns `null` when the board exists; otherwise what the form shows
+   * and what it offers next ({@link toCreationFailure}).
    */
   const createDestinationBoard = async (
     boardName: string,
@@ -331,11 +334,7 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
     const attempt = await requestBoardCreation(boardName, 'single-column')
 
     if (attempt.status !== 'created') {
-      return endCreationWith({
-        message: attempt.message,
-        // After an unconfirmed creation a board may exist
-        isOutcomeKnown: attempt.status === 'not-created',
-      })
+      return endCreationWith(toCreationFailure(attempt))
     }
 
     const createdBoard = attempt.board
@@ -356,7 +355,9 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
   }
 
   // After a creation with an unknown outcome the list on screen may lack a
-  // board that exists: load it again and show it in place of the form
+  // board that exists: load it again and show it in place of the form. The
+  // form offers this only when the creation request has ended; behind one
+  // that is still running the load would wait.
   const handleReloadBoards = (): void => {
     closeCreateForm()
     reloadDestinations()
@@ -670,6 +671,37 @@ function isFocusAtRest(
     focusedElement === dialogContent ||
     focusedElement === cancelButton
   )
+}
+
+/**
+ * Says what the create form shows, and offers next, for a creation that gave
+ * no board to select. Called by the dialog when {@link requestBoardCreation}
+ * ended without one.
+ *
+ * @param attempt - How the creation ended.
+ * @returns The text of the attempt with
+ * - `try-again` when the server answered and nothing was written
+ * - `reload-boards` when a board may exist and the request has ended
+ * - `reload-page` when a board may exist and the request is still running:
+ *   Next.js sends Server Actions one after another, so loading the boards
+ *   again would wait behind it
+ * @example
+ * toCreationFailure({ status: 'unconfirmed', message: 'Could not confirm ...', isRequestStillRunning: true })
+ * // => { message: 'Could not confirm ...', nextStep: 'reload-page' }
+ */
+function toCreationFailure(
+  attempt: Exclude<BoardCreationAttempt, { status: 'created' }>,
+): BoardCreationFailure {
+  const nextStep = match(attempt)
+    .returnType<BoardCreationFailure['nextStep']>()
+    .with({ status: 'not-created' }, () => 'try-again')
+    .with(
+      { status: 'unconfirmed', isRequestStillRunning: true },
+      () => 'reload-page',
+    )
+    .with({ status: 'unconfirmed' }, () => 'reload-boards')
+    .exhaustive()
+  return { message: attempt.message, nextStep }
 }
 
 /**
