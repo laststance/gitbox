@@ -244,6 +244,36 @@ describe('AddRepositoryCombobox panel that is taller than the screen', () => {
   })
 })
 
+describe('AddRepositoryCombobox with a selected repository', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  // Value: protects=the name on the badge of a selected repository is readable in every theme; fails_when=the badge label is drawn in the theme color again, which on its own 10% tint is below 4.5:1 in 12 of the 14 themes; why_new=no test named the colors of the badge; seam=none; no_claim=the contrast itself (computed for every theme in selected-repository-badge-contrast.test.ts)
+  test('shows a selected repository as a badge with a tint of the theme color under a label in the text color', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    mockCatalog([makeRepository(1, 'free-repo')])
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: true,
+      data: [],
+    })
+    renderOpenPicker()
+    const [freeRepoOption] = await findRepositoryOptions()
+
+    // Act
+    await user.click(freeRepoOption!)
+
+    // Assert: the badge is the element around its remove button
+    const badge = screen.getByRole('button', {
+      name: 'Remove laststance/free-repo',
+    }).parentElement
+    expect(badge).toHaveTextContent('laststance/free-repo')
+    expect(badge).toHaveClass('bg-primary/10', 'text-foreground')
+    expect(badge).not.toHaveClass('text-primary')
+  })
+})
+
 describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
   beforeEach(() => {
     vi.clearAllMocks()

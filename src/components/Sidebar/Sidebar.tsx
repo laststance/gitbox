@@ -39,7 +39,12 @@ const ICON_KEYBOARD = <Keyboard className="h-4 w-4" />
 /** Base styles for navigation item */
 const NAV_ITEM_BASE =
   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors'
-const NAV_ITEM_ACTIVE = 'bg-primary/10 text-primary'
+// The page the user is on: a tint of the theme's primary under a label in
+// the sidebar's own text color. The label was text-primary, which on that
+// tint is below 4.5:1 in 11 of the 14 themes (2.7:1 on Plum): the themes
+// change the primary and leave the sidebar neutral. Checked in
+// sidebar-label-contrast.test.ts.
+const NAV_ITEM_ACTIVE = 'bg-primary/10 text-sidebar-foreground'
 const NAV_ITEM_INACTIVE =
   'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
 

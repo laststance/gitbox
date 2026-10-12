@@ -110,7 +110,9 @@ export const ThemeToggle = memo(function ThemeToggle({
       {!isCollapsed && (
         <>
           <span className="flex-1 text-left">Theme</span>
-          <span className="text-muted-foreground/70 text-xs">
+          {/* Not dimmed: at 70% this 12px name was between 2.6:1 and 4.0:1
+              on the sidebar in every theme */}
+          <span className="text-muted-foreground text-xs">
             {currentThemeName}
           </span>
         </>

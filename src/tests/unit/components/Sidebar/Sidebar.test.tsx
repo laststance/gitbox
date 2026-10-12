@@ -252,12 +252,21 @@ describe('Sidebar', () => {
       expect(link).toHaveAttribute('href', '/settings')
     })
 
-    test('should highlight active link', () => {
+    // Value: protects=the label of the page the user is on is readable in every theme; fails_when=the label is drawn in the theme color again, which on its own 10% tint is below 4.5:1 in 11 of the 14 themes; why_new=the test before read the tint alone, not the color of the label on it; seam=none; no_claim=the contrast itself (computed for every theme in sidebar-label-contrast.test.ts)
+    test('marks the page the user is on with a tint of the theme color under a label in the color of the sidebar text', () => {
+      // Arrange & Act: /boards is mocked as the current path
       renderSidebar()
 
-      // /boards is mocked as current path
-      const allBoardsLink = screen.getByRole('link', { name: /all boards/i })
-      expect(allBoardsLink).toHaveClass('bg-primary/10')
+      // Assert
+      const allBoardsLink = screen.getByRole('link', { name: 'All Boards' })
+      expect(allBoardsLink).toHaveClass(
+        'bg-primary/10',
+        'text-sidebar-foreground',
+      )
+      expect(allBoardsLink).not.toHaveClass('text-primary')
+      expect(screen.getByRole('link', { name: 'Favorites' })).toHaveClass(
+        'text-muted-foreground',
+      )
     })
 
     // Value: protects=a screen reader is told which page is open, in the open sidebar and in the icon rail; fails_when=aria-current leaves the active link or lands on another link; why_new=the one active-link test reads a CSS class, which a screen reader does not; seam=none; no_claim=how a screen reader announces it (DOM attribute only)
@@ -400,6 +409,17 @@ describe('Sidebar', () => {
 
       // Theme toggle shows "Theme" text when expanded
       expect(screen.getByText('Theme')).toBeInTheDocument()
+    })
+
+    // Value: protects=the name of the current theme beside "Theme" is readable on the sidebar; fails_when=the 12px name is dimmed again (at 70% it was between 2.6:1 and 4.0:1 in every theme); why_new=no test named the color of that label; seam=none; no_claim=the contrast itself (computed for every theme in sidebar-label-contrast.test.ts)
+    test('shows the name of the current theme in the muted label color, not dimmed further', () => {
+      // Arrange & Act: the store starts with the system theme
+      renderSidebar()
+
+      // Assert
+      const currentThemeName = screen.getByText('System')
+      expect(currentThemeName).toHaveClass('text-muted-foreground', 'text-xs')
+      expect(currentThemeName).not.toHaveClass('text-muted-foreground/70')
     })
   })
 
