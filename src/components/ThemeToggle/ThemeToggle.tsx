@@ -41,6 +41,12 @@ import { cn } from '@/lib/utils'
 interface ThemeToggleProps {
   /** Whether the sidebar is collapsed (icon-only mode) */
   isCollapsed?: boolean
+  /**
+   * Side of the button the list of themes opens on. `right` beside a sidebar
+   * that stands next to the page; `bottom` inside a sidebar that lies over
+   * the page on a phone, where the list would leave the screen on the right.
+   */
+  menuSide?: 'right' | 'bottom'
 }
 
 /**
@@ -51,9 +57,13 @@ interface ThemeToggleProps {
  * Supports collapsed mode with icon-only button and tooltip.
  *
  * @param isCollapsed - When true, displays icon-only with tooltip
+ * @param menuSide - Side of the button the list opens on (default `right`)
+ * @example
+ * <ThemeToggle isCollapsed={false} menuSide="bottom" />
  */
 export const ThemeToggle = memo(function ThemeToggle({
   isCollapsed = false,
+  menuSide = 'right',
 }: ThemeToggleProps) {
   const { theme, setTheme, mounted } = useTheme()
 
@@ -123,7 +133,7 @@ export const ThemeToggle = memo(function ThemeToggle({
   // Dropdown menu content (shared between both modes)
   const menuContent = (
     <DropdownMenuContent
-      side="right"
+      side={menuSide}
       align="start"
       className="w-56"
       sideOffset={8}

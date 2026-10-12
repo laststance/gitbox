@@ -274,6 +274,10 @@ export const Sidebar = memo(function Sidebar({
   // The icon rail. SSR always renders the expanded sidebar, for stable
   // hydration; the client applies the stored state once it has mounted.
   const isRail = mounted && isCollapsed
+  // The toggle stands in a row of its own under the logo: as the rail, and
+  // in the sidebar that lies over the page, so the button is still under the
+  // finger that opened the sidebar and a second press closes it
+  const hasToggleRow = isRail || isOverPage
 
   // Determine sidebar width class
   // max-md: the rail's width from the first paint on a phone, before the
@@ -312,41 +316,66 @@ export const Sidebar = memo(function Sidebar({
             // edge, and no label wraps onto a second line on the way
             'overflow-hidden whitespace-nowrap',
             // Below 768px over the page, not beside it: as the rail it covers
-            // its place, opened it covers the left of the page
-            'max-md:fixed max-md:inset-y-0 max-md:left-0',
+            // its place, opened it covers the left of the page. h-auto: its
+            // height is what lies between top and bottom of the screen that
+            // is in view. 100vh is more than that while a phone shows its
+            // browser bars, and the account link and Sign Out were below it.
+            'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:h-auto',
             isOverPage ? 'max-md:z-50 max-md:shadow-xl' : 'max-md:z-30',
             'transition-[width] duration-300 ease-out',
             sidebarWidth,
           )}
         >
-          {/* Logo + Toggle. The toggle is one element in both layouts, the
-              second child of this block each time, so React keeps it and the
-              keyboard focus stays on it when the sidebar collapses or
-              expands. As the rail the block is a column: the button stands
-              under a divider, in a row of its own. */}
+          {/* Logo + Toggle. The toggle is one element in every layout, at
+              the same place in this block each time, so React keeps it and
+              the keyboard focus stays on it when the sidebar collapses or
+              expands. With a row of its own the block is a column: the logo,
+              a divider, and the button in a cell as wide as the rail. Logo
+              and button are then at the same place in the rail and in the
+              sidebar that opens over the page: nothing jumps while the width
+              grows, and the button never leaves the part that is in view.
+              From 768px the expanded sidebar has the button beside the name. */}
           <div
             suppressHydrationWarning
             className={cn(
-              'border-sidebar-border flex items-center border-b px-2 pt-4',
-              isRail ? 'flex-col pb-2' : 'justify-between pb-4',
+              'border-sidebar-border flex border-b px-2 pt-4',
+              hasToggleRow
+                ? 'flex-col items-start pb-2'
+                : 'items-center justify-between pb-4',
             )}
           >
-            <div className="flex items-center gap-2">
+            {/* pl-3: the logo at the middle of the rail's 64px, name or no
+                name. leading-6: the name is as high as the logo, so the row
+                of the button does not move down when the name appears. */}
+            <div
+              className={cn('flex items-center gap-2', hasToggleRow && 'pl-3')}
+            >
               <GithubIcon className="text-sidebar-primary h-6 w-6 shrink-0" />
-              {!isRail && <span className="text-lg font-semibold">GitBox</span>}
+              {!isRail && (
+                <span
+                  className={cn(
+                    'text-lg font-semibold',
+                    hasToggleRow && 'leading-6',
+                  )}
+                >
+                  GitBox
+                </span>
+              )}
             </div>
             {mounted && (
               <div
                 className={cn(
-                  isRail &&
-                    'border-sidebar-border -mx-2 mt-4 flex justify-center self-stretch border-t pt-2',
+                  hasToggleRow &&
+                    'border-sidebar-border -mx-2 mt-4 self-stretch border-t pt-2',
                 )}
               >
-                <SidebarToggleButton
-                  ref={toggleButtonRef}
-                  isCollapsed={isCollapsed}
-                  onToggle={toggle}
-                />
+                <div className={cn(hasToggleRow && 'flex w-16 justify-center')}>
+                  <SidebarToggleButton
+                    ref={toggleButtonRef}
+                    isCollapsed={isCollapsed}
+                    onToggle={toggle}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -443,8 +472,13 @@ export const Sidebar = memo(function Sidebar({
               isCollapsed={isRail}
             />
 
-            {/* Theme Toggle */}
-            <ThemeToggle isCollapsed={isRail} />
+            {/* Theme Toggle. Over the page the list of themes opens below
+                the button, inside the sidebar: to the right of it there are
+                119px of a 375px screen, and the list is 224px wide. */}
+            <ThemeToggle
+              isCollapsed={isRail}
+              menuSide={isOverPage ? 'bottom' : 'right'}
+            />
           </nav>
 
           {/* Profile & Sign Out */}

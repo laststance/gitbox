@@ -404,6 +404,73 @@ describe('Sidebar on a narrow viewport', () => {
     )
   })
 
+  // Value: protects=on a phone that shows its browser bars the account link and Sign Out stay on screen; fails_when=the fixed sidebar is sized with 100vh again, which is more than the part of the screen that is in view; why_new=no other test names the height of the fixed sidebar; seam=none; no_claim=what a phone browser does with the classes (measured by hand in iOS Safari: 754px of sidebar in 714px of screen with 100vh)
+  test('is as high as the part of the screen that is in view, from its top to its bottom, not 100vh', () => {
+    // Arrange
+    stubViewportWidth(375)
+
+    // Act
+    renderOpenSidebar()
+
+    // Assert: fixed between top and bottom, with no height of its own
+    expect(screen.getByRole('complementary')).toHaveClass(
+      'max-md:fixed',
+      'max-md:inset-y-0',
+      'max-md:h-auto',
+    )
+  })
+
+  // Value: protects=the button that opened the sidebar over the page is still under the finger, so a second press closes it; fails_when=the opened sidebar moves its toggle beside the name, as the expanded sidebar of a wide window has it; why_new=the other tests find the toggle by its name wherever it is; seam=none; no_claim=where the button is drawn (measured in e2e/logged-in/sidebar-narrow-viewport.spec.ts)
+  test('keeps the toggle in the rail-wide cell under the logo when it opens over the page, and has it beside the name on a wide window', async () => {
+    // Arrange: a phone, the rail
+    const user = userEvent.setup()
+    const viewport = stubResizableViewport(375)
+    renderOpenSidebar()
+    const toggleAsRail = screen.getByRole('button', { name: 'Expand sidebar' })
+    expect(toggleAsRail.parentElement).toHaveClass('w-16', 'justify-center')
+
+    // Act: open it over the page
+    await user.click(toggleAsRail)
+
+    // Assert: the same button in the same cell
+    const toggleOverPage = screen.getByRole('button', {
+      name: 'Collapse sidebar',
+    })
+    expect(toggleOverPage).toBe(toggleAsRail)
+    expect(toggleOverPage.parentElement).toHaveClass('w-16', 'justify-center')
+
+    // Act: the window grows wide, where the sidebar is expanded beside the page
+    act(() => viewport.resizeTo(1024))
+
+    // Assert: no cell, the button stands at the end of the row of the name
+    expect(
+      screen.getByRole('button', { name: 'Collapse sidebar' }).parentElement,
+    ).not.toHaveClass('w-16')
+  })
+
+  // Value: protects=the list of themes stays on a phone's screen when it is opened from the sidebar that lies over the page; fails_when=the list opens to the right of its button there, where 224px of list begin at the sidebar's 256px edge on a 375px screen; why_new=no test named the side the list opens on; seam=none; no_claim=where the list is drawn (measured in e2e/logged-in/sidebar-narrow-viewport.spec.ts)
+  test('opens the list of themes below its button when the sidebar lies over the page, and beside the sidebar on a wide window', async () => {
+    // Arrange: a phone, the sidebar opened over the page
+    const user = userEvent.setup()
+    const viewport = stubResizableViewport(375)
+    renderOpenSidebar()
+    await user.click(screen.getByRole('button', { name: 'Expand sidebar' }))
+
+    // Act
+    await user.click(screen.getByRole('button', { name: /Theme/ }))
+
+    // Assert
+    expect(screen.getByRole('menu')).toHaveAttribute('data-side', 'bottom')
+
+    // Act: close the list, the window grows wide, open the list again
+    await user.keyboard('{Escape}')
+    act(() => viewport.resizeTo(1024))
+    await user.click(screen.getByRole('button', { name: /Theme/ }))
+
+    // Assert
+    expect(screen.getByRole('menu')).toHaveAttribute('data-side', 'right')
+  })
+
   // Value: protects=a sidebar the user left open becomes the icon rail when the window shrinks to a phone width and is open again, as left, when it grows back; fails_when=the viewport subscription is dropped or the open choice is overwritten; why_new=the other tests here stub matchMedia with listeners that never fire; seam=none; no_claim=real browser resize and the CSS breakpoint (matchMedia stubbed)
   test('turns into the icon rail when the window shrinks to a phone width and is open again, as the user left it, when the window grows back', () => {
     // Arrange: a 1024px window, the sidebar left open

@@ -102,8 +102,8 @@ test.describe('Sidebar below 768px', () => {
     expect(pageWidthPx).toBe(375)
   })
 
-  // Value: protects=the sidebar opens over the page as one clean edge that uncovers its labels; fails_when=a label wraps while the sidebar is still narrow, or the header draws its toggle beyond the edge that is still moving; why_new=the other tests look at the sidebar when the opening has ended; seam=none; no_claim=how the motion looks frame by frame (that is checked on a recording)
-  test('while it opens, no label breaks onto a second line and nothing is drawn beyond its moving edge', async ({
+  // Value: protects=the sidebar opens over the page as one clean edge that uncovers its labels, with its toggle in view all the way; fails_when=a label wraps while the sidebar is still narrow, the name beside the logo is drawn beyond the edge that is still moving, or the toggle leaves its place; why_new=the other tests look at the sidebar when the opening has ended; seam=none; no_claim=how the motion looks frame by frame (that is checked on a recording)
+  test('while it opens, no label breaks onto a second line, nothing is drawn beyond its moving edge and the toggle stays where it was', async ({
     page,
   }) => {
     // Arrange: the opening takes 100s instead of 0.3s, so the test looks at
@@ -113,34 +113,82 @@ test.describe('Sidebar below 768px', () => {
     await page.addStyleTag({
       content: 'aside { transition-duration: 100s !important; }',
     })
+    const toggleBoxAsRail = await expandButton.boundingBox()
 
     // Act
     await expandButton.click()
+    const collapseButton = page.getByRole('button', {
+      name: 'Collapse sidebar',
+    })
     const allBoardsLink = sidebar.getByRole('link', { name: 'All Boards' })
     await expect(allBoardsLink).toBeAttached()
     const widthWhileOpeningPx = (await measureHorizontally(sidebar))?.width
     const linkHeightWhileOpeningPx = (await allBoardsLink.boundingBox())?.height
+    const toggleBoxWhileOpening = await collapseButton.boundingBox()
     const testIdBeyondTheEdge = await page.evaluate(() =>
-      // A point in the row of the logo, right of a sidebar of under 100px
-      document.elementFromPoint(120, 28)?.getAttribute('data-testid'),
+      // A point in the row of the logo, where the name beside it is laid
+      // out, right of a sidebar that is still narrower than 80px
+      document.elementFromPoint(90, 28)?.getAttribute('data-testid'),
     )
 
     // Assert: still narrow, "All Boards" is one line (20px of text and 8px
-    // above and below it), and right of the edge lies the backdrop
-    expect(widthWhileOpeningPx).toBeLessThan(100)
+    // above and below it), right of the edge lies the backdrop, and the
+    // toggle is the 32px button in the middle of the rail's 64px, under the
+    // logo and the divider
+    expect(widthWhileOpeningPx).toBeLessThan(80)
     expect(linkHeightWhileOpeningPx).toBe(36)
     expect(testIdBeyondTheEdge).toBe('sidebar-backdrop')
+    expect(toggleBoxAsRail).toEqual({ x: 16, y: 65, width: 32, height: 32 })
+    expect(toggleBoxWhileOpening).toEqual({
+      x: 16,
+      y: 65,
+      width: 32,
+      height: 32,
+    })
 
     // Act: the opening ends
     await sidebar.evaluate((aside) =>
       aside.getAnimations().forEach((animation) => animation.finish()),
     )
 
-    // Assert: the line has the height it had on the way
+    // Assert: the line has the height it had on the way, and the toggle has
+    // not moved
     await expect
       .poll(async () => (await measureHorizontally(sidebar))?.width)
       .toBe(256)
     expect((await allBoardsLink.boundingBox())?.height).toBe(36)
+    expect(await collapseButton.boundingBox()).toEqual({
+      x: 16,
+      y: 65,
+      width: 32,
+      height: 32,
+    })
+  })
+
+  // Value: protects=on a phone one spot opens and closes the sidebar: the finger does not have to look for the button; fails_when=the opened sidebar puts its toggle somewhere else than the rail has it; why_new=the other tests press the toggle wherever it is found by name; seam=none; no_claim=a finger on a touch screen (the mouse of the test presses the same point)
+  test('a second press on the spot that opened it closes it again', async ({
+    page,
+  }) => {
+    // Arrange
+    const { sidebar } = await openBoardsWithRail(page)
+
+    // Act: the middle of the toggle in the rail
+    await page.mouse.click(32, 81)
+
+    // Assert
+    await expect
+      .poll(async () => (await measureHorizontally(sidebar))?.width)
+      .toBe(256)
+    await expect(page.getByTestId('sidebar-backdrop')).toBeVisible()
+
+    // Act: the same spot
+    await page.mouse.click(32, 81)
+
+    // Assert
+    await expect(page.getByTestId('sidebar-backdrop')).toHaveCount(0)
+    await expect
+      .poll(async () => (await measureHorizontally(sidebar))?.width)
+      .toBe(64)
   })
 
   test('closes when the page behind it is pressed, and the page is within reach again', async ({
@@ -210,6 +258,32 @@ test.describe('Sidebar below 768px', () => {
     await expect
       .poll(async () => (await measureHorizontally(sidebar))?.width)
       .toBe(64)
+  })
+
+  // Value: protects=every theme can be chosen on a phone: the list that is opened from the sidebar over the page is on the screen; fails_when=the list opens to the right of its button again, where it begins at the sidebar's 256px edge and 100px of its 224px lie beyond a 375px screen; why_new=the test above reads only whether the list is there; seam=none; no_claim=whether the list stands below or above its button (Radix puts it where it has room)
+  test('the theme list of the opened sidebar lies on the screen, all 224px of it', async ({
+    page,
+  }) => {
+    // Arrange
+    const { sidebar, expandButton } = await openBoardsWithRail(page)
+    await expandButton.click()
+    await expect
+      .poll(async () => (await measureHorizontally(sidebar))?.width)
+      .toBe(256)
+
+    // Act
+    await sidebar.locator('button:has-text("Theme")').click()
+
+    // Assert: no part of the list is beyond an edge of the 375px screen
+    const themeList = page.getByRole('menu')
+    await expect(themeList).toBeInViewport({ ratio: 1 })
+    await expect
+      .poll(async () => (await measureHorizontally(themeList))?.width)
+      .toBe(224)
+    const pageWidthPx = await page.evaluate(
+      () => document.documentElement.scrollWidth,
+    )
+    expect(pageWidthPx).toBe(375)
   })
 
   test('a link of the opened sidebar opens its page and closes the sidebar', async ({
