@@ -66,7 +66,7 @@ export const THEME_SELECTORS = [
 ]
 
 /** Text of the two CSS files that hold the theme tokens. */
-export const THEME_STYLES = ['src/styles/globals.css', 'src/styles/themes.css']
+const THEME_STYLES = ['src/styles/globals.css', 'src/styles/themes.css']
   .map((path) => readFileSync(join(process.cwd(), path), 'utf8'))
   .join('\n')
 
