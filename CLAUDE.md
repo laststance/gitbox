@@ -527,6 +527,10 @@ A command that names a thing of the app is in Title Case: Create Board, Add Colu
 
 Uses `@laststance/redux-storage-middleware` (npm) for localStorage persistence of Redux state.
 
+Two slices are stored, `settings` and `draft` (`PERSISTED_SLICE_NAMES` in `src/lib/redux/persisted-slices.ts`). The board's columns and cards are not: the server sends them with every page, and `useBoardServerSync` puts them into the store before the first paint. While they were stored, the store held them when React hydrated a board page, the server had rendered that page without columns, and React threw the server's markup away (error #418) on every visit after the first. `mergePersistedSlices` reads back the listed slices only, so a `board` slice that an earlier version left in a browser never reaches the store. `e2e/logged-in/board-page-hydration.spec.ts` checks both.
+
+The stored state is in the store before React hydrates. A component that renders a stored setting renders what the server rendered until `useMounted()` is true, as `Sidebar` does.
+
 ### 14 Theme System
 
 Light: default, sunrise, sandstone, mint, sky, lavender, rose
