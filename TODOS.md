@@ -337,6 +337,18 @@ A repository that was renamed or transferred keeps its former owner and name on 
 **Priority:** P4
 **Depends on:** None
 
+### Keep `.env.production` out of the E2E builds
+
+**What:** Pass an empty `SENTRY_AUTH_TOKEN` and the local `NEXT_PUBLIC_SITE_URL` to the builds of `pnpm e2e:parallel` and `pnpm e2e`, and the local service-role key to the server of `pnpm e2e`.
+
+**Why:** `pnpm build` reads `.env.production` ahead of `.env`. On a machine that has that file, an E2E build takes `SENTRY_AUTH_TOKEN` and `NEXT_PUBLIC_SITE_URL` from it, so the source maps of a test build are uploaded to the Sentry project, and the server of `pnpm e2e` holds production's service-role key, which the local stack refuses (account deletion is the one place that uses it). Both commands pass the local Supabase URL and anon key themselves, so no test talks to production. Seen while checking #213 on a local production build.
+
+**Context:** `scripts/e2e-parallel.sh` (the build step and the `next start` step), `webServer.env` in `playwright.config.ts`. `.github/workflows/e2e.yml` sets its own values, and CI has no `.env.production`. `CLAUDE.md` lists what a manual local production build has to export.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
 ## Board sync, shared boards and the Sentry tunnel — deferred follow-ups
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
@@ -411,6 +423,66 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 **Effort:** S
 **Priority:** P2
+**Depends on:** None
+
+### Keep a note draft only for what was typed, and let a newer saved note win
+
+**What:** (1) Do not store a draft while the note and the links are what the server sent: the note editor reports its first value as a change, so a note that was only opened gets a draft. (2) When a draft exists, show it only if it is newer than the saved note, or ask which of the two to keep.
+
+**Why:** Seen on a card of the local build on 2026-10-12: opening an empty note and closing it without typing left a draft of 57 characters (the empty document) in localStorage. The dialog starts from the draft whenever one exists (`draft?.content ?? initialNote`), so after that the browser shows its old draft in place of a note that was saved later from another browser, and Save writes the draft over it.
+
+**Context:** `handleNoteChange` and the two `useState` initializers of `src/hooks/board/useNoteModalDraft.ts`; `updateDraftNote` stores `lastModified`, and `projectinfo.updated_at` is the time of the saved note. Older than this change.
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** None
+
+### Return the keyboard to the comment when its editor closes
+
+**What:** When the inline editor of a card's comment closes (Enter, Escape or the save button), put the focus on the comment, or on "Add comment" when the comment is empty.
+
+**Why:** Seen on a card of the local build on 2026-10-12: after Escape in the editor the focus is on the page (`document.body`), so a keyboard user starts again from the top of the board. Opening the editor with the keyboard works, from the comment (Enter) and from its menu (Enter on the menu button, Enter on Edit), and the editor takes the focus.
+
+**Context:** `handleCommentSave` and `handleCommentCancel` of `src/components/Board/RepoCard.tsx` set `isEditingComment` to false; `CommentSection` swaps the editor for `CommentDisplay` with `<Activity>`, so the element that had the focus is hidden. `useCardDialogFocusReturn` does the same job for the dialogs of a card. Older than this change.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Give a card one tab stop
+
+**What:** Make a card one stop of the Tab key. Today it is two: the element that has the drag listeners (dnd-kit gives it `tabIndex` 0 and the role of a button) and the `Card` inside it, which has a `tabIndex` of its own.
+
+**Why:** Seen on the board on 2026-10-12, while the keys that start a drag were measured: Space lifts the card from either stop. Enter lifts it from the outer stop and opens the note on the inner one, `.` opens the menu on the inner one only, and the card's own focus ring (`focus-within:ring-2` on `Card`) is drawn for the inner stop only. A keyboard user presses Tab twice for every card.
+
+**Context:** `src/components/Board/RepoCard.tsx`: the outer `div` spreads `attributes` and `listeners` of `useSortable`, and `Card` has `tabIndex={0}`, `onKeyDown` and `data-repo-card-id`, which `card-focus-target.ts` and the E2E helpers read. One stop means moving the key handler and that attribute to the outer element, or taking the outer one out of the tab order (`attributes.tabIndex`), and checking the focus return of the card dialogs afterwards. Older than this change.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Make the column drag tests fail when no drag happens
+
+**What:** Give the tests of `e2e/logged-in/kanban-dnd/column-dnd.spec.ts` that only move the mouse an assertion about the drag itself: "should show visual feedback during column drag" asserts nothing, "should drop column to new row via NewRowDropZone" checks the new grid only inside `if (dropSucceeded)`, and "should display ColumnInsertZone at empty grid positions" computes `insertZoneVisible` and never reads it. Several swap tests compare the set of titles, which is the same after no drag.
+
+**Why:** Named by an outside read of the drag sensors on 2026-10-12: these tests pass when a sensor refuses every press on a column header. What does fail in that case today: "should verify column grid position is persisted in database" in the same file, and the column tests of `what-starts-a-drag.spec.ts` (a finger and Space on the header).
+
+**Context:** The tests are older than this change and were written to tolerate a drop that does not land (`MAX_ATTEMPTS`, the early return). Assert the lift before the release (`sortable-column-<id>` has `opacity-50` while it is dragged) and the final grid without a condition; a test that then turns out flaky needs its drop fixed, not its assertion removed.
+
+**Effort:** M
+**Priority:** P3
+**Depends on:** None
+
+### Read what is being dragged from dnd-kit, not from a copy
+
+**What:** Take "a column is being dragged" from dnd-kit's own state (`useDndContext().active`, read by a component inside `DndContext`) and drop `activeId` and `activeDragType` of `useKanbanDnD`, which `handleDragStart` sets and `handleDragEnd` and `handleDragCancel` clear.
+
+**Why:** dnd-kit calls `onDragStart` at once and calls neither `onDragEnd` nor `onDragCancel` when the drag ends before React has drawn its start (`createHandler` in `@dnd-kit/core` 6.3.1 builds no event while `sensorContext.current.active` is unset). A mouse that is released within a frame of the lift then leaves the copy at "column", and the drop zones for a new row and for empty places stay on the board until the next drag ends. Not seen in a browser; read from the code on 2026-10-12, when the handler for a cancelled drag was added.
+
+**Context:** `src/hooks/board/useKanbanDnD.ts` (`insertionZones`, the two state values), `src/components/Board/KanbanBoard.tsx` (`isDraggingColumn`, the grid tracks, `NewRowDropZone`, the `DragOverlay`). The hook runs outside `DndContext`, which it gives its sensors to, so the reading has to move into a child of the context.
+
+**Effort:** M
+**Priority:** P3
 **Depends on:** None
 
 ### Forward only the headers Sentry needs through the tunnel
@@ -651,10 +723,34 @@ From `/design-review` of the change for issue #213. The review found 27 issues a
 
 **Why:** Each theme picks its own red, green and primary, but orange and amber are the same fixed shades on all of them. This review fixed the two places where that cost contrast (the character counters and the favorite star) with fixed shades that were measured on every theme; a token would let a theme choose, and would give "outcome unknown" messages a color of their own instead of red. The counter of a card's comment stands on a tinted box, where no single orange passes on every tint; it paints a chip of the page background under its orange, and a warning token needs a surface like that too.
 
-**Context:** `src/styles/globals.css` (theme definitions), `src/components/Boards/BoardCard.tsx`, `src/components/Boards/RenameBoardDialog.tsx`, `src/components/Boards/BoardSettingsDialog.tsx`, `src/components/Board/CommentInlineEdit.tsx`, `src/app/boards/favorites/page.tsx`. The toast colors come from sonner's palette, not from the themes (`src/components/ThemedToaster.tsx`).
+**Context:** `src/styles/globals.css` (theme definitions), `src/components/Boards/BoardCard.tsx`, `src/app/boards/favorites/page.tsx`, and `NEAR_LIMIT_COUNTER_TEXT_CLASS` in `src/lib/constants/character-counter.ts`, the one orange of the four counters (a card's note and comment, a board's name and subtitle). The toast colors come from sonner's palette, not from the themes (`src/components/ThemedToaster.tsx`).
 
 **Effort:** M
 **Priority:** P4
+**Depends on:** None
+
+### Stop using the theme color and the muted color where they cannot be read
+
+**What:** (1) Replace `text-primary` where it colors text on the page background, or give the themes a second token for text in the theme color: the two links of the login page, the `link` variant of `Button`, the link of the note editor (`link-node.tsx`), the URL of a project link (`editable-url-item.tsx`), "Save" of the comment editor, the labels of the two drop zones while a card is dragged over them, and the hovered title of a board card and of a repository on a shared board. (2) Darken `--muted-foreground` of `:root`, the block of the System theme on a light screen: on `bg-muted` and on `bg-accent` it is 4.34:1 there, for example in the language chip of the Add Repositories picker.
+
+**Why:** `text-primary` on the page background is below 4.5:1 in 11 of the 14 themes: 3.19:1 on Sunrise to 4.42:1 on Rose, 3.30:1 on Plum to 4.12:1 on Graphite. #213 fixed the places where the theme color or the muted color stood on a tint or on the accent fill (the sidebar's current page, the picker's badges, rows and check marks, the chosen option of the comment text settings, the check marks of two menus). The places above are on `main` as well and need one decision on the theme tokens instead of ten local ones.
+
+**Context:** `src/app/login/page.tsx`, `src/components/ui/button.tsx`, `src/components/ui/link-node.tsx`, `src/components/ui/editable-url-item.tsx`, `src/components/Board/CommentInlineEdit.tsx`, `src/components/Board/NewRowDropZone.tsx`, `src/components/Board/ColumnInsertZone.tsx`, `src/components/Boards/BoardCard.tsx`, `src/app/public/[slug]/PublicBoardClient.tsx`, `src/styles/globals.css`. `src/tests/unit/styles/theme-color-math.ts` reads the tokens of every theme and computes a contrast; `accent-fill-contrast.test.ts` and `selected-repository-badge-contrast.test.ts` are tests of this kind. The rule for new code is in `CLAUDE.md` under "14 Theme System".
+
+**Effort:** M
+**Priority:** P3
+**Depends on:** None
+
+### Show a hidden subtitle on the shared page only when the owner wants it
+
+**What:** Decide whether "Show subtitle" of a board's settings also decides what a public link shows, and make `get_public_board` and the Sharing tab say the same.
+
+**Why:** The setting hides the subtitle in the header of the owner's board page. The shared page prints the subtitle whenever the board has one, and uses it as the description of the page, whatever the setting says. Since #213 the Sharing tab lists the subtitle among what is visible, so the owner can know; the two switches still answer one question in two ways.
+
+**Context:** `get_public_board` in `supabase/migrations/20261011030000_public_board_by_slug_only.sql` returns `subtitle` without reading `settings`; `src/app/public/[slug]/PublicBoardClient.tsx` and `page.tsx` print it; `toggleBoardSubtitleVisibility` in `src/lib/actions/board.ts` writes `settings.showSubtitle`. A change of the function is a new migration.
+
+**Effort:** S
+**Priority:** P3
 **Depends on:** None
 
 ### Smaller design gaps left from the 2026-10-12 review

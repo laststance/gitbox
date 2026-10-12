@@ -138,7 +138,7 @@
 - **Board Settings**: 4-tab dialog (General, Cards, Sharing, Danger Zone)
   - **General**: Rename board, subtitle edit form, "Show Subtitle" visibility toggle
   - **Cards**: Card display settings (description, comment, font size/weight)
-  - **Sharing**: Public board toggle, share link generation/copy
+  - **Sharing**: Public board toggle, share link generation/copy, and a line that says what the link shows (board name, subtitle, columns, each repository's name, description, language and stars) and what it hides (comments, notes, links)
   - **Danger Zone**: Delete board with confirmation
 - **Public Board Sharing**: Make boards publicly viewable via unique share slug (read-only for visitors)
 - **Copy Link** (board header): Copies the public share link while the board is shared; otherwise the board's own address, with a note that only the owner can open it
@@ -248,6 +248,7 @@ Display free-text status comments on RepoCard in Card-in-Card style.
 - **Inline editing**: Click to edit directly, 2,000 character limit
 - **Color customization**: 8 colors available (primary/blue/green/amber/purple/rose/cyan/neutral)
 - **Per-comment color**: Color stored per comment in `projectinfo.comment_color`
+- **Actions menu**: Edit, Color and Delete, from a button on the comment (shown on hover and on focus, and always where the main pointer is a finger). The colors open on hover, on a click or a tap, and from the keyboard. Of the menu, only Edit opens the editor: neither its button nor Color, a color or Delete does
 
 #### UI Wireframe
 
@@ -492,7 +493,7 @@ Remove from Board       // Destructive, confirmation dialog; deletes the card wi
 - `.` — Focused card's Overflow menu
 - `Enter` — Open card
 - `⌘K` / `Ctrl+K` — Command Palette
-- `Z` — Undo last operation (not while a dialog, a menu or a list of options is open, and not while the sidebar lies over the page on a phone)
+- `Z` — Undo last operation (not while a dialog, a menu, a list of options, the command palette or the Add Repositories panel is open, and not while the sidebar lies over the page on a phone)
 - `Tab` — Focus navigation
 - `Escape` — Close menu/dialog
 - `?` — Shortcuts help
@@ -1024,19 +1025,34 @@ A shared board (`is_public`) is the one exception, and it does not go through th
 
 ### 11.1 Technical Constraints
 
-#### @dnd-kit isTrusted Requirement
+#### What a Drag Listens For
 
-@dnd-kit only accepts events with `event.isTrusted === true` for security.
+The board's sensors listen for mouse, touch and key events, not for pointer events (`OwnElementMouseSensor`, `OwnElementTouchSensor` and `OwnElementKeyboardSensor` in `src/lib/utils/own-element-sensors.ts`). @dnd-kit never reads `event.isTrusted`: a drag starts from a mouse press that travels more than 8px, from a finger that rests 200ms without moving more than 6px, and from Space or Enter.
 
-| Event Source             | isTrusted | D&D Works  |
-| ------------------------ | --------- | ---------- |
-| Real user interaction    | ✅ true   | ✅ Works   |
-| Playwright CDP           | ✅ true   | ✅ Works   |
-| Playwright mouse API     | ❌ false  | ❌ Ignored |
-| JavaScript dispatchEvent | ❌ false  | ❌ Ignored |
-| Claude Chrome MCP        | ❌ false  | ❌ Ignored |
+| Event Source                                      | D&D Works                   |
+| ------------------------------------------------- | --------------------------- |
+| Real user interaction                             | ✅ Works                    |
+| Playwright CDP helper (`e2e/helpers/cdp-drag.ts`) | ✅ Works                    |
+| Playwright `page.mouse` (down, move in steps, up) | ✅ Works                    |
+| A finger through `Input.dispatchTouchEvent`       | ✅ Works                    |
+| Mouse events that a script dispatches             | ✅ Lift the card            |
+| Pointer events that a script dispatches           | ❌ Ignored: nothing listens |
+| Claude Chrome MCP `left_click_drag`               | ❌ Recorded as not dragging |
 
-**E2E Testing**: Must use Playwright CDP helper (`e2e/helpers/cdp-drag.ts`)
+**E2E Testing**: A drag and drop uses the Playwright CDP helper (`e2e/helpers/cdp-drag.ts`), which moves in steps and pauses before it releases. `page.mouse` sends its events through the same protocol, so a press that it moves in steps is a drag too (`what-starts-a-drag.spec.ts`). A finger that rests is sent with `Input.dispatchTouchEvent`: `tap()` lifts at once. @dnd-kit starts to listen for the keys of a keyboard drag in a timeout of its own, so a test lets one timeout of the page pass between the key that lifts and the next key
+
+#### What Starts a Drag
+
+A card and a column header are picked up by a press or a key on themselves: a mouse that moves more than 8px while it is down, a finger that rests 200ms, or Space or Enter. On the card itself Enter opens the note: of a card's two stops of the Tab key, Enter picks it up from the outer one only. Two things take presses and keys of their own and never pick them up:
+
+- A menu or a dialog of the card or the column. It is drawn elsewhere on the page, and React hands its events up to the element that rendered it all the same.
+- A button, a link or a field inside the card or the header, such as "Open note" and "Column options". With @dnd-kit's own sensors a mouse that slipped more than 8px on "Open note", a finger that rested 200ms on it and Enter on it picked the card up, and the note did not open. The open comment editor counts as a whole (`data-no-drag`): its counter and the space around its field are neither a field nor a button.
+
+The three sensors of the board ask `mayStartDrag` (`src/lib/utils/may-start-drag.ts`) before they start. A comment is no button in this sense, although a click opens its editor: it is most of a card's surface, and a card is picked up there as anywhere else.
+
+#### A Cancelled Drag
+
+Escape cancels a drag, and so do a window that is resized or hidden during the drag and a touch that the browser takes over. Nothing is saved, and the board leaves the state of the drag: the drop zones of a column drag (new row, empty places) go away. @dnd-kit reports a cancelled drag to `onDragCancel` and not to `onDragEnd`, so the board handles both (`handleDragCancel` of `useKanbanDnD`).
 
 ### 11.2 Card Drag & Drop
 
@@ -1285,52 +1301,54 @@ export async function cdpBoardDragAndDrop(
 
 ### 12.4 E2E Test Spec Files
 
-| Category   | File                                       | Description                  |
-| ---------- | ------------------------------------------ | ---------------------------- |
-| Kanban D&D | `kanban-dnd/card-dnd.spec.ts`              | Card drag & drop             |
-| Kanban D&D | `kanban-dnd/column-dnd.spec.ts`            | Column drag & drop           |
-| Kanban     | `kanban-basic.spec.ts`                     | Basic kanban operations      |
-| Kanban     | `kanban-scroll.spec.ts`                    | Scroll behavior              |
-| Kanban     | `kanban-auto-height.spec.ts`               | Column auto-height           |
-| Kanban     | `kanban-column-width.spec.ts`              | Column width constraint      |
-| Kanban     | `kanban-column-edit.spec.ts`               | Column edit operations       |
-| Board      | `board-dnd.spec.ts`                        | Board card D&D reorder       |
-| Board      | `board-settings.spec.ts`                   | Board settings dialog        |
-| Board      | `board-settings-card-display.spec.ts`      | Card display settings        |
-| Board      | `board-settings-subtitle.spec.ts`          | Subtitle edit & visibility   |
-| Board      | `board-header-inline-edit.spec.ts`         | Inline editable board header |
-| Board      | `boards-page-header-inline-edit.spec.ts`   | Boards page header edit      |
-| Board      | `create-board.spec.ts`                     | Board creation               |
-| Board      | `boards.spec.ts`                           | Board list                   |
-| Board      | `favorites.spec.ts`                        | Favorites feature            |
-| Account    | `account-deletion.spec.ts`                 | Account deletion flow        |
-| Repo       | `add-repository-combobox.spec.ts`          | Add repository combobox      |
-| Repo       | `add-repository-pagination.spec.ts`        | Repository pagination        |
-| Repo       | `repo-card-display.spec.ts`                | Card display                 |
-| Repo       | `repo-card-description.spec.ts`            | Card description             |
-| Repo       | `remove-from-board.spec.ts`                | Remove card from board       |
-| Repo       | `one-repo-across-boards.spec.ts`           | One repo per user (#215)     |
-| Repo       | `move-to-another-board.spec.ts`            | Move card between boards     |
-| Comment    | `comment-display.spec.ts`                  | Comment display              |
-| Comment    | `comment-inline-edit.spec.ts`              | Comment inline editing       |
-| Comment    | `comment-color-theme-independence.spec.ts` | Color theme independence     |
-| Note       | `note-modal.spec.ts`                       | Note modal (rich text)       |
-| Links      | `project-info-links.spec.ts`               | Project info links           |
-| Settings   | `settings.spec.ts`                         | Settings page                |
-| Theme      | `sidebar-theme-toggle.spec.ts`             | Theme toggle                 |
-| Theme      | `theme-persistence.spec.ts`                | Theme persistence            |
-| Theme      | `theme-visual-application.spec.ts`         | Theme visual application     |
-| Sidebar    | `sidebar-collapse.spec.ts`                 | Sidebar collapse             |
-| Sidebar    | `sidebar-narrow-viewport.spec.ts`          | Sidebar below 768px          |
-| SSR        | `ssr-hydration-board.spec.ts`              | SSR hydration (board)        |
-| Page       | `page-titles.spec.ts`                      | Page titles                  |
-| Unauth     | `landing.spec.ts`                          | Landing page                 |
-| Unauth     | `login.spec.ts`                            | Login page                   |
-| Unauth     | `page-titles.spec.ts`                      | Unauthenticated page titles  |
-| Unauth     | `public-board.spec.ts`                     | Public board (read-only)     |
-| Unauth     | `public-board-data-access.spec.ts`         | Public board database access |
-| Unauth     | `ssr-hydration.spec.ts`                    | SSR hydration (unauth)       |
-| Security   | `xss-smoke.spec.ts`                        | XSS injection prevention     |
+| Category   | File                                       | Description                           |
+| ---------- | ------------------------------------------ | ------------------------------------- |
+| Kanban D&D | `kanban-dnd/card-dnd.spec.ts`              | Card drag & drop                      |
+| Kanban D&D | `kanban-dnd/column-dnd.spec.ts`            | Column drag & drop                    |
+| Kanban D&D | `what-starts-a-drag.spec.ts`               | Menus and buttons do not start a drag |
+| Kanban     | `kanban-basic.spec.ts`                     | Basic kanban operations               |
+| Kanban     | `kanban-scroll.spec.ts`                    | Scroll behavior                       |
+| Kanban     | `kanban-auto-height.spec.ts`               | Column auto-height                    |
+| Kanban     | `kanban-column-width.spec.ts`              | Column width constraint               |
+| Kanban     | `kanban-column-edit.spec.ts`               | Column edit operations                |
+| Board      | `board-dnd.spec.ts`                        | Board card D&D reorder                |
+| Board      | `board-settings.spec.ts`                   | Board settings dialog                 |
+| Board      | `board-settings-card-display.spec.ts`      | Card display settings                 |
+| Board      | `board-settings-subtitle.spec.ts`          | Subtitle edit & visibility            |
+| Board      | `board-header-inline-edit.spec.ts`         | Inline editable board header          |
+| Board      | `boards-page-header-inline-edit.spec.ts`   | Boards page header edit               |
+| Board      | `create-board.spec.ts`                     | Board creation                        |
+| Board      | `boards.spec.ts`                           | Board list                            |
+| Board      | `favorites.spec.ts`                        | Favorites feature                     |
+| Account    | `account-deletion.spec.ts`                 | Account deletion flow                 |
+| Repo       | `add-repository-combobox.spec.ts`          | Add repository combobox               |
+| Repo       | `add-repository-pagination.spec.ts`        | Repository pagination                 |
+| Repo       | `repo-card-display.spec.ts`                | Card display                          |
+| Repo       | `repo-card-description.spec.ts`            | Card description                      |
+| Repo       | `remove-from-board.spec.ts`                | Remove card from board                |
+| Repo       | `one-repo-across-boards.spec.ts`           | One repo per user (#215)              |
+| Repo       | `move-to-another-board.spec.ts`            | Move card between boards              |
+| Comment    | `comment-display.spec.ts`                  | Comment display                       |
+| Comment    | `comment-inline-edit.spec.ts`              | Comment inline editing                |
+| Comment    | `comment-color-theme-independence.spec.ts` | Color theme independence              |
+| Comment    | `comment-actions-menu.spec.ts`             | Comment menu (pointer, keys)          |
+| Note       | `note-modal.spec.ts`                       | Note modal (rich text)                |
+| Links      | `project-info-links.spec.ts`               | Project info links                    |
+| Settings   | `settings.spec.ts`                         | Settings page                         |
+| Theme      | `sidebar-theme-toggle.spec.ts`             | Theme toggle                          |
+| Theme      | `theme-persistence.spec.ts`                | Theme persistence                     |
+| Theme      | `theme-visual-application.spec.ts`         | Theme visual application              |
+| Sidebar    | `sidebar-collapse.spec.ts`                 | Sidebar collapse                      |
+| Sidebar    | `sidebar-narrow-viewport.spec.ts`          | Sidebar below 768px                   |
+| SSR        | `ssr-hydration-board.spec.ts`              | SSR hydration (board)                 |
+| Page       | `page-titles.spec.ts`                      | Page titles                           |
+| Unauth     | `landing.spec.ts`                          | Landing page                          |
+| Unauth     | `login.spec.ts`                            | Login page                            |
+| Unauth     | `page-titles.spec.ts`                      | Unauthenticated page titles           |
+| Unauth     | `public-board.spec.ts`                     | Public board (read-only)              |
+| Unauth     | `public-board-data-access.spec.ts`         | Public board database access          |
+| Unauth     | `ssr-hydration.spec.ts`                    | SSR hydration (unauth)                |
+| Security   | `xss-smoke.spec.ts`                        | XSS injection prevention              |
 
 ---
 
