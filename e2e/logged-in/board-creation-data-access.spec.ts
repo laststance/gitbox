@@ -29,6 +29,7 @@ const BOARD_NAMES = {
   noColumns: 'Data access: no columns',
   namelessColumn: 'Data access: nameless column',
   visitor: 'Data access: visitor',
+  serviceRole: 'Data access: service role',
   refusedInput: 'Data access: refused input',
   // 51 characters, one more than a board name may have
   tooLongName: 'x'.repeat(51),
@@ -441,5 +442,27 @@ test.describe('Board creation data access', () => {
       'permission denied for function create_board_with_status_lists',
     )
     expect(await countBoardsNamed(BOARD_NAMES.visitor)).toBe(0)
+  })
+
+  test('a caller that may run the function but is no user is refused by the function itself, and nothing is created', async () => {
+    // Arrange: the service role keeps its right to execute the function, and
+    // its key names no user, so auth.uid() is NULL inside the function
+    const serviceRole = createServiceRoleSupabaseClient()
+
+    // Act
+    const created = await serviceRole.rpc('create_board_with_status_lists', {
+      p_name: BOARD_NAMES.serviceRole,
+      p_columns: [VALID_COLUMN],
+    })
+
+    // Assert: the message is the function's own check, its first one. The
+    // code is the one of a missing EXECUTE right too (see the visitor above),
+    // so the message is what tells the two apart.
+    expect(created.data).toBeNull()
+    expect(created.error?.code).toBe('42501')
+    expect(created.error?.message).toBe(
+      'create_board_with_status_lists: the caller is not signed in',
+    )
+    expect(await countBoardsNamed(BOARD_NAMES.serviceRole)).toBe(0)
   })
 })
