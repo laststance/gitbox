@@ -177,9 +177,11 @@ export const AccountClient = memo(function AccountClient({
 
         {/* Actions */}
         <div className="flex justify-between pt-4">
-          <Link href="/boards">
-            <Button variant="outline">Back to Boards</Button>
-          </Link>
+          {/* One link that looks like a button: a button inside a link is
+              two stops for the Tab key that do the same thing */}
+          <Button asChild variant="outline">
+            <Link href="/boards">Back to Boards</Link>
+          </Button>
           <Button
             variant="ghost"
             onClick={handleSignOut}
