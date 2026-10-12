@@ -411,15 +411,21 @@ describe('Sidebar', () => {
       expect(screen.getByText('Theme')).toBeInTheDocument()
     })
 
-    // Value: protects=the name of the current theme beside "Theme" is readable on the sidebar; fails_when=the 12px name is dimmed again (at 70% it was between 2.6:1 and 4.0:1 in every theme); why_new=no test named the color of that label; seam=none; no_claim=the contrast itself (computed for every theme in sidebar-label-contrast.test.ts)
-    test('shows the name of the current theme in the muted label color, not dimmed further', () => {
+    // Value: protects=the name of the current theme beside "Theme" is readable on the sidebar, at rest and under the pointer; fails_when=the 12px name is dimmed again (at 70% it was between 2.6:1 and 4.0:1 in every theme), or gets a color of its own, which stays muted on the button's hover fill (1.9:1 to 2.4:1 in six dark themes); why_new=no test named the color of that label; seam=none; no_claim=the contrast itself (computed for every theme in sidebar-label-contrast.test.ts)
+    test('shows the name of the current theme in the color of its button, muted at rest, and not dimmed further', () => {
       // Arrange & Act: the store starts with the system theme
       renderSidebar()
 
-      // Assert
+      // Assert: the button is muted and takes the foreground color under the
+      // pointer; the name follows it, with no color and no opacity of its own
       const currentThemeName = screen.getByText('System')
-      expect(currentThemeName).toHaveClass('text-muted-foreground', 'text-xs')
-      expect(currentThemeName).not.toHaveClass('text-muted-foreground/70')
+      const themeButton = screen.getByRole('button', { name: /Theme/ })
+      expect(themeButton).toContainElement(currentThemeName)
+      expect(themeButton).toHaveClass(
+        'text-muted-foreground',
+        'hover:text-foreground',
+      )
+      expect(currentThemeName).toHaveAttribute('class', 'text-xs')
     })
   })
 

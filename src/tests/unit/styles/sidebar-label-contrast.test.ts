@@ -11,6 +11,10 @@
  * - the other pages, "Theme" and the name of the current theme:
  *   `text-muted-foreground`. The name was dimmed to 70%, which was between
  *   2.6:1 and 4.0:1 in every theme.
+ * - the theme button under the pointer: `hover:bg-accent` under
+ *   `hover:text-foreground`, for "Theme" and for the name, which has the
+ *   button's color. With a muted color of its own the name was between 1.9:1
+ *   and 2.4:1 on that fill in six dark themes.
  *
  * Sidebar.test.tsx checks that the elements carry these classes.
  *
@@ -98,6 +102,22 @@ describe('the labels of the sidebar', () => {
 
       // Act
       const contrast = contrastRatio(mutedLabel, sidebar)
+
+      // Assert
+      expect(contrast).toBeGreaterThanOrEqual(AA_TEXT_CONTRAST)
+    },
+  )
+
+  // Value: protects=the theme button stays readable under the pointer, its label and the name of the current theme; fails_when=a theme's foreground color no longer stands out from its accent fill (the name was muted on that fill and unreadable in six dark themes); why_new=the tests above compute the labels at rest only; seam=none; no_claim=that the name follows the button's color (Sidebar.test.tsx checks that it has none of its own)
+  test.each(THEME_SELECTORS)(
+    'the theme button is readable under the pointer, where its fill is the accent color: %s',
+    (themeSelector) => {
+      // Arrange: hover:bg-accent, hover:text-foreground
+      const hoverFill = readThemeColor(themeSelector, 'accent')
+      const hoverLabel = readThemeColor(themeSelector, 'foreground')
+
+      // Act
+      const contrast = contrastRatio(hoverLabel, hoverFill)
 
       // Assert
       expect(contrast).toBeGreaterThanOrEqual(AA_TEXT_CONTRAST)

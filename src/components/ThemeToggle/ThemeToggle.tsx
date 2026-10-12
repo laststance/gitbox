@@ -120,11 +120,11 @@ export const ThemeToggle = memo(function ThemeToggle({
       {!isCollapsed && (
         <>
           <span className="flex-1 text-left">Theme</span>
-          {/* Not dimmed: at 70% this 12px name was between 2.6:1 and 4.0:1
-              on the sidebar in every theme */}
-          <span className="text-muted-foreground text-xs">
-            {currentThemeName}
-          </span>
+          {/* No color of its own: the name has the button's, muted at rest
+              and the foreground color on the hover fill. Muted on that fill
+              it was between 1.9:1 and 2.4:1 in six dark themes, and dimmed
+              to 70% between 2.6:1 and 4.0:1 on the sidebar in every theme */}
+          <span className="text-xs">{currentThemeName}</span>
         </>
       )}
     </Button>
