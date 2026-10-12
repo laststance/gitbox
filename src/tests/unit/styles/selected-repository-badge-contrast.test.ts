@@ -9,7 +9,12 @@
  * AddRepositoryCombobox.placements.test.tsx checks that a badge carries these
  * classes.
  *
+ * The chosen Font Size and Font Weight option of the board settings is the
+ * same pair on the same surface, a dialog (`bg-background`), and its label
+ * was `text-primary` too. BoardSettingsDialog.test.tsx checks its classes.
+ *
  * @see src/components/Board/AddRepositoryCombobox.tsx
+ * @see src/components/Boards/BoardSettingsDialog.tsx
  * @see src/tests/unit/styles/theme-color-math.ts
  */
 
@@ -26,7 +31,7 @@ import {
 /** How much of the primary `bg-primary/10` paints over the panel. */
 const BADGE_TINT_ALPHA = 0.1
 
-describe('the badge of a selected repository in the picker', () => {
+describe('the badge of a selected repository in the picker, and the chosen option of the comment text settings', () => {
   test.each(THEME_SELECTORS)(
     'its label is readable on its tint: %s',
     (themeSelector) => {

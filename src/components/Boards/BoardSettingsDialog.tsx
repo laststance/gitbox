@@ -142,12 +142,19 @@ function charCountClass(count: number, max: number): string {
     : 'text-muted-foreground text-sm'
 }
 
-/** CSS class for a toggle button in the comment-style picker. */
+/**
+ * CSS class for a toggle button in the comment-style picker.
+ * The border and the tint mark the chosen option; its label keeps the text
+ * color. In the theme color the label was below 4.5:1 on that tint in 12 of
+ * the 14 themes (2.9:1 on Sunrise).
+ * src/tests/unit/styles/selected-repository-badge-contrast.test.ts computes
+ * the contrast of the text color on the tint.
+ */
 function toggleButtonClass(isSelected: boolean): string {
   const base =
     'rounded-md border-2 px-3 py-1.5 text-xs font-medium transition-all'
   return isSelected
-    ? `${base} border-primary bg-primary/10 text-primary`
+    ? `${base} border-primary bg-primary/10 text-foreground`
     : `${base} border-border hover:border-primary/50`
 }
 
@@ -876,9 +883,9 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                       </Button>
                     </div>
                     <p className="text-muted-foreground text-xs">
-                      Visible: board name, columns, and each repository&apos;s
-                      name, description, language, and stars. Hidden: comments,
-                      notes, and links.
+                      Visible: board name, subtitle, columns, and each
+                      repository&apos;s name, description, language, and stars.
+                      Hidden: comments, notes, and links.
                     </p>
                   </div>
                 )}

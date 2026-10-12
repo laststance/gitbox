@@ -439,4 +439,53 @@ describe('BoardSettingsDialog', () => {
       expect(screen.getByText('50/50')).toBeInTheDocument()
     })
   })
+
+  describe('Cards Tab - Comment Text', () => {
+    // Value: protects=the label of the chosen font size and weight can be read in every theme; fails_when=the chosen option gets the theme color as its text color again, which on its own 10% tint was below 4.5:1 in 12 of 14 themes; why_new=no test looked at the chosen option; seam=none; no_claim=the contrast itself, which selected-repository-badge-contrast.test.ts computes for this pair
+    test('marks the chosen font size and weight with border and tint and leaves their labels in the text color', () => {
+      // Arrange
+      render(<BoardSettingsDialog {...defaultProps} />)
+
+      // Act
+      fireEvent.click(screen.getByRole('tab', { name: /cards/i }))
+
+      // Assert: Small and Normal are the choices of a board without settings
+      const chosenSize = screen.getByRole('button', { name: 'Small' })
+      const chosenWeight = screen.getByRole('button', { name: 'Normal' })
+      expect(chosenSize).toHaveAttribute('aria-pressed', 'true')
+      expect(chosenSize).toHaveClass(
+        'border-primary',
+        'bg-primary/10',
+        'text-foreground',
+      )
+      expect(chosenSize).not.toHaveClass('text-primary')
+      expect(chosenWeight).toHaveAttribute('aria-pressed', 'true')
+      expect(chosenWeight).toHaveClass(
+        'border-primary',
+        'bg-primary/10',
+        'text-foreground',
+      )
+      expect(chosenWeight).not.toHaveClass('text-primary')
+    })
+  })
+
+  describe('Sharing Tab', () => {
+    // Value: protects=the owner of a shared board reads everything the public link shows, the subtitle included; fails_when=the list of what is visible loses the subtitle, which the shared page prints under the board's name; why_new=no test read the sentence; seam=none; no_claim=what the shared page shows, which public-board.test.ts and the browser test of the shared page check
+    test('names the subtitle among what a public link shows', () => {
+      // Arrange
+      render(
+        <BoardSettingsDialog {...defaultProps} isPublic shareSlug="k3x9m2q7" />,
+      )
+
+      // Act
+      fireEvent.click(screen.getByRole('tab', { name: /sharing/i }))
+
+      // Assert
+      expect(
+        screen.getByText(
+          "Visible: board name, subtitle, columns, and each repository's name, description, language, and stars. Hidden: comments, notes, and links.",
+        ),
+      ).toBeVisible()
+    })
+  })
 })
