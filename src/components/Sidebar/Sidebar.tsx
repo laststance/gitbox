@@ -77,6 +77,8 @@ const NavItem = memo(function NavItem({
       className={linkClassName}
       // The rail shows the icon alone: the name the label gave is kept
       aria-label={isCollapsed ? label : undefined}
+      // Color alone marks the page the user is on
+      aria-current={isActive ? 'page' : undefined}
     >
       {icon}
       {!isCollapsed && <span>{label}</span>}
@@ -276,6 +278,8 @@ export const Sidebar = memo(function Sidebar({
                 type="button"
                 onClick={() => setBoardsExpanded(!boardsExpanded)}
                 className="text-sidebar-foreground hover:bg-sidebar-accent flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold"
+                // The chevron alone says whether the links below are shown
+                aria-expanded={boardsExpanded}
               >
                 <span>Boards</span>
                 {boardsExpanded ? (
