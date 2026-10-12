@@ -60,21 +60,4 @@ describe('Dialog title', () => {
     const titleId = screen.getByRole('dialog').getAttribute('aria-labelledby')
     expect(document.querySelectorAll(`[id="${titleId}"]`)).toHaveLength(1)
   })
-
-  test('a dialog without a visible title takes its name from accessibleTitle', () => {
-    // Arrange & Act
-    render(
-      <Dialog open>
-        <DialogContent accessibleTitle="Search repositories">
-          <DialogDescription>Type to filter.</DialogDescription>
-        </DialogContent>
-      </Dialog>,
-    )
-
-    // Assert
-    expect(
-      screen.getByRole('dialog', { name: 'Search repositories' }),
-    ).toBeVisible()
-    expect(screen.getAllByRole('heading')).toHaveLength(1)
-  })
 })

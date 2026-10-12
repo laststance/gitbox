@@ -150,9 +150,9 @@ test.describe('Move to Another Board Feature', () => {
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible({ timeout: 5000 })
 
-    // Verify title (use heading role to avoid accessibleTitle duplicate)
+    // Verify title: the one heading of the dialog
     await expect(
-      dialog.getByRole('heading', { name: 'Move to Another Board' }).first(),
+      dialog.getByRole('heading', { name: 'Move to Another Board' }),
     ).toBeVisible()
 
     // Open board select

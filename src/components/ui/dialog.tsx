@@ -11,7 +11,6 @@
 'use client'
 
 import * as DialogPrimitive from '@radix-ui/react-dialog'
-import * as VisuallyHidden from '@radix-ui/react-visually-hidden'
 import { X } from 'lucide-react'
 import * as React from 'react'
 
@@ -48,13 +47,6 @@ interface DialogContentProps extends React.ComponentPropsWithoutRef<
   typeof DialogPrimitive.Content
 > {
   /**
-   * Title for screen readers, for a dialog that shows no {@link DialogTitle}.
-   * Leave it out when the dialog renders a `DialogTitle`: Radix gives every
-   * title of a dialog the same id, so a second one is a duplicate id, and the
-   * dialog takes its name from whichever comes first.
-   */
-  accessibleTitle?: string
-  /**
    * Disables the close button in the corner. For a dialog that refuses to
    * close for a while (a request is running): a button that does nothing
    * when pressed should not look pressable.
@@ -65,7 +57,6 @@ interface DialogContentProps extends React.ComponentPropsWithoutRef<
 const DialogContent = React.memo(function DialogContent({
   className,
   children,
-  accessibleTitle,
   isCloseDisabled = false,
   ref,
   ...props
@@ -85,12 +76,6 @@ const DialogContent = React.memo(function DialogContent({
         )}
         {...props}
       >
-        {/* A title nobody sees, only for a dialog without a DialogTitle */}
-        {accessibleTitle !== undefined && (
-          <VisuallyHidden.Root asChild>
-            <DialogPrimitive.Title>{accessibleTitle}</DialogPrimitive.Title>
-          </VisuallyHidden.Root>
-        )}
         {children}
         {/* A 32px target (44px for a finger) around the 16px cross, which
             stays where it was: 16px from the top and from the right */}
