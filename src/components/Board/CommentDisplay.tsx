@@ -17,9 +17,10 @@
 'use client'
 
 import { Plus } from 'lucide-react'
-import { memo, type ReactNode } from 'react'
+import { memo, useRef, type ReactNode, type SyntheticEvent } from 'react'
 
 import { cn } from '@/lib/utils'
+import { startedOnOwnElement } from '@/lib/utils/started-on-own-element'
 
 /**
  * Combined card colors with background fill and border
@@ -140,6 +141,7 @@ export const CommentDisplay = memo<CommentDisplayProps>(
     className,
     renderActions,
   }) => {
+    const actionsRef = useRef<HTMLDivElement>(null)
     const mergedStyle = { ...DEFAULT_COMMENT_STYLE, ...style }
 
     const cardColorClass = COMMENT_CARD_COLORS[mergedStyle.borderColor]
@@ -183,8 +185,12 @@ export const CommentDisplay = memo<CommentDisplayProps>(
     // Comment display
     return (
       <div
-        onClick={onClick}
+        onClick={(e) => {
+          if (isOnCommentItself(e, actionsRef.current)) onClick?.()
+        }}
         onKeyDown={(e) => {
+          // A key pressed on the menu button or in its menu is theirs
+          if (!isOnCommentItself(e, actionsRef.current)) return
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
             onClick?.()
@@ -217,7 +223,9 @@ export const CommentDisplay = memo<CommentDisplayProps>(
 
         {/* Action buttons (appears on hover) */}
         {renderActions && (
-          <div className="absolute right-2 bottom-2">{renderActions}</div>
+          <div ref={actionsRef} className="absolute right-2 bottom-2">
+            {renderActions}
+          </div>
         )}
       </div>
     )
@@ -225,3 +233,33 @@ export const CommentDisplay = memo<CommentDisplayProps>(
 )
 
 CommentDisplay.displayName = 'CommentDisplay'
+
+/**
+ * Tells whether a click or a key press started on the comment itself.
+ *
+ * The comment is a button that opens its editor, and it renders its action
+ * menu inside itself. Taken for an event of the comment, a click on "Color"
+ * and Enter on the menu button opened the editor. The menu is drawn in a
+ * portal ({@link startedOnOwnElement} tells its events apart), and the button
+ * that opens it lies in the comment, in the element given as `actions`.
+ * Called by the click and key handlers of {@link CommentDisplay};
+ * {@link RepoCard} keeps the keys of its menus apart from its own.
+ *
+ * @param event - The click or key event that reached the comment.
+ * @param actions - The element that holds the action buttons, `null` when the comment has none.
+ * @returns
+ * - `true`: the event started on the comment or on its text
+ * - `false`: it started on an action button or in the menu that button opens
+ * @example
+ * isOnCommentItself(clickOnTheText, actions) // => true
+ * isOnCommentItself(clickOnAMenuItem, actions) // => false
+ */
+function isOnCommentItself(
+  event: SyntheticEvent<HTMLElement>,
+  actions: HTMLElement | null,
+): boolean {
+  const { target } = event
+  const isInActions =
+    target instanceof Node && actions !== null && actions.contains(target)
+  return startedOnOwnElement(event) && !isInActions
+}

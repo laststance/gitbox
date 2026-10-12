@@ -89,8 +89,12 @@ interface CommentActionsMenuProps {
  * - Color picker submenu with 8 color options
  * - Delete action (destructive)
  *
- * The color submenu expands on hover, showing color options
- * with visual dots and checkmarks for the selected color.
+ * The color submenu expands on hover, on a click or a tap, and from the
+ * keyboard, showing color options with visual dots and a checkmark for the
+ * selected color.
+ *
+ * Nothing here stops an event on its way up: the element that renders the
+ * menu tells the events of the menu from its own ({@link CommentDisplay}).
  *
  * @example
  * <CommentActionsMenu
@@ -113,17 +117,13 @@ export const CommentActionsMenu = memo<CommentActionsMenuProps>(
             disabled={disabled}
             aria-label="Comment actions"
             data-testid="comment-actions-trigger"
-            onClick={(e) => e.stopPropagation()}
           >
             <Pencil className="text-muted-foreground h-3.5 w-3.5" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-36">
           <DropdownMenuItem
-            onClick={(e) => {
-              e.stopPropagation()
-              onEdit()
-            }}
+            onClick={() => onEdit()}
             data-testid="comment-action-edit"
           >
             <Pencil className="mr-2 h-4 w-4" />
@@ -139,10 +139,7 @@ export const CommentActionsMenu = memo<CommentActionsMenuProps>(
               {COLOR_OPTIONS.map((option) => (
                 <DropdownMenuItem
                   key={option.value}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onColorChange(option.value)
-                  }}
+                  onClick={() => onColorChange(option.value)}
                   data-testid={`comment-color-${option.value}`}
                 >
                   <span
@@ -163,10 +160,7 @@ export const CommentActionsMenu = memo<CommentActionsMenuProps>(
           <DropdownMenuSeparator />
 
           <DropdownMenuItem
-            onClick={(e) => {
-              e.stopPropagation()
-              onDelete()
-            }}
+            onClick={() => onDelete()}
             className="text-destructive focus:text-destructive focus:bg-destructive/10"
             data-testid="comment-action-delete"
           >
