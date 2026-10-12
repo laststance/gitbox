@@ -341,34 +341,41 @@ test.describe('Names without a place to break', () => {
     })
   })
 
-  // Value: protects=a board whose name is one ordinary word of eleven letters, as the board has that #213 makes for the repositories set aside, shows it in one piece on a tablet; fails_when=the name of a board card may shrink to the room beside the star and the menu, 102px in a card of 216px, so the word loses its last letters to a second line; why_new=the long-name tests use a word no card can hold, and no test looked at a word that fits the card but not that room; seam=none; no_claim=a name of several words, which breaks between them as before, and a card where the star and the menu are always on screen
-  test('keeps "Experiments" on one line in its board card on a 768px screen, where it runs on under the buttons of the card', async ({
+  // Value: protects=a board whose name is one ordinary word of eleven letters, as the board has that #213 makes for the repositories set aside, shows it in one piece on a tablet; fails_when=the name of a board card may shrink to the room beside the star and the menu, 102px in a card of 216px, so the word loses its last letters to a second line; why_new=the long-name tests use a word no card can hold, and no test looked at a word that fits the card but not that room; seam=none; no_claim=a name of several words, which breaks between them as before, a shared board, whose globe takes 24px of the card, and a font in which this word is wider than 166px
+  test('keeps "Experiments" on one line in its board card on a 768px screen, where the word is wider than the room beside the buttons of the card', async ({
     page,
   }) => {
-    // Arrange
-    await writeRow('board', BOARD_IDS.testBoard, { name: 'Experiments' })
+    // Arrange: a board that is not shared, so the whole width of the card is
+    // there for the word. The app uses the system font, and the word is
+    // wider than the room (102px) and narrower than the card's inside
+    // (166px) on macOS and on Linux alike: 115px in the system font of
+    // macOS, 120px in Arial bold, whose metrics the font of Linux has
+    await writeRow('board', BOARD_IDS.workProjects, { name: 'Experiments' })
     await page.setViewportSize({ width: 768, height: 1024 })
 
     // Act
     await page.goto('/boards')
 
     // Assert
-    const card = page.getByTestId(`board-card-${BOARD_IDS.testBoard}`)
+    const card = page.getByTestId(`board-card-${BOARD_IDS.workProjects}`)
     const name = card.getByRole('heading', { level: 2, name: 'Experiments' })
     await expect(name).toBeVisible()
     const cardBox = await card.boundingBox()
-    const starBox = await card
-      .getByRole('button', {
-        name: /^(Add|Remove) Experiments (to|from) favorites$/,
-      })
-      .boundingBox()
+    const nameBox = await name.boundingBox()
+    // The heading keeps 4rem at its right end clear for the star and the menu
+    const roomBesideTheButtonsPx = await name.evaluate(
+      (heading) =>
+        heading.clientWidth -
+        Number.parseFloat(getComputedStyle(heading).paddingRight),
+    )
     const nameText = await measureTextLines(name)
     expect({
       cardWidthPx: Math.round(cardBox?.width ?? 0),
+      roomBesideTheButtonsPx,
+      // This is the case that broke: the word does not fit that room
+      isNameWiderThanThatRoom:
+        nameText.rightEdgePx - (nameBox?.x ?? 0) > roomBesideTheButtonsPx,
       nameLines: nameText.lines,
-      // The word is wider than the room pr-16 leaves it: this is the case
-      // that broke
-      doesNameReachTheStar: nameText.rightEdgePx > (starBox?.x ?? Infinity),
       nameBeyondItsCardPx: Math.max(
         0,
         Math.round(
@@ -377,8 +384,9 @@ test.describe('Names without a place to break', () => {
       ),
     }).toEqual({
       cardWidthPx: 216,
+      roomBesideTheButtonsPx: 102,
+      isNameWiderThanThatRoom: true,
       nameLines: 1,
-      doesNameReachTheStar: true,
       nameBeyondItsCardPx: 0,
     })
   })
