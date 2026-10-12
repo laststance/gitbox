@@ -14,6 +14,12 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
+import {
+  DARK_THEME_IDS,
+  LIGHT_THEME_IDS,
+  type ThemeId,
+} from '@/lib/constants/themes'
+
 /** An OKLCH color as CSS writes it: lightness 0 to 1, chroma, hue in degrees. */
 export type Oklch = readonly [
   lightness: number,
@@ -34,34 +40,33 @@ export const AA_TEXT_CONTRAST = 4.5
 export const AA_ICON_CONTRAST = 3
 
 /**
+ * Selector of the block that holds the tokens of a named theme.
+ * @param themeId - Id of the theme.
+ * @returns The selector as themes.css writes it.
+ * @example
+ * toThemeSelector('rust') // => "html[data-theme='rust']"
+ */
+const toThemeSelector = (themeId: ThemeId): string =>
+  `html[data-theme='${themeId}']`
+
+/**
  * Blocks of theme tokens that set the `.dark` class on the page: the system
- * default for a dark screen and the seven dark themes. A `dark:` class
- * applies in these and in no other.
+ * default for a dark screen and the dark themes. A `dark:` class applies in
+ * these and in no other. Built from the app's list of themes, so a theme
+ * that is added there is checked by every contrast test.
  */
 export const DARK_THEME_SELECTORS = [
   '.dark',
-  "html[data-theme='dark']",
-  "html[data-theme='midnight']",
-  "html[data-theme='graphite']",
-  "html[data-theme='forest']",
-  "html[data-theme='ocean']",
-  "html[data-theme='plum']",
-  "html[data-theme='rust']",
+  ...DARK_THEME_IDS.map(toThemeSelector),
 ]
 
 /**
  * Every block of theme tokens: the two system defaults of globals.css (no
- * `data-theme`) and the 14 named themes of themes.css.
+ * `data-theme`) and the named themes of themes.css, from the app's list.
  */
 export const THEME_SELECTORS = [
   ':root',
-  "html[data-theme='default']",
-  "html[data-theme='sunrise']",
-  "html[data-theme='sandstone']",
-  "html[data-theme='mint']",
-  "html[data-theme='sky']",
-  "html[data-theme='lavender']",
-  "html[data-theme='rose']",
+  ...LIGHT_THEME_IDS.map(toThemeSelector),
   ...DARK_THEME_SELECTORS,
 ]
 
