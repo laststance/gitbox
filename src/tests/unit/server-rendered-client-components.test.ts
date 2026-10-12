@@ -239,7 +239,7 @@ describe('Client Components that Server Components render', () => {
     expect(rebuiltOnEveryServerRender).toEqual([])
   })
 
-  test('include the four components the root layout renders, so the check above reads real files', () => {
+  test('include the five components the root layout renders, so the check above reads real files', () => {
     // Arrange / Act
     const renderedByRootLayout = findServerRenderedClientComponents()
       .filter(({ renderedBy }) => renderedBy === 'src/app/layout.tsx')
@@ -251,6 +251,7 @@ describe('Client Components that Server Components render', () => {
       'src/app/msw-provider.tsx#MSWProvider: areServerRenderedPropsEqual',
       'src/components/CommandPalette/CommandPalette.tsx#CommandPalette: areServerRenderedPropsEqual',
       'src/components/ShortcutsHelp.tsx#ShortcutsHelp: areServerRenderedPropsEqual',
+      'src/components/ThemedToaster.tsx#ThemedToaster: areServerRenderedPropsEqual',
       'src/lib/redux/reduxProvider.tsx#ReduxProvider: areServerRenderedPropsEqual',
     ])
   })
