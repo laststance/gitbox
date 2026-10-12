@@ -81,7 +81,7 @@ const getColumnTitles = async (
 ): Promise<string[]> => {
   return page.evaluate(() => {
     const headers = document.querySelectorAll(
-      '[data-testid^="sortable-column-"] h3',
+      '[data-testid^="sortable-column-"] h2',
     )
     return Array.from(headers)
       .map((h) => h.textContent?.trim() ?? '')
@@ -127,7 +127,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       // Verify initial column order by checking visible column titles
       const columnTitles = await page.evaluate(() => {
         const headers = document.querySelectorAll(
-          '[data-testid^="sortable-column-"] h3',
+          '[data-testid^="sortable-column-"] h2',
         )
         return Array.from(headers).map((h) => h.textContent?.trim())
       })
@@ -210,7 +210,7 @@ test.describe('10.3 Column Drag & Drop', () => {
           )
           return Array.from(columns).map((col) => {
             const testId = col.getAttribute('data-testid')
-            const title = col.querySelector('h3')?.textContent?.trim()
+            const title = col.querySelector('h2')?.textContent?.trim()
             return { testId, title }
           })
         })

@@ -419,7 +419,7 @@ test.describe('Move to Another Board Feature', () => {
     // Assert: that board has exactly one column, and the card is in it
     const columns = page.locator('[data-testid^="status-column-"]')
     await expect(columns).toHaveCount(1)
-    await expect(columns.locator('h3')).toHaveText('Repositories')
+    await expect(columns.locator('h2')).toHaveText('Repositories')
     await expect(
       columns.locator(`[data-testid="repo-card-${cardId}"]`),
     ).toBeVisible()

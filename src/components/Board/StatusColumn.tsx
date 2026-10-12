@@ -116,7 +116,7 @@ export const StatusColumn = memo<StatusColumnProps>(
                 style={{ backgroundColor: status.color }}
               />
             )}
-            <h3 className="text-foreground font-semibold">{status.title}</h3>
+            <h2 className="text-foreground font-semibold">{status.title}</h2>
           </div>
           <div className="flex items-center gap-1">
             {/* Column Menu */}

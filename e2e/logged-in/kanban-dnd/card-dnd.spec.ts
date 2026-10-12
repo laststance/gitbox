@@ -303,7 +303,7 @@ test.describe('10.2 Card Drag & Drop', () => {
           const card = document.querySelector(`[data-testid="repo-card-${id}"]`)
           if (!card) return null
           const statusColumn = card.closest('[data-testid^="status-column-"]')
-          const columnTitle = statusColumn?.querySelector('h3')?.textContent
+          const columnTitle = statusColumn?.querySelector('h2')?.textContent
           return {
             statusId:
               statusColumn

@@ -130,7 +130,7 @@ test.describe('Board Favorites Feature', () => {
       await page.waitForLoadState('networkidle')
 
       // Find the board by name and verify it's still favorited
-      // Use the board card with the matching h3 text
+      // Use the board card with the matching heading text
       const reloadedCards = page.locator('[data-testid^="board-card-"]')
       const cardCount = await reloadedCards.count()
       let foundCard = false
@@ -432,7 +432,7 @@ test.describe('Board Favorites Feature', () => {
       if (boardName) {
         const boardHeading = page.getByRole('heading', {
           name: boardName,
-          level: 3,
+          level: 2,
         })
         await expect(boardHeading).not.toBeVisible()
       }

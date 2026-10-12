@@ -148,7 +148,7 @@ test.describe('Create Board Page (Authenticated)', () => {
         columnElements.map((columnElement) => {
           const box = columnElement.getBoundingClientRect()
           return {
-            title: columnElement.querySelector('h3')?.textContent ?? '',
+            title: columnElement.querySelector('h2')?.textContent ?? '',
             left: Math.round(box.left),
             top: Math.round(box.top),
           }

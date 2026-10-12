@@ -220,12 +220,12 @@ export const RepoCard = memo<RepoCardProps>(
           <CardContent className="p-4">
             <div className="space-y-3">
               <div className="flex items-start justify-between">
-                <h4
+                <h3
                   className="text-foreground flex-1 leading-tight font-semibold"
                   data-testid="repo-name"
                 >
                   {card.title}
-                </h4>
+                </h3>
                 <OverflowMenu
                   cardId={card.id}
                   repoOwner={card.repoOwner}

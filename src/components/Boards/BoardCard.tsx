@@ -212,7 +212,7 @@ export const BoardCard = memo(function BoardCard({
         </div>
 
         {/* Card content */}
-        <h3 className="text-foreground group-hover:text-primary flex items-center gap-2 pr-16 text-xl font-semibold transition-colors">
+        <h2 className="text-foreground group-hover:text-primary flex items-center gap-2 pr-16 text-xl font-semibold transition-colors">
           {board.name}
           {board.is_public && (
             <Globe
@@ -221,7 +221,7 @@ export const BoardCard = memo(function BoardCard({
               aria-label="Public board"
             />
           )}
-        </h3>
+        </h2>
 
         <div className="text-muted-foreground mt-4 flex items-center text-sm">
           <div className="flex items-center gap-1">
