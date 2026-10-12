@@ -656,4 +656,4 @@ From `/design-review` of the change for issue #213. The review found 27 issues a
 - [x] **Fit the Add Repositories panel on a narrow screen** (the width half of "Viewport-aware layout for the Add Repositories panel")
       **Completed:** 2026-10-12, fixed by `/design-review` of the change for issue #213 (`d3bc24d`).
 - [x] **Pin the Cancel / Add row of the Add Repositories panel** (the height half)
-      **Completed:** 2026-10-12, with the change for issue #213 (`a4b20e0`). The panel is a column: its lists scroll between the search box and the Cancel / Add row, which stay in view.
+      **Completed:** 2026-10-12, with the change for issue #213 (`a4b20e0`, reworked in `e09b2cd`). The panel is a column whose two lists give up height on a short window, each scrolling by itself, so the search box and the Cancel / Add row stay in view. On a window too short for one row of each list the whole panel scrolls.
