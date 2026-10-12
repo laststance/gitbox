@@ -583,7 +583,7 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 ## Design review of 2026-10-12: deferred design debt
 
-From `/design-review` on `feat/remove-maintenance-mode` (issue #213). The review found 27 issues and fixed 21; these are what is left. All of them are in the app as it was before that change. The full report with screenshots is in `~/.gstack/projects/laststance-gitbox/designs/design-audit-20261012/`.
+From `/design-review` of the change for issue #213. The review found 27 issues and fixed 21; these are what is left. All of them are in the app as it was before that change. The full report with screenshots is in `~/.gstack/projects/laststance-gitbox/designs/design-audit-20261012/`.
 
 ### Give the landing page a direction of its own
 
@@ -662,8 +662,8 @@ From `/design-review` on `feat/remove-maintenance-mode` (issue #213). The review
 - [x] **Preserve `?query` and `#hash` on silent refresh redirect** — [#177](https://github.com/laststance/gitbox/issues/177)
       **Completed:** v0.3.3.0 (2026-10-07). The repository catalog caller now forwards the full board destination, with unit coverage and a real-account OAuth round trip confirming both values survive.
 - [x] **Fix the hydration mismatch on the board page for returning users**
-      **Completed:** 2026-10-12, on `feat/remove-maintenance-mode` (`c88dea8`), found again by `/design-review`. The board is not kept in localStorage any more, so the first client render matches the server's. What is left is under "Render the board on the server instead of its skeleton".
+      **Completed:** 2026-10-12, with the change for issue #213 (`038a3e6`), found again by `/design-review`. The board is not kept in localStorage any more, so the first client render matches the server's. What is left is under "Render the board on the server instead of its skeleton".
 - [x] **Stabilize the "Optimistic Favorite Toggle" story test**
-      **Completed:** 2026-10-12, on `feat/remove-maintenance-mode` (`8501d46`). The mocked server action is registered with `sb.mock`, and the two stories that press the star say what the server answers. 30 runs in a row passed.
+      **Completed:** 2026-10-12, with the change for issue #213 (`46e892b`). The mocked server action is registered with `sb.mock`, and the two stories that press the star say what the server answers. 30 runs in a row passed.
 - [x] **Fit the Add Repositories panel on a narrow screen** (the width half of "Viewport-aware layout for the Add Repositories panel")
-      **Completed:** 2026-10-12, fixed by `/design-review` on `feat/remove-maintenance-mode` (`18e1f2e`).
+      **Completed:** 2026-10-12, fixed by `/design-review` of the change for issue #213 (`d3bc24d`).
