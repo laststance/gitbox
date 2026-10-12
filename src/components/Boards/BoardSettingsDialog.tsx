@@ -464,10 +464,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent
-          className="sm:max-w-140"
-          accessibleTitle="Board Settings"
-        >
+        <DialogContent className="sm:max-w-140">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5" />

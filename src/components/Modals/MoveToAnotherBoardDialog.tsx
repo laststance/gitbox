@@ -366,7 +366,6 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
       <DialogContent
         ref={dialogContentRef}
         className="sm:max-w-md"
-        accessibleTitle="Move to Another Board"
         // The dialog does not close while a request runs
         isCloseDisabled={isBusy}
         onCloseAutoFocus={handleCloseAutoFocus}

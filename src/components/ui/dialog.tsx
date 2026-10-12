@@ -48,8 +48,10 @@ interface DialogContentProps extends React.ComponentPropsWithoutRef<
   typeof DialogPrimitive.Content
 > {
   /**
-   * Accessible title for screen readers when no visible DialogTitle is used.
-   * Falls back to 'Dialog' if not provided and no DialogTitle is present.
+   * Title for screen readers, for a dialog that shows no {@link DialogTitle}.
+   * Leave it out when the dialog renders a `DialogTitle`: Radix gives every
+   * title of a dialog the same id, so a second one is a duplicate id, and the
+   * dialog takes its name from whichever comes first.
    */
   accessibleTitle?: string
   /**
@@ -63,7 +65,7 @@ interface DialogContentProps extends React.ComponentPropsWithoutRef<
 const DialogContent = React.memo(function DialogContent({
   className,
   children,
-  accessibleTitle = 'Dialog',
+  accessibleTitle,
   isCloseDisabled = false,
   ref,
   ...props
@@ -83,10 +85,12 @@ const DialogContent = React.memo(function DialogContent({
         )}
         {...props}
       >
-        {/* Visually hidden title for accessibility - always present as fallback */}
-        <VisuallyHidden.Root asChild>
-          <DialogPrimitive.Title>{accessibleTitle}</DialogPrimitive.Title>
-        </VisuallyHidden.Root>
+        {/* A title nobody sees, only for a dialog without a DialogTitle */}
+        {accessibleTitle !== undefined && (
+          <VisuallyHidden.Root asChild>
+            <DialogPrimitive.Title>{accessibleTitle}</DialogPrimitive.Title>
+          </VisuallyHidden.Root>
+        )}
         {children}
         <DialogPrimitive.Close
           disabled={isCloseDisabled}

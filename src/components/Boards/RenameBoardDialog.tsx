@@ -97,7 +97,7 @@ export const RenameBoardDialog = memo(function RenameBoardDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-100" accessibleTitle="Rename Board">
+      <DialogContent className="sm:max-w-100">
         <DialogHeader>
           <DialogTitle>Rename Board</DialogTitle>
           <DialogDescription>
