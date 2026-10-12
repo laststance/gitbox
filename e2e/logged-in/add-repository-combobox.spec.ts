@@ -896,8 +896,9 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
     page,
   }) => {
     // Arrange: five rows need 480px, the list shows 300px of them at most,
-    // and a window of 500px leaves the panel 413px (it starts 71px down and
-    // keeps 16px free under it)
+    // and a window of 500px leaves the panel 416px (it keeps 16px free under
+    // it and starts 68px down, 3px higher than below its button, to be
+    // 26rem high)
     await page.setViewportSize({ width: 1280, height: 500 })
     await page.goto(BOARD_URL)
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -935,8 +936,9 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
   test('scrolls the whole panel on a window too short for a row of the list, so Add can still be reached', async ({
     page,
   }) => {
-    // Arrange: a window of 300px leaves the panel 213px, less than the
-    // search box, the filters and the buttons need on their own
+    // Arrange: a window of 300px leaves the panel 276px (it starts at the
+    // top edge, 8px down), less than the search box, the filters, one row of
+    // the list, the notice of a shared board and the buttons need
     await page.setViewportSize({ width: 1280, height: 300 })
     await page.goto(BOARD_URL)
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
@@ -964,8 +966,8 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
     page,
   }) => {
     // Arrange: a header whose content begins 120px further down, as a title
-    // and a subtitle that wrap can push it, in a window of 600px
-    await page.setViewportSize({ width: 1280, height: 600 })
+    // and a subtitle that wrap can push it, in a window of 700px
+    await page.setViewportSize({ width: 1280, height: 700 })
     await page.goto(BOARD_URL)
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
     await page.addStyleTag({
@@ -985,10 +987,94 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
     const panelBox = await panel.boundingBox()
     expect(Math.round(panelBox?.y ?? -1)).toBe(191)
     // ... and ends 16px above the bottom edge, with its buttons on screen
-    expect(Math.round((panelBox?.y ?? 0) + (panelBox?.height ?? 0))).toBe(584)
+    expect(Math.round((panelBox?.y ?? 0) + (panelBox?.height ?? 0))).toBe(684)
     await expect(panel.getByRole('button', { name: 'Cancel' })).toBeInViewport({
       ratio: 1,
     })
+    await expect(panel.getByRole('button', { name: 'Add (0)' })).toBeInViewport(
+      { ratio: 1 },
+    )
+  })
+
+  // Value: protects=Cancel and Add stay on screen when the header gets higher while the panel is open (the sidebar opens, a title is edited and wraps); fails_when=the place of the button is measured only when the panel opens, so the panel keeps the height that fitted the old place and ends below the window; why_new=every other test of the panel changes the header before it opens the panel; seam=none; no_claim=which change of the page moves the button (the test pushes the header's content down itself)
+  test('follows its button when the header gets higher while the panel is open', async ({
+    page,
+  }) => {
+    // Arrange: the panel is open under the header at its usual height
+    await page.setViewportSize({ width: 1280, height: 700 })
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await page.getByRole('button', { name: /add repositories/i }).click()
+    const panel = page.getByRole('combobox', { expanded: true })
+    await expect(
+      panel
+        .getByRole('listbox', { name: 'Repository options' })
+        .locator('[role="option"]'),
+    ).toHaveCount(5, { timeout: 10000 })
+    expect(Math.round((await panel.boundingBox())?.y ?? -1)).toBe(71)
+
+    // Act: the header's content moves 120px down
+    await page.addStyleTag({
+      content: 'header { padding-top: 136px !important; }',
+    })
+
+    // Assert: the panel moved with its button and still ends 16px above the
+    // bottom edge, with its buttons on screen
+    await expect
+      .poll(async () => {
+        const panelBox = await panel.boundingBox()
+        return {
+          top: Math.round(panelBox?.y ?? -1),
+          bottom: Math.round((panelBox?.y ?? 0) + (panelBox?.height ?? 0)),
+        }
+      })
+      .toEqual({ top: 191, bottom: 684 })
+    await expect(panel.getByRole('button', { name: 'Cancel' })).toBeInViewport({
+      ratio: 1,
+    })
+    await expect(panel.getByRole('button', { name: 'Add (0)' })).toBeInViewport(
+      { ratio: 1 },
+    )
+  })
+
+  // Value: protects=the panel keeps a usable height where its button stands low in a short window (a header that wraps, a phone held sideways); fails_when=the panel always starts below its button, however little room is left there, and squeezes what it shows into that rest; why_new=the tests above leave the panel more than 26rem below the button, or no room at all; seam=none; no_claim=the 26rem themselves (measured once by hand: 416px is what the panel needs on a shared board with both lists at their least height)
+  test('moves up over the header where less than 26rem would be left below its button', async ({
+    page,
+  }) => {
+    // Arrange: the button ends 183px down in a window of 600px, which would
+    // leave the panel 393px below it
+    await page.setViewportSize({ width: 1280, height: 600 })
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await page.addStyleTag({
+      content: 'header { padding-top: 136px !important; }',
+    })
+
+    // Act
+    await page.getByRole('button', { name: /add repositories/i }).click()
+
+    // Assert: the panel starts 27rem above the bottom edge, 23px higher than
+    // below the button, and is 26rem high ...
+    const panel = page.getByRole('combobox', { expanded: true })
+    await expect(
+      panel
+        .getByRole('listbox', { name: 'Repository options' })
+        .locator('[role="option"]'),
+    ).toHaveCount(5, { timeout: 10000 })
+    const panelBox = await panel.boundingBox()
+    expect({
+      top: Math.round(panelBox?.y ?? -1),
+      height: Math.round(panelBox?.height ?? -1),
+    }).toEqual({ top: 168, height: 416 })
+    // ... which holds what stands above and below the list without the
+    // panel scrolling
+    const panelScrolls = await panel.evaluate(
+      (element) => element.scrollHeight > element.clientHeight,
+    )
+    expect(panelScrolls).toBe(false)
+    await expect(panel.getByPlaceholder(/search repositories/i)).toBeInViewport(
+      { ratio: 1 },
+    )
     await expect(panel.getByRole('button', { name: 'Add (0)' })).toBeInViewport(
       { ratio: 1 },
     )

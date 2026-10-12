@@ -10,11 +10,11 @@
  */
 
 import { configureStore } from '@reduxjs/toolkit'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Provider } from 'react-redux'
 import { toast } from 'sonner'
-import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox'
 import { getUserRepoPlacements } from '@/lib/actions/board-data'
@@ -213,6 +213,88 @@ describe('AddRepositoryCombobox with a selected repository', () => {
     expect(badge).toHaveTextContent('laststance/free-repo')
     expect(badge).toHaveClass('bg-primary/10', 'text-foreground')
     expect(badge).not.toHaveClass('text-primary')
+  })
+})
+
+describe('AddRepositoryCombobox panel and the place of its button', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  // Value: protects=the panel knows how far down its button ends, also after the page around the button changed, and nothing keeps watching a panel that is closed; fails_when=the place of the button is measured once at opening, or the watcher is left running when the panel is removed; why_new=no test read what the panel is told, and removing the cleanup left every test green; seam=ResizeObserver and getBoundingClientRect (happy-dom lays nothing out and never reports a size); no_claim=where the panel then stands (measured in a browser, e2e/logged-in/add-repository-combobox.spec.ts)
+  test('tells the panel where its button ends, again when the page around it changes size, and stops watching when the panel closes', async () => {
+    // Arrange: watchers that can be made to report by hand, and a button
+    // that ends 63px down
+    const sizeWatchers: SizeWatcherStandIn[] = []
+    class SizeWatcherStandIn {
+      readonly watched: Element[] = []
+      isWatching = true
+      constructor(readonly report: () => void) {
+        sizeWatchers.push(this)
+      }
+      observe(element: Element): void {
+        this.watched.push(element)
+      }
+      unobserve(): void {}
+      disconnect(): void {
+        this.isWatching = false
+      }
+    }
+    vi.stubGlobal('ResizeObserver', SizeWatcherStandIn)
+    let buttonBottomPx = 63
+    vi.spyOn(
+      HTMLButtonElement.prototype,
+      'getBoundingClientRect',
+    ).mockImplementation(() => new DOMRect(900, buttonBottomPx - 38, 160, 38))
+    mockCatalog([makeRepository(1, 'free-repo')])
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: true,
+      data: [],
+    })
+    const store = configureStore({
+      reducer: { board: boardReducer, settings: settingsReducer },
+    })
+    const renderPicker = (isOpen: boolean) => (
+      <Provider store={store}>
+        <AddRepositoryCombobox
+          boardId={toBoardId('board-1')}
+          statusId={toStatusListId('status-1')}
+          isOpen={isOpen}
+          onRepositoriesAdded={vi.fn()}
+        />
+      </Provider>
+    )
+
+    // Act: the panel opens
+    const { rerender } = render(renderPicker(true))
+    await findRepositoryOptions()
+
+    // Assert: it was told where the button ends, and something watches the
+    // elements around the button, up to the page itself
+    const panel = screen.getByRole('combobox', { expanded: true })
+    expect(panel.style.getPropertyValue('--button-bottom')).toBe('63px')
+    const pageWatcher = sizeWatchers.find((sizeWatcher) =>
+      sizeWatcher.watched.includes(document.body),
+    )
+    expect(pageWatcher?.isWatching).toBe(true)
+
+    // Act: the header wraps, the button ends 120px further down
+    buttonBottomPx = 183
+    act(() => pageWatcher?.report())
+
+    // Assert
+    expect(panel.style.getPropertyValue('--button-bottom')).toBe('183px')
+
+    // Act: the panel closes
+    rerender(renderPicker(false))
+
+    // Assert
+    expect(pageWatcher?.isWatching).toBe(false)
   })
 })
 

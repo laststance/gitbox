@@ -198,7 +198,6 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
   // Refs
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const comboboxRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
   // Catalog repositories matching the search and both filters. The same
@@ -374,7 +373,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   }
 
   return (
-    <div ref={comboboxRef}>
+    <div>
       {/* Combobox trigger button */}
       <button
         type="button"
@@ -402,21 +401,27 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       {/* Combobox panel */}
       {isOpen && (
         <div
-          ref={trackPanelTop}
-          // Capped to the room below its own top edge (--panel-top, which
-          // trackPanelTop measures; 1rem stays free under the panel): with
-          // both lists full it is taller than a small laptop screen.
+          ref={trackButtonBottom}
+          // --panel-top: 0.5rem below the button (--button-bottom, which
+          // trackButtonBottom measures), but never so low that less than
+          // 26rem is left above the 1rem that stays free under the panel:
+          // then the panel moves up over the header, to 0.5rem from the top
+          // edge at most. 26rem holds the search box, the filters, both
+          // lists at their least height, the notice of a shared board and
+          // Cancel / Add.
+          // max-h: from that top edge down to 1rem above the bottom edge,
+          // because with both lists full the panel is taller than a small
+          // laptop screen.
           // flex-col: the two lists, which scroll by themselves, give up
           // height first (down to one row each), so the search box and
           // Cancel / Add stay in view. overflow-y-auto: on a window too short
           // even for that the whole panel scrolls.
-          // fixed right-6, no top: the panel stands below the button, where
-          // the page flow puts it, and ends at the right edge of the header
+          // fixed right-6: the panel ends at the right edge of the header
           // (px-6). Hung from the button's own right edge it began left of
           // the page wherever the button stood less than 480px into it:
           // from 640px to about 1135px of window width.
           // max-sm: below 640px the panel spans the screen instead.
-          className="border-border bg-background fixed right-6 z-50 mt-2 flex max-h-[calc(100dvh-var(--panel-top,5rem)-1rem)] w-120 flex-col overflow-y-auto rounded-lg border p-4 shadow-xl max-sm:inset-x-2 max-sm:top-2 max-sm:mt-0 max-sm:max-h-[calc(100dvh-1rem)] max-sm:w-auto"
+          className="border-border bg-background fixed top-(--panel-top) right-6 z-50 flex max-h-[calc(100dvh-var(--panel-top)-1rem)] w-120 flex-col overflow-y-auto rounded-lg border p-4 shadow-xl [--panel-top:max(0.5rem,min(calc(var(--button-bottom,4rem)+0.5rem),calc(100dvh-27rem)))] max-sm:inset-x-2 max-sm:top-2 max-sm:max-h-[calc(100dvh-1rem)] max-sm:w-auto"
           role="combobox"
           aria-expanded={isOpen}
           aria-controls="repository-listbox"
@@ -792,33 +797,47 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 })
 
 /**
- * Ref callback of the picker's panel: tells the panel where its top edge is
- * (`--panel-top`), so its class can cap its height to the room between that
- * edge and the bottom of the window. The panel stands below its button, and
- * how far down that is depends on how the header wraps: a constant would let
- * Cancel and Add end below the window under a high header. Measured when
- * React adds the panel to the page and whenever the window is resized.
- * Defined outside the component so it stays the same function: React would
- * run a new one on every render.
+ * Ref callback of the picker's panel: tells the panel how far down its button
+ * ends (`--button-bottom`), which its class turns into its top edge and its
+ * height. How far down the button stands depends on how the header wraps, and
+ * that changes while the panel is open: the sidebar opens or closes, the
+ * board's title is edited, the window gets narrower. Measured when React adds
+ * the panel to the page and whenever an element around the button changes
+ * size (a window that is resized changes the size of the page). Defined
+ * outside the component so it stays the same function: React would run a new
+ * one on every render.
  *
  * @param panel - The panel React just added, or `null`.
- * @returns What React calls when the panel is removed: it stops listening.
- * `undefined` when there is no panel.
+ * @returns What React calls when the panel is removed: it stops watching.
+ * `undefined` when there is no panel, or no button before it.
  * @example
- * <div ref={trackPanelTop} className="max-h-[calc(100dvh-var(--panel-top,5rem)-1rem)]" />
+ * <div ref={trackButtonBottom} className="top-[calc(var(--button-bottom)+0.5rem)]" />
  */
-function trackPanelTop(panel: HTMLDivElement | null): (() => void) | undefined {
-  if (!panel) return undefined
+function trackButtonBottom(
+  panel: HTMLDivElement | null,
+): (() => void) | undefined {
+  const button = panel?.previousElementSibling
+  if (!panel || !button) return undefined
 
-  const measurePanelTop = (): void => {
+  const measureButtonBottom = (): void => {
     panel.style.setProperty(
-      '--panel-top',
-      `${panel.getBoundingClientRect().top}px`,
+      '--button-bottom',
+      `${button.getBoundingClientRect().bottom}px`,
     )
   }
-  measurePanelTop()
-  window.addEventListener('resize', measurePanelTop)
-  return (): void => window.removeEventListener('resize', measurePanelTop)
+  measureButtonBottom()
+  const layoutObserver = new ResizeObserver(measureButtonBottom)
+  // Every element around the button: when one of them changes size, the
+  // button may stand somewhere else. border-box: a padding that changes
+  // moves the button too, and leaves the content box as it was.
+  for (
+    let ancestor = button.parentElement;
+    ancestor;
+    ancestor = ancestor.parentElement
+  ) {
+    layoutObserver.observe(ancestor, { box: 'border-box' })
+  }
+  return (): void => layoutObserver.disconnect()
 }
 
 /**
