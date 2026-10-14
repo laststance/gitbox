@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0.0] - 2026-10-14
+
+### Removed
+
+- Maintenance Mode: the Maintenance page, "Move to Maintenance" in a card's menu, and the Maintenance entries of the sidebar and the command palette. To set a repository aside, move its card to a board you keep for that. Every repository that was in Maintenance is now a card on a board named "Maintenance" in your board list, with its note, links and comment.
+
+### Added
+
+- "Move to Another Board" can create the board it moves to: press "New Board...", name it, and the card goes there.
+- On a phone the sidebar's toggle opens the full sidebar, with its labels, over the page. The toggle stays where it was, so a second press closes the sidebar again; the page behind it, Escape or a link close it too.
+- The Add Repositories picker and "Move to Another Board" say so when the board is shared by a public link: anyone who has the link will see the repositories you put there.
+
+### Changed
+
+- A board is created together with its columns in one step, so a creation that fails leaves no board without columns. When the connection drops and nobody can tell whether the board was created, the message says that and sends you to your boards before a second try.
+- Below 768px the sidebar is an icon rail and the page uses the rest of the screen. It was 256px wide and left a phone 119px for the page.
+- After "Move to Another Board" or "Remove from Board" the keyboard focus goes to the next card of the column instead of the top of the page.
+- "Move to Another Board" waits 15 seconds for an answer, then says that the move could not be confirmed and offers "Reload page". It says the same when the server could not tell whether the card was moved, instead of calling that an error.
+- A column's color has to be a six-digit hex color (`#RRGGBB`), and a board has at most 100 columns when it is created.
+- Toasts use the colors of the chosen theme, and in a dark theme the browser draws its own parts (scrollbars, the list of a native select, autofill) dark too.
+- A card's menu button is named after the owner and the repository ("Open menu for owner/name"), and the sidebar tells a screen reader which page is open.
+- Controls that appeared only under the mouse pointer (a card's menu, a comment's menu, the favorite star) are always shown on phones and tablets, where the main pointer is a finger.
+
+### Fixed
+
+- Opening a board a second time no longer fails to hydrate (React error 418) and render twice: the board is no longer kept in the browser's storage.
+- The red of destructive buttons, menu items and counters is readable in the dark themes, and toast text, the character counters and the favorite star pass the contrast minimum on all 14 themes.
+- The Add Repositories picker stays on the screen at every window width: it spans a phone's screen, and on a tablet or a narrow laptop window its left part is no longer cut off. Its search box and its Cancel / Add row stay in view on a short window, also when a long board title pushes the header down or the header changes while the picker is open. Where its button stands too low in a short window, the picker moves up over the header instead of shrinking.
+- The label of the page you are on in the sidebar, the name of the current theme (also under the mouse pointer), the badges of selected repositories, the chosen Font Size and Font Weight in the board settings and the counter of a note near its limit are readable on all 14 themes.
+- In the Add Repositories picker the description, the stars and the check mark of a repository that is selected or under the mouse pointer are readable on all 14 themes. So is the check mark of the current theme and of the current comment color while its menu item is highlighted.
+- On a phone the list of themes opens inside the sidebar instead of running off the screen, and the sidebar ends where the visible screen ends, so the account link and "Sign Out" can be reached while the browser shows its bars.
+- `Z` no longer undoes a drag on the board behind the command palette, behind the Add Repositories picker, or behind the sidebar while it is open over the page.
+- On a window between 640px and 767px wide the sidebar opens over the Add Repositories picker instead of under it.
+- In a comment's menu a click or a tap on "Color" opens the colors, and Enter or Space on the menu button opens the menu. Both opened the comment's editor before, so a phone or a tablet had no way to the colors, and choosing a color with Enter opened the editor as well.
+- An item in the menu of a card or of a column, the "Note" button of a card and the menu button of a column answer when the mouse moves a little while it is down and when a finger rests on them before it lifts. The card or the column was picked up instead, and nothing else happened: "Move to Another Board" on a slow tap, "Edit Column", the colors of a comment and "Note".
+- Enter and Space on the "Note" button of a card open the note. They picked the card up for a keyboard drag before.
+- While a comment is being edited, a press on the editor's counter or edge no longer picks the card up.
+- Escape during a column drag puts the board back as it was. The drop zones for a new row and for empty places stayed on the board until the next drag before.
+- A name of one long word (snake_case, no space or hyphen) no longer pushes what stands beside it out of reach. The menu of a card stays on the card, "Column options" stays in its column, the buttons of a board's header and "Create Board" stay on the screen, a board's name stays on its card, and a dialog that shows such a name stays as wide as a phone's screen, with its lists of boards and columns. The name breaks where its line ends. An ordinary word is left whole.
+- On a phone "Create Board" stands under the title and the subtitle of the boards page. Beside the button the title had 120px there: a title of one word either pushed the button past the edge of the screen or had to break.
+- The board settings fit a phone's screen: its four tabs take a second row there instead of making the dialog scroll sideways. A screen reader says which tab a panel belongs to and finds the sections of the Cards tab one level under the dialog's title.
+- In the Add Repositories picker, Escape in the open list of organizations closes that list and leaves the picker open with what you typed and selected. It closed the picker as well before.
+- After a move the server refused or nobody could confirm, after a board creation nobody could confirm and after a failed load of the boards, a screen reader reads the message together with the control the keyboard lands on ("Move", "Reload page", "Reload boards", "Open your boards", "Try again").
+- The Sharing tab of the board settings names the subtitle among what a public link shows.
+- After a board creation the server refused, the keyboard focus is back in the name field.
+- A dialog scrolls on a short screen, has one title for a screen reader, and its close button is a 32px target (44px for a finger).
+- The loading skeleton of the account page has the shape of the page and fits a phone.
+- A board creation that fails is reported once, in the form, with the name field marked.
+- Headings of a board and of the board list are in order (one h1, then h2), and a board page has one main region for a screen reader instead of two.
+- "Sign Out" is written the same way in the sidebar, on the account page and in the command palette.
+
 ## [0.4.2.0] - 2026-10-11
 
 ### Fixed

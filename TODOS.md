@@ -76,6 +76,10 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
       warning for `repocard` only. A partial board can undercount cards before a destructive
       column-delete (`BoardPageClient` counts only loaded `repoCards`). Needs hard-fail / exact
       count / pagination before mutation-capable UI. Also add a `statuslist` cap check.
+      The destination lookup of Move to Another Board (`getUserBoardsWithStatusLists` in
+      `src/lib/actions/repo-cards.ts`) reads the columns of all the user's boards under the same cap
+      and without a warning: past 1000 columns a board shows in the dialog without some or all of
+      its columns, and a card cannot be moved there. Raised again by the last review of #213.
       _v0.3.1.0: the embed now orders `repocard` by `order` ascending, so truncation drops the
       highest-order cards deterministically rather than an arbitrary subset; the silent
       undercount / hard-fail / pagination work above remains open._
@@ -293,7 +297,7 @@ A repository that was renamed or transferred keeps its former owner and name on 
 
 **What:** (1) Make the write in `createDefaultStatusLists` safe against two requests that read the same board without columns at the same moment: a database function that inserts the default columns only while the board has none (it takes a lock on the board row first), or a unique index on `(board_id, grid_row, grid_col)` with `ON CONFLICT DO NOTHING`. (2) Do the "only when the user has no board" check of `createFirstBoardIfNeeded` inside the database function, under a lock for that user (`pg_advisory_xact_lock`).
 
-**Why:** (1) `getBoardBundle` reads the board, sees no column and inserts five. Two tabs that open the board at once both see none, and the board gets ten. It takes a board whose last column was deleted (or one made before boards were created with their columns) and two first views within the same moment, so it is rare, and the extra columns can be deleted by hand. (2) Two first sign-ins of one account that end at the same moment both count no board and both create "First Board". The second board can be deleted by hand. Both were seen in the reviews of issue #213; the behavior is older than that change.
+**Why:** (1) `getBoardBundle` reads the board, sees no column and inserts five. Two tabs that open the board at once both see none, and the board gets ten. It takes a board whose last column was deleted (or one made before boards were created with their columns) and two first views within the same moment, so it is rare, and the extra columns can be deleted by hand. (2) Two first sign-ins of one account that end at the same moment both count no board and both create "First Board". The second board can be deleted by hand. Both were seen in the reviews of issue #213; the behavior is older than that change. Two boards that one user creates at the same moment can also get the same position (`MAX(position) + 1` in `create_board_with_status_lists`); the lock of (2) would give them two.
 
 **Context:** `src/lib/actions/board-creation.ts` (`createDefaultStatusLists`, `createFirstBoardIfNeeded`), `src/lib/actions/board-data.ts` (`getBoardBundle`), `supabase/migrations/20261012085900_create_board_with_status_lists.sql`. `e2e/logged-in/board-without-columns.spec.ts` covers the single view. A unique index on the grid cell would also have to hold during a column swap, which writes two rows one after the other.
 
@@ -635,7 +639,7 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 **Why:** `pendingWriteCount` is counted for the whole app and drops only when a write settles. One save that never answers holds back every board refresh and drops fetched data, while the failed-save toast of another write says the board is reloading. `sentRefreshRevision` is cleared only when page data arrives; a refetch that is interrupted without a reload or a new page render leaves it set, and later refresh requests wait for it.
 
-**Context:** `trackBoardWrite`, `boardRefreshSent`, `selectIsBoardRefreshDue` and `selectMayApplyServerSnapshot` in `src/lib/redux/slices/boardSyncSlice.ts`. Both are review hypotheses that were not reproduced: a server action normally ends with the platform's function timeout, and a failed refetch reloads the page, which starts from an empty `boardSync` state.
+**Context:** `trackBoardWrite`, `boardRefreshSent`, `selectIsBoardRefreshDue` and `selectMayApplyServerSnapshot` in `src/lib/redux/slices/boardSyncSlice.ts`. Both are review hypotheses that were not reproduced: a server action normally ends with the platform's function timeout, and a failed refetch reloads the page, which starts from an empty `boardSync` state. The adversarial review of #213 raised the second one again (one refetch that brings no data and every later request for a refetch waits); it was not reproduced either.
 
 **Effort:** S
 **Priority:** P3
