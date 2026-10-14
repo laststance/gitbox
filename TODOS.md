@@ -339,6 +339,18 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 **Priority:** P3
 **Depends on:** None
 
+### Keep note edits made while an earlier save is pending
+
+**What:** In `handleSave` of `useNoteModalDraft`, delete the draft after a successful save only when it is still the draft that save sent (compare its `lastModified`, which `updateDraftNote` stores, with the value at the moment Save was pressed).
+
+**Why:** Since #216 the draft is deleted when the server has answered, not when Save is pressed, so a refused save keeps the text. If the user opens the same note again while the save is on its way, types and closes the dialog, the answer that arrives then deletes the newer draft and those edits are gone. The window is one server round trip (a few hundred milliseconds on production). Found by CodeRabbit on #216's PR; left out of #216 because a fix there would have been the review's third fixing cycle.
+
+**Context:** `handleSave` and `deleteDraftNote` in `src/hooks/board/useNoteModalDraft.ts`, the `draft` slice. A test holds the save's promise open, reopens, edits, closes, then resolves it.
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** None
+
 ### Count a note's length where the database counts it
 
 **What:** Make the Note dialog's limit and `note_length_check` count the same thing: either the dialog counts the length of the stored editor document (JSON), or the check moves to a limit on the text and the column gets a larger cap for the markup.
@@ -355,7 +367,7 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 **What:** Add data-access tests that send the exact payloads of `upsertProjectInfoCore`, `updateCommentCore` and `updateCommentColorCore` through the test user's client with `onConflict: 'user_id,repo_key'` (a comment save keeps the note and links, a note save keeps the comment and color, a color-only save makes a row with the column defaults), a test that deleting a user deletes their `projectinfo` rows, a test that a visitor cannot call `/rpc/projectinfo`, and a whitespace-only comment row in the `summarizeMemoryRow` table. Correct the header of `project-info-core.test.ts`, which says the e2e specs cover the upsert merge. Bring the JSDoc of `useRepoPlacements` (it returns `savedMemories` too) and the `CreatedRepoCard` example (its `comment` goes to the comment map, not to Redux) up to date. Keep the Delete Column dialog's title and card count while it fades out (it shows `""` and no card sentence for 200ms; on `main` it showed `"undefined"`).
 
-**Why:** The third review pass of #216 found these. Each was checked by hand before the merge (the functional QA of the review saved a comment over a note and read both back, and the local check as ryota-murakami deleted a comment and kept the note and two links), but no committed test pins them: a regression in the upsert payloads would silently wipe the memory #216 exists to keep. They were left out of #216 because a fix there would have been the review's fourth fixing cycle.
+**Why:** The third review pass of #216 found these. Each was checked by hand before the merge (the functional QA of the review saved a comment over a note and read both back, and the local check as ryota-murakami deleted a comment and kept the note and two links), but no committed test pins them: a regression in the upsert payloads would silently wipe the memory #216 exists to keep. They were left out of #216 because a fix there would have been the review's third fixing cycle.
 
 **Context:** `e2e/logged-in/project-info-data-access.spec.ts`, `src/tests/unit/lib/actions/project-info-core.test.ts`, `src/tests/unit/lib/actions/saved-repository-memories.test.ts`, `src/hooks/board/useRepoPlacements.ts`, `src/lib/actions/repo-cards.ts`, `src/hooks/board/useStatusListDialog.ts`. The user deletion needs a throwaway user from the admin API, never a seeded one.
 

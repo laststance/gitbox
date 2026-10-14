@@ -196,7 +196,7 @@ supabase db query --linked "SELECT
 Expected: `rows` equal to the line count of the manifest, `rows_without_key` 0, `repo_card_id_columns` 0, `unique_constraints` 1, `cascading_user_fks` 1, `policies` 2, `anon_can_execute` false, `authenticated_can_execute` true, and `cards_that_reach_a_row` equal to `rows` (every existing row sits on a card). The proof is the manifest:
 
 ```bash
-STAMP=   # the value section 4 printed
+: "${STAMP:?in a new shell, set STAMP to the value section 4 printed first}"
 B=~/gitbox-backups
 supabase db query --linked --agent no --output-format json "SELECT id || ',' || user_id || ',' || repo_key || ',' ||
        md5(coalesce(note, '') || '|' || coalesce(comment, '') || '|' ||
