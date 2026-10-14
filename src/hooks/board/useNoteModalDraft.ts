@@ -68,7 +68,8 @@ interface UseNoteModalDraftReturn {
  * Hook for managing NoteModal draft persistence with Redux.
  *
  * Owns note and links state, syncs drafts to Redux/localStorage,
- * and handles save/close with optimistic UI feedback.
+ * and handles save/close: the dialog closes at once and a toast reports the
+ * server's answer.
  *
  * @param params - Hook configuration
  * @returns State and handlers for NoteModal

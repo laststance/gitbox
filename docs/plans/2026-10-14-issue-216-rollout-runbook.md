@@ -16,6 +16,8 @@ mkdir -p ~/gitbox-backups && chmod 700 ~/gitbox-backups && umask 077
 ```
 
 - `supabase --version` prints the version `.github/workflows/supabase-production.yml` pins (2.120.0 when this was written).
+- `supabase db query` is run with `--agent no`: in an agent's shell the CLI wraps JSON output in `{ boundary, rows, warning }` by itself, and the `jq` filters below read the plain array.
+- Whatever happens, the rollout ends with the migration workflow enabled (section 7, last point).
 
 ## Order: deploy first, then migrate
 
@@ -23,10 +25,10 @@ The new code works on the old schema; the old code does not work on the new one 
 
 1. Stop the migration workflow, so the merge does not start it (section 2).
 2. Merge. Vercel deploys the new build on the old schema (section 3).
-3. Start the workflow by hand once that build is live (section 4).
+3. Dump the data, then start the workflow by hand once that build is live (section 4).
 4. Check the result (section 5) and the app (section 6).
 
-Between steps 2 and 3, about a minute, the new build runs on the old schema:
+Between steps 2 and 3, a few minutes, the new build runs on the old schema:
 
 - Boards, notes and the picker read as before. The picker shows no `Saved: ...` marks.
 - Saving a note fails with an error and keeps the typed text as a draft.
@@ -64,24 +66,14 @@ supabase db push --linked --dry-run
 
 Expected: `rows_without_a_card` and `duplicate_keys` 0, `policies` 2, `row_security_applies` false, and the dry run lists `20261014130000_projectinfo_belongs_to_repository.sql` and nothing else. These are the conditions the migration checks before its first write. Stop when one differs: the migration would refuse (section 7). Note `rows`. On 2026-10-14: 10 rows, held by 1 user, the owner.
 
-Then the dump and the manifest before:
+Note the deployment that serves production now. It is what `vercel rollback` goes back to (section 7); `vercel rollback` without an argument only prints the status of a rollback:
 
 ```bash
-STAMP=$(date +%Y%m%d-%H%M); B=~/gitbox-backups
-supabase db dump --linked --data-only --schema public --file $B/prod-public-data-before-216-$STAMP.sql
-supabase db query --linked --output-format json "SELECT p.id || ',' || r.user_id || ',' ||
-       lower(r.repo_owner) || '/' || lower(r.repo_name) || ',' ||
-       md5(coalesce(p.note, '') || '|' || coalesce(p.comment, '') || '|' ||
-           coalesce(p.comment_color, '') || '|' || coalesce(p.links::text, '')) || ',' ||
-       p.created_at || ',' || p.updated_at AS line
-FROM projectinfo p JOIN repocard r ON r.id = p.repo_card_id ORDER BY p.id" 2>/dev/null \
-  | jq -r '.rows[].line' > $B/prod-manifest-before-216-$STAMP.txt
-wc -l < $B/prod-manifest-before-216-$STAMP.txt
-ls -l $B/ | grep 216
-echo "STAMP=$STAMP"   # sections 5 and 7 start from it
+PREV_DEPLOYMENT=$(vercel inspect gitbox-laststance.vercel.app --scope laststance 2>&1 | awk '$1 == "id" {print $2}')
+echo "PREV_DEPLOYMENT=$PREV_DEPLOYMENT"
 ```
 
-Expected: the line count equals `rows` above, the files are `-rw-------`, and the last line prints the `STAMP`. An empty manifest stops the rollout here.
+Expected: a `dpl_...` id. Keep it with the `STAMP` of section 4.
 
 Then stop the workflow:
 
@@ -97,24 +89,64 @@ Expected: the workflow is listed as `disabled_manually`. Do not merge before it 
 ```bash
 gh pr merge <number> --repo laststance/gitbox --merge --match-head-commit <head sha>
 MERGE_SHA=$(gh pr view <number> --repo laststance/gitbox --json mergeCommit -q .mergeCommit.oid); echo $MERGE_SHA
-gh run list --repo laststance/gitbox --workflow supabase-production.yml --limit 3   # no run for MERGE_SHA
-vercel ls gitbox --scope laststance --environment production | head -8
+gh run list --repo laststance/gitbox --workflow supabase-production.yml --commit $MERGE_SHA
 ```
 
-Wait until the newest production deployment is `Ready` and serves the merge commit (`vercel inspect <url> --scope laststance` names the commit). Stop when a Supabase Production run started for the merge commit: the workflow was not disabled, and the old build met the new schema for the minute of the deploy. Check section 5 at once.
+Expected: the last command prints nothing. A Supabase Production run for the merge commit means the workflow was not disabled and the old build met the new schema for the minute of the deploy: check section 5 at once.
+
+Then wait for Vercel's build of the merge commit. Vercel reports it to GitHub as a deployment of that commit; `vercel ls --meta githubCommitSha=...` is no gate, as it lists every deployment when none matches (CLI 50.1.6):
+
+```bash
+for i in {1..60}; do
+  DEPLOYMENT=$(gh api "repos/laststance/gitbox/deployments?sha=$MERGE_SHA&environment=Production" -q '.[0].id')
+  STATE=none; [ -n "$DEPLOYMENT" ] && STATE=$(gh api repos/laststance/gitbox/deployments/$DEPLOYMENT/statuses -q '.[0].state')
+  echo "$i $STATE"; [ "$STATE" = success ] && break; sleep 10
+done
+NEW_URL=$(gh api repos/laststance/gitbox/deployments/$DEPLOYMENT/statuses -q '.[0].environment_url'); echo $NEW_URL
+vercel inspect gitbox-laststance.vercel.app --scope laststance 2>&1 | grep -F "$NEW_URL"
+```
+
+Expected: the loop ends on `success`, and the last command prints the `url` line: the production domain serves the build of the merge commit. Stop when the state is `failure` or `error`, or the loop ends without `success`: the old build still serves production on the old schema, so nothing is broken; fix the build and start section 3 again with the new merge commit. Do not go on to section 4 before the last command prints its line.
 
 ## 4. Run the migration
 
-Right after the build is live:
+Right after the build is live. The dump and the manifest are taken now, not before the merge: what users do in between (a card removed with the old cascade, a comment edited) would otherwise show as a difference in section 5.
+
+```bash
+cat supabase/.temp/project-ref
+STAMP=$(date +%Y%m%d-%H%M); B=~/gitbox-backups
+supabase db dump --linked --data-only --schema public --file $B/prod-public-data-before-216-$STAMP.sql
+supabase db query --linked --agent no --output-format json "SELECT p.id || ',' || r.user_id || ',' ||
+       lower(r.repo_owner) || '/' || lower(r.repo_name) || ',' ||
+       md5(coalesce(p.note, '') || '|' || coalesce(p.comment, '') || '|' ||
+           coalesce(p.comment_color, '') || '|' || coalesce(p.links::text, '')) || ',' ||
+       p.created_at || ',' || p.updated_at AS line
+FROM projectinfo p JOIN repocard r ON r.id = p.repo_card_id ORDER BY p.id" 2>/dev/null \
+  | jq -r '.[].line' > $B/prod-manifest-before-216-$STAMP.txt
+wc -l < $B/prod-manifest-before-216-$STAMP.txt
+ls -l $B/ | grep 216
+echo "STAMP=$STAMP"   # sections 5 and 7 start from it
+```
+
+Expected: the line count equals `rows` of section 2 (a row removed since then lowers it), the files are `-rw-------`, and the last line prints the `STAMP`. An empty manifest stops the rollout here.
+
+Then start the run and follow it. The run is picked by its trigger and its start time, not as the newest run, which can be an older one while GitHub has not listed the new one yet:
 
 ```bash
 gh workflow enable supabase-production.yml --repo laststance/gitbox
+T0=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 gh workflow run supabase-production.yml --repo laststance/gitbox --ref main
-sleep 5; RUN=$(gh run list --repo laststance/gitbox --workflow supabase-production.yml --limit 1 --json databaseId -q '.[0].databaseId')
+RUN=
+for i in {1..12}; do
+  RUN=$(gh run list --repo laststance/gitbox --workflow supabase-production.yml --event workflow_dispatch --limit 5 \
+    --json databaseId,createdAt -q "[.[] | select(.createdAt >= \"$T0\")][0].databaseId // empty")
+  [ -n "$RUN" ] && break; sleep 5
+done
+echo "RUN=$RUN"
 gh run watch $RUN --repo laststance/gitbox --exit-status
 ```
 
-Expected: the run ends green in about 35 seconds. Its log shows the notice with the number of rows that now belong to a repository, which equals `rows`. A red run changed nothing: section 7.
+Expected: `RUN` is a number and the run ends green in about 35 seconds. Its log shows the notice with the number of rows that now belong to a repository, which equals the line count of the manifest. A red run changed nothing: section 7.
 
 ## 5. After the run
 
@@ -123,7 +155,7 @@ cat supabase/.temp/project-ref
 supabase db query --linked "SELECT
   (SELECT count(*) FROM projectinfo) AS rows,
   (SELECT count(*) FROM projectinfo WHERE user_id IS NULL OR repo_owner IS NULL OR repo_name IS NULL) AS rows_without_key,
-  (SELECT count(*) FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'projectinfo' AND column_name = 'repo_card_id') AS repo_card_id_columns,
+  (SELECT count(*) FROM pg_attribute WHERE attrelid = 'public.projectinfo'::regclass AND attname = 'repo_card_id' AND NOT attisdropped) AS repo_card_id_columns,
   (SELECT count(*) FROM pg_constraint WHERE conname = 'projectinfo_unique_repo_per_user') AS unique_constraints,
   (SELECT count(*) FROM pg_constraint WHERE conname = 'projectinfo_user_id_fkey' AND confdeltype = 'c') AS cascading_user_fks,
   (SELECT count(*) FROM pg_policies WHERE schemaname = 'public' AND tablename = 'projectinfo') AS policies,
@@ -133,22 +165,22 @@ supabase db query --linked "SELECT
      AND p.repo_key = lower(r.repo_owner) || '/' || lower(r.repo_name))) AS cards_that_reach_a_row"
 ```
 
-Expected: `rows` as before, `rows_without_key` 0, `repo_card_id_columns` 0, `unique_constraints` 1, `cascading_user_fks` 1, `policies` 2, `anon_can_execute` false, `authenticated_can_execute` true, and `cards_that_reach_a_row` equal to `rows` (every existing row sits on a card). The proof is the manifest:
+Expected: `rows` equal to the line count of the manifest, `rows_without_key` 0, `repo_card_id_columns` 0, `unique_constraints` 1, `cascading_user_fks` 1, `policies` 2, `anon_can_execute` false, `authenticated_can_execute` true, and `cards_that_reach_a_row` equal to `rows` (every existing row sits on a card). The proof is the manifest:
 
 ```bash
-STAMP=   # the value section 2 printed
+STAMP=   # the value section 4 printed
 B=~/gitbox-backups
-supabase db query --linked --output-format json "SELECT id || ',' || user_id || ',' || repo_key || ',' ||
+supabase db query --linked --agent no --output-format json "SELECT id || ',' || user_id || ',' || repo_key || ',' ||
        md5(coalesce(note, '') || '|' || coalesce(comment, '') || '|' ||
            coalesce(comment_color, '') || '|' || coalesce(links::text, '')) || ',' ||
        created_at || ',' || updated_at AS line
-FROM projectinfo ORDER BY id" 2>/dev/null | jq -r '.rows[].line' > $B/prod-manifest-after-216-$STAMP.txt
+FROM projectinfo ORDER BY id" 2>/dev/null | jq -r '.[].line' > $B/prod-manifest-after-216-$STAMP.txt
 diff $B/prod-manifest-before-216-$STAMP.txt $B/prod-manifest-after-216-$STAMP.txt > /dev/null \
   && echo "manifest: identical ($(wc -l < $B/prod-manifest-after-216-$STAMP.txt) rows)" \
   || echo "manifest: DIFFERENT: stop and compare the two files by hand"
 ```
 
-Expected: `manifest: identical`. A row that differs lost or changed data: section 7.
+Expected: `manifest: identical`. A row that differs lost or changed data: section 7. A note saved in the seconds between the manifest and the run shows as a changed `updated_at` and hash of one row; compare the two files by hand before calling it lost.
 
 PostgREST reads the new schema after the run (Supabase reloads its schema cache on a schema change). A board that fails to load in the first seconds after the run is that reload, not a failed migration. When a board still fails a minute later: `supabase db query --linked "NOTIFY pgrst, 'reload schema'"`, then load it again.
 
@@ -156,24 +188,46 @@ PostgREST reads the new schema after the run (Supabase reloads its schema cache 
 
 Read-only checks on the owner's boards: a board loads with its comments, a note opens with its text and links. Everything that removes or deletes runs on scratch boards made for the check (CLAUDE.md): add repositories that sit on no board, give one a note, two links and a comment, then Remove from Board and add it again, Delete Column and add it again, Delete Board and add it again on another scratch board. The picker shows `Saved: note, 2 links, comment` for it while it sits on no board. Delete the scratch boards afterwards.
 
-The scratch repositories keep their memory after their boards are gone. Delete those rows by their exact keys and report what is left:
+Pick the scratch repositories before the check, and make sure none of them holds a memory yet, so the cleanup below deletes only what the check wrote:
 
 ```bash
-cat supabase/.temp/project-ref
+if [ "$(cat supabase/.temp/project-ref)" != zfcwvzazzzsefbkztsyp ]; then echo "not production: stop"; else
 KEYS="'owner/one', 'owner/two'"   # the lowercase keys of the scratch repositories, nothing else
-supabase db query --linked "SELECT count(*) AS scratch_rows FROM projectinfo WHERE repo_key IN ($KEYS)
-  AND NOT EXISTS (SELECT 1 FROM repocard r WHERE r.user_id = projectinfo.user_id
-    AND lower(r.repo_owner) || '/' || lower(r.repo_name) = projectinfo.repo_key)"
-supabase db query --linked "DELETE FROM projectinfo WHERE repo_key IN ($KEYS)
-  AND NOT EXISTS (SELECT 1 FROM repocard r WHERE r.user_id = projectinfo.user_id
-    AND lower(r.repo_owner) || '/' || lower(r.repo_name) = projectinfo.repo_key)"
-supabase db query --linked "SELECT count(*) AS rows FROM projectinfo"
+OWNER="(SELECT id FROM auth.users WHERE raw_user_meta_data->>'user_name' = 'ryota-murakami')"
+supabase db query --linked "SELECT count(*) AS rows_before_the_check FROM projectinfo
+  WHERE user_id = $OWNER AND repo_key IN ($KEYS)"
+fi
 ```
 
-Expected: the delete removes the number the first query counted, and `rows` is the count of section 5 plus the rows the check made for repositories that are on a board again (usually 0). The `NOT EXISTS` keeps a row whose repository is on a board.
+Expected: `rows_before_the_check` 0. Pick other repositories otherwise: a row there is a memory of the owner that the cleanup must not touch.
+
+The scratch repositories keep their memory after their boards are gone. Delete those rows by their exact keys and report what is left. Run it in the same shell, after the scratch boards are deleted:
+
+```bash
+if [ "$(cat supabase/.temp/project-ref)" != zfcwvzazzzsefbkztsyp ]; then echo "not production: stop"; else
+supabase db query --linked "WITH deleted AS (
+    DELETE FROM projectinfo WHERE user_id = $OWNER AND repo_key IN ($KEYS)
+      AND NOT EXISTS (SELECT 1 FROM repocard r WHERE r.user_id = projectinfo.user_id
+        AND lower(r.repo_owner) || '/' || lower(r.repo_name) = projectinfo.repo_key)
+    RETURNING 1)
+  SELECT count(*) AS deleted_rows FROM deleted"
+supabase db query --linked "SELECT count(*) AS rows FROM projectinfo"
+fi
+```
+
+Expected: `deleted_rows` is at most the number of keys in `KEYS` (one row per scratch repository that got a note, a link or a comment), and `rows` is the count of section 5. The `NOT EXISTS` keeps a row whose repository is on a board again.
 
 ## 7. When something fails
 
-- **The migration refused.** It changed nothing. Its message and `DETAIL` (the CLI prints both) say what to do: a row without a card is deleted after copying anything worth keeping; rows that share a repository are merged into one; extra policies are made equal to the migrations. Then section 4 again. The new build keeps running on the old schema meanwhile, with the limits listed at the top.
-- **The new build misbehaves before the migration ran.** `vercel rollback --scope laststance` to the previous production deployment is safe: the schema is still the old one.
-- **Something is wrong after the migration ran.** There is no reverse migration and no code rollback: the old build reads `repo_card_id`, which is gone. Fix forward. The dump and the manifest of section 2 hold every row as it was.
+- **The migration refused.** It changed nothing. Its message and `DETAIL` (the CLI prints both) say what to do: a row without a card is deleted after copying anything worth keeping; rows that share a repository are merged into one; extra policies are made equal to the migrations. Then section 4 again (a new `STAMP`). The new build keeps running on the old schema meanwhile, with the limits listed at the top.
+- **The run failed on a lock.** `canceling statement due to lock timeout` or `deadlock detected`: a request held `projectinfo` or `repocard` when the run wanted them (the header of the migration says when). Nothing was changed. Run section 4 again.
+- **The new build misbehaves before the migration ran.** Rolling back is safe while the schema is still the old one: `vercel rollback $PREV_DEPLOYMENT --scope laststance` (the id noted in section 2), then `vercel inspect gitbox-laststance.vercel.app --scope laststance` names that id. Do not run the migration while the old build serves production.
+- **Something is wrong after the migration ran.** There is no reverse migration and no code rollback: the old build reads `repo_card_id`, which is gone. Fix forward. The dump and the manifest of section 4 hold every row as it was.
+- **Every way out.** Whether the rollout finished, stopped or failed, the workflow ends enabled, or the next migration merged to `main` would not run:
+
+```bash
+gh workflow enable supabase-production.yml --repo laststance/gitbox
+gh workflow list --repo laststance/gitbox --all | grep -i "supabase production"
+```
+
+Expected: the workflow is listed as `active`. Enabling it starts no run; the next push to `main` that changes `supabase/migrations/` does.

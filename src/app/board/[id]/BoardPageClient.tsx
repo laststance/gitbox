@@ -62,6 +62,7 @@ import type { Board } from '@/lib/supabase/types'
 import { parseBoardSettings } from '@/lib/types/board-settings'
 import { toBoardId, type RepoCardId } from '@/lib/types/brands'
 import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
+import { describeColumnDeletion } from '@/lib/utils/describe-column-deletion'
 import { toPublicBoardUrl } from '@/lib/utils/to-public-board-url'
 import {
   BOARD_NAME_MAX_LENGTH,
@@ -414,20 +415,12 @@ export const BoardPageClient = memo(function BoardPageClient({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Column</AlertDialogTitle>
             <AlertDialogDescription>
-              {(() => {
-                const cardCount = repoCards.filter(
+              {describeColumnDeletion(
+                statusListDialog.pendingDeleteStatusTitle ?? '',
+                repoCards.filter(
                   (c) => c.statusId === statusListDialog.pendingDeleteStatusId,
-                ).length
-                // The cards go with the column; what was saved for their
-                // repositories stays (issue #216)
-                const cardSuffix =
-                  cardCount > 0
-                    ? ` This will also remove ${cardCount} card${cardCount !== 1 ? 's' : ''} in this column. The notes, links and comments of their repositories are kept for when you add them again.`
-                    : ''
-                // Same order as the Delete Board dialogs: what cannot be
-                // undone first, then what is kept
-                return `Are you sure you want to delete "${statusListDialog.pendingDeleteStatusTitle}"? This action cannot be undone.${cardSuffix}`
-              })()}
+                ).length,
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

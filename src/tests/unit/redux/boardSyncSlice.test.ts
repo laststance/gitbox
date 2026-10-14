@@ -20,6 +20,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import type { RepoCardForRedux } from '@/lib/models/domain'
 import boardReducer, {
+  removeStatusListWithCards,
   selectRepoCards,
   setRepoCards,
 } from '@/lib/redux/slices/boardSlice'
@@ -303,5 +304,27 @@ describe('trackBoardWrite()', () => {
     // Assert
     await refusal
     expect(store.getState().boardSync.pendingWriteCount).toBe(0)
+  })
+})
+
+describe('board data fetched before a column was deleted', () => {
+  // Value: protects=a column deleted while the board was being fetched stays deleted, with its cards (Codex adversarial review of #216); fails_when=removeStatusListWithCards is left out of the change count, so the older fetch puts the column and its cards back and the picker hides their repositories as on this board; why_new=the action is new in #216 and replaced setStatusLists, which was counted; seam=none; no_claim=the timing of a real fetch (useBoardServerSync)
+  test('is dropped when it arrives after the column and its cards were deleted', () => {
+    // Arrange: a fetch goes out while the board holds a card in its column
+    const store = createStoreHoldingBoard('board-1', [
+      makeCard('card-1', 'board-1', 'gitbox'),
+    ])
+    store.dispatch(boardRefreshSent())
+
+    // Act: the column is deleted before the fetch comes back
+    store.dispatch(
+      removeStatusListWithCards(toStatusListId('board-1-status-1')),
+    )
+
+    // Assert
+    expect(selectRepoCards(store.getState())).toEqual([])
+    expect(
+      selectMayApplyServerSnapshot(store.getState(), toBoardId('board-1')),
+    ).toBe(false)
   })
 })

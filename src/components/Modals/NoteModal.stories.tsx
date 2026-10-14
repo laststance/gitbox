@@ -4,7 +4,7 @@
  * A modal dialog for editing project notes with:
  * - Redux draft state persistence (survives browser close)
  * - Character count display with warning near 20000 limit
- * - Optimistic UI updates with Sonner toast notifications
+ * - Closes on save at once; a Sonner toast reports the server's answer
  * - Automatic draft saving during typing
  */
 

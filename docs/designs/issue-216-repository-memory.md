@@ -96,13 +96,13 @@ SPEC.md 3.2 (Remove from Board, the "set aside" sentence of Move to Another Boar
 Amended by the eng review (R9, R8): deploy first, then migrate. One PR holds the migration and the code.
 
 1. Before the merge: `gh workflow disable supabase-production.yml`, so the merge does not start the migration.
-2. Merge. Vercel builds and deploys the new code, which runs on the old schema until step 4: boards and notes load through the old FK (the embed string is the same), the picker shows no marks (the memory lookup fails and degrades, R3), and a note save fails with an error that keeps the typed text (R8). A comment edit fails too and goes back to what it was: its typed text is lost (corrected by the pre-landing review; the comment editor has no draft). A removal in this window still deletes the memory, although the new dialogs already say it is kept. So nothing is edited or removed between steps 2 and 3, and open tabs are reloaded after the deploy (their picker expects the old answer of `getUserRepoPlacements`).
-3. When the production deployment of the merge commit is live: `gh workflow enable supabase-production.yml` and `gh workflow run supabase-production.yml --ref main`. The run takes about 35 seconds.
+2. Merge. Vercel builds and deploys the new code, which runs on the old schema until the run of step 3: boards and notes load through the old FK (the embed string is the same), the picker shows no marks (the memory lookup fails and degrades, R3), and a note save fails with an error that keeps the typed text (R8). A comment edit fails too and goes back to what it was: its typed text is lost (corrected by the pre-landing review; the comment editor has no draft). A removal in this window still deletes the memory, although the new dialogs already say it is kept. So nothing is edited or removed between steps 2 and 3, and open tabs are reloaded after the deploy (their picker expects the old answer of `getUserRepoPlacements`).
+3. When the production deployment of the merge commit is live: the data dump and the manifest, then `gh workflow enable supabase-production.yml` and `gh workflow run supabase-production.yml --ref main`. The run takes about 35 seconds.
 4. After the run: the count-only verification query and the manifest comparison, then the real-account check.
 
 The pasteable blocks, with their expected output and when to stop, are in [the rollout runbook](../plans/2026-10-14-issue-216-rollout-runbook.md).
 
-The old deployment never meets the new schema. If the dispatched run fails, nothing changed (one transaction) and the new code keeps running on the old schema as in step 2; fix the migration forward. If the new deployment itself misbehaves before step 3, `vercel rollback` returns to the previous deployment, and the schema is still the old one.
+The old deployment never meets the new schema. If the dispatched run fails, nothing changed (one transaction) and the new code keeps running on the old schema as in step 2; fix the migration forward. If the new deployment itself misbehaves before the run of step 3, `vercel rollback <id of the previous deployment>` returns to it (the runbook notes that id before the merge), and the schema is still the old one. After the run there is no rollback of the code: the old build reads `repo_card_id`.
 
 ## Open Questions
 

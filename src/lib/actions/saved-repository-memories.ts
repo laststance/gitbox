@@ -101,13 +101,9 @@ export async function lookupSavedRepositoryMemories(
 export function summarizeMemoryRow(
   row: MemoryRow,
 ): SavedRepositoryMemory | null {
-  // The Note dialog stores an editor document (JSON): an emptied note is a
-  // paragraph without text, not an empty string
-  const hasNote = !isSlateValueEmpty(parseSlateValue(row.note))
+  const hasNote = noteHoldsText(row.note)
   const hasComment = Boolean(row.comment?.trim())
-  const linkCount = normalizeLinks(row.links).filter((link) =>
-    link.url.trim(),
-  ).length
+  const linkCount = countLinksWithUrl(row.links)
 
   if (!hasNote && !hasComment && linkCount === 0) return null
 
@@ -116,5 +112,49 @@ export function summarizeMemoryRow(
     hasNote,
     linkCount,
     hasComment,
+  }
+}
+
+/**
+ * Whether a stored note holds text, read as the editor document it is.
+ *
+ * The Note dialog stores an editor document (JSON): an emptied note is a
+ * paragraph without text, not an empty string. A stored value that is no
+ * such document (an array of something else from an older client) counts by
+ * its raw text instead of throwing, so one odd row cannot take the marks of
+ * every other repository with it.
+ *
+ * @param note - The stored `note`, or `null`.
+ * @returns Whether the note has text other than whitespace.
+ * @example
+ * noteHoldsText('[{"type":"p","children":[{"text":""}]}]') // => false
+ * noteHoldsText('[1]') // => true
+ */
+function noteHoldsText(note: string | null): boolean {
+  try {
+    return !isSlateValueEmpty(parseSlateValue(note))
+  } catch {
+    return Boolean(note?.trim())
+  }
+}
+
+/**
+ * Counts the links with a URL, as the Note dialog shows them.
+ *
+ * Links of a shape {@link normalizeLinks} cannot read (a URL that is no
+ * string in the legacy form) count as none instead of throwing, for the same
+ * reason as {@link noteHoldsText}.
+ *
+ * @param links - The stored `links` (array or legacy object form).
+ * @returns The number of links whose URL is not blank.
+ * @example
+ * countLinksWithUrl([{ type: 'npm', url: 'https://www.npmjs.com/package/nsx' }]) // => 1
+ * countLinksWithUrl({ production: [5] }) // => 0
+ */
+function countLinksWithUrl(links: MemoryRow['links']): number {
+  try {
+    return normalizeLinks(links).filter((link) => link.url.trim()).length
+  } catch {
+    return 0
   }
 }

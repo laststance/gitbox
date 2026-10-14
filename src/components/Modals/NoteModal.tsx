@@ -42,7 +42,7 @@ interface NoteModalProps {
  * - Rich text editor with PlateJS (NoteSection)
  * - Links section with 55 built-in presets + user-defined custom presets (LinkManager)
  * - Redux draft state persistence (useNoteModalDraft hook)
- * - Optimistic UI feedback with Sonner toast notifications
+ * - Closes on save at once; a Sonner toast reports the server's answer
  *
  * @example
  * <NoteModal

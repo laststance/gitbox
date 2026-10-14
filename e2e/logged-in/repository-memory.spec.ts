@@ -25,6 +25,7 @@ import {
   createServiceRoleSupabaseClient,
   createTestUserSupabaseClient,
   querySingle,
+  resetProjectInfoComments,
   resetRepoCards,
 } from '../helpers/db-query'
 
@@ -172,6 +173,7 @@ test.describe('Repository memory', () => {
   test.afterEach(async () => {
     await removeBoardsOfThisSpec()
     await resetRepoCards()
+    await resetProjectInfoComments()
   })
 
   // Value: protects=the core of issue #216, a removed repository comes back with its comment on the card and its note and link in the Note dialog, without a reload; fails_when=projectinfo is deleted with the card, the added card's comment is not merged into the board, or the picker mark is missing; why_new=no spec adds a removed repository again; seam=MSW GitHub catalog; no_claim=production data (checked as ryota-murakami)
@@ -244,7 +246,7 @@ test.describe('Repository memory', () => {
       .click()
     await page.getByRole('menuitem', { name: 'Delete Column' }).click()
     await expect(page.getByRole('alertdialog')).toContainText(
-      'The notes, links and comments of their repositories are kept for when you add them again.',
+      'The note, links and comment of its repository are kept for when you add it again.',
     )
     await page
       .getByRole('button', { name: 'Delete column Doomed column' })
@@ -323,5 +325,64 @@ test.describe('Repository memory', () => {
         'saved-memory-label',
       ),
     ).toHaveCount(0)
+  })
+
+  // Value: protects=Delete in the comment menu clears the comment of the repository's memory and nothing else (pre-landing review of #216); fails_when=the delete misses the row now keyed by user and repository, or clears the note or the links with it; why_new=the delete was tested against a mocked client only (project-info-core.test.ts); seam=none; no_claim=a repository held by two users (the user filter, project-info-core.test.ts)
+  test('deleting a comment from its menu clears the comment and keeps the note and the link', async ({
+    page,
+  }) => {
+    // Arrange
+    await openBoard(page, TEST_BOARD_URL)
+    const card = page.getByTestId(`repo-card-${CARD_IDS.card4}`)
+    await card.getByTestId('comment-display').hover()
+    await card.getByTestId('comment-actions-trigger').click()
+
+    // Act
+    await page.getByTestId('comment-action-delete').click()
+
+    // Assert: the card offers a new comment, and the row lost the comment only
+    await expect(card.getByText('Add comment')).toBeVisible()
+    await expect(async () => {
+      const memory = await querySingle<{
+        note: string
+        comment: string | null
+        comment_color: string
+        links: unknown
+      }>('projectinfo', { id: PROJECT_INFO_IDS.projinfo4 })
+      expect(memory).toMatchObject({
+        note: 'CLI tool documentation',
+        comment: null,
+        comment_color: 'primary',
+        links: [NSX_LINK],
+      })
+    }).toPass({ timeout: 10000 })
+  })
+
+  // Value: protects=on a narrow phone the mark moves under the stars and stays inside its row on one line (design review of #216); fails_when=the meta row stops wrapping and the mark is pushed out of the row, or the mark breaks over two lines; why_new=the layout was checked by hand at 375px only; seam=MSW GitHub catalog (the fixture's row fits on one line at 375px, so 320px is where it has to wrap); no_claim=other widths than 320px
+  test('on a 320px screen the mark stays inside its row on one line', async ({
+    page,
+  }) => {
+    // Arrange
+    await page.setViewportSize({ width: 320, height: 640 })
+    await deleteCard(CARD_IDS.card4)
+    await openBoard(page, TEST_BOARD_URL)
+
+    // Act
+    await openPicker(page)
+
+    // Assert: one line of text-xs with its padding and border is 22px high
+    const option = pickerOption(page, 'laststance/nsx')
+    const label = option.getByTestId('saved-memory-label')
+    await expect(label).toHaveText('Saved: note, 1 link, comment')
+    const optionBox = await option.boundingBox()
+    const labelBox = await label.boundingBox()
+    expect(optionBox).not.toBeNull()
+    expect(labelBox).not.toBeNull()
+    if (!optionBox || !labelBox) return
+    expect(labelBox.height).toBe(22)
+    expect(labelBox.x).toBeGreaterThanOrEqual(optionBox.x)
+    expect(labelBox.x + labelBox.width).toBeLessThanOrEqual(
+      optionBox.x + optionBox.width,
+    )
   })
 })

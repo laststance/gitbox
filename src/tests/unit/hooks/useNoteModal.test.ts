@@ -8,6 +8,7 @@
  * - Error handling
  */
 
+import * as Sentry from '@sentry/nextjs'
 import { renderHook, act } from '@testing-library/react'
 import { toast } from 'sonner'
 import { describe, test, expect, vi, beforeEach } from 'vitest'
@@ -19,6 +20,10 @@ import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
+}))
+
+vi.mock('@sentry/nextjs', () => ({
+  captureException: vi.fn(),
 }))
 
 // Mock server actions
@@ -147,6 +152,31 @@ describe('useNoteModal', () => {
       expect(result.current.cardId).toBeNull()
       expect(toast.error).toHaveBeenCalledWith('Failed to load project info', {
         description: 'Network error',
+      })
+    })
+
+    // Value: protects=a note request that gets no answer (offline, a deploy in between) still tells the user why the note did not open (red team review of #216); fails_when=open() lets the rejection escape, which the card menu drops unseen; why_new=the test above covers a refused read only; seam=none; no_claim=how Next.js rejects a Server Action that lost its connection (mocked rejection)
+    test('keeps the note dialog closed and says why when the note request gets no answer', async () => {
+      // Arrange
+      const transportError = new TypeError('Failed to fetch')
+      mockGetProjectInfo.mockRejectedValueOnce(transportError)
+      const { result } = renderHook(() =>
+        useNoteModal({ repoCards: mockRepoCards }),
+      )
+
+      // Act
+      await act(async () => {
+        await result.current.open(toRepoCardId('card-1'))
+      })
+
+      // Assert
+      expect(result.current.isOpen).toBe(false)
+      expect(result.current.cardId).toBeNull()
+      expect(toast.error).toHaveBeenCalledWith('Failed to load project info', {
+        description: 'Please try again.',
+      })
+      expect(Sentry.captureException).toHaveBeenCalledWith(transportError, {
+        extra: { context: 'useNoteModal.open', cardId: 'card-1' },
       })
     })
 

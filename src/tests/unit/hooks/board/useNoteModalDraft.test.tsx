@@ -144,6 +144,27 @@ describe('useNoteModalDraft', () => {
       })
     })
 
+    // Value: protects=a failed save without a server message still reads as one sentence each, without a doubled full stop (pre-landing review of #216); fails_when=the fallback loses its sentence or gets a second period; why_new=the test above covers a server message without punctuation only; seam=none; no_claim=what a Server Action rejects with in the browser (mocked onSave)
+    test('says to try again in one sentence when a failed save carries no message', async () => {
+      // Arrange
+      const onSave = vi.fn().mockRejectedValue('connection lost')
+      const { result } = renderNoteDialog(onSave)
+      act(() => {
+        result.current.handleNoteChange('typed before the failure')
+      })
+
+      // Act
+      await act(async () => {
+        await result.current.handleSave()
+      })
+
+      // Assert
+      expect(toast.error).toHaveBeenCalledWith('Failed to save project info', {
+        description:
+          'Please try again. Your text is kept: open the note again to save it.',
+      })
+    })
+
     // Value: protects="saved" is said only for a save the server confirmed; fails_when=the success toast comes before the answer again, or the draft stays after a save; why_new=no test saved a note through this hook; seam=none; no_claim=none beyond protects
     test('says the note was saved only after the server confirmed it, and drops the draft', async () => {
       // Arrange

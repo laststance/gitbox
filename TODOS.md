@@ -339,6 +339,18 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 **Priority:** P3
 **Depends on:** None
 
+### Count a note's length where the database counts it
+
+**What:** Make the Note dialog's limit and `note_length_check` count the same thing: either the dialog counts the length of the stored editor document (JSON), or the check moves to a limit on the text and the column gets a larger cap for the markup.
+
+**Why:** The dialog counts the text and stops input at `NOTE_MAX_LENGTH` (20,000 characters). The database checks `length(note) <= 20000` on the JSON it stores, which is longer than the text: every paragraph, mark and link adds markup. A long note of 15,000 characters can be refused, the toast says the text is kept, and each later save is refused again, with nothing that says why. That predates #216; #216 makes notes outlive their cards, so a note that cannot be saved stays in the way longer. Found by the red team review of #216.
+
+**Context:** `NOTE_MAX_LENGTH` in `src/hooks/board/useNoteModalDraft.ts`, `NoteSection` (the counter), `supabase/migrations/20251230100000_add_note_to_projectinfo.sql` (the check). The refusal reaches the browser as the generic save failure; an error code for 23514 would let the toast name the limit.
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** None
+
 ## Set Work Aside on Boards (#213): deferred follow-ups
 
 From the `/autoplan` review and the code review of issue #213 (a repository that is set aside is a card on an ordinary board). None of the follow-ups blocks that change.

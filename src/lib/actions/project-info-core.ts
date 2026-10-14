@@ -13,8 +13,10 @@
  * @see project-info.ts for the server action wrappers
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js'
+
 import { createClient } from '@/lib/supabase/server'
-import type { TablesInsert, CommentColor } from '@/lib/supabase/types'
+import type { Database, TablesInsert, CommentColor } from '@/lib/supabase/types'
 import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
 import {
   noteSchema,
@@ -200,8 +202,6 @@ export function normalizeLinks(links: unknown): ProjectLink[] {
 // Core Functions
 // ========================================
 
-type ServerSupabaseClient = Awaited<ReturnType<typeof createClient>>
-
 /** The repository a card holds, and whose memory a write may touch. */
 interface CardRepository {
   /** The card's `repo_owner` and `repo_name`, as a `projectinfo` row names them. */
@@ -229,7 +229,7 @@ interface CardRepository {
  * // => { repository: { repo_owner: 'laststance', repo_name: 'gitbox' }, ownerId: 'user-1' }
  */
 async function readCardRepository(
-  supabase: ServerSupabaseClient,
+  supabase: SupabaseClient<Database>,
   repoCardId: string,
 ): Promise<CardRepository> {
   const { data: card, error } = await supabase
@@ -303,6 +303,9 @@ export async function getProjectInfoCore(
  *
  * @param repoCardId - The RepoCard ID
  * @param data - ProjectInfoData to save
+ * @throws The validation message when the note, comment or a URL is invalid;
+ *   "Card not found" or "Failed to read the card" from the card read;
+ *   "Failed to save project information" when the database refused the write.
  *
  * @example
  * await upsertProjectInfoCore('card-uuid-123', {
@@ -360,6 +363,9 @@ export async function upsertProjectInfoCore(
  * @param repoCardId - The RepoCard ID
  * @param comment - New comment text (max 2000 chars)
  * @param color - Optional color for the comment
+ * @throws The validation message when the comment or color is invalid;
+ *   "Card not found" or "Failed to read the card" from the card read;
+ *   "Failed to update comment" when the database refused the write.
  *
  * @example
  * await updateCommentCore('card-1', 'Updated comment text', 'blue')
@@ -398,6 +404,9 @@ export async function updateCommentCore(
  *
  * @param repoCardId - The RepoCard ID
  * @param color - New color to set
+ * @throws The validation message when the color is invalid; "Card not found"
+ *   or "Failed to read the card" from the card read; "Failed to update comment
+ *   color" when the database refused the write.
  *
  * @example
  * await updateCommentColorCore('card-1', 'blue')
@@ -431,6 +440,8 @@ export async function updateCommentColorCore(
  * Does NOT delete the projectinfo row (preserves note, links).
  *
  * @param repoCardId - The RepoCard ID
+ * @throws "Card not found" or "Failed to read the card" from the card read;
+ *   "Failed to delete comment" when the database refused the write.
  *
  * @example
  * await deleteCommentCore('card-1')

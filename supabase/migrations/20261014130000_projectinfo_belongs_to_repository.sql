@@ -33,9 +33,14 @@
 -- Locks: repocard, then projectinfo, both ACCESS EXCLUSIVE from the start, in
 -- the order a board read and a card delete take them. Dropping repo_card_id
 -- drops its foreign key, which needs that lock on repocard anyway; taken
--- later, it could deadlock with a board read waiting on projectinfo. Boards
--- wait the few milliseconds the run takes. The foreign key to auth.users
--- locks auth.users for the rest of the run as well: sign-ins wait as long.
+-- later, every board read waiting on projectinfo could deadlock with it.
+-- A note or comment save takes projectinfo first and repocard after (its
+-- row level security looks for the card), so a save that is under way can
+-- still meet the run the other way round: lock_timeout (5s) or the deadlock
+-- detector then aborts one side. When that is the migration, nothing was
+-- changed and it can run again. Boards wait the few milliseconds the run
+-- takes. The foreign key to auth.users locks auth.users for the rest of the
+-- run as well: sign-ins wait as long.
 --
 -- No reverse migration: once the new code runs, rows outlive their cards and
 -- repo_card_id cannot be given back to them. A wrong result is repaired
@@ -54,11 +59,20 @@ DECLARE
   v_rows_filled integer;
 BEGIN
   -- 0. Second run: the card column is gone, so everything below happened.
+  --    The catalog, not information_schema, which lists only the columns
+  --    the session has a privilege on and would mistake a missing grant for
+  --    a finished run.
+  IF to_regclass('public.projectinfo') IS NULL THEN
+    RAISE EXCEPTION
+      'projectinfo_belongs_to_repository: there is no table public.projectinfo.'
+      USING DETAIL = 'Nothing was changed. The migrations before this one create it: apply them in order.';
+  END IF;
+
   IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema = 'public'
-      AND table_name = 'projectinfo'
-      AND column_name = 'repo_card_id'
+    SELECT 1 FROM pg_attribute
+    WHERE attrelid = 'public.projectinfo'::regclass
+      AND attname = 'repo_card_id'
+      AND NOT attisdropped
   ) THEN
     RAISE NOTICE 'projectinfo_belongs_to_repository: projectinfo has no repo_card_id, nothing to do.';
     RETURN;
