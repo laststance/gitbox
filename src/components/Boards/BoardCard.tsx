@@ -20,6 +20,7 @@ import Link from 'next/link'
 import { memo, useCallback, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 
+import { LocalDate } from '@/components/LocalDate'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -242,9 +243,11 @@ export const BoardCard = memo(function BoardCard({
         <div className="text-muted-foreground mt-4 flex items-center text-sm">
           <div className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
-            {board.created_at
-              ? new Date(board.created_at).toLocaleDateString('en-US')
-              : 'N/A'}
+            {board.created_at ? (
+              <LocalDate isoDate={board.created_at} dateStyle="numeric" />
+            ) : (
+              'N/A'
+            )}
           </div>
         </div>
       </div>

@@ -191,7 +191,9 @@ const PublicRepoCard = memo(function PublicRepoCard({
             {typeof card.meta.stars === 'number' && card.meta.stars > 0 && (
               <span className="flex items-center gap-0.5">
                 <Star className="h-3 w-3" />
-                {card.meta.stars.toLocaleString()}
+                {/* A locale of its own: the server and the visitor's browser
+                    spell 1234 alike, or React throws the page away (#418) */}
+                {card.meta.stars.toLocaleString('en-US')}
               </span>
             )}
           </div>

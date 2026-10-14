@@ -513,6 +513,18 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 **Priority:** P3
 **Depends on:** None
 
+### Let the browser tests see a hydration error
+
+**What:** Make the server's HTML of an E2E run hold the page, so that `e2e/unauthenticated/ssr-hydration.spec.ts`, `e2e/logged-in/ssr-hydration-board.spec.ts` and `e2e/logged-in/board-page-hydration.spec.ts` can fail. Or, if that cannot be done, rename them after what they do check.
+
+**Why:** With MSW on, `MSWProvider` (`src/app/msw-provider.tsx`) renders "Initializing MSW..." until the worker runs in the browser, on the server too, so React never hydrates a page in a browser test. Found on 2026-10-14: the time-zone mismatch of `/boards` (React #418 on production) passed a Playwright test with the browser in Los Angeles. Its regression test is a unit test (`src/tests/unit/components/LocalDate.test.tsx`).
+
+**Context:** The provider waits so that no request leaves the browser before the worker can answer it. A provider that renders its children at once has to hold those requests back another way, for example by starting the worker in an inline script before React loads, and the whole E2E suite is the check that nothing then goes out unmocked.
+
+**Effort:** M
+**Priority:** P3
+**Depends on:** None
+
 ### Read what is being dragged from dnd-kit, not from a copy
 
 **What:** Take "a column is being dragged" from dnd-kit's own state (`useDndContext().active`, read by a component inside `DndContext`) and drop `activeId` and `activeDragType` of `useKanbanDnD`, which `handleDragStart` sets and `handleDragEnd` and `handleDragCancel` clear.
