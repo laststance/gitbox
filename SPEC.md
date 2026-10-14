@@ -1337,6 +1337,7 @@ export async function cdpBoardDragAndDrop(
 | Repo       | `repo-card-description.spec.ts`            | Card description                      |
 | Repo       | `remove-from-board.spec.ts`                | Remove card from board                |
 | Repo       | `one-repo-across-boards.spec.ts`           | One repo per user (#215)              |
+| Repo       | `repository-memory.spec.ts`                | Note, links, comment kept (#216)      |
 | Repo       | `move-to-another-board.spec.ts`            | Move card between boards              |
 | Comment    | `comment-display.spec.ts`                  | Comment display                       |
 | Comment    | `comment-inline-edit.spec.ts`              | Comment inline editing                |

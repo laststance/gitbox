@@ -102,7 +102,7 @@ Amended by the eng review (R9, R8): deploy first, then migrate. One PR holds the
 
 The pasteable blocks, with their expected output and when to stop, are in [the rollout runbook](../plans/2026-10-14-issue-216-rollout-runbook.md).
 
-The old deployment never meets the new schema. If the dispatched run fails, nothing changed (one transaction) and the new code keeps running on the old schema as in step 2; fix the migration forward. If the new deployment itself misbehaves before the run of step 3, `vercel rollback <id of the previous deployment>` returns to it (the runbook notes that id before the merge), and the schema is still the old one. After the run there is no rollback of the code: the old build reads `repo_card_id`.
+The old deployment never meets the new schema. If the dispatched run fails, nothing changed (one transaction) and the new code keeps running on the old schema as in step 2; fix the migration forward. If the new deployment itself misbehaves before the run of step 3, `vercel rollback <id of the previous deployment>` returns to it (the runbook notes that id before the merge), and the schema is still the old one. A rollback turns off the automatic assignment of the production domain, so the fixed build goes live with `vercel promote`. After the run there is no rollback of the code: the old build reads `repo_card_id`.
 
 ## Open Questions
 

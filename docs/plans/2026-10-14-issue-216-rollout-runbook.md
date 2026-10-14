@@ -15,6 +15,13 @@ cat supabase/.temp/project-ref   # must print zfcwvzazzzsefbkztsyp; stop otherwi
 mkdir -p ~/gitbox-backups && chmod 700 ~/gitbox-backups && umask 077
 ```
 
+- `gh` acts as `ryota-murakami`. Another signed-in account may only read the repository, and then disabling the workflow, merging or starting the run fails half-way. Run this in the same shell:
+
+```bash
+export GH_TOKEN=$(gh auth token --user ryota-murakami)
+gh api repos/laststance/gitbox -q .permissions.push   # must print true; stop otherwise
+```
+
 - `supabase --version` prints the version `.github/workflows/supabase-production.yml` pins (2.120.0 when this was written).
 - `supabase db query` is run with `--agent no`: in an agent's shell the CLI wraps JSON output in `{ boundary, rows, warning }` by itself, and the `jq` filters below read the plain array.
 - Whatever happens, the rollout ends with the migration workflow enabled (section 7, last point).
@@ -60,11 +67,16 @@ supabase db query --linked "SELECT
   (SELECT count(*) FROM (SELECT 1 FROM projectinfo p JOIN repocard r ON r.id = p.repo_card_id
      GROUP BY r.user_id, lower(r.repo_owner), lower(r.repo_name) HAVING count(*) > 1) d) AS duplicate_keys,
   (SELECT count(*) FROM pg_policies WHERE schemaname = 'public' AND tablename = 'projectinfo') AS policies,
-  row_security_active('public.projectinfo') OR row_security_active('public.repocard') AS row_security_applies"
+  row_security_active('public.projectinfo') OR row_security_active('public.repocard') AS row_security_applies,
+  (SELECT count(*) FROM repocard WHERE position('/' in repo_owner) > 0 OR position('/' in repo_name) > 0) AS names_with_a_slash,
+  (SELECT count(*) FROM (SELECT 1 FROM repocard
+     GROUP BY user_id, lower(repo_owner) || '/' || lower(repo_name) HAVING count(*) > 1) d) AS repo_key_collisions"
 supabase db push --linked --dry-run
 ```
 
 Expected: `rows_without_a_card` and `duplicate_keys` 0, `policies` 2, `row_security_applies` false, and the dry run lists `20261014130000_projectinfo_belongs_to_repository.sql` and nothing else. These are the conditions the migration checks before its first write. Stop when one differs: the migration would refuse (section 7). Note `rows`. On 2026-10-14: 10 rows, held by 1 user, the owner.
+
+`names_with_a_slash` and `repo_key_collisions` must be 0 too, and the migration does not check them. `repo_key` joins the owner and the name with a `/`, which GitHub never puts in either and the server actions refuse, but a signed-in user can write cards through PostgREST: `a/b` + `c` and `a` + `b/c` are two cards for the card's key and one `repo_key`, and the new unique constraint would fail the run (section 7). On 2026-10-15: 0 and 0 of 50 cards. Section 4 checks again.
 
 Note the deployment that serves production now. It is what `vercel rollback` goes back to (section 7); `vercel rollback` without an argument only prints the status of a rollback:
 
@@ -102,11 +114,16 @@ for i in {1..60}; do
   STATE=none; [ -n "$DEPLOYMENT" ] && STATE=$(gh api repos/laststance/gitbox/deployments/$DEPLOYMENT/statuses -q '.[0].state')
   echo "$i $STATE"; [ "$STATE" = success ] && break; sleep 10
 done
-NEW_URL=$(gh api repos/laststance/gitbox/deployments/$DEPLOYMENT/statuses -q '.[0].environment_url'); echo $NEW_URL
-vercel inspect gitbox-laststance.vercel.app --scope laststance 2>&1 | grep -F "$NEW_URL"
+NEW_URL=$(gh api repos/laststance/gitbox/deployments/$DEPLOYMENT/statuses -q '.[0].environment_url'); echo "NEW_URL=$NEW_URL"
+if [ "$STATE" = success ] && [ -n "$NEW_URL" ] \
+  && vercel inspect gitbox-laststance.vercel.app --scope laststance 2>&1 | grep -qF "$NEW_URL"; then
+  echo "GATE PASSED"
+else
+  echo "GATE FAILED"
+fi
 ```
 
-Expected: the loop ends on `success`, and the last command prints the `url` line: the production domain serves the build of the merge commit. Stop when the state is `failure` or `error`, or the loop ends without `success`: the old build still serves production on the old schema, so nothing is broken; fix the build and start section 3 again with the new merge commit. Do not go on to section 4 before the last command prints its line.
+Expected: `GATE PASSED`: the build of the merge commit succeeded and the production domain serves it. `GATE FAILED` stops the rollout here, also when `NEW_URL` is empty (no deployment was found, so there is nothing to compare). When the state is `failure` or `error`, or the loop ended without `success`, the old build still serves production on the old schema, so nothing is broken; fix the build and start section 3 again with the new merge commit. Do not go on to section 4 without `GATE PASSED`.
 
 ## 4. Run the migration
 
@@ -129,6 +146,17 @@ echo "STAMP=$STAMP"   # sections 5 and 7 start from it
 ```
 
 Expected: the line count equals `rows` of section 2 (a row removed since then lowers it), the files are `-rw-------`, and the last line prints the `STAMP`. An empty manifest stops the rollout here.
+
+Check the two keys the migration does not check (section 2) once more, now that the window is short:
+
+```bash
+supabase db query --linked "SELECT
+  (SELECT count(*) FROM repocard WHERE position('/' in repo_owner) > 0 OR position('/' in repo_name) > 0) AS names_with_a_slash,
+  (SELECT count(*) FROM (SELECT 1 FROM repocard
+     GROUP BY user_id, lower(repo_owner) || '/' || lower(repo_name) HAVING count(*) > 1) d) AS repo_key_collisions"
+```
+
+Expected: 0 and 0. Stop otherwise (section 7).
 
 Then start the run and follow it. The run is picked by its trigger and its start time, not as the newest run, which can be an older one while GitHub has not listed the new one yet:
 
@@ -193,13 +221,15 @@ Pick the scratch repositories before the check, and make sure none of them holds
 ```bash
 if [ "$(cat supabase/.temp/project-ref)" != zfcwvzazzzsefbkztsyp ]; then echo "not production: stop"; else
 KEYS="'owner/one', 'owner/two'"   # the lowercase keys of the scratch repositories, nothing else
-OWNER="(SELECT id FROM auth.users WHERE raw_user_meta_data->>'user_name' = 'ryota-murakami')"
-supabase db query --linked "SELECT count(*) AS rows_before_the_check FROM projectinfo
-  WHERE user_id = $OWNER AND repo_key IN ($KEYS)"
+GITHUB_ID=$(gh api users/ryota-murakami -q .id)
+OWNER="(SELECT user_id FROM auth.identities WHERE provider = 'github' AND provider_id = '$GITHUB_ID')"
+supabase db query --linked "SELECT
+  (SELECT count(*) FROM auth.identities WHERE provider = 'github' AND provider_id = '$GITHUB_ID') AS owner_identities,
+  (SELECT count(*) FROM projectinfo WHERE user_id = $OWNER AND repo_key IN ($KEYS)) AS rows_before_the_check"
 fi
 ```
 
-Expected: `rows_before_the_check` 0. Pick other repositories otherwise: a row there is a memory of the owner that the cleanup must not touch.
+Expected: `owner_identities` 1 and `rows_before_the_check` 0. Pick other repositories when a row is there: it is a memory of the owner that the cleanup must not touch. The owner is found by the GitHub account id that GitHub sign-in stored, not by `auth.users.raw_user_meta_data`, which a signed-in user can change for their own account. On 2026-10-15 the id resolved to one identity, the user who holds 5 boards.
 
 The scratch repositories keep their memory after their boards are gone. Delete those rows by their exact keys and report what is left. Run it in the same shell, after the scratch boards are deleted:
 
@@ -221,7 +251,8 @@ Expected: `deleted_rows` is at most the number of keys in `KEYS` (one row per sc
 
 - **The migration refused.** It changed nothing. Its message and `DETAIL` (the CLI prints both) say what to do: a row without a card is deleted after copying anything worth keeping; rows that share a repository are merged into one; extra policies are made equal to the migrations. Then section 4 again (a new `STAMP`). The new build keeps running on the old schema meanwhile, with the limits listed at the top.
 - **The run failed on a lock.** `canceling statement due to lock timeout` or `deadlock detected`: a request held `projectinfo` or `repocard` when the run wanted them (the header of the migration says when). Nothing was changed. Run section 4 again.
-- **The new build misbehaves before the migration ran.** Rolling back is safe while the schema is still the old one: `vercel rollback $PREV_DEPLOYMENT --scope laststance` (the id noted in section 2), then `vercel inspect gitbox-laststance.vercel.app --scope laststance` names that id. Do not run the migration while the old build serves production.
+- **The run failed on `projectinfo_unique_repo_per_user`.** Two cards of one user name the same `repo_key`: a `/` in an owner or a name (section 2). Nothing was changed. Copy what is worth keeping from the two rows, delete the card whose owner or name holds the `/`, then section 4 again.
+- **The new build misbehaves before the migration ran.** Rolling back is safe while the schema is still the old one: `vercel rollback $PREV_DEPLOYMENT --scope laststance` (the id noted in section 2), then `vercel inspect gitbox-laststance.vercel.app --scope laststance` names that id. Do not run the migration while the old build serves production. A rollback stops Vercel from giving the production domain to new builds: when the fixed build of `main` is ready, `vercel promote <its url> --scope laststance` puts it in production and turns the automatic assignment on again. Until then a merge to `main` deploys nothing that users see.
 - **Something is wrong after the migration ran.** There is no reverse migration and no code rollback: the old build reads `repo_card_id`, which is gone. Fix forward. The dump and the manifest of section 4 hold every row as it was.
 - **Every way out.** Whether the rollout finished, stopped or failed, the workflow ends enabled, or the next migration merged to `main` would not run:
 
