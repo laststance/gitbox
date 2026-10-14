@@ -689,7 +689,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                               {repo.description}
                             </p>
                           )}
-                          <div className="mt-1 flex items-center gap-3 text-xs">
+                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                             <span>⭐ {repo.stargazers_count}</span>
                             {repo.language && (
                               <span className="bg-muted rounded px-1.5 py-0.5">
@@ -699,7 +699,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                             {savedLabel && (
                               <span
                                 data-testid="saved-memory-label"
-                                className="border-border rounded border border-dashed px-1.5 py-0.5"
+                                className="border-border rounded border border-dashed px-1.5 py-0.5 whitespace-nowrap"
                               >
                                 {savedLabel}
                               </span>
@@ -741,7 +741,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                             {repo.description}
                           </p>
                         )}
-                        <div className="mt-1 flex items-center gap-3 text-xs">
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                           <span>⭐ {repo.stargazers_count}</span>
                           {repo.language && (
                             <span className="bg-muted rounded px-1.5 py-0.5">
@@ -751,7 +751,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                           {savedLabel && (
                             <span
                               data-testid="saved-memory-label"
-                              className="border-border rounded border border-dashed px-1.5 py-0.5"
+                              className="border-border rounded border border-dashed px-1.5 py-0.5 whitespace-nowrap"
                             >
                               {savedLabel}
                             </span>

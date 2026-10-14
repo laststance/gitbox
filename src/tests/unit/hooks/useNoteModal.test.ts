@@ -126,7 +126,7 @@ describe('useNoteModal', () => {
       expect(result.current.initialLinks).toEqual([])
     })
 
-    // Value: protects=a note that could not be read is never shown as empty, where a save would overwrite it with nothing (issue #216 review, Codex O1); fails_when=open() opens an empty editor on a failed read again; why_new=the old test asserted the empty editor; seam=none; no_claim=the real read failure (mocked action)
+    // Value: protects=a note that could not be read is never shown as empty, where a save would overwrite it with nothing (issue #216 review, Codex O1); fails_when=open() opens an empty editor on a failed read again, or keeps the card so a closed dialog stays mounted; why_new=the old test asserted the empty editor; seam=none; no_claim=the real read failure (mocked action)
     test('keeps the note dialog closed and says why when the note cannot be read', async () => {
       // Arrange
       mockGetProjectInfo.mockResolvedValueOnce({
@@ -142,8 +142,9 @@ describe('useNoteModal', () => {
         await result.current.open(toRepoCardId('card-1'))
       })
 
-      // Assert
+      // Assert: closed, and no dialog stays mounted for the card
       expect(result.current.isOpen).toBe(false)
+      expect(result.current.cardId).toBeNull()
       expect(toast.error).toHaveBeenCalledWith('Failed to load project info', {
         description: 'Network error',
       })

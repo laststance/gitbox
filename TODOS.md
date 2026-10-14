@@ -303,6 +303,42 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 **Priority:** P3
 **Depends on:** None
 
+### Read only what the picker's marks need, after the list
+
+**What:** Let the database answer the marks (`has_note`, `link_count`, `has_comment` per repository key, for example through a view), and stop holding the Add Repositories list until they arrive.
+
+**Why:** `lookupSavedRepositoryMemories` selects the whole note (up to 20,000 characters), the links and the comment of every row of the user on each opening of the picker, only to compute three values per row. Rows now outlive their cards, so their number only grows. And the lookup runs in the same `Promise.all` as the placements: a slow memory query holds the list, although the marks are extra. Found by the pre-landing review of #216 (performance, security, data migration and red team); the owner has 10 rows today.
+
+**Context:** `src/lib/actions/saved-repository-memories.ts` and `getUserRepoPlacements` in `src/lib/actions/board-data.ts`. A note is an editor document (JSON): a view would have to decide "has text" the way `isSlateValueEmpty` does, or keep that decision in the app and select only the notes of repositories on no board. Pair it with the paging item above.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Rate-limit the project info writes
+
+**What:** Wrap `upsertProjectInfo`, `updateComment`, `updateCommentColor` and `deleteComment` (`src/lib/actions/project-info.ts`) in `withAuthResultRateLimit` with a key of their own, and the read in `withAuthResult`.
+
+**Why:** They are endpoints any signed-in browser can call with arguments of its choice, and they have no limit. That predates #216, which raises the cost: each write is two round trips now (the card, then the row), and the rows it makes survive the card, so a flood is no longer cleaned up with its cards. Found by the security review of #216.
+
+**Context:** The actions catch their own errors today and return the message. Moving them onto the guards changes which messages reach the browser (the guards replace unexpected ones with a generic text): check the toasts of the Note dialog and the comment editor, and `browser-callable-actions.test.ts`.
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** None
+
+### Keep a note draft where its card's repository can reach it
+
+**What:** Key the Note dialog's draft by repository (the lowercase key of `projectinfo.repo_key`) instead of by card id, or say in the failure toast when the draft belongs to a card that is gone.
+
+**Why:** A refused note save says "Your text is kept: open the note again to save it." The draft is kept under the card id. When the save failed because the card is gone (removed in another tab), adding the repository again makes a new card, and the typed text is out of reach: the toast promises too much. Found by the red team review of #216.
+
+**Context:** `useNoteModalDraft` (`src/hooks/board/useNoteModalDraft.ts`) and the `draft` slice. The client must tell a missing card from other failures by an error code, never by the message (CLAUDE.md): `getProjectInfoCore` and the writes throw "Card not found" today. Open Question 1 of the #216 design names the same key.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
 ## Set Work Aside on Boards (#213): deferred follow-ups
 
 From the `/autoplan` review and the code review of issue #213 (a repository that is set aside is a card on an ordinary board). None of the follow-ups blocks that change.

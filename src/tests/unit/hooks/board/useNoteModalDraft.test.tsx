@@ -140,7 +140,7 @@ describe('useNoteModalDraft', () => {
       expect(toast.success).not.toHaveBeenCalled()
       expect(toast.error).toHaveBeenCalledWith('Failed to save project info', {
         description:
-          'Failed to save project information Your text is kept: open the note again to save it.',
+          'Failed to save project information. Your text is kept: open the note again to save it.',
       })
     })
 

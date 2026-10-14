@@ -31,6 +31,7 @@ import { boardIdSchema } from '@/lib/validations/board'
 import { withAuthResult } from './auth-guard'
 import { createDefaultStatusLists } from './board-creation'
 import {
+  PROJECT_COMMENT_EMBED,
   REPO_CARD_COLUMNS,
   remapBoardEmbed,
   type BoardBundle,
@@ -180,7 +181,7 @@ export async function getBoardBundle(
   const { data, error } = await supabase
     .from('board')
     .select(
-      `*, statuslist(*), repocard(${REPO_CARD_COLUMNS}, projectinfo(comment, comment_color))`,
+      `*, statuslist(*), repocard(${REPO_CARD_COLUMNS}, ${PROJECT_COMMENT_EMBED})`,
     )
     .eq('id', boardId)
     // This page is the owner's editing view: anyone else gets a 404 here and

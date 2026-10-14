@@ -135,7 +135,7 @@ export const BoardPageClient = memo(function BoardPageClient({
   )
 
   // ========================================
-  // Move to Another Board Handler
+  // Comments of repositories added on this page
   // ========================================
 
   // Comments that repositories added on this page brought back (issue #216):
@@ -147,6 +147,11 @@ export const BoardPageClient = memo(function BoardPageClient({
     () => ({ ...initialData.comments, ...restoredComments }),
     [initialData.comments, restoredComments],
   )
+
+  // ========================================
+  // Move to Another Board Handler
+  // ========================================
+
   const [moveDialogCardId, setMoveDialogCardId] = useState<RepoCardId | null>(
     null,
   )
@@ -419,7 +424,9 @@ export const BoardPageClient = memo(function BoardPageClient({
                   cardCount > 0
                     ? ` This will also remove ${cardCount} card${cardCount !== 1 ? 's' : ''} in this column. The notes, links and comments of their repositories are kept for when you add them again.`
                     : ''
-                return `Are you sure you want to delete "${statusListDialog.pendingDeleteStatusTitle}"?${cardSuffix} This action cannot be undone.`
+                // Same order as the Delete Board dialogs: what cannot be
+                // undone first, then what is kept
+                return `Are you sure you want to delete "${statusListDialog.pendingDeleteStatusTitle}"? This action cannot be undone.${cardSuffix}`
               })()}
             </AlertDialogDescription>
           </AlertDialogHeader>

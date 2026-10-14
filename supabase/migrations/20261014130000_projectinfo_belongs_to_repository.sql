@@ -29,6 +29,19 @@
 --
 -- One statement (a DO block), so it is atomic however the CLI wraps the file.
 -- A second run after success finds no repo_card_id column and returns at once.
+--
+-- Locks: repocard, then projectinfo, both ACCESS EXCLUSIVE from the start, in
+-- the order a board read and a card delete take them. Dropping repo_card_id
+-- drops its foreign key, which needs that lock on repocard anyway; taken
+-- later, it could deadlock with a board read waiting on projectinfo. Boards
+-- wait the few milliseconds the run takes. The foreign key to auth.users
+-- locks auth.users for the rest of the run as well: sign-ins wait as long.
+--
+-- No reverse migration: once the new code runs, rows outlive their cards and
+-- repo_card_id cannot be given back to them. A wrong result is repaired
+-- forward from the data dump and the manifest taken before the run. Rolling
+-- the code back (vercel rollback) is safe only before this migration ran: the
+-- old code reads repo_card_id.
 -- ============================================================================
 
 DO $migration$
@@ -51,11 +64,10 @@ BEGIN
     RETURN;
   END IF;
 
-  -- 1. Locks first, so the guard and the writes see the same rows. Cards may
-  --    still be read while this runs; they may not be written.
+  -- 1. Locks first, so the guard and the writes see the same rows, in the
+  --    order readers take them (see the header). Boards wait for the run.
   PERFORM set_config('lock_timeout', '5s', true);
-  LOCK TABLE projectinfo IN ACCESS EXCLUSIVE MODE;
-  LOCK TABLE repocard IN SHARE ROW EXCLUSIVE MODE;
+  LOCK TABLE repocard, projectinfo IN ACCESS EXCLUSIVE MODE;
 
   -- 2. Guard. Everything is checked before the first write.
   IF row_security_active('public.projectinfo')

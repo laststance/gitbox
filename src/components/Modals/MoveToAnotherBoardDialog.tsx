@@ -2,9 +2,8 @@
  * Move to Another Board Dialog
  *
  * Moves a repository card from the board on screen to another board of the
- * same user. The card keeps its id, so its note, links and comment go with
- * it. This is how a repository is set aside and brought back: park it on a
- * board of its own, move it to a working board again later.
+ * same user. The note, links and comment belong to the repository (issue
+ * #216), so the card shows them at its new place as before.
  *
  * What the dialog shows:
  * - the user's other boards and, for the chosen one, its columns

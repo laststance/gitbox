@@ -260,7 +260,7 @@ test.describe('Repository memory', () => {
     )
   })
 
-  // Value: protects=a repository whose board was deleted comes back with its memory on another board; fails_when=the board cascade reaches projectinfo; why_new=no spec adds a repository of a deleted board again; seam=MSW GitHub catalog; no_claim=the boards list's own Delete Board dialog (same copy, unit-tested)
+  // Value: protects=a repository whose board was deleted comes back with its memory on another board; fails_when=the board cascade reaches projectinfo; why_new=no spec adds a repository of a deleted board again; seam=MSW GitHub catalog; no_claim=the boards list's own Delete Board dialog (same copy, DeleteBoardDialog.test.tsx)
   test('a repository whose board was deleted is marked in the picker and comes back with its comment', async ({
     page,
   }) => {
@@ -317,6 +317,7 @@ test.describe('Repository memory', () => {
         'saved-memory-label',
       ),
     ).toHaveCount(0)
+    await expect(pickerOption(page, 'testuser/private-project')).toBeVisible()
     await expect(
       pickerOption(page, 'testuser/private-project').getByTestId(
         'saved-memory-label',

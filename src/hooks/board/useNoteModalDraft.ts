@@ -196,9 +196,9 @@ export function useNoteModalDraft({
       })
     } catch (error) {
       toast.error('Failed to save project info', {
-        description: `${
-          error instanceof Error ? error.message : 'Please try again.'
-        } Your text is kept: open the note again to save it.`,
+        description: `${endWithFullStop(
+          error instanceof Error ? error.message : 'Please try again.',
+        )} Your text is kept: open the note again to save it.`,
       })
     } finally {
       setIsSaving(false)
@@ -240,4 +240,20 @@ export function useNoteModalDraft({
     handleSave,
     handleClose,
   }
+}
+
+/**
+ * Closes a server message with a full stop when it has no final punctuation.
+ *
+ * Server messages such as "Failed to save project information" end without
+ * one, and the toast puts a sentence of its own after them.
+ *
+ * @param message - A message from the server or a fallback sentence.
+ * @returns The message, ending in `.`, `!` or `?`.
+ * @example
+ * endWithFullStop('Card not found') // => 'Card not found.'
+ * endWithFullStop('Please try again.') // => 'Please try again.'
+ */
+function endWithFullStop(message: string): string {
+  return /[.!?]$/.test(message) ? message : `${message}.`
 }

@@ -1,11 +1,13 @@
 /**
- * What is saved for repositories that sit on no board (issue #216).
+ * What is saved for each repository of the user (issue #216).
  *
  * The note, links and comment of a repository outlive its card. The Add
  * Repositories picker marks a repository on no board whose memory holds
- * something, so the user sees what comes back when it is added again.
+ * something, so the user sees what comes back when it is added again: this
+ * module reads the memories, {@link getUserRepoPlacements} keeps the ones of
+ * repositories on no board.
  *
- * NOT a 'use server' module: `getUserRepoPlacements` calls it on the server.
+ * NOT a 'use server' module: {@link getUserRepoPlacements} calls it on the server.
  */
 
 import * as Sentry from '@sentry/nextjs'
@@ -15,6 +17,7 @@ import { POSTGREST_MAX_ROWS } from '@/lib/constants/postgrest'
 import { createModuleLogger } from '@/lib/logger'
 import type { Database, Tables } from '@/lib/supabase/types'
 import type { RepoIdentifier } from '@/lib/types/domain-primitives'
+import { isSlateValueEmpty, parseSlateValue } from '@/lib/utils/slate-utils'
 import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
 
 import { normalizeLinks } from './project-info-core'
@@ -30,7 +33,7 @@ const log = createModuleLogger('saved-repository-memories')
 export interface SavedRepositoryMemory {
   /** Lowercase `owner/name` ({@link toRepoIdentifier}). */
   identifier: RepoIdentifier
-  /** The note holds text other than whitespace. */
+  /** The note holds text other than whitespace (read as the editor's document). */
   hasNote: boolean
   /** Links with a URL, counted after {@link normalizeLinks}. */
   linkCount: number
@@ -46,7 +49,7 @@ type MemoryRow = Pick<
 /**
  * Loads what is saved for every repository of the user, placed or not.
  *
- * Called by `getUserRepoPlacements`, which leaves out the repositories that
+ * Called by {@link getUserRepoPlacements}, which leaves out the repositories that
  * sit on a board. Rows whose note, links and comment are all empty are
  * dropped here.
  *
@@ -98,7 +101,9 @@ export async function lookupSavedRepositoryMemories(
 export function summarizeMemoryRow(
   row: MemoryRow,
 ): SavedRepositoryMemory | null {
-  const hasNote = Boolean(row.note?.trim())
+  // The Note dialog stores an editor document (JSON): an emptied note is a
+  // paragraph without text, not an empty string
+  const hasNote = !isSlateValueEmpty(parseSlateValue(row.note))
   const hasComment = Boolean(row.comment?.trim())
   const linkCount = normalizeLinks(row.links).filter((link) =>
     link.url.trim(),

@@ -2,7 +2,8 @@
  * Unit Tests: summarizeMemoryRow
  *
  * Which saved memories get a mark in the Add Repositories picker (issue #216):
- * a note or a comment with text other than whitespace, or a link with a URL,
+ * a note or a comment with text other than whitespace (a note read as the
+ * editor document the Note dialog stores), or a link with a URL,
  * counted after the same normalization the Note dialog uses. A comment color
  * alone is not worth a mark.
  *
@@ -14,9 +15,15 @@ import { describe, expect, test } from 'vitest'
 import { summarizeMemoryRow } from '@/lib/actions/saved-repository-memories'
 
 describe('summarizeMemoryRow', () => {
-  // Value: protects=the picker marks only memories that bring something back; fails_when=whitespace counts as a note, a color alone gets a mark, or a link without URL is counted; why_new=new rule (eng review R4); seam=none; no_claim=the database query (mocked out; e2e repository-memory.spec.ts)
+  // Value: protects=the picker marks only memories that bring something back; fails_when=whitespace or an emptied editor document counts as a note, a color alone gets a mark, or a link without URL is counted; why_new=new rule (eng review R4); seam=none; no_claim=the database query (mocked out; e2e repository-memory.spec.ts)
   test.each([
     { holds: 'a note of spaces', note: '   ', comment: null, links: [] },
+    {
+      holds: 'a note the Note dialog emptied',
+      note: '[{"type":"p","children":[{"text":""}]}]',
+      comment: null,
+      links: [],
+    },
     { holds: 'an empty comment', note: null, comment: '', links: [] },
     {
       holds: 'a link without URL',
@@ -47,6 +54,43 @@ describe('summarizeMemoryRow', () => {
 
       // Assert
       expect(memory).toBeNull()
+    },
+  )
+
+  // Value: protects=a note saved by the Note dialog (an editor document in JSON) is named only when it holds text, so a link saved alone is not called "note, 1 link" (issue #216 red team); fails_when=the stored JSON string is measured instead of its text; why_new=the cases above used plain text only; seam=none; no_claim=what Plate serializes (slate-utils.test.ts)
+  test.each([
+    {
+      document: 'a paragraph without text',
+      note: '[{"type":"p","children":[{"text":""}]}]',
+      expectedHasNote: false,
+    },
+    {
+      document: 'a paragraph with text',
+      note: '[{"type":"p","children":[{"text":"Release with pnpm release"}]}]',
+      expectedHasNote: true,
+    },
+  ])(
+    'names the note of $document saved beside a link as it reads',
+    ({ note, expectedHasNote }) => {
+      // Arrange
+      const row = {
+        repo_owner: 'laststance',
+        repo_name: 'nsx',
+        note,
+        comment: null,
+        links: [{ type: 'npm', url: 'https://www.npmjs.com/package/nsx' }],
+      }
+
+      // Act
+      const memory = summarizeMemoryRow(row)
+
+      // Assert
+      expect(memory).toEqual({
+        identifier: 'laststance/nsx',
+        hasNote: expectedHasNote,
+        linkCount: 1,
+        hasComment: false,
+      })
     },
   )
 

@@ -31,7 +31,11 @@ import type { ISOTimestamp, Visibility } from '@/lib/types/domain-primitives'
 import { didDatabaseRefuse } from '@/lib/utils/did-database-refuse'
 import { addRepositoriesRequestSchema } from '@/lib/validations/repo-card'
 
-import { REPO_CARD_COLUMNS, toCommentData } from './mappers'
+import {
+  PROJECT_COMMENT_EMBED,
+  REPO_CARD_COLUMNS,
+  toCommentData,
+} from './mappers'
 import type { CommentData } from './project-info-core'
 import {
   ADD_RACE_MESSAGE,
@@ -217,7 +221,7 @@ export async function addRepositoriesToBoard(
       const { data: insertedCards, error: insertError } = await supabase
         .from('repocard')
         .insert(cardsToInsert)
-        .select(`${REPO_CARD_COLUMNS}, projectinfo(comment, comment_color)`)
+        .select(`${REPO_CARD_COLUMNS}, ${PROJECT_COMMENT_EMBED}`)
 
       if (insertError) {
         // Another tab placed one of these repositories after the lookup. The

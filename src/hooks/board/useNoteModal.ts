@@ -79,15 +79,13 @@ export function useNoteModal({
 
   /**
    * Open NoteModal for a card
-   * Fetches current note and links from Supabase
+   * Fetches current note and links from Supabase. A failed read shows a toast
+   * and leaves the modal closed, holding no card.
    */
   const open = useCallback(
     async (targetCardId: RepoCardId) => {
       const card = repoCards.find((c) => c.id === targetCardId)
       if (!card) return
-
-      setCardId(targetCardId)
-      setCardTitle(card.title)
 
       const result = await getProjectInfo(targetCardId)
       // An empty editor over a note that could not be read would let a save
@@ -99,6 +97,8 @@ export function useNoteModal({
         return
       }
 
+      setCardId(targetCardId)
+      setCardTitle(card.title)
       setInitialNote(result.data?.note || '')
       setInitialLinks(result.data?.links || [])
       setIsOpen(true)

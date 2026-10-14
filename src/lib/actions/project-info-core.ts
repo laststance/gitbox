@@ -202,36 +202,54 @@ export function normalizeLinks(links: unknown): ProjectLink[] {
 
 type ServerSupabaseClient = Awaited<ReturnType<typeof createClient>>
 
+/** The repository a card holds, and whose memory a write may touch. */
+interface CardRepository {
+  /** The card's `repo_owner` and `repo_name`, as a `projectinfo` row names them. */
+  repository: Pick<ProjectInfoInsert, 'repo_owner' | 'repo_name'>
+  /** The owner of the card's board: the user whose row a write touches. */
+  ownerId: string
+}
+
 /**
- * Read the repository a card holds, as the signed-in user.
+ * Read the repository a card holds, and its owner, as the signed-in user.
  *
- * Row level security returns the user's own cards only, so a card of someone
- * else reads as missing. Called before every write: the write is keyed by the
- * repository, and the database accepts it only while the user has a card for
- * that repository.
+ * Row level security returns the user's own cards and boards only, so a card
+ * of someone else reads as missing. Called before every write: the write is
+ * keyed by the repository, and the database accepts it only while the user has
+ * a card for that repository. The owner comes from the board join, the way
+ * app code reads ownership.
  *
  * @param supabase - Server client of the signed-in user.
  * @param repoCardId - The RepoCard ID the browser sent.
- * @returns The card's `repo_owner` and `repo_name`.
- * @throws When the card does not exist or belongs to someone else.
+ * @returns The card's repository and the id of the user who owns it.
+ * @throws "Card not found" when the card does not exist or belongs to someone
+ *   else; "Failed to read the card" when the read itself failed.
  * @example
- * await readCardRepository(supabase, 'card-1') // => { repo_owner: 'laststance', repo_name: 'gitbox' }
+ * await readCardRepository(supabase, 'card-1')
+ * // => { repository: { repo_owner: 'laststance', repo_name: 'gitbox' }, ownerId: 'user-1' }
  */
 async function readCardRepository(
   supabase: ServerSupabaseClient,
   repoCardId: string,
-): Promise<Pick<ProjectInfoInsert, 'repo_owner' | 'repo_name'>> {
+): Promise<CardRepository> {
   const { data: card, error } = await supabase
     .from('repocard')
-    .select('repo_owner, repo_name')
+    .select('repo_owner, repo_name, board!inner(user_id)')
     .eq('id', repoCardId)
     .single()
 
-  if (error || !card) {
+  // PGRST116: no row, so the card is gone or not the user's
+  if (error?.code === 'PGRST116') {
     throw new Error('Card not found')
   }
+  if (error) {
+    throw new Error('Failed to read the card')
+  }
 
-  return { repo_owner: card.repo_owner, repo_name: card.repo_name }
+  return {
+    repository: { repo_owner: card.repo_owner, repo_name: card.repo_name },
+    ownerId: card.board.user_id,
+  }
 }
 
 /**
@@ -243,8 +261,10 @@ async function readCardRepository(
  * @param repoCardId - The RepoCard ID to look up
  * @returns
  * - The note, comment and links of the repository
- * - Empty values when nothing is saved for it, or when the card is not found
- * @throws When the request fails for another reason
+ * - Empty values when nothing is saved for it
+ * @throws "Card not found" when the card is gone or not the user's: the
+ *   repository's note may still exist, so the Note dialog must not open an
+ *   empty editor over it; "Failed to fetch project information" otherwise
  *
  * @example
  * const info = await getProjectInfoCore('card-uuid-123')
@@ -261,9 +281,10 @@ export async function getProjectInfoCore(
     .single()
 
   if (error) {
-    // No card (or not the user's): there is nothing to show
+    // PGRST116: no card (or not the user's). Its repository's note outlives
+    // it, so this is no empty note
     if (error.code === 'PGRST116') {
-      return { note: '', comment: '', links: [] }
+      throw new Error('Card not found')
     }
     throw new Error('Failed to fetch project information')
   }
@@ -311,7 +332,7 @@ export async function upsertProjectInfoCore(
     .filter((link) => link.url && link.url.trim() !== '')
     .map((link) => ({ type: link.type, url: link.url }))
 
-  const repository = await readCardRepository(supabase, repoCardId)
+  const { repository } = await readCardRepository(supabase, repoCardId)
 
   const upsertData: ProjectInfoInsert = {
     ...repository,
@@ -355,7 +376,7 @@ export async function updateCommentCore(
     validateCommentColor(color)
   }
 
-  const repository = await readCardRepository(supabase, repoCardId)
+  const { repository } = await readCardRepository(supabase, repoCardId)
 
   const { error } = await supabase.from('projectinfo').upsert(
     {
@@ -389,7 +410,7 @@ export async function updateCommentColorCore(
 
   validateCommentColor(color)
 
-  const repository = await readCardRepository(supabase, repoCardId)
+  const { repository } = await readCardRepository(supabase, repoCardId)
 
   const { error } = await supabase
     .from('projectinfo')
@@ -417,16 +438,18 @@ export async function updateCommentColorCore(
 export async function deleteCommentCore(repoCardId: string): Promise<void> {
   const supabase = await createClient()
 
-  const repository = await readCardRepository(supabase, repoCardId)
+  const { repository, ownerId } = await readCardRepository(supabase, repoCardId)
 
-  // Row level security limits the update to the user's own row; a repository
-  // with nothing saved matches no row and nothing changes
+  // The key is the same for every user holding the repository: the owner
+  // filter keeps the update to this user's row whatever row level security
+  // does. A repository with nothing saved matches no row and nothing changes
   const { error } = await supabase
     .from('projectinfo')
     .update({
       comment: null,
       comment_color: DEFAULT_COMMENT_COLOR,
     })
+    .eq('user_id', ownerId)
     .eq(
       'repo_key',
       toRepoIdentifier(repository.repo_owner, repository.repo_name),

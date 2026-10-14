@@ -30,6 +30,9 @@ import {
   createTestUserSupabaseClient,
 } from '../helpers/db-query'
 
+/** The repository of card 5 of the test user: no project info in the seed. */
+const USE_APP_STATE = 'laststance/use-app-state'
+
 /** Fixed id of the card one test puts on Work Projects, deletes and adds again. */
 const PROBE_CARD_ID = '00000000-0000-0000-0000-0000000003c1'
 
@@ -51,10 +54,7 @@ async function removeProjectInfoOfProbeRepositories(): Promise<void> {
     .from('projectinfo')
     .delete()
     .eq('user_id', TEST_USER_ID)
-    .in('repo_key', [
-      'laststance/use-app-state',
-      'laststance/project-info-probe',
-    ])
+    .in('repo_key', [USE_APP_STATE, 'laststance/project-info-probe'])
   if (error) {
     throw new Error(
       `removeProjectInfoOfProbeRepositories failed: ${error.message}`,
@@ -163,20 +163,20 @@ test.describe('Project info data access', () => {
     const read = await testUser
       .from('projectinfo')
       .select('note')
-      .eq('repo_key', 'laststance/use-app-state')
+      .eq('repo_key', USE_APP_STATE)
     const changed = await testUser
       .from('projectinfo')
       .update({ note: 'second draft' })
-      .eq('repo_key', 'laststance/use-app-state')
+      .eq('repo_key', USE_APP_STATE)
       .select('note')
     const notesAfterChange = await readNotesOfRepository(
       TEST_USER_ID,
-      'laststance/use-app-state',
+      USE_APP_STATE,
     )
     const deleted = await testUser
       .from('projectinfo')
       .delete()
-      .eq('repo_key', 'laststance/use-app-state')
+      .eq('repo_key', USE_APP_STATE)
       .select('note')
 
     // Assert
@@ -184,7 +184,7 @@ test.describe('Project info data access', () => {
     expect(added.data).toEqual([
       {
         user_id: '00000000-0000-0000-0000-000000000001',
-        repo_key: 'laststance/use-app-state',
+        repo_key: USE_APP_STATE,
         note: 'first draft',
       },
     ])
@@ -195,9 +195,7 @@ test.describe('Project info data access', () => {
     expect(notesAfterChange).toEqual(['second draft'])
     expect(deleted.error).toBeNull()
     expect(deleted.data).toEqual([{ note: 'second draft' }])
-    expect(
-      await readNotesOfRepository(TEST_USER_ID, 'laststance/use-app-state'),
-    ).toEqual([])
+    expect(await readNotesOfRepository(TEST_USER_ID, USE_APP_STATE)).toEqual([])
   })
 
   test('a card reads the project info of its repository, written in another letter case', async () => {
@@ -386,9 +384,9 @@ test.describe('Project info data access', () => {
     expect(secondRow.error?.message).toContain(
       'projectinfo_unique_repo_per_user',
     )
-    expect(
-      await readNotesOfRepository(TEST_USER_ID, 'laststance/use-app-state'),
-    ).toEqual(['the only row'])
+    expect(await readNotesOfRepository(TEST_USER_ID, USE_APP_STATE)).toEqual([
+      'the only row',
+    ])
   })
 
   test('deleting a card keeps the project info of its repository, and the card added again reads it', async () => {
