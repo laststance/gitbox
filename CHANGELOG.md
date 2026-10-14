@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1.0] - 2026-10-14
+
+### Fixed
+
+- The list of boards no longer throws away the page the server sent (React error 418) when a board was made between midnight in UTC and midnight where you are. The day a board was made, and the day your account was linked on the account page, are shown in your own time zone once the page has loaded.
+- A shared board no longer throws away its page in a browser set to a language that writes 1.234 for 1,234: star counts are written the same way on the server and in the browser.
+
 ## [0.5.0.0] - 2026-10-14
 
 ### Removed
