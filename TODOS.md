@@ -265,7 +265,7 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 ### Polish left from the #215 design review
 
-**What:** (1) Use one wording for a card's data in the Remove and Move dialogs ("its note, links and comment" vs "Notes, links, and comments"). (2) Give the permanent-loss sentence of the Remove dialog visual emphasis. (3) Add a visible heading to the "not added" notice. (4) Soften "Reload the page and try again" in the add race message, since the picker now refreshes itself. (5) Drop selected repositories that are no longer addable when the picker reopens.
+**What:** (1) Use one wording for a card's data in the Remove and Move dialogs ("its note, links and comment" vs "Notes, links, and comments"). (2) Done by #216: the Remove dialog no longer has a permanent-loss sentence (the note, links and comment are kept). (3) Add a visible heading to the "not added" notice. (4) Soften "Reload the page and try again" in the add race message, since the picker now refreshes itself. (5) Drop selected repositories that are no longer addable when the picker reopens.
 
 **Why:** Small consistency and clarity gaps; none changes behavior.
 
@@ -351,6 +351,30 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 **Priority:** P2
 **Depends on:** None
 
+### Pin what #216's saves keep against a real database, and the other review leftovers
+
+**What:** Add data-access tests that send the exact payloads of `upsertProjectInfoCore`, `updateCommentCore` and `updateCommentColorCore` through the test user's client with `onConflict: 'user_id,repo_key'` (a comment save keeps the note and links, a note save keeps the comment and color, a color-only save makes a row with the column defaults), a test that deleting a user deletes their `projectinfo` rows, a test that a visitor cannot call `/rpc/projectinfo`, and a whitespace-only comment row in the `summarizeMemoryRow` table. Correct the header of `project-info-core.test.ts`, which says the e2e specs cover the upsert merge. Bring the JSDoc of `useRepoPlacements` (it returns `savedMemories` too) and the `CreatedRepoCard` example (its `comment` goes to the comment map, not to Redux) up to date. Keep the Delete Column dialog's title and card count while it fades out (it shows `""` and no card sentence for 200ms; on `main` it showed `"undefined"`).
+
+**Why:** The third review pass of #216 found these. Each was checked by hand before the merge (the functional QA of the review saved a comment over a note and read both back, and the local check as ryota-murakami deleted a comment and kept the note and two links), but no committed test pins them: a regression in the upsert payloads would silently wipe the memory #216 exists to keep. They were left out of #216 because a fix there would have been the review's fourth fixing cycle.
+
+**Context:** `e2e/logged-in/project-info-data-access.spec.ts`, `src/tests/unit/lib/actions/project-info-core.test.ts`, `src/tests/unit/lib/actions/saved-repository-memories.test.ts`, `src/hooks/board/useRepoPlacements.ts`, `src/lib/actions/repo-cards.ts`, `src/hooks/board/useStatusListDialog.ts`. The user deletion needs a throwaway user from the admin API, never a seeded one.
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** None
+
+### Harden #216's note paths against what its last review found
+
+**What:** Refuse a `/` in `repocard.repo_owner`, `repocard.repo_name` and the same columns of `projectinfo` with a check constraint, so the generated `repo_key` names the same repository as `repocard_unique_repo_per_user`. Hand the PostgREST error of a failed note read, note save or comment save to Sentry (`new Error(message, { cause: error })` and `error.code` in `extra`). Let `useNoteModal.open` drop an answer when another card was opened after it was sent. Let the server's comment win over a restored one in `BoardPageClient` (`{ ...restoredComments, ...initialData.comments }`). Say on the Account page that deleting the account deletes the notes, links and comments too.
+
+**Why:** The adversarial pass of #216's ship review found these. GitHub never puts a `/` in an owner or a name and the server actions refuse one, but a signed-in user can write the table through PostgREST: two cards `a/b`+`c` and `a`+`b/c` pass the card's key and collide in `repo_key`, which stops the migration (it rolls back). Production had 0 such cards out of 50 on 2026-10-15, and the rollout runbook checks again in its freeze window. A failed save now reaches Sentry as one generic message whatever the database said (42703 during the deploy window, 42501 for a card deleted in another tab, 23514 for a note over the limit). The other three are low: an earlier request answering last opens the wrong card's note, a restored comment shadows a newer server comment only if the board remounts, and the Account copy names boards, cards and settings only.
+
+**Context:** `supabase/migrations/20261014130000_projectinfo_belongs_to_repository.sql`, `src/lib/actions/project-info-core.ts`, `src/lib/actions/project-info.ts`, `src/hooks/board/useNoteModal.ts`, `src/app/board/[id]/BoardPageClient.tsx`, `src/app/account/AccountClient.tsx`. A constraint needs a migration that counts the rows it would refuse first.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
 ## Set Work Aside on Boards (#213): deferred follow-ups
 
 From the `/autoplan` review and the code review of issue #213 (a repository that is set aside is a card on an ordinary board). None of the follow-ups blocks that change.
@@ -359,7 +383,7 @@ From the `/autoplan` review and the code review of issue #213 (a repository that
 
 **What:** Add an action that reads a repository from GitHub again and rewrites the `meta` of its card (description, language, topics, stars, visibility, updated date), for one card and for a whole board.
 
-**Why:** `meta` is a snapshot from the moment a card is added and nothing updates it. A new description, star count, language or visibility on GitHub never reaches the card. Removing the card and adding it again would refresh it, but Remove from Board also deletes the note, links and comment.
+**Why:** `meta` is a snapshot from the moment a card is added and nothing updates it. A new description, star count, language or visibility on GitHub never reaches the card. Removing the card and adding it again refreshes it, and since #216 the note, links and comment come back with it, but the card loses its column and its place there.
 
 A repository that was renamed or transferred keeps its former owner and name on the card. GitHub answers the former name with the repository at its new place, so the card still opens. But the picker compares names: it offers the repository under its new name as one that sits on no board, and it can be added a second time. Seen on 2026-10-12 in the local check of issue #213, with one migrated card whose repository had moved from the organization to the owner's account.
 
