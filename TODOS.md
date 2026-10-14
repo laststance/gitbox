@@ -343,7 +343,7 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 **What:** In `handleSave` of `useNoteModalDraft`, delete the draft after a successful save only when it is still the draft that save sent (compare its `lastModified`, which `updateDraftNote` stores, with the value at the moment Save was pressed).
 
-**Why:** Since #216 the draft is deleted when the server has answered, not when Save is pressed, so a refused save keeps the text. If the user opens the same note again while the save is on its way, types and closes the dialog, the answer that arrives then deletes the newer draft and those edits are gone. The window is one server round trip (a few hundred milliseconds on production). Found by CodeRabbit on #216's PR; left out of #216 because a fix there would have been the review's third fixing cycle.
+**Why:** The draft is deleted when the server has answered, not when Save is pressed. It was before #216 too; #216 made a refused save keep the text. If the user opens the same note again while the save is on its way, types and closes the dialog, the answer that arrives then deletes the newer draft and those edits are gone. The window is one server round trip (a few hundred milliseconds on production). Found by CodeRabbit on #216's PR; left out of #216 because a fix there would have been the review's third fixing cycle.
 
 **Context:** `handleSave` and `deleteDraftNote` in `src/hooks/board/useNoteModalDraft.ts`, the `draft` slice. A test holds the save's promise open, reopens, edits, closes, then resolves it.
 

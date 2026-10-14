@@ -174,7 +174,7 @@ echo "RUN=$RUN"
 gh run watch $RUN --repo laststance/gitbox --exit-status
 ```
 
-Expected: `RUN` is a number and the run ends green in about 35 seconds. Its log shows the notice with the number of rows that now belong to a repository, which equals the line count of the manifest. A red run changed nothing: section 7.
+Expected: `RUN` is a number and the run ends green in about 35 seconds. Its log names the migration and shows no row count: `supabase db push` does not print a migration's notice (run 38599299887, 2026-10-15), so section 5 counts the rows. A red run changed nothing: section 7.
 
 ## 5. After the run
 
