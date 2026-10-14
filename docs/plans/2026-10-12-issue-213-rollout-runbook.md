@@ -741,6 +741,8 @@ Fixing the migration file: a push to `main` that touches `supabase/migrations/` 
 
 Between the migration and the moment the new build is live, a few minutes, the build before this PR runs on the new schema. That is the first row of the second table for those minutes: adding repositories fails until the new build serves the page.
 
+The push to `main` starts the migration run and the Vercel build at the same moment, and the migration run usually ends first. When the new build is live before the run has applied `20261012085900`, creating a board answers "The board was not created. Try again." and a first sign-in lands on an empty board list (Sentry: PGRST202 or 42883) until the run has finished: the new build calls a function that is not there yet. Nothing is written. Watch the migration run first; once it is green, the second row of the second table applies.
+
 While the removal has not run, the new build works on a schema that still has the table (the plan's table of builds and schemas says what works). The entries are intact and shown nowhere. Do not add a repository that is in Maintenance to a board in that state: the card would make the migration refuse. When it happened all the same, section 7 resolves it.
 
 When the migration succeeded and section 6 shows a wrong result: the lines of the manifest comparison name the rows. Rebuild them by hand from the dump of section 5; its `maintenance` inserts target a table that no longer exists, so the file is a source of values and is not replayed. Point-in-time recovery is the last resort: it also takes back every other write made since.
