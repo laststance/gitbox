@@ -19,7 +19,10 @@ import {
   deleteStatusList,
 } from '@/lib/actions/board'
 import type { StatusListDomain } from '@/lib/models/domain'
-import { setStatusLists } from '@/lib/redux/slices/boardSlice'
+import {
+  removeStatusListWithCards,
+  setStatusLists,
+} from '@/lib/redux/slices/boardSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { StatusListId } from '@/lib/types/brands'
 
@@ -223,11 +226,9 @@ export function useStatusListDialog({
 
     try {
       await deleteStatusList(pendingDeleteStatusId, boardId)
-      // Update Redux
-      const filteredLists = statusLists.filter(
-        (s) => s.id !== pendingDeleteStatusId,
-      )
-      dispatch(setStatusLists(filteredLists))
+      // The cards went with the column: drop them too, so the picker offers
+      // their repositories again on this board (issue #216)
+      dispatch(removeStatusListWithCards(pendingDeleteStatusId))
       toast.success('Column deleted', {
         description: `"${targetStatus.title}" has been deleted.`,
       })

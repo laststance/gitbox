@@ -14,7 +14,6 @@ import {
   MOCK_USER_ID,
   MOCK_BOARD_ID,
   MOCK_STATUS_IDS,
-  MOCK_CARD_ID,
   mockUser,
   mockSession,
   mockBoards,
@@ -409,26 +408,10 @@ export const supabaseDbHandlers: HttpHandler[] = [
   /**
    * GET /rest/v1/projectinfo - List project info
    *
-   * Supports filtering by repo_card_id for batch comment fetching.
-   * Also supports Supabase "in" filter for multiple IDs.
+   * Supports the standard PostgREST filters, e.g. repo_key=eq.laststance/nsx.
    */
   http.get(`${SUPABASE_URL}/rest/v1/projectinfo`, ({ request }) => {
     const params = getSearchParams(request)
-
-    // Handle Supabase "in" filter for batch fetching (e.g., repo_card_id=in.(card-1,card-2))
-    const repoCardIdParam = params.get('repo_card_id')
-    if (repoCardIdParam?.startsWith('in.(')) {
-      const idsMatch = repoCardIdParam.match(/in\.\((.+)\)/)
-      if (idsMatch?.[1]) {
-        const ids = idsMatch[1].split(',')
-        const filtered = mockProjectInfo.filter((p) =>
-          ids.includes(p.repo_card_id),
-        )
-        return HttpResponse.json(filtered)
-      }
-    }
-
-    // Standard PostgREST filter
     const filtered = filterByParams(mockProjectInfo, params)
     return HttpResponse.json(filtered)
   }),
@@ -441,7 +424,9 @@ export const supabaseDbHandlers: HttpHandler[] = [
 
     const newProjectInfo = {
       id: `projinfo-${Date.now()}`,
-      repo_card_id: body.repo_card_id || MOCK_CARD_ID,
+      user_id: MOCK_USER_ID,
+      repo_owner: body.repo_owner || 'testuser',
+      repo_name: body.repo_name || 'test-repo',
       note: body.note || '',
       comment: body.comment || '',
       links: body.links || [],
@@ -465,7 +450,9 @@ export const supabaseDbHandlers: HttpHandler[] = [
 
     const updated = {
       id: 'projinfo-1',
-      repo_card_id: MOCK_CARD_ID,
+      user_id: MOCK_USER_ID,
+      repo_owner: 'testuser',
+      repo_name: 'test-repo',
       note: body.note || 'Updated notes',
       comment: body.comment || 'Updated comment',
       links: body.links || [],

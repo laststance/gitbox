@@ -551,12 +551,28 @@ export async function resetRepoCards(): Promise<void> {
     }
   }
 
-  // Re-insert projectinfo rows that were deleted by CASCADE when repocards
-  // were deleted above. Card5 intentionally has no projectinfo (seed.sql design).
+  // A repository keeps its project info when its card goes (issue #216), so a
+  // row that an earlier test wrote, for a repository it added and removed
+  // again, would come back with the next add or mark it in the picker. Delete
+  // every row of the test user and put the seed rows back. Card5 intentionally
+  // has no projectinfo (seed.sql design).
+  const { error: projectInfoDeleteError } = await supabase
+    .from('projectinfo')
+    .delete()
+    .eq('user_id', TEST_USER_ID)
+  if (projectInfoDeleteError) {
+    throw new Error(
+      `resetRepoCards: projectinfo delete failed: ${projectInfoDeleteError.message}`,
+    )
+  }
+
+  // The service role has no auth.uid(), so user_id is passed explicitly
   const seedProjectInfos = [
     {
       id: PROJECT_INFO_IDS.projinfo1,
-      repo_card_id: CARD_IDS.card1,
+      user_id: TEST_USER_ID,
+      repo_owner: 'testuser',
+      repo_name: 'test-repo',
       note: 'Important project notes here',
       comment: 'npmリリース完了、当分は機能追加予定なし',
       comment_color: 'primary',
@@ -567,7 +583,9 @@ export async function resetRepoCards(): Promise<void> {
     },
     {
       id: PROJECT_INFO_IDS.projinfo2,
-      repo_card_id: CARD_IDS.card2,
+      user_id: TEST_USER_ID,
+      repo_owner: 'testuser',
+      repo_name: 'another-repo',
       note: 'Another repo notes',
       comment: 'プロトタイプ作ったけど微妙、差分表示エディタで苦戦中',
       comment_color: 'primary',
@@ -575,7 +593,9 @@ export async function resetRepoCards(): Promise<void> {
     },
     {
       id: PROJECT_INFO_IDS.projinfo3,
-      repo_card_id: CARD_IDS.card3,
+      user_id: TEST_USER_ID,
+      repo_owner: 'laststance',
+      repo_name: 'create-react-app-vite',
       note: '',
       comment: '',
       comment_color: 'primary',
@@ -583,7 +603,9 @@ export async function resetRepoCards(): Promise<void> {
     },
     {
       id: PROJECT_INFO_IDS.projinfo4,
-      repo_card_id: CARD_IDS.card4,
+      user_id: TEST_USER_ID,
+      repo_owner: 'laststance',
+      repo_name: 'nsx',
       note: 'CLI tool documentation',
       comment: 'v2.0リリース準備中',
       comment_color: 'primary',
@@ -592,12 +614,10 @@ export async function resetRepoCards(): Promise<void> {
   ]
 
   for (const info of seedProjectInfos) {
-    const { error } = await supabase
-      .from('projectinfo')
-      .upsert(info, { onConflict: 'id' })
+    const { error } = await supabase.from('projectinfo').insert(info)
     if (error) {
       throw new Error(
-        `resetRepoCards: projectinfo upsert failed for id=${info.id}: ${error.message}`,
+        `resetRepoCards: projectinfo insert failed for id=${info.id}: ${error.message}`,
       )
     }
   }

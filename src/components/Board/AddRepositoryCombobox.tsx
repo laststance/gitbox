@@ -29,6 +29,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { BoardId, StatusListId } from '@/lib/types/brands'
 import type { RepoIdentifier } from '@/lib/types/domain-primitives'
+import { formatSavedMemoryLabel } from '@/lib/utils/saved-memory-label'
 import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
 
 import { HeldRepositoryList, type HeldRepository } from './HeldRepositoryList'
@@ -167,8 +168,21 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   } = useRepositoryCatalog(isOpen, statusId)
 
   // Where the user's repositories already live; fetched on every opening
-  const { placements, isLoadingPlacements, refreshPlacements } =
+  const { placements, savedMemories, isLoadingPlacements, refreshPlacements } =
     useRepoPlacements(isOpen)
+
+  // Repository (lowercase owner/name) → what comes back when it is added
+  // again: "Saved: note, 3 links, comment" (issue #216)
+  const savedMemoryLabels = useMemo(
+    () =>
+      new Map(
+        (savedMemories ?? []).map((memory) => [
+          memory.identifier,
+          formatSavedMemoryLabel(memory),
+        ]),
+      ),
+    [savedMemories],
+  )
 
   // Filters (organizationFilter persisted to localStorage via Redux)
   const dispatch = useAppDispatch()
@@ -639,6 +653,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                     const isSelected = selectedRepos.some(
                       (r) => r.id === repo.id,
                     )
+                    const savedLabel = savedMemoryLabels.get(
+                      repo.full_name.toLowerCase(),
+                    )
                     return (
                       <div
                         key={repo.id}
@@ -679,6 +696,14 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                                 {repo.language}
                               </span>
                             )}
+                            {savedLabel && (
+                              <span
+                                data-testid="saved-memory-label"
+                                className="border-border rounded border border-dashed px-1.5 py-0.5"
+                              >
+                                {savedLabel}
+                              </span>
+                            )}
                           </div>
                         </div>
                         {isSelected && <span className="ml-2">✓</span>}
@@ -689,6 +714,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
               ) : (
                 filteredRepositories.map((repo) => {
                   const isSelected = selectedRepos.some((r) => r.id === repo.id)
+                  const savedLabel = savedMemoryLabels.get(
+                    repo.full_name.toLowerCase(),
+                  )
                   return (
                     <div
                       key={repo.id}
@@ -718,6 +746,14 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                           {repo.language && (
                             <span className="bg-muted rounded px-1.5 py-0.5">
                               {repo.language}
+                            </span>
+                          )}
+                          {savedLabel && (
+                            <span
+                              data-testid="saved-memory-label"
+                              className="border-border rounded border border-dashed px-1.5 py-0.5"
+                            >
+                              {savedLabel}
                             </span>
                           )}
                         </div>

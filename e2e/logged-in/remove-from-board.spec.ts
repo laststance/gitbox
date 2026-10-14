@@ -81,16 +81,11 @@ test.describe('Remove from Board Feature', () => {
     const title = alertDialog.getByText('Remove Repository from Board?')
     await expect(title).toBeVisible()
 
-    // Verify dialog description states what is lost and what is not:
-    // removing a card deletes its note, links and comment for good (Issue #215)
+    // Verify dialog description states what is kept: the note, links and
+    // comment stay with the repository (Issue #216)
     await expect(
       alertDialog.getByText(
-        /permanently deletes its note, links and comment\. Adding the repository again will not restore them\./,
-      ),
-    ).toBeVisible()
-    await expect(
-      alertDialog.getByText(
-        /To keep them, use Move to Another Board instead\./,
+        /Its note, links and comment are kept: they come back when you add the repository to a board again\./,
       ),
     ).toBeVisible()
     await expect(

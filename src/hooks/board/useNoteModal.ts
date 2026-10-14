@@ -9,6 +9,7 @@
  */
 
 import { useState, useCallback } from 'react'
+import { toast } from 'sonner'
 
 import {
   getProjectInfo,
@@ -89,14 +90,17 @@ export function useNoteModal({
       setCardTitle(card.title)
 
       const result = await getProjectInfo(targetCardId)
-      if (result.success && result.data) {
-        setInitialNote(result.data.note || '')
-        setInitialLinks(result.data.links || [])
-      } else {
-        setInitialNote('')
-        setInitialLinks([])
+      // An empty editor over a note that could not be read would let a save
+      // overwrite the note with nothing: say so and stay closed
+      if (!result.success) {
+        toast.error('Failed to load project info', {
+          description: result.error,
+        })
+        return
       }
 
+      setInitialNote(result.data?.note || '')
+      setInitialLinks(result.data?.links || [])
       setIsOpen(true)
     },
     [repoCards],
@@ -121,10 +125,15 @@ export function useNoteModal({
     async (note: string, links: ProjectLink[]) => {
       if (!cardId) return
 
-      await upsertProjectInfo(cardId, {
+      const result = await upsertProjectInfo(cardId, {
         note,
         links,
       })
+      // A refused save has to reach the caller as an error, or the draft is
+      // deleted with the typed text in it
+      if (!result.success) {
+        throw new Error(result.error)
+      }
     },
     [cardId],
   )

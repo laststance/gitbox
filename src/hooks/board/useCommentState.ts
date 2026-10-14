@@ -26,7 +26,13 @@ import type { CommentColor } from '@/lib/supabase/types'
 const DEFAULT_COMMENT: CommentData = { comment: '', color: 'primary' }
 
 interface UseCommentStateParams {
-  /** Initial comments fetched by Server Component (Phase 4) */
+  /**
+   * Comments fetched by the Server Component, plus the comments that
+   * repositories added on this page brought back (issue #216). A card id that
+   * appears here later is adopted; entries already in the state keep their
+   * local edits. A new object is compared by identity during render, so pass
+   * the same object until it changes (a fresh `{}` each render never settles).
+   */
   initialComments: Record<string, CommentData>
 }
 
@@ -63,6 +69,15 @@ export function useCommentState(
 
   const [comments, setComments] =
     useState<Record<string, CommentData>>(initialComments)
+  const [adoptedComments, setAdoptedComments] = useState(initialComments)
+
+  // The prop changed (a repository was added again): adopt the cards this
+  // state has not seen, during render, as React recommends for state that
+  // follows a prop. A card already here keeps what the user did to it.
+  if (initialComments !== adoptedComments) {
+    setAdoptedComments(initialComments)
+    setComments((previous) => addUnseenComments(previous, initialComments))
+  }
 
   const applyOptimisticUpdate = useCallback(
     async (
@@ -142,4 +157,25 @@ export function useCommentState(
     handleCommentColorChange,
     handleCommentDelete,
   }
+}
+
+/**
+ * Add the comments of cards that a comment map does not hold yet.
+ *
+ * @param current - The comments the board shows now.
+ * @param incoming - Comments from the server or from an add.
+ * @returns `current` with every card id of `incoming` it lacked; `current`
+ *   itself when nothing is new, so React skips the re-render.
+ * @example
+ * addUnseenComments({ a: x }, { a: y, b: z }) // => { a: x, b: z }
+ */
+function addUnseenComments(
+  current: Record<string, CommentData>,
+  incoming: Record<string, CommentData>,
+): Record<string, CommentData> {
+  const unseenEntries = Object.entries(incoming).filter(
+    ([cardId]) => !(cardId in current),
+  )
+  if (unseenEntries.length === 0) return current
+  return { ...current, ...Object.fromEntries(unseenEntries) }
 }

@@ -12,10 +12,11 @@
  */
 
 import { configureStore } from '@reduxjs/toolkit'
-import { renderHook } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { Provider } from 'react-redux'
-import { describe, expect, test, vi } from 'vitest'
+import { toast } from 'sonner'
+import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { useNoteModalDraft } from '@/hooks/board/useNoteModalDraft'
 import draftReducer from '@/lib/redux/slices/draftSlice'
@@ -79,5 +80,92 @@ describe('useNoteModalDraft', () => {
     expect(noteDraft.charCountClass).toBe(
       'text-sm text-right text-muted-foreground',
     )
+  })
+
+  describe('saving', () => {
+    beforeEach(() => {
+      vi.mocked(toast.success).mockClear()
+      vi.mocked(toast.error).mockClear()
+    })
+
+    /**
+     * Renders the hook for an open note dialog with its own store and save.
+     * @param onSave - What saving does (the server action behind it).
+     * @returns The hook's result and the store, to read the draft.
+     * @example
+     * renderNoteDialog(vi.fn().mockResolvedValue(undefined)).store.getState().draft
+     */
+    function renderNoteDialog(onSave: () => Promise<void>) {
+      const store = configureStore({ reducer: { draft: draftReducer } })
+      const hook = renderHook(
+        () =>
+          useNoteModalDraft({
+            cardId: toRepoCardId('card-1'),
+            initialNote: 'old note',
+            initialLinks: [],
+            isOpen: true,
+            onSave,
+            onClose: vi.fn(),
+            cardTitle: 'laststance/gitbox',
+          }),
+        {
+          wrapper: ({ children }: { children: ReactNode }) => (
+            <Provider store={store}>{children}</Provider>
+          ),
+        },
+      )
+      return { ...hook, store }
+    }
+
+    // Value: protects=a note the server refused is not lost (issue #216 review, Codex O1); fails_when=handleSave deletes the draft or says "saved" for a refused save again; why_new=no test saved a note through this hook; seam=none; no_claim=the server action's own refusal (mocked onSave)
+    test('keeps the typed note as a draft and says the save failed when the server refuses it', async () => {
+      // Arrange
+      const onSave = vi
+        .fn()
+        .mockRejectedValue(new Error('Failed to save project information'))
+      const { result, store } = renderNoteDialog(onSave)
+      act(() => {
+        result.current.handleNoteChange('typed before the refusal')
+      })
+
+      // Act
+      await act(async () => {
+        await result.current.handleSave()
+      })
+
+      // Assert
+      expect(
+        store.getState().draft.notes[toRepoCardId('card-1')]?.content,
+      ).toBe('typed before the refusal')
+      expect(toast.success).not.toHaveBeenCalled()
+      expect(toast.error).toHaveBeenCalledWith('Failed to save project info', {
+        description:
+          'Failed to save project information Your text is kept: open the note again to save it.',
+      })
+    })
+
+    // Value: protects="saved" is said only for a save the server confirmed; fails_when=the success toast comes before the answer again, or the draft stays after a save; why_new=no test saved a note through this hook; seam=none; no_claim=none beyond protects
+    test('says the note was saved only after the server confirmed it, and drops the draft', async () => {
+      // Arrange
+      const onSave = vi.fn().mockResolvedValue(undefined)
+      const { result, store } = renderNoteDialog(onSave)
+      act(() => {
+        result.current.handleNoteChange('a saved note')
+      })
+
+      // Act
+      await act(async () => {
+        await result.current.handleSave()
+      })
+
+      // Assert
+      expect(onSave).toHaveBeenCalledWith('a saved note', [])
+      expect(
+        store.getState().draft.notes[toRepoCardId('card-1')],
+      ).toBeUndefined()
+      expect(toast.success).toHaveBeenCalledWith('Project info saved', {
+        description: 'Note and links for laststance/gitbox have been saved.',
+      })
+    })
   })
 })

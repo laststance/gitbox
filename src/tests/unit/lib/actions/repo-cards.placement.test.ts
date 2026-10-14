@@ -311,6 +311,8 @@ describe('addRepositoriesToBoard', () => {
             meta: { stars: 0, visibility: 'public', githubId: 1001 },
             created_at: '2026-10-11T00:00:00Z',
             updated_at: '2026-10-11T00:00:00Z',
+            // Nothing saved for this repository
+            projectinfo: null,
           },
         ],
         error: null,
@@ -358,6 +360,7 @@ describe('addRepositoriesToBoard', () => {
             meta: { stars: 0, visibility: 'public', githubId: 1001 },
             createdAt: '2026-10-11T00:00:00Z',
             updatedAt: '2026-10-11T00:00:00Z',
+            comment: { comment: '', color: 'primary' },
           },
         ],
         skipped: [
@@ -370,6 +373,46 @@ describe('addRepositoriesToBoard', () => {
           },
         ],
       },
+    })
+  })
+
+  // Value: protects=a repository added again shows the comment it kept, on the new card, without a reload (issue #216); fails_when=the insert stops selecting projectinfo or the comment is not mapped to CreatedRepoCard.comment; why_new=the add test only covers a repository with nothing saved; seam=none; no_claim=that the database returns the row (repository-memory.spec.ts runs it against PostgREST)
+  test('gives a card added again the comment its repository kept', async () => {
+    // Arrange
+    signInWithSupabaseStub({
+      repocard: { data: [], error: null },
+      repocardSingle: { data: null, error: null },
+      insert: {
+        data: [
+          {
+            id: 'card-10',
+            board_id: 'board-1',
+            status_id: 'status-1',
+            repo_owner: 'laststance',
+            repo_name: 'nsx',
+            order: 0,
+            meta: { stars: 0, visibility: 'public', githubId: 1001 },
+            created_at: '2026-10-14T00:00:00Z',
+            updated_at: '2026-10-14T00:00:00Z',
+            projectinfo: {
+              comment: 'v2.0リリース準備中',
+              comment_color: 'blue',
+            },
+          },
+        ],
+        error: null,
+      },
+    })
+
+    // Act
+    const result = await addRepositoriesToBoard('board-1', 'status-1', [
+      makeRepository('laststance', 'nsx'),
+    ])
+
+    // Assert
+    expect(result.success && result.data.cards[0]?.comment).toEqual({
+      comment: 'v2.0リリース準備中',
+      color: 'blue',
     })
   })
 

@@ -31,9 +31,20 @@ import { NewRowDropZone } from './NewRowDropZone'
 import { SortableColumn } from './SortableColumn'
 import { COLUMN_DRAG_TYPE } from './StatusColumn'
 
+/**
+ * The comments of a board rendered without any. One object for every render:
+ * {@link useCommentState} adopts a new `initialComments` object during render,
+ * so a fresh `{}` each time would never settle.
+ */
+const NO_COMMENTS: Record<string, CommentData> = {}
+
 interface KanbanBoardProps {
   boardId?: string
-  /** Initial comments fetched by Server Component (Phase 4) */
+  /**
+   * Comments fetched by the Server Component, plus those that repositories
+   * added again brought back (issue #216). Keep the object stable between
+   * renders unless it changed.
+   */
   initialComments?: Record<string, CommentData>
   /** Card display settings from board.settings JSON */
   cardDisplaySettings?: CardDisplaySettings
@@ -88,7 +99,9 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       handleCommentChange,
       handleCommentColorChange,
       handleCommentDelete,
-    } = useCommentState({ initialComments: initialComments ?? {} })
+    } = useCommentState({
+      initialComments: initialComments ?? NO_COMMENTS,
+    })
 
     // Failed-save rollbacks that never overwrite a board that changed meanwhile
     const { rollbackRepoCards, rollbackStatusLists } = useBoardRollback()

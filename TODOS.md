@@ -137,7 +137,7 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 **Why:** A renamed repo can be added a second time under its new name.
 
-**Context:** New cards store `meta.githubId` as an untrusted client hint. A backfill must re-verify every id against the GitHub API before any constraint uses it.
+**Context:** New cards store `meta.githubId` as an untrusted client hint. A backfill must re-verify every id against the GitHub API before any constraint uses it. Since #216 the note, links and comment of a repository are keyed by `owner/name` too (`projectinfo.repo_key`, unique per user): a repository renamed or transferred on GitHub and added again under its new name starts empty, while its memory waits under the old name. The `projectinfo` key and the computed relationship `projectinfo(repocard)` have to move to the GitHub id together with the card's key.
 
 **Effort:** L
 **Priority:** P3
@@ -239,13 +239,13 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 **Priority:** P3
 **Depends on:** None
 
-### Keep Redux in step when a column is deleted, and drop late picker notices
+### Drop late picker notices
 
-**What:** (1) When a column is deleted, also remove its cards from the Redux store. (2) When an add finishes after the picker was closed, do not show its error or "not added" notice on the next opening.
+**What:** When an add finishes after the picker was closed, do not show its error or "not added" notice on the next opening.
 
-**Why:** (1) The database deletes the column's cards by cascade, but the store keeps them until reload: an undo can bring such a card back on screen although its row is gone, and the picker hides its repository as already on this board. (2) Cancel and Escape stay enabled while an add is running, so its result can arrive on a closed picker; a later opening through a column's "Add Repo" button then shows that old notice.
+**Why:** Cancel and Escape stay enabled while an add is running, so its result can arrive on a closed picker; a later opening through a column's "Add Repo" button then shows that old notice.
 
-**Context:** Found by the red team pass of #215; both are older than that change. `src/hooks/board/useStatusListDialog.ts` (`confirmDelete`), `src/components/Board/AddRepositoryCombobox.tsx` (`handleAddRepositories`, `openForStatus` in `useAddRepositoryCombobox`). Placements refreshed after close are already ignored by `useRepoPlacements`.
+**Context:** Found by the red team pass of #215; older than that change. `src/components/Board/AddRepositoryCombobox.tsx` (`handleAddRepositories`, `openForStatus` in `useAddRepositoryCombobox`). Placements refreshed after close are already ignored by `useRepoPlacements`. The other half of this item (the cards of a deleted column stayed in the Redux store, so the picker hid their repositories until a reload) was fixed with #216 (`removeStatusListWithCards`). An undo can still bring such a card back on screen although its row is gone: the undo history keeps it.
 
 **Effort:** S
 **Priority:** P2
@@ -272,6 +272,34 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 **Context:** `src/components/Board/OverflowMenu.tsx`, `src/components/Modals/MoveToAnotherBoardDialog.tsx`, `src/components/Board/AddRepositoryCombobox.tsx`, `ADD_RACE_MESSAGE` in `src/lib/actions/repo-card-duplicates.ts`. The copy is asserted in unit and E2E tests.
 
 **Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+## Repository Memory (#216) — deferred follow-ups
+
+From the `/plan-eng-review` of issue #216 (a repository keeps its note, links and comment when its card goes). None blocks that change.
+
+### Page the saved-memory lookup beyond 1000 rows
+
+**What:** Page through `projectinfo` in `lookupSavedRepositoryMemories` instead of stopping at the PostgREST `max_rows` cap.
+
+**Why:** A user with more than 1000 saved repositories gets some picker rows without their `Saved: ...` mark. Adding such a repository still brings its memory back: the mark is the only thing missing.
+
+**Context:** The lookup in `src/lib/actions/saved-repository-memories.ts` reads every row of the user and sends one Sentry warning when it returns 1000 rows or more. Page it the way the placement lookup item above proposes (`.range()` pages ordered by `id`), or ask only for the repositories the picker lists.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### List more than 1000 repositories of a source in the picker
+
+**What:** Let the Add Repositories catalog page past 1000 repositories per user or organization.
+
+**Why:** A repository beyond that cap is never listed, so it can neither be added nor show that something is saved for it.
+
+**Context:** Measured during the #216 review: the owner sees 212 repositories, far below the cap. Revisit when a source comes near it.
+
+**Effort:** M
 **Priority:** P3
 **Depends on:** None
 
@@ -525,6 +553,18 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 **Priority:** P3
 **Depends on:** None
 
+### Give the drag context of the boards list a stable id
+
+**What:** Pass an `id` to the `DndContext` of `BoardGrid` (`src/components/Boards/BoardGrid.tsx`), so the server and the browser name its description element alike.
+
+**Why:** Seen on 2026-10-14 during the local check of #216 with `next dev`: hydrating `/boards` logged a mismatch of the drag handle's `aria-describedby` (`DndDescribedBy-0` on the server, `DndDescribedBy-1` in the browser). dnd-kit counts its ids per module, so the count depends on what rendered before. React does not patch attributes up, so a screen reader may be pointed at an element that does not exist.
+
+**Context:** `DndContext` takes an `id` prop for server rendering. Check the board's `DndContext` in `KanbanBoard` the same way. A browser test cannot see this yet (see the item above).
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
 ### Read what is being dragged from dnd-kit, not from a copy
 
 **What:** Take "a column is being dragged" from dnd-kit's own state (`useDndContext().active`, read by a component inside `DndContext`) and drop `activeId` and `activeDragType` of `useKanbanDnD`, which `handleDragStart` sets and `handleDragEnd` and `handleDragCancel` clear.
@@ -699,7 +739,7 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 **Why:** Delete a column, then press Z while an earlier column move is on the stack: the whole earlier column list is put back, the deleted column included. The position update for its id matches no row and reports success, so nothing is rolled back and the column stays on screen until reload.
 
-**Context:** `handleUndo` in `src/hooks/board/useKanbanUndo.ts` (the card path filters against the current cards, the column path does not), `confirmDelete` in `src/hooks/board/useStatusListDialog.ts`. Older than this change. Related: "Keep Redux in step when a column is deleted, and drop late picker notices" and "Fail a card or column move that matched no row".
+**Context:** `handleUndo` in `src/hooks/board/useKanbanUndo.ts` (the card path filters against the current cards, the column path does not), `confirmDelete` in `src/hooks/board/useStatusListDialog.ts`. Older than this change. Related: "Drop late picker notices" (whose other half, the cards of a deleted column left in the store, #216 fixed) and "Fail a card or column move that matched no row".
 
 **Effort:** S
 **Priority:** P3

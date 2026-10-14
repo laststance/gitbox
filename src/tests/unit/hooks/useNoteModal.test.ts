@@ -9,12 +9,17 @@
  */
 
 import { renderHook, act } from '@testing-library/react'
+import { toast } from 'sonner'
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { useNoteModal } from '@/hooks/board/useNoteModal'
 import { getProjectInfo, upsertProjectInfo } from '@/lib/actions/project-info'
 import type { RepoCardForRedux } from '@/lib/models/domain'
 import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
+
+vi.mock('sonner', () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}))
 
 // Mock server actions
 vi.mock('@/lib/actions/project-info', () => ({
@@ -121,23 +126,27 @@ describe('useNoteModal', () => {
       expect(result.current.initialLinks).toEqual([])
     })
 
-    test('should handle fetch error gracefully', async () => {
+    // Value: protects=a note that could not be read is never shown as empty, where a save would overwrite it with nothing (issue #216 review, Codex O1); fails_when=open() opens an empty editor on a failed read again; why_new=the old test asserted the empty editor; seam=none; no_claim=the real read failure (mocked action)
+    test('keeps the note dialog closed and says why when the note cannot be read', async () => {
+      // Arrange
       mockGetProjectInfo.mockResolvedValueOnce({
         success: false,
         error: 'Network error',
       })
-
       const { result } = renderHook(() =>
         useNoteModal({ repoCards: mockRepoCards }),
       )
 
+      // Act
       await act(async () => {
         await result.current.open(toRepoCardId('card-1'))
       })
 
-      expect(result.current.isOpen).toBe(true)
-      expect(result.current.initialNote).toBe('')
-      expect(result.current.initialLinks).toEqual([])
+      // Assert
+      expect(result.current.isOpen).toBe(false)
+      expect(toast.error).toHaveBeenCalledWith('Failed to load project info', {
+        description: 'Network error',
+      })
     })
 
     test('should not open when card is not found', async () => {
@@ -190,6 +199,31 @@ describe('useNoteModal', () => {
   })
 
   describe('save()', () => {
+    // Value: protects=a refused save reaches the dialog as an error, so the draft is kept (issue #216 review, Codex O1); fails_when=save() ignores the action's { success: false } again; why_new=the save tests only covered success; seam=none; no_claim=the database refusal itself (mocked action)
+    test('rejects with the server message when the save is refused', async () => {
+      // Arrange
+      mockGetProjectInfo.mockResolvedValueOnce({
+        success: true,
+        data: { note: 'Old note', comment: '', links: [] },
+      })
+      mockUpsertProjectInfo.mockResolvedValueOnce({
+        success: false,
+        error: 'Failed to save project information',
+      })
+      const { result } = renderHook(() =>
+        useNoteModal({ repoCards: mockRepoCards }),
+      )
+      await act(async () => {
+        await result.current.open(toRepoCardId('card-1'))
+      })
+
+      // Act
+      const saving = result.current.save('New note', [])
+
+      // Assert
+      await expect(saving).rejects.toThrow('Failed to save project information')
+    })
+
     test('should save note and links to server', async () => {
       mockGetProjectInfo.mockResolvedValueOnce({
         success: true,

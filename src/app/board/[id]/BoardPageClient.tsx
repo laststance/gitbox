@@ -18,7 +18,7 @@
 import * as Sentry from '@sentry/nextjs'
 import { Link, Plus, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState, useCallback, memo } from 'react'
+import { useState, useCallback, useMemo, memo } from 'react'
 import { toast } from 'sonner'
 
 import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox'
@@ -48,6 +48,7 @@ import {
 } from '@/hooks/board'
 import { renameBoardDirect, updateBoardSubtitle } from '@/lib/actions/board'
 import type { BoardInitialData } from '@/lib/actions/board-data'
+import type { CommentData } from '@/lib/actions/project-info'
 import { deleteRepoCard, type CreatedRepoCard } from '@/lib/actions/repo-cards'
 import type { RepoCardForRedux } from '@/lib/models/domain'
 import {
@@ -137,6 +138,15 @@ export const BoardPageClient = memo(function BoardPageClient({
   // Move to Another Board Handler
   // ========================================
 
+  // Comments that repositories added on this page brought back (issue #216):
+  // the server's comments are read once per page load
+  const [restoredComments, setRestoredComments] = useState<
+    Record<string, CommentData>
+  >({})
+  const boardComments = useMemo(
+    () => ({ ...initialData.comments, ...restoredComments }),
+    [initialData.comments, restoredComments],
+  )
   const [moveDialogCardId, setMoveDialogCardId] = useState<RepoCardId | null>(
     null,
   )
@@ -269,7 +279,7 @@ export const BoardPageClient = memo(function BoardPageClient({
                 onRepositoriesAdded={(createdCards: CreatedRepoCard[]) => {
                   // Optimistic UI update: cards appear instantly without a reload.
                   const newCards: RepoCardForRedux[] = createdCards.map(
-                    (card) => ({
+                    ({ comment: _comment, ...card }) => ({
                       ...card,
                       title: `${card.repoOwner}/${card.repoName}`,
                       description:
@@ -278,6 +288,13 @@ export const BoardPageClient = memo(function BoardPageClient({
                     }),
                   )
                   dispatch(addRepoCards(newCards))
+                  // A repository added again shows the comment it kept (issue #216)
+                  setRestoredComments((previous) => ({
+                    ...previous,
+                    ...Object.fromEntries(
+                      createdCards.map((card) => [card.id, card.comment]),
+                    ),
+                  }))
                 }}
               />
               <Button
@@ -316,7 +333,7 @@ export const BoardPageClient = memo(function BoardPageClient({
         <div className="bg-background flex-1 overflow-x-auto overflow-y-auto">
           <KanbanBoard
             boardId={boardId}
-            initialComments={initialData.comments}
+            initialComments={boardComments}
             cardDisplaySettings={boardSettings.cardDisplaySettings}
             onMoveToAnotherBoard={handleMoveToAnotherBoard}
             onNote={noteModal.open}
@@ -396,9 +413,11 @@ export const BoardPageClient = memo(function BoardPageClient({
                 const cardCount = repoCards.filter(
                   (c) => c.statusId === statusListDialog.pendingDeleteStatusId,
                 ).length
+                // The cards go with the column; what was saved for their
+                // repositories stays (issue #216)
                 const cardSuffix =
                   cardCount > 0
-                    ? ` This will also remove ${cardCount} card${cardCount !== 1 ? 's' : ''} in this column.`
+                    ? ` This will also remove ${cardCount} card${cardCount !== 1 ? 's' : ''} in this column. The notes, links and comments of their repositories are kept for when you add them again.`
                     : ''
                 return `Are you sure you want to delete "${statusListDialog.pendingDeleteStatusTitle}"?${cardSuffix} This action cannot be undone.`
               })()}

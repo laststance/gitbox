@@ -112,6 +112,7 @@
 - **One repository, one card per user** ([#215](https://github.com/laststance/gitbox/issues/215)): a repository can sit on at most one of a user's boards. Identity is `owner/name`, case-insensitive. The database enforces it.
 - **Shared board**: on a board that is shared by a public link, the combobox says above its buttons that anyone who has the link will see the added repositories with their descriptions
 - **Already placed elsewhere**: the combobox lists repos held by another board (`On <board name>`) under their own heading, each with a link to that board, instead of offering them. Repos on the current board stay hidden. Placements are fetched every time the combobox opens.
+- **Repository memory** ([#216](https://github.com/laststance/gitbox/issues/216)): a repository keeps its note, links and comment when its card leaves the board (Remove from Board, Delete Column, Delete Board). Added again, to any board, the card shows them at once. The combobox marks a repository on no board that has something saved: `Saved: note, 3 links, comment`, naming only the parts that exist ("1 link" in the singular). A note or a comment counts when it holds more than whitespace, a link when it has a URL; a comment color alone does not. The marks are looked up with the placements; when that lookup fails the combobox shows no mark and still lists the placements. There is no screen that deletes a memory: to clear one, add the repository again and empty its note, links and comment. Deleting the account deletes every memory.
 - **Panel**: the combobox panel is 480px wide. From 640px of window width it stands below the Add Repositories button and ends at the right edge of the header, so all of it is on the page; below 640px it spans the screen. It ends above the bottom edge of the window, however far down its button stands: its two lists give up height and scroll by themselves, and the search box and Cancel / Add stay in view. Where less than 26rem would be left below the button, the panel moves up over the header instead, as far as the top edge of the window; and it follows its button when the header changes while the panel is open (the sidebar opens, the title is edited)
 - **First Board auto-creation**: On sign-in, a user who has no board gets a board named "First Board" with the Software Release columns (`createFirstBoardIfNeeded` in the OAuth callback; the board and its columns are written together by the `create_board_with_status_lists` database function)
 
@@ -121,6 +122,7 @@
 - D&D/Undo works smoothly
 - Organization selection persists across sessions
 - A repo held by another board cannot be added or moved in as a duplicate; the UI names the holding board
+- A repository removed from a board, or whose column or board was deleted, comes back with its note, links and comment when it is added again, whatever the letter case GitHub spells it in; the combobox marks it before that
 
 ### 3.2 Board (Kanban)
 
@@ -141,10 +143,10 @@
   - **General**: Rename board, subtitle edit form, "Show Subtitle" visibility toggle
   - **Cards**: Card display settings (description, comment, font size/weight)
   - **Sharing**: Public board toggle, share link generation/copy, and a line that says what the link shows (board name, subtitle, columns, each repository's name, description, language and stars) and what it hides (comments, notes, links)
-  - **Danger Zone**: Delete board with confirmation
+  - **Danger Zone**: Delete board with confirmation. The cards go with the board; the notes, links and comments of their repositories are kept (see Repository memory in 3.1)
 - **Public Board Sharing**: Make boards publicly viewable via unique share slug (read-only for visitors)
 - **Copy Link** (board header): Copies the public share link while the board is shared; otherwise the board's own address, with a note that only the owner can open it
-- **Move to Another Board**: Move repo cards between boards via dialog (DB RPC `move_card_to_board`). The card keeps its note, links and comment, so this is how a repository is set aside and brought back: move it to a board of your own, and move it again later
+- **Move to Another Board**: Move repo cards between boards via dialog (DB RPC `move_card_to_board`). The card keeps its note, links and comment
   - The dialog can create the destination board: **New Board...** under the board selector, or the create form directly when the user has no other board. A board made there has one column, "Repositories"
   - The dialog opens on the board the last move from this board went to, when that board is still offered (remembered in this browser). Without one it opens on the newest board that is not shared by a public link
   - A board that is shared by a public link carries the mark of a public board in the list. When it is the destination, the dialog says that anyone who has the link will see the repository there with its description, and that notes, links and comments stay private
@@ -152,7 +154,8 @@
   - While the move or a board creation waits for the server the dialog stays open and its controls are disabled. After 15 seconds without an answer it says that the outcome could not be confirmed and can be closed again. After every move that was not confirmed the board is fetched again, and the same move can be sent a second time without harm. That fetch waits until the request has settled, so the dialog offers **Reload page** next to the message of a move with an unknown outcome. A move the server itself could not confirm (the database gave it no answer) is shown the same way
   - A board creation that could not be confirmed is not sent a second time from the dialog, because the board may exist: **Reload boards** loads the list again and shows it. When the creation got no answer in 15 seconds its request is still running and that load would wait behind it, so **Reload page** takes the place of Reload boards
   - The keyboard focus is on the Board select once the boards are loaded, and after a request that did not go through on the control needed next (Move, the name field, Reload boards, Reload page)
-- **Remove from Board**: Deletes the card together with its note, links and comment, after a confirmation. The repository on GitHub is not affected
+- **Remove from Board**: Deletes the card after a confirmation. Its note, links and comment are kept and come back when the repository is added to a board again (see Repository memory in 3.1). The repository on GitHub is not affected
+- **Delete Column**: Deletes the column and its cards after a confirmation that counts them. The notes, links and comments of their repositories are kept
 - **Board D&D Reorder**: Drag & drop board cards on `/boards` page to reorder (position persisted to DB)
   - GripVertical drag handle (visible on hover)
   - Optimistic UI with `useOptimistic` + `useState` dual pattern
@@ -207,7 +210,7 @@ Full-featured WYSIWYG editor accessible from each RepoCard's Note button.
 
 ### 3.4 Project Info (Modal)
 
-Accessible from all RepoCards.
+Accessible from all RepoCards. What it holds belongs to the repository, not to the card: it outlives the card and comes back with the repository (see Repository memory in 3.1).
 
 #### Sections
 
@@ -487,7 +490,7 @@ Open Production URL
 Open Tracking dashboard
 Open Supabase dashboard
 Move to Another Board   // Dialog with board selector; keeps the note, links and comment
-Remove from Board       // Destructive, confirmation dialog; deletes the card with its note, links and comment
+Remove from Board       // Destructive, confirmation dialog; deletes the card, keeps its note, links and comment for when it is added again
 ```
 
 ### 4.2 Shortcuts (Unified)
@@ -731,7 +734,13 @@ repocard {
 -- ProjectInfo: Extended Project Details
 projectinfo {
   id uuid PRIMARY KEY,
-  repo_card_id uuid NOT NULL REFERENCES repocard (one-to-one),  -- a note, its links and its comment always belong to a card and go with it
+  user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users ON DELETE CASCADE,
+  repo_owner text NOT NULL,
+  repo_name text NOT NULL,
+  repo_key text GENERATED ALWAYS AS (lower(repo_owner) || '/' || lower(repo_name)) STORED,
+  -- one row per user and repository (projectinfo_unique_repo_per_user, #216): it stays when the card goes.
+  -- A card reads it through projectinfo(repocard), a computed relationship: repocard(..., projectinfo(...)).
+  -- RLS: a user reads and writes their own rows, and writes only for a repository that has a card of theirs.
   links jsonb,  -- {type, url, icon}[] - 55 built-in types
   note text,  -- Rich text (Plate Editor, max 20,000 chars)
   comment text,  -- Inline comment (max 2,000 chars)

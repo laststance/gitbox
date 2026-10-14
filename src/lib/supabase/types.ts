@@ -84,8 +84,11 @@ export type Database = {
           id: string
           links: Json | null
           note: string | null
-          repo_card_id: string
+          repo_key: string | null
+          repo_name: string
+          repo_owner: string
           updated_at: string | null
+          user_id: string
         }
         Insert: {
           comment?: string | null
@@ -94,8 +97,11 @@ export type Database = {
           id?: string
           links?: Json | null
           note?: string | null
-          repo_card_id: string
+          repo_key?: never
+          repo_name: string
+          repo_owner: string
           updated_at?: string | null
+          user_id?: string
         }
         Update: {
           comment?: string | null
@@ -104,18 +110,13 @@ export type Database = {
           id?: string
           links?: Json | null
           note?: string | null
-          repo_card_id?: string
+          repo_key?: never
+          repo_name?: string
+          repo_owner?: string
           updated_at?: string | null
+          user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: 'projectinfo_repo_card_id_fkey'
-            columns: ['repo_card_id']
-            isOneToOne: true
-            referencedRelation: 'repocard'
-            referencedColumns: ['id']
-          },
-        ]
+        Relationships: []
       }
       repocard: {
         Row: {
@@ -301,6 +302,28 @@ export type Database = {
           p_target_status_id: string
         }
         Returns: undefined
+      }
+      projectinfo: {
+        Args: { '': Database['public']['Tables']['repocard']['Row'] }
+        Returns: {
+          comment: string | null
+          comment_color: string | null
+          created_at: string | null
+          id: string
+          links: Json | null
+          note: string | null
+          repo_key: string | null
+          repo_name: string
+          repo_owner: string
+          updated_at: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: 'repocard'
+          to: 'projectinfo'
+          isOneToOne: true
+          isSetofReturn: true
+        }
       }
       swap_statuslist_positions: {
         Args: { id_a: string; id_b: string }

@@ -312,12 +312,15 @@ ON CONFLICT (id) DO NOTHING;
 -- 5. Create Project Info (Comments, Notes, Links)
 -- ============================================================================
 
-INSERT INTO projectinfo (id, repo_card_id, note, comment, comment_color, links, created_at, updated_at)
+-- A row belongs to a user and a repository (issue #216), not to a card: the
+-- cards below are where these repositories sit today.
+INSERT INTO projectinfo (id, user_id, repo_owner, repo_name, note, comment, comment_color, links, created_at, updated_at)
 VALUES
   -- ProjectInfo 1: For card-1 (testuser/test-repo)
   (
     '00000000-0000-0000-0000-000000000401'::uuid,
-    '00000000-0000-0000-0000-000000000301'::uuid,
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    'testuser', 'test-repo',
     'Important project notes here',
     'npmリリース完了、当分は機能追加予定なし',
     'primary',
@@ -331,7 +334,8 @@ VALUES
   -- ProjectInfo 2: For card-2 (testuser/another-repo)
   (
     '00000000-0000-0000-0000-000000000402'::uuid,
-    '00000000-0000-0000-0000-000000000302'::uuid,
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    'testuser', 'another-repo',
     'Another repo notes',
     'プロトタイプ作ったけど微妙、差分表示エディタで苦戦中',
     'primary',
@@ -342,7 +346,8 @@ VALUES
   -- ProjectInfo 3: For card-3 (empty comment for testing empty state)
   (
     '00000000-0000-0000-0000-000000000403'::uuid,
-    '00000000-0000-0000-0000-000000000303'::uuid,
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    'laststance', 'create-react-app-vite',
     '',
     '',
     'primary',
@@ -353,7 +358,8 @@ VALUES
   -- ProjectInfo 4: For card-4 (laststance/nsx)
   (
     '00000000-0000-0000-0000-000000000404'::uuid,
-    '00000000-0000-0000-0000-000000000304'::uuid,
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    'laststance', 'nsx',
     'CLI tool documentation',
     'v2.0リリース準備中',
     'primary',
@@ -362,7 +368,7 @@ VALUES
     '2024-01-04T00:00:00.000Z'::timestamptz
   )
 ON CONFLICT (id) DO NOTHING;
--- Note: card-5 intentionally has no projectinfo for testing when projectinfo doesn't exist
+-- Note: card-5 (laststance/use-app-state) intentionally has no projectinfo for testing when projectinfo doesn't exist
 
 -- ============================================================================
 -- User Settings (per-user page customization)

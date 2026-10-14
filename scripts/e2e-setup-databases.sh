@@ -153,6 +153,8 @@ setup() {
     db_exec psql -U "$PG_USER" -d "$DB_NAME" -c "
       REVOKE ALL ON FUNCTION public.create_board_with_status_lists(text, jsonb) FROM PUBLIC, anon;
       GRANT EXECUTE ON FUNCTION public.create_board_with_status_lists(text, jsonb) TO authenticated, service_role;
+      REVOKE ALL ON FUNCTION public.projectinfo(public.repocard) FROM PUBLIC, anon;
+      GRANT EXECUTE ON FUNCTION public.projectinfo(public.repocard) TO authenticated, service_role;
     " > /dev/null 2>&1
 
     # Start PostgREST container (internal only, no port mapping)

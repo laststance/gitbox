@@ -176,7 +176,10 @@ export function useNoteModalDraft({
 
   /**
    * Handle save button click.
-   * Uses optimistic update for instant feedback.
+   *
+   * The modal closes at once; "saved" is said only after the server answered.
+   * A refused or failed save keeps the draft, so the typed text is still there
+   * when the note is opened again.
    */
   const handleSave = useCallback(async () => {
     setIsSaving(true)
@@ -184,17 +187,18 @@ export function useNoteModalDraft({
     const validLinks = links.filter((link) => link.url)
 
     onClose()
-    toast.success('Project info saved', {
-      description: `Note and links for ${cardTitle} have been saved.`,
-    })
 
     try {
       await onSave(note, validLinks)
       dispatch(deleteDraftNote(cardId))
+      toast.success('Project info saved', {
+        description: `Note and links for ${cardTitle} have been saved.`,
+      })
     } catch (error) {
       toast.error('Failed to save project info', {
-        description:
-          error instanceof Error ? error.message : 'Please try again.',
+        description: `${
+          error instanceof Error ? error.message : 'Please try again.'
+        } Your text is kept: open the note again to save it.`,
       })
     } finally {
       setIsSaving(false)

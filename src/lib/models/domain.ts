@@ -68,8 +68,9 @@ export interface StatusListDomain {
 
 /**
  * A GitHub repository card on the board. Rich text notes, inline comments,
- * and external links live in the `projectinfo` table (joined via
- * `repo_card_id`), not on the card itself.
+ * and external links live in the `projectinfo` table, keyed by the user and
+ * the repository (`repo_key`), not on the card itself: they stay when the
+ * card goes and come back with it (issue #216).
  *
  * @example
  * {

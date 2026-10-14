@@ -306,7 +306,8 @@ describe('OverflowMenu', () => {
       })
     })
 
-    test('tells the user that Move to Another Board keeps the note, links and comment', async () => {
+    // Value: protects=the dialog tells the truth about what removal keeps (issue #216); fails_when=the copy says the note is deleted again; why_new=updated with the rule; seam=none; no_claim=that the database keeps the memory (repository-memory.spec.ts)
+    test('tells the user that the note, links and comment are kept for when the repository is added again', async () => {
       // Arrange
       const user = userEvent.setup()
       render(
@@ -320,7 +321,7 @@ describe('OverflowMenu', () => {
       const confirmation = await screen.findByRole('alertdialog')
       expect(confirmation).toBeVisible()
       expect(confirmation).toHaveTextContent(
-        'permanently deletes its note, links and comment. Adding the repository again will not restore them. To keep them, use Move to Another Board instead.',
+        'Its note, links and comment are kept: they come back when you add the repository to a board again.',
       )
     })
 
