@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { renameBoardAction, type RenameBoardState } from '@/lib/actions/board'
+import { NEAR_LIMIT_COUNTER_TEXT_CLASS } from '@/lib/constants/character-counter'
 import { BOARD_NAME_MAX_LENGTH } from '@/lib/validations/board'
 
 interface RenameBoardDialogProps {
@@ -92,12 +93,12 @@ export const RenameBoardDialog = memo(function RenameBoardDialog({
   const isNearLimit = charCount >= BOARD_NAME_MAX_LENGTH - 10
   const hasError = state.errors?.name && state.errors.name.length > 0
   const charCountClass = isNearLimit
-    ? 'text-sm text-orange-500'
+    ? `text-sm ${NEAR_LIMIT_COUNTER_TEXT_CLASS}`
     : 'text-muted-foreground text-sm'
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-100" accessibleTitle="Rename Board">
+      <DialogContent className="sm:max-w-100">
         <DialogHeader>
           <DialogTitle>Rename Board</DialogTitle>
           <DialogDescription>

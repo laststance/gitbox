@@ -1,10 +1,9 @@
 /**
  * Repo Card Duplicate Rules (Issue #215)
  *
- * One repository may sit on at most one board per user, and never on a board
- * and in Maintenance at once. This module holds everything the server actions
- * need to enforce and explain that rule:
- * - {@link lookupRepoPlacements}: where each of the user's repositories lives
+ * One repository may sit on at most one board per user. This module holds
+ * everything the server actions need to enforce and explain that rule:
+ * - {@link lookupRepoPlacements}: which board holds each of the user's repositories
  * - {@link splitRequestedRepos}: which requested repositories can still be added
  * - {@link toUniqueViolationError}: the friendly error for a lost race
  *
@@ -49,24 +48,8 @@ export interface BoardPlacement {
   boardName: string
 }
 
-/**
- * Everywhere the current user's repositories are placed.
- *
- * @example
- * {
- *   boards: [{ identifier: 'laststance/gitbox', boardId: 'uuid', boardName: 'Work' }],
- *   maintenance: ['laststance/old-project'],
- * }
- */
-export interface RepoPlacements {
-  /** Repositories on any of the user's boards. */
-  boards: BoardPlacement[]
-  /** Lowercase `owner/name` of repositories in Maintenance. */
-  maintenance: RepoIdentifier[]
-}
-
 /** Why a requested repository was not added. */
-export type SkippedReason = 'this-board' | 'other-board' | 'maintenance'
+export type SkippedReason = 'this-board' | 'other-board'
 
 /**
  * A requested repository that was not added, with the sentence shown to the user.
@@ -83,14 +66,14 @@ export type SkippedReason = 'this-board' | 'other-board' | 'maintenance'
 export interface SkippedRepository {
   /** `owner/name` as requested (original letter case). */
   fullName: string
-  /** Where the repository already lives. */
+  /** Whether the repository sits on the target board or on another one. */
   reason: SkippedReason
   /** Ready-to-show sentence. */
   message: string
-  /** Holding board, for `this-board` and `other-board`. */
-  boardId?: string
-  /** Holding board name, for `this-board` and `other-board`. */
-  boardName?: string
+  /** Board that already holds the repository. */
+  boardId: string
+  /** Display name of the board that already holds the repository. */
+  boardName: string
 }
 
 /** The identity fields {@link splitRequestedRepos} needs from a requested repository. */
@@ -100,105 +83,56 @@ interface RequestedRepository {
 }
 
 /**
- * Loads every placement of the user's repositories: cards on any of their
- * boards plus Maintenance entries.
+ * Loads every placement of the user's repositories: the cards on any of their
+ * boards, each with the board that holds it.
  *
- * Called by `addRepositoriesToBoard`, `restoreToBoard` and
- * `getUserRepoPlacements`, so the owner filter exists in exactly one place.
- * Row level security already limits these reads to the user's own boards; the
- * explicit `board.user_id` filter keeps the lookup correct by itself, so a
- * future read policy cannot make another user's cards block this user.
+ * Called by `addRepositoriesToBoard` and `getUserRepoPlacements`, so the owner
+ * filter exists in exactly one place. Row level security already limits this
+ * read to the user's own boards; the explicit `board.user_id` filter keeps the
+ * lookup correct by itself, so a future read policy cannot make another user's
+ * cards block this user.
  *
  * @param supabase - Authenticated Supabase client (RLS applies).
  * @param userId - The current user's id (`claims.sub`).
- * @returns The user's {@link RepoPlacements}.
- * @throws When either query fails. Callers that mutate must not continue
- * without this data (fail closed).
+ * @returns One {@link BoardPlacement} per card of the user.
+ * @throws When the query fails. Callers that mutate must not continue without
+ * this data (fail closed).
  * @example
  * const placements = await lookupRepoPlacements(supabase, claims.sub)
- * // => { boards: [{ identifier: 'a/b', boardId: '…', boardName: 'Work' }], maintenance: [] }
+ * // => [{ identifier: 'a/b', boardId: '…', boardName: 'Work' }]
  */
 export async function lookupRepoPlacements(
   supabase: SupabaseClient<Database>,
   userId: string,
-): Promise<RepoPlacements> {
-  const [cardsResult, maintenanceResult] = await Promise.all([
-    supabase
-      .from('repocard')
-      .select('repo_owner, repo_name, board!inner(id, user_id, name)')
-      .eq('board.user_id', userId),
-    supabase
-      .from('maintenance')
-      .select('repo_owner, repo_name')
-      .eq('user_id', userId),
-  ])
+): Promise<BoardPlacement[]> {
+  const { data: cards, error } = await supabase
+    .from('repocard')
+    .select('repo_owner, repo_name, board!inner(id, user_id, name)')
+    .eq('board.user_id', userId)
 
-  if (cardsResult.error) {
-    log.error({ error: cardsResult.error }, 'Repo placement lookup failed')
-    throw new Error('Failed to look up repository placements (cards)')
-  }
-  if (maintenanceResult.error) {
-    log.error(
-      { error: maintenanceResult.error },
-      'Maintenance placement lookup failed',
-    )
-    throw new Error('Failed to look up repository placements (maintenance)')
+  if (error) {
+    log.error({ error }, 'Repo placement lookup failed')
+    throw new Error('Failed to look up repository placements')
   }
 
-  // Surface a possible silent truncation at the PostgREST row cap. For cards
-  // the unique index still blocks the duplicate (the user gets the race
-  // message). Maintenance has no such backstop: beyond the cap, a repository
-  // in Maintenance could also be added to a board.
-  if (
-    cardsResult.data.length >= POSTGREST_MAX_ROWS ||
-    maintenanceResult.data.length >= POSTGREST_MAX_ROWS
-  ) {
+  // Surface a possible silent truncation at the PostgREST row cap. The unique
+  // index still blocks the duplicate beyond the cap (the user gets the race
+  // message), so this warning only keeps the frequency observable.
+  if (cards.length >= POSTGREST_MAX_ROWS) {
     Sentry.captureMessage(
       'Repo placement lookup may be truncated at PostgREST row limit',
       {
         level: 'warning',
-        extra: {
-          userId,
-          repoCardCount: cardsResult.data.length,
-          maintenanceCount: maintenanceResult.data.length,
-        },
+        extra: { userId, repoCardCount: cards.length },
       },
     )
   }
 
-  return {
-    boards: cardsResult.data.map((card) => ({
-      identifier: toRepoIdentifier(card.repo_owner, card.repo_name),
-      boardId: card.board.id,
-      boardName: card.board.name,
-    })),
-    maintenance: maintenanceResult.data.map((item) =>
-      toRepoIdentifier(item.repo_owner, item.repo_name),
-    ),
-  }
-}
-
-/**
- * Finds the board that already holds a repository, if any.
- *
- * @param placements - Result of {@link lookupRepoPlacements}.
- * @param owner - Repository owner login, any letter case.
- * @param name - Repository name, any letter case.
- * @returns The first matching {@link BoardPlacement}, or `undefined` when the
- * repository is on none of the user's boards.
- * @example
- * findBoardPlacement(placements, 'Laststance', 'GitBox')
- * // => { identifier: 'laststance/gitbox', boardId: '…', boardName: 'Work' }
- */
-export function findBoardPlacement(
-  placements: RepoPlacements,
-  owner: string,
-  name: string,
-): BoardPlacement | undefined {
-  const identifier = toRepoIdentifier(owner, name)
-  return placements.boards.find(
-    (placement) => placement.identifier === identifier,
-  )
+  return cards.map((card) => ({
+    identifier: toRepoIdentifier(card.repo_owner, card.repo_name),
+    boardId: card.board.id,
+    boardName: card.board.name,
+  }))
 }
 
 /**
@@ -218,7 +152,7 @@ export function findBoardPlacement(
  * @example
  * splitRequestedRepos(
  *   [{ name: 'gitbox', owner: { login: 'laststance' } }],
- *   { boards: [{ identifier: 'laststance/gitbox', boardId: 'b2', boardName: 'Work' }], maintenance: [] },
+ *   [{ identifier: 'laststance/gitbox', boardId: 'b2', boardName: 'Work' }],
  *   'b1',
  * )
  * // => { addable: [], skipped: [{ fullName: 'laststance/gitbox', reason: 'other-board',
@@ -226,17 +160,16 @@ export function findBoardPlacement(
  */
 export function splitRequestedRepos<Repository extends RequestedRepository>(
   requested: Repository[],
-  placements: RepoPlacements,
+  placements: BoardPlacement[],
   currentBoardId: string,
 ): { addable: Repository[]; skipped: SkippedRepository[] } {
   // First card wins if legacy data holds the same repository twice
   const boardPlacementByIdentifier = new Map<RepoIdentifier, BoardPlacement>()
-  for (const placement of placements.boards) {
+  for (const placement of placements) {
     if (!boardPlacementByIdentifier.has(placement.identifier)) {
       boardPlacementByIdentifier.set(placement.identifier, placement)
     }
   }
-  const maintenanceIdentifiers = new Set(placements.maintenance)
 
   const addable: Repository[] = []
   const skipped: SkippedRepository[] = []
@@ -262,15 +195,6 @@ export function splitRequestedRepos<Repository extends RequestedRepository>(
           : `${fullName} is already on board "${boardPlacement.boardName}"`,
         boardId: boardPlacement.boardId,
         boardName: boardPlacement.boardName,
-      })
-      continue
-    }
-
-    if (maintenanceIdentifiers.has(identifier)) {
-      skipped.push({
-        fullName,
-        reason: 'maintenance',
-        message: `${fullName} is in Maintenance`,
       })
       continue
     }
@@ -304,11 +228,11 @@ export function isUniqueViolation(
  * Builds the user-facing error for a unique violation and records that the
  * race happened.
  *
- * Called by the three placing actions (add, restore, move) when the database
- * rejects a write the pre-check allowed, i.e. another tab or request placed
- * the repository in between. {@link ActionUserError} skips Sentry, so this
- * writes one structured warning (no repository names) to keep the frequency
- * of the race observable.
+ * Called by {@link addRepositoriesToBoard} when the database rejects an
+ * insert the pre-check allowed, i.e. another tab or request placed the
+ * repository in between. {@link ActionUserError} skips Sentry, so this writes
+ * one structured warning (no repository names) to keep the frequency of the
+ * race observable.
  *
  * @param params.error - The Supabase error whose code is `23505`.
  * @param params.raceMessage - Sentence shown to the user by the calling surface.
@@ -341,19 +265,4 @@ export function toUniqueViolationError(params: {
   )
 
   return new ActionUserError(params.raceMessage)
-}
-
-/**
- * Sentence shown by the restore and move dialogs when the unique index
- * rejected the write.
- *
- * @param owner - Repository owner login.
- * @param name - Repository name.
- * @returns The race sentence naming the repository.
- * @example
- * toDialogRaceMessage('laststance', 'gitbox')
- * // => 'laststance/gitbox was just placed on a board. Close this dialog and try again.'
- */
-export function toDialogRaceMessage(owner: string, name: string): string {
-  return `${owner}/${name} was just placed on a board. Close this dialog and try again.`
 }

@@ -13,8 +13,6 @@
 -- - status-211~213     → 00000000-0000-0000-0000-000000000211~213 (Work Projects)
 -- - card-1~5           → 00000000-0000-0000-0000-000000000301~305
 -- - projinfo-1~4       → 00000000-0000-0000-0000-000000000401~404
--- - maintenance-1~2    → 00000000-0000-0000-0000-000000000501~502
--- - projinfo-maint-1   → 00000000-0000-0000-0000-000000000601
 -- - other-user         → 00000000-0000-0000-0000-000000000002 (second account)
 -- - other-user-board   → 00000000-0000-0000-0000-000000000110
 -- - other-user-status  → 00000000-0000-0000-0000-000000000221
@@ -314,13 +312,12 @@ ON CONFLICT (id) DO NOTHING;
 -- 5. Create Project Info (Comments, Notes, Links)
 -- ============================================================================
 
-INSERT INTO projectinfo (id, repo_card_id, maintenance_id, note, comment, comment_color, links, created_at, updated_at)
+INSERT INTO projectinfo (id, repo_card_id, note, comment, comment_color, links, created_at, updated_at)
 VALUES
   -- ProjectInfo 1: For card-1 (testuser/test-repo)
   (
     '00000000-0000-0000-0000-000000000401'::uuid,
     '00000000-0000-0000-0000-000000000301'::uuid,
-    NULL,
     'Important project notes here',
     'npmリリース完了、当分は機能追加予定なし',
     'primary',
@@ -335,7 +332,6 @@ VALUES
   (
     '00000000-0000-0000-0000-000000000402'::uuid,
     '00000000-0000-0000-0000-000000000302'::uuid,
-    NULL,
     'Another repo notes',
     'プロトタイプ作ったけど微妙、差分表示エディタで苦戦中',
     'primary',
@@ -347,7 +343,6 @@ VALUES
   (
     '00000000-0000-0000-0000-000000000403'::uuid,
     '00000000-0000-0000-0000-000000000303'::uuid,
-    NULL,
     '',
     '',
     'primary',
@@ -359,7 +354,6 @@ VALUES
   (
     '00000000-0000-0000-0000-000000000404'::uuid,
     '00000000-0000-0000-0000-000000000304'::uuid,
-    NULL,
     'CLI tool documentation',
     'v2.0リリース準備中',
     'primary',
@@ -369,54 +363,6 @@ VALUES
   )
 ON CONFLICT (id) DO NOTHING;
 -- Note: card-5 intentionally has no projectinfo for testing when projectinfo doesn't exist
-
--- ============================================================================
--- 6. Create Maintenance Items (Archived Repositories)
--- ============================================================================
--- Note: repo_card_id, note, and hidden columns were dropped in migration
--- 20260101180000_drop_unused_maintenance_columns.sql
-
-INSERT INTO maintenance (id, user_id, repo_owner, repo_name, created_at, updated_at)
-VALUES
-  -- Maintenance 1: laststance/claude-plugin-dashboard
-  (
-    '00000000-0000-0000-0000-000000000501'::uuid,
-    '00000000-0000-0000-0000-000000000001'::uuid,
-    'laststance',
-    'claude-plugin-dashboard',
-    '2024-12-31T00:00:00.000Z'::timestamptz,
-    '2024-12-31T00:00:00.000Z'::timestamptz
-  ),
-  -- Maintenance 2: laststance/old-project
-  (
-    '00000000-0000-0000-0000-000000000502'::uuid,
-    '00000000-0000-0000-0000-000000000001'::uuid,
-    'laststance',
-    'old-project',
-    '2024-11-01T00:00:00.000Z'::timestamptz,
-    '2024-11-01T00:00:00.000Z'::timestamptz
-  )
-ON CONFLICT (id) DO NOTHING;
-
--- ============================================================================
--- 7. Create Project Info for Maintenance Items
--- ============================================================================
-
-INSERT INTO projectinfo (id, repo_card_id, maintenance_id, note, comment, comment_color, links, created_at, updated_at)
-VALUES
-  -- ProjectInfo for maintenance-1
-  (
-    '00000000-0000-0000-0000-000000000601'::uuid,
-    NULL,
-    '00000000-0000-0000-0000-000000000501'::uuid,
-    'Maintenance notes for dashboard project',
-    'Archived - no active development',
-    'neutral',
-    '[]'::jsonb,
-    '2024-12-31T00:00:00.000Z'::timestamptz,
-    '2024-12-31T00:00:00.000Z'::timestamptz
-  )
-ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================
 -- User Settings (per-user page customization)

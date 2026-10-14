@@ -7,6 +7,7 @@
  * - Card Metadata visibility
  * - Organization Filter
  * - Sidebar collapsed state
+ * - Destination of the last move from each board
  */
 
 import type { PayloadAction } from '@reduxjs/toolkit'
@@ -30,6 +31,17 @@ interface SettingsState {
   organizationFilter: OrganizationFilter
   /** `true` when the sidebar is collapsed to icon-only view. */
   sidebarCollapsed: boolean
+  /**
+   * For each board a card was moved away from, the board that move went to
+   * (board ids on both sides). {@link MoveToAnotherBoardDialog} opens on that
+   * destination the next time, so setting several cards aside takes no
+   * picking. This browser only.
+   *
+   * Optional: state persisted before the field existed has no such key, and
+   * the storage middleware puts the persisted slice in place of the initial
+   * one as a whole.
+   */
+  moveDestinationByBoard?: Record<string, string>
 }
 
 const initialState: SettingsState = {
@@ -38,6 +50,7 @@ const initialState: SettingsState = {
   showCardMetadata: true,
   organizationFilter: 'all',
   sidebarCollapsed: false,
+  moveDestinationByBoard: {},
 }
 
 export const settingsSlice = createSlice({
@@ -65,6 +78,27 @@ export const settingsSlice = createSlice({
     toggleSidebarCollapsed: (state) => {
       state.sidebarCollapsed = !state.sidebarCollapsed
     },
+    /**
+     * Remembers where the last move from a board went. Dispatched by
+     * {@link MoveToAnotherBoardDialog} after a move succeeded.
+     *
+     * @param action.payload.sourceBoardId - Board the card was moved from.
+     * @param action.payload.destinationBoardId - Board the card was moved to.
+     */
+    setMoveDestination: (
+      state,
+      action: PayloadAction<{
+        sourceBoardId: string
+        destinationBoardId: string
+      }>,
+    ) => {
+      // Spread, not an assignment into the map: the map is missing in state
+      // persisted before the field existed
+      state.moveDestinationByBoard = {
+        ...state.moveDestinationByBoard,
+        [action.payload.sourceBoardId]: action.payload.destinationBoardId,
+      }
+    },
   },
 })
 
@@ -75,6 +109,7 @@ export const {
   setOrganizationFilter,
   setSidebarCollapsed,
   toggleSidebarCollapsed,
+  setMoveDestination,
 } = settingsSlice.actions
 
 export default settingsSlice.reducer
@@ -106,3 +141,21 @@ export const selectOrganizationFilter = (state: { settings?: SettingsState }) =>
  */
 export const selectSidebarCollapsed = (state: { settings?: SettingsState }) =>
   state.settings?.sidebarCollapsed ?? false
+
+/**
+ * Reads the board the last move from a board went to. Called by
+ * {@link MoveToAnotherBoardDialog} to choose the board it opens on.
+ *
+ * @param state - Redux state with settings slice
+ * @param sourceBoardId - Board the card is about to be moved from.
+ * @returns
+ * - the destination board id of the last move from that board
+ * - `undefined` when no card was moved from it in this browser yet, and while
+ *   the state is hydrating
+ * @example
+ * selectMoveDestination(state, 'board-work') // => 'board-archive'
+ */
+export const selectMoveDestination = (
+  state: { settings?: SettingsState },
+  sourceBoardId: string,
+): string | undefined => state.settings?.moveDestinationByBoard?.[sourceBoardId]

@@ -10,11 +10,11 @@
  */
 
 import { configureStore } from '@reduxjs/toolkit'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Provider } from 'react-redux'
 import { toast } from 'sonner'
-import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox'
 import { getUserRepoPlacements } from '@/lib/actions/board-data'
@@ -29,6 +29,7 @@ import {
 import boardReducer, { setRepoCards } from '@/lib/redux/slices/boardSlice'
 import settingsReducer from '@/lib/redux/slices/settingsSlice'
 import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
+import { isOverlayOpen } from '@/lib/utils/is-overlay-open'
 
 vi.mock('@/lib/actions/github', () => ({
   getAuthenticatedRepositoryCatalog: vi.fn(),
@@ -100,10 +101,11 @@ function mockCatalog(repositories: GitHubRepository[]): void {
   })
 }
 
-/** Render the open picker for board-1 inside a fresh store. */
-function renderOpenPicker(
-  props: { maintenanceRepoIdentifiers?: string[] } = {},
-) {
+/**
+ * Render the open picker for board-1 inside a fresh store.
+ * @param isBoardShared - board-1 has a public link.
+ */
+function renderOpenPicker(isBoardShared = false) {
   const store = configureStore({
     reducer: { board: boardReducer, settings: settingsReducer },
   })
@@ -117,7 +119,7 @@ function renderOpenPicker(
         isOpen
         onOpenChange={onOpenChange}
         onRepositoriesAdded={onRepositoriesAdded}
-        maintenanceRepoIdentifiers={props.maintenanceRepoIdentifiers}
+        isBoardShared={isBoardShared}
       />
     </Provider>,
   )
@@ -135,6 +137,281 @@ async function findRepositoryOptions(): Promise<HTMLElement[]> {
   return within(listbox).getAllByRole('option')
 }
 
+describe('AddRepositoryCombobox on a board that is shared by a public link', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  test('says who will see the added repositories, and the Add button is described by that sentence', async () => {
+    // Arrange
+    mockCatalog([makeRepository(1, 'free-repo')])
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: true,
+      data: [],
+    })
+
+    // Act
+    renderOpenPicker(true)
+
+    // Assert
+    await findRepositoryOptions()
+    expect(
+      screen.getByText(
+        'This board is shared by a public link. Anyone who has the link will see the repositories you add, with their descriptions.',
+      ),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: 'Add (0)' }),
+    ).toHaveAccessibleDescription(
+      'This board is shared by a public link. Anyone who has the link will see the repositories you add, with their descriptions.',
+    )
+  })
+
+  test('says nothing of a public link on a board that is not shared', async () => {
+    // Arrange
+    mockCatalog([makeRepository(1, 'free-repo')])
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: true,
+      data: [],
+    })
+
+    // Act
+    renderOpenPicker()
+
+    // Assert
+    await findRepositoryOptions()
+    expect(screen.queryByText(/shared by a public link/)).toBeNull()
+    expect(
+      screen.getByRole('button', { name: 'Add (0)' }),
+    ).not.toHaveAccessibleDescription()
+  })
+})
+
+describe('AddRepositoryCombobox with a selected repository', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  // Value: protects=the name on the badge of a selected repository is readable in every theme; fails_when=the badge label is drawn in the theme color again, which on its own 10% tint is below 4.5:1 in 12 of the 14 themes; why_new=no test named the colors of the badge; seam=none; no_claim=the contrast itself (computed for every theme in selected-repository-badge-contrast.test.ts)
+  test('shows a selected repository as a badge with a tint of the theme color under a label in the text color', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    mockCatalog([makeRepository(1, 'free-repo')])
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: true,
+      data: [],
+    })
+    renderOpenPicker()
+    const [freeRepoOption] = await findRepositoryOptions()
+
+    // Act
+    await user.click(freeRepoOption!)
+
+    // Assert: the badge is the element around its remove button
+    const badge = screen.getByRole('button', {
+      name: 'Remove laststance/free-repo',
+    }).parentElement
+    expect(badge).toHaveTextContent('laststance/free-repo')
+    expect(badge).toHaveClass('bg-primary/10', 'text-foreground')
+    expect(badge).not.toHaveClass('text-primary')
+  })
+})
+
+describe('AddRepositoryCombobox panel and the place of its button', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  // Value: protects=the panel knows how far down its button ends, also after the page around the button changed, and nothing keeps watching a panel that is closed; fails_when=the place of the button is measured once at opening, or the watcher is left running when the panel is removed; why_new=no test read what the panel is told, and removing the cleanup left every test green; seam=ResizeObserver and getBoundingClientRect (happy-dom lays nothing out and never reports a size); no_claim=where the panel then stands (measured in a browser, e2e/logged-in/add-repository-combobox.spec.ts)
+  test('tells the panel where its button ends, again when the page around it changes size, and stops watching when the panel closes', async () => {
+    // Arrange: watchers that can be made to report by hand, and a button
+    // that ends 63px down
+    const sizeWatchers: SizeWatcherStandIn[] = []
+    class SizeWatcherStandIn {
+      readonly watched: Element[] = []
+      isWatching = true
+      constructor(readonly report: () => void) {
+        sizeWatchers.push(this)
+      }
+      observe(element: Element): void {
+        this.watched.push(element)
+      }
+      unobserve(): void {}
+      disconnect(): void {
+        this.isWatching = false
+      }
+    }
+    vi.stubGlobal('ResizeObserver', SizeWatcherStandIn)
+    let buttonBottomPx = 63
+    vi.spyOn(
+      HTMLButtonElement.prototype,
+      'getBoundingClientRect',
+    ).mockImplementation(() => new DOMRect(900, buttonBottomPx - 38, 160, 38))
+    mockCatalog([makeRepository(1, 'free-repo')])
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: true,
+      data: [],
+    })
+    const store = configureStore({
+      reducer: { board: boardReducer, settings: settingsReducer },
+    })
+    const renderPicker = (isOpen: boolean) => (
+      <Provider store={store}>
+        <AddRepositoryCombobox
+          boardId={toBoardId('board-1')}
+          statusId={toStatusListId('status-1')}
+          isOpen={isOpen}
+          onRepositoriesAdded={vi.fn()}
+        />
+      </Provider>
+    )
+
+    // Act: the panel opens
+    const { rerender } = render(renderPicker(true))
+    await findRepositoryOptions()
+
+    // Assert: it was told where the button ends, and something watches the
+    // elements around the button, up to the page itself
+    const panel = screen.getByRole('combobox', { expanded: true })
+    expect(panel.style.getPropertyValue('--button-bottom')).toBe('63px')
+    const pageWatcher = sizeWatchers.find((sizeWatcher) =>
+      sizeWatcher.watched.includes(document.body),
+    )
+    expect(pageWatcher?.isWatching).toBe(true)
+
+    // Act: the header wraps, the button ends 120px further down
+    buttonBottomPx = 183
+    act(() => pageWatcher?.report())
+
+    // Assert
+    expect(panel.style.getPropertyValue('--button-bottom')).toBe('183px')
+
+    // Act: the panel closes
+    rerender(renderPicker(false))
+
+    // Assert
+    expect(pageWatcher?.isWatching).toBe(false)
+  })
+})
+
+describe('AddRepositoryCombobox as a layer over the board', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  // Value: protects=Z does not undo a drag on the board behind the open picker while the picker loads its repositories; fails_when=the guard knows the open picker by its list of options only, which is not there while it loads or finds nothing; why_new=the tests of the guard put elements with a role into the page by hand and never render the picker; seam=none; no_claim=that Z does nothing while a layer is open, which useKanbanUndo.test.tsx checks
+  test('counts as a layer over the board while its repositories are still loading, when it has no list of options', () => {
+    // Arrange: neither request is answered for the rest of this test
+    vi.mocked(getAuthenticatedRepositoryCatalog).mockReturnValue(
+      new Promise(() => {}),
+    )
+    vi.mocked(getUserRepoPlacements).mockReturnValue(new Promise(() => {}))
+
+    // Act
+    renderOpenPicker()
+
+    // Assert
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Loading repositories...',
+    )
+    expect(screen.queryByRole('listbox')).toBeNull()
+    expect(isOverlayOpen()).toBe(true)
+  })
+
+  // Value: protects=Z undoes a drag on a board whose picker is closed; fails_when=the mark of a layer sits on a part of the picker that stays on the page, such as its button, which would switch the shortcut off on every board; why_new=the mark is new; seam=none; no_claim=none
+  test('is no layer while it is closed', () => {
+    // Arrange
+    mockCatalog([])
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: true,
+      data: [],
+    })
+    const store = configureStore({
+      reducer: { board: boardReducer, settings: settingsReducer },
+    })
+
+    // Act
+    render(
+      <Provider store={store}>
+        <AddRepositoryCombobox
+          boardId={toBoardId('board-1')}
+          statusId={toStatusListId('status-1')}
+          isOpen={false}
+          onRepositoriesAdded={vi.fn()}
+        />
+      </Provider>,
+    )
+
+    // Assert
+    expect(
+      screen.getByRole('button', { name: /add repositories/i }),
+    ).toBeVisible()
+    expect(isOverlayOpen()).toBe(false)
+  })
+})
+
+describe('AddRepositoryCombobox and the Escape key', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  // Value: protects=Escape in the open list of organizations closes that list and leaves the picker open; fails_when=the panel takes the Escape of the list for its own and closes the picker too, which it did because React hands a key of the list up to the panel; why_new=no test pressed Escape in the picker; seam=none; no_claim=where the keyboard focus is while the list is open and that the search box keeps what was typed, which a browser test shows (e2e/logged-in/add-repository-combobox.spec.ts)
+  test('closes the list of organizations and leaves the picker open when Escape is pressed in that list', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    mockCatalog([makeRepository(1, 'free-repo')])
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: true,
+      data: [],
+    })
+    const { onOpenChange } = renderOpenPicker()
+    await findRepositoryOptions()
+    await user.click(
+      screen.getByRole('combobox', { name: 'Organization filter' }),
+    )
+    expect(
+      await screen.findByRole('option', { name: 'All Organizations' }),
+    ).toBeVisible()
+
+    // Act
+    await user.keyboard('{Escape}')
+
+    // Assert
+    expect(
+      screen.queryByRole('option', { name: 'All Organizations' }),
+    ).toBeNull()
+    expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
+  // Value: protects=Escape closes the picker from its search box, the way out for a keyboard user; fails_when=the panel ignores every Escape, not only the one a layer above it has used; why_new=no test pressed Escape in the picker; seam=none; no_claim=where the keyboard focus goes once the picker is closed (TODOS.md)
+  test('closes the picker when Escape is pressed in the search box', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    mockCatalog([makeRepository(1, 'free-repo')])
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: true,
+      data: [],
+    })
+    const { onOpenChange } = renderOpenPicker()
+    await findRepositoryOptions()
+    await user.click(
+      screen.getByRole('textbox', { name: 'Search repositories' }),
+    )
+
+    // Act
+    await user.keyboard('{Escape}')
+
+    // Assert
+    expect(onOpenChange).toHaveBeenCalledTimes(1)
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+})
+
 describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -145,16 +422,13 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
     vi.mocked(getUserRepoPlacements).mockResolvedValue({
       success: true,
-      data: {
-        boards: [
-          {
-            identifier: 'laststance/gitbox',
-            boardId: 'board-2',
-            boardName: 'Work Projects',
-          },
-        ],
-        maintenance: [],
-      },
+      data: [
+        {
+          identifier: 'laststance/gitbox',
+          boardId: 'board-2',
+          boardName: 'Work Projects',
+        },
+      ],
     })
 
     // Act
@@ -164,7 +438,13 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     const heldList = await screen.findByRole('list', {
       name: 'Already placed elsewhere',
     })
-    expect(screen.getByText('Already placed elsewhere (1)')).toBeVisible()
+    // Level 2: the panel stands in the header, right under the board's h1
+    expect(
+      screen.getByRole('heading', {
+        level: 2,
+        name: 'Already placed elsewhere (1)',
+      }),
+    ).toBeVisible()
     expect(within(heldList).getByText('laststance/gitbox')).toBeVisible()
     const boardLink = within(heldList).getByRole('link', {
       name: 'On Work Projects, which holds laststance/gitbox',
@@ -176,45 +456,19 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     expect(options[0]).toHaveTextContent('laststance/free-repo')
   })
 
-  test('lists a repository in Maintenance with a link to Maintenance', async () => {
-    // Arrange
-    mockCatalog([
-      makeRepository(1, 'free-repo'),
-      makeRepository(3, 'old-project'),
-    ])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
-      success: true,
-      data: { boards: [], maintenance: ['laststance/old-project'] },
-    })
-
-    // Act
-    renderOpenPicker()
-
-    // Assert
-    const maintenanceLink = await screen.findByRole('link', {
-      name: 'In Maintenance, which holds laststance/old-project',
-    })
-    expect(maintenanceLink).toHaveTextContent('In Maintenance')
-    expect(maintenanceLink).toHaveAttribute('href', '/maintenance')
-    expect(await findRepositoryOptions()).toHaveLength(1)
-  })
-
   test('shows where a repository lives when the search matches only a held repository', async () => {
     // Arrange
     const user = userEvent.setup()
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
     vi.mocked(getUserRepoPlacements).mockResolvedValue({
       success: true,
-      data: {
-        boards: [
-          {
-            identifier: 'laststance/gitbox',
-            boardId: 'board-2',
-            boardName: 'Work Projects',
-          },
-        ],
-        maintenance: [],
-      },
+      data: [
+        {
+          identifier: 'laststance/gitbox',
+          boardId: 'board-2',
+          boardName: 'Work Projects',
+        },
+      ],
     })
     renderOpenPicker()
     await screen.findByRole('list', { name: 'Already placed elsewhere' })
@@ -248,16 +502,13 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
     vi.mocked(getUserRepoPlacements).mockResolvedValue({
       success: true,
-      data: {
-        boards: [
-          {
-            identifier: 'laststance/gitbox',
-            boardId: 'board-2',
-            boardName: 'Work Projects',
-          },
-        ],
-        maintenance: [],
-      },
+      data: [
+        {
+          identifier: 'laststance/gitbox',
+          boardId: 'board-2',
+          boardName: 'Work Projects',
+        },
+      ],
     })
     renderOpenPicker()
     await screen.findByRole('list', { name: 'Already placed elsewhere' })
@@ -279,22 +530,20 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
 
   test('keeps the picker usable without a held list when placements cannot be loaded', async () => {
     // Arrange
-    mockCatalog([
-      makeRepository(1, 'free-repo'),
-      makeRepository(3, 'old-project'),
-    ])
+    mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
     vi.mocked(getUserRepoPlacements).mockResolvedValue({
       success: false,
       error: 'An unexpected error occurred',
     })
 
     // Act
-    renderOpenPicker({ maintenanceRepoIdentifiers: ['laststance/old-project'] })
+    renderOpenPicker()
 
     // Assert
     const options = await findRepositoryOptions()
-    expect(options).toHaveLength(1)
+    expect(options).toHaveLength(2)
     expect(options[0]).toHaveTextContent('laststance/free-repo')
+    expect(options[1]).toHaveTextContent('laststance/gitbox')
     expect(
       screen.queryByRole('list', { name: 'Already placed elsewhere' }),
     ).toBeNull()
@@ -309,21 +558,18 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
       // On open: this picker does not know about the placement yet
       .mockResolvedValueOnce({
         success: true,
-        data: { boards: [], maintenance: [] },
+        data: [],
       })
       // Refetch after the skipped result
       .mockResolvedValue({
         success: true,
-        data: {
-          boards: [
-            {
-              identifier: 'laststance/gitbox',
-              boardId: 'board-2',
-              boardName: 'Work Projects',
-            },
-          ],
-          maintenance: [],
-        },
+        data: [
+          {
+            identifier: 'laststance/gitbox',
+            boardId: 'board-2',
+            boardName: 'Work Projects',
+          },
+        ],
       })
     vi.mocked(addRepositoriesToBoard).mockResolvedValue({
       success: true,
@@ -377,7 +623,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
     vi.mocked(getUserRepoPlacements).mockResolvedValue({
       success: true,
-      data: { boards: [], maintenance: [] },
+      data: [],
     })
     const createdCard = makeCreatedFreeRepoCard()
     vi.mocked(addRepositoriesToBoard).mockResolvedValue({
@@ -437,7 +683,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(1, 'free-repo')])
     vi.mocked(getUserRepoPlacements).mockResolvedValue({
       success: true,
-      data: { boards: [], maintenance: [] },
+      data: [],
     })
     vi.mocked(addRepositoriesToBoard).mockResolvedValue({
       success: true,
@@ -468,16 +714,13 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
     vi.mocked(getUserRepoPlacements).mockResolvedValue({
       success: true,
-      data: {
-        boards: [
-          {
-            identifier: 'laststance/gitbox',
-            boardId: 'board-2',
-            boardName: 'Work Projects',
-          },
-        ],
-        maintenance: [],
-      },
+      data: [
+        {
+          identifier: 'laststance/gitbox',
+          boardId: 'board-2',
+          boardName: 'Work Projects',
+        },
+      ],
     })
     renderOpenPicker()
     const [onlyOption] = await findRepositoryOptions()
@@ -508,21 +751,19 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
   //   seam=none
   test('keeps the picker usable when the placement request itself fails', async () => {
     // Arrange
-    mockCatalog([
-      makeRepository(1, 'free-repo'),
-      makeRepository(3, 'old-project'),
-    ])
+    mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
     vi.mocked(getUserRepoPlacements).mockRejectedValue(
       new Error('Failed to fetch'),
     )
 
     // Act
-    renderOpenPicker({ maintenanceRepoIdentifiers: ['laststance/old-project'] })
+    renderOpenPicker()
 
     // Assert
     const options = await findRepositoryOptions()
-    expect(options).toHaveLength(1)
+    expect(options).toHaveLength(2)
     expect(options[0]).toHaveTextContent('laststance/free-repo')
+    expect(options[1]).toHaveTextContent('laststance/gitbox')
     expect(screen.queryByText('Loading repositories...')).toBeNull()
     expect(
       screen.queryByRole('list', { name: 'Already placed elsewhere' }),
@@ -545,7 +786,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(1, 'free-repo')])
     vi.mocked(getUserRepoPlacements).mockResolvedValue({
       success: true,
-      data: { boards: [], maintenance: [] },
+      data: [],
     })
     // The server does not answer for the duration of this test
     vi.mocked(addRepositoriesToBoard).mockReturnValue(new Promise(() => {}))
@@ -585,21 +826,18 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
       // On open: this picker does not know about the placement yet
       .mockResolvedValueOnce({
         success: true,
-        data: { boards: [], maintenance: [] },
+        data: [],
       })
       // Refetch after the skipped result
       .mockResolvedValue({
         success: true,
-        data: {
-          boards: [
-            {
-              identifier: 'laststance/gitbox',
-              boardId: 'board-2',
-              boardName: 'Work Projects',
-            },
-          ],
-          maintenance: [],
-        },
+        data: [
+          {
+            identifier: 'laststance/gitbox',
+            boardId: 'board-2',
+            boardName: 'Work Projects',
+          },
+        ],
       })
     vi.mocked(addRepositoriesToBoard)
       // First attempt: the only selected repository is already placed
@@ -668,16 +906,13 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(2, 'gitbox')])
     vi.mocked(getUserRepoPlacements).mockResolvedValue({
       success: true,
-      data: {
-        boards: [
-          {
-            identifier: 'laststance/gitbox',
-            boardId: 'board-1',
-            boardName: 'Test Board',
-          },
-        ],
-        maintenance: [],
-      },
+      data: [
+        {
+          identifier: 'laststance/gitbox',
+          boardId: 'board-1',
+          boardName: 'Test Board',
+        },
+      ],
     })
 
     // Act
@@ -701,33 +936,6 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     ).toBeNull()
   })
 
-  // Value: protects=a repository restored from Maintenance in another tab can
-  //   be added without reloading the board page;
-  //   fails_when=the page-load Maintenance list is applied even though fresh
-  //   placements arrived, so the repository stays hidden until a reload;
-  //   why_new=the two fallback tests cover failed placements only, where the
-  //   page-load list is supposed to win;
-  //   seam=none
-  test('offers a repository that left Maintenance since the page loaded', async () => {
-    // Arrange: the page loaded while laststance/old-project was in Maintenance
-    mockCatalog([makeRepository(3, 'old-project')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
-      success: true,
-      data: { boards: [], maintenance: [] },
-    })
-
-    // Act
-    renderOpenPicker({ maintenanceRepoIdentifiers: ['laststance/old-project'] })
-
-    // Assert
-    const options = await findRepositoryOptions()
-    expect(options).toHaveLength(1)
-    expect(options[0]).toHaveTextContent('laststance/old-project')
-    expect(
-      screen.queryByRole('list', { name: 'Already placed elsewhere' }),
-    ).toBeNull()
-  })
-
   // Value: protects=after an add that lost the race, the picker shows where
   //   the raced repository now lives instead of still offering it;
   //   fails_when=the failure branch stops refetching placements, so the
@@ -743,21 +951,18 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
       // On open: this picker does not know about the placement yet
       .mockResolvedValueOnce({
         success: true,
-        data: { boards: [], maintenance: [] },
+        data: [],
       })
       // Refetch after the lost race
       .mockResolvedValue({
         success: true,
-        data: {
-          boards: [
-            {
-              identifier: 'laststance/gitbox',
-              boardId: 'board-2',
-              boardName: 'Work Projects',
-            },
-          ],
-          maintenance: [],
-        },
+        data: [
+          {
+            identifier: 'laststance/gitbox',
+            boardId: 'board-2',
+            boardName: 'Work Projects',
+          },
+        ],
       })
     vi.mocked(addRepositoriesToBoard).mockResolvedValue({
       success: false,
@@ -802,7 +1007,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
     vi.mocked(getUserRepoPlacements).mockResolvedValue({
       success: true,
-      data: { boards: [], maintenance: [] },
+      data: [],
     })
     renderOpenPicker()
     await findRepositoryOptions()
@@ -834,7 +1039,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(1, 'free-repo')])
     vi.mocked(getUserRepoPlacements).mockResolvedValue({
       success: true,
-      data: { boards: [], maintenance: [] },
+      data: [],
     })
     const { onOpenChange } = renderOpenPicker()
     const [onlyOption] = await findRepositoryOptions()
@@ -867,7 +1072,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
       // First opening
       .mockResolvedValueOnce({
         success: true,
-        data: { boards: [], maintenance: [] },
+        data: [],
       })
       // Second opening: the server does not answer for the rest of this test
       .mockReturnValueOnce(new Promise(() => {}))
@@ -975,7 +1180,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(2, 'gitbox')])
     vi.mocked(getUserRepoPlacements).mockResolvedValue({
       success: true,
-      data: { boards: [], maintenance: [] },
+      data: [],
     })
     vi.mocked(addRepositoriesToBoard).mockResolvedValue({
       success: true,
@@ -1023,7 +1228,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(1, 'free-repo')])
     vi.mocked(getUserRepoPlacements).mockResolvedValue({
       success: true,
-      data: { boards: [], maintenance: [] },
+      data: [],
     })
     vi.mocked(addRepositoriesToBoard).mockResolvedValue({
       success: true,

@@ -21,8 +21,10 @@ const badgeVariants = cva(
           'border-transparent bg-primary text-primary-foreground hover:bg-primary/80',
         secondary:
           'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80',
+        // /90 as on the destructive button, not the /80 of the other
+        // variants: at 80% the label reads below 4.5:1 in six dark themes
         destructive:
-          'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80',
+          'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90',
         outline: 'text-foreground',
       },
     },

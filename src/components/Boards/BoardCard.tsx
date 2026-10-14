@@ -153,16 +153,24 @@ export const BoardCard = memo(function BoardCard({
           aria-label={`Open board ${board.name}`}
         />
 
-        {/* Top-right actions: Favorite star + Menu */}
+        {/* Top-right actions: Favorite star + Menu.
+            Hidden until hover only where there is a mouse (pointer-fine):
+            a touch screen never hovers, so there they stay visible. */}
         <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
-          {/* Favorite star button */}
+          {/* Favorite star button. The outline (amber 700, amber 400 on the
+              dark themes) is what has to stand out from the card: 4.49:1 or
+              more on every theme, where an icon needs 3:1. The gold fill
+              alone was 2.1:1 on white. The star of a board that is no
+              favorite is muted and not dimmed on top of that: at 70% it was
+              2.7:1 on white where it is always on screen (touch, narrow
+              screens). Checked in board-card-star-contrast.test.ts. */}
           <Button
             variant="ghost"
             size="icon"
             className={`h-8 w-8 transition-all ${
               localIsFavorite
-                ? 'text-amber-500 opacity-100 hover:text-amber-600'
-                : 'text-muted-foreground opacity-70 hover:text-amber-500 focus-visible:opacity-100 md:opacity-0 md:group-hover:opacity-100'
+                ? 'text-amber-700 opacity-100 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300'
+                : 'text-muted-foreground hover:text-amber-700 focus-visible:opacity-100 dark:hover:text-amber-400 md:pointer-fine:opacity-0 md:pointer-fine:group-hover:opacity-100'
             }`}
             aria-label={
               localIsFavorite
@@ -174,7 +182,7 @@ export const BoardCard = memo(function BoardCard({
           >
             <Star
               className={`h-4 w-4 transition-transform ${isPending ? 'animate-pulse' : ''} ${
-                localIsFavorite ? 'fill-current' : ''
+                localIsFavorite ? 'fill-amber-400' : ''
               }`}
             />
           </Button>
@@ -185,7 +193,7 @@ export const BoardCard = memo(function BoardCard({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 opacity-70 transition-opacity focus-visible:opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                className="h-8 w-8 opacity-70 transition-opacity focus-visible:opacity-100 md:pointer-fine:opacity-0 md:pointer-fine:group-hover:opacity-100"
                 aria-label={`Open menu for ${board.name}`}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -200,7 +208,7 @@ export const BoardCard = memo(function BoardCard({
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={handleOpenDelete}
-                className="text-destructive focus:text-destructive"
+                className="text-destructive focus:text-destructive focus:bg-destructive/10"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
@@ -209,17 +217,27 @@ export const BoardCard = memo(function BoardCard({
           </DropdownMenu>
         </div>
 
-        {/* Card content */}
-        <h3 className="text-foreground group-hover:text-primary flex items-center gap-2 pr-16 text-xl font-semibold transition-colors">
-          {board.name}
-          {board.is_public && (
-            <Globe
-              className="text-muted-foreground h-4 w-4 shrink-0"
-              role="img"
-              aria-label="Public board"
-            />
-          )}
-        </h3>
+        {/* Card content. pr-16 keeps the name clear of the buttons above: a
+            name of several words breaks between them. One word that is
+            wider than that room stays whole and runs on under the buttons,
+            as it always did (eleven letters in a card of 216px). The inner
+            box of name and globe may reach as far as the card's own padding
+            (max-w is the room plus the 4rem of pr-16), and only a word that
+            is wider than that breaks (min-w-0 and wrap-break-word). Without
+            the limit a name of one long word ran out of the card, across
+            the next one. */}
+        <h2 className="text-foreground group-hover:text-primary flex pr-16 text-xl font-semibold transition-colors">
+          <span className="flex max-w-[calc(100%+4rem)] items-center gap-2">
+            <span className="min-w-0 wrap-break-word">{board.name}</span>
+            {board.is_public && (
+              <Globe
+                className="text-muted-foreground h-4 w-4 shrink-0"
+                role="img"
+                aria-label="Public board"
+              />
+            )}
+          </span>
+        </h2>
 
         <div className="text-muted-foreground mt-4 flex items-center text-sm">
           <div className="flex items-center gap-1">

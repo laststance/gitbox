@@ -4,8 +4,8 @@
  * Tests that repo cards are correctly displayed on the Kanban board
  * when they have valid statusId references.
  *
- * Related to bug fix: activeBoard was never set, and orphaned cards
- * with invalid statusId weren't displayed.
+ * Related to bug fix: orphaned cards with invalid statusId weren't
+ * displayed.
  */
 
 import { test, expect } from '../fixtures/coverage'
@@ -16,16 +16,13 @@ test.describe('Repo Card Display (Authenticated)', () => {
 
   const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
-  test('should display board name in header (verifies activeBoard is set)', async ({
-    page,
-  }) => {
+  test('should display board name in header', async ({ page }) => {
     await page.goto(BOARD_URL)
 
     // Wait for page to stabilize
     await page.waitForLoadState('networkidle')
 
     // The board name should be displayed in the header
-    // This verifies that activeBoard is set (board name comes from it)
     const header = page.locator('header').first()
     await expect(header).toBeVisible({ timeout: 10000 })
 

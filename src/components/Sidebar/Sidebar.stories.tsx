@@ -2,7 +2,7 @@
  * Sidebar Component Stories
  *
  * A collapsible navigation sidebar component for authenticated users.
- * Displays GitBox logo, navigation links (Boards, Favorites, Maintenance Mode, Settings),
+ * Displays GitBox logo, navigation links (Boards, Favorites, Settings),
  * theme toggle, shortcuts help, and user profile with sign out option.
  *
  * Features:
@@ -140,7 +140,6 @@ export const NavigationLinksRender: Story = {
 
     // Check navigation links exist
     expect(canvasElement).toHaveTextContent('Favorites')
-    expect(canvasElement).toHaveTextContent('Maintenance')
     expect(canvasElement).toHaveTextContent('Settings')
   },
 }

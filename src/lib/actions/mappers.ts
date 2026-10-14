@@ -21,7 +21,7 @@ import type { Board, CommentColor, Tables } from '@/lib/supabase/types'
 import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
 import { DEFAULT_COMMENT_COLOR } from '@/lib/validations/project-info'
 
-import type { CommentData } from './shared-project-info'
+import type { CommentData } from './project-info-core'
 
 /**
  * The `repocard` columns the app reads, as a PostgREST select list. Leaves out
@@ -117,8 +117,7 @@ export type BoardBundleRow = Tables<'board'> & {
 
 /**
  * Domain-shaped board bundle — everything `BoardPageClient` needs from a single
- * embed. Equivalent to the old multi-query `fetchBoardInitialData` result minus
- * `maintenanceRepoIdentifiers` (user-scoped, still fetched separately).
+ * embed. Equivalent to the old multi-query `fetchBoardInitialData` result.
  */
 export interface BoardBundle {
   /** Raw board row (the shape `BoardPageClient` expects via its `board` prop). */

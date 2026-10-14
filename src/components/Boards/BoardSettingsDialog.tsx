@@ -61,6 +61,7 @@ import {
   type RenameBoardState,
   type UpdateBoardSettingsState,
 } from '@/lib/actions/board'
+import { NEAR_LIMIT_COUNTER_TEXT_CLASS } from '@/lib/constants/character-counter'
 import {
   type CardDisplaySettings,
   type CommentTextSettings,
@@ -137,16 +138,23 @@ const FONT_WEIGHT_LABELS: Record<keyof typeof COMMENT_FONT_WEIGHTS, string> = {
 /** CSS class for character counter; turns orange near the limit. */
 function charCountClass(count: number, max: number): string {
   return count >= max - 10
-    ? 'text-sm text-orange-500'
+    ? `text-sm ${NEAR_LIMIT_COUNTER_TEXT_CLASS}`
     : 'text-muted-foreground text-sm'
 }
 
-/** CSS class for a toggle button in the comment-style picker. */
+/**
+ * CSS class for a toggle button in the comment-style picker.
+ * The border and the tint mark the chosen option; its label keeps the text
+ * color. In the theme color the label was below 4.5:1 on that tint in 12 of
+ * the 14 themes (2.9:1 on Sunrise).
+ * src/tests/unit/styles/selected-repository-badge-contrast.test.ts computes
+ * the contrast of the text color on the tint.
+ */
 function toggleButtonClass(isSelected: boolean): string {
   const base =
     'rounded-md border-2 px-3 py-1.5 text-xs font-medium transition-all'
   return isSelected
-    ? `${base} border-primary bg-primary/10 text-primary`
+    ? `${base} border-primary bg-primary/10 text-foreground`
     : `${base} border-border hover:border-primary/50`
 }
 
@@ -464,10 +472,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent
-          className="sm:max-w-140"
-          accessibleTitle="Board Settings"
-        >
+        <DialogContent className="sm:max-w-140">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5" />
@@ -478,14 +483,18 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
             </DialogDescription>
           </DialogHeader>
 
-          {/* Tab Navigation */}
+          {/* Tab Navigation. The four tabs in one row are wider than a
+              phone, so they take a second row there: a row that does not
+              wrap made the whole dialog scroll sideways. Each tab has the id
+              its panel is labelled by. */}
           <nav
-            className="border-border flex gap-1 border-b pb-2"
+            className="border-border flex flex-wrap gap-1 border-b pb-2"
             role="tablist"
           >
             <button
               type="button"
               role="tab"
+              id="tab-general"
               aria-selected={activeTab === 'general'}
               aria-controls="panel-general"
               onClick={() => setActiveTab('general')}
@@ -497,6 +506,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
             <button
               type="button"
               role="tab"
+              id="tab-card-display"
               aria-selected={activeTab === 'card-display'}
               aria-controls="panel-card-display"
               onClick={() => setActiveTab('card-display')}
@@ -509,6 +519,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
             <button
               type="button"
               role="tab"
+              id="tab-sharing"
               aria-selected={activeTab === 'sharing'}
               aria-controls="panel-sharing"
               onClick={() => setActiveTab('sharing')}
@@ -521,6 +532,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
             <button
               type="button"
               role="tab"
+              id="tab-danger"
               aria-selected={activeTab === 'danger'}
               aria-controls="panel-danger"
               onClick={() => setActiveTab('danger')}
@@ -680,7 +692,9 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
 
                 {/* Visibility Toggles */}
                 <div className="space-y-4">
-                  <h4 className="text-sm font-semibold">Card Visibility</h4>
+                  {/* h3 under the dialog's h2, as in the other panels: the
+                      size comes from the class, not from the level */}
+                  <h3 className="text-sm font-semibold">Card Visibility</h3>
 
                   {/* Show GitHub Description */}
                   <div className="flex items-center justify-between rounded-lg border p-4">
@@ -732,7 +746,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                 {/* Comment Text Options (only show when comments are enabled) */}
                 {cardDisplay.showComment && (
                   <div className="space-y-4">
-                    <h4 className="text-sm font-semibold">Comment Text</h4>
+                    <h3 className="text-sm font-semibold">Comment Text</h3>
 
                     {/* Font Size */}
                     <div className="space-y-2">
@@ -878,8 +892,9 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                       </Button>
                     </div>
                     <p className="text-muted-foreground text-xs">
-                      Visible: board name, columns, and card titles. Hidden:
-                      comments, notes, and links.
+                      Visible: board name, subtitle, columns, and each
+                      repository&apos;s name, description, language, and stars.
+                      Hidden: comments, notes, and links.
                     </p>
                   </div>
                 )}

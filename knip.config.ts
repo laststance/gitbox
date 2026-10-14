@@ -27,7 +27,6 @@ const config: KnipConfig = {
     'blob-report/**',
     'public/mockServiceWorker.js',
     'next-env.d.ts',
-    'src/lib/supabase/database.types.ts',
   ],
 
   // Dynamic dependencies (CSS-only - not detectable by Knip)

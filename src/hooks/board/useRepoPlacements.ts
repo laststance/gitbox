@@ -2,11 +2,11 @@ import * as Sentry from '@sentry/nextjs'
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 
 import { getUserRepoPlacements } from '@/lib/actions/board-data'
-import type { RepoPlacements } from '@/lib/actions/repo-card-duplicates'
+import type { BoardPlacement } from '@/lib/actions/repo-card-duplicates'
 
 interface RepoPlacementsState {
   /** Latest placements, or `null` when the last fetch failed or none has run. */
-  placements: RepoPlacements | null
+  placements: BoardPlacement[] | null
   /** Whether the fetch for the current picker opening has finished. */
   isSettled: boolean
 }
@@ -17,7 +17,7 @@ interface UseRepoPlacementsReturn {
    * failed). Callers fall back to rendering without a held list; the server
    * still rejects a repository that is already placed.
    */
-  placements: RepoPlacements | null
+  placements: BoardPlacement[] | null
   /** True from the moment the picker opens until its placement fetch settles. */
   isLoadingPlacements: boolean
   /** Fetch placements again, e.g. after an add result that skipped repositories. */
@@ -35,7 +35,7 @@ const INITIAL_PLACEMENTS_STATE: RepoPlacementsState = {
  *
  * Called by {@link AddRepositoryCombobox}. Unlike {@link useRepositoryCatalog},
  * which caches the GitHub catalog for instant reopen, placements are fetched on
- * every open: they change whenever a card is added, moved, removed or restored,
+ * every open: they change whenever a card is added, moved or removed,
  * possibly in another tab, and stale data would offer a repository the server
  * then rejects.
  *
@@ -43,7 +43,7 @@ const INITIAL_PLACEMENTS_STATE: RepoPlacementsState = {
  * @returns The placements, a loading flag, and a manual refresh function.
  * @example
  * const { placements, isLoadingPlacements, refreshPlacements } = useRepoPlacements(isOpen)
- * // placements => { boards: [{ identifier: 'a/b', boardId: '…', boardName: 'Work' }], maintenance: [] }
+ * // placements => [{ identifier: 'a/b', boardId: '…', boardName: 'Work' }]
  */
 export function useRepoPlacements(isOpen: boolean): UseRepoPlacementsReturn {
   const [state, setState] = useState<RepoPlacementsState>(
@@ -58,7 +58,7 @@ export function useRepoPlacements(isOpen: boolean): UseRepoPlacementsReturn {
   const refreshPlacements = useCallback(async (): Promise<void> => {
     const requestId = ++latestRequestId.current
 
-    let placements: RepoPlacements | null = null
+    let placements: BoardPlacement[] | null = null
     try {
       const result = await getUserRepoPlacements()
       // A failed lookup is logged server-side; the picker degrades to no held list

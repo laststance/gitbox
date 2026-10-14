@@ -2,7 +2,7 @@
  * Redux Toolkit Store Configuration
  *
  * Application-wide state management store
- * - boardSlice: Board state
+ * - boardSlice: Board state (not persisted: the server sends it with every page)
  * - boardSyncSlice: Pending board writes and refreshes (not persisted)
  * - settingsSlice: Settings (theme, language)
  * - storageMiddleware: LocalStorage synchronization
@@ -15,6 +15,7 @@ import { combineReducers, configureStore } from '@reduxjs/toolkit'
 import type { TypedUseSelectorHook } from 'react-redux'
 import { useDispatch, useSelector, useStore } from 'react-redux'
 
+import { PERSISTED_SLICE_NAMES, mergePersistedSlices } from './persisted-slices'
 import boardReducer from './slices/boardSlice'
 import boardSyncReducer from './slices/boardSyncSlice'
 import draftReducer from './slices/draftSlice'
@@ -37,7 +38,10 @@ const {
 } = createStorageMiddleware({
   rootReducer, // Required: pass root reducer
   key: 'gitbox-state',
-  slices: ['settings', 'board', 'draft'], // Persist these slices to localStorage
+  slices: [...PERSISTED_SLICE_NAMES], // Persist these slices to localStorage
+  // Reads back those slices only: a browser that used the app before still
+  // holds a `board` slice, which must not reach the store
+  merge: mergePersistedSlices,
 })
 
 // Exposed so hooks (e.g. useTheme) can gate effects on localStorage hydration

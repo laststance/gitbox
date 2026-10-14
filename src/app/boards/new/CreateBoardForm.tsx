@@ -4,96 +4,191 @@
  * Client Component for board creation.
  * - Name input with validation
  * - Preset selector for status list column templates
+ * - A problem is said once, in the form: under the name when the name is
+ *   wrong, above the buttons when the server answered. No toast repeats it
+ * - A creation that could not be confirmed (by the server, or because the
+ *   request failed on the way or got no answer in time) is worded as that and
+ *   ends the form: the board may exist and a second try could make a second
+ *   board, so "Open your boards" takes the place of "Create Board"
+ * - The field and the buttons are disabled while the request runs, and a
+ *   disabled control loses the focus. Each ending hands it to the control
+ *   needed next: the name field after a refusal, "Open your boards" after a
+ *   creation that could not be confirmed
  */
 
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState, useTransition, memo } from 'react'
+import { useRef, useState, memo } from 'react'
+import { flushSync } from 'react-dom'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createBoard } from '@/lib/actions/board'
-import { DEFAULT_PRESET_ID, type PresetId } from '@/lib/constants/board-presets'
+import {
+  DEFAULT_PRESET_ID,
+  type SelectablePresetId,
+} from '@/lib/constants/board-presets'
 import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
-import { boardNameSchema } from '@/lib/validations/board'
+import { requestBoardCreation } from '@/lib/utils/request-board-creation'
+import { BOARD_NAME_MAX_LENGTH, boardNameSchema } from '@/lib/validations/board'
 
 import { PresetSelector } from './PresetSelector'
 
+/** Ids of the texts the name field and the preset group are described by. */
+const NAME_HINT_ID = 'board-name-hint'
+const PROBLEM_TEXT_ID = 'create-board-problem'
+const PRESET_LABEL_ID = 'board-preset-label'
+const PRESET_HINT_ID = 'board-preset-hint'
+
+/**
+ * What the form shows above its buttons.
+ * - `invalid-name`: the name did not pass the check, so nothing was sent
+ * - `not-created`: the server answered and no board was created
+ * - `unconfirmed`: a board may exist; "Open your boards" takes the place of
+ *   "Create Board" and nothing more is sent from this form
+ */
+interface FormProblem {
+  kind: 'invalid-name' | 'not-created' | 'unconfirmed'
+  message: string
+}
+
 export const CreateBoardForm = memo(function CreateBoardForm() {
   const router = useRouter()
-  const [isPending, startTransition] = useTransition()
+  const [isPending, setIsPending] = useState(false)
   const [name, setName] = useState('')
-  const [presetId, setPresetId] = useState<PresetId>(DEFAULT_PRESET_ID)
-  const [error, setError] = useState<string | null>(null)
+  const [presetId, setPresetId] =
+    useState<SelectablePresetId>(DEFAULT_PRESET_ID)
+  const [problem, setProblem] = useState<FormProblem | null>(null)
 
-  const handleSubmit = (e: React.FormEvent): void => {
+  const formRef = useRef<HTMLFormElement>(null)
+  const nameFieldRef = useRef<HTMLInputElement>(null)
+  const boardsLinkRef = useRef<HTMLAnchorElement>(null)
+
+  const isOutcomeUnknown = problem?.kind === 'unconfirmed'
+
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
-    setError(null)
+    // The board may exist: a second creation could make a second board
+    if (isOutcomeUnknown) return
+    setProblem(null)
 
     // Validate using Zod schema (same as server-side)
-    const result = boardNameSchema.safeParse(name)
-    if (!result.success) {
-      setError(result.error.issues[0]?.message || 'Invalid board name')
+    const nameValidation = boardNameSchema.safeParse(name)
+    if (!nameValidation.success) {
+      setProblem({
+        kind: 'invalid-name',
+        message:
+          nameValidation.error.issues[0]?.message || 'Invalid board name',
+      })
+      nameFieldRef.current?.focus()
       return
     }
 
-    const validatedName = result.data
+    const validatedName = nameValidation.data
 
-    startTransition(async () => {
-      const result = await createBoard(validatedName, presetId)
-      if (result.success) {
-        toast.success('Board created', {
-          description: `"${validatedName}" has been created.`,
-        })
-        router.push(`/board/${result.data.id}`)
-      } else {
-        setError(result.error)
-        toast.error('Failed to create board', {
-          description: result.error,
-        })
-      }
+    setIsPending(true)
+    // Never rejects and never waits without end: a rejection here would
+    // put the error page of the route in place of the form
+    const attempt = await requestBoardCreation(validatedName, presetId)
+    if (attempt.status === 'created') {
+      toast.success('Board created', {
+        description: `"${validatedName}" has been created.`,
+      })
+      // Still pending: the form stays locked until the board takes its place
+      router.push(`/board/${attempt.board.id}`)
+      return
+    }
+
+    // Said once, in the form, next to the buttons: a toast with the same
+    // words lands on those buttons on a laptop screen.
+    // flushSync: once this returns the field is enabled again after a
+    // refusal, and "Open your boards" is on the page after an unknown outcome
+    flushSync(() => {
+      setIsPending(false)
+      setProblem({ kind: attempt.status, message: attempt.message })
     })
+    // The form let go of the focus when it disabled its controls for the
+    // request. A user who went on to the sidebar meanwhile stays there
+    if (!isFocusLostByForm(formRef.current)) return
+    if (attempt.status === 'not-created') {
+      // After a refusal the name is what the user can change
+      nameFieldRef.current?.focus()
+    } else {
+      // The board may exist: the way to the boards is the next step
+      boardsLinkRef.current?.focus()
+    }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-8">
       {/* Board Name */}
       <div className="space-y-2">
         <Label htmlFor="board-name">Board Name</Label>
         <Input
+          ref={nameFieldRef}
           id="board-name"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            setName(e.target.value)
+            // The message was about the name as it was before this edit
+            setProblem(null)
+          }}
           placeholder="e.g., AI Experiments, Side Projects"
-          maxLength={50}
+          maxLength={BOARD_NAME_MAX_LENGTH}
           autoFocus
-          disabled={isPending}
+          // After an unknown outcome the name is not sent a second time
+          disabled={isPending || isOutcomeUnknown}
+          // Only a name that failed the check is invalid; a refusal of the
+          // server says nothing about the name
+          aria-invalid={problem?.kind === 'invalid-name'}
+          aria-describedby={
+            problem ? `${NAME_HINT_ID} ${PROBLEM_TEXT_ID}` : NAME_HINT_ID
+          }
         />
-        <p className="text-muted-foreground text-xs">
-          {name.length}/50 characters
+        <p id={NAME_HINT_ID} className="text-muted-foreground text-xs">
+          {name.length}/{BOARD_NAME_MAX_LENGTH} characters
         </p>
+        {/* What is wrong with the name stands under the name; what the
+            server answered stands above the buttons that were pressed */}
+        {problem?.kind === 'invalid-name' && (
+          <p
+            id={PROBLEM_TEXT_ID}
+            role="alert"
+            className="text-destructive text-sm"
+          >
+            {problem.message}
+          </p>
+        )}
       </div>
 
       {/* Preset Selection */}
       <div className="space-y-2">
-        <Label>Column Preset</Label>
-        <p className="text-muted-foreground text-xs">
+        <Label id={PRESET_LABEL_ID}>Column Preset</Label>
+        <p id={PRESET_HINT_ID} className="text-muted-foreground text-xs">
           Choose how to organize your repos
         </p>
         <PresetSelector
           value={presetId}
           onChange={setPresetId}
-          disabled={isPending}
+          disabled={isPending || isOutcomeUnknown}
+          aria-labelledby={PRESET_LABEL_ID}
+          aria-describedby={PRESET_HINT_ID}
         />
       </div>
 
       {/* Error Message */}
-      {error && (
+      {problem && problem.kind !== 'invalid-name' && (
         <div className="bg-destructive/10 border-destructive/20 rounded-lg border p-3">
-          <p className="text-destructive text-sm">{error}</p>
+          <p
+            id={PROBLEM_TEXT_ID}
+            role="alert"
+            className="text-destructive text-sm"
+          >
+            {problem.message}
+          </p>
         </div>
       )}
 
@@ -108,10 +203,51 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={isPending} className="flex-1">
-          {isPending ? 'Creating...' : 'Create Board'}
-        </Button>
+        {isOutcomeUnknown ? (
+          // The text above says "check your boards": this is the way there.
+          // handleSubmit gives it the keyboard the disabled form let go of.
+          // Described by that text: a screen reader that follows the focus
+          // reads why the link took the place of "Create Board".
+          <Button asChild className="flex-1">
+            <Link
+              ref={boardsLinkRef}
+              href="/boards"
+              aria-describedby={PROBLEM_TEXT_ID}
+            >
+              Open your boards
+            </Link>
+          </Button>
+        ) : (
+          <Button type="submit" disabled={isPending} className="flex-1">
+            {isPending ? 'Creating...' : 'Create Board'}
+          </Button>
+        )}
       </div>
     </form>
   )
 }, areServerRenderedPropsEqual)
+
+/**
+ * Says whether the keyboard focus is where the form left it when it disabled
+ * its controls: on nothing, or still on one of the form's own controls.
+ * Called when a creation has ended without a board to open, before the name
+ * field or "Open your boards" takes the focus, so a user who went on to the
+ * sidebar meanwhile is not pulled back.
+ *
+ * @param form - The form element, or `null` before it is mounted.
+ * @returns
+ * - `true` when no element has the focus (the browser reports the body), or
+ *   when a control of the form still has it
+ * - `false` when the user moved the focus to something outside the form
+ * @example
+ * // The pressed "Create Board" button was disabled and let go of the focus
+ * isFocusLostByForm(form) // => true
+ */
+function isFocusLostByForm(form: HTMLFormElement | null): boolean {
+  const focusedElement = document.activeElement
+  return (
+    focusedElement === null ||
+    focusedElement === document.body ||
+    Boolean(form?.contains(focusedElement))
+  )
+}

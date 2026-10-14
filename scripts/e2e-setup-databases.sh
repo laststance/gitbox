@@ -125,7 +125,14 @@ setup() {
     #   (test JWT sets auth.uid() for RLS policy evaluation)
     # - service_role: bypasses RLS for E2E setup/teardown helpers (db-query.ts)
     # RLS stays ENABLED — policies enforce access via auth.uid() from test JWT
+    # USAGE on schema auth: a function that runs with the caller's rights
+    # (create_board_with_status_lists) looks up auth.uid() by name when it
+    # runs, which needs USAGE on the schema. Supabase grants it to these three
+    # roles; a policy does not need it because it stores the function's OID.
     db_exec psql -U "$PG_USER" -d "$DB_NAME" -c "
+      GRANT USAGE ON SCHEMA auth TO anon;
+      GRANT USAGE ON SCHEMA auth TO authenticated;
+      GRANT USAGE ON SCHEMA auth TO service_role;
       GRANT USAGE ON SCHEMA public TO anon;
       GRANT USAGE ON SCHEMA public TO authenticated;
       GRANT USAGE ON SCHEMA public TO service_role;
@@ -135,6 +142,17 @@ setup() {
       GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon;
       GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
       GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
+    " > /dev/null 2>&1
+
+    # A function loaded from the dump is executable by everyone (PUBLIC), the
+    # PostgreSQL default, because the dump carries no REVOKE. Repeat the rights
+    # of the migrations that take EXECUTE away from visitors, so a shard
+    # refuses the same callers as a database built from the migrations (CI
+    # and production). A migration that revokes EXECUTE on another function
+    # needs its lines here too.
+    db_exec psql -U "$PG_USER" -d "$DB_NAME" -c "
+      REVOKE ALL ON FUNCTION public.create_board_with_status_lists(text, jsonb) FROM PUBLIC, anon;
+      GRANT EXECUTE ON FUNCTION public.create_board_with_status_lists(text, jsonb) TO authenticated, service_role;
     " > /dev/null 2>&1
 
     # Start PostgREST container (internal only, no port mapping)

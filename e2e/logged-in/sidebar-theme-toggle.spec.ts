@@ -6,8 +6,6 @@
  * - Theme applies to DOM immediately
  * - Theme persists across navigation
  * - Works on pages with sidebar (boards, board/[id], settings)
- *
- * Note: Maintenance page uses a different layout without sidebar
  */
 
 import { test, expect } from '../fixtures/coverage'

@@ -41,7 +41,10 @@ jobs:
       # Install Supabase CLI
       - uses: supabase/setup-cli@df56b21da46c98abb12a9804e4fb1f657773e333 # v2.0.0
         with:
-          version: latest
+          # The version supabase-production.yml pins: the migrations are
+          # tested here with the CLI that applies them to production. Raise
+          # both together, and the local CLI with them.
+          version: 2.120.0
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

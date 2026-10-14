@@ -356,10 +356,10 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
     const saveButton = inlineEdit.locator('[data-testid="comment-save-btn"]')
     await expect(saveButton).toBeDisabled()
 
-    // Character counter should show error state (red color)
+    // Character counter should show error state (a red fill under its label)
     const counter = inlineEdit.locator('[data-testid="character-counter"]')
     await expect(counter).toContainText('2010/2000')
-    await expect(counter).toHaveClass(/text-destructive|text-red/)
+    await expect(counter).toHaveClass(/(^|\s)bg-destructive(\s|$)/)
   })
 
   test('should auto-focus textarea when opening edit mode', async ({

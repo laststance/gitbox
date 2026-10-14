@@ -34,7 +34,14 @@ interface BoardsPageHeaderProps {
 export const BoardsPageHeader = memo<BoardsPageHeaderProps>(
   function BoardsPageHeader({ initialTitle, initialSubtitle }) {
     return (
-      <div>
+      // min-w-0 and wrap-break-word: a title or a subtitle without a space
+      // (50 and 100 characters are allowed) has no place to break. In the
+      // row it shares with "Create Board" from 640px on, this block could
+      // not get narrower than that one word and pushed the button off the
+      // screen. Now the block gives way and a word that is wider than its
+      // line breaks. The row leaves the block 320px at least, so a word
+      // that is not that long stays whole.
+      <div className="min-w-0">
         <InlineEditableText
           value={initialTitle || BOARDS_PAGE_DEFAULTS.title}
           onSave={async (newTitle) => {
@@ -46,7 +53,7 @@ export const BoardsPageHeader = memo<BoardsPageHeaderProps>(
           }}
           maxLength={BOARDS_PAGE_TITLE_MAX_LENGTH}
           as="h1"
-          className="text-foreground text-3xl font-bold"
+          className="text-foreground text-3xl font-bold wrap-break-word"
           inputClassName="text-foreground text-3xl font-bold"
           ariaLabel="Boards page title"
           data-testid="boards-page-title"
@@ -63,7 +70,7 @@ export const BoardsPageHeader = memo<BoardsPageHeaderProps>(
           maxLength={BOARDS_PAGE_SUBTITLE_MAX_LENGTH}
           placeholder="Add a description..."
           as="p"
-          className="text-muted-foreground mt-2"
+          className="text-muted-foreground mt-2 wrap-break-word"
           inputClassName="text-muted-foreground"
           ariaLabel="Boards page subtitle"
           data-testid="boards-page-subtitle"

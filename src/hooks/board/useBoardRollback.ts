@@ -2,7 +2,7 @@
  * useBoardRollback Hook
  *
  * Shared "the save failed" handler for optimistic board writes (card drags,
- * column drags, undo, remove, move to Maintenance).
+ * column drags, undo, remove from board).
  *
  * A failed write used to dispatch the snapshot captured when the action
  * started. If the board changed while the request was in flight, that brought

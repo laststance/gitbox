@@ -2,9 +2,9 @@
  * Unit Tests: undo after a drag never resurrects a card that left the board
  *
  * A snapshot is taken before a drag and replayed when the user presses Z. In
- * between, a card can be moved to another board, sent to Maintenance, removed
- * or added. Replaying the raw snapshot would show a card that is gone and
- * write its old column back to the database.
+ * between, a card can be moved to another board, removed or added. Replaying
+ * the raw snapshot would show a card that is gone and write its old column
+ * back to the database.
  *
  * @see src/lib/utils/reconcile-undo-snapshot.ts
  */

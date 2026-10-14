@@ -14,6 +14,12 @@
  * row level security: both answer "not found" for another user's board, so a
  * removed filter would go unnoticed there.
  *
+ * A board that is read without columns gets the default ones before the page
+ * is built. Its owner can bring that about by deleting every column;
+ * e2e/logged-in/board-without-columns.spec.ts does so in a browser. The tests
+ * here check what getBoardBundle hands to the page for such a board: the new
+ * columns, no cards and no comments.
+ *
  * Out of scope here (and why): the embed query, RLS, and truncation branches
  * all depend on a live Supabase + PostgREST — they are covered by E2E (board
  * rendering, board-not-found.spec.ts).
@@ -23,8 +29,10 @@
 
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 
+import { createDefaultStatusLists } from '@/lib/actions/board-creation'
 import { getBoardBundle } from '@/lib/actions/board-data'
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
+import { toBoardId, toStatusListId } from '@/lib/types/brands'
 
 // getClaims is the real session check in production; here it reports no session.
 vi.mock('@/lib/auth/get-cached-claims', () => ({
@@ -35,6 +43,11 @@ vi.mock('@/lib/auth/get-cached-claims', () => ({
 // environment refuses to hand out.
 vi.mock('@/lib/utils/board-timing', () => ({
   logBoardTiming: vi.fn(),
+}))
+
+// The write that gives a board its default columns; one test sets its answer.
+vi.mock('@/lib/actions/board-creation', () => ({
+  createDefaultStatusLists: vi.fn(),
 }))
 
 // Value: protects=a malformed board id is rejected before the session lookup,
@@ -127,5 +140,104 @@ describe('getBoardBundle() owner filter', () => {
       ['user_id', '00000000-0000-0000-0000-000000000001'],
     ])
     expect(result).toBeNull()
+  })
+})
+
+describe('getBoardBundle() board without columns', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  test('gives a board that has no column the default ones and shows it with them', async () => {
+    // Arrange: the signed-in user's board comes back without a column
+    const boardId = '00000000-0000-0000-0000-000000000100'
+    const boardQuery = {
+      select: vi.fn(() => boardQuery),
+      eq: vi.fn(() => boardQuery),
+      order: vi.fn(() => boardQuery),
+      maybeSingle: vi.fn(() => boardQuery),
+      overrideTypes: vi.fn(async () => ({
+        data: {
+          id: boardId,
+          name: 'Old board',
+          user_id: '00000000-0000-0000-0000-000000000001',
+          statuslist: [],
+          repocard: [],
+        },
+        error: null,
+      })),
+    }
+    vi.mocked(getCachedClaims).mockResolvedValueOnce({
+      supabase: { from: vi.fn(() => boardQuery) },
+      claims: { sub: '00000000-0000-0000-0000-000000000001' },
+    } as unknown as Awaited<ReturnType<typeof getCachedClaims>>)
+    const defaultColumn = {
+      id: toStatusListId('status-1'),
+      title: 'Pending',
+      color: '#8B7355',
+      gridRow: 0,
+      gridCol: 0,
+      boardId: toBoardId(boardId),
+      createdAt: '2026-01-01T00:00:00+00:00',
+      updatedAt: '2026-01-01T00:00:00+00:00',
+    }
+    vi.mocked(createDefaultStatusLists).mockResolvedValue([defaultColumn])
+
+    // Act
+    const bundle = await getBoardBundle(boardId)
+
+    // Assert
+    expect(createDefaultStatusLists).toHaveBeenCalledTimes(1)
+    expect(createDefaultStatusLists).toHaveBeenCalledWith(
+      '00000000-0000-0000-0000-000000000100',
+    )
+    expect(bundle?.statusLists).toEqual([defaultColumn])
+    expect(bundle?.repoCards).toEqual([])
+  })
+
+  test('leaves a board that has a column as it is', async () => {
+    // Arrange
+    const boardId = '00000000-0000-0000-0000-000000000100'
+    const boardQuery = {
+      select: vi.fn(() => boardQuery),
+      eq: vi.fn(() => boardQuery),
+      order: vi.fn(() => boardQuery),
+      maybeSingle: vi.fn(() => boardQuery),
+      overrideTypes: vi.fn(async () => ({
+        data: {
+          id: boardId,
+          name: 'Work',
+          user_id: '00000000-0000-0000-0000-000000000001',
+          statuslist: [
+            {
+              id: 'status-9',
+              board_id: boardId,
+              name: 'Repositories',
+              color: '#6B7280',
+              order: 0,
+              grid_row: 0,
+              grid_col: 0,
+              created_at: '2026-01-01T00:00:00+00:00',
+              updated_at: '2026-01-01T00:00:00+00:00',
+            },
+          ],
+          repocard: [],
+        },
+        error: null,
+      })),
+    }
+    vi.mocked(getCachedClaims).mockResolvedValueOnce({
+      supabase: { from: vi.fn(() => boardQuery) },
+      claims: { sub: '00000000-0000-0000-0000-000000000001' },
+    } as unknown as Awaited<ReturnType<typeof getCachedClaims>>)
+
+    // Act
+    const bundle = await getBoardBundle(boardId)
+
+    // Assert
+    expect(createDefaultStatusLists).not.toHaveBeenCalled()
+    expect(bundle?.statusLists.map((column) => column.title)).toEqual([
+      'Repositories',
+    ])
   })
 })

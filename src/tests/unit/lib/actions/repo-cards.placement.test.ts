@@ -1,12 +1,12 @@
 /**
  * Unit Tests: placing actions enforce "one repository, one card per user" (Issue #215)
  *
- * Runs `addRepositoriesToBoard`, `restoreToBoard` and `moveCardToBoard` against
- * a stubbed Supabase client to lock in the paths E2E cannot reach reliably:
+ * Runs `addRepositoriesToBoard` and `moveCardToBoard` against a stubbed
+ * Supabase client to lock in the paths E2E cannot reach reliably:
  * - a failed placement lookup must abort before any write (fail closed)
  * - a malformed payload must be rejected before any query
- * - a write rejected by the unique index must surface the race sentence
- * - a repository that is only in Maintenance must stay restorable
+ * - an insert rejected by the unique index must surface the race sentence
+ * - a move the caller has no right to must stop before the database function
  *
  * The happy paths and the real database constraints are covered by E2E
  * (`e2e/logged-in/one-repo-across-boards.spec.ts`).
@@ -14,13 +14,13 @@
  * @see src/lib/actions/repo-cards.ts
  */
 
+import * as Sentry from '@sentry/nextjs'
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import type { GitHubRepository } from '@/lib/actions/github'
 import {
   addRepositoriesToBoard,
   moveCardToBoard,
-  restoreToBoard,
 } from '@/lib/actions/repo-cards'
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 
@@ -79,11 +79,10 @@ function makeQuery(
 /**
  * Sign in as `user-1` with a Supabase stub that answers per table.
  *
- * `repocard` and `maintenance` answer the list reads of the placement lookup.
- * The optional `*Single` / `*MaybeSingle` entries answer the single-row reads
- * of the same table (the card or maintenance item being acted on, the highest
- * order in a column, the duplicate check in the target board). `rpc` is the
- * answer of the database function the action calls.
+ * `repocard` answers the list read of the placement lookup. The optional
+ * `repocardSingle` / `repocardMaybeSingle` entries answer the single-row reads
+ * of the same table (the card being acted on, the highest order in a column).
+ * `rpc` is the answer of the database function the action calls.
  */
 function signInWithSupabaseStub(tables: {
   board?: QueryResult
@@ -91,8 +90,6 @@ function signInWithSupabaseStub(tables: {
   repocard: QueryResult
   repocardSingle?: QueryResult
   repocardMaybeSingle?: QueryResult
-  maintenance: QueryResult
-  maintenanceSingle?: QueryResult
   insert?: QueryResult
   rpc?: QueryResult
 }) {
@@ -123,7 +120,7 @@ function signInWithSupabaseStub(tables: {
         maybeSingle: tables.repocardMaybeSingle,
       })
     }
-    return makeQuery(tables.maintenance, { single: tables.maintenanceSingle })
+    throw new Error(`Unexpected table read: ${table}`)
   })
 
   vi.mocked(getCachedClaims).mockResolvedValue({
@@ -159,27 +156,6 @@ describe('addRepositoriesToBoard', () => {
     // Arrange
     const { insert } = signInWithSupabaseStub({
       repocard: { data: null, error: { message: 'connection reset' } },
-      maintenance: { data: [], error: null },
-    })
-
-    // Act
-    const result = await addRepositoriesToBoard('board-1', 'status-1', [
-      makeRepository('laststance', 'gitbox'),
-    ])
-
-    // Assert
-    expect(result).toEqual({
-      success: false,
-      error: 'An unexpected error occurred',
-    })
-    expect(insert).not.toHaveBeenCalled()
-  })
-
-  test('adds nothing when the lookup of Maintenance repositories fails', async () => {
-    // Arrange
-    const { insert } = signInWithSupabaseStub({
-      repocard: { data: [], error: null },
-      maintenance: { data: null, error: { message: 'connection reset' } },
     })
 
     // Act
@@ -199,7 +175,6 @@ describe('addRepositoriesToBoard', () => {
     // Arrange
     const { from } = signInWithSupabaseStub({
       repocard: { data: [], error: null },
-      maintenance: { data: [], error: null },
     })
 
     // Act
@@ -225,7 +200,6 @@ describe('addRepositoriesToBoard', () => {
     // Arrange
     const { from } = signInWithSupabaseStub({
       repocard: { data: [], error: null },
-      maintenance: { data: [], error: null },
     })
     const oversizedSelection = Array.from({ length: 101 }, (_, index) => ({
       ...makeRepository('laststance', `repo-${index}`),
@@ -257,11 +231,12 @@ describe('addRepositoriesToBoard', () => {
             repo_name: 'gitbox',
             board: { id: 'board-2', user_id: 'user-1', name: 'Work Projects' },
           },
+          {
+            repo_owner: 'laststance',
+            repo_name: 'old-project',
+            board: { id: 'board-3', user_id: 'user-1', name: 'Side Projects' },
+          },
         ],
-        error: null,
-      },
-      maintenance: {
-        data: [{ repo_owner: 'laststance', repo_name: 'old-project' }],
         error: null,
       },
     })
@@ -288,8 +263,11 @@ describe('addRepositoriesToBoard', () => {
           },
           {
             fullName: 'laststance/old-project',
-            reason: 'maintenance',
-            message: 'laststance/old-project is in Maintenance',
+            reason: 'other-board',
+            message:
+              'laststance/old-project is already on board "Side Projects"',
+            boardId: 'board-3',
+            boardName: 'Side Projects',
           },
         ],
       },
@@ -321,7 +299,6 @@ describe('addRepositoriesToBoard', () => {
       },
       // Highest order in the target column
       repocardSingle: { data: { order: 4 }, error: null },
-      maintenance: { data: [], error: null },
       insert: {
         data: [
           {
@@ -408,7 +385,6 @@ describe('addRepositoriesToBoard', () => {
     // Arrange
     const { from } = signInWithSupabaseStub({
       repocard: { data: [], error: null },
-      maintenance: { data: [], error: null },
     })
     // What a tampered browser request could carry: one repository, no list
     const singleRepositoryPayload: GitHubRepository[] = JSON.parse(
@@ -434,7 +410,6 @@ describe('addRepositoriesToBoard', () => {
     // Arrange
     signInWithSupabaseStub({
       repocard: { data: [], error: null },
-      maintenance: { data: [], error: null },
       insert: {
         data: null,
         error: {
@@ -459,254 +434,275 @@ describe('addRepositoriesToBoard', () => {
   })
 })
 
-describe('restoreToBoard', () => {
+describe('moveCardToBoard', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  test('restores nothing when the lookup of existing cards fails', async () => {
-    // Arrange
-    const { rpc } = signInWithSupabaseStub({
-      board: { data: { id: 'board-1' }, error: null },
-      repocard: { data: null, error: { message: 'connection reset' } },
-      maintenance: {
-        data: { id: 'maint-1', repo_owner: 'laststance', repo_name: 'gitbox' },
+  test.each([
+    {
+      refusal: 'the card does not exist',
+      tables: {
+        repocardSingle: { data: null, error: { message: 'no rows' } },
+      },
+    },
+    {
+      refusal: "the card sits on another user's board",
+      tables: {
+        repocardSingle: {
+          data: {
+            id: '00000000-0000-0000-0000-000000000301',
+            repo_owner: 'laststance',
+            repo_name: 'gitbox',
+            board: { user_id: 'user-2' },
+          },
+          error: null,
+        },
+      },
+    },
+    {
+      refusal: 'the target board is not one of the user',
+      tables: {
+        board: { data: null, error: { message: 'no rows' } },
+      },
+    },
+    {
+      refusal: 'the column is not on the target board',
+      tables: {
+        statuslist: { data: null, error: { message: 'no rows' } },
+      },
+    },
+  ])(
+    'moves nothing and gives no detail away when $refusal',
+    async ({ tables }) => {
+      // Arrange: everything is in order except the one answer of this case
+      const { rpc } = signInWithSupabaseStub({
+        board: {
+          data: { id: '00000000-0000-0000-0000-000000000102' },
+          error: null,
+        },
+        statuslist: {
+          data: { id: '00000000-0000-0000-0000-000000000211' },
+          error: null,
+        },
+        repocard: { data: [], error: null },
+        repocardSingle: {
+          data: {
+            id: '00000000-0000-0000-0000-000000000301',
+            repo_owner: 'laststance',
+            repo_name: 'gitbox',
+            board: { user_id: 'user-1' },
+          },
+          error: null,
+        },
+        ...tables,
+      })
+
+      // Act
+      const result = await moveCardToBoard(
+        '00000000-0000-0000-0000-000000000301',
+        '00000000-0000-0000-0000-000000000102',
+        '00000000-0000-0000-0000-000000000211',
+      )
+
+      // Assert: the database function that moves the card was never called
+      expect(result).toEqual({
+        success: false,
+        error: 'An unexpected error occurred',
+      })
+      expect(rpc).not.toHaveBeenCalled()
+    },
+  )
+
+  test('reports a move the database refused and tells the user nothing about the reason', async () => {
+    // Arrange: every check passes and the database function fails
+    const databaseError = {
+      code: '40P01',
+      message: 'deadlock detected',
+    }
+    signInWithSupabaseStub({
+      board: {
+        data: { id: '00000000-0000-0000-0000-000000000102' },
         error: null,
       },
+      statuslist: {
+        data: { id: '00000000-0000-0000-0000-000000000211' },
+        error: null,
+      },
+      repocard: { data: [], error: null },
+      repocardSingle: {
+        data: {
+          id: '00000000-0000-0000-0000-000000000301',
+          repo_owner: 'laststance',
+          repo_name: 'gitbox',
+          board: { user_id: 'user-1' },
+        },
+        error: null,
+      },
+      rpc: { data: null, error: databaseError },
     })
 
     // Act
-    const result = await restoreToBoard('maint-1', 'board-1', 'status-1')
+    const result = await moveCardToBoard(
+      '00000000-0000-0000-0000-000000000301',
+      '00000000-0000-0000-0000-000000000102',
+      '00000000-0000-0000-0000-000000000211',
+    )
 
     // Assert
     expect(result).toEqual({
       success: false,
       error: 'An unexpected error occurred',
     })
-    expect(rpc).not.toHaveBeenCalled()
+    expect(Sentry.captureException).toHaveBeenCalledWith(databaseError, {
+      extra: {
+        context: 'move_card_to_board RPC',
+        cardId: '00000000-0000-0000-0000-000000000301',
+        targetBoardId: '00000000-0000-0000-0000-000000000102',
+      },
+    })
   })
 
-  // Generated by /ship test coverage audit (pass 1).
-  // Value: protects=a repository that sits only in Maintenance can still be
-  //   restored to a board;
-  //   fails_when=the placement pre-check also counts the Maintenance entry
-  //   (which every restored repository has) or any other repository's card,
-  //   so every restore is refused;
-  //   why_new=no test runs a successful restore: E2E covers only the refusal
-  //   and findBoardPlacement is tested without the action around it;
-  //   seam=none
-  test('restores a repository that is in Maintenance and on none of the boards', async () => {
-    // Arrange
-    const { rpc } = signInWithSupabaseStub({
-      board: { data: { id: 'board-1' }, error: null },
-      // Another repository of the user sits on a board
-      repocard: {
-        data: [
-          {
-            repo_owner: 'laststance',
-            repo_name: 'gitbox',
-            board: { id: 'board-2', user_id: 'user-1', name: 'Work Projects' },
-          },
-        ],
+  // Value: protects=a move whose answer from the database was lost is not reported as refused: the card may be on the other board; fails_when=every error of the database function is answered as a refusal; why_new=the test above has the database refuse with a code of its own; seam=none; no_claim=which codes count as an answer of the database (did-database-refuse.test.ts)
+  test('says the move could not be confirmed, with the code MOVE_UNCONFIRMED, when the database gave no answer', async () => {
+    // Arrange: every check passes and the request to the database function
+    // was lost on the way, as the Supabase client reports it
+    const lostAnswer = { code: '', message: 'TypeError: fetch failed' }
+    signInWithSupabaseStub({
+      board: {
+        data: { id: '00000000-0000-0000-0000-000000000102' },
         error: null,
       },
-      // Highest order in the target column
-      repocardMaybeSingle: { data: { order: 4 }, error: null },
-      maintenance: {
-        data: [{ repo_owner: 'laststance', repo_name: 'old-project' }],
+      statuslist: {
+        data: { id: '00000000-0000-0000-0000-000000000211' },
         error: null,
       },
-      maintenanceSingle: {
+      repocard: { data: [], error: null },
+      repocardSingle: {
         data: {
-          id: 'maint-1',
+          id: '00000000-0000-0000-0000-000000000301',
           repo_owner: 'laststance',
-          repo_name: 'old-project',
+          repo_name: 'gitbox',
+          board: { user_id: 'user-1' },
         },
         error: null,
       },
-      rpc: { data: 'restored-card-id', error: null },
+      rpc: { data: null, error: lostAnswer },
     })
 
     // Act
-    const result = await restoreToBoard('maint-1', 'board-1', 'status-1')
+    const result = await moveCardToBoard(
+      '00000000-0000-0000-0000-000000000301',
+      '00000000-0000-0000-0000-000000000102',
+      '00000000-0000-0000-0000-000000000211',
+    )
 
     // Assert
     expect(result).toEqual({
-      success: true,
-      data: { cardId: 'restored-card-id' },
+      success: false,
+      error:
+        'Could not confirm that the card was moved. Check the board before trying again.',
+      errorCode: 'MOVE_UNCONFIRMED',
     })
+    expect(Sentry.captureException).toHaveBeenCalledWith(lostAnswer, {
+      extra: {
+        context: 'move_card_to_board RPC',
+        cardId: '00000000-0000-0000-0000-000000000301',
+        targetBoardId: '00000000-0000-0000-0000-000000000102',
+      },
+    })
+  })
+
+  // Value: protects=a call to the database that throws instead of answering is not reported as a refusal either; fails_when=the action lets the guard turn the thrown error into "An unexpected error occurred", which the dialog reads as "nothing happened"; why_new=the cases above get an error object, as the Supabase client normally returns; seam=none; no_claim=whether the client ever throws in production (it is written not to)
+  test('says the move could not be confirmed when the call to the database throws instead of answering', async () => {
+    // Arrange: every check passes and the call itself throws
+    const thrownError = new TypeError('fetch failed')
+    const { rpc } = signInWithSupabaseStub({
+      board: {
+        data: { id: '00000000-0000-0000-0000-000000000102' },
+        error: null,
+      },
+      statuslist: {
+        data: { id: '00000000-0000-0000-0000-000000000211' },
+        error: null,
+      },
+      repocard: { data: [], error: null },
+      repocardSingle: {
+        data: {
+          id: '00000000-0000-0000-0000-000000000301',
+          repo_owner: 'laststance',
+          repo_name: 'gitbox',
+          board: { user_id: 'user-1' },
+        },
+        error: null,
+      },
+    })
+    rpc.mockRejectedValue(thrownError)
+
+    // Act
+    const result = await moveCardToBoard(
+      '00000000-0000-0000-0000-000000000301',
+      '00000000-0000-0000-0000-000000000102',
+      '00000000-0000-0000-0000-000000000211',
+    )
+
+    // Assert
+    expect(result).toEqual({
+      success: false,
+      error:
+        'Could not confirm that the card was moved. Check the board before trying again.',
+      errorCode: 'MOVE_UNCONFIRMED',
+    })
+    expect(Sentry.captureException).toHaveBeenCalledWith(thrownError, {
+      extra: {
+        context: 'move_card_to_board RPC',
+        cardId: '00000000-0000-0000-0000-000000000301',
+        targetBoardId: '00000000-0000-0000-0000-000000000102',
+      },
+    })
+  })
+
+  test('moves a card again that is already on the target board, so a move whose answer was lost can be repeated', async () => {
+    // Arrange: an earlier request moved the card to board 102, and its answer
+    // never reached the browser
+    const { rpc } = signInWithSupabaseStub({
+      board: {
+        data: { id: '00000000-0000-0000-0000-000000000102' },
+        error: null,
+      },
+      statuslist: {
+        data: { id: '00000000-0000-0000-0000-000000000211' },
+        error: null,
+      },
+      repocard: { data: [], error: null },
+      // The card being moved, owned by the signed-in user
+      repocardSingle: {
+        data: {
+          id: '00000000-0000-0000-0000-000000000301',
+          board_id: '00000000-0000-0000-0000-000000000102',
+          repo_owner: 'laststance',
+          repo_name: 'gitbox',
+          board: { user_id: 'user-1' },
+        },
+        error: null,
+      },
+      rpc: { data: null, error: null },
+    })
+
+    // Act
+    const result = await moveCardToBoard(
+      '00000000-0000-0000-0000-000000000301',
+      '00000000-0000-0000-0000-000000000102',
+      '00000000-0000-0000-0000-000000000211',
+    )
+
+    // Assert
+    expect(result).toEqual({ success: true, data: undefined })
     expect(rpc).toHaveBeenCalledTimes(1)
-    expect(rpc).toHaveBeenCalledWith('restore_to_board', {
-      p_maintenance_id: 'maint-1',
-      p_board_id: 'board-1',
-      p_status_id: 'status-1',
-      p_repo_owner: 'laststance',
-      p_repo_name: 'old-project',
-      p_next_order: 5,
+    expect(rpc).toHaveBeenCalledWith('move_card_to_board', {
+      p_card_id: '00000000-0000-0000-0000-000000000301',
+      p_target_board_id: '00000000-0000-0000-0000-000000000102',
+      p_target_status_id: '00000000-0000-0000-0000-000000000211',
     })
-  })
-
-  // Generated by /ship test coverage audit (pass 1).
-  // Value: protects=a restore the unique index rejected tells the user the
-  //   repository was just placed and to try again;
-  //   fails_when=the 23505 branch of restoreToBoard is removed or reordered
-  //   after the generic handler, so the user sees "An unexpected error
-  //   occurred";
-  //   why_new=toUniqueViolationError is tested alone and E2E asserts the RPC's
-  //   23505, but nothing runs the action that connects the two;
-  //   seam=none
-  test('explains that the repository was just placed when another tab restored it first', async () => {
-    // Arrange
-    signInWithSupabaseStub({
-      board: { data: { id: 'board-1' }, error: null },
-      repocard: { data: [], error: null },
-      repocardMaybeSingle: { data: null, error: null },
-      maintenance: {
-        data: [{ repo_owner: 'laststance', repo_name: 'old-project' }],
-        error: null,
-      },
-      maintenanceSingle: {
-        data: {
-          id: 'maint-1',
-          repo_owner: 'laststance',
-          repo_name: 'old-project',
-        },
-        error: null,
-      },
-      rpc: {
-        data: null,
-        error: {
-          code: '23505',
-          message:
-            'duplicate key value violates unique constraint "repocard_unique_repo_per_user"',
-        },
-      },
-    })
-
-    // Act
-    const result = await restoreToBoard('maint-1', 'board-1', 'status-1')
-
-    // Assert
-    expect(result).toEqual({
-      success: false,
-      error:
-        'laststance/old-project was just placed on a board. Close this dialog and try again.',
-    })
-  })
-})
-
-describe('moveCardToBoard', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
-  // Generated by /ship test coverage audit (pass 1).
-  // Value: protects=a move the unique index rejected tells the user the
-  //   repository was just placed and to try again;
-  //   fails_when=the 23505 branch of moveCardToBoard is removed, so a lost race
-  //   shows "An unexpected error occurred" and is reported to Sentry as a bug;
-  //   why_new=E2E asserts the move_card_to_board RPC returns 23505 but no test
-  //   runs the action that turns it into the sentence;
-  //   seam=none
-  test('explains that the repository was just placed when the database rejects the move as a duplicate', async () => {
-    // Arrange
-    signInWithSupabaseStub({
-      board: {
-        data: { id: '00000000-0000-0000-0000-000000000102' },
-        error: null,
-      },
-      statuslist: {
-        data: { id: '00000000-0000-0000-0000-000000000211' },
-        error: null,
-      },
-      repocard: { data: [], error: null },
-      // The card being moved, owned by the signed-in user
-      repocardSingle: {
-        data: {
-          id: '00000000-0000-0000-0000-000000000301',
-          repo_owner: 'laststance',
-          repo_name: 'gitbox',
-          board: { user_id: 'user-1' },
-        },
-        error: null,
-      },
-      // The target board held no such repository when it was checked
-      repocardMaybeSingle: { data: null, error: null },
-      maintenance: { data: [], error: null },
-      rpc: {
-        data: null,
-        error: {
-          code: '23505',
-          message:
-            'duplicate key value violates unique constraint "repocard_unique_repo_per_user"',
-        },
-      },
-    })
-
-    // Act
-    const result = await moveCardToBoard(
-      '00000000-0000-0000-0000-000000000301',
-      '00000000-0000-0000-0000-000000000102',
-      '00000000-0000-0000-0000-000000000211',
-    )
-
-    // Assert
-    expect(result).toEqual({
-      success: false,
-      error:
-        'laststance/gitbox was just placed on a board. Close this dialog and try again.',
-    })
-  })
-
-  // Generated by /ship test coverage audit (pass 2).
-  // Value: protects=moving onto a board that already holds the repo shows
-  //   'Repository already exists in target board';
-  //   fails_when=the throw reverts to a plain Error and the dialog shows the
-  //   generic message;
-  //   why_new=no test runs the duplicate pre-check of moveCardToBoard;
-  //   seam=none
-  test('says the repository already exists in the target board instead of moving the card there', async () => {
-    // Arrange
-    const { rpc } = signInWithSupabaseStub({
-      board: {
-        data: { id: '00000000-0000-0000-0000-000000000102' },
-        error: null,
-      },
-      statuslist: {
-        data: { id: '00000000-0000-0000-0000-000000000211' },
-        error: null,
-      },
-      repocard: { data: [], error: null },
-      // The card being moved, owned by the signed-in user
-      repocardSingle: {
-        data: {
-          id: '00000000-0000-0000-0000-000000000301',
-          repo_owner: 'laststance',
-          repo_name: 'gitbox',
-          board: { user_id: 'user-1' },
-        },
-        error: null,
-      },
-      // The target board already holds a card for the same repository
-      repocardMaybeSingle: {
-        data: { id: '00000000-0000-0000-0000-000000000399' },
-        error: null,
-      },
-      maintenance: { data: [], error: null },
-    })
-
-    // Act
-    const result = await moveCardToBoard(
-      '00000000-0000-0000-0000-000000000301',
-      '00000000-0000-0000-0000-000000000102',
-      '00000000-0000-0000-0000-000000000211',
-    )
-
-    // Assert
-    expect(result).toEqual({
-      success: false,
-      error: 'Repository already exists in target board',
-    })
-    expect(rpc).not.toHaveBeenCalled()
   })
 })

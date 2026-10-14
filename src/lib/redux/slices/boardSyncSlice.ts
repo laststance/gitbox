@@ -12,7 +12,8 @@
 import type { Dispatch, PayloadAction } from '@reduxjs/toolkit'
 import { createSlice, isAnyOf } from '@reduxjs/toolkit'
 
-import type { BoardId } from '@/lib/types/brands'
+import { SERVER_ANSWER_TIME_LIMIT_MS } from '@/lib/constants/requests'
+import type { BoardId, RepoCardId } from '@/lib/types/brands'
 
 import {
   addRepoCards,
@@ -23,7 +24,10 @@ import {
 
 /** Shape of the `state.boardSync` Redux slice. */
 interface BoardSyncState {
-  /** Optimistic writes sent to the server that have not settled yet. */
+  /**
+   * Board writes sent to the server that have neither settled nor waited
+   * longer than {@link SERVER_ANSWER_TIME_LIMIT_MS} for their answer.
+   */
   pendingWriteCount: number
   /** Goes up on every change to the cards or columns in the store. */
   contentRevision: number
@@ -55,11 +59,14 @@ export const boardSyncSlice = createSlice({
   name: 'boardSync',
   initialState,
   reducers: {
-    /** An optimistic write went to the server. Dispatched by {@link trackBoardWrite}. */
+    /** A board write went to the server. Dispatched by {@link trackBoardWrite}. */
     boardWriteStarted: (state) => {
       state.pendingWriteCount += 1
     },
-    /** That write was saved or refused. Dispatched by {@link trackBoardWrite}. */
+    /**
+     * That write was saved or refused, or got no answer within the time
+     * limit. Dispatched by {@link trackBoardWrite}.
+     */
     boardWriteSettled: (state) => {
       state.pendingWriteCount = Math.max(0, state.pendingWriteCount - 1)
     },
@@ -132,30 +139,85 @@ export const {
 export default boardSyncSlice.reducer
 
 /**
- * Counts an optimistic board write as pending until the server answers.
+ * Counts a board write as pending until the server answers, for
+ * {@link SERVER_ANSWER_TIME_LIMIT_MS} at most.
  * Exists so data fetched from the server is never put in the store while a
  * save is still on its way: that data may not contain the save yet. Called by
- * {@link useKanbanDnD}, {@link useKanbanUndo} and
- * {@link useOptimisticCardAction} around every server action they send.
+ * {@link useKanbanDnD}, {@link useKanbanUndo}, {@link useOptimisticCardAction}
+ * and {@link MoveToAnotherBoardDialog} around every server action they send.
+ *
+ * The count has an end because a request can go without an answer: counted
+ * for good, it would keep the board from ever being fetched again. At the
+ * limit nobody knows whether the write was saved, while the board may show
+ * it as done, so the board is fetched again and `onOverdue` is called. A
+ * write whose answer arrives after the limit asks for one more fetch, since
+ * the one sent at the limit may have read the board without it.
  *
  * @param dispatch - Dispatch of the store that holds the board.
  * @param write - The server action call, already started.
- * @returns The same result or rejection as `write`.
+ * @param onOverdue - Called once when the limit passes without an answer:
+ *   the place to tell the user. Not called for a write answered in time.
+ * @returns The same result or rejection as `write`, however late it comes.
  * @example
  * dispatch(setRepoCards(cardsAfterDrag))
- * await trackBoardWrite(dispatch, updateRepoCardPosition(cardId, statusId, order))
+ * await trackBoardWrite(dispatch, updateRepoCardPosition(cardId, statusId, order), () =>
+ *   reportUnconfirmedBoardSave('syncCardPosition'),
+ * )
  */
 export async function trackBoardWrite<WriteResult>(
   dispatch: Dispatch,
   write: Promise<WriteResult>,
+  onOverdue?: () => void,
 ): Promise<WriteResult> {
   dispatch(boardWriteStarted())
+
+  let isCounted = true
+  const countOut = (): void => {
+    isCounted = false
+    dispatch(boardWriteSettled())
+  }
+  const timeLimit = setTimeout(() => {
+    countOut()
+    // No answer in time: what the board shows may not be what was saved
+    dispatch(boardRefreshRequested())
+    onOverdue?.()
+  }, SERVER_ANSWER_TIME_LIMIT_MS)
+
   try {
     return await write
   } finally {
-    dispatch(boardWriteSettled())
+    clearTimeout(timeLimit)
+    if (isCounted) {
+      countOut()
+    } else {
+      // Answered after the limit: the fetch sent then may lack this write
+      dispatch(boardRefreshRequested())
+    }
   }
 }
+
+/**
+ * Takes a card out of the store after it was moved to another board, unless
+ * the store holds a different board by now. The answer of a slow move can
+ * arrive after the user opened another board, the destination for one;
+ * removing the id then would take the card off the board it was just moved
+ * to. Dispatched by {@link BoardPageClient} when
+ * {@link MoveToAnotherBoardDialog} reports a finished move.
+ *
+ * @param sourceBoardId - Board the card was moved away from.
+ * @param cardId - The moved card.
+ * @returns A thunk that removes the card only while the store still holds
+ * the source board.
+ * @example
+ * dispatch(removeMovedRepoCard(toBoardId('board-1'), toRepoCardId('card-1')))
+ */
+export const removeMovedRepoCard =
+  (sourceBoardId: BoardId, cardId: RepoCardId) =>
+  (dispatch: Dispatch, getState: () => { boardSync: BoardSyncState }): void => {
+    // Another board is in the store: its cards are not this move's to change
+    if (getState().boardSync.hydratedBoardId !== sourceBoardId) return
+    dispatch(removeRepoCard(cardId))
+  }
 
 // Selectors
 

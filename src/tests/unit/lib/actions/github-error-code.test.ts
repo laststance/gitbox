@@ -70,7 +70,7 @@ describe('GitHub Server Actions: errorCode=GITHUB_TOKEN_MISSING', () => {
     process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK = 'false'
     process.env.APP_ENV = 'production'
     process.env.NEXT_PUBLIC_SUPABASE_URL =
-      'https://jqtxjzdxczqwsrvevmyk.supabase.co'
+      'https://zfcwvzazzzsefbkztsyp.supabase.co'
 
     const cookieStoreMissingToken = {
       get: vi.fn().mockReturnValue(undefined),

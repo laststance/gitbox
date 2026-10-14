@@ -5,6 +5,7 @@
  * - Navigation progress bar (NextTopLoader) - Algora-style green bar
  * - Redux Provider
  * - Global keyboard shortcuts (ShortcutsHelp)
+ * - Toasts in the palette of the chosen theme (ThemedToaster)
  * - MSW initialization (server-side for SSR, client-side via MSWProvider)
  *
  * Note: Theme is applied in authenticated route layouts only.
@@ -14,10 +15,10 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata } from 'next'
 import NextTopLoader from 'nextjs-toploader'
-import { Toaster } from 'sonner'
 
 import { CommandPalette } from '@/components/CommandPalette/CommandPalette'
 import { ShortcutsHelp } from '@/components/ShortcutsHelp'
+import { ThemedToaster } from '@/components/ThemedToaster'
 import { DARK_THEME_IDS } from '@/lib/constants/themes'
 import { ReduxProvider } from '@/lib/redux/reduxProvider'
 import '@/styles/globals.css'
@@ -105,7 +106,7 @@ export default function RootLayout({
             {children}
             <ShortcutsHelp />
             <CommandPalette />
-            <Toaster richColors position="bottom-right" />
+            <ThemedToaster />
             <Analytics />
           </MSWProvider>
         </ReduxProvider>

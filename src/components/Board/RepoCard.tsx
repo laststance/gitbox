@@ -47,7 +47,6 @@ interface RepoCardProps {
   commentText?: CommentTextSettings
   /** Whether to show the comment section */
   showComment?: boolean
-  onMaintenance?: (id: RepoCardId) => void
   /** Callback when card is moved to another board */
   onMoveToBoard?: (id: RepoCardId) => void
   /** Callback when Note button is clicked (opens unified NoteModal with notes + links) */
@@ -79,7 +78,6 @@ export const RepoCard = memo<RepoCardProps>(
     commentData,
     commentText,
     showComment = true,
-    onMaintenance,
     onMoveToBoard,
     onNote,
     onRemove,
@@ -216,21 +214,27 @@ export const RepoCard = memo<RepoCardProps>(
           className="bg-card focus-within:ring-ring border transition-all duration-200 focus-within:ring-2 focus-within:ring-offset-2 hover:shadow-md dark:hover:shadow-lg"
           tabIndex={0}
           onKeyDown={handleKeyDown}
+          // Read by card-focus-target.ts: where the focus goes around this card
+          data-repo-card-id={card.id}
         >
           <CardContent className="p-4">
             <div className="space-y-3">
               <div className="flex items-start justify-between">
-                <h4
-                  className="text-foreground flex-1 leading-tight font-semibold"
+                {/* wrap-anywhere: a repository name without a hyphen
+                    (snake_case) has no place to break. The title could not
+                    get narrower than that one piece and pushed the menu
+                    button out of the card, where the mouse does not reach
+                    it. Now the piece breaks where the line ends. */}
+                <h3
+                  className="text-foreground flex-1 leading-tight font-semibold wrap-anywhere"
                   data-testid="repo-name"
                 >
                   {card.title}
-                </h4>
+                </h3>
                 <OverflowMenu
                   cardId={card.id}
                   repoOwner={card.repoOwner}
                   repoName={card.repoName}
-                  onMoveToMaintenance={onMaintenance}
                   onMoveToAnotherBoard={
                     onMoveToBoard
                       ? (): void => onMoveToBoard(card.id)
@@ -239,7 +243,6 @@ export const RepoCard = memo<RepoCardProps>(
                   onRemove={onRemove}
                   open={menuOpen}
                   onOpenChange={handleMenuOpenChange}
-                  context="board"
                 />
               </div>
 

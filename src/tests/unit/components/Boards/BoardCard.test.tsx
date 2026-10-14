@@ -314,4 +314,76 @@ describe('BoardCard', () => {
       expect(screen.queryByTestId('delete-dialog')).not.toBeInTheDocument()
     })
   })
+
+  describe('Favorite star', () => {
+    test('shows the star of a board that is no favorite undimmed, so it can be seen where it is always on screen', () => {
+      // Arrange
+      const board = createMockBoard({ name: 'Side Projects' })
+
+      // Act
+      render(
+        <BoardCard
+          board={board}
+          onRename={mockOnRename}
+          onDelete={mockOnDelete}
+          onToggleFavorite={mockOnToggleFavorite}
+        />,
+      )
+
+      // Assert: the muted color alone passes 3:1 on every theme, 70% of it
+      // does not (board-card-star-contrast.test.ts)
+      const star = screen.getByRole('button', {
+        name: 'Add Side Projects to favorites',
+      })
+      expect(star).toHaveClass('text-muted-foreground')
+      expect(star).not.toHaveClass('opacity-70')
+    })
+
+    test('still hides that star until the card is hovered where there is a mouse and a wide screen', () => {
+      // Arrange
+      const board = createMockBoard({ name: 'Side Projects' })
+
+      // Act
+      render(
+        <BoardCard
+          board={board}
+          onRename={mockOnRename}
+          onDelete={mockOnDelete}
+          onToggleFavorite={mockOnToggleFavorite}
+        />,
+      )
+
+      // Assert
+      expect(
+        screen.getByRole('button', { name: 'Add Side Projects to favorites' }),
+      ).toHaveClass(
+        'md:pointer-fine:opacity-0',
+        'md:pointer-fine:group-hover:opacity-100',
+        'focus-visible:opacity-100',
+      )
+    })
+  })
+
+  describe('Heading outline', () => {
+    // Value: protects=a board's name on the board list is a level-2 heading, the level right under the page title (h1); fails_when=the name goes back to h3 or stops being a heading; why_new=the board card tests find the card through its menu button, never through its heading; seam=none; no_claim=how a screen reader announces the outline (roles only)
+    test('lists a board in the heading outline of the board list: its name is a level-2 heading', () => {
+      // Arrange
+      const board = createMockBoard({ name: 'Side Projects' })
+
+      // Act
+      render(
+        <BoardCard
+          board={board}
+          onRename={mockOnRename}
+          onDelete={mockOnDelete}
+          onToggleFavorite={mockOnToggleFavorite}
+        />,
+      )
+
+      // Assert
+      expect(
+        screen.getByRole('heading', { level: 2, name: 'Side Projects' }),
+      ).toBeVisible()
+    })
+  })
 })

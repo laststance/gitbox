@@ -11,7 +11,6 @@
 
 ### Main Screens
 
-- **Maintenance Mode** — Archived/maintenance projects storage (Sidebar link, Explorer UI)
 - **Command Palette (⌘K)**
 - **Settings** — Display/Typography
 - **Shortcuts (?)**
@@ -110,17 +109,18 @@
 - Combobox search (owner/repo, topics, visibility)
 - Batch addition / duplicate detection
 - **Organization Filter**: Filter repositories by user/org (persisted to Redux/localStorage)
-- **One repository, one card per user** ([#215](https://github.com/laststance/gitbox/issues/215)): a repository can sit on at most one of a user's boards, and never on a board and in Maintenance at once. Identity is `owner/name`, case-insensitive. Board-to-board uniqueness is enforced by the database; board vs Maintenance is enforced by the server actions.
-- **Already placed elsewhere**: the combobox lists repos held by another board (`On <board name>`) or by Maintenance (`In Maintenance`) under their own heading, each with a link to where it lives, instead of offering them. Repos on the current board stay hidden. Placements are fetched every time the combobox opens.
-- **First Board auto-creation**: Auto-create "My First Board" on first login (DB trigger)
+- **One repository, one card per user** ([#215](https://github.com/laststance/gitbox/issues/215)): a repository can sit on at most one of a user's boards. Identity is `owner/name`, case-insensitive. The database enforces it.
+- **Shared board**: on a board that is shared by a public link, the combobox says above its buttons that anyone who has the link will see the added repositories with their descriptions
+- **Already placed elsewhere**: the combobox lists repos held by another board (`On <board name>`) under their own heading, each with a link to that board, instead of offering them. Repos on the current board stay hidden. Placements are fetched every time the combobox opens.
+- **Panel**: the combobox panel is 480px wide. From 640px of window width it stands below the Add Repositories button and ends at the right edge of the header, so all of it is on the page; below 640px it spans the screen. It ends above the bottom edge of the window, however far down its button stands: its two lists give up height and scroll by themselves, and the search box and Cancel / Add stay in view. Where less than 26rem would be left below the button, the panel moves up over the header instead, as far as the top edge of the window; and it follows its button when the header changes while the panel is open (the sidebar opens, the title is edited)
+- **First Board auto-creation**: On sign-in, a user who has no board gets a board named "First Board" with the Software Release columns (`createFirstBoardIfNeeded` in the OAuth callback; the board and its columns are written together by the `create_board_with_status_lists` database function)
 
 #### Acceptance Criteria
 
 - No delay displaying candidates with 100+ repos
 - D&D/Undo works smoothly
 - Organization selection persists across sessions
-- Maintenance repos cannot be added to board
-- A repo held by another board cannot be added, moved in as a duplicate, or restored from Maintenance; the UI names the holding board
+- A repo held by another board cannot be added or moved in as a duplicate; the UI names the holding board
 
 ### 3.2 Board (Kanban)
 
@@ -130,18 +130,29 @@
 - Column CRUD operations (2D grid layout: gridRow, gridCol)
 - **Column Width Constraint**: CSS variable `--column-width: 320px`, `minmax(280px, var(--column-width))`
 - **Card**: repo name, quick note, optional meta (Stars/Updated/Visibility/Language/Topics)
-- **⋯ (Overflow menu)**: Launch **Project Info** modal
+- **⋯ (Overflow menu)**: external links, Move to Another Board and Remove from Board (see 4.1). Notes and links open from the card's Note button
+- **A save without an answer**: a drag, an undo or a removal that gets no answer from the server within 15 seconds stays on screen. A notice says that the change could not be confirmed and offers **Reload page**, and the board is fetched again once the request has settled
 - **Favorites**: Add board to favorites (star icon, prioritized in sidebar)
 - **Board Subtitle**: Optional description below board title (max 100 chars, inline editable)
 - **Inline Editable Header**: Board title and subtitle are click-to-edit (`InlineEditableText` component)
-- **Board Settings**: 4-tab dialog (General, Cards, Sharing, Danger Zone)
+- **Names without a space**: a board name, a column name, a repository name, a subtitle or the title of the boards page that is one long word (snake_case, no hyphen) breaks where its line ends: in the header of a board, in a column header, on a card, on a board's card in the boards list, in a dialog and in the lists of boards and columns of the move dialog. The controls beside it stay in reach (the buttons of the board header, "Column options", the menu of a card, "Create Board"), and a dialog and its lists stay as wide as the screen on a phone. A select shows one line of the chosen name. An ordinary word is not broken to make room: a board name of one word that fits its card stays on one line there (it may run on under the star and the menu of the card), and so does a title of the boards page that fits the line
+- **Boards page header**: the title and the subtitle are click-to-edit. From 640px on "Create Board" stands at the right end of their row; below 640px it stands under them, as the buttons of a board's header do
+- **Board Settings**: 4-tab dialog (General, Cards, Sharing, Danger Zone). On a phone, where the dialog is as wide as the screen, the tabs take a second row, so the dialog does not scroll sideways
   - **General**: Rename board, subtitle edit form, "Show Subtitle" visibility toggle
   - **Cards**: Card display settings (description, comment, font size/weight)
-  - **Sharing**: Public board toggle, share link generation/copy
+  - **Sharing**: Public board toggle, share link generation/copy, and a line that says what the link shows (board name, subtitle, columns, each repository's name, description, language and stars) and what it hides (comments, notes, links)
   - **Danger Zone**: Delete board with confirmation
 - **Public Board Sharing**: Make boards publicly viewable via unique share slug (read-only for visitors)
 - **Copy Link** (board header): Copies the public share link while the board is shared; otherwise the board's own address, with a note that only the owner can open it
-- **Move to Another Board**: Move repo cards between boards via dialog (DB RPC `move_card_to_board`)
+- **Move to Another Board**: Move repo cards between boards via dialog (DB RPC `move_card_to_board`). The card keeps its note, links and comment, so this is how a repository is set aside and brought back: move it to a board of your own, and move it again later
+  - The dialog can create the destination board: **New Board...** under the board selector, or the create form directly when the user has no other board. A board made there has one column, "Repositories"
+  - The dialog opens on the board the last move from this board went to, when that board is still offered (remembered in this browser). Without one it opens on the newest board that is not shared by a public link
+  - A board that is shared by a public link carries the mark of a public board in the list. When it is the destination, the dialog says that anyone who has the link will see the repository there with its description, and that notes, links and comments stay private
+  - The columns of the destination are listed in the order its board shows them, and the first one (the left-most of the first row) is selected until another is picked
+  - While the move or a board creation waits for the server the dialog stays open and its controls are disabled. After 15 seconds without an answer it says that the outcome could not be confirmed and can be closed again. After every move that was not confirmed the board is fetched again, and the same move can be sent a second time without harm. That fetch waits until the request has settled, so the dialog offers **Reload page** next to the message of a move with an unknown outcome. A move the server itself could not confirm (the database gave it no answer) is shown the same way
+  - A board creation that could not be confirmed is not sent a second time from the dialog, because the board may exist: **Reload boards** loads the list again and shows it. When the creation got no answer in 15 seconds its request is still running and that load would wait behind it, so **Reload page** takes the place of Reload boards
+  - The keyboard focus is on the Board select once the boards are loaded, and after a request that did not go through on the control needed next (Move, the name field, Reload boards, Reload page)
+- **Remove from Board**: Deletes the card together with its note, links and comment, after a confirmation. The repository on GitHub is not affected
 - **Board D&D Reorder**: Drag & drop board cards on `/boards` page to reorder (position persisted to DB)
   - GripVertical drag handle (visible on hover)
   - Optimistic UI with `useOptimistic` + `useState` dual pattern
@@ -155,32 +166,15 @@
 - Favorites toggle reflects immediately
 - Columns don't expand to fill available space (constrained to max width)
 - Board card order persists after page reload (DB-backed position)
+- A card moved to another board keeps its note, links and comment
 
-### 3.3 Maintenance Mode
-
-#### Specifications
-
-- Navigate from Sidebar
-- **Explorer UI** (Grid/List toggle, sort/search)
-- **Click = Navigate to GitHub repo**
-- **⋯ menu** on card top-right
-- **Restore to Board** operation (via RestoreToBoardDialog)
-- **Delete from Maintenance** operation (via DeleteMaintenanceDialog)
-  - Confirmation AlertDialog with destructive warning
-  - CASCADE DELETE removes associated projectinfo (notes, links, comments)
-  - Protected by rate limiting (`boardCrud`)
-
-#### UI Reference
-
-List/Table/Sidebar UI HIG ([Apple Developer](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables))
-
-### 3.4 Project Note (Rich Text Notes)
+### 3.3 Project Note (Rich Text Notes)
 
 Full-featured WYSIWYG editor accessible from each RepoCard's Note button.
 
 #### Specifications
 
-- **Plate Editor**-based rich text editor (Platejs 52)
+- **Plate Editor**-based rich text editor (Platejs 53)
 - **Fixed Toolbar**: Always-visible formatting toolbar (Bold, Italic, Headings, Lists, etc.)
 - **Floating Toolbar**: Context toolbar on text selection
 - **Slash Commands**: `/` input shows command menu (/h1, /code, /table, etc.)
@@ -211,13 +205,13 @@ Full-featured WYSIWYG editor accessible from each RepoCard's Note button.
 - Format preserved after save and reopen
 - Data persists after page refresh
 
-### 3.5 Project Info (Modal)
+### 3.4 Project Info (Modal)
 
-Accessible from all RepoCards (Board & Maintenance).
+Accessible from all RepoCards.
 
 #### Sections
 
-1. **Comment** (inline comment, max 2,000 chars. Displayed on RepoCard. See 3.6)
+1. **Comment** (inline comment, max 2,000 chars. Displayed on RepoCard. See 3.5)
 
 2. **Links** (55 built-in link types + custom presets)
    - **Built-in Types**: 55 link types in 13 categories
@@ -244,7 +238,7 @@ Accessible from all RepoCards (Board & Maintenance).
 
 3. **Note** (rich text, max 20,000 chars. Edited with Plate Editor via NoteModal)
 
-### 3.6 Comment on RepoCard (Inline Comment)
+### 3.5 Comment on RepoCard (Inline Comment)
 
 Display free-text status comments on RepoCard in Card-in-Card style.
 
@@ -256,6 +250,7 @@ Display free-text status comments on RepoCard in Card-in-Card style.
 - **Inline editing**: Click to edit directly, 2,000 character limit
 - **Color customization**: 8 colors available (primary/blue/green/amber/purple/rose/cyan/neutral)
 - **Per-comment color**: Color stored per comment in `projectinfo.comment_color`
+- **Actions menu**: Edit, Color and Delete, from a button on the comment (shown on hover and on focus, and always where the main pointer is a finger). The colors open on hover, on a click or a tap, and from the keyboard. Of the menu, only Edit opens the editor: neither its button nor Color, a color or Delete does
 
 #### UI Wireframe
 
@@ -306,11 +301,11 @@ interface BoardSettings {
 - Inline editing with instant save
 - Empty state shows "+ Add comment" placeholder
 
-### 3.7 Sidebar Collapse
+### 3.6 Sidebar Collapse
 
 #### Specifications
 
-- **Toggle Button**: Button at sidebar bottom to expand/collapse
+- **Toggle Button**: Button in the sidebar's header to expand/collapse: beside the name while the sidebar is expanded from 768px, in a row of its own under the logo as the 64px rail and as the sidebar that lies over the page
 - **Expanded State**: Width 256px (w-64), full text display
 - **Collapsed State**: Width 64px (w-16), icons only
 - **Transition Animation**: 300ms ease-out smooth width change
@@ -322,7 +317,7 @@ interface BoardSettings {
 
 - **useSidebar Hook**: Mounted state management for hydration safety
 - **CSS**: `transition-[width] duration-300 ease-out`
-- **Responsive**: Desktop only (different layout for mobile)
+- **Responsive**: Below 768px the sidebar is the 64px icon rail at the left edge, whatever state is stored, and the page lies beside it. The toggle opens the full sidebar over the page, which keeps its place; the backdrop, Escape, a link of the sidebar and a second press on the toggle, which stays where it was in the rail, close it again. The sidebar is as high as the part of the screen that is in view. This opened state is not stored
 - **SSR**: Renders expanded (default) state on server, applies persisted state after mount
 
 #### Acceptance Criteria
@@ -334,12 +329,12 @@ interface BoardSettings {
 - Tooltips display correctly when collapsed
 - No hydration mismatch errors
 
-### 3.8 Account Management
+### 3.7 Account Management
 
 #### Specifications
 
 - **Profile display**: GitHub avatar, username, email
-- **Statistics display**: Board count, card count, maintenance count
+- **Statistics display**: Board count, card count
 - **Account deletion**: Confirmation flow with "DELETE" input for complete account deletion
 
 #### Acceptance Criteria
@@ -348,7 +343,7 @@ interface BoardSettings {
 - All related data deleted on account deletion
 - Deletion confirmation requires exact "DELETE" match
 
-### 3.9 Navigation Progress Bar
+### 3.8 Navigation Progress Bar
 
 #### Specifications
 
@@ -362,7 +357,7 @@ interface BoardSettings {
 - Progress bar shows on page navigation
 - Does not interfere with modal/dialog overlays
 
-### 3.10 Error & Loading States
+### 3.9 Error & Loading States
 
 #### Specifications
 
@@ -372,9 +367,9 @@ interface BoardSettings {
 - **Board Loading** (`src/app/board/[id]/loading.tsx`): Skeleton UI matching KanbanBoard layout
   - CardSkeleton, ColumnSkeleton components
 - **Per-Route Boundaries**: All route segments have dedicated `loading.tsx` and `error.tsx`
-  - Routes: `/boards`, `/board/[id]`, `/maintenance`, `/settings`, `/account`
+  - Routes: `/boards`, `/board/[id]`, `/settings`, `/account`
 
-### 3.11 Rate Limiting
+### 3.10 Rate Limiting
 
 #### Specifications
 
@@ -385,18 +380,18 @@ interface BoardSettings {
 
 #### Rate Limit Configuration
 
-| Key                | Max Requests | Window | Scope                  |
-| ------------------ | ------------ | ------ | ---------------------- |
-| `auth/callback`    | 10           | 1 min  | OAuth callback (edge)  |
-| `signInWithGitHub` | 10           | 1 hour | GitHub OAuth login     |
-| `deleteAccount`    | 3            | 1 hour | Account deletion       |
-| `githubApi`        | 30           | 1 min  | GitHub API proxy       |
-| `addReposToBoard`  | 10           | 1 min  | Add repository         |
-| `batchDnD`         | 60           | 1 min  | D&D batch operations   |
-| `boardCrud`        | 20           | 1 min  | Board/maintenance CRUD |
-| `userSettings`     | 20           | 1 min  | User settings          |
-| `publicBoardView`  | 60           | 1 min  | Shared board view      |
-| `sentryTunnel`     | 120          | 1 min  | Error reports (edge)   |
+| Key                | Max Requests | Window | Scope                 |
+| ------------------ | ------------ | ------ | --------------------- |
+| `auth/callback`    | 10           | 1 min  | OAuth callback (edge) |
+| `signInWithGitHub` | 10           | 1 hour | GitHub OAuth login    |
+| `deleteAccount`    | 3            | 1 hour | Account deletion      |
+| `githubApi`        | 30           | 1 min  | GitHub API proxy      |
+| `addReposToBoard`  | 10           | 1 min  | Add repository        |
+| `batchDnD`         | 60           | 1 min  | D&D batch operations  |
+| `boardCrud`        | 20           | 1 min  | Board CRUD            |
+| `userSettings`     | 20           | 1 min  | User settings         |
+| `publicBoardView`  | 60           | 1 min  | Shared board view     |
+| `sentryTunnel`     | 120          | 1 min  | Error reports (edge)  |
 
 #### Integration
 
@@ -405,7 +400,7 @@ interface BoardSettings {
 - **Identifier**: User ID (authenticated) or IP (unauthenticated)
 - **Error**: `"Too many {description} requests. Please try again later."`
 
-### 3.12 Security
+### 3.11 Security
 
 #### Security Headers (next.config.ts)
 
@@ -451,7 +446,7 @@ Sentry-based audit trail via `logSecurityEvent()` (`src/lib/security-events.ts`)
 - **Open Redirect**: OAuth callback validates redirect URL against allowlist
 - **E2E Coverage**: `xss-smoke.spec.ts` verifies script injection is neutralized
 
-### 3.13 Server Action Pattern
+### 3.12 Server Action Pattern
 
 #### ActionResult\<T\> Discriminated Union
 
@@ -459,8 +454,14 @@ Standardized return type for client-consumed Server Actions (`src/lib/actions/ty
 
 ```typescript
 type ActionResult<T> =
-  { success: true; data: T } | { success: false; error: string }
+  | { success: true; data: T }
+  | { success: false; error: string; errorCode?: ActionErrorCode }
+
+type ActionErrorCode =
+  'GITHUB_TOKEN_MISSING' | 'BOARD_CREATION_UNCONFIRMED' | 'MOVE_UNCONFIRMED'
 ```
+
+`error` is the sentence the user reads. `errorCode` is set only where the browser has to tell one failure from another, and the browser branches on the code, never on the sentence. It signs in again without asking (`GITHUB_TOKEN_MISSING`). Or it treats the outcome as unknown: the board may exist, because the database gave the server no answer or one the server could not read (`BOARD_CREATION_UNCONFIRMED`), or the card may have moved, because the database gave no answer (`MOVE_UNCONFIRMED`).
 
 #### Auth Guard Wrappers (`src/lib/actions/auth-guard.ts`)
 
@@ -474,32 +475,29 @@ type ActionResult<T> =
 
 ## 4) Interactions
 
-### 4.1 Overflow "⋯" Menu (Board & Maintenance Common)
+### 4.1 Overflow "⋯" Menu
 
 Three-dot menu on each RepoCard opens "Overflow menu" for quick actions ([Material Design](https://m3.material.io/components/menus/guidelines))
 
-#### Menu Items (Common)
+#### Menu Items
 
 ```
 Open on GitHub
 Open Production URL
 Open Tracking dashboard
 Open Supabase dashboard
-Edit Project Info…      // Launch modal
-Move to Another Board   // Board only (dialog with board selector)
-Move to Maintenance     // Board only
-Restore to Board        // Maintenance only
-Delete from Maintenance // Maintenance only (destructive, confirmation dialog)
+Move to Another Board   // Dialog with board selector; keeps the note, links and comment
+Remove from Board       // Destructive, confirmation dialog; deletes the card with its note, links and comment
 ```
 
 ### 4.2 Shortcuts (Unified)
 
 - `.` — Focused card's Overflow menu
-- `Enter` — Default action (Board=Open card, Maintenance=Open on GitHub)
+- `Enter` — Open card
 - `⌘K` / `Ctrl+K` — Command Palette
-- `Z` — Undo last operation
+- `Z` — Undo last operation (not while a dialog, a menu, a list of options, the command palette or the Add Repositories panel is open, and not while the sidebar lies over the page on a phone)
 - `Tab` — Focus navigation
-- `Escape` — Close menu/dialog
+- `Escape` — Close the topmost menu, list or dialog. In the Add Repositories panel the open list of organizations closes first, and the panel with the next press
 - `?` — Shortcuts help
 
 ---
@@ -512,23 +510,18 @@ Delete from Maintenance // Maintenance only (destructive, confirmation dialog)
 
 ```
 ┌───────────────────────────────┐
-│ GitBox                         │
+│ [Logo] GitBox             [«]  │  ← Collapse toggle button, beside the name
 │ ───────────────────────────── │
 │ Boards                    [▼]  │  ← Collapsible
 │  • All Boards                  │
 │  • Favorites                   │
-│  • New Board (+)               │
-│ ───────────────────────────── │
-│ Maintenance Mode               │  ← completed / maintenance projects
 │ ───────────────────────────── │
 │ Settings                       │
 │ Shortcuts                      │
 │ Theme: [Sunrise ▾]             │  ← Global theme selector (14 themes + System)
 │ ───────────────────────────── │
-│ Account                        │  ← Profile, stats, deletion
-│ Sign out                       │
-│ ───────────────────────────── │
-│ [« Collapse]                   │  ← Collapse toggle button
+│ [Avatar] User name             │  ← Account: profile, stats, deletion
+│ Sign Out                       │
 └───────────────────────────────┘
 ```
 
@@ -538,32 +531,29 @@ Delete from Maintenance // Maintenance only (destructive, confirmation dialog)
 ┌────────┐
 │ [Logo] │
 │ ────── │
-│  [📋]  │  ← Boards (Tooltip: "Boards")
-│  [⭐]  │  ← Favorites (Tooltip: "Favorites")
-│  [+]   │  ← New Board (Tooltip: "New Board")
+│  [»]   │  ← Expand toggle button, in a row of its own under the logo
 │ ────── │
-│  [📦]  │  ← Maintenance (Tooltip: "Maintenance Mode")
+│  [📋]  │  ← All Boards (Tooltip: "All Boards")
+│  [⭐]  │  ← Favorites (Tooltip: "Favorites")
 │ ────── │
 │  [⚙️]  │  ← Settings (Tooltip: "Settings")
 │  [⌨️]  │  ← Shortcuts (Tooltip: "Shortcuts")
 │  [🎨]  │  ← Theme (Tooltip: "Theme")
 │ ────── │
-│  [👤]  │  ← Account (Tooltip: "Account")
-│  [🚪]  │  ← Sign out (Tooltip: "Sign out")
-│ ────── │
-│  [»]   │  ← Expand toggle button
+│  [👤]  │  ← Account (Tooltip: the user's name)
+│  [🚪]  │  ← Sign Out (Tooltip: "Sign Out")
 └────────┘
 ```
 
 #### Specifications
 
-| Item          | Expanded     | Collapsed           |
-| ------------- | ------------ | ------------------- |
-| Width         | 256px (w-64) | 64px (w-16)         |
-| Text          | Full display | Hidden              |
-| Icons         | Left of text | Centered            |
-| Tooltip       | None         | Right side on hover |
-| Toggle button | "« Collapse" | "»" icon            |
+| Item          | Expanded                       | Collapsed                    |
+| ------------- | ------------------------------ | ---------------------------- |
+| Width         | 256px (w-64)                   | 64px (w-16)                  |
+| Text          | Full display                   | Hidden                       |
+| Icons         | Left of text                   | Centered                     |
+| Tooltip       | None                           | Right side on hover          |
+| Toggle button | Icon, named "Collapse sidebar" | Icon, named "Expand sidebar" |
 
 #### Animation
 
@@ -606,35 +596,7 @@ Delete from Maintenance // Maintenance only (destructive, confirmation dialog)
 └───────────────────────────────────────────────────┘
 ```
 
-### 5.4 Maintenance Mode (Explorer UI)
-
-#### Grid View
-
-```
-┌───────────────────────────────────────────────────────────────┐
-│ Maintenance Mode                              ○ avatar  [?]  │
-│ [ Search archived... ] [ Grid ▾ ] [ Sort: Updated ▾ ]        │
-│                                                               │
-│ ┌───────────────┐  ┌───────────────┐  ┌───────────────┐       │
-│ │ lib-utils  ⋯  │  │ ui-research ⋯ │  │ core-cli   ⋯  │  ...  │
-│ │ "Shipped…"    │  │ "Docs only"   │  │ "Security"   │       │
-│ │ Updated 2025-10-11  ⭐410         │  │ Updated 2025-07-01    │
-│ └───────────────┘  └───────────────┘  └───────────────┘       │
-│                                                               │
-│ [Open on GitHub]  [Restore to Board]                          │
-└───────────────────────────────────────────────────────────────┘
-```
-
-#### List View (Same screen toggle)
-
-```
-Name              Note                 Updated        Stars   Actions
-lib-utils         "Shipped…"           2025-10-11     410     [⋯]
-ui-research       "Docs only"          2025-09-03     128     [⋯]
-core-cli          "Security"           2025-07-01      87     [⋯]
-```
-
-### 5.5 Settings
+### 5.4 Settings
 
 ```
 ┌───────────────────────────────────────────────┐
@@ -648,7 +610,7 @@ core-cli          "Security"           2025-07-01      87     [⋯]
 
 **Theme** (via Sidebar):
 
-- **Access**: Sidebar Theme dropdown
+- **Access**: Sidebar Theme dropdown. Its list opens beside the sidebar; in the sidebar that lies over the page below 768px it opens below its button, where all of it is on the screen
 - **Scope**: App-wide (no board-specific settings)
 - **14 themes + System**: Light 7 + Dark 7 + OS preference follow
 
@@ -659,7 +621,7 @@ core-cli          "Security"           2025-07-01      87     [⋯]
 
 **Persistence**: Redux + localStorage (`@laststance/redux-storage-middleware`)
 
-### 5.6 NoteModal (Rich Text Editor)
+### 5.5 NoteModal (Rich Text Editor)
 
 ````
 ┌───────────────────────────────────────────────────────────┐
@@ -744,7 +706,7 @@ statuslist {
   id uuid PRIMARY KEY,
   board_id uuid REFERENCES board,
   name text NOT NULL,
-  color text,
+  color text,                  -- #RRGGBB or NULL (CHECK statuslist_color_hex)
   order integer,
   grid_row integer DEFAULT 0,  -- 2D grid row position
   grid_col integer DEFAULT 0,  -- 2D grid column position
@@ -769,8 +731,7 @@ repocard {
 -- ProjectInfo: Extended Project Details
 projectinfo {
   id uuid PRIMARY KEY,
-  repo_card_id uuid REFERENCES repocard (one-to-one),
-  maintenance_id uuid REFERENCES maintenance,  -- Maintenance link
+  repo_card_id uuid NOT NULL REFERENCES repocard (one-to-one),  -- a note, its links and its comment always belong to a card and go with it
   links jsonb,  -- {type, url, icon}[] - 55 built-in types
   note text,  -- Rich text (Plate Editor, max 20,000 chars)
   comment text,  -- Inline comment (max 2,000 chars)
@@ -785,15 +746,6 @@ user_link_presets {
   label text NOT NULL,  -- Display label
   value text NOT NULL,  -- Programmatic value
   icon text,            -- Lucide icon name
-  created_at, updated_at
-}
-
--- Maintenance: Archived Repositories
-maintenance {
-  id uuid PRIMARY KEY,
-  user_id uuid REFERENCES auth.users,
-  repo_owner text NOT NULL,
-  repo_name text NOT NULL,
   created_at, updated_at
 }
 
@@ -816,15 +768,13 @@ interface SettingsState {
   showCardMetadata: boolean // Display stars, language, and last updated on cards
   organizationFilter: string // AddRepositoryCombobox filter ('all' or org login)
   sidebarCollapsed: boolean // Sidebar collapse state (default: false)
+  moveDestinationByBoard?: Record<string, string> // Source board id → destination of the last move from it (Move to Another Board opens on it)
 }
 
-// Board Slice (Session — not persisted)
+// Board Slice (not persisted: the board on screen; the server sends it with every page and it is replaced when a board opens)
 interface BoardState {
-  activeBoard: SimplifiedBoard | null
   statusLists: StatusListDomain[]
   repoCards: RepoCardForRedux[]
-  loading: boolean
-  error: string | null
 }
 
 // Draft Slice (Persistence: localStorage)
@@ -861,7 +811,7 @@ interface RepoCardMeta {
 
 ### 7.1 Accessibility & Visual Tests (Automated)
 
-- Measure **contrast** across 14 themes × representative screens (Board/Maintenance/Modal)
+- Measure **contrast** across 14 themes × representative screens (Board/Modal)
 - Standards: small text 4.5:1, UI 3:1
 - **Build fails if not met** (aligns with axe rules)
 - Reference: [Deque University](https://dequeuniversity.com/rules/axe/4.8/color-contrast)
@@ -870,7 +820,6 @@ interface RepoCardMeta {
 
 - No delay displaying candidates with 100+ repositories
 - D&D/Undo operations work smoothly
-- Grid/List toggle reflects instantly with one click
 - Column width constrained (no expansion to fill available space)
 
 ### 7.3 Code Quality
@@ -897,18 +846,13 @@ interface RepoCardMeta {
 
 ### Common
 
-- **Overflow menu** has **same structure** and shortcuts (e.g., `.` to open) in both **Board/Maintenance**
-- Same modal accessible from ⋯ on all RepoCards (Board/Maintenance common)
-
-### Maintenance Mode
-
-- **Grid/List** toggle with one click
-- **Enter=Open on GitHub** as default action
-- Explorer UI provides select/sort/delete/restore per list/table HIG
+- **Overflow menu** opens with the shortcut (`.`) on the focused card
+- The Note modal (notes and links) opens from the Note button of every RepoCard, and with Enter on the focused card
 
 ### Accessibility
 
 - All 14 themes meet **4.5:1** for body text, **3:1+** for UI elements (includes automated tests)
+- The keyboard focus stays on the board when a dialog opened from a card's menu closes: on the card after Cancel, and after Move to Another Board or Remove from Board on the next card of the column (the card above when it was the last one, the column's "Add Repo" button when it was the only one). The same holds when a move without a confirmation went through all the same and the card is gone by the time its dialog is closed
 
 ---
 
@@ -922,7 +866,6 @@ interface RepoCardMeta {
 
 ### Phase 2: Full Version ✅
 
-- Complete Maintenance Mode implementation
 - 14 theme support (Light 7 + Dark 7)
 - Comment on RepoCard feature
 - Account management (profile, stats, deletion)
@@ -939,7 +882,6 @@ interface RepoCardMeta {
 - E2E migration to real Supabase DB ✅
 - Dead code cleanup (Knip) ✅
 - noUncheckedIndexedAccess strict typing ✅
-- Maintenance repo filtering in Add Repository ✅
 - Board D&D reorder on /boards page ✅
 - Theme CSS variables validation script ✅
 - RLS re-enabled with optimized policies ✅
@@ -948,10 +890,9 @@ interface RepoCardMeta {
 - Security event logging via Sentry ✅
 - ActionResult\<T\> discriminated union for Server Actions ✅
 - Per-route loading.tsx and error.tsx boundaries ✅
-- Delete from Maintenance operation ✅
 - CalVer release workflow (GitHub Releases) ✅
 - failOnFlakyTests enforcement in Playwright ✅
-- Component decomposition (MaintenanceClient, Landing, AddRepositoryCombobox) ✅
+- Component decomposition (Landing, AddRepositoryCombobox) ✅
 - Inline editable board title and subtitle ✅
 - Board subtitle edit form and visibility toggle in Board Settings ✅
 - Public board sharing (share slug, read-only public view) ✅
@@ -1020,26 +961,26 @@ export const metadata: Metadata = {
 | Environment | Variables                                                          |
 | ----------- | ------------------------------------------------------------------ |
 | Production  | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (prod) |
-| Preview     | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (dev)  |
-| Development | `.env.local` with dev project credentials                          |
+| Preview     | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (prod) |
+| Development | `.env` with the local Supabase credentials                         |
 
 ### 10.3 Backend (Supabase)
 
 #### Environment Separation
 
-| Environment | Supabase Project                           | Purpose                      |
-| ----------- | ------------------------------------------ | ---------------------------- |
-| Development | `https://jqtxjzdxczqwsrvevmyk.supabase.co` | Local dev (`localhost:3008`) |
-| Production  | `https://zfcwvzazzzsefbkztsyp.supabase.co` | Production deployment        |
+| Environment | Supabase Project                           | Purpose                            |
+| ----------- | ------------------------------------------ | ---------------------------------- |
+| Local       | `http://127.0.0.1:54321` (Docker)          | Local dev (`localhost:3008`)       |
+| Production  | `https://zfcwvzazzzsefbkztsyp.supabase.co` | Production and preview deployments |
 
 #### GitHub OAuth Configuration
 
-Each Supabase project requires its own GitHub OAuth App:
+The local stack and the production project each use their own GitHub OAuth App, because their callback URLs differ:
 
-| Setting                | Dev Project                                                 | Prod Project                                                |
-| ---------------------- | ----------------------------------------------------------- | ----------------------------------------------------------- |
-| GitHub OAuth App       | `gitbox-dev`                                                | `gitbox-prod`                                               |
-| Authorization callback | `https://jqtxjzdxczqwsrvevmyk.supabase.co/auth/v1/callback` | `https://zfcwvzazzzsefbkztsyp.supabase.co/auth/v1/callback` |
+| Setting                | Local                                     | Production                                                  |
+| ---------------------- | ----------------------------------------- | ----------------------------------------------------------- |
+| GitHub OAuth App       | `GitBox Local Dev`                        | `GitBox Tokyo`                                              |
+| Authorization callback | `http://127.0.0.1:54321/auth/v1/callback` | `https://zfcwvzazzzsefbkztsyp.supabase.co/auth/v1/callback` |
 
 #### Local Supabase + GitHub OAuth Setup
 
@@ -1067,8 +1008,10 @@ additional_redirect_urls = [
 
 1. Create migration: `supabase migration new <description>`
 2. Write SQL in `supabase/migrations/YYYYMMDDHHMMSS_<description>.sql`
-3. Test on dev: `supabase link --project-ref jqtxjzdxczqwsrvevmyk` → `supabase db push --linked`
+3. Test locally: `pnpm db:reset` applies every migration to a fresh local database
 4. Merge to `main` → Production deploys via GitHub Actions
+
+The workflow (`.github/workflows/supabase-production.yml`) installs a pinned Supabase CLI version. The pin and the local CLI are raised together.
 
 #### RLS (Row Level Security)
 
@@ -1082,19 +1025,34 @@ A shared board (`is_public`) is the one exception, and it does not go through th
 
 ### 11.1 Technical Constraints
 
-#### @dnd-kit isTrusted Requirement
+#### What a Drag Listens For
 
-@dnd-kit only accepts events with `event.isTrusted === true` for security.
+The board's sensors listen for mouse, touch and key events, not for pointer events (`OwnElementMouseSensor`, `OwnElementTouchSensor` and `OwnElementKeyboardSensor` in `src/lib/utils/own-element-sensors.ts`). @dnd-kit never reads `event.isTrusted`: a drag starts from a mouse press that travels more than 8px, from a finger that rests 200ms without moving more than 6px, and from Space or Enter.
 
-| Event Source             | isTrusted | D&D Works  |
-| ------------------------ | --------- | ---------- |
-| Real user interaction    | ✅ true   | ✅ Works   |
-| Playwright CDP           | ✅ true   | ✅ Works   |
-| Playwright mouse API     | ❌ false  | ❌ Ignored |
-| JavaScript dispatchEvent | ❌ false  | ❌ Ignored |
-| Claude Chrome MCP        | ❌ false  | ❌ Ignored |
+| Event Source                                      | D&D Works                   |
+| ------------------------------------------------- | --------------------------- |
+| Real user interaction                             | ✅ Works                    |
+| Playwright CDP helper (`e2e/helpers/cdp-drag.ts`) | ✅ Works                    |
+| Playwright `page.mouse` (down, move in steps, up) | ✅ Works                    |
+| A finger through `Input.dispatchTouchEvent`       | ✅ Works                    |
+| Mouse events that a script dispatches             | ✅ Lift the card            |
+| Pointer events that a script dispatches           | ❌ Ignored: nothing listens |
+| Claude Chrome MCP `left_click_drag`               | ❌ Recorded as not dragging |
 
-**E2E Testing**: Must use Playwright CDP helper (`e2e/helpers/cdp-drag.ts`)
+**E2E Testing**: A drag and drop uses the Playwright CDP helper (`e2e/helpers/cdp-drag.ts`), which moves in steps and pauses before it releases. `page.mouse` sends its events through the same protocol, so a press that it moves in steps is a drag too (`what-starts-a-drag.spec.ts`). A finger that rests is sent with `Input.dispatchTouchEvent`: `tap()` lifts at once. @dnd-kit starts to listen for the keys of a keyboard drag in a timeout of its own, so a test lets one timeout of the page pass between the key that lifts and the next key
+
+#### What Starts a Drag
+
+A card and a column header are picked up by a press or a key on themselves: a mouse that moves more than 8px while it is down, a finger that rests 200ms, or Space or Enter. On the card itself Enter opens the note: of a card's two stops of the Tab key, Enter picks it up from the outer one only. Two things take presses and keys of their own and never pick them up:
+
+- A menu or a dialog of the card or the column. It is drawn elsewhere on the page, and React hands its events up to the element that rendered it all the same.
+- A button, a link or a field inside the card or the header, such as "Open note" and "Column options". With @dnd-kit's own sensors a mouse that slipped more than 8px on "Open note", a finger that rested 200ms on it and Enter on it picked the card up, and the note did not open. The open comment editor counts as a whole (`data-no-drag`): its counter and the space around its field are neither a field nor a button.
+
+The three sensors of the board ask `mayStartDrag` (`src/lib/utils/may-start-drag.ts`) before they start. A comment is no button in this sense, although a click opens its editor: it is most of a card's surface, and a card is picked up there as anywhere else.
+
+#### A Cancelled Drag
+
+Escape cancels a drag, and so do a window that is resized or hidden during the drag and a touch that the browser takes over. Nothing is saved, and the board leaves the state of the drag: the drop zones of a column drag (new row, empty places) go away. @dnd-kit reports a cancelled drag to `onDragCancel` and not to `onDragEnd`, so the board handles both (`handleDragCancel` of `useKanbanDnD`).
 
 ### 11.2 Card Drag & Drop
 
@@ -1343,53 +1301,56 @@ export async function cdpBoardDragAndDrop(
 
 ### 12.4 E2E Test Spec Files
 
-| Category    | File                                       | Description                  |
-| ----------- | ------------------------------------------ | ---------------------------- |
-| Kanban D&D  | `kanban-dnd/card-dnd.spec.ts`              | Card drag & drop             |
-| Kanban D&D  | `kanban-dnd/column-dnd.spec.ts`            | Column drag & drop           |
-| Kanban      | `kanban-basic.spec.ts`                     | Basic kanban operations      |
-| Kanban      | `kanban-scroll.spec.ts`                    | Scroll behavior              |
-| Kanban      | `kanban-auto-height.spec.ts`               | Column auto-height           |
-| Kanban      | `kanban-column-width.spec.ts`              | Column width constraint      |
-| Kanban      | `kanban-column-edit.spec.ts`               | Column edit operations       |
-| Board       | `board-dnd.spec.ts`                        | Board card D&D reorder       |
-| Board       | `board-settings.spec.ts`                   | Board settings dialog        |
-| Board       | `board-settings-card-display.spec.ts`      | Card display settings        |
-| Board       | `board-settings-subtitle.spec.ts`          | Subtitle edit & visibility   |
-| Board       | `board-header-inline-edit.spec.ts`         | Inline editable board header |
-| Board       | `boards-page-header-inline-edit.spec.ts`   | Boards page header edit      |
-| Board       | `create-board.spec.ts`                     | Board creation               |
-| Board       | `boards.spec.ts`                           | Board list                   |
-| Board       | `favorites.spec.ts`                        | Favorites feature            |
-| Account     | `account-deletion.spec.ts`                 | Account deletion flow        |
-| Repo        | `add-repository-combobox.spec.ts`          | Add repository combobox      |
-| Repo        | `add-repository-pagination.spec.ts`        | Repository pagination        |
-| Repo        | `repo-card-display.spec.ts`                | Card display                 |
-| Repo        | `repo-card-description.spec.ts`            | Card description             |
-| Repo        | `remove-from-board.spec.ts`                | Remove card from board       |
-| Repo        | `one-repo-across-boards.spec.ts`           | One repo per user (#215)     |
-| Repo        | `move-to-another-board.spec.ts`            | Move card between boards     |
-| Comment     | `comment-display.spec.ts`                  | Comment display              |
-| Comment     | `comment-inline-edit.spec.ts`              | Comment inline editing       |
-| Comment     | `comment-color-theme-independence.spec.ts` | Color theme independence     |
-| Note        | `note-modal.spec.ts`                       | Note modal (rich text)       |
-| Links       | `project-info-links.spec.ts`               | Project info links           |
-| Maintenance | `maintenance-back-to-board.spec.ts`        | Back to board                |
-| Maintenance | `maintenance-project-info.spec.ts`         | Maintenance project info     |
-| Settings    | `settings.spec.ts`                         | Settings page                |
-| Theme       | `sidebar-theme-toggle.spec.ts`             | Theme toggle                 |
-| Theme       | `theme-persistence.spec.ts`                | Theme persistence            |
-| Theme       | `theme-visual-application.spec.ts`         | Theme visual application     |
-| Sidebar     | `sidebar-collapse.spec.ts`                 | Sidebar collapse             |
-| SSR         | `ssr-hydration-board.spec.ts`              | SSR hydration (board)        |
-| Page        | `page-titles.spec.ts`                      | Page titles                  |
-| Unauth      | `landing.spec.ts`                          | Landing page                 |
-| Unauth      | `login.spec.ts`                            | Login page                   |
-| Unauth      | `page-titles.spec.ts`                      | Unauthenticated page titles  |
-| Unauth      | `public-board.spec.ts`                     | Public board (read-only)     |
-| Unauth      | `public-board-data-access.spec.ts`         | Public board database access |
-| Unauth      | `ssr-hydration.spec.ts`                    | SSR hydration (unauth)       |
-| Security    | `xss-smoke.spec.ts`                        | XSS injection prevention     |
+| Category   | File                                       | Description                           |
+| ---------- | ------------------------------------------ | ------------------------------------- |
+| Kanban D&D | `kanban-dnd/card-dnd.spec.ts`              | Card drag & drop                      |
+| Kanban D&D | `kanban-dnd/column-dnd.spec.ts`            | Column drag & drop                    |
+| Kanban D&D | `what-starts-a-drag.spec.ts`               | Menus and buttons do not start a drag |
+| Kanban     | `kanban-basic.spec.ts`                     | Basic kanban operations               |
+| Kanban     | `kanban-scroll.spec.ts`                    | Scroll behavior                       |
+| Kanban     | `kanban-auto-height.spec.ts`               | Column auto-height                    |
+| Kanban     | `kanban-column-width.spec.ts`              | Column width constraint               |
+| Kanban     | `kanban-column-edit.spec.ts`               | Column edit operations                |
+| Board      | `board-dnd.spec.ts`                        | Board card D&D reorder                |
+| Board      | `board-settings.spec.ts`                   | Board settings dialog                 |
+| Board      | `board-settings-card-display.spec.ts`      | Card display settings                 |
+| Board      | `board-settings-subtitle.spec.ts`          | Subtitle edit & visibility            |
+| Board      | `board-settings-narrow-viewport.spec.ts`   | Board settings on a 375px phone       |
+| Board      | `board-header-inline-edit.spec.ts`         | Inline editable board header          |
+| Board      | `boards-page-header-inline-edit.spec.ts`   | Boards page header edit               |
+| Board      | `create-board.spec.ts`                     | Board creation                        |
+| Board      | `boards.spec.ts`                           | Board list                            |
+| Board      | `favorites.spec.ts`                        | Favorites feature                     |
+| Account    | `account-deletion.spec.ts`                 | Account deletion flow                 |
+| Repo       | `add-repository-combobox.spec.ts`          | Add repository combobox               |
+| Repo       | `add-repository-pagination.spec.ts`        | Repository pagination                 |
+| Repo       | `repo-card-display.spec.ts`                | Card display                          |
+| Repo       | `repo-card-description.spec.ts`            | Card description                      |
+| Repo       | `remove-from-board.spec.ts`                | Remove card from board                |
+| Repo       | `one-repo-across-boards.spec.ts`           | One repo per user (#215)              |
+| Repo       | `move-to-another-board.spec.ts`            | Move card between boards              |
+| Comment    | `comment-display.spec.ts`                  | Comment display                       |
+| Comment    | `comment-inline-edit.spec.ts`              | Comment inline editing                |
+| Comment    | `comment-color-theme-independence.spec.ts` | Color theme independence              |
+| Comment    | `comment-actions-menu.spec.ts`             | Comment menu (pointer, keys)          |
+| Note       | `note-modal.spec.ts`                       | Note modal (rich text)                |
+| Links      | `project-info-links.spec.ts`               | Project info links                    |
+| Settings   | `settings.spec.ts`                         | Settings page                         |
+| Theme      | `sidebar-theme-toggle.spec.ts`             | Theme toggle                          |
+| Theme      | `theme-persistence.spec.ts`                | Theme persistence                     |
+| Theme      | `theme-visual-application.spec.ts`         | Theme visual application              |
+| Sidebar    | `sidebar-collapse.spec.ts`                 | Sidebar collapse                      |
+| Sidebar    | `sidebar-narrow-viewport.spec.ts`          | Sidebar below 768px                   |
+| Layout     | `names-that-cannot-break.spec.ts`          | Long names and ordinary words         |
+| SSR        | `ssr-hydration-board.spec.ts`              | SSR hydration (board)                 |
+| Page       | `page-titles.spec.ts`                      | Page titles                           |
+| Unauth     | `landing.spec.ts`                          | Landing page                          |
+| Unauth     | `login.spec.ts`                            | Login page                            |
+| Unauth     | `page-titles.spec.ts`                      | Unauthenticated page titles           |
+| Unauth     | `public-board.spec.ts`                     | Public board (read-only)              |
+| Unauth     | `public-board-data-access.spec.ts`         | Public board database access          |
+| Unauth     | `ssr-hydration.spec.ts`                    | SSR hydration (unauth)                |
+| Security   | `xss-smoke.spec.ts`                        | XSS injection prevention              |
 
 ---
 
@@ -1401,7 +1362,7 @@ export async function cdpBoardDragAndDrop(
 - **Same-day suffix**: `2026.2.16`, `2026.2.16.1`, `2026.2.16.2`
 - **Trigger**: Every push to `main` (= every PR merge)
 - **Release notes**: Auto-generated from PR titles (`gh release create --generate-notes`)
-- **No package.json sync**: Version stays `0.2.0`, CalVer is tag-only (web app, not distributed)
+- **The tag is not the app version**: CalVer is tag-only (web app, not distributed). The app version lives in `VERSION` and `CHANGELOG.md` (four parts, e.g. `0.4.2.0`) and in `package.json` (its first three parts)
 - **Workflow**: `.github/workflows/release.yml` (pure `gh` CLI, zero dependencies)
 
 ### 13.2 Build-Time Safety Guards
@@ -1419,7 +1380,6 @@ export async function cdpBoardDragAndDrop(
 - [W3C WCAG 2.1](https://www.w3.org/TR/WCAG21/)
 - [WebAIM Contrast Checker](https://webaim.org/resources/contrastchecker/)
 - [Material Design 3 - Menus](https://m3.material.io/components/menus/guidelines)
-- [Apple HIG - Lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables)
 - [GitHub Docs - Projects](https://docs.github.com/en/issues/planning-and-tracking-with-projects/)
 - [Supabase Docs](https://supabase.com/docs/)
 - [Deque University - Color Contrast](https://dequeuniversity.com/rules/axe/4.8/color-contrast)

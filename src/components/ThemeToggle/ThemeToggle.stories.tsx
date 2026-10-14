@@ -8,7 +8,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
-import { expect, userEvent, waitFor } from 'storybook/test'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
 
 import { TooltipProvider } from '@/components/ui/tooltip'
 
@@ -270,5 +270,46 @@ export const SelectLightTheme: Story = {
     await waitFor(() => {
       expect(canvasElement.querySelector('button')).toBeInTheDocument()
     })
+  },
+}
+
+/**
+ * The check mark of the current theme has the color of its menu item, also
+ * while the pointer is on the item and the item is filled with the accent
+ * color. The story chooses Plum, whose theme color is the furthest from the
+ * color of a highlighted item, and goes back to System at its end.
+ */
+export const CheckMarkHasTheColorOfItsItem: Story = {
+  args: {
+    isCollapsed: false,
+  },
+  // Value: protects=the check mark of the current theme can be seen while the pointer or the keyboard is on its item; fails_when=the check mark gets a color of its own again, such as the theme color it had (1.3:1 on the highlighted item in Plum); why_new=no story and no test looked at the check mark; seam=none; no_claim=the contrast of an item's color on its fill, which accent-fill-contrast.test.ts computes for every theme
+  play: async ({ canvasElement }) => {
+    // Arrange: Plum is the current theme, and the list is open again
+    const page = within(document.body)
+    const themeButton = within(canvasElement).getByRole('button')
+    await userEvent.click(themeButton)
+    await userEvent.click(await page.findByRole('menuitem', { name: 'Plum' }))
+    await waitFor(async () => {
+      await expect(page.queryByRole('menu')).toBeNull()
+    })
+    await userEvent.click(themeButton)
+    const plumItem = await page.findByRole('menuitem', { name: 'Plum' })
+    const checkMark = plumItem.querySelector('.lucide-check')
+    if (!checkMark) throw new Error('The current theme has no check mark')
+
+    // Act: the pointer goes to the item, which fills with the accent color
+    await userEvent.hover(plumItem)
+
+    // Assert
+    await expect(plumItem).toHaveAttribute('data-highlighted')
+    await waitFor(async () => {
+      await expect(getComputedStyle(checkMark).color).toBe(
+        getComputedStyle(plumItem).color,
+      )
+    })
+
+    // The stories after this one start from the system theme again
+    await userEvent.click(page.getByRole('menuitem', { name: 'System' }))
   },
 }

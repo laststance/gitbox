@@ -25,8 +25,10 @@ import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import { setStatusLists, setRepoCards } from '@/lib/redux/slices/boardSlice'
 import { trackBoardWrite } from '@/lib/redux/slices/boardSyncSlice'
 import type { AppDispatch } from '@/lib/redux/store'
+import { isOverlayOpen } from '@/lib/utils/is-overlay-open'
 import { notifyFailedBoardSave } from '@/lib/utils/notify-failed-board-save'
 import { reconcileUndoSnapshot } from '@/lib/utils/reconcile-undo-snapshot'
+import { reportUnconfirmedBoardSave } from '@/lib/utils/report-unconfirmed-board-save'
 import {
   toColumnPositions,
   type CardColumnPosition,
@@ -116,23 +118,20 @@ export function useKanbanUndo(
         gridRow: s.gridRow,
         gridCol: s.gridCol,
       }))
-      trackBoardWrite(dispatch, batchUpdateStatusListPositions(updates)).catch(
-        (error) => {
-          Sentry.captureException(error, {
-            tags: { action: 'undoColumnPositions' },
-          })
-          // The write was refused: go back to the columns the database still holds
-          const rollbackOutcome = rollbackStatusLists(
-            columnsAfterUndo,
-            statuses,
-          )
-          notifyFailedBoardSave(
-            UNDO_FAILED_TOAST_TITLE,
-            rollbackOutcome,
-            UNDO_TOAST_ID,
-          )
-        },
-      )
+      trackBoardWrite(dispatch, batchUpdateStatusListPositions(updates), () =>
+        reportUnconfirmedBoardSave('undoColumnPositions'),
+      ).catch((error) => {
+        Sentry.captureException(error, {
+          tags: { action: 'undoColumnPositions' },
+        })
+        // The write was refused: go back to the columns the database still holds
+        const rollbackOutcome = rollbackStatusLists(columnsAfterUndo, statuses)
+        notifyFailedBoardSave(
+          UNDO_FAILED_TOAST_TITLE,
+          rollbackOutcome,
+          UNDO_TOAST_ID,
+        )
+      })
       return
     }
 
@@ -159,6 +158,7 @@ export function useKanbanUndo(
     trackBoardWrite(
       dispatch,
       batchUpdateRepoCardOrders(positionsAfterUndo),
+      () => reportUnconfirmedBoardSave('undoCardPositions'),
     ).catch((error) => {
       Sentry.captureException(error, {
         tags: { action: 'undoCardPositions' },
@@ -196,15 +196,23 @@ export function useKanbanUndo(
       }
 
       // Bare Z key only (no Cmd/Ctrl/Alt modifiers to avoid conflict with browser undo)
-      if (
+      const isBareZKey =
         (event.key === 'z' || event.key === 'Z') &&
         !event.ctrlKey &&
         !event.metaKey &&
         !event.altKey
-      ) {
-        event.preventDefault()
-        handleUndo()
-      }
+      if (!isBareZKey) return
+
+      // A layer lies over the board: a dialog, a menu, a list of options,
+      // the command palette, the Add Repositories panel, or the sidebar
+      // below 768px. The key belongs to that layer (a Select reads a letter
+      // as "jump to this option"), and the board behind it must not change.
+      // Asked last: it searches the document, and every other key should
+      // not pay for that.
+      if (isOverlayOpen()) return
+
+      event.preventDefault()
+      handleUndo()
     }
 
     window.addEventListener('keydown', handleKeyDown)

@@ -41,7 +41,6 @@ export const Default: Story = {
     accountData: {
       boardsCount: 2,
       cardsCount: 5,
-      maintenanceCount: 3,
     },
   },
   play: async ({ canvasElement }) => {
@@ -73,7 +72,6 @@ export const NoAvatar: Story = {
     accountData: {
       boardsCount: 1,
       cardsCount: 3,
-      maintenanceCount: 0,
     },
   },
   play: async ({ canvasElement }) => {
@@ -106,7 +104,6 @@ export const EmptyStats: Story = {
     accountData: {
       boardsCount: 0,
       cardsCount: 0,
-      maintenanceCount: 0,
     },
   },
   play: async ({ canvasElement }) => {
@@ -119,9 +116,9 @@ export const EmptyStats: Story = {
       { timeout: 3000 },
     )
 
-    // All three stat counts should display "0"
+    // Both stat counts should display "0"
     const zeros = canvas.getAllByText('0')
-    expect(zeros.length).toBe(3)
+    expect(zeros.length).toBe(2)
   },
 }
 
@@ -139,7 +136,6 @@ export const HighStats: Story = {
     accountData: {
       boardsCount: 42,
       cardsCount: 1234,
-      maintenanceCount: 99,
     },
   },
   play: async ({ canvasElement }) => {
@@ -154,6 +150,5 @@ export const HighStats: Story = {
 
     expect(canvas.getByText('42')).toBeInTheDocument()
     expect(canvas.getByText('1234')).toBeInTheDocument()
-    expect(canvas.getByText('99')).toBeInTheDocument()
   },
 }

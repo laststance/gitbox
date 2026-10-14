@@ -1,6 +1,7 @@
 'use client'
 
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { Globe } from 'lucide-react'
 import { useState, useRef, useMemo, memo, useCallback } from 'react'
 import { toast } from 'sonner'
 
@@ -15,7 +16,7 @@ import { useRepoPlacements } from '@/hooks/board/useRepoPlacements'
 import { useRepositoryCatalog } from '@/hooks/board/useRepositoryCatalog'
 import { useRepositorySearch } from '@/hooks/board/useRepositorySearch'
 import type { GitHubRepository } from '@/lib/actions/github'
-import type { RepoPlacements } from '@/lib/actions/repo-card-duplicates'
+import type { BoardPlacement } from '@/lib/actions/repo-card-duplicates'
 import {
   addRepositoriesToBoard,
   type CreatedRepoCard,
@@ -31,6 +32,25 @@ import type { RepoIdentifier } from '@/lib/types/domain-primitives'
 import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
 
 import { HeldRepositoryList, type HeldRepository } from './HeldRepositoryList'
+
+/**
+ * Id of the sentence shown when the board is shared through a public link.
+ * The Add button is described by it.
+ */
+const SHARED_BOARD_TEXT_ID = 'add-repositories-shared-board'
+
+/**
+ * Colors of an option row of the list. Hovered or selected it has the accent
+ * fill, and what stands under the repository's name (description, stars,
+ * language) and the check mark take the color made for that fill. In the
+ * muted color those lines were between 1.9:1 and 2.4:1 on it in six dark
+ * themes, and the check mark in the theme color between 1.3:1 and 1.8:1.
+ * src/tests/unit/styles/accent-fill-contrast.test.ts computes the contrast
+ * of the color they have now. The lines and the check mark have no color of
+ * their own: they inherit the row's.
+ */
+const OPTION_ROW_COLOR_CLASS =
+  'text-muted-foreground hover:bg-accent hover:text-accent-foreground aria-selected:bg-accent aria-selected:text-accent-foreground'
 
 interface AddRepositoryComboboxProps {
   boardId: BoardId
@@ -56,11 +76,11 @@ interface AddRepositoryComboboxProps {
    */
   onOpenChange?: (open: boolean) => void
   /**
-   * Lowercase "owner/repo" identifiers of repos in maintenance mode, as loaded
-   * with the page. Only a fallback: the picker fetches fresh placements each
-   * time it opens and uses this list (to hide those repos) when that fetch fails.
+   * The board is shared through a public link. The picker then says that
+   * anyone who has the link will see what is added, private repositories
+   * included.
    */
-  maintenanceRepoIdentifiers?: RepoIdentifier[]
+  isBoardShared?: boolean
 }
 
 /**
@@ -73,8 +93,10 @@ interface AddRepositoryComboboxProps {
  * - Performance optimized (<1s response)
  * - WCAG AA accessibility compliance
  * - One repository per user (Issue #215): repositories already on another
- *   board or in Maintenance are listed under "Already placed elsewhere" with a
- *   link to where they live, instead of being offered
+ *   board are listed under "Already placed elsewhere" with a link to where
+ *   they live, instead of being offered
+ * - On a board that is shared through a public link, a sentence above the
+ *   buttons says who will see the added repositories
  */
 export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   boardId,
@@ -82,7 +104,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   onRepositoriesAdded,
   isOpen: controlledIsOpen,
   onOpenChange,
-  maintenanceRepoIdentifiers,
+  isBoardShared = false,
 }: AddRepositoryComboboxProps) {
   // State - supports both controlled and uncontrolled modes
   const [internalIsOpen, setInternalIsOpen] = useState(false)
@@ -175,16 +197,6 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   )
 
   /**
-   * Set of "owner/repo" identifiers for repos in maintenance mode, from the
-   * page load. Fallback for when the placement fetch fails.
-   * @example Set { "archived/project", "old/repo" }
-   */
-  const maintenanceIdentifiers = useMemo(
-    () => new Set(maintenanceRepoIdentifiers || []),
-    [maintenanceRepoIdentifiers],
-  )
-
-  /**
    * Guarded organization filter change handler
    * Dispatches Redux action to persist organization filter to localStorage
    */
@@ -199,7 +211,6 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
   // Refs
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const comboboxRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
   // Catalog repositories matching the search and both filters. The same
@@ -247,15 +258,8 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
         currentBoardId: boardId,
         currentBoardIdentifiers: existingRepoIdentifiers,
         placements,
-        fallbackMaintenanceIdentifiers: maintenanceIdentifiers,
       }),
-    [
-      matchingRepositories,
-      boardId,
-      existingRepoIdentifiers,
-      placements,
-      maintenanceIdentifiers,
-    ],
+    [matchingRepositories, boardId, existingRepoIdentifiers, placements],
   )
 
   // Options and held rows render only once both the catalog and the placements
@@ -366,6 +370,14 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     if (e.nativeEvent.isComposing || e.keyCode === 229) return
 
     if (e.key === 'Escape') {
+      // A layer above the panel has used this Escape. Radix prevents the
+      // default of an Escape that closed one of its layers, before React
+      // calls this handler: the open list of organizations, which is drawn
+      // in a portal while React hands its keys up to this panel all the
+      // same, or a tooltip that is on screen. The picker closes with the
+      // next Escape. Without the check one Escape closed the list and the
+      // picker with it.
+      if (e.defaultPrevented) return
       handleClose()
       searchInputRef.current?.blur()
     } else if (
@@ -382,7 +394,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   }
 
   return (
-    <div className="relative" ref={comboboxRef}>
+    <div>
       {/* Combobox trigger button */}
       <button
         type="button"
@@ -410,12 +422,37 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       {/* Combobox panel */}
       {isOpen && (
         <div
-          // Capped to the viewport: with both lists full the panel is taller
-          // than a small laptop screen, and the buttons must stay reachable
-          className="border-border bg-background absolute top-full right-0 z-50 mt-2 max-h-[calc(100dvh-6rem)] w-120 overflow-y-auto rounded-lg border p-4 shadow-xl"
+          ref={trackButtonBottom}
+          // --panel-top: 0.5rem below the button (--button-bottom, which
+          // trackButtonBottom measures), but never so low that less than
+          // 26rem is left above the 1rem that stays free under the panel:
+          // then the panel moves up over the header, to 0.5rem from the top
+          // edge at most. 26rem holds the search box, the filters, both
+          // lists at their least height, the notice of a shared board and
+          // Cancel / Add.
+          // max-h: from that top edge down to 1rem above the bottom edge,
+          // because with both lists full the panel is taller than a small
+          // laptop screen.
+          // flex-col: the two lists, which scroll by themselves, give up
+          // height first (down to one row each), so the search box and
+          // Cancel / Add stay in view. overflow-y-auto: on a window too short
+          // even for that the whole panel scrolls.
+          // fixed right-6: the panel ends at the right edge of the header
+          // (px-6). Hung from the button's own right edge it began left of
+          // the page wherever the button stood less than 480px into it:
+          // from 640px to about 1135px of window width.
+          // max-sm: below 640px the panel spans the screen instead.
+          // z-30: under the sidebar that opens over the page below 768px
+          // (z-50) and under its backdrop (z-40). From 640px the panel
+          // begins right of the rail, whose toggle stays in reach; on the
+          // sidebar's own level it was drawn over the opened sidebar.
+          className="border-border bg-background fixed top-(--panel-top) right-6 z-30 flex max-h-[calc(100dvh-var(--panel-top)-1rem)] w-120 flex-col overflow-y-auto rounded-lg border p-4 shadow-xl [--panel-top:max(0.5rem,min(calc(var(--button-bottom,4rem)+0.5rem),calc(100dvh-27rem)))] max-sm:inset-x-2 max-sm:top-2 max-sm:max-h-[calc(100dvh-1rem)] max-sm:w-auto"
           role="combobox"
           aria-expanded={isOpen}
           aria-controls="repository-listbox"
+          // A layer over the board for isOverlayOpen, also while it holds no
+          // list of options: loading, or nothing found
+          data-overlay
           onKeyDown={handleKeyDown}
         >
           {/* Search input */}
@@ -495,7 +532,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
               {selectedRepos.map((repo) => (
                 <span
                   key={repo.id}
-                  className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
+                  // text-foreground: text-primary on this tint is below
+                  // 4.5:1 in 12 of the 14 themes (2.9:1 on Sunrise)
+                  className="bg-primary/10 text-foreground inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
                 >
                   {repo.full_name}
                   <button
@@ -541,7 +580,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
           {error && (
             <div
               role="alert"
-              className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400"
+              className="bg-destructive/10 text-destructive mt-3 rounded-md p-3 text-sm"
             >
               Error: {error}
             </div>
@@ -572,7 +611,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
               role="listbox"
               aria-label="Repository options"
               aria-multiselectable="true"
-              className="border-border mt-3 max-h-75 overflow-y-auto rounded-md border"
+              // min-h-16: what is left of it when the panel is short of room,
+              // about one repository
+              className="border-border mt-3 max-h-75 min-h-16 overflow-y-auto rounded-md border"
               data-virtual-scroll={shouldVirtualize}
               style={
                 shouldVirtualize
@@ -606,7 +647,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                         role="option"
                         aria-selected={isSelected}
                         onClick={() => toggleRepoSelection(repo)}
-                        className={`border-border hover:bg-accent flex cursor-pointer items-center justify-between border-b p-3 transition-colors ${isSelected ? 'bg-accent' : ''}`}
+                        className={`border-border flex cursor-pointer items-center justify-between border-b p-3 transition-colors ${OPTION_ROW_COLOR_CLASS}`}
                         tabIndex={0}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
@@ -627,11 +668,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                             {repo.full_name}
                           </p>
                           {repo.description && (
-                            <p className="text-muted-foreground mt-0.5 truncate text-sm">
+                            <p className="mt-0.5 truncate text-sm">
                               {repo.description}
                             </p>
                           )}
-                          <div className="text-muted-foreground mt-1 flex items-center gap-3 text-xs">
+                          <div className="mt-1 flex items-center gap-3 text-xs">
                             <span>⭐ {repo.stargazers_count}</span>
                             {repo.language && (
                               <span className="bg-muted rounded px-1.5 py-0.5">
@@ -640,9 +681,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                             )}
                           </div>
                         </div>
-                        {isSelected && (
-                          <span className="text-primary ml-2">✓</span>
-                        )}
+                        {isSelected && <span className="ml-2">✓</span>}
                       </div>
                     )
                   })}
@@ -656,7 +695,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                       role="option"
                       aria-selected={isSelected}
                       onClick={() => toggleRepoSelection(repo)}
-                      className={`border-border hover:bg-accent flex cursor-pointer items-center justify-between border-b p-3 transition-colors last:border-b-0 ${isSelected ? 'bg-accent' : ''}`}
+                      className={`border-border flex cursor-pointer items-center justify-between border-b p-3 transition-colors last:border-b-0 ${OPTION_ROW_COLOR_CLASS}`}
                       tabIndex={0}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
@@ -670,11 +709,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                           {repo.full_name}
                         </p>
                         {repo.description && (
-                          <p className="text-muted-foreground mt-0.5 truncate text-sm">
+                          <p className="mt-0.5 truncate text-sm">
                             {repo.description}
                           </p>
                         )}
-                        <div className="text-muted-foreground mt-1 flex items-center gap-3 text-xs">
+                        <div className="mt-1 flex items-center gap-3 text-xs">
                           <span>⭐ {repo.stargazers_count}</span>
                           {repo.language && (
                             <span className="bg-muted rounded px-1.5 py-0.5">
@@ -683,9 +722,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                           )}
                         </div>
                       </div>
-                      {isSelected && (
-                        <span className="text-primary ml-2">✓</span>
-                      )}
+                      {isSelected && <span className="ml-2">✓</span>}
                     </div>
                   )
                 })
@@ -727,8 +764,26 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
               </div>
             )}
 
-          {/* Repositories already on another board or in Maintenance */}
+          {/* Repositories already on another board */}
           {!isLoading && <HeldRepositoryList repositories={heldRepositories} />}
+
+          {/* A card on a shared board is readable through its public link,
+              a private repository as much as a public one */}
+          {isBoardShared && (
+            <p
+              id={SHARED_BOARD_TEXT_ID}
+              className="text-foreground mt-4 flex items-start gap-2 text-sm"
+            >
+              <Globe
+                className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0"
+                aria-hidden="true"
+              />
+              <span>
+                This board is shared by a public link. Anyone who has the link
+                will see the repositories you add, with their descriptions.
+              </span>
+            </p>
+          )}
 
           {/* Add button */}
           <div className="mt-4 flex justify-end gap-2">
@@ -742,13 +797,19 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             <button
               type="button"
               onClick={handleAddRepositories}
+              // Read with the button: pressing it makes the repositories public
+              aria-describedby={
+                isBoardShared ? SHARED_BOARD_TEXT_ID : undefined
+              }
               disabled={selectedRepos.length === 0 || isLoading || !statusId}
               title={
                 !statusId
                   ? 'Add a column before adding repositories'
                   : undefined
               }
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              // The theme's primary, like every other main action: a fixed blue is
+              // off-palette in the 14 themes
+              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
             >
               Add ({selectedRepos.length})
             </button>
@@ -760,61 +821,93 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 })
 
 /**
+ * Ref callback of the picker's panel: tells the panel how far down its button
+ * ends (`--button-bottom`), which its class turns into its top edge and its
+ * height. How far down the button stands depends on how the header wraps, and
+ * that changes while the panel is open: the sidebar opens or closes, the
+ * board's title is edited, the window gets narrower. Measured when React adds
+ * the panel to the page and whenever an element around the button changes
+ * size (a window that is resized changes the size of the page). Defined
+ * outside the component so it stays the same function: React would run a new
+ * one on every render.
+ *
+ * @param panel - The panel React just added, or `null`.
+ * @returns What React calls when the panel is removed: it stops watching.
+ * `undefined` when there is no panel, or no button before it.
+ * @example
+ * <div ref={trackButtonBottom} className="top-[calc(var(--button-bottom)+0.5rem)]" />
+ */
+function trackButtonBottom(
+  panel: HTMLDivElement | null,
+): (() => void) | undefined {
+  const button = panel?.previousElementSibling
+  if (!panel || !button) return undefined
+
+  const measureButtonBottom = (): void => {
+    panel.style.setProperty(
+      '--button-bottom',
+      `${button.getBoundingClientRect().bottom}px`,
+    )
+  }
+  measureButtonBottom()
+  const layoutObserver = new ResizeObserver(measureButtonBottom)
+  // Every element around the button: when one of them changes size, the
+  // button may stand somewhere else. border-box: a padding that changes
+  // moves the button too, and leaves the content box as it was.
+  for (
+    let ancestor = button.parentElement;
+    ancestor;
+    ancestor = ancestor.parentElement
+  ) {
+    layoutObserver.observe(ancestor, { box: 'border-box' })
+  }
+  return (): void => layoutObserver.disconnect()
+}
+
+/**
  * Splits catalog repositories into those the user can add to the current board
  * and those already placed elsewhere.
  *
  * Called by {@link AddRepositoryCombobox} on every filter or placement change.
  * - Hidden (in neither list): on the current board, according to the live
  *   Redux cards or to the fetched placements.
- * - Held: on another board of the user, or in Maintenance.
+ * - Held: on another board of the user.
  * - Addable: everything else.
  *
- * When `placements` is `null` (the fetch failed) the picker degrades to the
- * old behavior: maintenance repositories from the page load are hidden and
- * nothing is listed as held. The server still rejects an already placed repository.
+ * When `placements` is `null` (the fetch failed) nothing is listed as held and
+ * only repositories on the current board are hidden. The server still rejects
+ * an already placed repository.
  *
  * @param params.repositories - Catalog repositories after search and filters.
  * @param params.currentBoardId - Board the picker adds to.
  * @param params.currentBoardIdentifiers - Lowercase `owner/name` of cards on the current board (Redux).
  * @param params.placements - Fetched placements, or `null` when unknown.
- * @param params.fallbackMaintenanceIdentifiers - Maintenance identifiers from the page load.
  * @returns `{ addable, held }`, both in catalog order.
  * @example
  * classifyRepositories({
  *   repositories: [repoA, repoB],
  *   currentBoardId: 'b1',
  *   currentBoardIdentifiers: new Set(),
- *   placements: { boards: [{ identifier: 'o/b', boardId: 'b2', boardName: 'Work' }], maintenance: [] },
- *   fallbackMaintenanceIdentifiers: new Set(),
+ *   placements: [{ identifier: 'o/b', boardId: 'b2', boardName: 'Work' }],
  * })
- * // => { addable: [repoA], held: [{ id: repoB.id, fullName: 'o/b', location: { kind: 'board', boardId: 'b2', boardName: 'Work' } }] }
+ * // => { addable: [repoA], held: [{ id: repoB.id, fullName: 'o/b', boardId: 'b2', boardName: 'Work' }] }
  */
 function classifyRepositories(params: {
   repositories: GitHubRepository[]
   currentBoardId: string
   currentBoardIdentifiers: Set<RepoIdentifier>
-  placements: RepoPlacements | null
-  fallbackMaintenanceIdentifiers: Set<RepoIdentifier>
+  placements: BoardPlacement[] | null
 }): { addable: GitHubRepository[]; held: HeldRepository[] } {
-  const {
-    repositories,
-    currentBoardId,
-    currentBoardIdentifiers,
-    placements,
-    fallbackMaintenanceIdentifiers,
-  } = params
+  const { repositories, currentBoardId, currentBoardIdentifiers, placements } =
+    params
 
   // First card wins if legacy data holds the same repository on two boards
-  const boardPlacementByIdentifier = new Map<
-    RepoIdentifier,
-    RepoPlacements['boards'][number]
-  >()
-  for (const placement of placements?.boards ?? []) {
+  const boardPlacementByIdentifier = new Map<RepoIdentifier, BoardPlacement>()
+  for (const placement of placements ?? []) {
     if (!boardPlacementByIdentifier.has(placement.identifier)) {
       boardPlacementByIdentifier.set(placement.identifier, placement)
     }
   }
-  const maintenanceIdentifiers = new Set(placements?.maintenance ?? [])
 
   const addable: GitHubRepository[] = []
   const held: HeldRepository[] = []
@@ -837,26 +930,9 @@ function classifyRepositories(params: {
       held.push({
         id: repository.id,
         fullName: repository.full_name,
-        location: {
-          kind: 'board',
-          boardId: boardPlacement.boardId,
-          boardName: boardPlacement.boardName,
-        },
+        boardId: boardPlacement.boardId,
+        boardName: boardPlacement.boardName,
       })
-      continue
-    }
-
-    if (maintenanceIdentifiers.has(identifier)) {
-      held.push({
-        id: repository.id,
-        fullName: repository.full_name,
-        location: { kind: 'maintenance' },
-      })
-      continue
-    }
-
-    // Placements unknown: keep hiding maintenance repositories from the page load
-    if (!placements && fallbackMaintenanceIdentifiers.has(identifier)) {
       continue
     }
 

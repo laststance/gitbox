@@ -28,7 +28,9 @@ jobs:
 
       - uses: supabase/setup-cli@df56b21da46c98abb12a9804e4fb1f657773e333 # v2.0.0
         with:
-          version: latest
+          # Pinned: a migration is rehearsed locally with this CLI version
+          # before it runs here. Raise it together with the local CLI.
+          version: 2.120.0
 
       - name: Link to Production Project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"

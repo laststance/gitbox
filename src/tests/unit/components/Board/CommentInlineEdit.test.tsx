@@ -7,7 +7,7 @@
  * - Save/Cancel functionality
  * - Keyboard shortcuts (Enter, Escape)
  * - Auto-save on blur
- * - Event propagation prevention for DnD isolation
+ * - Presses in the editor that the card around it must not take for a drag
  */
 
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
@@ -15,6 +15,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { CommentInlineEdit } from '@/components/Board/CommentInlineEdit'
+import { mayStartDrag } from '@/lib/utils/may-start-drag'
 
 // Mock CommentDisplay for constants
 vi.mock('@/components/Board/CommentDisplay', () => ({
@@ -103,7 +104,7 @@ describe('CommentInlineEdit', () => {
 
       const counter = screen.getByTestId('character-counter')
       expect(counter).toHaveTextContent('100/2000')
-      expect(counter).toHaveClass('text-muted-foreground')
+      expect(counter).toHaveClass('text-foreground/70')
     })
 
     test('should show warning color when at warning threshold (270+)', () => {
@@ -115,9 +116,15 @@ describe('CommentInlineEdit', () => {
         />,
       )
 
+      // Orange on a chip of the page background: no warning color passes
+      // 4.5:1 on every comment tint (comment-counter-contrast.test.ts)
       const counter = screen.getByTestId('character-counter')
       expect(counter).toHaveTextContent('270/300')
-      expect(counter).toHaveClass('text-orange-500')
+      expect(counter).toHaveClass(
+        'bg-background',
+        'text-orange-800',
+        'dark:text-orange-300',
+      )
     })
 
     test('should show error color when over limit (300+)', () => {
@@ -129,9 +136,60 @@ describe('CommentInlineEdit', () => {
         />,
       )
 
+      // The label on a destructive fill: red text on a comment tint drops
+      // to 3.0:1 (comment-counter-contrast.test.ts)
       const counter = screen.getByTestId('character-counter')
       expect(counter).toHaveTextContent('310/300')
-      expect(counter).toHaveClass('text-destructive')
+      expect(counter).toHaveClass('bg-destructive text-destructive-foreground')
+      expect(counter).not.toHaveClass('text-destructive')
+    })
+
+    test('keeps the comment readable over the limit: the typed text does not turn red and the field is marked invalid', () => {
+      // Arrange
+      render(
+        <CommentInlineEdit
+          {...defaultProps}
+          maxLength={300}
+          initialValue={'a'.repeat(310)}
+        />,
+      )
+
+      // Act
+      const textarea = screen.getByTestId('comment-textarea')
+
+      // Assert
+      expect(textarea).not.toHaveClass('text-destructive')
+      expect(textarea).toHaveAttribute('aria-invalid', 'true')
+    })
+
+    test('does not mark the field invalid while the comment fits', () => {
+      // Arrange
+      render(
+        <CommentInlineEdit
+          {...defaultProps}
+          maxLength={300}
+          initialValue={'a'.repeat(300)}
+        />,
+      )
+
+      // Act
+      const textarea = screen.getByTestId('comment-textarea')
+
+      // Assert
+      expect(textarea).toHaveAttribute('aria-invalid', 'false')
+    })
+
+    test('a screen reader reads the counter with the field', () => {
+      // Arrange
+      render(
+        <CommentInlineEdit {...defaultProps} initialValue={'a'.repeat(100)} />,
+      )
+
+      // Act
+      const textarea = screen.getByTestId('comment-textarea')
+
+      // Assert
+      expect(textarea).toHaveAccessibleDescription('100/2000')
     })
 
     test('should support custom maxLength', () => {
@@ -250,17 +308,41 @@ describe('CommentInlineEdit', () => {
 
       expect(mockOnCancel).toHaveBeenCalled()
     })
+  })
 
-    test('should stop event propagation to prevent DnD interference', () => {
-      render(<CommentInlineEdit {...defaultProps} />)
+  describe('Inside a draggable card', () => {
+    // Value: protects=a press on the counter of the editor does not pick up the card that holds it; fails_when=the editor loses its data-no-drag mark, the one thing the drag sensors of the board know its box by; why_new=the test before pinned a stopped pointerdown, an event no sensor of the board listens for; seam=the editor inside an element that asks mayStartDrag, with React events; no_claim=the board in a browser, see e2e/logged-in/what-starts-a-drag.spec.ts
+    test('keeps a press on its counter from picking up the card that holds it', () => {
+      // Arrange
+      const answers: boolean[] = []
+      render(
+        <div onMouseDown={(event) => answers.push(mayStartDrag(event))}>
+          <CommentInlineEdit {...defaultProps} />
+        </div>,
+      )
 
-      const container = screen.getByTestId('comment-inline-edit')
-      const pointerEvent = new PointerEvent('pointerdown', { bubbles: true })
-      const stopPropagation = vi.spyOn(pointerEvent, 'stopPropagation')
+      // Act
+      fireEvent.mouseDown(screen.getByTestId('character-counter'))
 
-      container.dispatchEvent(pointerEvent)
+      // Assert
+      expect(answers).toEqual([false])
+    })
 
-      expect(stopPropagation).toHaveBeenCalled()
+    // Value: protects=a press on the edge of the editor, between its field and its counter, does not pick up the card; fails_when=the mark sits on the field or the counter and not on the box around them; why_new=the box is neither a field nor a button, so only the mark covers it; seam=the editor inside an element that asks mayStartDrag, with React events; no_claim=the board in a browser
+    test('keeps a press on its own box from picking up the card that holds it', () => {
+      // Arrange
+      const answers: boolean[] = []
+      render(
+        <div onMouseDown={(event) => answers.push(mayStartDrag(event))}>
+          <CommentInlineEdit {...defaultProps} />
+        </div>,
+      )
+
+      // Act
+      fireEvent.mouseDown(screen.getByTestId('comment-inline-edit'))
+
+      // Assert
+      expect(answers).toEqual([false])
     })
   })
 

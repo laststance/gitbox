@@ -239,7 +239,7 @@ describe('Client Components that Server Components render', () => {
     expect(rebuiltOnEveryServerRender).toEqual([])
   })
 
-  test('include the four components the root layout renders, so the check above reads real files', () => {
+  test('include the five components the root layout renders, so the check above reads real files', () => {
     // Arrange / Act
     const renderedByRootLayout = findServerRenderedClientComponents()
       .filter(({ renderedBy }) => renderedBy === 'src/app/layout.tsx')
@@ -251,11 +251,12 @@ describe('Client Components that Server Components render', () => {
       'src/app/msw-provider.tsx#MSWProvider: areServerRenderedPropsEqual',
       'src/components/CommandPalette/CommandPalette.tsx#CommandPalette: areServerRenderedPropsEqual',
       'src/components/ShortcutsHelp.tsx#ShortcutsHelp: areServerRenderedPropsEqual',
+      'src/components/ThemedToaster.tsx#ThemedToaster: areServerRenderedPropsEqual',
       'src/lib/redux/reduxProvider.tsx#ReduxProvider: areServerRenderedPropsEqual',
     ])
   })
 
-  test('include the page components of the board, the boards list and Maintenance', () => {
+  test('include the page components of the board and the boards list', () => {
     // Arrange / Act
     const components = findServerRenderedClientComponents().map(
       ({ component }) => component,
@@ -267,9 +268,6 @@ describe('Client Components that Server Components render', () => {
     )
     expect(components).toContain(
       'src/components/Boards/BoardGrid.tsx#BoardGrid',
-    )
-    expect(components).toContain(
-      'src/app/maintenance/MaintenanceClient.tsx#MaintenanceClient',
     )
   })
 })

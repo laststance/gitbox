@@ -13,6 +13,11 @@
  * `getUser()` (Auth server round-trip). The action callback receives
  * `claims` instead of `user`; use `claims.sub` for the user UUID.
  *
+ * This file has no `'use server'` on purpose. Every export of such a file is
+ * an endpoint a browser can call with arguments of its choice, and these
+ * three are helpers the Server Actions call: as endpoints they would take a
+ * rate limit key, and a Server Action to run, from the caller.
+ *
  * @example
  * ```ts
  * // Read-only (no rate limit)
@@ -29,8 +34,6 @@
  * ```
  */
 
-'use server'
-
 import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -42,7 +45,11 @@ import { checkRateLimit } from '@/lib/rate-limit/check'
 import type { RateLimitKey } from '@/lib/rate-limit/config'
 import type { Database } from '@/lib/supabase/types'
 
-import { ActionUserError, type ActionResult } from './types'
+import {
+  ActionUserError,
+  type ActionErrorCode,
+  type ActionResult,
+} from './types'
 
 type AuthedAction<T> = (
   supabase: SupabaseClient<Database>,
@@ -79,18 +86,22 @@ function toErrorMessage(): string {
  * - {@link ActionUserError}: its own message, not reported to Sentry
  * - anything else: the generic message, reported to Sentry
  * @example
- * toFailedResult(new ActionUserError('a/b is in Maintenance'), 'withAuthResult')
- * // => { success: false, error: 'a/b is in Maintenance' }
+ * toFailedResult(new ActionUserError('a/b is already on board "Work"'), 'withAuthResult')
+ * // => { success: false, error: 'a/b is already on board "Work"' }
+ * toFailedResult(new ActionUserError('Could not confirm ...', 'BOARD_CREATION_UNCONFIRMED'), 'withAuthResult')
+ * // => { success: false, error: 'Could not confirm ...', errorCode: 'BOARD_CREATION_UNCONFIRMED' }
  * toFailedResult(new Error('relation "x" does not exist'), 'withAuthResult')
  * // => { success: false, error: 'An unexpected error occurred' }
  */
 function toFailedResult(
   error: unknown,
   sentryContext: string,
-): { success: false; error: string } {
+): { success: false; error: string; errorCode?: ActionErrorCode } {
   // Expected, user-facing failure: show it as written, keep Sentry quiet
   if (error instanceof ActionUserError) {
-    return { success: false, error: error.message }
+    return error.errorCode
+      ? { success: false, error: error.message, errorCode: error.errorCode }
+      : { success: false, error: error.message }
   }
 
   Sentry.captureException(error, { extra: { context: sentryContext } })

@@ -35,7 +35,6 @@ interface StatusColumnProps {
   comments?: Record<string, CommentData>
   /** Card display settings from board.settings */
   cardDisplaySettings?: CardDisplaySettings
-  onMaintenance?: (id: RepoCardId) => void
   /** Callback when card is moved to another board */
   onMoveToBoard?: (id: RepoCardId) => void
   /** Callback when Note button is clicked (opens unified NoteModal) */
@@ -72,7 +71,6 @@ export const StatusColumn = memo<StatusColumnProps>(
     cards,
     comments,
     cardDisplaySettings,
-    onMaintenance,
     onMoveToBoard,
     onNote,
     onRemove,
@@ -98,7 +96,12 @@ export const StatusColumn = memo<StatusColumnProps>(
     })
 
     return (
-      <div className="flex flex-col" data-testid={`status-column-${status.id}`}>
+      <div
+        className="flex flex-col"
+        data-testid={`status-column-${status.id}`}
+        // Read by card-focus-target.ts: the cards of one column are neighbors
+        data-status-column-id={status.id}
+      >
         {/* Draggable Column Header */}
         <div
           {...dragAttributes}
@@ -109,11 +112,20 @@ export const StatusColumn = memo<StatusColumnProps>(
           <div className="flex items-center gap-2">
             {status.color && (
               <div
-                className="h-3 w-3 rounded-full"
+                // shrink-0: beside a title that gives way the dot would give
+                // way too, down to 3px of its 12px
+                className="h-3 w-3 shrink-0 rounded-full"
                 style={{ backgroundColor: status.color }}
               />
             )}
-            <h3 className="text-foreground font-semibold">{status.title}</h3>
+            {/* wrap-anywhere: a column name without a space has no place to
+                break. The title could not get narrower than that one word
+                and pushed "Column options" out of the column, where the
+                mouse does not reach it. Now the word breaks where the line
+                ends. */}
+            <h2 className="text-foreground font-semibold wrap-anywhere">
+              {status.title}
+            </h2>
           </div>
           <div className="flex items-center gap-1">
             {/* Column Menu */}
@@ -138,7 +150,7 @@ export const StatusColumn = memo<StatusColumnProps>(
                 {onDeleteStatus && (
                   <DropdownMenuItem
                     onClick={() => onDeleteStatus(status.id)}
-                    className="text-destructive focus:text-destructive"
+                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete Column
@@ -174,7 +186,6 @@ export const StatusColumn = memo<StatusColumnProps>(
                     commentData={comments?.[card.id]}
                     showComment={cardDisplaySettings?.showComment}
                     commentText={cardDisplaySettings?.commentText}
-                    onMaintenance={onMaintenance}
                     onMoveToBoard={onMoveToBoard}
                     onNote={onNote}
                     onRemove={onRemove}
@@ -206,6 +217,8 @@ export const StatusColumn = memo<StatusColumnProps>(
             onClick={() => onAddCard(status.id)}
             className="text-muted-foreground hover:text-foreground hover:bg-accent mt-3 w-full justify-start"
             data-testid="add-repo-button"
+            // Read by card-focus-target.ts: takes the focus when the column empties
+            data-column-add-repo
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Repo

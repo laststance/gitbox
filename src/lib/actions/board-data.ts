@@ -25,76 +25,34 @@ import * as Sentry from '@sentry/nextjs'
 
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 import { POSTGREST_MAX_ROWS } from '@/lib/constants/postgrest'
-import type { StatusListDomain, RepoCardDomain } from '@/lib/models/domain'
-import type { RepoIdentifier } from '@/lib/types/domain-primitives'
 import { logBoardTiming } from '@/lib/utils/board-timing'
-import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
 import { boardIdSchema } from '@/lib/validations/board'
 
 import { withAuthResult } from './auth-guard'
-import { createDefaultStatusLists } from './board'
+import { createDefaultStatusLists } from './board-creation'
 import {
   REPO_CARD_COLUMNS,
   remapBoardEmbed,
   type BoardBundle,
   type BoardBundleRow,
 } from './mappers'
-import type { CommentData } from './project-info'
 import {
   lookupRepoPlacements,
-  type RepoPlacements,
+  type BoardPlacement,
 } from './repo-card-duplicates'
 import type { ActionResult } from './types'
 
 /**
- * Complete initial data for a board
- *
- * Used by Server Component to pass to Client Component.
- * Contains all data needed to render the board without additional fetches.
+ * What {@link BoardPageClient} needs besides the board row: the columns, the
+ * cards and their comments, as {@link getBoardBundle} reads them. The page (a
+ * Server Component) hands it over, so the board renders without a fetch of
+ * its own.
  */
-export interface BoardInitialData {
-  /** Columns (status lists) sorted by grid position */
-  statusLists: StatusListDomain[]
-  /** Repository cards on the board */
-  repoCards: RepoCardDomain[]
-  /** Map of cardId → comment data (text + color) from projectinfo */
-  comments: Record<string, CommentData>
-  /** Lowercase "owner/repo" identifiers of repos in maintenance mode */
-  maintenanceRepoIdentifiers: RepoIdentifier[]
-}
-
-/**
- * Get maintenance repo identifiers for the current user
- *
- * Returns lowercase "owner/repo" strings for all repos in maintenance mode.
- * Used to filter these repos from the Add Repository combobox.
- *
- * @returns Array of lowercase "owner/repo" identifiers
- *
- * @example
- * const identifiers = await getUserMaintenanceRepoIdentifiers()
- * // Returns: ["facebook/react", "vercel/next.js"]
- */
-export async function getUserMaintenanceRepoIdentifiers(): Promise<
-  RepoIdentifier[]
-> {
-  const authedContext = await getCachedClaims()
-  if (!authedContext) return []
-  const { supabase, claims } = authedContext
-
-  const { data } = await supabase
-    .from('maintenance')
-    .select('repo_owner, repo_name')
-    .eq('user_id', claims.sub)
-
-  return (data || []).map((item) =>
-    toRepoIdentifier(item.repo_owner, item.repo_name),
-  )
-}
+export type BoardInitialData = Omit<BoardBundle, 'board'>
 
 /**
  * Get every placement of the current user's repositories: which board holds
- * each one, and which are in Maintenance.
+ * each one.
  *
  * Called by {@link useRepoPlacements} each time the Add Repositories picker
  * opens, so the picker can list repositories that are already placed elsewhere
@@ -103,18 +61,17 @@ export async function getUserMaintenanceRepoIdentifiers(): Promise<
  * it stale.
  *
  * @returns
- * - On success: `{ success: true, data: RepoPlacements }`
+ * - On success: `{ success: true, data: BoardPlacement[] }`
  * - On auth error: `{ success: false, error: 'Authentication required' }`
  * - On lookup failure: `{ success: false, error: 'An unexpected error occurred' }`
  * @example
  * const result = await getUserRepoPlacements()
  * if (result.success) {
- *   result.data.boards      // => [{ identifier: 'laststance/gitbox', boardId: '…', boardName: 'Work' }]
- *   result.data.maintenance // => ['laststance/old-project']
+ *   result.data // => [{ identifier: 'laststance/gitbox', boardId: '…', boardName: 'Work' }]
  * }
  */
 export async function getUserRepoPlacements(): Promise<
-  ActionResult<RepoPlacements>
+  ActionResult<BoardPlacement[]>
 > {
   return withAuthResult(async (supabase, claims) =>
     lookupRepoPlacements(supabase, claims.sub),
@@ -126,8 +83,7 @@ export async function getUserRepoPlacements(): Promise<
  * Replaces the old 4-wave waterfall (board + statuslist + repocard + comments)
  * with a single nested embed, remapped into the domain shape. Called by
  * `app/board/[id]/page.tsx` (wrapped in `React.cache` so generateMetadata and
- * the page share one fetch). Maintenance identifiers are fetched separately by
- * the page because they are user-scoped, not board-scoped.
+ * the page share one fetch).
  *
  * Not-found contract: `.maybeSingle()` returns `{ data: null, error: null }`
  * for zero rows, so a non-null `error` is a real failure (RLS denial, network)

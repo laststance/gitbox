@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { type ProjectLink } from '@/components/ui/editable-url-item'
+import { TOAST_WITH_ACTION_DURATION_MS } from '@/lib/constants/toast'
 import { isValidUrl } from '@/lib/validations'
 
 interface UseEditableUrlParams {
@@ -376,7 +377,7 @@ export function useEditableUrl({
     if (onUndoDelete) {
       toast(`Link deleted`, {
         description: link.type ? `${link.type} link removed` : 'Link removed',
-        duration: 8000,
+        duration: TOAST_WITH_ACTION_DURATION_MS,
         action: {
           label: 'Undo',
           onClick: () => {

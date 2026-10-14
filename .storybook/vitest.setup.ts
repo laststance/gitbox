@@ -1,23 +1,13 @@
 /**
  * Vitest Setup for Storybook
  *
- * Configures browser-only mocks for Storybook's Vitest project.
+ * Runs in the browser before each story file of Storybook's Vitest project.
  * The @storybook/addon-vitest applies project annotations automatically.
+ *
+ * Module mocks do not belong here: `vi.mock` in this file is put in place
+ * while the tests run and can lose a race against a story file's own import.
+ * Register them with `sb.mock` in `preview.tsx`.
  */
-import { vi } from 'vitest'
-
-/**
- * Storybook browser tests render components without a Next.js server, so server
- * actions must resolve successfully for optimistic UI stories to pass.
- */
-vi.mock('@/lib/actions/board', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/actions/board')>()
-
-  return {
-    ...actual,
-    toggleBoardFavorite: vi.fn().mockResolvedValue({ success: true }),
-  }
-})
 
 // Suppress benign ResizeObserver loop error in browser tests.
 // This fires when ResizeObserver can't deliver all notifications in a single

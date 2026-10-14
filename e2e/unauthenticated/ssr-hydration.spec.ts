@@ -90,7 +90,7 @@ test.describe('SSR Hydration', () => {
       'Kanban Board',
       'Drag & Drop',
       'Project Info',
-      'Maintenance Mode',
+      'Set Work Aside',
     ]
 
     for (const feature of featureCards) {

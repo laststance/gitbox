@@ -12,7 +12,6 @@ import {
   Home,
   Settings,
   PlusCircle,
-  Archive,
   HelpCircle,
   LogOut,
   Keyboard,
@@ -29,6 +28,7 @@ import React, {
 import { toast } from 'sonner'
 
 import { signOut } from '@/lib/actions/auth'
+import { TOAST_WITH_LONG_TEXT_DURATION_MS } from '@/lib/constants/toast'
 import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 
 /** Base styles for command item button */
@@ -85,14 +85,6 @@ export const CommandPalette = memo(function CommandPalette() {
         category: 'navigation',
       },
       {
-        id: 'maintenance',
-        label: 'Go to Maintenance',
-        icon: <Archive className="h-4 w-4" />,
-        shortcut: 'G M',
-        action: (): void => router.push('/maintenance'),
-        category: 'navigation',
-      },
-      {
         id: 'settings',
         label: 'Go to Settings',
         icon: <Settings className="h-4 w-4" />,
@@ -119,8 +111,8 @@ export const CommandPalette = memo(function CommandPalette() {
           setIsOpen(false)
           toast.info('Keyboard Shortcuts', {
             description:
-              '⌘K - Command Palette | ? - Shortcuts Help | G B - Go to Boards | G M - Go to Maintenance | G S - Go to Settings | N - New Board | Z - Undo | . - Card Menu',
-            duration: 8000,
+              '⌘K - Command Palette | ? - Shortcuts Help | G B - Go to Boards | G S - Go to Settings | N - New Board | Z - Undo | . - Card Menu',
+            duration: TOAST_WITH_LONG_TEXT_DURATION_MS,
           })
         },
         category: 'settings',
@@ -308,6 +300,9 @@ export const CommandPalette = memo(function CommandPalette() {
               }
               transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
               className="border-border bg-background fixed top-[20%] left-1/2 z-50 w-full max-w-lg -translate-x-1/2 rounded-xl border shadow-2xl"
+              // A layer over the page for isOverlayOpen: it has no role that
+              // says so, and a key typed here must not act on the board
+              data-overlay
             >
               {/* Search Input */}
               <div className="border-border flex items-center gap-3 border-b px-4">

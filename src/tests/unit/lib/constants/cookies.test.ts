@@ -31,22 +31,22 @@ describe('getGitHubTokenCookieName', () => {
     process.env = originalEnv
   })
 
-  test('should extract project ID from dev Supabase URL', () => {
+  test('should extract project ID from the production Supabase URL', () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL =
-      'https://jqtxjzdxczqwsrvevmyk.supabase.co'
+      'https://zfcwvzazzzsefbkztsyp.supabase.co'
 
     const cookieName = getGitHubTokenCookieName()
 
-    expect(cookieName).toBe('gh_token_jqtxjzdx')
+    expect(cookieName).toBe('gh_token_zfcwvzaz')
   })
 
-  test('should extract project ID from prod Supabase URL', () => {
+  test('should extract project ID from the URL of any other hosted project', () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL =
-      'https://mfeesjmtofgayktirswf.supabase.co'
+      'https://abcdefghijklmnopqrst.supabase.co'
 
     const cookieName = getGitHubTokenCookieName()
 
-    expect(cookieName).toBe('gh_token_mfeesjmt')
+    expect(cookieName).toBe('gh_token_abcdefgh')
   })
 
   test('should return default when URL is empty', () => {
@@ -106,7 +106,7 @@ describe('setGitHubTokenCookie', () => {
   beforeEach(() => {
     process.env = { ...originalEnv }
     process.env.NEXT_PUBLIC_SUPABASE_URL =
-      'https://jqtxjzdxczqwsrvevmyk.supabase.co'
+      'https://zfcwvzazzzsefbkztsyp.supabase.co'
   })
 
   afterEach(() => {
@@ -122,7 +122,7 @@ describe('setGitHubTokenCookie', () => {
 
     expect(setSpy).toHaveBeenCalledTimes(1)
     expect(setSpy).toHaveBeenCalledWith(
-      'gh_token_jqtxjzdx',
+      'gh_token_zfcwvzaz',
       'test-provider-token',
       expect.objectContaining({
         httpOnly: true,
@@ -169,7 +169,7 @@ describe('deleteGitHubTokenCookie', () => {
   beforeEach(() => {
     process.env = { ...originalEnv }
     process.env.NEXT_PUBLIC_SUPABASE_URL =
-      'https://jqtxjzdxczqwsrvevmyk.supabase.co'
+      'https://zfcwvzazzzsefbkztsyp.supabase.co'
   })
 
   afterEach(() => {
@@ -184,6 +184,6 @@ describe('deleteGitHubTokenCookie', () => {
     await deleteGitHubTokenCookie()
 
     expect(deleteSpy).toHaveBeenCalledTimes(1)
-    expect(deleteSpy).toHaveBeenCalledWith('gh_token_jqtxjzdx')
+    expect(deleteSpy).toHaveBeenCalledWith('gh_token_zfcwvzaz')
   })
 })

@@ -15,6 +15,14 @@
 import { test, expect } from '../fixtures/coverage'
 import { BOARD_IDS } from '../helpers/db-query'
 
+/**
+ * The sidebar's own width class as a whole word. At this width the sidebar
+ * always carries `max-md:w-16` (the icon rail below 768px), which a bare
+ * /w-16/ would match whether the sidebar is collapsed or not.
+ */
+const COLLAPSED_WIDTH_CLASS = /(?:^|\s)w-16(?:\s|$)/
+const EXPANDED_WIDTH_CLASS = /(?:^|\s)w-64(?:\s|$)/
+
 test.describe('Sidebar Collapse', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
@@ -45,7 +53,7 @@ test.describe('Sidebar Collapse', () => {
 
     // Get initial sidebar state (expanded = w-64)
     const sidebar = page.locator('aside')
-    await expect(sidebar).toHaveClass(/w-64/)
+    await expect(sidebar).toHaveClass(EXPANDED_WIDTH_CLASS)
 
     // Click collapse button
     const collapseButton = page.getByRole('button', {
@@ -54,8 +62,8 @@ test.describe('Sidebar Collapse', () => {
     await collapseButton.click()
 
     // Verify sidebar is collapsed (w-16) - Playwright auto-retries assertions
-    await expect(sidebar).toHaveClass(/w-16/)
-    await expect(sidebar).not.toHaveClass(/w-64/)
+    await expect(sidebar).toHaveClass(COLLAPSED_WIDTH_CLASS)
+    await expect(sidebar).not.toHaveClass(EXPANDED_WIDTH_CLASS)
   })
 
   test('should expand sidebar when toggle button is clicked in collapsed state', async ({
@@ -72,7 +80,7 @@ test.describe('Sidebar Collapse', () => {
     await collapseButton.click()
 
     // Verify collapsed state
-    await expect(sidebar).toHaveClass(/w-16/)
+    await expect(sidebar).toHaveClass(COLLAPSED_WIDTH_CLASS)
 
     // Now expand it
     const expandButton = page.getByRole('button', { name: /expand sidebar/i })
@@ -80,8 +88,8 @@ test.describe('Sidebar Collapse', () => {
     await expandButton.click()
 
     // Verify expanded state - Playwright auto-retries assertions
-    await expect(sidebar).toHaveClass(/w-64/)
-    await expect(sidebar).not.toHaveClass(/w-16/)
+    await expect(sidebar).toHaveClass(EXPANDED_WIDTH_CLASS)
+    await expect(sidebar).not.toHaveClass(COLLAPSED_WIDTH_CLASS)
   })
 
   test('should hide text labels in collapsed state', async ({ page }) => {
@@ -91,7 +99,7 @@ test.describe('Sidebar Collapse', () => {
     // Verify labels visible when expanded
     await expect(page.locator('aside').getByText('GitBox')).toBeVisible()
     await expect(page.locator('aside').getByText('Theme')).toBeVisible()
-    await expect(page.locator('aside').getByText('Sign out')).toBeVisible()
+    await expect(page.locator('aside').getByText('Sign Out')).toBeVisible()
 
     // Collapse sidebar
     const collapseButton = page.getByRole('button', {
@@ -102,7 +110,7 @@ test.describe('Sidebar Collapse', () => {
     // Text labels should be hidden - Playwright auto-retries assertions
     await expect(page.locator('aside').getByText('GitBox')).not.toBeVisible()
     // Sign out text hidden (only aria-label)
-    await expect(page.locator('aside').getByText('Sign out')).not.toBeVisible()
+    await expect(page.locator('aside').getByText('Sign Out')).not.toBeVisible()
   })
 
   test('should show tooltips on hover in collapsed state', async ({ page }) => {
@@ -117,7 +125,7 @@ test.describe('Sidebar Collapse', () => {
 
     // Wait for collapsed state before hovering
     const sidebar = page.locator('aside')
-    await expect(sidebar).toHaveClass(/w-16/)
+    await expect(sidebar).toHaveClass(COLLAPSED_WIDTH_CLASS)
 
     // Hover over a navigation link (use Settings since it's always visible)
     const settingsLink = page.locator('aside a[href="/settings"]')
@@ -146,7 +154,7 @@ test.describe('Sidebar Collapse', () => {
     await collapseButton.click()
 
     // Verify collapsed
-    await expect(sidebar).toHaveClass(/w-16/)
+    await expect(sidebar).toHaveClass(COLLAPSED_WIDTH_CLASS)
 
     // Click on a board link (client-side navigation via Next.js)
     const boardLink = page
@@ -156,7 +164,7 @@ test.describe('Sidebar Collapse', () => {
     await page.waitForLoadState('networkidle')
 
     // Sidebar should still be collapsed (Redux state persists across client navigation)
-    await expect(page.locator('aside')).toHaveClass(/w-16/)
+    await expect(page.locator('aside')).toHaveClass(COLLAPSED_WIDTH_CLASS)
   })
 
   test('should persist collapsed state after page reload', async ({ page }) => {
@@ -170,7 +178,7 @@ test.describe('Sidebar Collapse', () => {
     await expect(collapseButton).toBeVisible()
     await collapseButton.click()
 
-    await expect(sidebar).toHaveClass(/w-16/)
+    await expect(sidebar).toHaveClass(COLLAPSED_WIDTH_CLASS)
 
     // Poll the debounced Redux storage write before forcing a full reload.
     await expect(async () => {
@@ -186,7 +194,7 @@ test.describe('Sidebar Collapse', () => {
     await page.reload()
     await page.waitForLoadState('networkidle')
 
-    await expect(page.locator('aside')).toHaveClass(/w-16/)
+    await expect(page.locator('aside')).toHaveClass(COLLAPSED_WIDTH_CLASS)
   })
 
   test('should have transition animation classes', async ({ page }) => {
@@ -218,7 +226,7 @@ test.describe('Sidebar Collapse', () => {
     await collapseButton.click()
 
     // Verify collapsed state - Playwright auto-retries assertions
-    await expect(sidebar).toHaveClass(/w-16/)
+    await expect(sidebar).toHaveClass(COLLAPSED_WIDTH_CLASS)
   })
 
   // Note: Settings page uses a different layout without sidebar
@@ -237,7 +245,7 @@ test.describe('Sidebar Collapse', () => {
     await collapseButton.click()
 
     // Wait for collapsed state
-    await expect(page.locator('aside')).toHaveClass(/w-16/)
+    await expect(page.locator('aside')).toHaveClass(COLLAPSED_WIDTH_CLASS)
 
     // Theme toggle should still be accessible
     // In collapsed mode, it's an icon button
@@ -248,7 +256,7 @@ test.describe('Sidebar Collapse', () => {
     // Find the theme button (it has Sun, Moon, or Monitor icon)
     // Click it to verify dropdown still works
     const themeIconButton = page.locator(
-      'aside button:not([aria-label="Expand sidebar"]):not([aria-label="Sign out"])',
+      'aside button:not([aria-label="Expand sidebar"]):not([aria-label="Sign Out"])',
     )
 
     // The theme dropdown should still open
@@ -263,7 +271,7 @@ test.describe('Sidebar Collapse', () => {
     const sidebar = page.locator('aside')
 
     // Default state should be expanded (w-64)
-    await expect(sidebar).toHaveClass(/w-64/)
+    await expect(sidebar).toHaveClass(EXPANDED_WIDTH_CLASS)
 
     // GitBox logo text should be visible
     await expect(page.locator('aside').getByText('GitBox')).toBeVisible()

@@ -6,8 +6,9 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
-import { expect, within, userEvent, waitFor, fn } from 'storybook/test'
+import { expect, mocked, within, userEvent, waitFor, fn } from 'storybook/test'
 
+import { toggleBoardFavorite } from '@/lib/actions/board'
 import type { Tables } from '@/lib/supabase/types'
 
 import { BoardCard } from './BoardCard'
@@ -36,6 +37,14 @@ const meta = {
     nextjs: {
       appDirectory: true,
     },
+  },
+  // The server saves the favorite. Without this the action runs as written,
+  // finds no session in a story and the card takes the star back.
+  beforeEach: () => {
+    mocked(toggleBoardFavorite).mockResolvedValue({
+      success: true,
+      isFavorite: true,
+    })
   },
   tags: ['autodocs'],
   decorators: [

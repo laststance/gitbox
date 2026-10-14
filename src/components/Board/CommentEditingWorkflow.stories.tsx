@@ -782,3 +782,192 @@ export const TestFullWorkflow: Story = {
     })
   },
 }
+
+// ============================================================================
+// The menu inside the comment
+// ============================================================================
+// The comment is a button that opens its editor, and its menu is rendered
+// inside it. A click or a key in the menu reaches the comment too: React hands
+// it up through the component that rendered the menu, although the menu is
+// drawn in a portal elsewhere on the page.
+
+/**
+ * A click on Color leaves the editor closed and the colors on screen. The
+ * pointer of this test passes over Color before it clicks, and that alone
+ * opens the colors after a moment. A tap, which a touch screen has in place
+ * of the hover, is tested on the board.
+ */
+// Value: protects=a click on Color leaves the comment's editor closed and the colors on screen; fails_when=the comment takes a click in its menu for a click on itself and opens the editor; why_new=the other stories hover Color and never click it, which hid the defect; seam=CommentDisplay with CommentActionsMenu in a browser; no_claim=that the click and not the hover before it opened the colors: a tap on Color is in e2e/logged-in/what-starts-a-drag.spec.ts
+export const ClickOnColorLeavesTheEditorClosed: Story = {
+  args: {
+    initialComment: 'Comment to color',
+    initialColor: 'neutral',
+    onCommentSave: fn(),
+    onColorChange: fn(),
+    onDelete: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    // Arrange
+    const canvas = within(canvasElement)
+    const body = within(document.body)
+    await userEvent.click(canvas.getByTestId('comment-actions-trigger'))
+
+    // Act
+    await userEvent.click(await body.findByTestId('comment-action-color'))
+
+    // Assert
+    await waitFor(async () => {
+      await expect(body.getByTestId('comment-color-blue')).toBeVisible()
+    })
+    await expect(canvas.getByTestId('comment-display')).toBeVisible()
+  },
+}
+
+/**
+ * Enter on the menu button opens the menu, as it does on every other menu
+ * button of the app.
+ */
+// Value: protects=the keyboard opens the comment menu with Enter; fails_when=the comment takes a key pressed on its menu button for a key pressed on itself and opens the editor; why_new=no test pressed a key on the menu button; seam=CommentDisplay with CommentActionsMenu in a browser; no_claim=the keys inside the open menu, which are Radix's
+export const EnterOnTheMenuButtonOpensTheMenu: Story = {
+  args: {
+    initialComment: 'Comment with a menu',
+    initialColor: 'neutral',
+    onCommentSave: fn(),
+    onColorChange: fn(),
+    onDelete: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    // Arrange
+    const canvas = within(canvasElement)
+    const body = within(document.body)
+    canvas.getByTestId('comment-actions-trigger').focus()
+
+    // Act
+    await userEvent.keyboard('{Enter}')
+
+    // Assert
+    await waitFor(async () => {
+      await expect(body.getByTestId('comment-action-edit')).toBeVisible()
+    })
+    await expect(canvas.getByTestId('comment-display')).toBeVisible()
+  },
+}
+
+/**
+ * Space on the menu button opens the menu too.
+ */
+// Value: protects=the keyboard opens the comment menu with Space; fails_when=the comment takes Space pressed on its menu button for Space pressed on itself and opens the editor; why_new=no test pressed a key on the menu button; seam=CommentDisplay with CommentActionsMenu in a browser; no_claim=the keys inside the open menu, which are Radix's
+export const SpaceOnTheMenuButtonOpensTheMenu: Story = {
+  args: {
+    initialComment: 'Comment with a menu',
+    initialColor: 'neutral',
+    onCommentSave: fn(),
+    onColorChange: fn(),
+    onDelete: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    // Arrange
+    const canvas = within(canvasElement)
+    const body = within(document.body)
+    canvas.getByTestId('comment-actions-trigger').focus()
+
+    // Act
+    await userEvent.keyboard(' ')
+
+    // Assert
+    await waitFor(async () => {
+      await expect(body.getByTestId('comment-action-edit')).toBeVisible()
+    })
+    await expect(canvas.getByTestId('comment-display')).toBeVisible()
+  },
+}
+
+/**
+ * Enter on a color changes the color and nothing else: the comment stays on
+ * screen and its editor stays closed.
+ */
+// Value: protects=choosing a color with the keyboard changes the color only; fails_when=the comment takes Enter pressed on a menu item for Enter pressed on itself and opens the editor after the color changed; why_new=the color was only ever chosen with the mouse; seam=CommentDisplay with CommentActionsMenu in a browser; no_claim=that the color is saved, which the card's own tests cover
+export const EnterOnAColorLeavesTheEditorClosed: Story = {
+  args: {
+    initialComment: 'Comment to color',
+    initialColor: 'neutral',
+    onCommentSave: fn(),
+    onColorChange: fn(),
+    onDelete: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    // Arrange: the colors are open and Blue has the keyboard
+    const canvas = within(canvasElement)
+    const body = within(document.body)
+    await userEvent.click(canvas.getByTestId('comment-actions-trigger'))
+    await userEvent.hover(await body.findByTestId('comment-action-color'))
+    const blue = await body.findByTestId('comment-color-blue')
+    blue.focus()
+
+    // Act
+    await userEvent.keyboard('{Enter}')
+
+    // Assert
+    await waitFor(async () => {
+      await expect(args.onColorChange).toHaveBeenCalledWith('blue')
+    })
+    await expect(canvas.getByTestId('comment-display')).toBeVisible()
+  },
+}
+
+/**
+ * A click on the comment itself still opens the editor.
+ */
+// Value: protects=a click on the comment opens its editor; fails_when=the comment ignores a click on itself, as it ignores the clicks of its menu; why_new=TestEscapeCancel clicks the comment and passes when no editor opens; seam=CommentDisplay with CommentInlineEdit in a browser; no_claim=saving, which TestTypeAndSave covers
+export const ClickOnTheCommentOpensTheEditor: Story = {
+  args: {
+    initialComment: 'Comment to edit',
+    initialColor: 'neutral',
+    onCommentSave: fn(),
+    onColorChange: fn(),
+    onDelete: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    // Arrange
+    const canvas = within(canvasElement)
+
+    // Act
+    await userEvent.click(canvas.getByTestId('comment-text'))
+
+    // Assert
+    const textarea = await canvas.findByTestId('comment-textarea')
+    await waitFor(async () => {
+      await expect(textarea).toBeVisible()
+      await expect(textarea).toHaveFocus()
+    })
+  },
+}
+
+/**
+ * Enter on the comment itself still opens the editor.
+ */
+// Value: protects=the keyboard opens the editor from the comment; fails_when=the comment ignores a key pressed on itself, as it ignores the keys of its menu; why_new=no test pressed a key on the comment; seam=CommentDisplay with CommentInlineEdit in a browser; no_claim=saving, which TestTypeAndSave covers
+export const EnterOnTheCommentOpensTheEditor: Story = {
+  args: {
+    initialComment: 'Comment to edit',
+    initialColor: 'neutral',
+    onCommentSave: fn(),
+    onColorChange: fn(),
+    onDelete: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    // Arrange
+    const canvas = within(canvasElement)
+    canvas.getByTestId('comment-display').focus()
+
+    // Act
+    await userEvent.keyboard('{Enter}')
+
+    // Assert
+    const textarea = await canvas.findByTestId('comment-textarea')
+    await waitFor(async () => {
+      await expect(textarea).toBeVisible()
+      await expect(textarea).toHaveFocus()
+    })
+  },
+}

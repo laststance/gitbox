@@ -333,7 +333,7 @@ describe('RepoCard', () => {
      * Regression: previously the Card swallowed every Enter key bubbling up
      * through the React tree, including ones forwarded from descendants such
      * as the OverflowMenu's portal-rendered DropdownMenuItem. Pressing Enter
-     * on "Move to Maintenance" therefore opened the Note modal instead of
+     * on "Move to Another Board" therefore opened the Note modal instead of
      * triggering the menu action.
      *
      * The handler now ignores events whose target differs from the Card
@@ -414,6 +414,17 @@ describe('RepoCard', () => {
 
       const noteButton = screen.getByLabelText('Open note')
       expect(noteButton).toBeInTheDocument()
+    })
+
+    // Value: protects=a card's title is a level-3 heading, one level under its column (h2); fails_when=the title goes back to h4 or stops being a heading; why_new=the card tests find the title through its test id, never by its level; seam=none; no_claim=how a screen reader announces the outline (roles only)
+    test('lists a card in the heading outline under its column: its title is a level-3 heading', () => {
+      // Arrange & Act
+      render(<RepoCard card={defaultCard} />)
+
+      // Assert
+      expect(
+        screen.getByRole('heading', { level: 3, name: 'test-repo' }),
+      ).toBeVisible()
     })
   })
 
@@ -524,6 +535,24 @@ describe('RepoCard', () => {
       expect(screen.getByTestId('repo-name')).toHaveTextContent(
         'very-long-repository-name',
       )
+    })
+  })
+
+  describe('Keyboard focus hand-over', () => {
+    test('carries the card id on the element that can take the keyboard focus', () => {
+      // Arrange
+      const card = defaultCard
+
+      // Act
+      render(<RepoCard card={card} />)
+
+      // Assert: card-focus-target.ts looks this element up to put the focus
+      // back on a card, or on its neighbor when the card leaves
+      const focusableCard = screen
+        .getByTestId('repo-card-card-1')
+        .querySelector('[data-repo-card-id]')
+      expect(focusableCard).toHaveAttribute('data-repo-card-id', 'card-1')
+      expect(focusableCard).toHaveAttribute('tabindex', '0')
     })
   })
 })

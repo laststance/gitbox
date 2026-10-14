@@ -16,6 +16,7 @@ import {
   querySingle,
   CARD_IDS,
   BOARD_IDS,
+  STATUS_IDS,
   resetRepoCards,
 } from '../helpers/db-query'
 
@@ -85,6 +86,11 @@ test.describe('Remove from Board Feature', () => {
     await expect(
       alertDialog.getByText(
         /permanently deletes its note, links and comment\. Adding the repository again will not restore them\./,
+      ),
+    ).toBeVisible()
+    await expect(
+      alertDialog.getByText(
+        /To keep them, use Move to Another Board instead\./,
       ),
     ).toBeVisible()
     await expect(
@@ -279,7 +285,7 @@ test.describe('Remove from Board Feature', () => {
     }
   })
 
-  test('should only show Remove from Board in board context (not maintenance)', async ({
+  test('should offer Move to Another Board next to Remove from Board in the card menu', async ({
     page,
   }) => {
     await page.goto(BOARD_URL)
@@ -300,17 +306,17 @@ test.describe('Remove from Board Feature', () => {
     const dropdownMenu = page.getByTestId('overflow-menu')
     await expect(dropdownMenu).toBeVisible({ timeout: 5000 })
 
-    // Remove from Board should be visible (board context)
+    // Remove from Board should be visible
     const removeMenuItem = page
       .locator('[data-testid^="remove-from-board-"]')
       .first()
     await expect(removeMenuItem).toBeVisible()
 
-    // Move to Maintenance should also be visible (board context)
-    const maintenanceMenuItem = page
-      .locator('[data-testid^="move-to-maintenance-"]')
+    // Move to Another Board, the way to keep the note, should be visible too
+    const moveMenuItem = page
+      .locator('[data-testid^="move-to-another-board-"]')
       .first()
-    await expect(maintenanceMenuItem).toBeVisible()
+    await expect(moveMenuItem).toBeVisible()
 
     // Close the menu
     await page.keyboard.press('Escape')
@@ -352,5 +358,98 @@ test.describe('Remove from Board - Keyboard Accessibility', () => {
 
     // Dialog should close
     await expect(alertDialog).not.toBeVisible({ timeout: 5000 })
+  })
+
+  test('puts the keyboard focus on the next card of the column after a confirmed removal', async ({
+    page,
+  }) => {
+    // Arrange: Planning holds card-1, card-4 and card-5, top to bottom
+    await resetRepoCards()
+    const cardId = CARD_IDS.card1
+    await page.goto(BOARD_URL)
+    const overflowMenuTrigger = page.locator(
+      `[data-testid="overflow-menu-trigger-${cardId}"]`,
+    )
+    await expect(overflowMenuTrigger).toBeVisible({ timeout: 15000 })
+    await overflowMenuTrigger.click()
+    await page.locator(`[data-testid="remove-from-board-${cardId}"]`).click()
+
+    // Act
+    await page.locator(`[data-testid="confirm-remove-${cardId}"]`).click()
+
+    // Assert: card-4 has the focus, also once card-1 has left the page
+    const nextCard = page.locator(`[data-repo-card-id="${CARD_IDS.card4}"]`)
+    await expect(nextCard).toBeFocused({ timeout: 10000 })
+    await expect(
+      page.locator(`[data-testid="repo-card-${cardId}"]`),
+    ).toHaveCount(0, { timeout: 10000 })
+    await expect(nextCard).toBeFocused()
+
+    // Cleanup: wait for the delete to land so the reset is not undone by it
+    await expect(async () => {
+      expect(await querySingle('repocard', { id: cardId })).toBeNull()
+    }).toPass({ timeout: 10000 })
+    await resetRepoCards()
+  })
+
+  test("puts the keyboard focus on the column's Add Repo button after its only card was removed", async ({
+    page,
+  }) => {
+    // Arrange: Pending holds card-3 and nothing else
+    await resetRepoCards()
+    const cardId = CARD_IDS.card3
+    await page.goto(BOARD_URL)
+    const overflowMenuTrigger = page.locator(
+      `[data-testid="overflow-menu-trigger-${cardId}"]`,
+    )
+    await expect(overflowMenuTrigger).toBeVisible({ timeout: 15000 })
+    await overflowMenuTrigger.click()
+    await page.locator(`[data-testid="remove-from-board-${cardId}"]`).click()
+
+    // Act
+    await page.locator(`[data-testid="confirm-remove-${cardId}"]`).click()
+
+    // Assert: the button of that column has the focus, also once the card
+    // has left the page. A card of another column would be the wrong place.
+    const addRepoButtonOfPending = page.locator(
+      `[data-status-column-id="${STATUS_IDS.pending}"] [data-column-add-repo]`,
+    )
+    await expect(addRepoButtonOfPending).toBeFocused({ timeout: 10000 })
+    await expect(
+      page.locator(`[data-testid="repo-card-${cardId}"]`),
+    ).toHaveCount(0, { timeout: 10000 })
+    await expect(addRepoButtonOfPending).toBeFocused()
+    await expect(addRepoButtonOfPending).toHaveText('Add Repo')
+
+    // Cleanup: wait for the delete to land so the reset is not undone by it
+    await expect(async () => {
+      expect(await querySingle('repocard', { id: cardId })).toBeNull()
+    }).toPass({ timeout: 10000 })
+    await resetRepoCards()
+  })
+
+  test('puts the keyboard focus back on the card when the removal is cancelled', async ({
+    page,
+  }) => {
+    // Arrange
+    const cardId = CARD_IDS.card1
+    await page.goto(BOARD_URL)
+    const overflowMenuTrigger = page.locator(
+      `[data-testid="overflow-menu-trigger-${cardId}"]`,
+    )
+    await expect(overflowMenuTrigger).toBeVisible({ timeout: 15000 })
+    await overflowMenuTrigger.click()
+    await page.locator(`[data-testid="remove-from-board-${cardId}"]`).click()
+    const alertDialog = page.getByRole('alertdialog')
+    await expect(alertDialog).toBeVisible({ timeout: 5000 })
+
+    // Act
+    await alertDialog.getByRole('button', { name: 'Cancel' }).click()
+
+    // Assert
+    await expect(alertDialog).toBeHidden({ timeout: 5000 })
+    await expect(page.locator(`[data-repo-card-id="${cardId}"]`)).toBeFocused({
+      timeout: 10000,
+    })
   })
 })

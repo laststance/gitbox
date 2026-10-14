@@ -37,7 +37,6 @@ interface KanbanBoardProps {
   initialComments?: Record<string, CommentData>
   /** Card display settings from board.settings JSON */
   cardDisplaySettings?: CardDisplaySettings
-  onMoveToMaintenance?: (cardId: RepoCardId) => void
   /** Callback when card is moved to another board */
   onMoveToAnotherBoard?: (cardId: RepoCardId) => void
   /** Callback when Note button is clicked (opens unified NoteModal with notes + links) */
@@ -54,7 +53,6 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     boardId: _boardId = 'default-board',
     initialComments,
     cardDisplaySettings,
-    onMoveToMaintenance,
     onMoveToAnotherBoard,
     onNote,
     onRemove,
@@ -113,6 +111,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       insertionZones,
       handleDragStart,
       handleDragEnd,
+      handleDragCancel,
       gridDimensions,
       sortedStatuses,
     } = useKanbanDnD({
@@ -160,6 +159,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
             collisionDetection={forgivingCollisionDetection}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
             modifiers={[restrictToWindowEdges]}
           >
             {/* Column-level SortableContext for 2D grid reordering */}
@@ -178,7 +178,6 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                       cards={cardsByStatus[status.id] ?? EMPTY_CARDS}
                       comments={comments}
                       cardDisplaySettings={cardDisplaySettings}
-                      onMaintenance={onMoveToMaintenance}
                       onMoveToBoard={onMoveToAnotherBoard}
                       onNote={onNote}
                       onRemove={onRemove}
@@ -220,9 +219,9 @@ export const KanbanBoard = memo<KanbanBoardProps>(
             <DragOverlay>
               {activeDragType === COLUMN_DRAG_TYPE && activeId && (
                 <div className="bg-background/80 border-primary w-70 max-w-full rotate-2 rounded-xl border-2 p-4 opacity-90 shadow-2xl backdrop-blur-sm">
-                  <h3 className="text-foreground font-semibold">
+                  <h2 className="text-foreground font-semibold">
                     {sortedStatuses.find((s) => s.id === activeId)?.title}
-                  </h3>
+                  </h2>
                   <p className="text-muted-foreground mt-1 text-xs">
                     {(cardsByStatus[activeId as string] ?? EMPTY_CARDS).length}{' '}
                     cards
@@ -232,9 +231,9 @@ export const KanbanBoard = memo<KanbanBoardProps>(
               {activeDragType !== 'column' && activeCard && (
                 <Card className="rotate-3 cursor-grabbing opacity-90 shadow-2xl">
                   <CardContent className="p-4">
-                    <h4 className="text-foreground font-semibold">
+                    <h3 className="text-foreground font-semibold">
                       {activeCard.title}
-                    </h4>
+                    </h3>
                   </CardContent>
                 </Card>
               )}

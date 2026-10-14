@@ -39,7 +39,7 @@ describe('useRepoPlacements', () => {
       // Second opening: nothing is placed anymore
       .mockResolvedValueOnce({
         success: true,
-        data: { boards: [], maintenance: [] },
+        data: [],
       })
     const { result, rerender } = renderHook(
       ({ isOpen }) => useRepoPlacements(isOpen),
@@ -55,21 +55,18 @@ describe('useRepoPlacements', () => {
     await act(async () => {
       firstOpeningRequest.resolve({
         success: true,
-        data: {
-          boards: [
-            {
-              identifier: 'laststance/gitbox',
-              boardId: 'board-2',
-              boardName: 'Work Projects',
-            },
-          ],
-          maintenance: [],
-        },
+        data: [
+          {
+            identifier: 'laststance/gitbox',
+            boardId: 'board-2',
+            boardName: 'Work Projects',
+          },
+        ],
       })
     })
 
     // Assert
-    expect(result.current.placements).toEqual({ boards: [], maintenance: [] })
+    expect(result.current.placements).toEqual([])
     expect(result.current.isLoadingPlacements).toBe(false)
     expect(getUserRepoPlacements).toHaveBeenCalledTimes(2)
   })
@@ -80,16 +77,13 @@ describe('useRepoPlacements', () => {
       // First opening: another board holds the repository
       .mockResolvedValueOnce({
         success: true,
-        data: {
-          boards: [
-            {
-              identifier: 'laststance/gitbox',
-              boardId: 'board-2',
-              boardName: 'Work Projects',
-            },
-          ],
-          maintenance: [],
-        },
+        data: [
+          {
+            identifier: 'laststance/gitbox',
+            boardId: 'board-2',
+            boardName: 'Work Projects',
+          },
+        ],
       })
       // Second opening: the server does not answer for the rest of this test
       .mockReturnValueOnce(new Promise(() => {}))
@@ -134,21 +128,18 @@ describe('useRepoPlacements', () => {
       // First opening
       .mockResolvedValueOnce({
         success: true,
-        data: { boards: [], maintenance: [] },
+        data: [],
       })
       // Refresh asked for after closing, e.g. by an add that was still running
       .mockResolvedValueOnce({
         success: true,
-        data: {
-          boards: [
-            {
-              identifier: 'laststance/gitbox',
-              boardId: 'board-2',
-              boardName: 'Work Projects',
-            },
-          ],
-          maintenance: [],
-        },
+        data: [
+          {
+            identifier: 'laststance/gitbox',
+            boardId: 'board-2',
+            boardName: 'Work Projects',
+          },
+        ],
       })
       // Second opening: the server does not answer for the rest of this test
       .mockReturnValueOnce(new Promise(() => {}))

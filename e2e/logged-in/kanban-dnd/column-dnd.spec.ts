@@ -4,7 +4,7 @@
  * PRD Section 10.3 - Column Drag & Drop
  *
  * Tests for @dnd-kit column drag operations using CDP (Chrome DevTools Protocol)
- * to generate `isTrusted: true` events that @dnd-kit accepts.
+ * to press, move in steps and release the mouse.
  *
  * Structure:
  * - 10.3.1 カラムSwap（位置入れ替え）
@@ -81,7 +81,7 @@ const getColumnTitles = async (
 ): Promise<string[]> => {
   return page.evaluate(() => {
     const headers = document.querySelectorAll(
-      '[data-testid^="sortable-column-"] h3',
+      '[data-testid^="sortable-column-"] h2',
     )
     return Array.from(headers)
       .map((h) => h.textContent?.trim() ?? '')
@@ -127,7 +127,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       // Verify initial column order by checking visible column titles
       const columnTitles = await page.evaluate(() => {
         const headers = document.querySelectorAll(
-          '[data-testid^="sortable-column-"] h3',
+          '[data-testid^="sortable-column-"] h2',
         )
         return Array.from(headers).map((h) => h.textContent?.trim())
       })
@@ -210,7 +210,7 @@ test.describe('10.3 Column Drag & Drop', () => {
           )
           return Array.from(columns).map((col) => {
             const testId = col.getAttribute('data-testid')
-            const title = col.querySelector('h3')?.textContent?.trim()
+            const title = col.querySelector('h2')?.textContent?.trim()
             return { testId, title }
           })
         })
@@ -530,6 +530,32 @@ test.describe('10.3 Column Drag & Drop', () => {
       } finally {
         await client.detach()
       }
+    })
+
+    // Value: protects=Escape during a column drag puts the board back as it was; fails_when=a cancelled drag reaches no handler of the board, which then stays in the state of a column drag and keeps its drop zones; why_new=no test cancelled a drag; seam=the board page in a browser with a real mouse and keyboard; no_claim=a cancelled card drag, which leaves nothing on screen
+    test('takes the drop zone away when Escape cancels a column drag', async ({
+      page,
+    }) => {
+      // Arrange
+      await gotoFreshBoard(page)
+      const column = page.getByTestId(`sortable-column-${STATUS_IDS.pending}`)
+      const title = column.getByRole('heading', { name: 'Pending' })
+      const newRowZone = page.getByText('Drop column here to create new row')
+      // hover waits until the header stands still and puts the mouse on it
+      await title.hover()
+      const box = await title.boundingBox()
+      if (!box) throw new Error('the column title is not on the page')
+      await page.mouse.down()
+      await page.mouse.move(box.x + box.width / 2, box.y + 150, { steps: 10 })
+      await expect(newRowZone).toBeVisible()
+
+      // Act
+      await page.keyboard.press('Escape')
+
+      // Assert
+      await expect(newRowZone).toBeHidden()
+      await expect(column).toHaveCSS('opacity', '1')
+      await page.mouse.up()
     })
 
     /**

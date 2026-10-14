@@ -76,33 +76,6 @@ export type Database = {
         }
         Relationships: []
       }
-      maintenance: {
-        Row: {
-          created_at: string | null
-          id: string
-          repo_name: string
-          repo_owner: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          repo_name: string
-          repo_owner: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          repo_name?: string
-          repo_owner?: string
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       projectinfo: {
         Row: {
           comment: string | null
@@ -110,9 +83,8 @@ export type Database = {
           created_at: string | null
           id: string
           links: Json | null
-          maintenance_id: string | null
           note: string | null
-          repo_card_id: string | null
+          repo_card_id: string
           updated_at: string | null
         }
         Insert: {
@@ -121,9 +93,8 @@ export type Database = {
           created_at?: string | null
           id?: string
           links?: Json | null
-          maintenance_id?: string | null
           note?: string | null
-          repo_card_id?: string | null
+          repo_card_id: string
           updated_at?: string | null
         }
         Update: {
@@ -132,19 +103,11 @@ export type Database = {
           created_at?: string | null
           id?: string
           links?: Json | null
-          maintenance_id?: string | null
           note?: string | null
-          repo_card_id?: string | null
+          repo_card_id?: string
           updated_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: 'projectinfo_maintenance_id_fkey'
-            columns: ['maintenance_id']
-            isOneToOne: false
-            referencedRelation: 'maintenance'
-            referencedColumns: ['id']
-          },
           {
             foreignKeyName: 'projectinfo_repo_card_id_fkey'
             columns: ['repo_card_id']
@@ -323,29 +286,13 @@ export type Database = {
         Args: { p_updates: Json }
         Returns: undefined
       }
+      create_board_with_status_lists: {
+        Args: { p_name: string; p_columns: Json }
+        Returns: Json
+      }
       get_public_board: {
         Args: { p_slug: string }
         Returns: Json
-      }
-      move_to_maintenance: {
-        Args: {
-          p_card_id: string
-          p_user_id: string
-          p_repo_owner: string
-          p_repo_name: string
-        }
-        Returns: string
-      }
-      restore_to_board: {
-        Args: {
-          p_maintenance_id: string
-          p_board_id: string
-          p_status_id: string
-          p_repo_owner: string
-          p_repo_name: string
-          p_next_order: number
-        }
-        Returns: string
       }
       move_card_to_board: {
         Args: {
@@ -497,7 +444,6 @@ export type Board = Tables<'board'>
 type StatusList = Tables<'statuslist'>
 type RepoCard = Tables<'repocard'>
 type ProjectInfo = Tables<'projectinfo'>
-type Maintenance = Tables<'maintenance'>
 type UserLinkPreset = Tables<'user_link_presets'>
 
 // Comment color type (stored as string in projectinfo.comment_color)

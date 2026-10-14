@@ -5,7 +5,6 @@
  * - Fetches the board + its columns, cards, and comments in ONE PostgREST
  *   embed via getBoardBundle (deduped across generateMetadata + page with
  *   React.cache).
- * - Fetches user-scoped maintenance identifiers in parallel.
  * - Renders BoardPageClient with the server-fetched data.
  */
 
@@ -13,11 +12,7 @@ import { type Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
 
-import {
-  getBoardBundle,
-  getUserMaintenanceRepoIdentifiers,
-  type BoardInitialData,
-} from '@/lib/actions/board-data'
+import { getBoardBundle } from '@/lib/actions/board-data'
 import { requireClaims } from '@/lib/auth/require-claims'
 
 import { BoardPageClient } from './BoardPageClient'
@@ -62,8 +57,8 @@ export async function generateMetadata(
  * - Returns 404 if the board does not exist or belongs to another user.
  * - Sends a visitor without a session to the login page. proxy.ts does the
  *   same upstream; this covers a session that ends in between.
- * - Fetches the board embed (request-cached) and maintenance identifiers in
- *   parallel, then hands render-ready data to BoardPageClient.
+ * - Fetches the board embed (request-cached), then hands render-ready data to
+ *   BoardPageClient.
  */
 export default async function BoardPage(props: BoardPageProps) {
   const params = await props.params
@@ -75,23 +70,16 @@ export default async function BoardPage(props: BoardPageProps) {
   await requireClaims()
 
   // The board embed is request-cached, so this awaits the same promise that
-  // generateMetadata already kicked off; maintenance ids resolve alongside it.
-  const [bundle, maintenanceRepoIdentifiers] = await Promise.all([
-    getCachedBoardBundle(params.id),
-    getUserMaintenanceRepoIdentifiers(),
-  ])
+  // generateMetadata already kicked off.
+  const bundle = await getCachedBoardBundle(params.id)
 
   // Return 404 if the board does not exist or the user lacks access.
   if (!bundle) {
     notFound()
   }
 
-  const initialData: BoardInitialData = {
-    statusLists: bundle.statusLists,
-    repoCards: bundle.repoCards,
-    comments: bundle.comments,
-    maintenanceRepoIdentifiers,
-  }
+  // The board row goes in on its own; the rest is the page's initial data
+  const { board, ...initialData } = bundle
 
-  return <BoardPageClient board={bundle.board} initialData={initialData} />
+  return <BoardPageClient board={board} initialData={initialData} />
 }

@@ -11,8 +11,16 @@
  * 3. Opening AddRepositoryCombobox should NOT crash
  */
 
+import type { Locator } from '@playwright/test'
+
 import { test, expect } from '../fixtures/coverage'
-import { BOARD_IDS, resetRepoCards } from '../helpers/db-query'
+import {
+  BOARD_IDS,
+  TEST_USER_ID,
+  WORK_PROJECTS_STATUS_IDS,
+  createServiceRoleSupabaseClient,
+  resetRepoCards,
+} from '../helpers/db-query'
 
 /**
  * AddRepositoryCombobox E2E Tests - Existing Repo Filtering
@@ -861,3 +869,636 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
     }
   })
 })
+
+/**
+ * AddRepositoryCombobox E2E Tests - Short Viewport
+ *
+ * The panel is capped to the height of the screen. When there is more to show,
+ * its lists give up height (each scrolls by itself) and the search box above
+ * them and the Cancel / Add row below them stay where they are. On a window
+ * too short for one row of a list, the whole panel scrolls instead.
+ * Only a browser lays the panel out, so this is measured here.
+ */
+test.describe('AddRepositoryCombobox - Short Viewport', () => {
+  test.use({ storageState: 'e2e/.auth/user.json' })
+
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
+
+  test.beforeEach(async () => {
+    // No card on any board: all five repositories of the test account are
+    // free to add, the longest list this account can show
+    await removeEveryRepoCard()
+  })
+
+  test.afterEach(async () => {
+    await resetRepoCards()
+  })
+
+  test('keeps the search box and the Cancel / Add row in view on a short window: the list gives up height', async ({
+    page,
+  }) => {
+    // Arrange: five rows need 480px, the list shows 300px of them at most,
+    // and a window of 500px leaves the panel 416px (it keeps 16px free under
+    // it and starts 68px down, 3px higher than below its button, to be
+    // 26rem high)
+    await page.setViewportSize({ width: 1280, height: 500 })
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+
+    // Act
+    await page.getByRole('button', { name: /add repositories/i }).click()
+
+    // Assert: the list holds all five and is shorter than they are ...
+    const panel = page.getByRole('combobox', { expanded: true })
+    const list = panel.getByRole('listbox', { name: 'Repository options' })
+    await expect(list.locator('[role="option"]')).toHaveCount(5, {
+      timeout: 10000,
+    })
+    const listScrolls = await list.evaluate(
+      (element) => element.scrollHeight > element.clientHeight,
+    )
+    expect(listScrolls).toBe(true)
+    // ... the panel around it does not scroll ...
+    const panelScrolls = await panel.evaluate(
+      (element) => element.scrollHeight > element.clientHeight,
+    )
+    expect(panelScrolls).toBe(false)
+    // ... and what stands above and below the list is on screen
+    await expect(panel.getByPlaceholder(/search repositories/i)).toBeInViewport(
+      { ratio: 1 },
+    )
+    await expect(panel.getByRole('button', { name: 'Cancel' })).toBeInViewport({
+      ratio: 1,
+    })
+    await expect(panel.getByRole('button', { name: 'Add (0)' })).toBeInViewport(
+      { ratio: 1 },
+    )
+  })
+
+  test('scrolls the whole panel on a window too short for a row of the list, so Add can still be reached', async ({
+    page,
+  }) => {
+    // Arrange: a window of 300px leaves the panel 276px (it starts at the
+    // top edge, 8px down), less than the search box, the filters, one row of
+    // the list, the notice of a shared board and the buttons need
+    await page.setViewportSize({ width: 1280, height: 300 })
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await page.getByRole('button', { name: /add repositories/i }).click()
+    const panel = page.getByRole('combobox', { expanded: true })
+    await expect(
+      panel
+        .getByRole('listbox', { name: 'Repository options' })
+        .locator('[role="option"]'),
+    ).toHaveCount(5, { timeout: 10000 })
+    const addButton = panel.getByRole('button', { name: 'Add (0)' })
+    await expect(addButton).not.toBeInViewport({ ratio: 1 })
+
+    // Act: scroll the panel to its end
+    await panel.evaluate((element) => {
+      element.scrollTop = element.scrollHeight
+    })
+
+    // Assert
+    await expect(addButton).toBeInViewport({ ratio: 1 })
+  })
+
+  // Value: protects=Cancel and Add are on screen wherever the header puts the button the panel stands under; fails_when=the panel's height is capped by a constant again (the window less 6rem), which is right only while the panel starts 5rem down; why_new=the other tests of this group have the header at its usual height; seam=none; no_claim=which title and subtitle make the header that high (the test pushes its content down itself)
+  test('ends above the bottom edge of the window when the header stands lower than usual', async ({
+    page,
+  }) => {
+    // Arrange: a header whose content begins 120px further down, as a title
+    // and a subtitle that wrap can push it, in a window of 700px
+    await page.setViewportSize({ width: 1280, height: 700 })
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await page.addStyleTag({
+      content: 'header { padding-top: 136px !important; }',
+    })
+
+    // Act
+    await page.getByRole('button', { name: /add repositories/i }).click()
+
+    // Assert: the panel starts 120px lower than its usual 71px ...
+    const panel = page.getByRole('combobox', { expanded: true })
+    await expect(
+      panel
+        .getByRole('listbox', { name: 'Repository options' })
+        .locator('[role="option"]'),
+    ).toHaveCount(5, { timeout: 10000 })
+    const panelBox = await panel.boundingBox()
+    expect(Math.round(panelBox?.y ?? -1)).toBe(191)
+    // ... and ends 16px above the bottom edge, with its buttons on screen
+    expect(Math.round((panelBox?.y ?? 0) + (panelBox?.height ?? 0))).toBe(684)
+    await expect(panel.getByRole('button', { name: 'Cancel' })).toBeInViewport({
+      ratio: 1,
+    })
+    await expect(panel.getByRole('button', { name: 'Add (0)' })).toBeInViewport(
+      { ratio: 1 },
+    )
+  })
+
+  // Value: protects=Cancel and Add stay on screen when the header gets higher while the panel is open (the sidebar opens, a title is edited and wraps); fails_when=the place of the button is measured only when the panel opens, so the panel keeps the height that fitted the old place and ends below the window; why_new=every other test of the panel changes the header before it opens the panel; seam=none; no_claim=which change of the page moves the button (the test pushes the header's content down itself)
+  test('follows its button when the header gets higher while the panel is open', async ({
+    page,
+  }) => {
+    // Arrange: the panel is open under the header at its usual height
+    await page.setViewportSize({ width: 1280, height: 700 })
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await page.getByRole('button', { name: /add repositories/i }).click()
+    const panel = page.getByRole('combobox', { expanded: true })
+    await expect(
+      panel
+        .getByRole('listbox', { name: 'Repository options' })
+        .locator('[role="option"]'),
+    ).toHaveCount(5, { timeout: 10000 })
+    expect(Math.round((await panel.boundingBox())?.y ?? -1)).toBe(71)
+
+    // Act: the header's content moves 120px down
+    await page.addStyleTag({
+      content: 'header { padding-top: 136px !important; }',
+    })
+
+    // Assert: the panel moved with its button and still ends 16px above the
+    // bottom edge, with its buttons on screen
+    await expect
+      .poll(async () => {
+        const panelBox = await panel.boundingBox()
+        return {
+          top: Math.round(panelBox?.y ?? -1),
+          bottom: Math.round((panelBox?.y ?? 0) + (panelBox?.height ?? 0)),
+        }
+      })
+      .toEqual({ top: 191, bottom: 684 })
+    await expect(panel.getByRole('button', { name: 'Cancel' })).toBeInViewport({
+      ratio: 1,
+    })
+    await expect(panel.getByRole('button', { name: 'Add (0)' })).toBeInViewport(
+      { ratio: 1 },
+    )
+  })
+
+  // Value: protects=the panel keeps a usable height where its button stands low in a short window (a header that wraps, a phone held sideways); fails_when=the panel always starts below its button, however little room is left there, and squeezes what it shows into that rest; why_new=the tests above leave the panel more than 26rem below the button, or no room at all; seam=none; no_claim=the 26rem themselves (measured once by hand: 416px is what the panel needs on a shared board with both lists at their least height)
+  test('moves up over the header where less than 26rem would be left below its button', async ({
+    page,
+  }) => {
+    // Arrange: the button ends 183px down in a window of 600px, which would
+    // leave the panel 393px below it
+    await page.setViewportSize({ width: 1280, height: 600 })
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await page.addStyleTag({
+      content: 'header { padding-top: 136px !important; }',
+    })
+
+    // Act
+    await page.getByRole('button', { name: /add repositories/i }).click()
+
+    // Assert: the panel starts 27rem above the bottom edge, 23px higher than
+    // below the button, and is 26rem high ...
+    const panel = page.getByRole('combobox', { expanded: true })
+    await expect(
+      panel
+        .getByRole('listbox', { name: 'Repository options' })
+        .locator('[role="option"]'),
+    ).toHaveCount(5, { timeout: 10000 })
+    const panelBox = await panel.boundingBox()
+    expect({
+      top: Math.round(panelBox?.y ?? -1),
+      height: Math.round(panelBox?.height ?? -1),
+    }).toEqual({ top: 168, height: 416 })
+    // ... which holds what stands above and below the list without the
+    // panel scrolling
+    const panelScrolls = await panel.evaluate(
+      (element) => element.scrollHeight > element.clientHeight,
+    )
+    expect(panelScrolls).toBe(false)
+    await expect(panel.getByPlaceholder(/search repositories/i)).toBeInViewport(
+      { ratio: 1 },
+    )
+    await expect(panel.getByRole('button', { name: 'Add (0)' })).toBeInViewport(
+      { ratio: 1 },
+    )
+  })
+
+  // Value: protects=with repositories placed on another board the picker still shows its search box and Cancel / Add on a short window; fails_when=the list "Already placed elsewhere" keeps its full height, so the panel outgrows the window and scrolls as a whole; why_new=the two tests above empty every board, so that list is never on screen; seam=none; no_claim=the exact heights (they depend on how the font wraps the notice of a shared board)
+  test('keeps the search box and the Cancel / Add row in view on a short window with repositories placed elsewhere: that list gives up height too', async ({
+    page,
+  }) => {
+    // Arrange: four of the five repositories sit on Work Projects, one is
+    // free. Four rows need more than the 184px the list shows at most, and a
+    // window of 560px leaves the panel 473px, about 80px less than it needs.
+    await placeOnWorkProjects([
+      { owner: 'testuser', name: 'test-repo' },
+      { owner: 'testuser', name: 'another-repo' },
+      { owner: 'testuser', name: 'private-project' },
+      { owner: 'laststance', name: 'create-react-app-vite' },
+    ])
+    await page.setViewportSize({ width: 1280, height: 560 })
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+
+    // Act
+    await page.getByRole('button', { name: /add repositories/i }).click()
+
+    // Assert: both lists are there, and the list of placed repositories is
+    // lower than the 184px (max-h-46) it has when the window has room ...
+    const panel = page.getByRole('combobox', { expanded: true })
+    await expect(
+      panel
+        .getByRole('listbox', { name: 'Repository options' })
+        .locator('[role="option"]'),
+    ).toHaveCount(1, { timeout: 10000 })
+    const heldList = panel.getByRole('list', {
+      name: 'Already placed elsewhere',
+    })
+    await expect(heldList.getByRole('listitem')).toHaveCount(4)
+    const heldListHeightPx = (await heldList.boundingBox())?.height
+    expect(heldListHeightPx).toBeLessThan(184)
+    // ... the panel around the lists does not scroll ...
+    const panelScrolls = await panel.evaluate(
+      (element) => element.scrollHeight > element.clientHeight,
+    )
+    expect(panelScrolls).toBe(false)
+    // ... and what stands above and below the lists is on screen
+    await expect(panel.getByPlaceholder(/search repositories/i)).toBeInViewport(
+      { ratio: 1 },
+    )
+    await expect(panel.getByRole('button', { name: 'Cancel' })).toBeInViewport({
+      ratio: 1,
+    })
+    await expect(panel.getByRole('button', { name: 'Add (0)' })).toBeInViewport(
+      { ratio: 1 },
+    )
+  })
+})
+
+/**
+ * AddRepositoryCombobox E2E Tests - Panel Position
+ *
+ * From 640px of window width the panel stands below its button and ends 24px
+ * from the right edge of the window, where the header ends. Hung from the
+ * button's own right edge it began left of the page between 640px and about
+ * 1135px: the button stood less than the panel's 480px into the page. Below
+ * 640px the panel spans the screen. Only a browser lays the panel out, so
+ * this is measured here.
+ */
+test.describe('AddRepositoryCombobox - Panel Position', () => {
+  test.use({ storageState: 'e2e/.auth/user.json' })
+
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
+
+  test.beforeEach(async ({ page }) => {
+    // The sidebar as a new account has it: open, 256px wide from 768px up.
+    // That leaves the page the least room, so a stored choice must not decide.
+    await page.addInitScript(() => {
+      if (sessionStorage.getItem('gitbox-e2e-storage-cleared')) return
+
+      localStorage.removeItem('gitbox-state')
+      sessionStorage.setItem('gitbox-e2e-storage-cleared', 'true')
+    })
+  })
+
+  // Value: protects=the whole Add Repositories panel is on the page at every window width from 640px up; fails_when=the panel is hung from the button's right edge again, which puts its left part under the sidebar or off the screen wherever the button stands less than 480px into the page; why_new=the other tests of the panel open it at 1280px, where both placements fit; seam=none; no_claim=window widths other than the four measured
+  for (const { widthPx, heightPx, pageLeftPx, panelLeftPx } of [
+    { widthPx: 640, heightPx: 900, pageLeftPx: 64, panelLeftPx: 136 },
+    { widthPx: 768, heightPx: 1024, pageLeftPx: 256, panelLeftPx: 264 },
+    { widthPx: 1024, heightPx: 768, pageLeftPx: 256, panelLeftPx: 520 },
+    { widthPx: 1280, heightPx: 800, pageLeftPx: 256, panelLeftPx: 776 },
+  ]) {
+    test(`lies on the page, below its button and 24px from the right edge, on a ${widthPx}px window`, async ({
+      page,
+    }) => {
+      // Arrange
+      await page.setViewportSize({ width: widthPx, height: heightPx })
+      await page.goto(BOARD_URL)
+      await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+      const addRepositoriesButton = page.getByRole('button', {
+        name: /add repositories/i,
+      })
+
+      // Act
+      await addRepositoriesButton.click()
+
+      // Assert: 480px wide, ending 24px before the right edge, so it begins
+      // right of where the page begins ...
+      const panelBox = await page
+        .getByRole('combobox', { expanded: true })
+        .boundingBox()
+      const pageBox = await page.getByRole('main').boundingBox()
+      expect(Math.round(pageBox?.x ?? -1)).toBe(pageLeftPx)
+      expect(Math.round(panelBox?.x ?? -1)).toBe(panelLeftPx)
+      expect(Math.round(panelBox?.width ?? -1)).toBe(480)
+      // ... and 8px below the button that opened it
+      const buttonBox = await addRepositoriesButton.boundingBox()
+      expect(
+        Math.round(
+          (panelBox?.y ?? -1) - (buttonBox?.y ?? 0) - (buttonBox?.height ?? 0),
+        ),
+      ).toBe(8)
+    })
+  }
+
+  // Value: protects=on a phone the panel fills the screen from edge to edge instead of hanging off it; fails_when=the panel keeps its 480px or its place below the button on a 375px screen; why_new=no browser test opened the panel below 640px; seam=none; no_claim=other phone widths
+  test('spans the screen on a 375px phone, 8px from its left, right and top edge', async ({
+    page,
+  }) => {
+    // Arrange
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+
+    // Act
+    await page.getByRole('button', { name: /add repositories/i }).click()
+
+    // Assert
+    const panelBox = await page
+      .getByRole('combobox', { expanded: true })
+      .boundingBox()
+    expect({
+      x: Math.round(panelBox?.x ?? -1),
+      y: Math.round(panelBox?.y ?? -1),
+      width: Math.round(panelBox?.width ?? -1),
+    }).toEqual({ x: 8, y: 8, width: 359 })
+    const pageWidthPx = await page.evaluate(
+      () => document.documentElement.scrollWidth,
+    )
+    expect(pageWidthPx).toBe(375)
+  })
+
+  // Value: protects=the sidebar that opens over the page on a window between 640px and 767px is not covered by the open Add Repositories panel; fails_when=the panel is put back on the sidebar's own level, where the element that comes later in the page is drawn on top; why_new=the tests of the panel's place never open the sidebar, and the tests of the sidebar run at 375px, where the panel spans the screen and covers the toggle; seam=none; no_claim=other window widths
+  test('lies under the sidebar and its backdrop when the sidebar opens over the page on a 700px window', async ({
+    page,
+  }) => {
+    // Arrange: the panel is open. At 700px it begins at 196px, right of the
+    // rail, so the rail's toggle is still in reach
+    await page.setViewportSize({ width: 700, height: 900 })
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await page.getByRole('button', { name: /add repositories/i }).click()
+    // Found by its attributes: the opened sidebar sets the page aside, and a
+    // locator by role does not see what is set aside
+    const panel = page.locator('main [role="combobox"][aria-expanded="true"]')
+    await expect(panel).toBeVisible()
+
+    // Act
+    await page.getByRole('button', { name: 'Expand sidebar' }).click()
+
+    // Assert: the sidebar reaches 256px, so the two share 60px of the
+    // screen ...
+    const sidebar = page.locator('aside')
+    await expect
+      .poll(async () => Math.round((await sidebar.boundingBox())?.width ?? -1))
+      .toBe(256)
+    expect(Math.round((await panel.boundingBox())?.x ?? -1)).toBe(196)
+    // ... and of the three layers the sidebar is the upper one and the
+    // panel the lowest, dimmed by the backdrop like the rest of the page
+    await expect(sidebar).toHaveCSS('z-index', '50')
+    await expect(page.getByTestId('sidebar-backdrop')).toHaveCSS(
+      'z-index',
+      '40',
+    )
+    await expect(panel).toHaveCSS('z-index', '30')
+  })
+})
+
+/**
+ * AddRepositoryCombobox E2E Tests - Colors of an Option Row
+ *
+ * A row under the pointer and a selected row are filled with the accent
+ * color. What stands on that fill under the repository's name (description,
+ * stars, language) and the check mark of a selected row have to take the
+ * color made for it: in the muted color the description was between 1.9:1 and
+ * 2.4:1 on the fill in six dark themes, and the check mark in the theme color
+ * between 1.3:1 and 1.8:1. The browser's cascade decides which color an
+ * element ends up with, so it is asked here, in Plum, where the theme color
+ * and the muted color are both far from the color made for the fill.
+ * src/tests/unit/styles/accent-fill-contrast.test.ts computes the contrast of
+ * that color for every theme.
+ */
+test.describe('AddRepositoryCombobox - Option Row Colors', () => {
+  test.use({ storageState: 'e2e/.auth/user.json' })
+
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
+
+  test.beforeEach(async () => {
+    // No card on any board: the picker offers all five repositories of the
+    // test account, enough for a selected, a hovered and a resting row
+    await removeEveryRepoCard()
+  })
+
+  test.afterEach(async () => {
+    await resetRepoCards()
+  })
+
+  // Value: protects=the description and the check mark of a repository that is selected or under the pointer can be read on the accent fill; fails_when=they keep the muted color or the theme color on that fill, as before, or the fill and the text color come apart; why_new=no test looked at the colors of a row, and only a browser knows which of two classes wins; seam=none; no_claim=the contrast of the colors, which accent-fill-contrast.test.ts computes for every theme
+  test('a selected repository and the one under the pointer show their description and check mark in the color made for the accent fill', async ({
+    page,
+  }) => {
+    // Arrange: the picker is open in Plum
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await page.getByRole('button', { name: /add repositories/i }).click()
+    // Of the list of repositories: the visibility filter has options too
+    const options = page
+      .getByRole('listbox', { name: 'Repository options' })
+      .getByRole('option')
+    await expect(options).toHaveCount(5)
+    await page.evaluate(() => {
+      document.documentElement.setAttribute('data-theme', 'plum')
+      document.documentElement.classList.add('dark')
+    })
+    const selectedRow = options.nth(0)
+    const hoveredRow = options.nth(1)
+    const restingRow = options.nth(2)
+
+    // Act: the first row is selected, then the pointer rests on the second
+    await selectedRow.click()
+    await hoveredRow.hover()
+
+    // Assert
+    await expect
+      .poll(() => readRowPaint(selectedRow))
+      .toEqual({
+        fill: 'accent',
+        description: 'accent-foreground',
+        checkMark: 'accent-foreground',
+      })
+    await expect
+      .poll(() => readRowPaint(hoveredRow))
+      .toEqual({
+        fill: 'accent',
+        description: 'accent-foreground',
+        checkMark: 'no check mark',
+      })
+    // ... and a row at rest is as it was: muted lines on the panel
+    await expect
+      .poll(() => readRowPaint(restingRow))
+      .toEqual({
+        fill: 'rgba(0, 0, 0, 0)',
+        description: 'muted-foreground',
+        checkMark: 'no check mark',
+      })
+  })
+})
+
+/**
+ * AddRepositoryCombobox E2E Tests - Escape
+ *
+ * The list of organizations is drawn outside the panel, and React hands its
+ * keys up to the panel all the same. Escape in the open list closes the list;
+ * the picker closes with the Escape after it. Where the keyboard focus is
+ * while the list is open, and where it goes when the list closes, is the
+ * browser's and Radix's doing, so a browser presses the keys.
+ */
+test.describe('AddRepositoryCombobox - Escape', () => {
+  test.use({ storageState: 'e2e/.auth/user.json' })
+
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
+
+  // Value: protects=Escape in the open list of organizations closes that list only, and the picker keeps what was typed in it; the next Escape closes the picker; fails_when=the panel takes the Escape of the list for its own and the picker is gone with the search, as it was; why_new=no browser test pressed Escape in the picker; seam=none; no_claim=where the keyboard focus goes once the picker is closed (TODOS.md)
+  test('Escape in the open list of organizations closes the list, and the next Escape closes the picker', async ({
+    page,
+  }) => {
+    // Arrange: the picker holds a search, and its list of organizations is open
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await page.getByRole('button', { name: /add repositories/i }).click()
+    const searchBox = page.getByRole('textbox', {
+      name: 'Search repositories',
+    })
+    await searchBox.fill('repo')
+    const organizationFilter = page.getByRole('combobox', {
+      name: 'Organization filter',
+    })
+    await organizationFilter.click()
+    const allOrganizations = page.getByRole('option', {
+      name: 'All Organizations',
+      exact: true,
+    })
+    await expect(allOrganizations).toBeVisible()
+
+    // Act
+    await page.keyboard.press('Escape')
+
+    // Assert: the list is gone, and the picker is as it was
+    await expect(allOrganizations).toBeHidden()
+    await expect(searchBox).toBeVisible()
+    await expect(searchBox).toHaveValue('repo')
+    await expect(organizationFilter).toBeFocused()
+
+    // Act: once more, from the filter the focus went back to
+    await page.keyboard.press('Escape')
+
+    // Assert
+    await expect(searchBox).toBeHidden()
+  })
+})
+
+/**
+ * Places repositories on the Work Projects board, bypassing the app, so the
+ * picker of another board lists them under "Already placed elsewhere".
+ * `resetRepoCards` removes them again.
+ * @param repositories - Owner and name of each repository to place.
+ */
+async function placeOnWorkProjects(
+  repositories: { owner: string; name: string }[],
+): Promise<void> {
+  const { error } = await createServiceRoleSupabaseClient()
+    .from('repocard')
+    .insert(
+      repositories.map((repository, index) => ({
+        board_id: BOARD_IDS.workProjects,
+        status_id: WORK_PROJECTS_STATUS_IDS.backlog,
+        repo_owner: repository.owner,
+        repo_name: repository.name,
+        order: index,
+        meta: {},
+      })),
+    )
+  if (error) {
+    throw new Error(`placeOnWorkProjects failed: ${error.message}`)
+  }
+}
+
+/**
+ * Deletes every card of the test user, on all boards, so no repository of the
+ * test account is placed anywhere. `resetRepoCards` puts the seed cards back.
+ */
+async function removeEveryRepoCard(): Promise<void> {
+  const serviceRole = createServiceRoleSupabaseClient()
+  const boards = await serviceRole
+    .from('board')
+    .select('id')
+    .eq('user_id', TEST_USER_ID)
+  if (boards.error) {
+    throw new Error(`board lookup failed: ${boards.error.message}`)
+  }
+  const deleted = await serviceRole
+    .from('repocard')
+    .delete()
+    .in(
+      'board_id',
+      boards.data.map((board) => board.id),
+    )
+  if (deleted.error) {
+    throw new Error(`deleting the cards failed: ${deleted.error.message}`)
+  }
+}
+
+/**
+ * Reads how the browser paints an option row of the picker, in the names of
+ * the theme's colors. Exists because a class name says what was asked for and
+ * the cascade decides what is painted. Called while a color may still be in
+ * its transition, so poll it.
+ * @param row - An element with the role `option`.
+ * @returns
+ * - `fill`: the row's background, `description`: the color of its second
+ *   line, `checkMark`: the color of its check mark. Each is the name of the
+ *   theme color that is painted (`accent`, `accent-foreground`,
+ *   `muted-foreground` or `primary`), or the color itself when it is none of
+ *   them, such as `rgba(0, 0, 0, 0)` for no fill
+ * - `description` and `checkMark` say `no description` and `no check mark`
+ *   when the row has none
+ * @example
+ * await readRowPaint(page.getByRole('option').first())
+ * // => { fill: 'accent', description: 'accent-foreground', checkMark: 'accent-foreground' }
+ */
+async function readRowPaint(
+  row: Locator,
+): Promise<{ fill: string; description: string; checkMark: string }> {
+  return row.evaluate((rowElement) => {
+    // The color a theme token has on this page, as the browser writes it
+    const readToken = (tokenName: string): string => {
+      const probe = document.createElement('span')
+      probe.style.color = `var(--${tokenName})`
+      document.body.append(probe)
+      const tokenColor = getComputedStyle(probe).color
+      probe.remove()
+      return tokenColor
+    }
+    const tokenNames = [
+      'accent-foreground',
+      'muted-foreground',
+      'primary',
+      'accent',
+    ]
+    const nameColor = (color: string): string =>
+      tokenNames.find((tokenName) => readToken(tokenName) === color) ?? color
+
+    const description = rowElement.querySelector('p + p')
+    const checkMark = [...rowElement.querySelectorAll('span')].find(
+      (span) => span.textContent === '✓',
+    )
+    return {
+      fill: nameColor(getComputedStyle(rowElement).backgroundColor),
+      description: description
+        ? nameColor(getComputedStyle(description).color)
+        : 'no description',
+      checkMark: checkMark
+        ? nameColor(getComputedStyle(checkMark).color)
+        : 'no check mark',
+    }
+  })
+}

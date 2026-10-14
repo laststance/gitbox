@@ -12,6 +12,7 @@
 
 import { configureStore } from '@reduxjs/toolkit'
 import { render, screen, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { Provider } from 'react-redux'
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 
@@ -97,7 +98,6 @@ describe('Sidebar', () => {
 
       expect(screen.getByText('All Boards')).toBeInTheDocument()
       expect(screen.getByText('Favorites')).toBeInTheDocument()
-      expect(screen.getByText('Maintenance Mode')).toBeInTheDocument()
       expect(screen.getByText('Settings')).toBeInTheDocument()
       expect(screen.getByText('Shortcuts')).toBeInTheDocument()
     })
@@ -108,10 +108,10 @@ describe('Sidebar', () => {
       expect(screen.getByText('testuser')).toBeInTheDocument()
     })
 
-    test('should display "Sign out" button text when expanded', () => {
+    test('should display "Sign Out" button text when expanded', () => {
       renderSidebar()
 
-      expect(screen.getByText('Sign out')).toBeInTheDocument()
+      expect(screen.getByText('Sign Out')).toBeInTheDocument()
     })
 
     test('should display collapsible Boards section header when expanded', () => {
@@ -156,10 +156,10 @@ describe('Sidebar', () => {
       expect(screen.queryByText('testuser')).not.toBeInTheDocument()
     })
 
-    test('should NOT display "Sign out" text when collapsed', () => {
+    test('should NOT display "Sign Out" text when collapsed', () => {
       renderSidebar({}, true)
 
-      expect(screen.queryByText('Sign out')).not.toBeInTheDocument()
+      expect(screen.queryByText('Sign Out')).not.toBeInTheDocument()
     })
   })
 
@@ -203,6 +203,31 @@ describe('Sidebar', () => {
 
       expect(store.getState().settings.sidebarCollapsed).toBe(false)
     })
+
+    test('keeps the keyboard focus on the toggle when the sidebar is collapsed and when it is expanded again', async () => {
+      // Arrange: a keyboard user stands on the toggle
+      const user = userEvent.setup()
+      renderSidebar()
+      const toggle = screen.getByRole('button', { name: 'Collapse sidebar' })
+      toggle.focus()
+
+      // Act
+      await user.keyboard('{Enter}')
+
+      // Assert: the rail shows the same button, not a second one that would
+      // have taken its place and left the focus on nothing
+      const railToggle = screen.getByRole('button', { name: 'Expand sidebar' })
+      expect(railToggle).toBe(toggle)
+      expect(railToggle).toHaveFocus()
+
+      // Act
+      await user.keyboard('{Enter}')
+
+      // Assert
+      expect(
+        screen.getByRole('button', { name: 'Collapse sidebar' }),
+      ).toHaveFocus()
+    })
   })
 
   describe('Navigation Links', () => {
@@ -220,13 +245,6 @@ describe('Sidebar', () => {
       expect(link).toHaveAttribute('href', '/boards/favorites')
     })
 
-    test('should render Maintenance Mode link', () => {
-      renderSidebar()
-
-      const link = screen.getByRole('link', { name: /maintenance mode/i })
-      expect(link).toHaveAttribute('href', '/maintenance')
-    })
-
     test('should render Settings link', () => {
       renderSidebar()
 
@@ -234,12 +252,90 @@ describe('Sidebar', () => {
       expect(link).toHaveAttribute('href', '/settings')
     })
 
-    test('should highlight active link', () => {
+    // Value: protects=the label of the page the user is on is readable in every theme; fails_when=the label is drawn in the theme color again, which on its own 10% tint is below 4.5:1 in 11 of the 14 themes; why_new=the test before read the tint alone, not the color of the label on it; seam=none; no_claim=the contrast itself (computed for every theme in sidebar-label-contrast.test.ts)
+    test('marks the page the user is on with a tint of the theme color under a label in the color of the sidebar text', () => {
+      // Arrange & Act: /boards is mocked as the current path
       renderSidebar()
 
-      // /boards is mocked as current path
-      const allBoardsLink = screen.getByRole('link', { name: /all boards/i })
-      expect(allBoardsLink).toHaveClass('bg-primary/10')
+      // Assert
+      const allBoardsLink = screen.getByRole('link', { name: 'All Boards' })
+      expect(allBoardsLink).toHaveClass(
+        'bg-primary/10',
+        'text-sidebar-foreground',
+      )
+      expect(allBoardsLink).not.toHaveClass('text-primary')
+      expect(screen.getByRole('link', { name: 'Favorites' })).toHaveClass(
+        'text-muted-foreground',
+      )
+    })
+
+    // Value: protects=a screen reader is told which page is open, in the open sidebar and in the icon rail; fails_when=aria-current leaves the active link or lands on another link; why_new=the one active-link test reads a CSS class, which a screen reader does not; seam=none; no_claim=how a screen reader announces it (DOM attribute only)
+    test.each([
+      { state: 'open', isCollapsed: false },
+      { state: 'collapsed to the icon rail', isCollapsed: true },
+    ])(
+      'tells a screen reader which page is open when the sidebar is $state: the current link says so and no other link does',
+      ({ isCollapsed }) => {
+        // Arrange / Act: /boards is mocked as the current path
+        renderSidebar({}, isCollapsed)
+
+        // Assert
+        expect(
+          screen.getByRole('link', { name: 'All Boards' }),
+        ).toHaveAttribute('aria-current', 'page')
+        expect(
+          screen.getByRole('link', { name: 'Favorites' }),
+        ).not.toHaveAttribute('aria-current')
+        expect(
+          screen.getByRole('link', { name: 'Settings' }),
+        ).not.toHaveAttribute('aria-current')
+      },
+    )
+  })
+
+  describe('Navigation Dividers', () => {
+    test('shows exactly one divider between the board links and Settings when expanded', () => {
+      // Arrange
+      renderSidebar()
+
+      // Act
+      const navigation = screen.getByRole('navigation')
+      const dividers = Array.from(navigation.children).filter((child) =>
+        child.classList.contains('border-t'),
+      )
+
+      // Assert
+      expect(dividers).toHaveLength(1)
+      expect(dividers[0]?.previousElementSibling).toHaveTextContent(
+        'All BoardsFavorites',
+      )
+      expect(dividers[0]?.nextElementSibling).toHaveAttribute(
+        'href',
+        '/settings',
+      )
+    })
+
+    test('shows exactly one divider between the board links and Settings when collapsed', () => {
+      // Arrange
+      renderSidebar({}, true)
+
+      // Act
+      const navigation = screen.getByRole('navigation')
+      const dividers = Array.from(navigation.children).filter((child) =>
+        child.classList.contains('border-t'),
+      )
+
+      // Assert
+      expect(dividers).toHaveLength(1)
+      expect(
+        dividers[0]?.previousElementSibling?.querySelector(
+          'a[href="/boards/favorites"]',
+        ),
+      ).not.toBeNull()
+      expect(dividers[0]?.nextElementSibling).toHaveAttribute(
+        'href',
+        '/settings',
+      )
     })
   })
 
@@ -291,7 +387,7 @@ describe('Sidebar', () => {
     test('should render sign out button', () => {
       renderSidebar()
 
-      // In expanded mode, there's a button with "Sign out" text
+      // In expanded mode, there's a button with "Sign Out" text
       const signOutButton = screen.getByRole('button', { name: /sign out/i })
       expect(signOutButton).toBeInTheDocument()
     })
@@ -313,6 +409,23 @@ describe('Sidebar', () => {
 
       // Theme toggle shows "Theme" text when expanded
       expect(screen.getByText('Theme')).toBeInTheDocument()
+    })
+
+    // Value: protects=the name of the current theme beside "Theme" is readable on the sidebar, at rest and under the pointer; fails_when=the 12px name is dimmed again (at 70% it was between 2.6:1 and 4.0:1 in every theme), or gets a color of its own, which stays muted on the button's hover fill (1.9:1 to 2.4:1 in six dark themes); why_new=no test named the color of that label; seam=none; no_claim=the contrast itself (computed for every theme in sidebar-label-contrast.test.ts)
+    test('shows the name of the current theme in the color of its button, muted at rest, and not dimmed further', () => {
+      // Arrange & Act: the store starts with the system theme
+      renderSidebar()
+
+      // Assert: the button is muted and takes the foreground color under the
+      // pointer; the name follows it, with no color and no opacity of its own
+      const currentThemeName = screen.getByText('System')
+      const themeButton = screen.getByRole('button', { name: /Theme/ })
+      expect(themeButton).toContainElement(currentThemeName)
+      expect(themeButton).toHaveClass(
+        'text-muted-foreground',
+        'hover:text-foreground',
+      )
+      expect(currentThemeName).toHaveAttribute('class', 'text-xs')
     })
   })
 
@@ -344,7 +457,7 @@ describe('Sidebar', () => {
       renderSidebar({}, true)
 
       const signOutButton = screen.getByRole('button', { name: /sign out/i })
-      expect(signOutButton).toHaveAttribute('aria-label', 'Sign out')
+      expect(signOutButton).toHaveAttribute('aria-label', 'Sign Out')
     })
   })
 
@@ -380,6 +493,20 @@ describe('Sidebar', () => {
       expect(
         screen.queryByRole('link', { name: /favorites/i }),
       ).not.toBeInTheDocument()
+    })
+
+    // Value: protects=a screen reader hears whether the links of the Boards section are shown; fails_when=aria-expanded leaves the Boards header or stops following the click; why_new=the toggle test above checks that the links disappear, not the state assistive technology reads; seam=none; no_claim=how a screen reader announces the state (attribute only)
+    test('tells a screen reader whether the Boards links are shown: the header says expanded, and collapsed after a click', () => {
+      // Arrange
+      renderSidebar()
+      const boardsHeader = screen.getByRole('button', { name: /boards/i })
+      expect(boardsHeader).toHaveAttribute('aria-expanded', 'true')
+
+      // Act
+      fireEvent.click(boardsHeader)
+
+      // Assert
+      expect(boardsHeader).toHaveAttribute('aria-expanded', 'false')
     })
   })
 })

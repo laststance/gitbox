@@ -80,6 +80,9 @@
 /*---break---
  */
 :root {
+  /* What the browser draws itself (scrollbars, the list of a native select,
+     autofill) in the scheme of the theme; .dark covers the seven dark themes */
+  color-scheme: light;
   --column-width: 320px;
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -96,7 +99,7 @@
   --muted-foreground: oklch(0.556 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: oklch(0.5 0.2 27);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
@@ -125,6 +128,7 @@
 /*---break---
  */
 .dark {
+  color-scheme: dark;
   --column-width: 320px;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -141,7 +145,8 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
+  /* Black, as in the dark themes of themes.css: near-white reads 2.8:1 on this red */
+  --destructive-foreground: oklch(0 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
@@ -190,6 +195,20 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/*
+ * Toast text: the light palette of the toast library puts its text below
+ * 4.5:1 on its own tints (warning 3.07:1, success 4.26:1, error 4.4:1 at
+ * 13px). Same hues, darker, 5.2:1 or more. The dark palette passes as it is.
+ * `html` in front: the library adds its stylesheet after this one, so an
+ * equal selector would lose.
+ */
+html [data-sonner-toaster][data-sonner-theme='light'] {
+  --success-text: hsl(140, 100%, 22%);
+  --info-text: hsl(210, 92%, 38%);
+  --warning-text: hsl(31, 92%, 33%);
+  --error-text: hsl(360, 100%, 40%);
 }
 
 /* High contrast: improve muted text and border visibility (P2-8) */

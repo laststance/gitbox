@@ -155,6 +155,92 @@ describe('getPublicBoardBySlug()', () => {
     expect(JSON.stringify(publicBoard)).not.toContain('user_id')
   })
 
+  test('shows a column in the default color when its stored color is not #RRGGBB, so the value never reaches the page of a visitor', async () => {
+    // Arrange: a color that carries CSS declarations. The table refuses such
+    // a value; this is the second guard, for a row the check never saw.
+    callDatabaseFunction.mockResolvedValue({
+      data: {
+        board: { name: 'Shared board', subtitle: null },
+        statuslist: [
+          {
+            id: 'status-1',
+            board_id: 'board-1',
+            name: 'To Do',
+            color: 'red; position: fixed; inset: 0',
+            order: 0,
+            grid_row: 0,
+            grid_col: 0,
+            created_at: '2026-01-01T00:00:00+00:00',
+            updated_at: '2026-01-01T00:00:00+00:00',
+          },
+          {
+            id: 'status-2',
+            board_id: 'board-1',
+            name: 'Done',
+            color: '#10B981',
+            order: 1,
+            grid_row: 0,
+            grid_col: 1,
+            created_at: '2026-01-01T00:00:00+00:00',
+            updated_at: '2026-01-01T00:00:00+00:00',
+          },
+        ],
+        repocard: [],
+      },
+      error: null,
+    })
+
+    // Act
+    const publicBoard = await getPublicBoardBySlug(
+      toPublicBoardSlug('a1b2c3d4e5f6'),
+    )
+
+    // Assert: the board is still shown, and only the bad color is replaced
+    expect(
+      publicBoard?.statusLists.map((column) => [column.title, column.color]),
+    ).toEqual([
+      ['To Do', '#6B7280'],
+      ['Done', '#10B981'],
+    ])
+    expect(JSON.stringify(publicBoard)).not.toContain('position: fixed')
+  })
+
+  // Value: protects=a stored color that begins as #RRGGBB and goes on with CSS declarations never reaches the page of a visitor; fails_when=the second guard of the shared board accepts a value for its first seven characters; why_new=the test above stores a color without any #RRGGBB, which a pattern without an end anchor refuses too; seam=none; no_claim=none
+  test('shows a column in the default color when its stored color only begins as #RRGGBB', async () => {
+    // Arrange: a row the check constraint of the table never saw
+    callDatabaseFunction.mockResolvedValue({
+      data: {
+        board: { name: 'Shared board', subtitle: null },
+        statuslist: [
+          {
+            id: 'status-1',
+            board_id: 'board-1',
+            name: 'To Do',
+            color: '#a1b2c3; position: fixed; inset: 0',
+            order: 0,
+            grid_row: 0,
+            grid_col: 0,
+            created_at: '2026-01-01T00:00:00+00:00',
+            updated_at: '2026-01-01T00:00:00+00:00',
+          },
+        ],
+        repocard: [],
+      },
+      error: null,
+    })
+
+    // Act
+    const publicBoard = await getPublicBoardBySlug(
+      toPublicBoardSlug('a1b2c3d4e5f6'),
+    )
+
+    // Assert
+    expect(
+      publicBoard?.statusLists.map((column) => [column.title, column.color]),
+    ).toEqual([['To Do', '#6B7280']])
+    expect(JSON.stringify(publicBoard)).not.toContain('position: fixed')
+  })
+
   test('shows no board for a slug no public board has', async () => {
     // Arrange: the function answers null for unknown and for private boards
     callDatabaseFunction.mockResolvedValue({ data: null, error: null })

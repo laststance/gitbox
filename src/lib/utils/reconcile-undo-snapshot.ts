@@ -5,7 +5,7 @@ import type { RepoCardForRedux } from '@/lib/models/domain'
  *
  * Exists because a snapshot is taken before a drag, and the board can change
  * before the user presses Z: a card may have been moved to another board,
- * sent to Maintenance, removed, or added. Called by {@link useKanbanUndo}.
+ * removed, or added. Called by {@link useKanbanUndo}.
  * Replaying the raw snapshot would show a card that is gone and write its old
  * column back to the database, stranding a moved card between two boards.
  *

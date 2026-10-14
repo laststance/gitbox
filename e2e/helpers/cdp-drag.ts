@@ -2,12 +2,15 @@
  * CDP-based Drag and Drop Helper for @dnd-kit E2E Testing
  *
  * Uses Chrome DevTools Protocol (CDP) to dispatch mouse events at the browser
- * process level, generating `isTrusted: true` events that @dnd-kit accepts.
+ * process level: a press, moves in steps with a pause after each, and a
+ * release after one more pause (see {@link CDPDragOptions}).
  *
  * @remarks
  * - Only works with Chromium-based browsers (V8/CDP API)
- * - @dnd-kit validates `event.isTrusted === true` for security
- * - Playwright's high-level APIs create `isTrusted: false` synthetic events
+ * - @dnd-kit never reads `event.isTrusted`. The sensors of the board listen
+ *   for mouse, touch and key events and measure travel and time
+ * - Playwright's `page.mouse` sends its events through the same protocol, so
+ *   a press that it moves in steps is a drag too (what-starts-a-drag.spec.ts)
  * - CDP Input.dispatchMouseEvent injects events at the OS input layer
  *
  * @see https://chromedevtools.github.io/devtools-protocol/tot/Input/#method-dispatchMouseEvent
@@ -67,7 +70,7 @@ interface CDPDragOptions {
 
 /**
  * Dispatches a mouse event via CDP at the browser process level.
- * Creates `isTrusted: true` events that pass @dnd-kit's security validation.
+ * The event is a trusted one (`isTrusted: true`), as the event of a person is.
  *
  * @param client - CDP session from `page.context().newCDPSession(page)`
  * @param type - Mouse event type: 'mousePressed', 'mouseMoved', 'mouseReleased'
@@ -211,8 +214,8 @@ async function getColumnDragHandleCenter(
 }
 
 /**
- * Performs a drag and drop operation using CDP events.
- * Creates `isTrusted: true` events that @dnd-kit accepts.
+ * Performs a drag and drop operation using CDP events: a press on the
+ * source, moves to the target in steps, and a release there.
  *
  * @param page - Playwright Page instance
  * @param sourceSelector - CSS selector for the source element

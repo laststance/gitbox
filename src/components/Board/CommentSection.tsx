@@ -27,15 +27,13 @@ interface CommentSectionProps {
   onDelete: () => void
   /** Optional style overrides for comment display */
   style?: Partial<CommentStyleSettings>
-  /** Optional className for wrapper */
-  className?: string
 }
 
 /**
  * Shared comment section with Activity-toggled inline edit / display.
  *
  * Encapsulates the CommentInlineEdit ↔ CommentDisplay toggle pattern
- * that is repeated across RepoCard (board) and MaintenanceClient (grid + list).
+ * so RepoCard renders its comment through one component.
  *
  * @example
  * <CommentSection
@@ -60,7 +58,6 @@ export const CommentSection = memo<CommentSectionProps>(
     onColorChange,
     onDelete,
     style,
-    className,
   }) {
     const mergedStyle: Partial<CommentStyleSettings> = {
       borderColor: color,
@@ -68,7 +65,7 @@ export const CommentSection = memo<CommentSectionProps>(
     }
 
     return (
-      <div className={className}>
+      <div>
         <Activity mode={isEditing ? 'visible' : 'hidden'}>
           <CommentInlineEdit
             initialValue={comment ?? ''}

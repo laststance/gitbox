@@ -3,7 +3,7 @@
  *
  * User account management page
  * - Profile information
- * - Account data summary (boards, cards, maintenance items)
+ * - Account data summary (boards, cards)
  * - Danger zone (account deletion)
  */
 
@@ -23,7 +23,6 @@ export const metadata: Metadata = {
 export interface AccountData {
   boardsCount: number
   cardsCount: number
-  maintenanceCount: number
 }
 
 export interface UserProfile {
@@ -37,7 +36,7 @@ export default async function AccountPage() {
   const { supabase, user } = await requireUser()
 
   // Fetch account data counts in parallel
-  const [boardsResult, cardsResult, maintenanceResult] = await Promise.all([
+  const [boardsResult, cardsResult] = await Promise.all([
     supabase
       .from('board')
       .select('id', { count: 'exact', head: true })
@@ -46,16 +45,11 @@ export default async function AccountPage() {
       .from('repocard')
       .select('id, board!inner()', { count: 'exact', head: true })
       .eq('board.user_id', user.id),
-    supabase
-      .from('maintenance')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id),
   ])
 
   const accountData: AccountData = {
     boardsCount: boardsResult.count ?? 0,
     cardsCount: cardsResult.count ?? 0,
-    maintenanceCount: maintenanceResult.count ?? 0,
   }
 
   const userProfile: UserProfile = {

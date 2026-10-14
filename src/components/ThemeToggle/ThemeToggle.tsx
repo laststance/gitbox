@@ -41,6 +41,12 @@ import { cn } from '@/lib/utils'
 interface ThemeToggleProps {
   /** Whether the sidebar is collapsed (icon-only mode) */
   isCollapsed?: boolean
+  /**
+   * Side of the button the list of themes opens on. `right` beside a sidebar
+   * that stands next to the page; `bottom` inside a sidebar that lies over
+   * the page on a phone, where the list would leave the screen on the right.
+   */
+  menuSide?: 'right' | 'bottom'
 }
 
 /**
@@ -51,9 +57,13 @@ interface ThemeToggleProps {
  * Supports collapsed mode with icon-only button and tooltip.
  *
  * @param isCollapsed - When true, displays icon-only with tooltip
+ * @param menuSide - Side of the button the list opens on (default `right`)
+ * @example
+ * <ThemeToggle isCollapsed={false} menuSide="bottom" />
  */
 export const ThemeToggle = memo(function ThemeToggle({
   isCollapsed = false,
+  menuSide = 'right',
 }: ThemeToggleProps) {
   const { theme, setTheme, mounted } = useTheme()
 
@@ -103,14 +113,18 @@ export const ThemeToggle = memo(function ThemeToggle({
         'text-muted-foreground hover:text-foreground',
         isCollapsed ? 'h-8 w-full' : 'w-full justify-start gap-2',
       )}
+      // The rail shows the icon alone: the name the labels gave is kept
+      aria-label={isCollapsed ? `Theme: ${currentThemeName}` : undefined}
     >
       <ThemeIcon className="h-4 w-4" />
       {!isCollapsed && (
         <>
           <span className="flex-1 text-left">Theme</span>
-          <span className="text-muted-foreground/70 text-xs">
-            {currentThemeName}
-          </span>
+          {/* No color of its own: the name has the button's, muted at rest
+              and the foreground color on the hover fill. Muted on that fill
+              it was between 1.9:1 and 2.4:1 in six dark themes, and dimmed
+              to 70% between 2.6:1 and 4.0:1 on the sidebar in every theme */}
+          <span className="text-xs">{currentThemeName}</span>
         </>
       )}
     </Button>
@@ -119,7 +133,7 @@ export const ThemeToggle = memo(function ThemeToggle({
   // Dropdown menu content (shared between both modes)
   const menuContent = (
     <DropdownMenuContent
-      side="right"
+      side={menuSide}
       align="start"
       className="w-56"
       sideOffset={8}
@@ -230,8 +244,11 @@ const ThemeMenuItem = memo(function ThemeMenuItem({
       )}
       {/* Theme name */}
       <span className="flex-1">{info?.name}</span>
-      {/* Check mark for selected theme */}
-      {isSelected && <Check className="text-primary h-4 w-4" />}
+      {/* Check mark for selected theme. No color of its own: it has the
+          item's, also on the accent fill of the item under the pointer or
+          the keyboard, where the theme color was between 1.3:1 and 1.8:1 in
+          six dark themes */}
+      {isSelected && <Check className="h-4 w-4" />}
     </DropdownMenuItem>
   )
 })

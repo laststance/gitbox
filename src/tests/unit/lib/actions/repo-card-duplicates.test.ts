@@ -16,13 +16,11 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import {
-  findBoardPlacement,
   isUniqueViolation,
   lookupRepoPlacements,
   splitRequestedRepos,
-  toDialogRaceMessage,
   toUniqueViolationError,
-  type RepoPlacements,
+  type BoardPlacement,
 } from '@/lib/actions/repo-card-duplicates'
 import { ActionUserError } from '@/lib/actions/types'
 import type { Database } from '@/lib/supabase/types'
@@ -43,27 +41,29 @@ type LookupResult = {
 }
 
 /**
- * Supabase stand-in for the placement lookup: the list read of `repocard` and
- * the list read of `maintenance` each answer with the given result.
+ * Supabase stand-in for the placement lookup: the list read of `repocard`
+ * answers with the given result. `from` and `eq` are spies so a test can see
+ * which table was read and how the read was filtered.
  */
-function makeSupabaseStub(tables: {
-  repocard: LookupResult
-  maintenance: LookupResult
-}): SupabaseClient<Database> {
-  const makeQuery = (result: LookupResult) => {
-    const query = {
-      select: () => query,
-      eq: () => query,
-      // Makes the builder awaitable, like the real PostgREST builder
-      then: async (resolve: (value: LookupResult) => unknown) =>
-        resolve(result),
-    }
-    return query
+function makeSupabaseStub(result: LookupResult) {
+  const from = vi.fn()
+  const eq = vi.fn()
+  const query = {
+    select: () => query,
+    eq: (...args: unknown[]) => {
+      eq(...args)
+      return query
+    },
+    // Makes the builder awaitable, like the real PostgREST builder
+    then: async (resolve: (value: LookupResult) => unknown) => resolve(result),
   }
-  const from = (table: string) =>
-    makeQuery(table === 'repocard' ? tables.repocard : tables.maintenance)
+  from.mockImplementation(() => query)
 
-  return { from } as unknown as SupabaseClient<Database>
+  return {
+    supabase: { from } as unknown as SupabaseClient<Database>,
+    from,
+    eq,
+  }
 }
 
 /** `count` card rows of different repositories, all on the board "Work Projects". */
@@ -75,60 +75,56 @@ function makeCardRows(count: number) {
   }))
 }
 
-/** `count` Maintenance rows of different repositories. */
-function makeMaintenanceRows(count: number) {
-  return Array.from({ length: count }, (_, index) => ({
-    repo_owner: 'laststance',
-    repo_name: `archived-${index}`,
-  }))
-}
-
 describe('lookupRepoPlacements', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  test('reports which board holds each repository and what is in Maintenance, as lowercase owner/name', async () => {
+  test('reports which board holds each repository, as lowercase owner/name', async () => {
     // Arrange
-    const supabase = makeSupabaseStub({
-      repocard: {
-        data: [
-          {
-            repo_owner: 'Laststance',
-            repo_name: 'GitBox',
-            board: { id: 'board-2', user_id: 'user-1', name: 'Work Projects' },
-          },
-        ],
-        error: null,
-      },
-      maintenance: {
-        data: [{ repo_owner: 'Laststance', repo_name: 'Old-Project' }],
-        error: null,
-      },
+    const { supabase } = makeSupabaseStub({
+      data: [
+        {
+          repo_owner: 'Laststance',
+          repo_name: 'GitBox',
+          board: { id: 'board-2', user_id: 'user-1', name: 'Work Projects' },
+        },
+      ],
+      error: null,
     })
 
     // Act
     const placements = await lookupRepoPlacements(supabase, 'user-1')
 
     // Assert
-    expect(placements).toEqual({
-      boards: [
-        {
-          identifier: 'laststance/gitbox',
-          boardId: 'board-2',
-          boardName: 'Work Projects',
-        },
-      ],
-      maintenance: ['laststance/old-project'],
-    })
+    expect(placements).toEqual([
+      {
+        identifier: 'laststance/gitbox',
+        boardId: 'board-2',
+        boardName: 'Work Projects',
+      },
+    ])
     expect(Sentry.captureMessage).not.toHaveBeenCalled()
+  })
+
+  test('reads only the cards on boards owned by the given user', async () => {
+    // Arrange
+    const { supabase, from, eq } = makeSupabaseStub({ data: [], error: null })
+
+    // Act
+    await lookupRepoPlacements(supabase, 'user-1')
+
+    // Assert
+    expect(from).toHaveBeenCalledTimes(1)
+    expect(from).toHaveBeenCalledWith('repocard')
+    expect(eq).toHaveBeenCalledWith('board.user_id', 'user-1')
   })
 
   test('warns once that the answer may be cut off when the card lookup returns exactly 1000 rows', async () => {
     // Arrange
-    const supabase = makeSupabaseStub({
-      repocard: { data: makeCardRows(1000), error: null },
-      maintenance: { data: [], error: null },
+    const { supabase } = makeSupabaseStub({
+      data: makeCardRows(1000),
+      error: null,
     })
 
     // Act
@@ -140,41 +136,17 @@ describe('lookupRepoPlacements', () => {
       'Repo placement lookup may be truncated at PostgREST row limit',
       {
         level: 'warning',
-        extra: { userId: 'user-1', repoCardCount: 1000, maintenanceCount: 0 },
+        extra: { userId: 'user-1', repoCardCount: 1000 },
       },
     )
-    expect(placements.boards).toHaveLength(1000)
+    expect(placements).toHaveLength(1000)
   })
 
-  // Maintenance has no unique-index backstop: beyond the cap, a repository in
-  // Maintenance could also be added to a board, so this warning is the only signal.
-  test('warns once that the answer may be cut off when the Maintenance lookup returns exactly 1000 rows', async () => {
+  test('sends no truncation warning when the card lookup returns 999 rows', async () => {
     // Arrange
-    const supabase = makeSupabaseStub({
-      repocard: { data: [], error: null },
-      maintenance: { data: makeMaintenanceRows(1000), error: null },
-    })
-
-    // Act
-    const placements = await lookupRepoPlacements(supabase, 'user-1')
-
-    // Assert
-    expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
-    expect(Sentry.captureMessage).toHaveBeenCalledWith(
-      'Repo placement lookup may be truncated at PostgREST row limit',
-      {
-        level: 'warning',
-        extra: { userId: 'user-1', repoCardCount: 0, maintenanceCount: 1000 },
-      },
-    )
-    expect(placements.maintenance).toHaveLength(1000)
-  })
-
-  test('sends no truncation warning when both lookups return 999 rows', async () => {
-    // Arrange
-    const supabase = makeSupabaseStub({
-      repocard: { data: makeCardRows(999), error: null },
-      maintenance: { data: makeMaintenanceRows(999), error: null },
+    const { supabase } = makeSupabaseStub({
+      data: makeCardRows(999),
+      error: null,
     })
 
     // Act
@@ -182,15 +154,14 @@ describe('lookupRepoPlacements', () => {
 
     // Assert
     expect(Sentry.captureMessage).not.toHaveBeenCalled()
-    expect(placements.boards).toHaveLength(999)
-    expect(placements.maintenance).toHaveLength(999)
+    expect(placements).toHaveLength(999)
   })
 
   test('fails instead of reporting no placements when the card lookup fails', async () => {
     // Arrange
-    const supabase = makeSupabaseStub({
-      repocard: { data: null, error: { message: 'connection reset' } },
-      maintenance: { data: [], error: null },
+    const { supabase } = makeSupabaseStub({
+      data: null,
+      error: { message: 'connection reset' },
     })
 
     // Act
@@ -198,23 +169,7 @@ describe('lookupRepoPlacements', () => {
 
     // Assert
     await expect(lookup).rejects.toThrow(
-      'Failed to look up repository placements (cards)',
-    )
-  })
-
-  test('fails instead of reporting an empty Maintenance when the Maintenance lookup fails', async () => {
-    // Arrange
-    const supabase = makeSupabaseStub({
-      repocard: { data: [], error: null },
-      maintenance: { data: null, error: { message: 'connection reset' } },
-    })
-
-    // Act
-    const lookup = lookupRepoPlacements(supabase, 'user-1')
-
-    // Assert
-    await expect(lookup).rejects.toThrow(
-      'Failed to look up repository placements (maintenance)',
+      'Failed to look up repository placements',
     )
   })
 })
@@ -223,7 +178,7 @@ describe('splitRequestedRepos', () => {
   test('lets a repository through when it is placed nowhere', () => {
     // Arrange
     const requested = [{ name: 'gitbox', owner: { login: 'laststance' } }]
-    const placements: RepoPlacements = { boards: [], maintenance: [] }
+    const placements: BoardPlacement[] = []
 
     // Act
     const result = splitRequestedRepos(requested, placements, 'board-1')
@@ -238,16 +193,13 @@ describe('splitRequestedRepos', () => {
   test('skips a repository that another board of the user holds and names that board', () => {
     // Arrange
     const requested = [{ name: 'gitbox', owner: { login: 'laststance' } }]
-    const placements: RepoPlacements = {
-      boards: [
-        {
-          identifier: 'laststance/gitbox',
-          boardId: 'board-2',
-          boardName: 'Work Projects',
-        },
-      ],
-      maintenance: [],
-    }
+    const placements: BoardPlacement[] = [
+      {
+        identifier: 'laststance/gitbox',
+        boardId: 'board-2',
+        boardName: 'Work Projects',
+      },
+    ]
 
     // Act
     const result = splitRequestedRepos(requested, placements, 'board-1')
@@ -270,16 +222,13 @@ describe('splitRequestedRepos', () => {
   test('skips a repository that is already on the target board', () => {
     // Arrange
     const requested = [{ name: 'gitbox', owner: { login: 'laststance' } }]
-    const placements: RepoPlacements = {
-      boards: [
-        {
-          identifier: 'laststance/gitbox',
-          boardId: 'board-1',
-          boardName: 'Test Board',
-        },
-      ],
-      maintenance: [],
-    }
+    const placements: BoardPlacement[] = [
+      {
+        identifier: 'laststance/gitbox',
+        boardId: 'board-1',
+        boardName: 'Test Board',
+      },
+    ]
 
     // Act
     const result = splitRequestedRepos(requested, placements, 'board-1')
@@ -299,43 +248,16 @@ describe('splitRequestedRepos', () => {
     })
   })
 
-  test('skips a repository that is in Maintenance', () => {
-    // Arrange
-    const requested = [{ name: 'old-project', owner: { login: 'laststance' } }]
-    const placements: RepoPlacements = {
-      boards: [],
-      maintenance: ['laststance/old-project'],
-    }
-
-    // Act
-    const result = splitRequestedRepos(requested, placements, 'board-1')
-
-    // Assert
-    expect(result).toEqual({
-      addable: [],
-      skipped: [
-        {
-          fullName: 'laststance/old-project',
-          reason: 'maintenance',
-          message: 'laststance/old-project is in Maintenance',
-        },
-      ],
-    })
-  })
-
   test('treats a different letter case as the same repository', () => {
     // Arrange
     const requested = [{ name: 'GitBox', owner: { login: 'Laststance' } }]
-    const placements: RepoPlacements = {
-      boards: [
-        {
-          identifier: 'laststance/gitbox',
-          boardId: 'board-2',
-          boardName: 'Work Projects',
-        },
-      ],
-      maintenance: [],
-    }
+    const placements: BoardPlacement[] = [
+      {
+        identifier: 'laststance/gitbox',
+        boardId: 'board-2',
+        boardName: 'Work Projects',
+      },
+    ]
 
     // Act
     const result = splitRequestedRepos(requested, placements, 'board-1')
@@ -359,7 +281,7 @@ describe('splitRequestedRepos', () => {
       { name: 'gitbox', owner: { login: 'laststance' }, id: 1 },
       { name: 'GITBOX', owner: { login: 'Laststance' }, id: 2 },
     ]
-    const placements: RepoPlacements = { boards: [], maintenance: [] }
+    const placements: BoardPlacement[] = []
 
     // Act
     const result = splitRequestedRepos(requested, placements, 'board-1')
@@ -378,16 +300,18 @@ describe('splitRequestedRepos', () => {
       { name: 'gitbox', owner: { login: 'laststance' } },
       { name: 'old-project', owner: { login: 'laststance' } },
     ]
-    const placements: RepoPlacements = {
-      boards: [
-        {
-          identifier: 'laststance/gitbox',
-          boardId: 'board-2',
-          boardName: 'Work Projects',
-        },
-      ],
-      maintenance: ['laststance/old-project'],
-    }
+    const placements: BoardPlacement[] = [
+      {
+        identifier: 'laststance/gitbox',
+        boardId: 'board-2',
+        boardName: 'Work Projects',
+      },
+      {
+        identifier: 'laststance/old-project',
+        boardId: 'board-3',
+        boardName: 'Side Projects',
+      },
+    ]
 
     // Act
     const result = splitRequestedRepos(requested, placements, 'board-1')
@@ -398,48 +322,8 @@ describe('splitRequestedRepos', () => {
     ])
     expect(result.skipped.map((skippedRepo) => skippedRepo.message)).toEqual([
       'laststance/gitbox is already on board "Work Projects"',
-      'laststance/old-project is in Maintenance',
+      'laststance/old-project is already on board "Side Projects"',
     ])
-  })
-})
-
-describe('findBoardPlacement', () => {
-  test('finds the holding board regardless of letter case', () => {
-    // Arrange
-    const placements: RepoPlacements = {
-      boards: [
-        {
-          identifier: 'laststance/gitbox',
-          boardId: 'board-2',
-          boardName: 'Work Projects',
-        },
-      ],
-      maintenance: [],
-    }
-
-    // Act
-    const holdingBoard = findBoardPlacement(placements, 'Laststance', 'GitBox')
-
-    // Assert
-    expect(holdingBoard).toEqual({
-      identifier: 'laststance/gitbox',
-      boardId: 'board-2',
-      boardName: 'Work Projects',
-    })
-  })
-
-  test('reports no holding board for a repository that is only in Maintenance', () => {
-    // Arrange
-    const placements: RepoPlacements = {
-      boards: [],
-      maintenance: ['laststance/gitbox'],
-    }
-
-    // Act
-    const holdingBoard = findBoardPlacement(placements, 'laststance', 'gitbox')
-
-    // Assert
-    expect(holdingBoard).toBeUndefined()
   })
 })
 
@@ -480,33 +364,23 @@ describe('unique violation mapping', () => {
     const error = toUniqueViolationError({
       error: violation,
       raceMessage:
-        'laststance/gitbox was just placed on a board. Close this dialog and try again.',
-      action: 'restoreToBoard',
+        'Nothing was added. One of the selected repositories was just placed on a board. Reload the page and try again.',
+      action: 'addRepositoriesToBoard',
       userId: 'user-1',
     })
 
     // Assert
     expect(error).toBeInstanceOf(ActionUserError)
     expect(error.message).toBe(
-      'laststance/gitbox was just placed on a board. Close this dialog and try again.',
+      'Nothing was added. One of the selected repositories was just placed on a board. Reload the page and try again.',
     )
     expect(warn).toHaveBeenCalledWith(
       {
-        action: 'restoreToBoard',
+        action: 'addRepositoriesToBoard',
         userId: 'user-1',
         constraint: 'repocard_unique_repo_per_user',
       },
       'Repo placement rejected by unique constraint (concurrent placement)',
-    )
-  })
-
-  test('builds the dialog race sentence from the repository name', () => {
-    // Arrange & Act
-    const message = toDialogRaceMessage('laststance', 'gitbox')
-
-    // Assert
-    expect(message).toBe(
-      'laststance/gitbox was just placed on a board. Close this dialog and try again.',
     )
   })
 })

@@ -6,7 +6,7 @@
  *
  * Features:
  * - Auto-growing textarea
- * - Character counter with warning color
+ * - Character counter that warns near the limit and turns red over it
  * - Save/Cancel buttons
  * - Keyboard shortcuts (Enter=save, Esc=cancel)
  * - Auto-save on blur (when focus is lost)
@@ -17,11 +17,12 @@
 'use client'
 
 import { Check } from 'lucide-react'
-import { memo, useCallback, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useId, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { NEAR_LIMIT_COUNTER_TEXT_CLASS } from '@/lib/constants/character-counter'
 import { cn } from '@/lib/utils'
 import { COMMENT_MAX_LENGTH } from '@/lib/validations/project-info'
 
@@ -91,6 +92,8 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
     const [editValue, setEditValue] = useState(initialValue)
     const [isSaving, setIsSaving] = useState(false)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
+    // Ties the counter to the field, so a screen reader reads it with the field
+    const counterId = useId()
     // Track if cancel is in progress to prevent blur from auto-saving
     const isCancellingRef = useRef(false)
 
@@ -223,7 +226,9 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
     return (
       <div
         data-testid="comment-inline-edit"
-        onPointerDown={(e) => e.stopPropagation()}
+        // Read by may-start-drag.ts: no press in the editor picks the card up,
+        // on its field and its button as on its counter and the space around them
+        data-no-drag
         className={cn(
           // Container styles matching CommentDisplay - full rounded card
           'rounded-md p-3',
@@ -242,25 +247,39 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
           placeholder="Add a comment..."
           maxLength={maxLength + 50} // Allow slight overflow for better UX
           disabled={isSaving}
+          aria-invalid={isOverLimit}
+          aria-describedby={counterId}
           data-testid="comment-textarea"
+          // The text keeps its color over the limit: the destructive red
+          // drops to 3.0:1 on the tinted box (Dark). The counter says it.
           className={cn(
             'min-h-[60px] w-full resize-none border-0 bg-transparent p-0',
             'focus-visible:ring-0 focus-visible:ring-offset-0',
             'text-sm leading-relaxed',
-            isOverLimit && 'text-destructive',
           )}
         />
 
         {/* Controls row */}
         <div className="mt-2 flex items-center justify-between">
-          {/* Character counter */}
+          {/* Character counter. It stands on the comment's tinted box: one
+              of eight colors at 20% over the card, 25% under the pointer.
+              70% of the foreground passes 4.5:1 on every tint of every
+              theme. No warning color does: orange 800 drops to 4.2:1 on the
+              hovered primary tint (default theme) and the destructive red to
+              3.0:1 (Dark). So the two warning states paint their own
+              surface. The padding is there in every state and the negative
+              margin takes it back, so the digits stay where they are when
+              the state changes. Checked in
+              comment-counter-contrast.test.ts. */}
           <span
+            id={counterId}
             data-testid="character-counter"
             className={cn(
-              'text-xs transition-colors',
-              isOverLimit && 'text-destructive font-medium',
-              isWarning && 'text-orange-500',
-              !isOverLimit && !isWarning && 'text-muted-foreground',
+              '-ml-1.5 rounded px-1.5 py-0.5 text-xs transition-colors',
+              isOverLimit &&
+                'bg-destructive text-destructive-foreground font-medium',
+              isWarning && `bg-background ${NEAR_LIMIT_COUNTER_TEXT_CLASS}`,
+              !isOverLimit && !isWarning && 'text-foreground/70',
             )}
           >
             {charCount}/{maxLength}

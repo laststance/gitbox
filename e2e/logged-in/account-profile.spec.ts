@@ -3,7 +3,7 @@
  *
  * Tests for the Account page (/account) which displays:
  * - Profile section (avatar, username, GitHub connection info)
- * - Account Data section (boards, cards, maintenance item counts)
+ * - Account Data section (boards and repository card counts)
  * - Danger Zone section (account deletion flow)
  * - Navigation actions (Back to Boards, Sign Out)
  *
@@ -45,18 +45,42 @@ test.describe('Account Profile Page (Authenticated)', () => {
       timeout: 10000,
     })
     await expect(main.getByText('Repository Cards')).toBeVisible()
-    await expect(main.getByText('Maintenance Items')).toBeVisible()
 
     // Verify counts are rendered as numbers (not empty)
     const statValues = main.locator('.text-2xl.font-bold')
     const count = await statValues.count()
-    expect(count).toBe(3)
+    expect(count).toBe(2)
 
     for (let i = 0; i < count; i++) {
       const text = await statValues.nth(i).textContent()
       expect(text).not.toBeNull()
       expect(text!.trim()).toMatch(/^\d+$/)
     }
+  })
+
+  test('shows the Boards and Repository Cards tiles side by side, equally wide', async ({
+    page,
+  }) => {
+    // Arrange
+    const main = page.getByRole('main')
+    const boardsTile = main.getByText('Boards', { exact: true }).locator('..')
+    const repositoryCardsTile = main.getByText('Repository Cards').locator('..')
+    await expect(boardsTile).toBeVisible({ timeout: 10000 })
+
+    // Act
+    const boardsBox = await boardsTile.boundingBox()
+    const repositoryCardsBox = await repositoryCardsTile.boundingBox()
+
+    // Assert: one row, the second tile to the right of the first
+    expect(boardsBox).not.toBeNull()
+    expect(repositoryCardsBox).not.toBeNull()
+    expect(repositoryCardsBox!.y).toBe(boardsBox!.y)
+    expect(repositoryCardsBox!.x).toBeGreaterThanOrEqual(
+      boardsBox!.x + boardsBox!.width,
+    )
+    expect(Math.round(repositoryCardsBox!.width)).toBe(
+      Math.round(boardsBox!.width),
+    )
   })
 
   test('should open delete confirmation dialog', async ({ page }) => {

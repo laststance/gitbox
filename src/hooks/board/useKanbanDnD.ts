@@ -4,14 +4,15 @@
  * Extracts all drag-and-drop logic from KanbanBoard:
  * - Sensor configuration (Mouse, Touch, Keyboard)
  * - Custom collision detection (forgivingCollisionDetection)
- * - Drag start/end handlers with column sub-handlers
+ * - Drag start/end/cancel handlers with column sub-handlers
  * - Grid dimension calculations and insertion zone detection
  * - Active drag state (activeId, activeDragType)
  *
  * @example
  * const dnd = useKanbanDnD({ statuses, cards, cardsByStatus, EMPTY_CARDS, dispatch, pushCardHistory, pushColumnHistory, rollbackRepoCards, rollbackStatusLists })
  * <DndContext sensors={dnd.sensors} collisionDetection={forgivingCollisionDetection}
- *   onDragStart={dnd.handleDragStart} onDragEnd={dnd.handleDragEnd}>
+ *   onDragStart={dnd.handleDragStart} onDragEnd={dnd.handleDragEnd}
+ *   onDragCancel={dnd.handleDragCancel}>
  *   <SortableContext items={dnd.columnIds}>...</SortableContext>
  * </DndContext>
  */
@@ -23,9 +24,6 @@ import type {
   UniqueIdentifier,
 } from '@dnd-kit/core'
 import {
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
   closestCenter,
   pointerWithin,
   useSensor,
@@ -51,6 +49,12 @@ import { trackBoardWrite } from '@/lib/redux/slices/boardSyncSlice'
 import type { AppDispatch } from '@/lib/redux/store'
 import type { StatusListId } from '@/lib/types/brands'
 import { notifyFailedBoardSave } from '@/lib/utils/notify-failed-board-save'
+import {
+  OwnElementKeyboardSensor,
+  OwnElementMouseSensor,
+  OwnElementTouchSensor,
+} from '@/lib/utils/own-element-sensors'
+import { reportUnconfirmedBoardSave } from '@/lib/utils/report-unconfirmed-board-save'
 
 import type { BoardRollback } from './useBoardRollback'
 
@@ -117,6 +121,8 @@ interface UseKanbanDnDReturn {
   handleDragStart: (event: DragStartEvent) => void
   /** Handle drag end — dispatches to column/card sub-handlers */
   handleDragEnd: (event: DragEndEvent) => Promise<void>
+  /** Handle a cancelled drag: forgets the dragged item, nothing is saved */
+  handleDragCancel: () => void
   /** Grid dimensions for CSS grid template */
   gridDimensions: { maxRow: number; maxCol: number }
   /** Statuses sorted by gridRow then gridCol for rendering */
@@ -200,20 +206,24 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
     [sortedStatuses],
   )
 
-  // Sensor configuration
+  // Sensor configuration. A drag starts only from a press or a key on the
+  // card or the column header itself (mayStartDrag): not from one in a menu
+  // or a dialog they render, which React hands up here although it is drawn
+  // elsewhere on the page, and not from one on a button, a link or a field
+  // inside them or in the box of the comment editor
   const sensors = useSensors(
-    useSensor(MouseSensor, {
+    useSensor(OwnElementMouseSensor, {
       activationConstraint: {
         distance: 8,
       },
     }),
-    useSensor(TouchSensor, {
+    useSensor(OwnElementTouchSensor, {
       activationConstraint: {
         delay: 200,
         tolerance: 6,
       },
     }),
-    useSensor(KeyboardSensor),
+    useSensor(OwnElementKeyboardSensor),
   )
 
   /** Save current column state to undo history (max 10 entries) */
@@ -241,6 +251,7 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
         await trackBoardWrite(
           dispatch,
           updateStatusListPosition(activeStatus.id, targetRow, targetCol),
+          () => reportUnconfirmedBoardSave('moveColumnToNewRow'),
         )
       } catch (error) {
         Sentry.captureException(error, {
@@ -306,7 +317,11 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
       dispatch(setStatusLists(updatedStatuses))
 
       try {
-        await trackBoardWrite(dispatch, batchUpdateStatusListPositions(updates))
+        await trackBoardWrite(
+          dispatch,
+          batchUpdateStatusListPositions(updates),
+          () => reportUnconfirmedBoardSave('insertColumn'),
+        )
       } catch (error) {
         Sentry.captureException(error, { tags: { action: 'insertColumn' } })
         notifyFailedBoardSave(
@@ -346,6 +361,7 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
         await trackBoardWrite(
           dispatch,
           swapStatusListPositions(activeStatus.id, overStatus.id),
+          () => reportUnconfirmedBoardSave('swapColumnPositions'),
         )
       } catch (error) {
         Sentry.captureException(error, {
@@ -367,6 +383,17 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
     setActiveDragType(
       active.data.current?.type === COLUMN_DRAG_TYPE ? 'column' : 'card',
     )
+  }, [])
+
+  /**
+   * Handle a cancelled drag: Escape, a window that is resized or hidden
+   * during the drag, or a touch that the browser takes over. dnd-kit reports
+   * those here and not to handleDragEnd, so the drop zones of a column drag
+   * stayed on the board until the next drag ended.
+   */
+  const handleDragCancel = useCallback(() => {
+    setActiveId(null)
+    setActiveDragType(null)
   }, [])
 
   /** Handle drag end — dispatches to column/card sub-handlers */
@@ -463,7 +490,11 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
             order: index,
           }))
           try {
-            await trackBoardWrite(dispatch, batchUpdateRepoCardOrders(updates))
+            await trackBoardWrite(
+              dispatch,
+              batchUpdateRepoCardOrders(updates),
+              () => reportUnconfirmedBoardSave('syncCardOrder'),
+            )
           } catch (error) {
             Sentry.captureException(error, {
               tags: { action: 'syncCardOrder' },
@@ -491,6 +522,7 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
           await trackBoardWrite(
             dispatch,
             updateRepoCardPosition(activeCard.id, targetStatusId, newOrder),
+            () => reportUnconfirmedBoardSave('syncCardPosition'),
           )
         } catch (error) {
           Sentry.captureException(error, {
@@ -525,6 +557,7 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
     insertionZones,
     handleDragStart,
     handleDragEnd,
+    handleDragCancel,
     gridDimensions,
     sortedStatuses,
   }

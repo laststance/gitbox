@@ -2,66 +2,38 @@
  * Board Slice
  *
  * Holds the currently-viewed board's hydrated contents (status columns,
- * cards) plus a bookmark to the last-visited board for quick resume. The
- * slice is persisted to LocalStorage via `redux-storage-middleware` so
- * reloads don't blank the UI while we re-fetch.
+ * cards). The slice is not persisted: the server sends the board with every
+ * page and {@link useBoardServerSync} puts it into the store. A stored copy
+ * broke the hydration of every board page (see {@link PERSISTED_SLICE_NAMES}).
  */
 
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice } from '@reduxjs/toolkit'
 
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
-import type { Board } from '@/lib/supabase/types'
-import type { BoardId, RepoCardId } from '@/lib/types/brands'
+import type { RepoCardId } from '@/lib/types/brands'
 
 /**
- * {@link Board} with `settings` widened to `unknown`.
- *
- * The raw Supabase row type expands `settings` into a recursive `Json`
- * type, which trips Immer's draft-type inference. Widening to `unknown`
- * keeps the runtime shape identical while letting Immer produce a usable
- * draft type. Components parse the real shape via `parseBoardSettings`.
+ * Shape of the `state.board` Redux slice. Which board the columns and cards
+ * belong to is kept by {@link boardSyncSlice} (`hydratedBoardId`); the board
+ * row itself reaches the page as a prop and is not stored.
  */
-type SimplifiedBoard = Omit<Board, 'settings'> & { settings: unknown }
-
-/** Lightweight bookmark for "resume where you left off" navigation. */
-interface LastVisitedBoard {
-  id: BoardId
-  name: string
-}
-
-/** Shape of the `state.board` Redux slice. */
 interface BoardState {
-  /** Currently-viewed board, or `null` before any board is opened. */
-  activeBoard: SimplifiedBoard | null
-  /** Status columns for the active board, ordered by grid position. */
+  /** Status columns of the board on screen, ordered by grid position. */
   statusLists: StatusListDomain[]
-  /** Repo cards for the active board (meta widened for Immer). */
+  /** Repo cards of the board on screen (meta widened for Immer). */
   repoCards: RepoCardForRedux[]
-  /** Bookmark to the most recently opened board. */
-  lastVisitedBoard: LastVisitedBoard | null
 }
 
 const initialState: BoardState = {
-  activeBoard: null,
   statusLists: [],
   repoCards: [],
-  lastVisitedBoard: null,
 }
 
 export const boardSlice = createSlice({
   name: 'board',
   initialState,
   reducers: {
-    setActiveBoard: (state, action: PayloadAction<SimplifiedBoard | null>) => {
-      state.activeBoard = action.payload
-      if (action.payload) {
-        state.lastVisitedBoard = {
-          id: action.payload.id as BoardId,
-          name: action.payload.name,
-        }
-      }
-    },
     setStatusLists: (state, action: PayloadAction<StatusListDomain[]>) => {
       state.statusLists = action.payload
     },
@@ -88,13 +60,8 @@ export const boardSlice = createSlice({
   },
 })
 
-export const {
-  setActiveBoard,
-  setStatusLists,
-  setRepoCards,
-  addRepoCards,
-  removeRepoCard,
-} = boardSlice.actions
+export const { setStatusLists, setRepoCards, addRepoCards, removeRepoCard } =
+  boardSlice.actions
 
 export default boardSlice.reducer
 
@@ -103,5 +70,3 @@ export const selectStatusLists = (state: { board: BoardState }) =>
   state.board.statusLists
 export const selectRepoCards = (state: { board: BoardState }) =>
   state.board.repoCards
-export const selectLastVisitedBoard = (state: { board: BoardState }) =>
-  state.board.lastVisitedBoard

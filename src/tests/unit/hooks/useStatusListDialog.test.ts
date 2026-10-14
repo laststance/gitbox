@@ -77,10 +77,8 @@ const createTestStore = (statusLists: StatusListDomain[] = []) => {
     },
     preloadedState: {
       board: {
-        activeBoard: null,
         statusLists,
         repoCards: [],
-        lastVisitedBoard: null,
       },
     },
   })

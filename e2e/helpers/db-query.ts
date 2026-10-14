@@ -211,13 +211,6 @@ export const PROJECT_INFO_IDS = {
   projinfo2: '00000000-0000-0000-0000-000000000402',
   projinfo3: '00000000-0000-0000-0000-000000000403',
   projinfo4: '00000000-0000-0000-0000-000000000404',
-  maintenanceProjinfo1: '00000000-0000-0000-0000-000000000601',
-} as const
-
-/** Maintenance item UUIDs */
-export const MAINTENANCE_IDS = {
-  maintenance1: '00000000-0000-0000-0000-000000000501',
-  maintenance2: '00000000-0000-0000-0000-000000000502',
 } as const
 
 /** Public board share slug (matches seed.sql) */
@@ -886,63 +879,6 @@ export async function resetBoardPublicState(): Promise<void> {
     throw new Error(
       `resetBoardPublicState: UPDATE matched 0 rows for id=${BOARD_IDS.testBoard}. ` +
         `URL=${process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'}`,
-    )
-  }
-}
-
-/**
- * Reset maintenance items to seed.sql initial values.
- * Re-creates items that may have been deleted by tests.
- *
- * @example
- * test.afterEach(async () => {
- *   await resetMaintenanceItems()
- * })
- */
-export async function resetMaintenanceItems(): Promise<void> {
-  const supabase = createServiceRoleSupabaseClient()
-
-  const seedItems = [
-    {
-      id: MAINTENANCE_IDS.maintenance1,
-      user_id: TEST_USER_ID,
-      repo_owner: 'laststance',
-      repo_name: 'claude-plugin-dashboard',
-    },
-    {
-      id: MAINTENANCE_IDS.maintenance2,
-      user_id: TEST_USER_ID,
-      repo_owner: 'laststance',
-      repo_name: 'old-project',
-    },
-  ]
-
-  for (const item of seedItems) {
-    const { error } = await supabase
-      .from('maintenance')
-      .upsert(item, { onConflict: 'id' })
-    if (error) {
-      throw new Error(
-        `resetMaintenanceItems: upsert failed for id=${item.id}: ${error.message}`,
-      )
-    }
-  }
-
-  // Re-insert projectinfo for maintenance-1 (may have been cascade-deleted)
-  const { error: piError } = await supabase.from('projectinfo').upsert(
-    {
-      id: PROJECT_INFO_IDS.maintenanceProjinfo1,
-      maintenance_id: MAINTENANCE_IDS.maintenance1,
-      note: 'Maintenance notes for dashboard project',
-      comment: 'Archived - no active development',
-      comment_color: 'neutral',
-      links: [],
-    },
-    { onConflict: 'id' },
-  )
-  if (piError) {
-    throw new Error(
-      `resetMaintenanceItems: projectinfo upsert failed: ${piError.message}`,
     )
   }
 }

@@ -11,7 +11,6 @@
 'use client'
 
 import * as DialogPrimitive from '@radix-ui/react-dialog'
-import * as VisuallyHidden from '@radix-ui/react-visually-hidden'
 import { X } from 'lucide-react'
 import * as React from 'react'
 
@@ -48,16 +47,17 @@ interface DialogContentProps extends React.ComponentPropsWithoutRef<
   typeof DialogPrimitive.Content
 > {
   /**
-   * Accessible title for screen readers when no visible DialogTitle is used.
-   * Falls back to 'Dialog' if not provided and no DialogTitle is present.
+   * Disables the close button in the corner. For a dialog that refuses to
+   * close for a while (a request is running): a button that does nothing
+   * when pressed should not look pressable.
    */
-  accessibleTitle?: string
+  isCloseDisabled?: boolean
 }
 
 const DialogContent = React.memo(function DialogContent({
   className,
   children,
-  accessibleTitle = 'Dialog',
+  isCloseDisabled = false,
   ref,
   ...props
 }: DialogContentProps & {
@@ -68,18 +68,24 @@ const DialogContent = React.memo(function DialogContent({
       <DialogOverlay />
       <DialogPrimitive.Content
         ref={ref}
+        // max-h + overflow-y-auto: on a short viewport (a phone on its side) the
+        // dialog scrolls instead of being cut off above and below.
+        // wrap-anywhere: a word that is longer than the dialog breaks. A board
+        // name of 50 characters without a space made the dialog's one grid
+        // column wider than a phone, and the dialog scrolled sideways.
         className={cn(
-          'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border p-6 shadow-lg duration-200 sm:rounded-lg',
+          'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100dvh-2rem)] w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto border p-6 wrap-anywhere shadow-lg duration-200 sm:rounded-lg',
           className,
         )}
         {...props}
       >
-        {/* Visually hidden title for accessibility - always present as fallback */}
-        <VisuallyHidden.Root asChild>
-          <DialogPrimitive.Title>{accessibleTitle}</DialogPrimitive.Title>
-        </VisuallyHidden.Root>
         {children}
-        <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none">
+        {/* A 32px target (44px for a finger) around the 16px cross, which
+            stays where it was: 16px from the top and from the right */}
+        <DialogPrimitive.Close
+          disabled={isCloseDisabled}
+          className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-2 right-2 flex size-8 items-center justify-center rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none disabled:opacity-30 pointer-coarse:top-0.5 pointer-coarse:right-0.5 pointer-coarse:size-11"
+        >
           <X className="h-4 w-4" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
@@ -95,7 +101,9 @@ const DialogHeader = React.memo(function DialogHeader({
   return (
     <div
       className={cn(
-        'flex flex-col space-y-1.5 text-center sm:text-left',
+        // Left at every width: a title with an icon is a flex row and never
+        // centered, so centered text under it looked misplaced on a phone
+        'flex flex-col space-y-1.5 text-left',
         className,
       )}
       {...props}
@@ -110,7 +118,8 @@ const DialogFooter = React.memo(function DialogFooter({
   return (
     <div
       className={cn(
-        'flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2',
+        // gap-2 also when the buttons are stacked (below 640px)
+        'flex flex-col-reverse gap-2 sm:flex-row sm:justify-end',
         className,
       )}
       {...props}

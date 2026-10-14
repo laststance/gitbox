@@ -3,8 +3,7 @@
  *
  * Test targets:
  * - Redux store hydration via useLayoutEffect
- * - lastVisitedBoard updates in Redux
- * - Handler functions (moveToMaintenance, removeFromBoard)
+ * - Handler functions (removeFromBoard)
  * - Component rendering with mocked hooks
  */
 
@@ -51,10 +50,8 @@ vi.mock('sonner', () => ({
 }))
 
 // Mock server actions
-const mockMoveToMaintenance = vi.fn()
 const mockDeleteRepoCard = vi.fn()
 vi.mock('@/lib/actions/repo-cards', () => ({
-  moveToMaintenance: (...args: unknown[]) => mockMoveToMaintenance(...args),
   deleteRepoCard: (...args: unknown[]) => mockDeleteRepoCard(...args),
 }))
 
@@ -135,9 +132,16 @@ vi.mock('@/components/Board/KanbanBoard', () => ({
 }))
 
 vi.mock('@/components/Board/AddRepositoryCombobox', () => ({
-  AddRepositoryCombobox: vi.fn(() => (
-    <div data-testid="add-repo-combobox">AddRepositoryCombobox</div>
-  )),
+  AddRepositoryCombobox: vi.fn(
+    ({ isBoardShared }: { isBoardShared?: boolean }) => (
+      <div
+        data-testid="add-repo-combobox"
+        data-board-shared={String(Boolean(isBoardShared))}
+      >
+        AddRepositoryCombobox
+      </div>
+    ),
+  ),
 }))
 
 vi.mock('@/components/Modals/NoteModal', () => ({
@@ -173,10 +177,8 @@ function createMockStore() {
     },
     preloadedState: {
       board: {
-        activeBoard: null,
         statusLists: [],
         repoCards: [],
-        lastVisitedBoard: null,
       },
     },
   })
@@ -247,7 +249,6 @@ function createMockInitialData(
       },
     ],
     comments: {},
-    maintenanceRepoIdentifiers: [],
     ...overrides,
   }
 }
@@ -444,44 +445,6 @@ describe('BoardPageClient Component', () => {
       // Assert: the card stays where the user put it
       expect(store.getState().board.repoCards).toEqual([cardInDone])
     })
-
-    test('should set activeBoard in Redux', async () => {
-      const board = createMockBoard()
-      const initialData = createMockInitialData()
-
-      render(
-        <Provider store={store}>
-          <BoardPageClient board={board} initialData={initialData} />
-        </Provider>,
-      )
-
-      await waitFor(() => {
-        const state = store.getState()
-        expect(state.board.activeBoard).not.toBeNull()
-        expect(state.board.activeBoard?.id).toBe('board-1')
-      })
-    })
-  })
-
-  describe('lastVisitedBoard', () => {
-    test('should save lastVisitedBoard to Redux state', async () => {
-      const board = createMockBoard()
-      const initialData = createMockInitialData()
-
-      render(
-        <Provider store={store}>
-          <BoardPageClient board={board} initialData={initialData} />
-        </Provider>,
-      )
-
-      await waitFor(() => {
-        const state = store.getState()
-        expect(state.board.lastVisitedBoard).toEqual({
-          id: 'board-1',
-          name: 'Test Board',
-        })
-      })
-    })
   })
 
   describe('Dialogs and Modals', () => {
@@ -665,4 +628,54 @@ describe('BoardPageClient Copy Link', () => {
         'Only you can open this link. Turn on Public Sharing in the board settings to get one for others.',
     })
   })
+})
+
+describe('BoardPageClient Add Repositories on a shared board', () => {
+  let store: ReturnType<typeof createMockStore>
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+    store = createMockStore()
+    boardSettingsMock.publicShareSlug = null
+  })
+
+  // Value: protects=the Add Repositories picker is told when the board has a public link, so it warns that anyone with the link sees what is added; fails_when=the page stops passing isBoardShared or passes it for a private board; why_new=the picker test sets the prop by hand and this page test mocks the picker without reading it; seam=none; no_claim=the warning text itself (picker mocked; AddRepositoryCombobox.placements.test.tsx covers it)
+  test.each([
+    {
+      board: 'shared',
+      publicShareSlug: 'a1b2c3d4e5f6',
+      expectedIsBoardShared: 'true',
+    },
+    {
+      board: 'private',
+      publicShareSlug: null,
+      expectedIsBoardShared: 'false',
+    },
+  ])(
+    'tells the Add Repositories picker whether the board is shared: a $board board gets isBoardShared=$expectedIsBoardShared',
+    ({ publicShareSlug, expectedIsBoardShared }) => {
+      // Arrange: the sharing switch of the board settings is on, or off
+      boardSettingsMock.publicShareSlug = publicShareSlug
+
+      // Act
+      render(
+        <Provider store={store}>
+          <BoardPageClient
+            board={createMockBoard({
+              is_public: publicShareSlug !== null,
+              share_slug: publicShareSlug,
+            })}
+            initialData={createMockInitialData()}
+          />
+        </Provider>,
+      )
+
+      // Assert
+      expect(screen.getByTestId('add-repo-combobox')).toHaveAttribute(
+        'data-board-shared',
+        expectedIsBoardShared,
+      )
+    },
+  )
 })

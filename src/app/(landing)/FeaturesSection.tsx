@@ -1,6 +1,6 @@
 'use client'
 
-import { Columns3, GripVertical, FileText, Archive } from 'lucide-react'
+import { Columns3, GripVertical, FileText, ArrowRightLeft } from 'lucide-react'
 import React, { memo, useSyncExternalStore } from 'react'
 
 import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
@@ -63,13 +63,13 @@ export const FeaturesSection = memo(function FeaturesSection() {
       icon: <FileText className="h-8 w-8" />,
       title: 'Project Info',
       description:
-        'Add quick notes, important links, and secure credentials to each repository. Keep all project context in one place.',
+        'Add notes and important links to each repository. Keep all project context in one place.',
     },
     {
-      icon: <Archive className="h-8 w-8" />,
-      title: 'Maintenance Mode',
+      icon: <ArrowRightLeft className="h-8 w-8" />,
+      title: 'Set Work Aside',
       description:
-        'Archive completed or experimental projects. Keep your board clean while preserving historical data.',
+        'Move finished or paused repositories to a board of their own. Notes, links and comments stay with each card, so nothing is lost when you bring it back.',
     },
   ]
 
@@ -89,7 +89,7 @@ export const FeaturesSection = memo(function FeaturesSection() {
           {features.map((feature) => (
             <div
               key={feature.title}
-              className="group border-border bg-background/50 hover:bg-background hover:border-primary/20 relative cursor-pointer rounded-2xl border p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+              className="group border-border bg-background/50 hover:bg-background hover:border-primary/20 relative rounded-2xl border p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
             >
               <div className="text-primary mb-4 transition-transform duration-300 group-hover:scale-110">
                 {feature.icon}

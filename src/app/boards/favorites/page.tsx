@@ -79,9 +79,9 @@ function FavoritesEmptyState() {
       <div className="rounded-full bg-amber-100 p-4 dark:bg-amber-900/30">
         <Star className="h-10 w-10 text-amber-500 dark:text-amber-400" />
       </div>
-      <h3 className="text-foreground mt-6 text-xl font-medium">
+      <h2 className="text-foreground mt-6 text-xl font-medium">
         No favorite boards yet
-      </h3>
+      </h2>
       <p className="text-muted-foreground mt-2 max-w-md text-center">
         Star boards from the All Boards page to add them here for quick access.
       </p>

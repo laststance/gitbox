@@ -18,7 +18,7 @@
 import * as Sentry from '@sentry/nextjs'
 import { Link, Plus, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState, useCallback, memo, useEffect } from 'react'
+import { useState, useCallback, memo } from 'react'
 import { toast } from 'sonner'
 
 import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox'
@@ -48,19 +48,14 @@ import {
 } from '@/hooks/board'
 import { renameBoardDirect, updateBoardSubtitle } from '@/lib/actions/board'
 import type { BoardInitialData } from '@/lib/actions/board-data'
-import {
-  moveToMaintenance,
-  deleteRepoCard,
-  type CreatedRepoCard,
-} from '@/lib/actions/repo-cards'
+import { deleteRepoCard, type CreatedRepoCard } from '@/lib/actions/repo-cards'
 import type { RepoCardForRedux } from '@/lib/models/domain'
 import {
-  setActiveBoard,
   addRepoCards,
-  removeRepoCard,
   selectStatusLists,
   selectRepoCards,
 } from '@/lib/redux/slices/boardSlice'
+import { removeMovedRepoCard } from '@/lib/redux/slices/boardSyncSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { Board } from '@/lib/supabase/types'
 import { parseBoardSettings } from '@/lib/types/board-settings'
@@ -122,31 +117,11 @@ export const BoardPageClient = memo(function BoardPageClient({
   // AddRepositoryCombobox (2 states extracted)
   const addRepoCombobox = useAddRepositoryCombobox({ statusLists })
 
-  // Set activeBoard in Redux on mount
-  // This enables other components to know which board is currently being viewed
-  useEffect(() => {
-    dispatch(setActiveBoard(board))
-    return (): void => {
-      // Clear activeBoard when leaving the page
-      dispatch(setActiveBoard(null))
-    }
-  }, [dispatch, board])
-
   // ========================================
   // Card Action Handlers (via shared optimistic hook)
   // ========================================
 
   const executeCardAction = useOptimisticCardAction()
-
-  const handleMoveToMaintenance = useCallback(
-    async (cardId: RepoCardId) =>
-      executeCardAction(cardId, moveToMaintenance, {
-        actionName: 'moveToMaintenance',
-        errorMessage: 'Failed to move to maintenance',
-        successMessage: 'Moved to maintenance',
-      }),
-    [executeCardAction],
-  )
 
   const handleRemoveFromBoard = useCallback(
     async (cardId: RepoCardId) =>
@@ -172,10 +147,12 @@ export const BoardPageClient = memo(function BoardPageClient({
 
   const handleMoveSuccess = useCallback(
     (cardId: RepoCardId) => {
-      dispatch(removeRepoCard(cardId))
+      // Leaves the store alone when another board was opened before the
+      // answer of the move arrived
+      dispatch(removeMovedRepoCard(boardId, cardId))
       setMoveDialogCardId(null)
     },
-    [dispatch],
+    [dispatch, boardId],
   )
 
   // ========================================
@@ -221,11 +198,21 @@ export const BoardPageClient = memo(function BoardPageClient({
 
   return (
     <>
-      <main className="flex h-screen flex-col">
+      {/* A div, not a second <main>: the layout around this page is the
+          main region of the document (BoardLayoutClient) */}
+      <div className="flex h-screen flex-col">
         {/* Header */}
         <header className="border-border bg-background border-b px-6 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-1">
+            {/* sm:max-w: in the row the title gives way down to its longest
+                word and no further, so a name without a space (50 characters
+                are allowed) pushed all four buttons off the screen. The cap
+                leaves 10rem, the width of the widest button, and the least
+                width of the title is the smaller of the two. wrap-break-word
+                on the title and the subtitle breaks the word that is wider
+                than that; the least width of an ordinary name stays as it
+                was. */}
+            <div className="flex flex-col gap-1 sm:max-w-[calc(100%-10rem)]">
               {/* Board Title - inline editable */}
               <InlineEditableText
                 value={boardSettings.displayName}
@@ -239,7 +226,7 @@ export const BoardPageClient = memo(function BoardPageClient({
                 }}
                 maxLength={BOARD_NAME_MAX_LENGTH}
                 as="h1"
-                className="text-foreground text-xl font-bold sm:text-2xl"
+                className="text-foreground text-xl font-bold wrap-break-word sm:text-2xl"
                 inputClassName="text-foreground text-xl font-bold sm:text-2xl"
                 ariaLabel="Board title"
                 data-testid="board-title"
@@ -262,7 +249,7 @@ export const BoardPageClient = memo(function BoardPageClient({
                   maxLength={BOARD_SUBTITLE_MAX_LENGTH}
                   placeholder="Add a subtitle..."
                   as="p"
-                  className="text-muted-foreground text-sm"
+                  className="text-muted-foreground text-sm wrap-break-word"
                   inputClassName="text-muted-foreground text-sm"
                   ariaLabel="Board subtitle"
                   data-testid="board-subtitle"
@@ -278,9 +265,7 @@ export const BoardPageClient = memo(function BoardPageClient({
                 statusId={addRepoCombobox.statusId}
                 isOpen={addRepoCombobox.isOpen}
                 onOpenChange={addRepoCombobox.handleOpenChange}
-                maintenanceRepoIdentifiers={
-                  initialData.maintenanceRepoIdentifiers
-                }
+                isBoardShared={publicShareSlug !== null}
                 onRepositoriesAdded={(createdCards: CreatedRepoCard[]) => {
                   // Optimistic UI update: cards appear instantly without a reload.
                   const newCards: RepoCardForRedux[] = createdCards.map(
@@ -333,7 +318,6 @@ export const BoardPageClient = memo(function BoardPageClient({
             boardId={boardId}
             initialComments={initialData.comments}
             cardDisplaySettings={boardSettings.cardDisplaySettings}
-            onMoveToMaintenance={handleMoveToMaintenance}
             onMoveToAnotherBoard={handleMoveToAnotherBoard}
             onNote={noteModal.open}
             onRemove={handleRemoveFromBoard}
@@ -342,7 +326,7 @@ export const BoardPageClient = memo(function BoardPageClient({
             onAddCard={addRepoCombobox.openForStatus}
           />
         </div>
-      </main>
+      </div>
 
       {/* StatusList Dialog */}
       <StatusListDialog
@@ -385,10 +369,10 @@ export const BoardPageClient = memo(function BoardPageClient({
         onDeleteSuccess={handleDeleteSuccess}
       />
 
-      {/* Move to Another Board Dialog */}
+      {/* Move to Another Board Dialog. Mounted per opening: it has no open
+          prop, so each opening loads the boards afresh. */}
       {moveDialogCardId && (
         <MoveToAnotherBoardDialog
-          isOpen={!!moveDialogCardId}
           onClose={() => setMoveDialogCardId(null)}
           cardId={moveDialogCardId}
           repoName={
