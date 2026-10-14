@@ -25,6 +25,7 @@ When you have dozens (or hundreds) of repos from side projects, experiments, and
 - Drag-and-drop organization (cards, columns, boards)
 - Move cards between boards
 - Set repositories aside on a board of their own, notes and links kept
+- A repository keeps its note, links and comment when its card is removed, and the Add Repositories picker marks what is saved
 - GitHub OAuth-based access
 - Supabase-backed persistence with RLS
 - Rich text project notes (Plate.js editor)

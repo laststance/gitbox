@@ -7,6 +7,8 @@
  * @see https://mswjs.io/docs/concepts/request-handler
  */
 
+import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
+
 // ============================================================================
 // Configuration
 // ============================================================================
@@ -517,13 +519,17 @@ export function filterByParams<T extends Record<string, unknown>>(
 // ============================================================================
 
 /**
- * Mock project info (comments, notes, links for cards)
- * Used for Phase 3: Comment Display on RepoCard
+ * Mock project info (comments, notes, links), one row per user and
+ * repository (issue #216). The comments match the cards of the same
+ * repository in the mock board. `repo_key` is built by
+ * {@link toRepoIdentifier}, the string the database generates.
  */
 export const mockProjectInfo = [
   {
     id: 'projinfo-1',
-    repo_card_id: MOCK_CARD_ID,
+    user_id: MOCK_USER_ID,
+    repo_owner: 'testuser',
+    repo_name: 'test-repo',
     note: 'Important project notes here',
     comment: 'npmリリース完了、当分は機能追加予定なし',
     links: [
@@ -535,7 +541,9 @@ export const mockProjectInfo = [
   },
   {
     id: 'projinfo-2',
-    repo_card_id: 'card-2',
+    user_id: MOCK_USER_ID,
+    repo_owner: 'testuser',
+    repo_name: 'another-repo',
     note: 'Another repo notes',
     comment: 'プロトタイプ作ったけど微妙、差分表示エディタで苦戦中',
     links: [],
@@ -544,7 +552,9 @@ export const mockProjectInfo = [
   },
   {
     id: 'projinfo-3',
-    repo_card_id: 'card-3',
+    user_id: MOCK_USER_ID,
+    repo_owner: 'laststance',
+    repo_name: 'create-react-app-vite',
     note: '',
     comment: '', // Empty comment for testing empty state
     links: [],
@@ -553,7 +563,9 @@ export const mockProjectInfo = [
   },
   {
     id: 'projinfo-4',
-    repo_card_id: 'card-4',
+    user_id: MOCK_USER_ID,
+    repo_owner: 'laststance',
+    repo_name: 'nsx',
     note: 'CLI tool documentation',
     comment: 'v2.0リリース準備中',
     links: [{ title: 'npm', url: 'https://www.npmjs.com/package/nsx' }],
@@ -561,7 +573,10 @@ export const mockProjectInfo = [
     updated_at: '2024-01-04T00:00:00.000Z',
   },
   // card-5 has no projectinfo - testing when projectinfo doesn't exist
-]
+].map((row) => ({
+  ...row,
+  repo_key: toRepoIdentifier(row.repo_owner, row.repo_name),
+}))
 
 /**
  * Initial mock user settings (immutable reference for reset)

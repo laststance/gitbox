@@ -137,7 +137,7 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 **Why:** A renamed repo can be added a second time under its new name.
 
-**Context:** New cards store `meta.githubId` as an untrusted client hint. A backfill must re-verify every id against the GitHub API before any constraint uses it.
+**Context:** New cards store `meta.githubId` as an untrusted client hint. A backfill must re-verify every id against the GitHub API before any constraint uses it. Since #216 the note, links and comment of a repository are keyed by `owner/name` too (`projectinfo.repo_key`, unique per user): a repository renamed or transferred on GitHub and added again under its new name starts empty, while its memory waits under the old name. The `projectinfo` key and the computed relationship `projectinfo(repocard)` have to move to the GitHub id together with the card's key.
 
 **Effort:** L
 **Priority:** P3
@@ -239,13 +239,13 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 **Priority:** P3
 **Depends on:** None
 
-### Keep Redux in step when a column is deleted, and drop late picker notices
+### Drop late picker notices
 
-**What:** (1) When a column is deleted, also remove its cards from the Redux store. (2) When an add finishes after the picker was closed, do not show its error or "not added" notice on the next opening.
+**What:** When an add finishes after the picker was closed, do not show its error or "not added" notice on the next opening.
 
-**Why:** (1) The database deletes the column's cards by cascade, but the store keeps them until reload: an undo can bring such a card back on screen although its row is gone, and the picker hides its repository as already on this board. (2) Cancel and Escape stay enabled while an add is running, so its result can arrive on a closed picker; a later opening through a column's "Add Repo" button then shows that old notice.
+**Why:** Cancel and Escape stay enabled while an add is running, so its result can arrive on a closed picker; a later opening through a column's "Add Repo" button then shows that old notice.
 
-**Context:** Found by the red team pass of #215; both are older than that change. `src/hooks/board/useStatusListDialog.ts` (`confirmDelete`), `src/components/Board/AddRepositoryCombobox.tsx` (`handleAddRepositories`, `openForStatus` in `useAddRepositoryCombobox`). Placements refreshed after close are already ignored by `useRepoPlacements`.
+**Context:** Found by the red team pass of #215; older than that change. `src/components/Board/AddRepositoryCombobox.tsx` (`handleAddRepositories`, `openForStatus` in `useAddRepositoryCombobox`). Placements refreshed after close are already ignored by `useRepoPlacements`. The other half of this item (the cards of a deleted column stayed in the Redux store, so the picker hid their repositories until a reload) was fixed with #216 (`removeStatusListWithCards`). An undo can still bring such a card back on screen although its row is gone: the undo history keeps it.
 
 **Effort:** S
 **Priority:** P2
@@ -265,11 +265,123 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 ### Polish left from the #215 design review
 
-**What:** (1) Use one wording for a card's data in the Remove and Move dialogs ("its note, links and comment" vs "Notes, links, and comments"). (2) Give the permanent-loss sentence of the Remove dialog visual emphasis. (3) Add a visible heading to the "not added" notice. (4) Soften "Reload the page and try again" in the add race message, since the picker now refreshes itself. (5) Drop selected repositories that are no longer addable when the picker reopens.
+**What:** (1) Use one wording for a card's data in the Remove and Move dialogs ("its note, links and comment" vs "Notes, links, and comments"). (2) Done by #216: the Remove dialog no longer has a permanent-loss sentence (the note, links and comment are kept). (3) Add a visible heading to the "not added" notice. (4) Soften "Reload the page and try again" in the add race message, since the picker now refreshes itself. (5) Drop selected repositories that are no longer addable when the picker reopens.
 
 **Why:** Small consistency and clarity gaps; none changes behavior.
 
 **Context:** `src/components/Board/OverflowMenu.tsx`, `src/components/Modals/MoveToAnotherBoardDialog.tsx`, `src/components/Board/AddRepositoryCombobox.tsx`, `ADD_RACE_MESSAGE` in `src/lib/actions/repo-card-duplicates.ts`. The copy is asserted in unit and E2E tests.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+## Repository Memory (#216) — deferred follow-ups
+
+From the `/plan-eng-review` of issue #216 (a repository keeps its note, links and comment when its card goes). None blocks that change.
+
+### Page the saved-memory lookup beyond 1000 rows
+
+**What:** Page through `projectinfo` in `lookupSavedRepositoryMemories` instead of stopping at the PostgREST `max_rows` cap.
+
+**Why:** A user with more than 1000 saved repositories gets some picker rows without their `Saved: ...` mark. Adding such a repository still brings its memory back: the mark is the only thing missing.
+
+**Context:** The lookup in `src/lib/actions/saved-repository-memories.ts` reads every row of the user and sends one Sentry warning when it returns 1000 rows or more. Page it the way the placement lookup item above proposes (`.range()` pages ordered by `id`), or ask only for the repositories the picker lists.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### List more than 1000 repositories of a source in the picker
+
+**What:** Let the Add Repositories catalog page past 1000 repositories per user or organization.
+
+**Why:** A repository beyond that cap is never listed, so it can neither be added nor show that something is saved for it.
+
+**Context:** Measured during the #216 review: the owner sees 212 repositories, far below the cap. Revisit when a source comes near it.
+
+**Effort:** M
+**Priority:** P3
+**Depends on:** None
+
+### Read only what the picker's marks need, after the list
+
+**What:** Let the database answer the marks (`has_note`, `link_count`, `has_comment` per repository key, for example through a view), and stop holding the Add Repositories list until they arrive.
+
+**Why:** `lookupSavedRepositoryMemories` selects the whole note (up to 20,000 characters), the links and the comment of every row of the user on each opening of the picker, only to compute three values per row. Rows now outlive their cards, so their number only grows. And the lookup runs in the same `Promise.all` as the placements: a slow memory query holds the list, although the marks are extra. Found by the pre-landing review of #216 (performance, security, data migration and red team); the owner has 10 rows today.
+
+**Context:** `src/lib/actions/saved-repository-memories.ts` and `getUserRepoPlacements` in `src/lib/actions/board-data.ts`. A note is an editor document (JSON): a view would have to decide "has text" the way `isSlateValueEmpty` does, or keep that decision in the app and select only the notes of repositories on no board. Pair it with the paging item above.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Rate-limit the project info writes
+
+**What:** Wrap `upsertProjectInfo`, `updateComment`, `updateCommentColor` and `deleteComment` (`src/lib/actions/project-info.ts`) in `withAuthResultRateLimit` with a key of their own, and the read in `withAuthResult`.
+
+**Why:** They are endpoints any signed-in browser can call with arguments of its choice, and they have no limit. That predates #216, which raises the cost: each write is two round trips now (the card, then the row), and the rows it makes survive the card, so a flood is no longer cleaned up with its cards. Found by the security review of #216.
+
+**Context:** The actions catch their own errors today and return the message. Moving them onto the guards changes which messages reach the browser (the guards replace unexpected ones with a generic text): check the toasts of the Note dialog and the comment editor, and `browser-callable-actions.test.ts`.
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** None
+
+### Keep a note draft where its card's repository can reach it
+
+**What:** Key the Note dialog's draft by repository (the lowercase key of `projectinfo.repo_key`) instead of by card id, or say in the failure toast when the draft belongs to a card that is gone.
+
+**Why:** A refused note save says "Your text is kept: open the note again to save it." The draft is kept under the card id. When the save failed because the card is gone (removed in another tab), adding the repository again makes a new card, and the typed text is out of reach: the toast promises too much. Found by the red team review of #216.
+
+**Context:** `useNoteModalDraft` (`src/hooks/board/useNoteModalDraft.ts`) and the `draft` slice. The client must tell a missing card from other failures by an error code, never by the message (CLAUDE.md): `getProjectInfoCore` and the writes throw "Card not found" today. Open Question 1 of the #216 design names the same key.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
+### Keep note edits made while an earlier save is pending
+
+**What:** In `handleSave` of `useNoteModalDraft`, delete the draft after a successful save only when it is still the draft that save sent (compare its `lastModified`, which `updateDraftNote` stores, with the value at the moment Save was pressed).
+
+**Why:** Since #216 the draft is deleted when the server has answered, not when Save is pressed, so a refused save keeps the text. If the user opens the same note again while the save is on its way, types and closes the dialog, the answer that arrives then deletes the newer draft and those edits are gone. The window is one server round trip (a few hundred milliseconds on production). Found by CodeRabbit on #216's PR; left out of #216 because a fix there would have been the review's third fixing cycle.
+
+**Context:** `handleSave` and `deleteDraftNote` in `src/hooks/board/useNoteModalDraft.ts`, the `draft` slice. A test holds the save's promise open, reopens, edits, closes, then resolves it.
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** None
+
+### Count a note's length where the database counts it
+
+**What:** Make the Note dialog's limit and `note_length_check` count the same thing: either the dialog counts the length of the stored editor document (JSON), or the check moves to a limit on the text and the column gets a larger cap for the markup.
+
+**Why:** The dialog counts the text and stops input at `NOTE_MAX_LENGTH` (20,000 characters). The database checks `length(note) <= 20000` on the JSON it stores, which is longer than the text: every paragraph, mark and link adds markup. A long note of 15,000 characters can be refused, the toast says the text is kept, and each later save is refused again, with nothing that says why. That predates #216; #216 makes notes outlive their cards, so a note that cannot be saved stays in the way longer. Found by the red team review of #216.
+
+**Context:** `NOTE_MAX_LENGTH` in `src/hooks/board/useNoteModalDraft.ts`, `NoteSection` (the counter), `supabase/migrations/20251230100000_add_note_to_projectinfo.sql` (the check). The refusal reaches the browser as the generic save failure; an error code for 23514 would let the toast name the limit.
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** None
+
+### Pin what #216's saves keep against a real database, and the other review leftovers
+
+**What:** Add data-access tests that send the exact payloads of `upsertProjectInfoCore`, `updateCommentCore` and `updateCommentColorCore` through the test user's client with `onConflict: 'user_id,repo_key'` (a comment save keeps the note and links, a note save keeps the comment and color, a color-only save makes a row with the column defaults), a test that deleting a user deletes their `projectinfo` rows, a test that a visitor cannot call `/rpc/projectinfo`, and a whitespace-only comment row in the `summarizeMemoryRow` table. Correct the header of `project-info-core.test.ts`, which says the e2e specs cover the upsert merge. Bring the JSDoc of `useRepoPlacements` (it returns `savedMemories` too) and the `CreatedRepoCard` example (its `comment` goes to the comment map, not to Redux) up to date. Keep the Delete Column dialog's title and card count while it fades out (it shows `""` and no card sentence for 200ms; on `main` it showed `"undefined"`).
+
+**Why:** The third review pass of #216 found these. Each was checked by hand before the merge (the functional QA of the review saved a comment over a note and read both back, and the local check as ryota-murakami deleted a comment and kept the note and two links), but no committed test pins them: a regression in the upsert payloads would silently wipe the memory #216 exists to keep. They were left out of #216 because a fix there would have been the review's third fixing cycle.
+
+**Context:** `e2e/logged-in/project-info-data-access.spec.ts`, `src/tests/unit/lib/actions/project-info-core.test.ts`, `src/tests/unit/lib/actions/saved-repository-memories.test.ts`, `src/hooks/board/useRepoPlacements.ts`, `src/lib/actions/repo-cards.ts`, `src/hooks/board/useStatusListDialog.ts`. The user deletion needs a throwaway user from the admin API, never a seeded one.
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** None
+
+### Harden #216's note paths against what its last review found
+
+**What:** Refuse a `/` in `repocard.repo_owner`, `repocard.repo_name` and the same columns of `projectinfo` with a check constraint, so the generated `repo_key` names the same repository as `repocard_unique_repo_per_user`. Hand the PostgREST error of a failed note read, note save or comment save to Sentry (`new Error(message, { cause: error })` and `error.code` in `extra`). Let `useNoteModal.open` drop an answer when another card was opened after it was sent. Let the server's comment win over a restored one in `BoardPageClient` (`{ ...restoredComments, ...initialData.comments }`). Say on the Account page that deleting the account deletes the notes, links and comments too.
+
+**Why:** The adversarial pass of #216's ship review found these. GitHub never puts a `/` in an owner or a name and the server actions refuse one, but a signed-in user can write the table through PostgREST: two cards `a/b`+`c` and `a`+`b/c` pass the card's key and collide in `repo_key`, which stops the migration (it rolls back). Production had 0 such cards out of 50 on 2026-10-15, and the rollout runbook checks again in its freeze window. A failed save now reaches Sentry as one generic message whatever the database said (42703 during the deploy window, 42501 for a card deleted in another tab, 23514 for a note over the limit). The other three are low: an earlier request answering last opens the wrong card's note, a restored comment shadows a newer server comment only if the board remounts, and the Account copy names boards, cards and settings only.
+
+**Context:** `supabase/migrations/20261014130000_projectinfo_belongs_to_repository.sql`, `src/lib/actions/project-info-core.ts`, `src/lib/actions/project-info.ts`, `src/hooks/board/useNoteModal.ts`, `src/app/board/[id]/BoardPageClient.tsx`, `src/app/account/AccountClient.tsx`. A constraint needs a migration that counts the rows it would refuse first.
 
 **Effort:** S
 **Priority:** P3
@@ -283,7 +395,7 @@ From the `/autoplan` review and the code review of issue #213 (a repository that
 
 **What:** Add an action that reads a repository from GitHub again and rewrites the `meta` of its card (description, language, topics, stars, visibility, updated date), for one card and for a whole board.
 
-**Why:** `meta` is a snapshot from the moment a card is added and nothing updates it. A new description, star count, language or visibility on GitHub never reaches the card. Removing the card and adding it again would refresh it, but Remove from Board also deletes the note, links and comment.
+**Why:** `meta` is a snapshot from the moment a card is added and nothing updates it. A new description, star count, language or visibility on GitHub never reaches the card. Removing the card and adding it again refreshes it, and since #216 the note, links and comment come back with it, but the card loses its column and its place there.
 
 A repository that was renamed or transferred keeps its former owner and name on the card. GitHub answers the former name with the repository at its new place, so the card still opens. But the picker compares names: it offers the repository under its new name as one that sits on no board, and it can be added a second time. Seen on 2026-10-12 in the local check of issue #213, with one migrated card whose repository had moved from the organization to the owner's account.
 
@@ -525,6 +637,18 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 **Priority:** P3
 **Depends on:** None
 
+### Give the drag context of the boards list a stable id
+
+**What:** Pass an `id` to the `DndContext` of `BoardGrid` (`src/components/Boards/BoardGrid.tsx`), so the server and the browser name its description element alike.
+
+**Why:** Seen on 2026-10-14 during the local check of #216 with `next dev`: hydrating `/boards` logged a mismatch of the drag handle's `aria-describedby` (`DndDescribedBy-0` on the server, `DndDescribedBy-1` in the browser). dnd-kit counts its ids per module, so the count depends on what rendered before. React does not patch attributes up, so a screen reader may be pointed at an element that does not exist.
+
+**Context:** `DndContext` takes an `id` prop for server rendering. Check the board's `DndContext` in `KanbanBoard` the same way. A browser test cannot see this yet (see the item above).
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** None
+
 ### Read what is being dragged from dnd-kit, not from a copy
 
 **What:** Take "a column is being dragged" from dnd-kit's own state (`useDndContext().active`, read by a component inside `DndContext`) and drop `activeId` and `activeDragType` of `useKanbanDnD`, which `handleDragStart` sets and `handleDragEnd` and `handleDragCancel` clear.
@@ -699,7 +823,7 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 **Why:** Delete a column, then press Z while an earlier column move is on the stack: the whole earlier column list is put back, the deleted column included. The position update for its id matches no row and reports success, so nothing is rolled back and the column stays on screen until reload.
 
-**Context:** `handleUndo` in `src/hooks/board/useKanbanUndo.ts` (the card path filters against the current cards, the column path does not), `confirmDelete` in `src/hooks/board/useStatusListDialog.ts`. Older than this change. Related: "Keep Redux in step when a column is deleted, and drop late picker notices" and "Fail a card or column move that matched no row".
+**Context:** `handleUndo` in `src/hooks/board/useKanbanUndo.ts` (the card path filters against the current cards, the column path does not), `confirmDelete` in `src/hooks/board/useStatusListDialog.ts`. Older than this change. Related: "Drop late picker notices" (whose other half, the cards of a deleted column left in the store, #216 fixed) and "Fail a card or column move that matched no row".
 
 **Effort:** S
 **Priority:** P3

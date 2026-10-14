@@ -22,9 +22,9 @@ import {
   updateStatusList,
   deleteStatusList,
 } from '@/lib/actions/board'
-import type { StatusListDomain } from '@/lib/models/domain'
+import type { RepoCardForRedux, StatusListDomain } from '@/lib/models/domain'
 import boardSlice from '@/lib/redux/slices/boardSlice'
-import { toBoardId, toStatusListId } from '@/lib/types/brands'
+import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
 
 // Mock server actions
 vi.mock('@/lib/actions/board', () => ({
@@ -65,6 +65,25 @@ const createMockStatus = (
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   ...overrides,
+})
+
+/**
+ * A card of the board in the given column.
+ * @param id - Card id.
+ * @param statusId - Column the card sits in.
+ */
+const createMockCard = (id: string, statusId: string): RepoCardForRedux => ({
+  id: toRepoCardId(id),
+  title: `laststance/${id}`,
+  description: 'Test repo',
+  statusId: toStatusListId(statusId),
+  boardId: toBoardId('board-1'),
+  repoOwner: 'laststance',
+  repoName: id,
+  order: 0,
+  meta: {},
+  createdAt: '2024-01-01T00:00:00Z',
+  updatedAt: '2024-01-01T00:00:00Z',
 })
 
 /**
@@ -402,6 +421,50 @@ describe('useStatusListDialog', () => {
       // Dialog should be closed
       expect(result.current.isDeleteConfirmOpen).toBe(false)
       expect(result.current.pendingDeleteStatusId).toBeNull()
+    })
+
+    // Value: protects=a repository whose column was deleted can be added again on the same board without a reload (issue #216); fails_when=the store keeps the cards of the deleted column, so the picker hides their repositories as on this board; why_new=the hook dropped only the column; seam=deleteStatusList mocked; no_claim=the database cascade (repository-memory.spec.ts)
+    test('drops the cards of a deleted column from the board along with the column', async () => {
+      // Arrange
+      const deletedColumn = createMockStatus({
+        id: toStatusListId('status-1'),
+        title: 'Deleted Status',
+      })
+      const keptColumn = createMockStatus({ id: toStatusListId('status-2') })
+      const store = configureStore({
+        reducer: { board: boardSlice },
+        preloadedState: {
+          board: {
+            statusLists: [deletedColumn, keptColumn],
+            repoCards: [
+              createMockCard('card-in-deleted-column', 'status-1'),
+              createMockCard('card-in-kept-column', 'status-2'),
+            ],
+          },
+        },
+      })
+      mockDeleteStatusList.mockResolvedValueOnce(undefined)
+      const { result } = renderHook(
+        () => useStatusListDialog({ boardId: toBoardId('board-1') }),
+        { wrapper: createWrapper(store) },
+      )
+      act(() => {
+        result.current.requestDelete(toStatusListId('status-1'))
+      })
+
+      // Act
+      await act(async () => {
+        await result.current.confirmDelete()
+      })
+
+      // Assert
+      const state = store.getState()
+      expect(state.board.statusLists.map((column) => column.id)).toEqual([
+        'status-2',
+      ])
+      expect(state.board.repoCards.map((card) => card.id)).toEqual([
+        'card-in-kept-column',
+      ])
     })
 
     test('should handle delete error', async () => {

@@ -2,21 +2,22 @@
  * Project Info Core Logic
  *
  * Internal module containing the types, validation, and core functions for
- * project info operations. Every function takes the id of the RepoCard that
- * owns the project info and reads or writes `projectinfo.repo_card_id`.
+ * project info operations. The note, links and comment belong to the user and
+ * the repository, not to the card (issue #216): a `projectinfo` row is keyed
+ * by `user_id` and `repo_key` (lowercase `owner/name`) and outlives the card.
+ * Every function still takes the id of the RepoCard the browser has, reads
+ * the repository that card holds and works on that repository's row.
  *
  * NOT a 'use server' module — imported by `project-info.ts`, which is.
  *
  * @see project-info.ts for the server action wrappers
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js'
+
 import { createClient } from '@/lib/supabase/server'
-import type {
-  TablesInsert,
-  Tables,
-  TablesUpdate,
-  CommentColor,
-} from '@/lib/supabase/types'
+import type { Database, TablesInsert, CommentColor } from '@/lib/supabase/types'
+import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
 import {
   noteSchema,
   commentSchema,
@@ -25,9 +26,14 @@ import {
   DEFAULT_COMMENT_COLOR,
 } from '@/lib/validations/project-info'
 
-type ProjectInfoRow = Tables<'projectinfo'>
 type ProjectInfoInsert = TablesInsert<'projectinfo'>
-type ProjectInfoUpdate = TablesUpdate<'projectinfo'>
+
+/**
+ * Column PostgREST upserts a memory on: one row per user and repository.
+ * `user_id` is filled by its default (`auth.uid()`), `repo_key` by the
+ * database from `repo_owner` and `repo_name`.
+ */
+const PROJECT_INFO_CONFLICT_TARGET = 'user_id,repo_key'
 
 // ========================================
 // Types
@@ -196,11 +202,69 @@ export function normalizeLinks(links: unknown): ProjectLink[] {
 // Core Functions
 // ========================================
 
+/** The repository a card holds, and whose memory a write may touch. */
+interface CardRepository {
+  /** The card's `repo_owner` and `repo_name`, as a `projectinfo` row names them. */
+  repository: Pick<ProjectInfoInsert, 'repo_owner' | 'repo_name'>
+  /** The owner of the card's board: the user whose row a write touches. */
+  ownerId: string
+}
+
 /**
- * Get project info for a RepoCard
+ * Read the repository a card holds, and its owner, as the signed-in user.
+ *
+ * Row level security returns the user's own cards and boards only, so a card
+ * of someone else reads as missing. Called before every write: the write is
+ * keyed by the repository, and the database accepts it only while the user has
+ * a card for that repository. The owner comes from the board join, the way
+ * app code reads ownership.
+ *
+ * @param supabase - Server client of the signed-in user.
+ * @param repoCardId - The RepoCard ID the browser sent.
+ * @returns The card's repository and the id of the user who owns it.
+ * @throws "Card not found" when the card does not exist or belongs to someone
+ *   else; "Failed to read the card" when the read itself failed.
+ * @example
+ * await readCardRepository(supabase, 'card-1')
+ * // => { repository: { repo_owner: 'laststance', repo_name: 'gitbox' }, ownerId: 'user-1' }
+ */
+async function readCardRepository(
+  supabase: SupabaseClient<Database>,
+  repoCardId: string,
+): Promise<CardRepository> {
+  const { data: card, error } = await supabase
+    .from('repocard')
+    .select('repo_owner, repo_name, board!inner(user_id)')
+    .eq('id', repoCardId)
+    .single()
+
+  // PGRST116: no row, so the card is gone or not the user's
+  if (error?.code === 'PGRST116') {
+    throw new Error('Card not found')
+  }
+  if (error) {
+    throw new Error('Failed to read the card')
+  }
+
+  return {
+    repository: { repo_owner: card.repo_owner, repo_name: card.repo_name },
+    ownerId: card.board.user_id,
+  }
+}
+
+/**
+ * Get the project info of the repository a RepoCard holds.
+ *
+ * One request: the card embeds its repository's row through the computed
+ * relationship `projectinfo(repocard)`, an object or `null`.
  *
  * @param repoCardId - The RepoCard ID to look up
- * @returns ProjectInfoData or empty state if not found
+ * @returns
+ * - The note, comment and links of the repository
+ * - Empty values when nothing is saved for it
+ * @throws "Card not found" when the card is gone or not the user's: the
+ *   repository's note may still exist, so the Note dialog must not open an
+ *   empty editor over it; "Failed to fetch project information" otherwise
  *
  * @example
  * const info = await getProjectInfoCore('card-uuid-123')
@@ -210,31 +274,38 @@ export async function getProjectInfoCore(
 ): Promise<ProjectInfoData | null> {
   const supabase = await createClient()
 
-  const { data: projectInfo, error: infoError } = await supabase
-    .from('projectinfo')
-    .select('*')
-    .eq('repo_card_id', repoCardId)
-    .single<ProjectInfoRow>()
+  const { data: card, error } = await supabase
+    .from('repocard')
+    .select('projectinfo(note, comment, links)')
+    .eq('id', repoCardId)
+    .single()
 
-  if (infoError) {
-    if (infoError.code === 'PGRST116') {
-      return { note: '', comment: '', links: [] }
+  if (error) {
+    // PGRST116: no card (or not the user's). Its repository's note outlives
+    // it, so this is no empty note
+    if (error.code === 'PGRST116') {
+      throw new Error('Card not found')
     }
     throw new Error('Failed to fetch project information')
   }
 
+  const projectInfo = card.projectinfo
+
   return {
-    note: projectInfo.note || '',
-    comment: projectInfo.comment || '',
-    links: normalizeLinks(projectInfo.links),
+    note: projectInfo?.note || '',
+    comment: projectInfo?.comment || '',
+    links: normalizeLinks(projectInfo?.links),
   }
 }
 
 /**
- * Create or update project info for a RepoCard
+ * Create or update the project info of the repository a RepoCard holds.
  *
  * @param repoCardId - The RepoCard ID
  * @param data - ProjectInfoData to save
+ * @throws The validation message when the note, comment or a URL is invalid;
+ *   "Card not found" or "Failed to read the card" from the card read;
+ *   "Failed to save project information" when the database refused the write.
  *
  * @example
  * await upsertProjectInfoCore('card-uuid-123', {
@@ -264,8 +335,10 @@ export async function upsertProjectInfoCore(
     .filter((link) => link.url && link.url.trim() !== '')
     .map((link) => ({ type: link.type, url: link.url }))
 
+  const { repository } = await readCardRepository(supabase, repoCardId)
+
   const upsertData: ProjectInfoInsert = {
-    repo_card_id: repoCardId,
+    ...repository,
     note: data.note,
     ...(data.comment !== undefined && { comment: data.comment }),
     links: linksArray,
@@ -273,7 +346,7 @@ export async function upsertProjectInfoCore(
 
   const { error } = await supabase
     .from('projectinfo')
-    .upsert(upsertData, { onConflict: 'repo_card_id' })
+    .upsert(upsertData, { onConflict: PROJECT_INFO_CONFLICT_TARGET })
 
   if (error) {
     throw new Error('Failed to save project information')
@@ -281,11 +354,18 @@ export async function upsertProjectInfoCore(
 }
 
 /**
- * Update comment for a single RepoCard
+ * Update the comment of the repository a RepoCard holds.
+ *
+ * One upsert: it creates the row when nothing is saved yet and otherwise
+ * changes the comment (and the color, when given) and leaves the note and the
+ * links alone.
  *
  * @param repoCardId - The RepoCard ID
  * @param comment - New comment text (max 2000 chars)
  * @param color - Optional color for the comment
+ * @throws The validation message when the comment or color is invalid;
+ *   "Card not found" or "Failed to read the card" from the card read;
+ *   "Failed to update comment" when the database refused the write.
  *
  * @example
  * await updateCommentCore('card-1', 'Updated comment text', 'blue')
@@ -302,48 +382,31 @@ export async function updateCommentCore(
     validateCommentColor(color)
   }
 
-  const { data: existingInfo } = await supabase
-    .from('projectinfo')
-    .select('id')
-    .eq('repo_card_id', repoCardId)
-    .single<{ id: string }>()
+  const { repository } = await readCardRepository(supabase, repoCardId)
 
-  if (existingInfo) {
-    const updateData: ProjectInfoUpdate = {
+  const { error } = await supabase.from('projectinfo').upsert(
+    {
+      ...repository,
       comment,
-    }
-    if (color) {
-      updateData.comment_color = color
-    }
+      // Without a color a new row takes the column default (primary)
+      ...(color && { comment_color: color }),
+    },
+    { onConflict: PROJECT_INFO_CONFLICT_TARGET },
+  )
 
-    const { error } = await supabase
-      .from('projectinfo')
-      .update(updateData)
-      .eq('id', existingInfo.id)
-
-    if (error) {
-      throw new Error('Failed to update comment')
-    }
-  } else {
-    const { error } = await supabase.from('projectinfo').insert({
-      repo_card_id: repoCardId,
-      comment,
-      comment_color: color || DEFAULT_COMMENT_COLOR,
-      note: '',
-      links: [],
-    })
-
-    if (error) {
-      throw new Error('Failed to save comment')
-    }
+  if (error) {
+    throw new Error('Failed to update comment')
   }
 }
 
 /**
- * Update comment color for a single RepoCard
+ * Update the comment color of the repository a RepoCard holds.
  *
  * @param repoCardId - The RepoCard ID
  * @param color - New color to set
+ * @throws The validation message when the color is invalid; "Card not found"
+ *   or "Failed to read the card" from the card read; "Failed to update comment
+ *   color" when the database refused the write.
  *
  * @example
  * await updateCommentColorCore('card-1', 'blue')
@@ -356,45 +419,29 @@ export async function updateCommentColorCore(
 
   validateCommentColor(color)
 
-  const { data: existingInfo } = await supabase
+  const { repository } = await readCardRepository(supabase, repoCardId)
+
+  const { error } = await supabase
     .from('projectinfo')
-    .select('id')
-    .eq('repo_card_id', repoCardId)
-    .single<{ id: string }>()
+    .upsert(
+      { ...repository, comment_color: color },
+      { onConflict: PROJECT_INFO_CONFLICT_TARGET },
+    )
 
-  if (existingInfo) {
-    const { error } = await supabase
-      .from('projectinfo')
-      .update({
-        comment_color: color,
-      })
-      .eq('id', existingInfo.id)
-
-    if (error) {
-      throw new Error('Failed to update comment color')
-    }
-  } else {
-    const { error } = await supabase.from('projectinfo').insert({
-      repo_card_id: repoCardId,
-      comment: null,
-      comment_color: color,
-      note: '',
-      links: [],
-    })
-
-    if (error) {
-      throw new Error('Failed to save comment color')
-    }
+  if (error) {
+    throw new Error('Failed to update comment color')
   }
 }
 
 /**
- * Delete comment for a single RepoCard
+ * Delete the comment of the repository a RepoCard holds.
  *
  * Clears the comment text and resets color to default.
  * Does NOT delete the projectinfo row (preserves note, links).
  *
  * @param repoCardId - The RepoCard ID
+ * @throws "Card not found" or "Failed to read the card" from the card read;
+ *   "Failed to delete comment" when the database refused the write.
  *
  * @example
  * await deleteCommentCore('card-1')
@@ -402,23 +449,22 @@ export async function updateCommentColorCore(
 export async function deleteCommentCore(repoCardId: string): Promise<void> {
   const supabase = await createClient()
 
-  const { data: existingInfo } = await supabase
-    .from('projectinfo')
-    .select('id')
-    .eq('repo_card_id', repoCardId)
-    .single<{ id: string }>()
+  const { repository, ownerId } = await readCardRepository(supabase, repoCardId)
 
-  if (!existingInfo) {
-    return
-  }
-
+  // The key is the same for every user holding the repository: the owner
+  // filter keeps the update to this user's row whatever row level security
+  // does. A repository with nothing saved matches no row and nothing changes
   const { error } = await supabase
     .from('projectinfo')
     .update({
       comment: null,
       comment_color: DEFAULT_COMMENT_COLOR,
     })
-    .eq('id', existingInfo.id)
+    .eq('user_id', ownerId)
+    .eq(
+      'repo_key',
+      toRepoIdentifier(repository.repo_owner, repository.repo_name),
+    )
 
   if (error) {
     throw new Error('Failed to delete comment')

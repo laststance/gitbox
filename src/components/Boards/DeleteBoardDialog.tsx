@@ -87,6 +87,8 @@ export const DeleteBoardDialog = memo(function DeleteBoardDialog({
           <AlertDialogDescription>
             Are you sure you want to delete &quot;{boardName}&quot;? This action
             cannot be undone. All columns and cards will be permanently removed.
+            The notes, links and comments of its repositories are kept for when
+            you add them again.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -32,6 +32,15 @@ import type { CommentData } from './project-info-core'
 export const REPO_CARD_COLUMNS =
   'id, board_id, status_id, repo_owner, repo_name, order, meta, created_at, updated_at'
 
+/**
+ * The comment of a card's repository, as a PostgREST embed (issue #216). The
+ * computed relationship `projectinfo(repocard)` answers the repository's row
+ * or `null`, which {@link toCommentData} turns into what the board shows.
+ * The board read ({@link getBoardBundle}) and {@link addRepositoriesToBoard}
+ * select it next to {@link REPO_CARD_COLUMNS}.
+ */
+export const PROJECT_COMMENT_EMBED = 'projectinfo(comment, comment_color)'
+
 type StatusListRow = Tables<'statuslist'>
 type RepoCardRow = Omit<Tables<'repocard'>, 'user_id'>
 
@@ -99,9 +108,10 @@ export function toRepoCardDomain(row: RepoCardRow): RepoCardDomain {
  * Raw shape of one board fetched with its children embedded via PostgREST.
  * Mirrors the embed select string in `getBoardBundle`
  * (`*, statuslist(*), repocard(<REPO_CARD_COLUMNS>, projectinfo(comment, comment_color))`).
- * `projectinfo` is an object-or-null (NOT an array) because
- * `projectinfo_repo_card_id_fkey` is one-to-one; it is `null` whenever the
- * card has no project info. `getBoardBundle` returns the owner's boards only.
+ * `projectinfo` is an object-or-null (NOT an array): the computed relationship
+ * `projectinfo(repocard)` returns the row of the card's repository and is
+ * declared `ROWS 1` (issue #216); it is `null` whenever nothing is saved for
+ * that repository. `getBoardBundle` returns the owner's boards only.
  */
 export type BoardBundleRow = Tables<'board'> & {
   statuslist: Tables<'statuslist'>[]
@@ -165,16 +175,36 @@ export function remapBoardEmbed(row: BoardBundleRow): BoardBundle {
   // `comments[id].color` is never undefined downstream.
   const comments: Record<string, CommentData> = {}
   for (const card of repocard) {
-    const projectInfo = card.projectinfo
-    comments[card.id] = projectInfo
-      ? {
-          comment: projectInfo.comment || '',
-          color:
-            (projectInfo.comment_color as CommentColor) ||
-            DEFAULT_COMMENT_COLOR,
-        }
-      : { comment: '', color: DEFAULT_COMMENT_COLOR }
+    comments[card.id] = toCommentData(card.projectinfo)
   }
 
   return { board, statusLists, repoCards, comments }
+}
+
+/**
+ * Turn the embedded `projectinfo(comment, comment_color)` of a card into the
+ * comment the board shows, with defaults when nothing is saved.
+ *
+ * Shared by {@link remapBoardEmbed} (every card of a board) and
+ * {@link addRepositoriesToBoard} (a card added again gets the comment its
+ * repository kept, issue #216).
+ *
+ * @param projectInfo - The embedded row, or `null` when nothing is saved.
+ * @returns
+ * - The saved text and color (`primary` when the color is empty)
+ * - `{ comment: '', color: 'primary' }` when `projectInfo` is `null`
+ * @example
+ * toCommentData({ comment: 'v2 soon', comment_color: 'blue' }) // => { comment: 'v2 soon', color: 'blue' }
+ * toCommentData(null) // => { comment: '', color: 'primary' }
+ */
+export function toCommentData(
+  projectInfo: Pick<Tables<'projectinfo'>, 'comment' | 'comment_color'> | null,
+): CommentData {
+  if (!projectInfo) {
+    return { comment: '', color: DEFAULT_COMMENT_COLOR }
+  }
+  return {
+    comment: projectInfo.comment || '',
+    color: (projectInfo.comment_color as CommentColor) || DEFAULT_COMMENT_COLOR,
+  }
 }

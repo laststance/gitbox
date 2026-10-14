@@ -39,7 +39,7 @@ describe('useRepoPlacements', () => {
       // Second opening: nothing is placed anymore
       .mockResolvedValueOnce({
         success: true,
-        data: [],
+        data: { placements: [], savedMemories: [] },
       })
     const { result, rerender } = renderHook(
       ({ isOpen }) => useRepoPlacements(isOpen),
@@ -55,13 +55,16 @@ describe('useRepoPlacements', () => {
     await act(async () => {
       firstOpeningRequest.resolve({
         success: true,
-        data: [
-          {
-            identifier: 'laststance/gitbox',
-            boardId: 'board-2',
-            boardName: 'Work Projects',
-          },
-        ],
+        data: {
+          placements: [
+            {
+              identifier: 'laststance/gitbox',
+              boardId: 'board-2',
+              boardName: 'Work Projects',
+            },
+          ],
+          savedMemories: [],
+        },
       })
     })
 
@@ -77,13 +80,16 @@ describe('useRepoPlacements', () => {
       // First opening: another board holds the repository
       .mockResolvedValueOnce({
         success: true,
-        data: [
-          {
-            identifier: 'laststance/gitbox',
-            boardId: 'board-2',
-            boardName: 'Work Projects',
-          },
-        ],
+        data: {
+          placements: [
+            {
+              identifier: 'laststance/gitbox',
+              boardId: 'board-2',
+              boardName: 'Work Projects',
+            },
+          ],
+          savedMemories: [],
+        },
       })
       // Second opening: the server does not answer for the rest of this test
       .mockReturnValueOnce(new Promise(() => {}))
@@ -128,18 +134,21 @@ describe('useRepoPlacements', () => {
       // First opening
       .mockResolvedValueOnce({
         success: true,
-        data: [],
+        data: { placements: [], savedMemories: [] },
       })
       // Refresh asked for after closing, e.g. by an add that was still running
       .mockResolvedValueOnce({
         success: true,
-        data: [
-          {
-            identifier: 'laststance/gitbox',
-            boardId: 'board-2',
-            boardName: 'Work Projects',
-          },
-        ],
+        data: {
+          placements: [
+            {
+              identifier: 'laststance/gitbox',
+              boardId: 'board-2',
+              boardName: 'Work Projects',
+            },
+          ],
+          savedMemories: [],
+        },
       })
       // Second opening: the server does not answer for the rest of this test
       .mockReturnValueOnce(new Promise(() => {}))

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0.0] - 2026-10-15
+
+### Added
+
+- A repository keeps its note, its links and its comment when its card goes. Remove it from a board, delete its column or delete its board, add the repository again (to any board), and the note, the links and the comment are back.
+- The Add Repositories picker marks a repository that has something kept, for example "Saved: note, 3 links, comment", so you can tell which ones you wrote about before.
+
+### Changed
+
+- "Remove from Board", "Delete Column" and "Delete Board" say that the note, links and comment of the repositories are kept for when you add them again. "Remove from Board" no longer points to "Move to Another Board" as the way to keep them.
+
+### Fixed
+
+- A note that cannot be loaded no longer opens as an empty editor, where saving would have replaced the note with nothing. A message says the note could not be loaded, and the editor stays closed until you try again.
+- A note the server refuses to save now says so and keeps what you typed: open the note again to save it. Before, the text was thrown away without a word.
+
 ## [0.5.1.0] - 2026-10-14
 
 ### Fixed

@@ -915,7 +915,9 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                   </h3>
                   <p className="text-muted-foreground mb-4 text-sm">
                     Once you delete this board, there is no going back. All
-                    columns and cards will be permanently removed.
+                    columns and cards will be permanently removed. The notes,
+                    links and comments of its repositories are kept for when you
+                    add them again.
                   </p>
                   <Button
                     type="button"
@@ -954,7 +956,8 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
             <AlertDialogDescription>
               Are you sure you want to delete &quot;{boardName}&quot;? This
               action cannot be undone. All columns and cards will be permanently
-              removed.
+              removed. The notes, links and comments of its repositories are
+              kept for when you add them again.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

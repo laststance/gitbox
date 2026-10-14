@@ -18,6 +18,7 @@ import type { BoardId, RepoCardId } from '@/lib/types/brands'
 import {
   addRepoCards,
   removeRepoCard,
+  removeStatusListWithCards,
   setRepoCards,
   setStatusLists,
 } from './boardSlice'
@@ -117,7 +118,13 @@ export const boardSyncSlice = createSlice({
     // date. A reducer added to boardSlice that changes either one has to be
     // listed here too, or a stale fetch could replace what it wrote.
     builder.addMatcher(
-      isAnyOf(setStatusLists, setRepoCards, addRepoCards, removeRepoCard),
+      isAnyOf(
+        setStatusLists,
+        setRepoCards,
+        addRepoCards,
+        removeRepoCard,
+        removeStatusListWithCards,
+      ),
       (state) => {
         state.contentRevision += 1
       },

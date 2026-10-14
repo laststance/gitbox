@@ -18,7 +18,7 @@
 import * as Sentry from '@sentry/nextjs'
 import { Link, Plus, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState, useCallback, memo } from 'react'
+import { useState, useCallback, useMemo, memo } from 'react'
 import { toast } from 'sonner'
 
 import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox'
@@ -48,6 +48,7 @@ import {
 } from '@/hooks/board'
 import { renameBoardDirect, updateBoardSubtitle } from '@/lib/actions/board'
 import type { BoardInitialData } from '@/lib/actions/board-data'
+import type { CommentData } from '@/lib/actions/project-info'
 import { deleteRepoCard, type CreatedRepoCard } from '@/lib/actions/repo-cards'
 import type { RepoCardForRedux } from '@/lib/models/domain'
 import {
@@ -61,6 +62,7 @@ import type { Board } from '@/lib/supabase/types'
 import { parseBoardSettings } from '@/lib/types/board-settings'
 import { toBoardId, type RepoCardId } from '@/lib/types/brands'
 import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
+import { describeColumnDeletion } from '@/lib/utils/describe-column-deletion'
 import { toPublicBoardUrl } from '@/lib/utils/to-public-board-url'
 import {
   BOARD_NAME_MAX_LENGTH,
@@ -131,6 +133,20 @@ export const BoardPageClient = memo(function BoardPageClient({
         successMessage: 'Repository removed',
       }),
     [executeCardAction],
+  )
+
+  // ========================================
+  // Comments of repositories added on this page
+  // ========================================
+
+  // Comments that repositories added on this page brought back (issue #216):
+  // the server's comments are read once per page load
+  const [restoredComments, setRestoredComments] = useState<
+    Record<string, CommentData>
+  >({})
+  const boardComments = useMemo(
+    () => ({ ...initialData.comments, ...restoredComments }),
+    [initialData.comments, restoredComments],
   )
 
   // ========================================
@@ -269,7 +285,7 @@ export const BoardPageClient = memo(function BoardPageClient({
                 onRepositoriesAdded={(createdCards: CreatedRepoCard[]) => {
                   // Optimistic UI update: cards appear instantly without a reload.
                   const newCards: RepoCardForRedux[] = createdCards.map(
-                    (card) => ({
+                    ({ comment: _comment, ...card }) => ({
                       ...card,
                       title: `${card.repoOwner}/${card.repoName}`,
                       description:
@@ -278,6 +294,13 @@ export const BoardPageClient = memo(function BoardPageClient({
                     }),
                   )
                   dispatch(addRepoCards(newCards))
+                  // A repository added again shows the comment it kept (issue #216)
+                  setRestoredComments((previous) => ({
+                    ...previous,
+                    ...Object.fromEntries(
+                      createdCards.map((card) => [card.id, card.comment]),
+                    ),
+                  }))
                 }}
               />
               <Button
@@ -316,7 +339,7 @@ export const BoardPageClient = memo(function BoardPageClient({
         <div className="bg-background flex-1 overflow-x-auto overflow-y-auto">
           <KanbanBoard
             boardId={boardId}
-            initialComments={initialData.comments}
+            initialComments={boardComments}
             cardDisplaySettings={boardSettings.cardDisplaySettings}
             onMoveToAnotherBoard={handleMoveToAnotherBoard}
             onNote={noteModal.open}
@@ -392,16 +415,12 @@ export const BoardPageClient = memo(function BoardPageClient({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Column</AlertDialogTitle>
             <AlertDialogDescription>
-              {(() => {
-                const cardCount = repoCards.filter(
+              {describeColumnDeletion(
+                statusListDialog.pendingDeleteStatusTitle ?? '',
+                repoCards.filter(
                   (c) => c.statusId === statusListDialog.pendingDeleteStatusId,
-                ).length
-                const cardSuffix =
-                  cardCount > 0
-                    ? ` This will also remove ${cardCount} card${cardCount !== 1 ? 's' : ''} in this column.`
-                    : ''
-                return `Are you sure you want to delete "${statusListDialog.pendingDeleteStatusTitle}"?${cardSuffix} This action cannot be undone.`
-              })()}
+                ).length,
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

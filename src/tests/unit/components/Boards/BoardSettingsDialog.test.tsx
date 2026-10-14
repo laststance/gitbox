@@ -254,6 +254,22 @@ describe('BoardSettingsDialog', () => {
       ).toBeInTheDocument()
     })
 
+    // Value: protects=the Danger Zone tells the truth about what deleting the board keeps (issue #216); fails_when=the sentence is dropped or says the notes go with the board again; why_new=only the "no going back" sentence was asserted; seam=none; no_claim=the confirmation dialog's copy (repository-memory.spec.ts) and that the database keeps the memory
+    test('tells the user the notes, links and comments of its repositories are kept', () => {
+      // Arrange
+      render(<BoardSettingsDialog {...defaultProps} />)
+
+      // Act
+      fireEvent.click(screen.getByRole('tab', { name: /danger zone/i }))
+
+      // Assert
+      const dangerZone = screen.getByRole('tabpanel')
+      expect(dangerZone).toBeVisible()
+      expect(dangerZone).toHaveTextContent(
+        'The notes, links and comments of its repositories are kept for when you add them again.',
+      )
+    })
+
     test('should display delete button', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 

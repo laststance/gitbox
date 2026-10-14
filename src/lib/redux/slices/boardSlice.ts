@@ -11,7 +11,7 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice } from '@reduxjs/toolkit'
 
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
-import type { RepoCardId } from '@/lib/types/brands'
+import type { RepoCardId, StatusListId } from '@/lib/types/brands'
 
 /**
  * Shape of the `state.board` Redux slice. Which board the columns and cards
@@ -57,11 +57,35 @@ export const boardSlice = createSlice({
         (card) => card.id !== action.payload,
       )
     },
+    /**
+     * Remove a deleted column and the cards it held. The database deletes
+     * those cards with the column; while they stayed in the store, the Add
+     * Repositories picker hid their repositories as on this board until a
+     * reload, so a repository could not be added again (issue #216).
+     *
+     * Dispatched by {@link useStatusListDialog} once the server deleted the
+     * column.
+     *
+     * @param action.payload - The {@link StatusListId} of the deleted column.
+     */
+    removeStatusListWithCards: (state, action: PayloadAction<StatusListId>) => {
+      state.statusLists = state.statusLists.filter(
+        (statusList) => statusList.id !== action.payload,
+      )
+      state.repoCards = state.repoCards.filter(
+        (card) => card.statusId !== action.payload,
+      )
+    },
   },
 })
 
-export const { setStatusLists, setRepoCards, addRepoCards, removeRepoCard } =
-  boardSlice.actions
+export const {
+  setStatusLists,
+  setRepoCards,
+  addRepoCards,
+  removeRepoCard,
+  removeStatusListWithCards,
+} = boardSlice.actions
 
 export default boardSlice.reducer
 

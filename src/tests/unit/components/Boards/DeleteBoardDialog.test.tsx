@@ -85,6 +85,21 @@ describe('DeleteBoardDialog', () => {
         screen.getByText(/All columns and cards will be permanently removed/),
       ).toBeInTheDocument()
     })
+
+    // Value: protects=the boards list's Delete Board dialog tells the truth about what deleting a board keeps (issue #216); fails_when=the sentence is dropped or says the notes go with the board again; why_new=only the permanent-removal sentence was asserted; seam=none; no_claim=that the database keeps the memory (repository-memory.spec.ts)
+    test('tells the user the notes, links and comments of its repositories are kept', () => {
+      // Arrange
+      render(<DeleteBoardDialog {...defaultProps} />)
+
+      // Act
+      const confirmation = screen.getByRole('alertdialog')
+
+      // Assert
+      expect(confirmation).toBeVisible()
+      expect(confirmation).toHaveTextContent(
+        'The notes, links and comments of its repositories are kept for when you add them again.',
+      )
+    })
   })
 
   describe('Buttons', () => {

@@ -29,6 +29,7 @@ import {
   createTestUserSupabaseClient,
   resetBoardPublicState,
   resetRepoCards,
+  TEST_USER_ID,
 } from '../helpers/db-query'
 
 /** Name of the board one test creates inside the dialog. No other spec uses it. */
@@ -256,7 +257,8 @@ test.describe('Move to Another Board Feature', () => {
 
     // Get projectinfo before move
     const projInfoBefore = await querySingle('projectinfo', {
-      repo_card_id: cardId,
+      user_id: TEST_USER_ID,
+      repo_key: 'testuser/test-repo',
     })
     expect(projInfoBefore).not.toBeNull()
     expect((projInfoBefore as { note: string }).note).toBe(
@@ -289,10 +291,11 @@ test.describe('Move to Another Board Feature', () => {
     await dialog.getByRole('button', { name: /^move$/i }).click()
     await expect(dialog).not.toBeVisible({ timeout: 5000 })
 
-    // Verify projectinfo FK unchanged, data intact
+    // Verify the repository's projectinfo row is the same, data intact
     await expect(async () => {
       const projInfoAfter = await querySingle('projectinfo', {
-        repo_card_id: cardId,
+        user_id: TEST_USER_ID,
+        repo_key: 'testuser/test-repo',
       })
       expect(projInfoAfter).not.toBeNull()
       expect((projInfoAfter as { note: string }).note).toBe(
@@ -343,7 +346,7 @@ test.describe('Move to Another Board Feature', () => {
     const cardId = CARD_IDS.card1 // testuser/test-repo
     const noteBefore = await querySingle<{ id: string; note: string }>(
       'projectinfo',
-      { repo_card_id: cardId },
+      { user_id: TEST_USER_ID, repo_key: 'testuser/test-repo' },
     )
     expect(noteBefore?.note).toBe('Important project notes here')
     await page.goto(BOARD_URL)
@@ -377,7 +380,7 @@ test.describe('Move to Another Board Feature', () => {
     ).toBeVisible({ timeout: 15000 })
     const noteAfter = await querySingle<{ id: string; note: string }>(
       'projectinfo',
-      { repo_card_id: cardId },
+      { user_id: TEST_USER_ID, repo_key: 'testuser/test-repo' },
     )
     expect(noteAfter).toMatchObject({
       id: '00000000-0000-0000-0000-000000000401',

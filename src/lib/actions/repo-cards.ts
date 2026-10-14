@@ -31,7 +31,12 @@ import type { ISOTimestamp, Visibility } from '@/lib/types/domain-primitives'
 import { didDatabaseRefuse } from '@/lib/utils/did-database-refuse'
 import { addRepositoriesRequestSchema } from '@/lib/validations/repo-card'
 
-import { REPO_CARD_COLUMNS } from './mappers'
+import {
+  PROJECT_COMMENT_EMBED,
+  REPO_CARD_COLUMNS,
+  toCommentData,
+} from './mappers'
+import type { CommentData } from './project-info-core'
 import {
   ADD_RACE_MESSAGE,
   isUniqueViolation,
@@ -90,6 +95,12 @@ export interface CreatedRepoCard {
   createdAt: ISOTimestamp
   /** Last update timestamp (ISO-8601 UTC). */
   updatedAt: ISOTimestamp
+  /**
+   * Comment the repository kept from an earlier card (issue #216): the board
+   * shows it on the new card right away. Empty text and the default color
+   * when nothing is saved.
+   */
+  comment: CommentData
 }
 
 /**
@@ -204,10 +215,13 @@ export async function addRepositoriesToBoard(
         },
       }))
 
+      // The note, links and comment of a repository outlive its cards
+      // (issue #216): the insert's own response carries the comment the
+      // repository kept, read through the computed relationship
       const { data: insertedCards, error: insertError } = await supabase
         .from('repocard')
         .insert(cardsToInsert)
-        .select(REPO_CARD_COLUMNS)
+        .select(`${REPO_CARD_COLUMNS}, ${PROJECT_COMMENT_EMBED}`)
 
       if (insertError) {
         // Another tab placed one of these repositories after the lookup. The
@@ -240,6 +254,7 @@ export async function addRepositoriesToBoard(
           meta: card.meta as CreatedRepoCard['meta'],
           createdAt: card.created_at ?? new Date().toISOString(),
           updatedAt: card.updated_at ?? new Date().toISOString(),
+          comment: toCommentData(card.projectinfo),
         }),
       )
 
@@ -360,7 +375,8 @@ export async function getUserBoardsWithStatusLists(): Promise<
  * Move a RepoCard to another board
  *
  * Transfers a repository card from the current board to a different board.
- * The card ID is preserved, so all projectinfo (notes, links, comments) remains intact.
+ * The note, links and comment stay with the repository (issue #216), so they
+ * are on the card at its new place as they were.
  *
  * Sending the same move again is harmless: a card that is already on the
  * target board is put at the end of the chosen column once more. A move whose

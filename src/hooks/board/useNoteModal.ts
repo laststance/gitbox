@@ -8,7 +8,9 @@
  * - Save operation for note and links
  */
 
+import * as Sentry from '@sentry/nextjs'
 import { useState, useCallback } from 'react'
+import { toast } from 'sonner'
 
 import {
   getProjectInfo,
@@ -78,25 +80,42 @@ export function useNoteModal({
 
   /**
    * Open NoteModal for a card
-   * Fetches current note and links from Supabase
+   * Fetches current note and links from Supabase. A failed read, refused or
+   * lost on the way, shows a toast and leaves the modal closed, holding no
+   * card.
    */
   const open = useCallback(
     async (targetCardId: RepoCardId) => {
       const card = repoCards.find((c) => c.id === targetCardId)
       if (!card) return
 
-      setCardId(targetCardId)
-      setCardTitle(card.title)
-
-      const result = await getProjectInfo(targetCardId)
-      if (result.success && result.data) {
-        setInitialNote(result.data.note || '')
-        setInitialLinks(result.data.links || [])
-      } else {
-        setInitialNote('')
-        setInitialLinks([])
+      let result: Awaited<ReturnType<typeof getProjectInfo>>
+      try {
+        result = await getProjectInfo(targetCardId)
+      } catch (error) {
+        // The request never got an answer (offline, a deploy in between):
+        // the menu that called open() has nobody to tell, so tell the user
+        Sentry.captureException(error, {
+          extra: { context: 'useNoteModal.open', cardId: targetCardId },
+        })
+        toast.error('Failed to load project info', {
+          description: 'Please try again.',
+        })
+        return
+      }
+      // An empty editor over a note that could not be read would let a save
+      // overwrite the note with nothing: say so and stay closed
+      if (!result.success) {
+        toast.error('Failed to load project info', {
+          description: result.error,
+        })
+        return
       }
 
+      setCardId(targetCardId)
+      setCardTitle(card.title)
+      setInitialNote(result.data?.note || '')
+      setInitialLinks(result.data?.links || [])
       setIsOpen(true)
     },
     [repoCards],
@@ -115,16 +134,22 @@ export function useNoteModal({
 
   /**
    * Save note and links to Supabase
-   * Called by NoteModal with optimistic update
+   * Called by NoteModal after it has closed; NoteModal reports the outcome.
+   * @throws Error with the server's message when the save is refused
    */
   const save = useCallback(
     async (note: string, links: ProjectLink[]) => {
       if (!cardId) return
 
-      await upsertProjectInfo(cardId, {
+      const result = await upsertProjectInfo(cardId, {
         note,
         links,
       })
+      // A refused save has to reach the caller as an error, or the draft is
+      // deleted with the typed text in it
+      if (!result.success) {
+        throw new Error(result.error)
+      }
     },
     [cardId],
   )

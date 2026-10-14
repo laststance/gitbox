@@ -31,6 +31,7 @@ import { boardIdSchema } from '@/lib/validations/board'
 import { withAuthResult } from './auth-guard'
 import { createDefaultStatusLists } from './board-creation'
 import {
+  PROJECT_COMMENT_EMBED,
   REPO_CARD_COLUMNS,
   remapBoardEmbed,
   type BoardBundle,
@@ -40,6 +41,10 @@ import {
   lookupRepoPlacements,
   type BoardPlacement,
 } from './repo-card-duplicates'
+import {
+  lookupSavedRepositoryMemories,
+  type SavedRepositoryMemory,
+} from './saved-repository-memories'
 import type { ActionResult } from './types'
 
 /**
@@ -51,31 +56,76 @@ import type { ActionResult } from './types'
 export type BoardInitialData = Omit<BoardBundle, 'board'>
 
 /**
- * Get every placement of the current user's repositories: which board holds
- * each one.
+ * What the Add Repositories picker learns when it opens.
+ *
+ * @example
+ * {
+ *   placements: [{ identifier: 'laststance/gitbox', boardId: '…', boardName: 'Work' }],
+ *   savedMemories: [{ identifier: 'laststance/nsx', hasNote: true, linkCount: 1, hasComment: false }],
+ * }
+ */
+export interface RepoPlacementsLookup {
+  /** Every card of the user, with the board that holds it. */
+  placements: BoardPlacement[]
+  /**
+   * Repositories on no board whose note, links or comment are saved (issue
+   * #216); `null` when that lookup failed, and the picker then shows no marks.
+   */
+  savedMemories: SavedRepositoryMemory[] | null
+}
+
+/**
+ * Get every placement of the current user's repositories (which board holds
+ * each one) and what is saved for the repositories on no board.
  *
  * Called by {@link useRepoPlacements} each time the Add Repositories picker
  * opens, so the picker can list repositories that are already placed elsewhere
- * instead of offering them (Issue #215). Fetched on open rather than with the
- * page so Back / Forward navigation and moves made in other tabs never leave
- * it stale.
+ * instead of offering them (Issue #215) and mark the ones whose note, links or
+ * comment come back when they are added (Issue #216). Fetched on open rather
+ * than with the page so Back / Forward navigation and moves made in other tabs
+ * never leave it stale.
  *
  * @returns
- * - On success: `{ success: true, data: BoardPlacement[] }`
+ * - On success: `{ success: true, data: RepoPlacementsLookup }`; `savedMemories`
+ *   is `null` when only that lookup failed
  * - On auth error: `{ success: false, error: 'Authentication required' }`
- * - On lookup failure: `{ success: false, error: 'An unexpected error occurred' }`
+ * - On placement lookup failure: `{ success: false, error: 'An unexpected error occurred' }`
  * @example
  * const result = await getUserRepoPlacements()
  * if (result.success) {
- *   result.data // => [{ identifier: 'laststance/gitbox', boardId: '…', boardName: 'Work' }]
+ *   result.data.placements // => [{ identifier: 'laststance/gitbox', boardId: '…', boardName: 'Work' }]
+ *   result.data.savedMemories // => [{ identifier: 'laststance/nsx', hasNote: true, linkCount: 1, hasComment: false }]
  * }
  */
 export async function getUserRepoPlacements(): Promise<
-  ActionResult<BoardPlacement[]>
+  ActionResult<RepoPlacementsLookup>
 > {
-  return withAuthResult(async (supabase, claims) =>
-    lookupRepoPlacements(supabase, claims.sub),
-  )
+  return withAuthResult(async (supabase, claims) => {
+    const [placements, allSavedMemories] = await Promise.all([
+      lookupRepoPlacements(supabase, claims.sub),
+      // The marks are extra: without them the picker still lists where each
+      // repository is placed
+      lookupSavedRepositoryMemories(supabase, claims.sub).catch(
+        (error: unknown) => {
+          Sentry.captureException(error, {
+            tags: { action: 'lookupSavedRepositoryMemories' },
+          })
+          return null
+        },
+      ),
+    ])
+
+    // A repository on a board shows its memory on its card, not in the picker
+    const placedIdentifiers = new Set(
+      placements.map((placement) => placement.identifier),
+    )
+    const savedMemories =
+      allSavedMemories?.filter(
+        (memory) => !placedIdentifiers.has(memory.identifier),
+      ) ?? null
+
+    return { placements, savedMemories }
+  })
 }
 
 /**
@@ -131,7 +181,7 @@ export async function getBoardBundle(
   const { data, error } = await supabase
     .from('board')
     .select(
-      `*, statuslist(*), repocard(${REPO_CARD_COLUMNS}, projectinfo(comment, comment_color))`,
+      `*, statuslist(*), repocard(${REPO_CARD_COLUMNS}, ${PROJECT_COMMENT_EMBED})`,
     )
     .eq('id', boardId)
     // This page is the owner's editing view: anyone else gets a 404 here and

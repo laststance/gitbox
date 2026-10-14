@@ -54,7 +54,7 @@ interface OverflowMenuProps {
  * - Open Tracking dashboard
  * - Open Supabase dashboard
  * - Move to Another Board - Keeps the note, links and comment
- * - Remove from Board - Permanently deletes the card
+ * - Remove from Board - Deletes the card; the note, links and comment stay with the repository
  *
  * Note: "Edit Project Info" was consolidated into NoteModal (Issue #37)
  */
@@ -250,10 +250,9 @@ export const OverflowMenu = memo(function OverflowMenu({
               <span className="text-foreground font-semibold">
                 {repoOwner}/{repoName}
               </span>{' '}
-              from this board and permanently deletes its note, links and
-              comment. Adding the repository again will not restore them. To
-              keep them, use Move to Another Board instead. The repository on
-              GitHub is not affected.
+              from this board. Its note, links and comment are kept: they come
+              back when you add the repository to a board again. The repository
+              on GitHub is not affected.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

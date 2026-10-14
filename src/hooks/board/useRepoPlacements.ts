@@ -3,10 +3,13 @@ import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 
 import { getUserRepoPlacements } from '@/lib/actions/board-data'
 import type { BoardPlacement } from '@/lib/actions/repo-card-duplicates'
+import type { SavedRepositoryMemory } from '@/lib/actions/saved-repository-memories'
 
 interface RepoPlacementsState {
   /** Latest placements, or `null` when the last fetch failed or none has run. */
   placements: BoardPlacement[] | null
+  /** What is saved for repositories on no board, or `null` when unknown. */
+  savedMemories: SavedRepositoryMemory[] | null
   /** Whether the fetch for the current picker opening has finished. */
   isSettled: boolean
 }
@@ -18,6 +21,11 @@ interface UseRepoPlacementsReturn {
    * still rejects a repository that is already placed.
    */
   placements: BoardPlacement[] | null
+  /**
+   * Repositories on no board whose note, links or comment are saved (issue
+   * #216), or `null` when unknown. The picker then shows no marks.
+   */
+  savedMemories: SavedRepositoryMemory[] | null
   /** True from the moment the picker opens until its placement fetch settles. */
   isLoadingPlacements: boolean
   /** Fetch placements again, e.g. after an add result that skipped repositories. */
@@ -26,6 +34,7 @@ interface UseRepoPlacementsReturn {
 
 const INITIAL_PLACEMENTS_STATE: RepoPlacementsState = {
   placements: null,
+  savedMemories: null,
   isSettled: false,
 }
 
@@ -59,10 +68,14 @@ export function useRepoPlacements(isOpen: boolean): UseRepoPlacementsReturn {
     const requestId = ++latestRequestId.current
 
     let placements: BoardPlacement[] | null = null
+    let savedMemories: SavedRepositoryMemory[] | null = null
     try {
       const result = await getUserRepoPlacements()
       // A failed lookup is logged server-side; the picker degrades to no held list
-      if (result.success) placements = result.data
+      if (result.success) {
+        placements = result.data.placements
+        savedMemories = result.data.savedMemories
+      }
     } catch (error) {
       Sentry.captureException(error, {
         tags: { action: 'fetchRepoPlacements' },
@@ -71,7 +84,7 @@ export function useRepoPlacements(isOpen: boolean): UseRepoPlacementsReturn {
 
     // A newer request superseded this one, or the picker closed meanwhile
     if (requestId !== latestRequestId.current || !isOpenRef.current) return
-    setState({ placements, isSettled: true })
+    setState({ placements, savedMemories, isSettled: true })
   }, [])
 
   const loadPlacementsForOpening = useEffectEvent(() => {
@@ -96,6 +109,7 @@ export function useRepoPlacements(isOpen: boolean): UseRepoPlacementsReturn {
 
   return {
     placements: state.placements,
+    savedMemories: state.savedMemories,
     isLoadingPlacements: isOpen && !state.isSettled,
     refreshPlacements,
   }

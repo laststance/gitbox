@@ -68,7 +68,8 @@ interface UseNoteModalDraftReturn {
  * Hook for managing NoteModal draft persistence with Redux.
  *
  * Owns note and links state, syncs drafts to Redux/localStorage,
- * and handles save/close with optimistic UI feedback.
+ * and handles save/close: the dialog closes at once and a toast reports the
+ * server's answer.
  *
  * @param params - Hook configuration
  * @returns State and handlers for NoteModal
@@ -176,7 +177,10 @@ export function useNoteModalDraft({
 
   /**
    * Handle save button click.
-   * Uses optimistic update for instant feedback.
+   *
+   * The modal closes at once; "saved" is said only after the server answered.
+   * A refused or failed save keeps the draft, so the typed text is still there
+   * when the note is opened again.
    */
   const handleSave = useCallback(async () => {
     setIsSaving(true)
@@ -184,17 +188,18 @@ export function useNoteModalDraft({
     const validLinks = links.filter((link) => link.url)
 
     onClose()
-    toast.success('Project info saved', {
-      description: `Note and links for ${cardTitle} have been saved.`,
-    })
 
     try {
       await onSave(note, validLinks)
       dispatch(deleteDraftNote(cardId))
+      toast.success('Project info saved', {
+        description: `Note and links for ${cardTitle} have been saved.`,
+      })
     } catch (error) {
       toast.error('Failed to save project info', {
-        description:
+        description: `${endWithFullStop(
           error instanceof Error ? error.message : 'Please try again.',
+        )} Your text is kept: open the note again to save it.`,
       })
     } finally {
       setIsSaving(false)
@@ -236,4 +241,20 @@ export function useNoteModalDraft({
     handleSave,
     handleClose,
   }
+}
+
+/**
+ * Closes a server message with a full stop when it has no final punctuation.
+ *
+ * Server messages such as "Failed to save project information" end without
+ * one, and the toast puts a sentence of its own after them.
+ *
+ * @param message - A message from the server or a fallback sentence.
+ * @returns The message, ending in `.`, `!` or `?`.
+ * @example
+ * endWithFullStop('Card not found') // => 'Card not found.'
+ * endWithFullStop('Please try again.') // => 'Please try again.'
+ */
+function endWithFullStop(message: string): string {
+  return /[.!?]$/.test(message) ? message : `${message}.`
 }
