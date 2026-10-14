@@ -15,6 +15,7 @@ import Link from 'next/link'
 import { memo, useCallback, useState, useTransition } from 'react'
 
 import { GithubIcon } from '@/components/icons/GithubIcon'
+import { LocalDate } from '@/components/LocalDate'
 import { DeleteAccountDialog } from '@/components/Modals/DeleteAccountDialog'
 import { Button } from '@/components/ui/button'
 import {
@@ -32,20 +33,6 @@ import type { AccountData, UserProfile } from './page'
 interface AccountClientProps {
   userProfile: UserProfile
   accountData: AccountData
-}
-
-/**
- * Format date for display
- *
- * @param isoDate - ISO date string
- * @returns Formatted date string (e.g., "January 15, 2024")
- */
-const formatLinkedDate = (isoDate: string): string => {
-  return new Date(isoDate).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
 }
 
 export const AccountClient = memo(function AccountClient({
@@ -113,7 +100,8 @@ export const AccountClient = memo(function AccountClient({
             </div>
             <div className="border-t pt-4">
               <p className="text-muted-foreground text-sm">
-                Linked since {formatLinkedDate(userProfile.linkedSince)}
+                Linked since{' '}
+                <LocalDate isoDate={userProfile.linkedSince} dateStyle="long" />
               </p>
             </div>
           </CardContent>
