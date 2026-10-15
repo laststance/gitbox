@@ -33,6 +33,7 @@
 import * as Sentry from '@sentry/nextjs'
 import { NextResponse } from 'next/server'
 
+import { GITHUB_OAUTH_SCOPES } from '@/lib/constants/github'
 import { LOGIN_ERROR } from '@/lib/constants/login-errors'
 import { createModuleLogger } from '@/lib/logger'
 import { checkRateLimit } from '@/lib/rate-limit/check'
@@ -160,7 +161,7 @@ export async function GET(request: Request) {
       provider: 'github',
       options: {
         redirectTo: callbackUrl,
-        scopes: 'read:user user:email repo',
+        scopes: GITHUB_OAUTH_SCOPES,
       },
     })
 

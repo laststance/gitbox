@@ -21,7 +21,6 @@ import { cookies } from 'next/headers'
  *
  * **Security tradeoff (cookie theft replay window):**
  * - Cookie carries a token with `repo` scope (read/write private repos).
- * - If stolen, attacker has up to 30 days of API access on this user's GitHub.
  * - Mitigations in place:
  *   - `httpOnly: true` — JavaScript cannot read the cookie (XSS resistant).
  *   - `secure: production` — only sent over HTTPS in prod.
@@ -29,9 +28,14 @@ import { cookies } from 'next/headers'
  *   - A GitHub 401 deletes the cookie name that request sent. A refresh writes
  *     the new token under the next generation name, so that deletion leaves it.
  *   - Silent re-auth via `/api/auth/github/refresh` is rate-limited per IP.
- * - Residual risk: full session-token theft (e.g., malicious browser extension)
- *   gives the same 30 days of access. Acceptable — same risk profile as the
- *   Supabase JWT.
+ * - The browser keeps the cookie for 30 days, the same horizon as the
+ *   Supabase refresh token. A copied token still works until it is revoked:
+ *   the OAuth app leaves token expiration off, so a shorter cookie would not
+ *   expire it.
+ *
+ * The `repo` scope stays as well. The catalog only reads repositories, and
+ * classic OAuth has no read-only scope that includes private ones.
+ * `public_repo` would hide them.
  */
 export const GITHUB_TOKEN_COOKIE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60
 

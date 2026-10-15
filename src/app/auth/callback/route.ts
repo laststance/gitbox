@@ -13,6 +13,7 @@ import { NextResponse } from 'next/server'
 
 import { createFirstBoardIfNeeded } from '@/lib/actions/board-creation'
 import { setGitHubTokenCookie } from '@/lib/constants/cookies'
+import { GITHUB_OAUTH_SCOPES } from '@/lib/constants/github'
 import { LOGIN_ERROR } from '@/lib/constants/login-errors'
 import { createModuleLogger } from '@/lib/logger'
 import { checkRateLimit } from '@/lib/rate-limit/check'
@@ -125,9 +126,6 @@ function callbackOrigin(request: Request, origin: string): string {
   return origin
 }
 
-/** Scopes the restarted sign-in asks for, matching a normal GitHub sign-in. */
-const GITHUB_SIGN_IN_SCOPES = 'read:user user:email repo'
-
 /**
  * Starts GitHub sign-in again after another tab replaced the verifier.
  *
@@ -183,7 +181,7 @@ async function restartSignInAfterVerifierMismatch({
       provider: 'github',
       options: {
         redirectTo: callbackUrl,
-        scopes: GITHUB_SIGN_IN_SCOPES,
+        scopes: GITHUB_OAUTH_SCOPES,
         // The route returns the redirect. The client must not navigate itself.
         skipBrowserRedirect: true,
       },

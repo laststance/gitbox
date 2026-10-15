@@ -33,6 +33,18 @@ export const GITHUB_REPOSITORY_CATALOG_WINDOW_MS =
 export const GITHUB_REPOSITORY_AFFILIATIONS =
   'owner,collaborator,organization_member'
 
+/**
+ * Scopes for GitHub sign-in and silent refresh.
+ *
+ * `repo` is the classic scope that lists private repositories. The catalog
+ * only sends GET requests, and classic OAuth has no read-only scope that
+ * still includes those repositories. `public_repo` would hide them.
+ *
+ * @example
+ * signInWithOAuth({ provider: 'github', options: { scopes: GITHUB_OAUTH_SCOPES } })
+ */
+export const GITHUB_OAUTH_SCOPES = 'read:user user:email repo'
+
 /** Bump when the cached repository catalog shape or loading semantics change. */
 export const GITHUB_REPOSITORY_CATALOG_CACHE_VERSION =
   'github-repository-catalog-v2'

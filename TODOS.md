@@ -2,16 +2,6 @@
 
 Follow-up items surfaced during code review. Not ship-blockers — captured here so they don't get lost.
 
-## Silent GitHub Token Refresh — P2 follow-ups
-
-From the `/ship` adversarial review of `feat/silent-github-token-refresh` (PR #176).
-
-> All items below are tracked as GitHub issues (#177-#187). Update issue status there; this file remains as the source narrative for context.
-
-### Risk acceptance
-
-- [ ] **30-day provider token cookie TTL — risk re-confirm** — [#187](https://github.com/laststance/gitbox/issues/187)
-
 ## Board Read-Path Embed Optimization — P3 follow-ups
 
 From the `/review` of `perf/board-read-embed` (the `/board/[id]` single-embed read path).

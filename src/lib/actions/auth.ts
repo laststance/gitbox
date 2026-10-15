@@ -15,6 +15,7 @@ import { redirect } from 'next/navigation'
 
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 import { deleteGitHubTokenCookie } from '@/lib/constants/cookies'
+import { GITHUB_OAUTH_SCOPES } from '@/lib/constants/github'
 import { LOGIN_ERROR } from '@/lib/constants/login-errors'
 import { checkRateLimit } from '@/lib/rate-limit/check'
 import { logSecurityEvent } from '@/lib/security-events'
@@ -57,7 +58,7 @@ export async function signInWithGitHub(): Promise<void> {
     provider: 'github',
     options: {
       redirectTo: `${origin}/auth/callback`,
-      scopes: 'read:user user:email repo', // Required scopes for GitHub Repository access
+      scopes: GITHUB_OAUTH_SCOPES,
     },
   })
 
