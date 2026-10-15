@@ -2,6 +2,9 @@
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - next
+  # Published with next. next is already exempt, and these binaries
+  # fail the age check on the same release.
+  - '@next/*'
   - react
   - react-dom
   - '@types/react'
@@ -28,3 +31,5 @@ allowBuilds:
   node-pty: true
   sharp: true
   unrs-resolver: true
+patchedDependencies:
+  '@storybook/nextjs-vite@10.6.2': patches/@storybook__nextjs-vite@10.6.2.patch
