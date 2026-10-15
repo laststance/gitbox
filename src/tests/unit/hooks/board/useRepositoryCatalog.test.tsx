@@ -3,6 +3,7 @@
  *
  * Verifies the repository picker catalog remains idle while closed, performs
  * one aggregate request on first open, retains successful data across reopens,
+ * drops an earlier opening's answer when a later opening is already in flight,
  * and exposes retryable authentication and generic failures.
  */
 
@@ -396,6 +397,46 @@ describe('useRepositoryCatalog', () => {
     expect(handleGitHubTokenMissing).toHaveBeenCalledWith('/board/board-1')
     expect(result.current.isLoadingCatalog).toBe(false)
     expect(result.current.userRepos).toEqual([])
+  })
+
+  test('keeps the latest opening when an earlier catalog request answers afterwards', async () => {
+    // Arrange
+    const earlierRequest =
+      Promise.withResolvers<
+        Awaited<ReturnType<typeof getAuthenticatedRepositoryCatalog>>
+      >()
+    const latestRequest =
+      Promise.withResolvers<
+        Awaited<ReturnType<typeof getAuthenticatedRepositoryCatalog>>
+      >()
+    vi.mocked(getAuthenticatedRepositoryCatalog)
+      .mockReturnValueOnce(earlierRequest.promise)
+      .mockReturnValueOnce(latestRequest.promise)
+    const { result, rerender } = renderHook(
+      ({ isOpen }) => useRepositoryCatalog(isOpen),
+      { initialProps: { isOpen: true } },
+    )
+
+    // Act: close and open again before either request answers, then deliver the older one last
+    rerender({ isOpen: false })
+    rerender({ isOpen: true })
+    await act(async () => {
+      latestRequest.resolve({ success: true, data: repositoryCatalog })
+    })
+    await act(async () => {
+      earlierRequest.resolve({
+        success: false,
+        error: 'Token missing',
+        errorCode: 'GITHUB_TOKEN_MISSING',
+      })
+    })
+
+    // Assert
+    expect(result.current.userRepos).toEqual(repositoryCatalog.repositories)
+    expect(result.current.catalogError).toBeNull()
+    expect(result.current.isLoadingCatalog).toBe(false)
+    expect(handleGitHubTokenMissing).not.toHaveBeenCalled()
+    expect(getAuthenticatedRepositoryCatalog).toHaveBeenCalledTimes(2)
   })
 
   test('retries a generic failure after the picker closes and opens again', async () => {
