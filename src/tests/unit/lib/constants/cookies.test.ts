@@ -17,6 +17,8 @@ import {
   GITHUB_TOKEN_COOKIE_MAX_AGE_SECONDS,
   setGitHubTokenCookie,
   deleteGitHubTokenCookie,
+  deleteRejectedGitHubTokenCookie,
+  readGitHubTokenCookie,
 } from '@/lib/constants/cookies'
 
 describe('getGitHubTokenCookieName', () => {
@@ -186,4 +188,189 @@ describe('deleteGitHubTokenCookie', () => {
     expect(deleteSpy).toHaveBeenCalledTimes(1)
     expect(deleteSpy).toHaveBeenCalledWith('gh_token_zfcwvzaz')
   })
+
+  test('removes every generation so an older cookie cannot keep the session', async () => {
+    // Arrange
+    const deleteSpy = vi.fn()
+    vi.mocked(cookies).mockResolvedValue({
+      getAll: () => [
+        { name: 'gh_token_zfcwvzaz', value: 'old-token' },
+        { name: 'gh_token_zfcwvzaz_2', value: 'newer-token' },
+        { name: 'sb-other', value: 'session' },
+      ],
+      delete: deleteSpy,
+    } as never)
+
+    // Act
+    await deleteGitHubTokenCookie()
+
+    // Assert
+    expect(deleteSpy).toHaveBeenCalledTimes(2)
+    expect(deleteSpy).toHaveBeenCalledWith('gh_token_zfcwvzaz')
+    expect(deleteSpy).toHaveBeenCalledWith('gh_token_zfcwvzaz_2')
+  })
 })
+
+describe('readGitHubTokenCookie', () => {
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL =
+      'https://zfcwvzazzzsefbkztsyp.supabase.co'
+  })
+
+  test('reads the newest generation when the request still carries an older token', async () => {
+    // Arrange
+    vi.mocked(cookies).mockResolvedValue({
+      getAll: () => [
+        { name: 'gh_token_zfcwvzaz', value: 'stale-token' },
+        { name: 'gh_token_zfcwvzaz_1', value: 'fresh-token' },
+      ],
+    } as never)
+
+    // Act
+    const stored = await readGitHubTokenCookie()
+
+    // Assert
+    expect(stored).toEqual({
+      name: 'gh_token_zfcwvzaz_1',
+      value: 'fresh-token',
+    })
+  })
+})
+
+describe('a refresh and a stale 401 use different cookie names', () => {
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL =
+      'https://zfcwvzazzzsefbkztsyp.supabase.co'
+  })
+
+  test('stores a refreshed token under the next generation and retires the one it replaced', async () => {
+    // Arrange
+    const setSpy = vi.fn()
+    const deleteSpy = vi.fn()
+    vi.mocked(cookies).mockResolvedValue({
+      getAll: () => [{ name: 'gh_token_zfcwvzaz', value: 'stale-token' }],
+      set: setSpy,
+      delete: deleteSpy,
+    } as never)
+
+    // Act
+    await setGitHubTokenCookie('fresh-token')
+
+    // Assert
+    expect(deleteSpy).toHaveBeenCalledWith('gh_token_zfcwvzaz')
+    expect(setSpy).toHaveBeenCalledWith(
+      'gh_token_zfcwvzaz_1',
+      'fresh-token',
+      expect.objectContaining({
+        httpOnly: true,
+        maxAge: GITHUB_TOKEN_COOKIE_MAX_AGE_SECONDS,
+        path: '/',
+      }),
+    )
+  })
+
+  test('keeps the refreshed token when the older request deletes the generation it sent', async () => {
+    // Arrange: both requests snapshot the browser before either response lands.
+    const browser = new Map<string, string>([
+      ['gh_token_zfcwvzaz', 'stale-token'],
+    ])
+    const refresh = snapshotCookieJar(browser)
+    const stale = snapshotCookieJar(browser)
+
+    // Act: the refresh response is applied, then the stale 401.
+    vi.mocked(cookies).mockResolvedValue(refresh.jar as never)
+    await setGitHubTokenCookie('fresh-token')
+    applyCookieOps(browser, refresh.ops)
+
+    vi.mocked(cookies).mockResolvedValue(stale.jar as never)
+    await deleteRejectedGitHubTokenCookie('gh_token_zfcwvzaz')
+    applyCookieOps(browser, stale.ops)
+
+    // Assert
+    expect(browser.get('gh_token_zfcwvzaz_1')).toBe('fresh-token')
+    expect(browser.has('gh_token_zfcwvzaz')).toBe(false)
+  })
+
+  test('keeps the refreshed token when the stale 401 is applied before the refresh response', async () => {
+    // Arrange
+    const browser = new Map<string, string>([
+      ['gh_token_zfcwvzaz', 'stale-token'],
+    ])
+    const refresh = snapshotCookieJar(browser)
+    const stale = snapshotCookieJar(browser)
+
+    // Act
+    vi.mocked(cookies).mockResolvedValue(refresh.jar as never)
+    await setGitHubTokenCookie('fresh-token')
+    vi.mocked(cookies).mockResolvedValue(stale.jar as never)
+    await deleteGitHubTokenCookie()
+    applyCookieOps(browser, stale.ops)
+    applyCookieOps(browser, refresh.ops)
+
+    // Assert
+    expect(browser.get('gh_token_zfcwvzaz_1')).toBe('fresh-token')
+    expect(browser.has('gh_token_zfcwvzaz')).toBe(false)
+  })
+
+  test('leaves every other cookie when the rejected name is not a provider token', async () => {
+    // Arrange
+    const deleteSpy = vi.fn()
+    vi.mocked(cookies).mockResolvedValue({ delete: deleteSpy } as never)
+
+    // Act
+    const deleted = await deleteRejectedGitHubTokenCookie('sb-session')
+
+    // Assert
+    expect(deleted).toBe(false)
+    expect(deleteSpy).not.toHaveBeenCalled()
+  })
+})
+
+interface CookieOp {
+  op: 'set' | 'delete'
+  name: string
+  value?: string
+}
+
+/**
+ * A request-scoped cookie jar. Mutations are recorded and do not change the
+ * snapshot, matching `cookies()` seeing only the Cookie header it arrived with.
+ */
+function snapshotCookieJar(browser: Map<string, string>): {
+  jar: {
+    getAll: () => { name: string; value: string }[]
+    get: (name: string) => { value: string } | undefined
+    set: (name: string, value: string) => void
+    delete: (name: string) => void
+  }
+  ops: CookieOp[]
+} {
+  const snapshot = new Map(browser)
+  const ops: CookieOp[] = []
+  return {
+    jar: {
+      getAll: () => [...snapshot].map(([name, value]) => ({ name, value })),
+      get: (name: string) => {
+        const value = snapshot.get(name)
+        return value === undefined ? undefined : { value }
+      },
+      set: (name: string, value: string): void => {
+        ops.push({ op: 'set', name, value })
+      },
+      delete: (name: string): void => {
+        ops.push({ op: 'delete', name })
+      },
+    },
+    ops,
+  }
+}
+
+function applyCookieOps(browser: Map<string, string>, ops: CookieOp[]): void {
+  for (const op of ops) {
+    if (op.op === 'delete') {
+      browser.delete(op.name)
+      continue
+    }
+    browser.set(op.name, op.value ?? '')
+  }
+}

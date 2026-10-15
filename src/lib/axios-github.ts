@@ -12,11 +12,11 @@ import axios, {
   type AxiosInstance,
   type InternalAxiosRequestConfig,
 } from 'axios'
-import { cookies } from 'next/headers'
 
 import {
-  deleteGitHubTokenCookie,
-  getGitHubTokenCookieName,
+  deleteRejectedGitHubTokenCookie,
+  findGitHubTokenCookieName,
+  readGitHubTokenCookie,
 } from '@/lib/constants/cookies'
 import {
   GITHUB_API_ACCEPT_HEADER,
@@ -57,9 +57,8 @@ function isE2ETestMode(): boolean {
 export async function getGitHubToken(): Promise<string | null> {
   if (isE2ETestMode()) return GITHUB_E2E_MOCK_TOKEN
 
-  const cookieStore = await cookies()
-  const cookieName = getGitHubTokenCookieName()
-  return cookieStore.get(cookieName)?.value || null
+  const stored = await readGitHubTokenCookie()
+  return stored?.value ?? null
 }
 
 /**
@@ -112,10 +111,18 @@ export function createGitHubAxios(
         return config
       }
 
-      const resolvedToken = await getGitHubToken()
+      // E2E serves a fixture token and never reads the provider-token cookie.
+      if (isE2ETestMode()) {
+        config.headers.Authorization = `Bearer ${GITHUB_E2E_MOCK_TOKEN}`
+        return config
+      }
 
-      if (resolvedToken) {
-        config.headers.Authorization = `Bearer ${resolvedToken}`
+      const stored = await readGitHubTokenCookie()
+
+      if (stored) {
+        config.headers.Authorization = `Bearer ${stored.value}`
+        // The 401 handler deletes this name. A later refresh lives under the next one.
+        asGitHubRequestConfig(config).gitHubTokenCookieName = stored.name
       }
 
       return config
@@ -123,12 +130,13 @@ export function createGitHubAxios(
   )
 
   /**
-   * Response interceptor: Clears stale GitHub token cookie on 401.
+   * Response interceptor: Clears the rejected GitHub token cookie on 401.
    *
    * When the GitHub token has expired (default 8h for fine-grained tokens),
-   * the API returns 401. This interceptor proactively deletes the cookie
-   * so subsequent hasGitHubToken() checks correctly return false, prompting
-   * re-authentication instead of repeated 401 failures.
+   * the API returns 401. This interceptor deletes the cookie name that
+   * request sent, so the next hasGitHubToken() check can start a silent
+   * refresh. A refresh that already stored a newer generation keeps it:
+   * this request never names that cookie.
    */
   instance.interceptors.response.use(undefined, async (error) => {
     if (
@@ -137,7 +145,7 @@ export function createGitHubAxios(
       error.response?.status === 401
     ) {
       try {
-        await deleteGitHubTokenCookie()
+        await deleteCookieRejectedByGitHub(error.config)
       } catch {
         // Cookie deletion may fail in certain Next.js contexts (e.g., static
         // generation). Silently ignore — the token will expire naturally.
@@ -147,6 +155,74 @@ export function createGitHubAxios(
   })
 
   return instance
+}
+
+interface GitHubRequestConfig extends InternalAxiosRequestConfig {
+  gitHubTokenCookieName?: string
+}
+
+/**
+ * Narrows an Axios config so the response interceptor can read the cookie name.
+ *
+ * @param config - The request config Axios will hand back on failure.
+ * @returns The same config, with the generation name the interceptor stores.
+ */
+function asGitHubRequestConfig(
+  config: InternalAxiosRequestConfig,
+): GitHubRequestConfig {
+  return config as GitHubRequestConfig
+}
+
+/**
+ * Deletes the generation whose bearer GitHub rejected.
+ *
+ * The request interceptor records the cookie name. A 401 then deletes that
+ * name and no other. Requests that never recorded one (a token passed in by
+ * the caller) delete the cookie on this request that still holds the bearer.
+ *
+ * @param config - The failed request's config, when Axios kept it.
+ * @returns Nothing. The rejected generation is deleted when its name is known.
+ */
+async function deleteCookieRejectedByGitHub(
+  config: InternalAxiosRequestConfig | undefined,
+): Promise<void> {
+  const sent = bearerFromHeaders(config?.headers)
+  if (!sent) return
+
+  const captured = config
+    ? asGitHubRequestConfig(config).gitHubTokenCookieName
+    : undefined
+  // The recorded name is the generation this request sent.
+  if (captured && (await deleteRejectedGitHubTokenCookie(captured))) return
+
+  const match = await findGitHubTokenCookieName(sent)
+  if (match) await deleteRejectedGitHubTokenCookie(match)
+}
+
+/**
+ * Reads the bearer token a request actually sent.
+ *
+ * Axios stores it as a string or behind `headers.get`. Anything else was
+ * not this app's GitHub token, so a 401 for it must leave the cookie.
+ *
+ * @param headers - The failed request's headers, when Axios kept them.
+ * @returns The token after `Bearer `, or null when the header is absent.
+ */
+function bearerFromHeaders(
+  headers:
+    { Authorization?: unknown; get?: (name: string) => unknown } | undefined,
+): string | null {
+  if (!headers) return null
+  const field = headers.Authorization
+  const raw =
+    typeof field === 'string'
+      ? field
+      : typeof headers.get === 'function'
+        ? headers.get('Authorization')
+        : undefined
+  if (typeof raw !== 'string' || !raw.startsWith('Bearer ')) return null
+  const token = raw.slice('Bearer '.length)
+  return token.length > 0 ? token : null
 }
 
 /**

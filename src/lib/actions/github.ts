@@ -14,7 +14,10 @@ import { isAxiosError } from 'axios'
 import { headers } from 'next/headers'
 
 import { getGitHubToken } from '@/lib/axios-github'
-import { deleteGitHubTokenCookie } from '@/lib/constants/cookies'
+import {
+  deleteRejectedGitHubTokenCookie,
+  findGitHubTokenCookieName,
+} from '@/lib/constants/cookies'
 import {
   getCachedGitHubRepositoryCatalog,
   getGitHubCatalogErrorStatus,
@@ -51,14 +54,20 @@ async function getClientIp(): Promise<string> {
 }
 
 /**
- * Removes a rejected OAuth token after a cached loader returns a GitHub 401.
+ * Removes the cookie that held a rejected OAuth token after a cached loader returns 401.
+ *
+ * This request can carry an older generation beside the one it sent. Only the
+ * cookie whose value matches `token` is deleted, so the other generation stays.
+ *
  * @param error - Error propagated out of the cache scope.
- * @returns Nothing; non-401 errors leave the cookie untouched.
+ * @param token - The bearer this action sent to GitHub.
+ * @returns Nothing. Non-401 errors, and a jar that no longer holds `token`, leave every cookie.
  * @example
- * await clearTokenCookieAfterUnauthorized(error)
+ * await clearTokenCookieAfterUnauthorized(error, token)
  */
 async function clearTokenCookieAfterUnauthorized(
   error: unknown,
+  token: string,
 ): Promise<void> {
   const errorStatus = isAxiosError(error)
     ? error.response?.status
@@ -66,7 +75,8 @@ async function clearTokenCookieAfterUnauthorized(
   if (errorStatus !== 401) return
 
   try {
-    await deleteGitHubTokenCookie()
+    const name = await findGitHubTokenCookieName(token)
+    if (name) await deleteRejectedGitHubTokenCookie(name)
   } catch (cookieError) {
     log.warn(
       { error: cookieError },
@@ -158,7 +168,7 @@ export async function getAuthenticatedRepositoryCatalog(): Promise<
     return { success: true, data: catalog }
   } catch (error) {
     // Cookie mutation must happen after leaving unstable_cache's request-free scope.
-    await clearTokenCookieAfterUnauthorized(error)
+    await clearTokenCookieAfterUnauthorized(error, token)
     return {
       success: false,
       error: handleGitHubError(error, 'fetch repository catalog'),

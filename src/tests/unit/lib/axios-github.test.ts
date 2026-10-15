@@ -12,7 +12,11 @@ import axios from 'axios'
 import { cookies } from 'next/headers'
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 
-import { deleteGitHubTokenCookie } from '@/lib/constants/cookies'
+import {
+  deleteGitHubTokenCookie,
+  deleteRejectedGitHubTokenCookie,
+  getGitHubTokenCookieName,
+} from '@/lib/constants/cookies'
 import type * as CookiesModule from '@/lib/constants/cookies'
 
 // Mock next/headers before importing the module
@@ -29,6 +33,7 @@ vi.mock('@/lib/constants/cookies', async () => {
   return {
     ...actual,
     deleteGitHubTokenCookie: vi.fn().mockResolvedValue(undefined),
+    deleteRejectedGitHubTokenCookie: vi.fn().mockResolvedValue(true),
   }
 })
 
@@ -174,6 +179,7 @@ describe('axios-github', () => {
         const result = await interceptorFn(config)
 
         expect(result.headers.Authorization).toBe('Bearer real-github-token')
+        expect(result.gitHubTokenCookieName).toBe(getGitHubTokenCookieName())
       })
 
       test('should not add Authorization header when no token', async () => {
@@ -334,6 +340,12 @@ describe('axios-github', () => {
       process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK = 'false'
       process.env.APP_ENV = 'production'
       vi.mocked(deleteGitHubTokenCookie).mockClear()
+      vi.mocked(deleteRejectedGitHubTokenCookie).mockClear()
+      process.env.NEXT_PUBLIC_SUPABASE_URL =
+        'https://zfcwvzazzzsefbkztsyp.supabase.co'
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue({ value: 'github-token' }),
+      } as never)
     })
 
     /**
@@ -344,21 +356,47 @@ describe('axios-github', () => {
      * chain matches what `isAxiosError` checks for — a plain `{ isAxiosError:
      * true, ... }` object would fail that check.
      */
-    function makeAxiosError(status: number) {
+    function makeAxiosError(status: number, bearer = 'github-token') {
       return new axios.AxiosError(
         'Request failed',
         'ERR_BAD_REQUEST',
-        undefined,
+        { headers: { Authorization: `Bearer ${bearer}` } } as never,
         undefined,
         {
           status,
           data: {},
           statusText: 'Error',
           headers: {},
-          config: { headers: {} as never },
+          config: {
+            headers: { Authorization: `Bearer ${bearer}` } as never,
+          },
         } as never,
       )
     }
+
+    test('deletes the generation the rejected request sent', async () => {
+      // Arrange: the request recorded the name it sent. A refresh stores the
+      // next generation under another name, which this deletion does not use.
+      vi.resetModules()
+      const { createGitHubAxios } = await import('@/lib/axios-github')
+      const instance = createGitHubAxios()
+      const rejectedHandler = (instance.interceptors.response as any)
+        .handlers[0].rejected
+      const unauthorized = makeAxiosError(401, 'stale-token')
+      ;(
+        unauthorized.config as { gitHubTokenCookieName?: string }
+      ).gitHubTokenCookieName = 'gh_token_zfcwvzaz'
+
+      // Act
+      await expect(rejectedHandler(unauthorized)).rejects.toBeDefined()
+
+      // Assert
+      expect(deleteRejectedGitHubTokenCookie).toHaveBeenCalledTimes(1)
+      expect(deleteRejectedGitHubTokenCookie).toHaveBeenCalledWith(
+        'gh_token_zfcwvzaz',
+      )
+      expect(deleteGitHubTokenCookie).not.toHaveBeenCalled()
+    })
 
     test('clears the GitHub cookie when the API responds 401', async () => {
       vi.resetModules()
@@ -370,7 +408,11 @@ describe('axios-github', () => {
 
       await expect(rejectedHandler(makeAxiosError(401))).rejects.toBeDefined()
 
-      expect(deleteGitHubTokenCookie).toHaveBeenCalledTimes(1)
+      expect(deleteRejectedGitHubTokenCookie).toHaveBeenCalledTimes(1)
+      expect(deleteRejectedGitHubTokenCookie).toHaveBeenCalledWith(
+        'gh_token_zfcwvzaz',
+      )
+      expect(deleteGitHubTokenCookie).not.toHaveBeenCalled()
     })
 
     test('does NOT clear the cookie on non-401 errors (403, 404, 500)', async () => {
@@ -387,6 +429,7 @@ describe('axios-github', () => {
         ).rejects.toBeDefined()
       }
 
+      expect(deleteRejectedGitHubTokenCookie).not.toHaveBeenCalled()
       expect(deleteGitHubTokenCookie).not.toHaveBeenCalled()
     })
 
@@ -401,11 +444,12 @@ describe('axios-github', () => {
       const plainError = new Error('Network down')
       await expect(rejectedHandler(plainError)).rejects.toBe(plainError)
 
+      expect(deleteRejectedGitHubTokenCookie).not.toHaveBeenCalled()
       expect(deleteGitHubTokenCookie).not.toHaveBeenCalled()
     })
 
     test('still rejects the original error when cookie deletion throws', async () => {
-      vi.mocked(deleteGitHubTokenCookie).mockRejectedValueOnce(
+      vi.mocked(deleteRejectedGitHubTokenCookie).mockRejectedValueOnce(
         new Error('cookie store unavailable in static generation'),
       )
       vi.resetModules()
@@ -436,6 +480,7 @@ describe('axios-github', () => {
 
       // Assert
       await rejection.toBe(unauthorizedError)
+      expect(deleteRejectedGitHubTokenCookie).not.toHaveBeenCalled()
       expect(deleteGitHubTokenCookie).not.toHaveBeenCalled()
     })
   })

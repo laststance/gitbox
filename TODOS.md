@@ -10,7 +10,6 @@ From the `/ship` adversarial review of `feat/silent-github-token-refresh` (PR #1
 
 ### Concurrency / correctness
 
-- [ ] **401 interceptor races freshly-set cookie** — [#180](https://github.com/laststance/gitbox/issues/180)
 - [ ] **Race on rapid combobox open/close** — [#181](https://github.com/laststance/gitbox/issues/181)
 
 ### Security / rate-limit

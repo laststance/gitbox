@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 const actionHarness = vi.hoisted(() => ({
   captureException: vi.fn(),
   checkRateLimit: vi.fn(),
-  deleteGitHubTokenCookie: vi.fn(),
+  deleteRejectedGitHubTokenCookie: vi.fn(),
+  findGitHubTokenCookieName: vi.fn(),
   getCachedGitHubRepositoryCatalog: vi.fn(),
   getGitHubCatalogErrorStatus: vi.fn(),
   getGitHubToken: vi.fn(),
@@ -27,7 +28,9 @@ vi.mock('@/lib/axios-github', () => ({
 }))
 
 vi.mock('@/lib/constants/cookies', () => ({
-  deleteGitHubTokenCookie: actionHarness.deleteGitHubTokenCookie,
+  deleteRejectedGitHubTokenCookie:
+    actionHarness.deleteRejectedGitHubTokenCookie,
+  findGitHubTokenCookieName: actionHarness.findGitHubTokenCookieName,
 }))
 
 vi.mock('@/lib/github/repository-catalog', () => ({
@@ -88,7 +91,8 @@ describe('GitHub repository catalog network errors', () => {
       'GitHub API request failed',
     )
     expect(actionHarness.captureException).not.toHaveBeenCalled()
-    expect(actionHarness.deleteGitHubTokenCookie).not.toHaveBeenCalled()
+    expect(actionHarness.deleteRejectedGitHubTokenCookie).not.toHaveBeenCalled()
+    expect(actionHarness.findGitHubTokenCookieName).not.toHaveBeenCalled()
     expect(
       JSON.stringify({
         result,
