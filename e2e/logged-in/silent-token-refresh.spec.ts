@@ -29,6 +29,10 @@ test.describe('Silent GitHub token refresh — route handler', () => {
   }) => {
     // The handler bails immediately when attempt > MAX_REFRESH_ATTEMPTS (=1)
     // before touching Supabase or rate-limit, so this is fully deterministic.
+    // The counter the cap left behind is what the next visit would read.
+    await page.addInitScript(() => {
+      window.sessionStorage.setItem('gh_refresh_attempts', '2')
+    })
     const response = await page.goto(
       '/api/auth/github/refresh?next=/board/abc&attempt=2',
     )
@@ -39,5 +43,11 @@ test.describe('Silent GitHub token refresh — route handler', () => {
     expect(page.url()).toContain('error=token_refresh_failed')
     // The fetch chain that got us here should have started with a redirect.
     expect(response?.request().redirectedFrom()).not.toBeNull()
+    // The login page drops the counter, so the next visit starts at attempt 1.
+    expect(
+      await page.evaluate(() =>
+        window.sessionStorage.getItem('gh_refresh_attempts'),
+      ),
+    ).toBeNull()
   })
 })
