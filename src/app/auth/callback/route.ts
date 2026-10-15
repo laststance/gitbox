@@ -170,6 +170,8 @@ async function restartSignInAfterVerifierMismatch({
 
   const rateLimitResult = checkRateLimit('signInWithGitHub', clientIp)
   if (!rateLimitResult.allowed) {
+    // The sentence stays in the log. The login URL keeps the stable code.
+    log.warn({ error: rateLimitResult.error }, 'OAuth retry rate limited')
     return NextResponse.redirect(
       `${origin}/login?error=${LOGIN_ERROR.rateLimited}`,
     )
@@ -187,13 +189,15 @@ async function restartSignInAfterVerifierMismatch({
       },
     })
     if (oauthError || !data.url) {
+      log.error({ error: oauthError }, 'OAuth retry failed')
       return NextResponse.redirect(
         `${origin}/login?error=${LOGIN_ERROR.oauthFailed}`,
       )
     }
     return NextResponse.redirect(data.url)
-  } catch {
+  } catch (error) {
     // A rejected client is not the handled `error` result. Send the same login.
+    log.error({ error }, 'OAuth retry exception')
     return NextResponse.redirect(
       `${origin}/login?error=${LOGIN_ERROR.oauthFailed}`,
     )
