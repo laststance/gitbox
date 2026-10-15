@@ -55,6 +55,7 @@ describe('getUserRepoPlacements()', () => {
         identifier: 'laststance/gitbox',
         boardId: 'board-2',
         boardName: 'Work',
+        cardId: '00000000-0000-4000-8000-0000000000c2',
       },
     ])
   })
@@ -89,6 +90,7 @@ describe('getUserRepoPlacements()', () => {
             identifier: 'laststance/gitbox',
             boardId: 'board-2',
             boardName: 'Work',
+            cardId: '00000000-0000-4000-8000-0000000000c2',
           },
         ],
         savedMemories: [
@@ -122,6 +124,7 @@ describe('getUserRepoPlacements()', () => {
             identifier: 'laststance/gitbox',
             boardId: 'board-2',
             boardName: 'Work',
+            cardId: '00000000-0000-4000-8000-0000000000c2',
           },
         ],
         savedMemories: null,

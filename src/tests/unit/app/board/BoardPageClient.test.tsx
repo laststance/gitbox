@@ -122,6 +122,7 @@ vi.mock('@/hooks/board', async () => ({
   useOptimisticCardAction: () => ({
     executeCardAction: vi.fn(),
   }),
+  useRevealLinkedCard: (): void => {},
 }))
 
 // Mock child components

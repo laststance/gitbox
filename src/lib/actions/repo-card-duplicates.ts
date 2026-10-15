@@ -45,6 +45,8 @@ export interface BoardPlacement {
   boardId: string
   /** Display name of that board. */
   boardName: string
+  /** Id of the card, so a link to the board can scroll to it. */
+  cardId: string
 }
 
 /** Why a requested repository was not added. */
@@ -100,7 +102,7 @@ interface RequestedRepository {
  * this data (fail closed).
  * @example
  * const placements = await lookupRepoPlacements(supabase, claims.sub)
- * // => [{ identifier: 'a/b', boardId: '…', boardName: 'Work' }]
+ * // => [{ identifier: 'a/b', boardId: '…', boardName: 'Work', cardId: '…' }]
  */
 export async function lookupRepoPlacements(
   supabase: SupabaseClient<Database>,
@@ -113,7 +115,7 @@ export async function lookupRepoPlacements(
     cards = await readEveryRow((from, to) =>
       supabase
         .from('repocard')
-        .select('repo_owner, repo_name, board!inner(id, user_id, name)')
+        .select('id, repo_owner, repo_name, board!inner(id, user_id, name)')
         .eq('board.user_id', userId)
         .order('id', { ascending: true })
         .range(from, to),
@@ -127,6 +129,7 @@ export async function lookupRepoPlacements(
     identifier: toRepoIdentifier(card.repo_owner, card.repo_name),
     boardId: card.board.id,
     boardName: card.board.name,
+    cardId: card.id,
   }))
 }
 
