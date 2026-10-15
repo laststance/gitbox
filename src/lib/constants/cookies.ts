@@ -11,13 +11,14 @@ import { cookies } from 'next/headers'
 /**
  * Lifetime of the `gh_token_*` cookie holding the GitHub OAuth provider_token.
  *
- * **Value:** 30 days (matches Supabase `refresh_token` default TTL).
+ * **Value:** 30 days. This is how long the browser keeps the cookie.
  *
  * **Why 30 days, not "forever"?**
- * - Supabase refresh_token also expires at ~30 days, so any longer TTL is wasted —
- *   the user must re-auth Supabase first, which re-issues the provider_token anyway.
- * - The GitHub OAuth App is configured with "Token expiration: OFF" (non-expiring
- *   tokens). The 30-day client-side cookie is our trust horizon, not GitHub's.
+ * - Supabase refresh tokens do not expire by default. This project's JWT
+ *   expires after one hour (`jwt_expiry`), and session time-box and
+ *   inactivity limits are separate settings that are not set here.
+ * - The GitHub OAuth App leaves token expiration off. The 30-day cookie is
+ *   how long this browser holds the token, not how long GitHub honors a copy.
  *
  * **Security tradeoff (cookie theft replay window):**
  * - Cookie carries a token with `repo` scope (read/write private repos).
@@ -28,10 +29,9 @@ import { cookies } from 'next/headers'
  *   - A GitHub 401 deletes the cookie name that request sent. A refresh writes
  *     the new token under the next generation name, so that deletion leaves it.
  *   - Silent re-auth via `/api/auth/github/refresh` is rate-limited per IP.
- * - The browser keeps the cookie for 30 days, the same horizon as the
- *   Supabase refresh token. A copied token still works until it is revoked:
- *   the OAuth app leaves token expiration off, so a shorter cookie would not
- *   expire it.
+ * - The browser keeps the cookie for 30 days. A copied token still works until
+ *   it is revoked: the OAuth app leaves token expiration off, so a shorter
+ *   cookie would not expire it.
  *
  * The `repo` scope stays as well. The catalog only reads repositories, and
  * classic OAuth has no read-only scope that includes private ones.
