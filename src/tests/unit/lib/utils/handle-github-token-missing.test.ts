@@ -116,6 +116,36 @@ describe('handleGitHubTokenMissing', () => {
     expect(window.sessionStorage.getItem(STORAGE_KEY)).toBe('1')
   })
 
+  test('starts a refresh when sessionStorage throws', async () => {
+    // Arrange: Safari private mode and a full quota throw instead of storing the count.
+    const getItem = vi
+      .spyOn(Storage.prototype, 'getItem')
+      .mockImplementation(() => {
+        throw new DOMException('QuotaExceededError')
+      })
+    const setItem = vi
+      .spyOn(Storage.prototype, 'setItem')
+      .mockImplementation(() => {
+        throw new DOMException('QuotaExceededError')
+      })
+    try {
+      const { handleGitHubTokenMissing } =
+        await import('@/lib/utils/handle-github-token-missing')
+
+      // Act
+      const wasHandled = handleGitHubTokenMissing('/board/abc')
+
+      // Assert: the visit still leaves, with no attempt query. The server cookie counts it.
+      expect(wasHandled).toBe(true)
+      expect(window.location.href).toBe(
+        '/api/auth/github/refresh?next=%2Fboard%2Fabc',
+      )
+    } finally {
+      getItem.mockRestore()
+      setItem.mockRestore()
+    }
+  })
+
   test('encodes the next path so query params survive intact', async () => {
     const { handleGitHubTokenMissing } =
       await import('@/lib/utils/handle-github-token-missing')

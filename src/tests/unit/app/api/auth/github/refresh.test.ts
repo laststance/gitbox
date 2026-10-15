@@ -13,6 +13,7 @@
  *  H. Unexpected exception — redirect to /login?error=unexpected_error
  */
 
+import { NextRequest } from 'next/server'
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { checkRateLimit } from '@/lib/rate-limit/check'
@@ -213,6 +214,38 @@ describe('GET /api/auth/github/refresh', () => {
 
     // Should still hit the happy path since malformed clamps to 1.
     expect(response.headers.get('location')).toBe(MOCK_GITHUB_OAUTH_URL)
+  })
+
+  test('refuses a second refresh when the attempt cookie is already 1 and the query says 1', async () => {
+    // Arrange: sessionStorage could not count, so the client sent attempt=1 again.
+    const { GET } = await import('@/app/api/auth/github/refresh/route')
+    const request = new NextRequest(
+      'http://localhost:3008/api/auth/github/refresh?next=%2Fboard%2Fabc&attempt=1',
+      { headers: { 'x-forwarded-for': '203.0.113.7' } },
+    )
+    request.cookies.set('gh_refresh_count', '1')
+
+    // Act
+    const response = await GET(request)
+
+    // Assert
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toContain(
+      '/login?error=token_refresh_failed',
+    )
+    expect(createRouteHandlerClient).not.toHaveBeenCalled()
+  })
+
+  test('records the first refresh on the redirect to GitHub', async () => {
+    // Arrange
+    const { GET } = await import('@/app/api/auth/github/refresh/route')
+
+    // Act
+    const response = await GET(buildRequest('?next=%2Fboard%2Fabc'))
+
+    // Assert
+    expect(response.headers.get('location')).toBe(MOCK_GITHUB_OAUTH_URL)
+    expect(response.headers.get('set-cookie')).toContain('gh_refresh_count=1')
   })
 
   // ─────────────────────────────────────── Branch C: rate limit
