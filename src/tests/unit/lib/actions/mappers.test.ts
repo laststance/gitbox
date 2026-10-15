@@ -7,13 +7,13 @@
  * silently break the board if they regressed — child ordering, comment-map
  * parity, and the default comment for a card without project info.
  *
- * Out of scope here (and why): the async getBoardBundle DB contract — embed
- * error => throw (never a 404), null data => null => notFound(), zero-column
- * default creation, and the 1000-row truncation warning — depends on Supabase
- * + PostgREST + Postgres RLS. getBoardBundle returns the owner's boards only,
- * so projectinfo:null here means a card without project info; these tests only
- * prove the remap fills the default for it. The DB contract is covered by E2E
- * board rendering.
+ * Out of scope here (and why): the async getBoardBundle contract — an embed
+ * error is thrown, null data stays null, a board with no columns gets the
+ * defaults, and 1000 cards warn — lives in board-data.test.ts. What PostgREST
+ * returns for a missing board, an empty column list and a board past the row
+ * cap lives in e2e/logged-in/board-bundle-db-contract.spec.ts. projectinfo:null
+ * here means a card without project info; these tests only prove the remap
+ * fills the default for it.
  *
  * @see src/lib/actions/mappers.ts
  */

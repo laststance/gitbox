@@ -15,12 +15,6 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
 
 ### Tests (paired with T5 cleanup, prod-confirmation gated)
 
-- [ ] **`getBoardBundle` async DB-contract tests** — cover embed-error ⇒ throw (never a 404),
-      `null` data ⇒ `null` ⇒ `notFound()`, zero-column ⇒ `createDefaultStatusLists`, and the
-      `repocard.length >= 1000` truncation Sentry warning. Out of scope of the pure
-      `remapBoardEmbed` unit suite (needs Supabase + PostgREST + RLS).
-      _v0.3.1.0: the malformed-id ⇒ `null` path (404, never reaches Postgres) is now covered by
-      `src/tests/unit/lib/actions/board-data.test.ts`; the Supabase-backed paths above remain._
 - [x] **`logBoardTiming` flag tests** — assert no-op when `BOARD_TIMING_LOG` is unset and one
       structured line when set (the "1 line = deduped" dedup proof).
       _v0.3.1.1: covered by `src/tests/unit/lib/utils/board-timing.test.ts` — flag off ⇒ no-op,

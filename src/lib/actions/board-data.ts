@@ -31,8 +31,7 @@ import { boardIdSchema } from '@/lib/validations/board'
 import { withAuthResult } from './auth-guard'
 import { createDefaultStatusLists } from './board-creation'
 import {
-  PROJECT_COMMENT_EMBED,
-  REPO_CARD_COLUMNS,
+  BOARD_BUNDLE_SELECT,
   remapBoardEmbed,
   type BoardBundle,
   type BoardBundleRow,
@@ -180,9 +179,7 @@ export async function getBoardBundle(
   const embedStart = performance.now()
   const { data, error } = await supabase
     .from('board')
-    .select(
-      `*, statuslist(*), repocard(${REPO_CARD_COLUMNS}, ${PROJECT_COMMENT_EMBED})`,
-    )
+    .select(BOARD_BUNDLE_SELECT)
     .eq('id', boardId)
     // This page is the owner's editing view: anyone else gets a 404 here and
     // uses /public/[slug]. Row level security hides other users' boards too;

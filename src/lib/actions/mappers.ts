@@ -41,6 +41,17 @@ export const REPO_CARD_COLUMNS =
  */
 export const PROJECT_COMMENT_EMBED = 'projectinfo(comment, comment_color)'
 
+/**
+ * The one PostgREST select {@link getBoardBundle} sends for a board.
+ *
+ * Columns, cards and each card's comment come back together. The card list
+ * stops at the API row cap, so a board with more cards than that is cut off.
+ *
+ * @example
+ * supabase.from('board').select(BOARD_BUNDLE_SELECT).eq('id', boardId).maybeSingle()
+ */
+export const BOARD_BUNDLE_SELECT = `*, statuslist(*), repocard(${REPO_CARD_COLUMNS}, ${PROJECT_COMMENT_EMBED})`
+
 type StatusListRow = Tables<'statuslist'>
 type RepoCardRow = Omit<Tables<'repocard'>, 'user_id'>
 
@@ -106,8 +117,7 @@ export function toRepoCardDomain(row: RepoCardRow): RepoCardDomain {
 
 /**
  * Raw shape of one board fetched with its children embedded via PostgREST.
- * Mirrors the embed select string in `getBoardBundle`
- * (`*, statuslist(*), repocard(<REPO_CARD_COLUMNS>, projectinfo(comment, comment_color))`).
+ * Mirrors {@link BOARD_BUNDLE_SELECT}.
  * `projectinfo` is an object-or-null (NOT an array): the computed relationship
  * `projectinfo(repocard)` returns the row of the card's repository and is
  * declared `ROWS 1` (issue #216); it is `null` whenever nothing is saved for
