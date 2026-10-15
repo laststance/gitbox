@@ -10,7 +10,7 @@ import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Provider } from 'react-redux'
 import { toast } from 'sonner'
-import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { HeldRepositoryList } from '@/components/Board/HeldRepositoryList'
 import { moveCardToBoard } from '@/lib/actions/repo-cards'
@@ -99,6 +99,11 @@ async function openDialog() {
 describe('Move Here from a held row', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  // A failed assertion must not leave fake timers for the next test
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   test('moves the repository into the column the picker was opened for', async () => {
@@ -201,6 +206,5 @@ describe('Move Here from a held row', () => {
       within(dialog).getByRole('button', { name: 'Reload page' }),
     ).toHaveFocus()
     expect(selectIsBoardRefreshDue(store.getState())).toBe(true)
-    vi.useRealTimers()
   })
 })
