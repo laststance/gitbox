@@ -10,6 +10,10 @@
 --                                 the GitHub API. meta.githubId is a value the
 --                                 browser sent, so this migration does not
 --                                 copy it and no constraint reads it.
+--   repocard.github_identity_checked_at
+--                               - when confirmation was last tried. A miss is
+--                                 remembered so the next batch is not the same
+--                                 rows. The app tries again after a day.
 --   projectinfo.github_repo_id  - the same id, so the note, links and comment
 --                                 follow the repository rather than its name.
 --   partial unique indexes      - one card, and one memory, per user and
@@ -31,7 +35,8 @@ BEGIN
   LOCK TABLE repocard, projectinfo IN ACCESS EXCLUSIVE MODE;
 
   ALTER TABLE repocard
-    ADD COLUMN IF NOT EXISTS github_repo_id bigint;
+    ADD COLUMN IF NOT EXISTS github_repo_id bigint,
+    ADD COLUMN IF NOT EXISTS github_identity_checked_at timestamptz;
 
   ALTER TABLE projectinfo
     ADD COLUMN IF NOT EXISTS github_repo_id bigint;
@@ -45,8 +50,10 @@ BEGIN
     ON projectinfo (user_id, github_repo_id)
     WHERE github_repo_id IS NOT NULL;
 
-  -- A memory may name the repository by its confirmed id or, until then, by
-  -- owner/name. Either match has to be a card of this user.
+  -- A memory with an id must be the same card: that id and that owner/name.
+  -- A memory without an id may still match the card by owner/name. An id of
+  -- a different card is refused, so the relationship cannot hand one card
+  -- another repository's memory.
   DROP POLICY IF EXISTS "Users can manage their project info" ON projectinfo;
 
   CREATE POLICY "Users can manage their project info"
@@ -61,9 +68,12 @@ BEGIN
             (
               projectinfo.github_repo_id IS NOT NULL
               AND r.github_repo_id = projectinfo.github_repo_id
+              AND lower(r.repo_owner) = lower(projectinfo.repo_owner)
+              AND lower(r.repo_name) = lower(projectinfo.repo_name)
             )
             OR (
-              lower(r.repo_owner) = lower(projectinfo.repo_owner)
+              projectinfo.github_repo_id IS NULL
+              AND lower(r.repo_owner) = lower(projectinfo.repo_owner)
               AND lower(r.repo_name) = lower(projectinfo.repo_name)
             )
           )
