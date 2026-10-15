@@ -29,9 +29,14 @@ test.describe('Silent GitHub token refresh — route handler', () => {
   }) => {
     // The handler bails immediately when attempt > MAX_REFRESH_ATTEMPTS (=1)
     // before touching Supabase or rate-limit, so this is fully deterministic.
+    // The counter the cap left behind is what the next visit would read.
+    await page.addInitScript(() => {
+      window.sessionStorage.setItem('gh_refresh_attempts', '2')
+    })
     const response = await page.goto(
       '/api/auth/github/refresh?next=/board/abc&attempt=2',
     )
+    await page.waitForLoadState('networkidle')
 
     // Playwright follows redirects automatically — assert the final landing
     // page rather than the 307 itself.
@@ -39,5 +44,17 @@ test.describe('Silent GitHub token refresh — route handler', () => {
     expect(page.url()).toContain('error=token_refresh_failed')
     // The fetch chain that got us here should have started with a redirect.
     expect(response?.request().redirectedFrom()).not.toBeNull()
+    // The counter is cleared in an effect after the page hydrates, which is
+    // after `goto` resolves. Wait until the sign-in control is on screen.
+    await expect(
+      page.getByRole('button', { name: 'Sign in with GitHub' }),
+    ).toBeVisible()
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          window.sessionStorage.getItem('gh_refresh_attempts'),
+        ),
+      )
+      .toBeNull()
   })
 })

@@ -193,6 +193,50 @@ describe('clearGitHubRefreshAttempts', () => {
     expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull()
   })
 
+  test('starts again at the first attempt after a failed refresh cleared the counter', async () => {
+    // Arrange: the cap left the counter at 2, which is what the next visit would read.
+    window.sessionStorage.setItem(STORAGE_KEY, '2')
+    const originalLocation = window.location
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      writable: true,
+      value: { href: 'http://localhost/login' },
+    })
+    const { clearRefreshAttemptsAfterFailedRefresh, handleGitHubTokenMissing } =
+      await import('@/lib/utils/handle-github-token-missing')
+
+    try {
+      // Act: the login page drops the counter, then a later visit refreshes again.
+      clearRefreshAttemptsAfterFailedRefresh('token_refresh_failed')
+      handleGitHubTokenMissing('/board/abc')
+
+      // Assert: the next refresh is a first try, not attempt=3.
+      expect(window.location.href).toBe(
+        '/api/auth/github/refresh?next=%2Fboard%2Fabc',
+      )
+      expect(window.sessionStorage.getItem(STORAGE_KEY)).toBe('1')
+    } finally {
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        writable: true,
+        value: originalLocation,
+      })
+    }
+  })
+
+  test('leaves the counter when the login error is not a failed refresh', async () => {
+    // Arrange
+    window.sessionStorage.setItem(STORAGE_KEY, '2')
+    const { clearRefreshAttemptsAfterFailedRefresh } =
+      await import('@/lib/utils/handle-github-token-missing')
+
+    // Act
+    clearRefreshAttemptsAfterFailedRefresh('auth_failed')
+
+    // Assert
+    expect(window.sessionStorage.getItem(STORAGE_KEY)).toBe('2')
+  })
+
   test('is a no-op when the counter is already absent', async () => {
     const { clearGitHubRefreshAttempts } =
       await import('@/lib/utils/handle-github-token-missing')

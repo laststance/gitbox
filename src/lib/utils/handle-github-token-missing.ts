@@ -32,6 +32,9 @@
 
 const REFRESH_ATTEMPTS_STORAGE_KEY = 'gh_refresh_attempts'
 
+/** Login error the refresh route sends once the attempt cap is reached. */
+const TOKEN_REFRESH_FAILED_ERROR = 'token_refresh_failed'
+
 /**
  * Page-lifetime lock preventing duplicate redirects when many hooks see
  * the same `GITHUB_TOKEN_MISSING` error simultaneously. The browser-level
@@ -121,6 +124,28 @@ export function clearGitHubRefreshAttempts(): void {
   } catch {
     // Storage may throw in Safari private mode; safe to ignore.
   }
+}
+
+/**
+ * Drops the silent-refresh counter after the refresh route has given up.
+ *
+ * The route redirects to `/login?error=token_refresh_failed` once the
+ * attempt count passes the cap, but the counter that produced that
+ * attempt stays in sessionStorage. The next visit would send `attempt=3`
+ * and be refused again. The login page calls this when it shows that
+ * error, so the next refresh starts at 1.
+ *
+ * @param error - The `error` query of the login page, or null when there is none.
+ * @returns Nothing. The counter is removed only for this error.
+ * @example
+ * clearRefreshAttemptsAfterFailedRefresh('token_refresh_failed')
+ */
+export function clearRefreshAttemptsAfterFailedRefresh(
+  error: string | null,
+): void {
+  // Other login errors are not the attempt cap. Leave the counter.
+  if (error !== TOKEN_REFRESH_FAILED_ERROR) return
+  clearGitHubRefreshAttempts()
 }
 
 /**

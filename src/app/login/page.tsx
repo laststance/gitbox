@@ -10,6 +10,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { ClearFailedRefreshAttempts } from '@/app/login/ClearFailedRefreshAttempts'
 import { GithubIcon } from '@/components/icons/GithubIcon'
 import { signInWithGitHub } from '@/lib/actions/auth'
 
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
 export default function LoginPage() {
   return (
     <main className="bg-background flex min-h-screen items-center justify-center">
+      <ClearFailedRefreshAttempts />
       <div className="bg-card w-full max-w-md space-y-8 rounded-xl p-8 shadow-lg">
         {/* Logo / Title */}
         <div className="text-center">
