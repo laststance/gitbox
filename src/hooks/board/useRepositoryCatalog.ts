@@ -39,7 +39,8 @@ const INITIAL_CATALOG_STATE: RepositoryCatalogState = {
 }
 
 /**
- * Loads the cached GitHub picker catalog once on first open and retains it for instant reopen behavior.
+ * Loads the cached GitHub picker catalog on open and retains a successful result for instant reopen.
+ * A later opening supersedes a request that has not settled, so that answer cannot land in the picker.
  * Called by {@link AddRepositoryCombobox}; keeps loading visible during a GitHub authentication redirect.
  * @param isOpen - Whether the repository picker is currently open.
  * @param statusId - Column to reopen after GitHub reauthentication, when available.
@@ -54,7 +55,14 @@ export function useRepositoryCatalog(
   const [state, setState] = useState<RepositoryCatalogState>(
     INITIAL_CATALOG_STATE,
   )
-  const hasRequestedCatalog = useRef(false)
+  // A catalog that already arrived is reused. A refresh navigation blocks a second one.
+  const hasCatalog = useRef(false)
+  const oauthNavigationStarted = useRef(false)
+  // Open → close → open starts another request. Only the newest may write.
+  const latestRequestId = useRef(0)
+  // Strict Mode replays the effect for the same opening. That replay shares the request.
+  const openingId = useRef(0)
+  const requestedOpeningId = useRef<number | null>(null)
 
   // Read the latest committed picker intent after the catalog request settles.
   const refreshAuthentication = useEffectEvent((wasResumedPicker: boolean) => {
@@ -72,17 +80,19 @@ export function useRepositoryCatalog(
     )
   })
 
-  const loadCatalog = useEffectEvent(async () => {
-    // Strict Mode and rapid close/reopen events share one in-flight catalog request.
-    if (hasRequestedCatalog.current) return
+  const loadCatalog = useEffectEvent(async (opening: number) => {
+    if (hasCatalog.current || oauthNavigationStarted.current) return
+    // The same opening already asked. A replay must not supersede that request.
+    if (requestedOpeningId.current === opening) return
 
+    requestedOpeningId.current = opening
+    const requestId = ++latestRequestId.current
     // Classify this request before awaiting, even if its target or URL changes later.
     const returnStatusId = new URL(window.location.href).searchParams.get(
       ADD_REPOSITORY_RETURN_PARAM,
     )
     const wasResumedPicker =
       returnStatusId !== null && returnStatusId === statusId
-    hasRequestedCatalog.current = true
     setState((currentState) => ({
       ...currentState,
       error: null,
@@ -91,25 +101,31 @@ export function useRepositoryCatalog(
 
     try {
       const result = await getAuthenticatedRepositoryCatalog()
+      // A newer opening is in flight. This answer must not replace its state.
+      if (requestId !== latestRequestId.current) return
+
       if (!result.success) {
         if (result.errorCode === 'GITHUB_TOKEN_MISSING') {
           const wasHandledByRefresh = refreshAuthentication(wasResumedPicker)
           // Navigation is asynchronous: keep the loading state until this page unloads.
-          if (wasHandledByRefresh) return
+          if (wasHandledByRefresh) {
+            oauthNavigationStarted.current = true
+            return
+          }
         }
 
-        hasRequestedCatalog.current = false
         setState({ catalog: null, error: result.error, isLoading: false })
         return
       }
 
+      hasCatalog.current = true
       clearGitHubRefreshAttempts()
       setState({ catalog: result.data, error: null, isLoading: false })
     } catch (error) {
-      hasRequestedCatalog.current = false
       Sentry.captureException(error, {
         tags: { action: 'fetchRepositoryCatalog' },
       })
+      if (requestId !== latestRequestId.current) return
       setState({
         catalog: null,
         error:
@@ -123,9 +139,12 @@ export function useRepositoryCatalog(
 
   /* eslint-disable react-you-might-not-need-an-effect/no-event-handler -- controlled picker open state triggers one cached Server Action */
   useEffect(() => {
-    if (isOpen) {
-      void loadCatalog()
+    if (!isOpen) {
+      // The next open is a new opening, so an in-flight answer from this one is stale.
+      openingId.current += 1
+      return
     }
+    void loadCatalog(openingId.current)
   }, [isOpen])
   /* eslint-enable react-you-might-not-need-an-effect/no-event-handler */
 

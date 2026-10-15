@@ -8,10 +8,6 @@ From the `/ship` adversarial review of `feat/silent-github-token-refresh` (PR #1
 
 > All items below are tracked as GitHub issues (#177-#187). Update issue status there; this file remains as the source narrative for context.
 
-### Concurrency / correctness
-
-- [ ] **Race on rapid combobox open/close** — [#181](https://github.com/laststance/gitbox/issues/181)
-
 ### Security / rate-limit
 
 - [ ] **`x-forwarded-for` first-IP spoofing on Vercel** — [#182](https://github.com/laststance/gitbox/issues/182)
