@@ -801,7 +801,17 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             )}
 
           {/* Repositories already on another board */}
-          {!isLoading && <HeldRepositoryList repositories={heldRepositories} />}
+          {!isLoading && (
+            <HeldRepositoryList
+              repositories={heldRepositories}
+              boardId={boardId}
+              defaultStatusId={statusId}
+              isBoardShared={isBoardShared}
+              onMoved={() => {
+                void refreshPlacements()
+              }}
+            />
+          )}
 
           {/* A card on a shared board is readable through its public link,
               a private repository as much as a public one */}

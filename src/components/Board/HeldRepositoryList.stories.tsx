@@ -9,6 +9,8 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 import { expect, within } from 'storybook/test'
 
+import { toBoardId } from '@/lib/types/brands'
+
 import { HeldRepositoryList } from './HeldRepositoryList'
 
 const meta = {
@@ -26,6 +28,12 @@ const meta = {
       </div>
     ),
   ],
+  args: {
+    boardId: toBoardId('00000000-0000-0000-0000-000000000101'),
+    defaultStatusId: null,
+    onMoved: (): void => {},
+    repositories: [],
+  },
 } satisfies Meta<typeof HeldRepositoryList>
 
 export default meta

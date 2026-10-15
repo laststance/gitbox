@@ -2,9 +2,15 @@
 
 import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
-import { memo } from 'react'
+import { memo, useState } from 'react'
 
+import { Button } from '@/components/ui/button'
+import { selectStatusLists } from '@/lib/redux/slices/boardSlice'
+import { useAppSelector } from '@/lib/redux/store'
+import type { BoardId, StatusListId } from '@/lib/types/brands'
 import { linkedCardHref } from '@/lib/utils/linked-card'
+
+import { MoveHereDialog } from './MoveHereDialog'
 
 /**
  * A catalog repository the user cannot add because it is already placed on
@@ -29,6 +35,14 @@ export interface HeldRepository {
 interface HeldRepositoryListProps {
   /** Repositories already placed elsewhere, already filtered by the picker. */
   repositories: HeldRepository[]
+  /** Board the picker is open on. Move Here sends the card there. */
+  boardId: BoardId
+  /** Column the picker was opened for. The move dialog starts with it. */
+  defaultStatusId: StatusListId | null
+  /** A public link shows a repository moved onto this board. */
+  isBoardShared?: boolean
+  /** Reloads the held list after a move the server confirmed. */
+  onMoved: () => void
 }
 
 /**
@@ -36,15 +50,23 @@ interface HeldRepositoryListProps {
  *
  * Rendered by {@link AddRepositoryCombobox} as a sibling of the options
  * listbox. A repository may sit on only one board (Issue #215), so instead of
- * hiding the ones the user cannot add, this list says where each one lives and
- * links there. Rows are deliberately not `role="option"`: they are never
- * selectable, and a link inside an option is unreachable by keyboard.
+ * hiding the ones the user cannot add, this list says where each one lives,
+ * links there, and can move the card onto this board. Rows are deliberately
+ * not `role="option"`: they are never selectable, and a link inside an option
+ * is unreachable by keyboard.
  *
  * Renders nothing when the list is empty.
  */
 export const HeldRepositoryList = memo(function HeldRepositoryList({
   repositories,
+  boardId,
+  defaultStatusId,
+  isBoardShared = false,
+  onMoved,
 }: HeldRepositoryListProps) {
+  const columns = useAppSelector(selectStatusLists)
+  const [moving, setMoving] = useState<HeldRepository | null>(null)
+
   if (repositories.length === 0) return null
 
   return (
@@ -73,25 +95,47 @@ export const HeldRepositoryList = memo(function HeldRepositoryList({
               >
                 {repository.fullName}
               </span>
-              <Link
-                href={destination.href}
-                // Do not prefetch a whole board page per held row
-                prefetch={false}
-                title={destination.label}
-                aria-label={destination.accessibleName}
-                // text-foreground + underline: text-primary is below AA contrast
-                // in most themes. On touch screens the hit area is stretched
-                // over the whole row (44px target); with a mouse the link stays
-                // precise so the repository name above it can be selected.
-                className="text-foreground focus-visible:ring-primary inline-flex max-w-full items-center gap-1 self-start rounded-sm text-sm underline underline-offset-4 hover:decoration-2 focus-visible:ring-2 focus-visible:outline-none pointer-coarse:after:absolute pointer-coarse:after:inset-0"
-              >
-                <span className="truncate">{destination.label}</span>
-                <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              </Link>
+              <div className="flex items-center justify-between gap-2">
+                <Link
+                  href={destination.href}
+                  // Do not prefetch a whole board page per held row
+                  prefetch={false}
+                  title={destination.label}
+                  aria-label={destination.accessibleName}
+                  // text-foreground + underline: text-primary is below AA contrast
+                  // in most themes. relative: the coarse-pointer stretch covers
+                  // the link, not the Move Here button beside it.
+                  className="text-foreground focus-visible:ring-primary relative inline-flex min-w-0 items-center gap-1 rounded-sm text-sm underline underline-offset-4 hover:decoration-2 focus-visible:ring-2 focus-visible:outline-none pointer-coarse:min-h-11 pointer-coarse:after:absolute pointer-coarse:after:inset-0"
+                >
+                  <span className="truncate">{destination.label}</span>
+                  <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                </Link>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="relative z-10 h-7 shrink-0 px-2 pointer-coarse:min-h-11"
+                  disabled={columns.length === 0}
+                  aria-label={`Move Here, ${repository.fullName}`}
+                  onClick={() => setMoving(repository)}
+                >
+                  Move Here
+                </Button>
+              </div>
             </li>
           )
         })}
       </ul>
+      {moving && (
+        <MoveHereDialog
+          repository={moving}
+          boardId={boardId}
+          defaultStatusId={defaultStatusId}
+          isBoardShared={isBoardShared}
+          onClose={() => setMoving(null)}
+          onMoved={onMoved}
+        />
+      )}
     </section>
   )
 })

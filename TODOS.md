@@ -33,18 +33,6 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
 
 From the `/autoplan` review of issue #215 (one card per user and repository). None blocks that change.
 
-### One-click "Move here" from the picker
-
-**What:** Let a held row move the card to the current board directly.
-
-**Why:** Moving a repo now takes: follow link, open card menu, Move to Another Board, pick board and column.
-
-**Context:** `moveCardToBoard` already does the work and keeps `projectinfo`. The picker knows the current board; it needs a target column choice and a confirmation.
-
-**Effort:** M
-**Priority:** P3
-**Depends on:** None
-
 ### Identify repositories by GitHub id instead of `owner/name`
 
 **What:** Key uniqueness on the GitHub repository id so renames and transfers keep one identity.
