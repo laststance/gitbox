@@ -27,6 +27,19 @@ describe('linkedCardHref', () => {
       '/board/00000000-0000-4000-8000-0000000000b1?card=00000000-0000-4000-8000-0000000000c2',
     )
   })
+
+  test('encodes a board id that would break the path', () => {
+    // Arrange
+    const boardId = 'board/with a space'
+
+    // Act
+    const href = linkedCardHref(boardId, CARD_ID)
+
+    // Assert
+    expect(href).toBe(
+      '/board/board%2Fwith%20a%20space?card=00000000-0000-4000-8000-0000000000c2',
+    )
+  })
 })
 
 describe('revealCardOnBoard', () => {

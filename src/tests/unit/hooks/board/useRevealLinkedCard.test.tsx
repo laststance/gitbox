@@ -31,7 +31,7 @@ function makeCard(id: string, boardId: string): RepoCardForRedux {
   return {
     id: toRepoCardId(id),
     title: 'laststance/gitbox',
-    statusId: toStatusListId('00000000-0000-4000-8000-0000000000s1'),
+    statusId: toStatusListId('00000000-0000-4000-8000-0000000000a1'),
     boardId: toBoardId(boardId),
     repoOwner: 'laststance',
     repoName: 'gitbox',
@@ -71,6 +71,7 @@ describe('useRevealLinkedCard', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     document.body.replaceChildren()
     window.history.replaceState({}, '', `/board/${BOARD_ID}`)
   })
@@ -148,5 +149,28 @@ describe('useRevealLinkedCard', () => {
     // Assert
     expect(document.activeElement).toBe(card!)
     expect(window.location.search).toBe('')
+  })
+
+  test('drops the card parameter when the column never draws the card', () => {
+    // Arrange
+    vi.useFakeTimers()
+    const store = makeStore()
+    store.dispatch(setRepoCards([makeCard(CARD_ID, BOARD_ID)]))
+    store.dispatch(serverSnapshotApplied(toBoardId(BOARD_ID)))
+    render(
+      <Provider store={store}>
+        <Harness />
+      </Provider>,
+    )
+    expect(window.location.search).toBe(`?card=${CARD_ID}`)
+
+    // Act
+    act(() => {
+      vi.advanceTimersByTime(5000)
+    })
+
+    // Assert
+    expect(window.location.search).toBe('')
+    vi.useRealTimers()
   })
 })

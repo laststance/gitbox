@@ -32,7 +32,7 @@ const CARD_ID_PATTERN =
 export function linkedCardHref(boardId: string, cardId: string): string {
   const params = new URLSearchParams()
   params.set(LINKED_CARD_SEARCH_PARAM, cardId)
-  return `/board/${boardId}?${params.toString()}`
+  return `/board/${encodeURIComponent(boardId)}?${params.toString()}`
 }
 
 /**

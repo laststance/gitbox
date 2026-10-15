@@ -57,10 +57,23 @@ export function useRevealLinkedCard(boardId: BoardId): void {
     if (reveal()) return
 
     // The column appears without a new card list. Watch until the card is drawn.
+    // Stop if it never appears, so later edits on the page are not observed.
+    let giveUp = 0
     const observer = new MutationObserver((): void => {
-      if (reveal()) observer.disconnect()
+      if (!reveal()) return
+      window.clearTimeout(giveUp)
+      observer.disconnect()
     })
     observer.observe(document.body, { childList: true, subtree: true })
-    return (): void => observer.disconnect()
+    giveUp = window.setTimeout((): void => {
+      observer.disconnect()
+      if (attemptedCardId.current === cardId) return
+      attemptedCardId.current = cardId
+      forgetLinkedCardSearchParam()
+    }, 5000)
+    return (): void => {
+      window.clearTimeout(giveUp)
+      observer.disconnect()
+    }
   }, [boardId, cardId, hydratedBoardId, repoCards])
 }
