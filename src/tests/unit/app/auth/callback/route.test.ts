@@ -132,11 +132,50 @@ describe('GET /auth/callback', () => {
         redirectTo:
           'http://localhost:3008/auth/callback?pkce_retry=1&next=%2Fboard%2Fabc',
         scopes: 'read:user user:email repo',
+        skipBrowserRedirect: true,
       },
     })
     expect(response.headers.get('location')).toBe(
       'https://github.com/login/oauth/authorize?client_id=abc',
     )
+  })
+
+  test('restarts on the public host when invalid grant is a verifier collision', async () => {
+    // Arrange: production sees an internal request URL and the public host.
+    vi.stubEnv('NODE_ENV', 'production')
+    exchangeCodeForSession.mockResolvedValue({
+      data: { session: null },
+      error: { message: 'invalid grant', code: 'bad_code_verifier' },
+    })
+    signInWithOAuth.mockResolvedValue({
+      data: { url: 'https://github.com/login/oauth/authorize?client_id=abc' },
+      error: null,
+    })
+    const request = new Request(
+      'http://localhost:3008/auth/callback?code=slower-tab&next=%2Fboard%2Fabc',
+      { headers: { 'x-forwarded-host': 'gitbox-laststance.vercel.app' } },
+    )
+
+    try {
+      // Act
+      const response = await GET(request)
+
+      // Assert
+      expect(signInWithOAuth).toHaveBeenCalledWith({
+        provider: 'github',
+        options: {
+          redirectTo:
+            'https://gitbox-laststance.vercel.app/auth/callback?pkce_retry=1&next=%2Fboard%2Fabc',
+          scopes: 'read:user user:email repo',
+          skipBrowserRedirect: true,
+        },
+      })
+      expect(response.headers.get('location')).toBe(
+        'https://github.com/login/oauth/authorize?client_id=abc',
+      )
+    } finally {
+      vi.unstubAllEnvs()
+    }
   })
 
   test('sends the slower tab to login without the verifier text when the restart also mismatches', async () => {

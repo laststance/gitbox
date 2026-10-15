@@ -25,6 +25,7 @@ const log = createModuleLogger('auth-callback')
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
+  const publicOrigin = callbackOrigin(request, origin)
   const code = searchParams.get('code')
 
   // Set by /api/auth/github/refresh on silent re-auth and reserved for future
@@ -42,10 +43,10 @@ export async function GET(request: Request) {
         log.error({ error }, 'OAuth callback error')
         // Another tab replaced the code-verifier cookie. Sign in again
         // instead of showing that failure on the login page.
-        if (isPkceVerifierMismatch(error.message)) {
+        if (isPkceVerifierMismatch(error)) {
           return restartSignInAfterVerifierMismatch({
             supabase,
-            origin,
+            origin: publicOrigin,
             next,
             alreadyRetried: searchParams.get('pkce_retry') === '1',
             clientIp: getForwardedClientIp(request.headers) ?? '127.0.0.1',
@@ -74,13 +75,7 @@ export async function GET(request: Request) {
       }
 
       // Session established successfully - redirect to Boards screen.
-      // In production, honor x-forwarded-host (e.g., behind Vercel proxy) so the
-      // redirect targets the public host rather than the internal origin.
-      const forwardedHost = request.headers.get('x-forwarded-host')
-      const isLocalEnv = process.env.NODE_ENV === 'development'
-      const base =
-        !isLocalEnv && forwardedHost ? `https://${forwardedHost}` : origin
-      return NextResponse.redirect(`${base}${next}`)
+      return NextResponse.redirect(`${publicOrigin}${next}`)
     } catch (error) {
       log.error({ error }, 'Unexpected error in OAuth callback')
       return NextResponse.redirect(`${origin}/login?error=unexpected_error`)
@@ -89,6 +84,25 @@ export async function GET(request: Request) {
 
   // Redirect to login page if code parameter is missing
   return NextResponse.redirect(`${origin}/login?error=missing_code`)
+}
+
+/**
+ * Origin Supabase will accept as the OAuth callback.
+ *
+ * On Vercel the request URL can be an internal host. The public host is
+ * `x-forwarded-host`, which the success redirect already used. The restarted
+ * sign-in has to use it too, or Supabase rejects `redirectTo`.
+ *
+ * @param request - The callback request.
+ * @param origin - `request.url`'s origin.
+ * @returns The public origin in production, otherwise `origin`.
+ */
+function callbackOrigin(request: Request, origin: string): string {
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const isLocalEnv = process.env.NODE_ENV === 'development'
+  // Local dev has no public host in front of the request URL.
+  if (!isLocalEnv && forwardedHost) return `https://${forwardedHost}`
+  return origin
 }
 
 /** Scopes the restarted sign-in asks for, matching a normal GitHub sign-in. */
@@ -140,6 +154,8 @@ async function restartSignInAfterVerifierMismatch({
     options: {
       redirectTo: callbackUrl,
       scopes: GITHUB_SIGN_IN_SCOPES,
+      // The route returns the redirect. The client must not navigate itself.
+      skipBrowserRedirect: true,
     },
   })
   if (oauthError || !data.url) {

@@ -15,30 +15,43 @@ describe('a failed code exchange', () => {
   test('is a collision when the verifier belongs to the other tab', () => {
     // Arrange / Act / Assert
     expect(
-      isPkceVerifierMismatch(
-        'code challenge does not match previously saved code verifier',
-      ),
+      isPkceVerifierMismatch({
+        message: 'code challenge does not match previously saved code verifier',
+      }),
     ).toBe(true)
   })
 
   test('is a collision when the verifier cookie is gone', () => {
     // Arrange / Act / Assert
     expect(
-      isPkceVerifierMismatch(
-        'invalid request: both auth code and code verifier should be non-empty',
-      ),
+      isPkceVerifierMismatch({
+        message:
+          'invalid request: both auth code and code verifier should be non-empty',
+      }),
     ).toBe(true)
   })
 
   test('is a collision when the stored flow state was replaced', () => {
     // Arrange / Act / Assert
     expect(
-      isPkceVerifierMismatch('invalid flow state, no valid flow state found'),
+      isPkceVerifierMismatch({
+        message: 'invalid flow state, no valid flow state found',
+      }),
+    ).toBe(true)
+  })
+
+  test('is a collision when invalid grant names the verifier code', () => {
+    // Arrange / Act / Assert
+    expect(
+      isPkceVerifierMismatch({
+        message: 'invalid grant',
+        code: 'bad_code_verifier',
+      }),
     ).toBe(true)
   })
 
   test('is a failed sign-in when the code itself was refused', () => {
     // Arrange / Act / Assert
-    expect(isPkceVerifierMismatch('invalid grant')).toBe(false)
+    expect(isPkceVerifierMismatch({ message: 'invalid grant' })).toBe(false)
   })
 })

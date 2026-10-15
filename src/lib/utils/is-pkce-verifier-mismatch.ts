@@ -9,15 +9,33 @@
  *
  * Called by the OAuth callback when `exchangeCodeForSession` returns an error.
  *
- * @param message - `error.message` from the code exchange.
- * @returns `true` when the message is a verifier or flow-state mismatch.
+ * A bare `invalid grant` is an expired or reused code: GoTrue says so with
+ * that text and no verifier code. A collision that surfaces as `invalid
+ * grant` still carries `bad_code_verifier` (or names the verifier in the
+ * message). Those restart; the bare grant does not.
+ *
+ * @param error - The code-exchange error. `code` is GoTrue's `error_code`.
+ * @returns `true` when this failure is a verifier or flow-state mismatch.
  * @example
- * isPkceVerifierMismatch(
- *   'code challenge does not match previously saved code verifier',
- * )
+ * isPkceVerifierMismatch({
+ *   message: 'invalid grant',
+ *   code: 'bad_code_verifier',
+ * })
  */
-export function isPkceVerifierMismatch(message: string): boolean {
-  const normalized = message.toLowerCase()
+export function isPkceVerifierMismatch(error: {
+  message: string
+  code?: string
+}): boolean {
+  const code = error.code?.toLowerCase()
+  // These codes are the collision even when the message is only "invalid grant".
+  if (
+    code === 'bad_code_verifier' ||
+    code === 'flow_state_not_found' ||
+    code === 'flow_state_expired'
+  ) {
+    return true
+  }
+  const normalized = error.message.toLowerCase()
   return (
     normalized.includes('code verifier') ||
     normalized.includes('code_verifier') ||
