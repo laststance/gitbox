@@ -62,6 +62,7 @@ function signInWithStub(
   card: Answer,
   writeError: Answer['error'] = null,
   memory: Answer = { data: null, error: null },
+  namedMemory?: Answer,
 ) {
   const upsert = vi.fn(async () => ({ error: writeError }))
   // A PostgREST filter builder: chainable, and awaited for its answer
@@ -72,8 +73,12 @@ function signInWithStub(
   }
   const update = vi.fn(() => filteredUpdate)
   const memoryQuery = {
+    columns: 'id',
     eq: vi.fn(() => memoryQuery),
-    maybeSingle: async () => memory,
+    maybeSingle: async () =>
+      memoryQuery.columns === 'github_repo_id'
+        ? (namedMemory ?? memory)
+        : memory,
   }
   const from = vi.fn((table: string) => {
     if (table === 'repocard') {
@@ -85,7 +90,14 @@ function signInWithStub(
       return query
     }
     if (table === 'projectinfo') {
-      return { upsert, update, select: () => memoryQuery }
+      return {
+        upsert,
+        update,
+        select: (columns: string) => {
+          memoryQuery.columns = columns
+          return memoryQuery
+        },
+      }
     }
     throw new Error(`Unexpected table: ${table}`)
   })
@@ -324,6 +336,61 @@ describe('project-info-core', () => {
       },
       { onConflict: 'user_id,repo_key' },
     )
+  })
+
+  // Value: protects=a note saved under a name that now belongs to another repository is not overwritten with the new repository's text; fails_when=the name upsert sets the new GitHub id on the old memory; why_new=the name is no longer the identity once both rows have ids; seam=none; no_claim=the dialog copy
+  test('saves nothing when the name already belongs to a memory with a different GitHub id', async () => {
+    // Arrange: no memory has id 42; the name still holds repository 99's note
+    const { upsert, update } = signInWithStub(
+      {
+        data: {
+          repo_owner: 'laststance',
+          repo_name: 'gitbox',
+          github_repo_id: 42,
+          board: { user_id: 'user-1' },
+        },
+        error: null,
+      },
+      null,
+      { data: null, error: null },
+      { data: { github_repo_id: 99 }, error: null },
+    )
+
+    // Act
+    const attempt = upsertProjectInfoCore('card-1', {
+      note: 'a note',
+      links: [],
+    })
+
+    // Assert
+    await expect(attempt).rejects.toThrow('Failed to save project information')
+    expect(upsert).not.toHaveBeenCalled()
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  // Value: protects=deleting a comment does not clear the comment of a different repository that used to have this name; fails_when=the name update runs after the id lookup misses; why_new=the delete followed the name whenever the id had no row; seam=none; no_claim=the dialog copy
+  test("clears nothing when the name's memory belongs to a different GitHub id", async () => {
+    // Arrange
+    const { update } = signInWithStub(
+      {
+        data: {
+          repo_owner: 'laststance',
+          repo_name: 'gitbox',
+          github_repo_id: 42,
+          board: { user_id: 'user-1' },
+        },
+        error: null,
+      },
+      null,
+      { data: null, error: null },
+      { data: { github_repo_id: 99 }, error: null },
+    )
+
+    // Act
+    await deleteCommentCore('card-1')
+
+    // Assert
+    expect(update).not.toHaveBeenCalled()
   })
 
   // Value: protects=a failed lookup does not insert a second memory; fails_when=the save continues to the name upsert after the id read fails; why_new=the id lookup is a new request; seam=none; no_claim=the text the dialog shows

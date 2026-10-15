@@ -69,6 +69,66 @@ async function findMemoryIdByGitHubRepoId(
 }
 
 /**
+ * The memory stored under this owner/name, whatever GitHub id it carries.
+ *
+ * Called when no memory has the card's id yet, before an upsert on
+ * `repo_key`. A row with a different confirmed id is another repository
+ * that used to have this name, and must not be overwritten.
+ *
+ * @param supabase - Server client of the signed-in user.
+ * @param ownerId - The user whose memory the write may touch.
+ * @param repository - The card's owner and name.
+ * @returns The id on that row, whether a row exists, and a read error.
+ * @example
+ * await findMemoryByRepoKey(supabase, 'user-1', repository)
+ * // => { githubRepoId: null, found: false, error: null }
+ */
+async function findMemoryByRepoKey(
+  supabase: SupabaseClient<Database>,
+  ownerId: string,
+  repository: Pick<ProjectInfoInsert, 'repo_owner' | 'repo_name'>,
+): Promise<{
+  githubRepoId: number | null
+  found: boolean
+  error: { message: string } | null
+}> {
+  const { data, error } = await supabase
+    .from('projectinfo')
+    .select('github_repo_id')
+    .eq('user_id', ownerId)
+    .eq(
+      'repo_key',
+      toRepoIdentifier(repository.repo_owner, repository.repo_name),
+    )
+    .maybeSingle()
+
+  if (error) return { githubRepoId: null, found: false, error }
+  if (!data) return { githubRepoId: null, found: false, error: null }
+  return {
+    githubRepoId:
+      typeof data.github_repo_id === 'number' ? data.github_repo_id : null,
+    found: true,
+    error: null,
+  }
+}
+
+/**
+ * Whether this name's memory is a different repository's.
+ *
+ * @param githubRepoId - The id on the row, when it has one.
+ * @param cardGitHubRepoId - The id GitHub confirmed for the card.
+ * @returns `true` when writing here would attach another repository's note.
+ * @example
+ * memoryBelongsToAnotherRepository(99, 42) // => true
+ */
+function memoryBelongsToAnotherRepository(
+  githubRepoId: number | null,
+  cardGitHubRepoId: number,
+): boolean {
+  return githubRepoId !== null && githubRepoId !== cardGitHubRepoId
+}
+
+/**
  * Create or update the memory of the repository a card holds.
  *
  * When the card has a confirmed id and a memory already has it, that row is
@@ -114,6 +174,13 @@ async function writeRepositoryMemory(
         .eq('id', found.id)
         .eq('user_id', ownerId)
       return { error }
+    }
+
+    // The name may still belong to a memory whose id is a different repository
+    const byName = await findMemoryByRepoKey(supabase, ownerId, repository)
+    if (byName.error) return { error: byName.error }
+    if (memoryBelongsToAnotherRepository(byName.githubRepoId, githubRepoId)) {
+      return { error: { message: 'Memory belongs to another repository' } }
     }
   }
 
@@ -565,6 +632,15 @@ export async function deleteCommentCore(repoCardId: string): Promise<void> {
       if (error) {
         throw new Error('Failed to delete comment')
       }
+      return
+    }
+
+    // Do not clear a comment that belongs to a different repository's id
+    const byName = await findMemoryByRepoKey(supabase, ownerId, repository)
+    if (byName.error) {
+      throw new Error('Failed to delete comment')
+    }
+    if (memoryBelongsToAnotherRepository(byName.githubRepoId, githubRepoId)) {
       return
     }
   }
