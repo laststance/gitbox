@@ -30,7 +30,9 @@ const getCachedBoardBundle = cache(async (id: string) => getBoardBundle(id))
  * generateMetadata
  *
  * Sets the board name as the page title. Reuses the request-cached bundle so
- * this does NOT trigger a second board fetch.
+ * this does not trigger a second board fetch. A board with no columns can
+ * receive its defaults on this read. A name-only query would add that round
+ * trip back, so this stays until a metadata-only prefetch exists.
  */
 export async function generateMetadata(
   props: BoardPageProps,
