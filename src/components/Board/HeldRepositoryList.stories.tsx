@@ -42,12 +42,14 @@ export const OnAnotherBoard: Story = {
         fullName: 'laststance/gitbox',
         boardId: '00000000-0000-0000-0000-000000000101',
         boardName: 'Work Projects',
+        cardId: '00000000-0000-4000-8000-000000000001',
       },
       {
         id: 2,
         fullName: 'laststance/old-project',
         boardId: '00000000-0000-0000-0000-000000000102',
         boardName: 'Side Projects',
+        cardId: '00000000-0000-4000-8000-000000000002',
       },
     ],
   },
@@ -59,12 +61,18 @@ export const OnAnotherBoard: Story = {
       canvas.getByRole('link', {
         name: 'On Work Projects, which holds laststance/gitbox',
       }),
-    ).toHaveAttribute('href', '/board/00000000-0000-0000-0000-000000000101')
+    ).toHaveAttribute(
+      'href',
+      '/board/00000000-0000-0000-0000-000000000101?card=00000000-0000-4000-8000-000000000001',
+    )
     await expect(
       canvas.getByRole('link', {
         name: 'On Side Projects, which holds laststance/old-project',
       }),
-    ).toHaveAttribute('href', '/board/00000000-0000-0000-0000-000000000102')
+    ).toHaveAttribute(
+      'href',
+      '/board/00000000-0000-0000-0000-000000000102?card=00000000-0000-4000-8000-000000000002',
+    )
   },
 }
 
@@ -80,6 +88,7 @@ export const LongNames: Story = {
           'a-very-long-organization-name/a-very-long-repository-name-that-does-not-fit-the-panel',
         boardId: '00000000-0000-0000-0000-000000000101',
         boardName: 'A board with a remarkably long name that also does not fit',
+        cardId: '00000000-0000-4000-8000-000000000003',
       },
     ],
   },
@@ -95,6 +104,7 @@ export const ManyRows: Story = {
       fullName: `laststance/project-${index + 1}`,
       boardId: '00000000-0000-0000-0000-000000000101',
       boardName: 'Work Projects',
+      cardId: `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
     })),
   },
 }

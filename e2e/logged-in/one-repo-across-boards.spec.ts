@@ -164,13 +164,17 @@ test.describe('One repository per user - picker and dialogs', () => {
       name: 'On Work Projects, which holds testuser/private-project',
     })
     await expect(boardLink).toHaveText('On Work Projects')
+    await expect(boardLink).toHaveAttribute(
+      'href',
+      `${WORK_PROJECTS_URL}?card=${FIXTURE_CARD_ID}`,
+    )
     await boardLink.click()
 
-    // Assert: lands on the holding board, where the card is
+    // Assert: lands on the holding board, scrolled to that card and focused
     await expect(page).toHaveURL(WORK_PROJECTS_URL)
-    await expect(
-      page.locator(`[data-testid="repo-card-${FIXTURE_CARD_ID}"]`),
-    ).toBeVisible({ timeout: 15000 })
+    const card = page.locator(`[data-repo-card-id="${FIXTURE_CARD_ID}"]`)
+    await expect(card).toBeVisible({ timeout: 15000 })
+    await expect(card).toBeFocused()
   })
 
   test('adds nothing and says where the repository lives when it was placed after the picker opened', async ({

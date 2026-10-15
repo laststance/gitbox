@@ -483,6 +483,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
             identifier: 'laststance/gitbox',
             boardId: 'board-2',
             boardName: 'Work Projects',
+            cardId: '00000000-0000-4000-8000-0000000000c2',
           },
         ],
         savedMemories: null,
@@ -550,6 +551,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
             identifier: 'laststance/gitbox',
             boardId: 'board-2',
             boardName: 'Work Projects',
+            cardId: '00000000-0000-4000-8000-0000000000c2',
           },
         ],
         savedMemories: [],
@@ -575,7 +577,10 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
       name: 'On Work Projects, which holds laststance/gitbox',
     })
     expect(boardLink).toHaveTextContent('On Work Projects')
-    expect(boardLink).toHaveAttribute('href', '/board/board-2')
+    expect(boardLink).toHaveAttribute(
+      'href',
+      '/board/board-2?card=00000000-0000-4000-8000-0000000000c2',
+    )
     const options = await findRepositoryOptions()
     expect(options).toHaveLength(1)
     expect(options[0]).toHaveTextContent('laststance/free-repo')
@@ -593,6 +598,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
             identifier: 'laststance/gitbox',
             boardId: 'board-2',
             boardName: 'Work Projects',
+            cardId: '00000000-0000-4000-8000-0000000000c2',
           },
         ],
         savedMemories: [],
@@ -636,6 +642,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
             identifier: 'laststance/gitbox',
             boardId: 'board-2',
             boardName: 'Work Projects',
+            cardId: '00000000-0000-4000-8000-0000000000c2',
           },
         ],
         savedMemories: [],
@@ -700,6 +707,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
               identifier: 'laststance/gitbox',
               boardId: 'board-2',
               boardName: 'Work Projects',
+              cardId: '00000000-0000-4000-8000-0000000000c2',
             },
           ],
           savedMemories: [],
@@ -854,6 +862,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
             identifier: 'laststance/gitbox',
             boardId: 'board-2',
             boardName: 'Work Projects',
+            cardId: '00000000-0000-4000-8000-0000000000c2',
           },
         ],
         savedMemories: [],
@@ -974,6 +983,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
               identifier: 'laststance/gitbox',
               boardId: 'board-2',
               boardName: 'Work Projects',
+              cardId: '00000000-0000-4000-8000-0000000000c2',
             },
           ],
           savedMemories: [],
@@ -1052,6 +1062,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
             identifier: 'laststance/gitbox',
             boardId: 'board-1',
             boardName: 'Test Board',
+            cardId: '00000000-0000-4000-8000-0000000000c2',
           },
         ],
         savedMemories: [],
@@ -1105,6 +1116,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
               identifier: 'laststance/gitbox',
               boardId: 'board-2',
               boardName: 'Work Projects',
+              cardId: '00000000-0000-4000-8000-0000000000c2',
             },
           ],
           savedMemories: [],

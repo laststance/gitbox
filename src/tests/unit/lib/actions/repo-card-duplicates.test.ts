@@ -83,6 +83,7 @@ function makeSupabaseStub(result: LookupResult | LookupResult[]) {
 /** `count` card rows of different repositories, all on the board "Work Projects". */
 function makeCardRows(count: number) {
   return Array.from({ length: count }, (_, index) => ({
+    id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
     repo_owner: 'laststance',
     repo_name: `repo-${index}`,
     board: { id: 'board-2', user_id: 'user-1', name: 'Work Projects' },
@@ -99,6 +100,7 @@ describe('lookupRepoPlacements', () => {
     const { supabase } = makeSupabaseStub({
       data: [
         {
+          id: '00000000-0000-4000-8000-0000000000c2',
           repo_owner: 'Laststance',
           repo_name: 'GitBox',
           board: { id: 'board-2', user_id: 'user-1', name: 'Work Projects' },
@@ -116,6 +118,7 @@ describe('lookupRepoPlacements', () => {
         identifier: 'laststance/gitbox',
         boardId: 'board-2',
         boardName: 'Work Projects',
+        cardId: '00000000-0000-4000-8000-0000000000c2',
       },
     ])
     expect(Sentry.captureMessage).not.toHaveBeenCalled()
@@ -141,6 +144,7 @@ describe('lookupRepoPlacements', () => {
       {
         data: [
           {
+            id: '00000000-0000-4000-8000-000000001000',
             repo_owner: 'laststance',
             repo_name: 'past-the-cap',
             board: { id: 'board-2', user_id: 'user-1', name: 'Work Projects' },
@@ -159,6 +163,7 @@ describe('lookupRepoPlacements', () => {
       identifier: 'laststance/past-the-cap',
       boardId: 'board-2',
       boardName: 'Work Projects',
+      cardId: '00000000-0000-4000-8000-000000001000',
     })
     expect(order).toHaveBeenNthCalledWith(1, 'id', { ascending: true })
     expect(order).toHaveBeenNthCalledWith(2, 'id', { ascending: true })
@@ -223,6 +228,7 @@ describe('splitRequestedRepos', () => {
         identifier: 'laststance/gitbox',
         boardId: 'board-2',
         boardName: 'Work Projects',
+        cardId: '00000000-0000-4000-8000-0000000000c2',
       },
     ]
 
@@ -252,6 +258,7 @@ describe('splitRequestedRepos', () => {
         identifier: 'laststance/gitbox',
         boardId: 'board-1',
         boardName: 'Test Board',
+        cardId: '00000000-0000-4000-8000-0000000000c2',
       },
     ]
 
@@ -281,6 +288,7 @@ describe('splitRequestedRepos', () => {
         identifier: 'laststance/gitbox',
         boardId: 'board-2',
         boardName: 'Work Projects',
+        cardId: '00000000-0000-4000-8000-0000000000c2',
       },
     ]
 
@@ -330,11 +338,13 @@ describe('splitRequestedRepos', () => {
         identifier: 'laststance/gitbox',
         boardId: 'board-2',
         boardName: 'Work Projects',
+        cardId: '00000000-0000-4000-8000-0000000000c2',
       },
       {
         identifier: 'laststance/old-project',
         boardId: 'board-3',
         boardName: 'Side Projects',
+        cardId: '00000000-0000-4000-8000-0000000000c2',
       },
     ]
 

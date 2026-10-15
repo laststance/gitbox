@@ -289,3 +289,18 @@ export const selectMayApplyServerSnapshot = (
   // Page data of a navigation, with nothing in flight
   return true
 }
+
+/**
+ * Board whose cards the store holds, or `null` before any board was opened.
+ *
+ * Called by {@link useRevealLinkedCard} so a link does not scroll to a card
+ * that is still on screen from the board the user just left.
+ *
+ * @param state - Root state holding the `boardSync` slice.
+ * @returns The hydrated board id, or `null`.
+ * @example
+ * selectHydratedBoardId(state) // => 'board-1' as BoardId
+ */
+export const selectHydratedBoardId = (state: {
+  boardSync: BoardSyncState
+}): BoardId | null => state.boardSync.hydratedBoardId

@@ -33,18 +33,6 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
 
 From the `/autoplan` review of issue #215 (one card per user and repository). None blocks that change.
 
-### Reveal and focus the card when arriving from the picker's "On <board>" link
-
-**What:** After following a held-row link, scroll to the card on the holding board and focus it.
-
-**Why:** Today the user lands on the board and has to find the card by eye before moving it.
-
-**Context:** Both design review voices recommended this; it was left out because it adds scope to #215 (User Challenge 2). Needs a card id in the link (query or hash), a scroll and focus on mount, and care with the virtualized columns.
-
-**Effort:** M
-**Priority:** P2
-**Depends on:** None
-
 ### One-click "Move here" from the picker
 
 **What:** Let a held row move the card to the current board directly.

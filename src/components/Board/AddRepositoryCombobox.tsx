@@ -924,9 +924,9 @@ function trackButtonBottom(
  *   repositories: [repoA, repoB],
  *   currentBoardId: 'b1',
  *   currentBoardIdentifiers: new Set(),
- *   placements: [{ identifier: 'o/b', boardId: 'b2', boardName: 'Work' }],
+ *   placements: [{ identifier: 'o/b', boardId: 'b2', boardName: 'Work', cardId: 'c' }],
  * })
- * // => { addable: [repoA], held: [{ id: repoB.id, fullName: 'o/b', boardId: 'b2', boardName: 'Work' }] }
+ * // => { addable: [repoA], held: [{ id: repoB.id, fullName: 'o/b', boardId: 'b2', boardName: 'Work', cardId: 'c' }] }
  */
 function classifyRepositories(params: {
   repositories: GitHubRepository[]
@@ -968,6 +968,7 @@ function classifyRepositories(params: {
         fullName: repository.full_name,
         boardId: boardPlacement.boardId,
         boardName: boardPlacement.boardName,
+        cardId: boardPlacement.cardId,
       })
       continue
     }

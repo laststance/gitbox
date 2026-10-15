@@ -4,12 +4,14 @@ import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { memo } from 'react'
 
+import { linkedCardHref } from '@/lib/utils/linked-card'
+
 /**
  * A catalog repository the user cannot add because it is already placed on
  * another of their boards.
  *
  * @example
- * { id: 42, fullName: 'laststance/gitbox', boardId: 'uuid', boardName: 'Work' }
+ * { id: 42, fullName: 'laststance/gitbox', boardId: 'uuid', boardName: 'Work', cardId: 'card-uuid' }
  */
 export interface HeldRepository {
   /** GitHub repository id (stable list key). */
@@ -20,6 +22,8 @@ export interface HeldRepository {
   boardId: string
   /** Display name of the board that holds the repository. */
   boardName: string
+  /** Id of the card on that board. The link scrolls to it and focuses it. */
+  cardId: string
 }
 
 interface HeldRepositoryListProps {
@@ -96,13 +100,13 @@ export const HeldRepositoryList = memo(function HeldRepositoryList({
  * Resolves the link target and copy for a held repository row.
  *
  * @param repository - The held repository to describe.
- * @returns `{ href: '/board/<id>', label: 'On <board name>', accessibleName: 'On <board name>, which holds owner/name' }`
+ * @returns `{ href: '/board/<id>?card=<card id>', label: 'On <board name>', accessibleName: 'On <board name>, which holds owner/name' }`
  *
  * The accessible name starts with the visible label so that speech-control
  * users can say what they see (WCAG 2.5.3 Label in Name).
  * @example
- * toDestination({ id: 1, fullName: 'a/b', boardId: 'x', boardName: 'Work' })
- * // => { href: '/board/x', label: 'On Work', accessibleName: 'On Work, which holds a/b' }
+ * toDestination({ id: 1, fullName: 'a/b', boardId: 'x', boardName: 'Work', cardId: 'c' })
+ * // => { href: '/board/x?card=c', label: 'On Work', accessibleName: 'On Work, which holds a/b' }
  */
 function toDestination(repository: HeldRepository): {
   href: string
@@ -110,7 +114,7 @@ function toDestination(repository: HeldRepository): {
   accessibleName: string
 } {
   return {
-    href: `/board/${repository.boardId}`,
+    href: linkedCardHref(repository.boardId, repository.cardId),
     label: `On ${repository.boardName}`,
     accessibleName: `On ${repository.boardName}, which holds ${repository.fullName}`,
   }

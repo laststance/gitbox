@@ -45,6 +45,7 @@ import {
   useAddRepositoryCombobox,
   useOptimisticCardAction,
   useBoardServerSync,
+  useRevealLinkedCard,
 } from '@/hooks/board'
 import { renameBoardDirect, updateBoardSubtitle } from '@/lib/actions/board'
 import type { BoardInitialData } from '@/lib/actions/board-data'
@@ -96,6 +97,8 @@ export const BoardPageClient = memo(function BoardPageClient({
     statusLists: initialData.statusLists,
     repoCards: initialData.repoCards,
   })
+  // A held-row link names its card. Scroll to it once this board is showing.
+  useRevealLinkedCard(boardId)
 
   // ========================================
   // Custom Hooks for State Management
