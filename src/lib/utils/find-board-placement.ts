@@ -70,6 +70,9 @@ export function indexBoardPlacements<Placement extends PlacementIdentity>(
  * @param indexes - The maps that function built.
  * @param repository - The repository being classified.
  * @returns The placement, preferring a confirmed GitHub id over the name.
+ *   A name match is used only when this repository has no id, or the card
+ *   that has the name has none yet. A card with a different confirmed id is
+ *   a different repository that used to have this name.
  * @example
  * findIndexedPlacement(indexBoardPlacements([]), { identifier: 'a/b' })
  * // => undefined
@@ -84,6 +87,12 @@ export function findIndexedPlacement<Placement extends PlacementIdentity>(
   if (typeof repository.githubId === 'number') {
     const byId = indexes.byGitHubId.get(repository.githubId)
     if (byId) return byId
+    // The name may belong to a card whose id is not confirmed yet
+    const byIdentifier = indexes.byIdentifier.get(repository.identifier)
+    if (byIdentifier && typeof byIdentifier.githubRepoId !== 'number') {
+      return byIdentifier
+    }
+    return undefined
   }
   return indexes.byIdentifier.get(repository.identifier)
 }

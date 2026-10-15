@@ -284,6 +284,60 @@ describe('splitRequestedRepos', () => {
     ])
   })
 
+  test('keeps a repository addable when the same name belongs to a card with a different GitHub id', () => {
+    // Arrange: the card still spells a name that now belongs to another repository
+    const requested = [
+      { name: 'gitbox', owner: { login: 'laststance' }, id: 42 },
+    ]
+    const placements: BoardPlacement[] = [
+      {
+        identifier: 'laststance/gitbox',
+        boardId: 'board-1',
+        boardName: 'Test Board',
+        cardId: '00000000-0000-4000-8000-0000000000c2',
+        githubRepoId: 99,
+      },
+    ]
+
+    // Act
+    const result = splitRequestedRepos(requested, placements, 'board-1')
+
+    // Assert
+    expect(result.skipped).toEqual([])
+    expect(result.addable).toEqual(requested)
+  })
+
+  test('treats a repository as the card that has the same name and no GitHub id yet', () => {
+    // Arrange
+    const requested = [
+      { name: 'gitbox', owner: { login: 'laststance' }, id: 42 },
+    ]
+    const placements: BoardPlacement[] = [
+      {
+        identifier: 'laststance/gitbox',
+        boardId: 'board-1',
+        boardName: 'Test Board',
+        cardId: '00000000-0000-4000-8000-0000000000c2',
+        githubRepoId: null,
+      },
+    ]
+
+    // Act
+    const result = splitRequestedRepos(requested, placements, 'board-1')
+
+    // Assert
+    expect(result.addable).toEqual([])
+    expect(result.skipped).toEqual([
+      {
+        fullName: 'laststance/gitbox',
+        reason: 'this-board',
+        message: 'laststance/gitbox is already on this board',
+        boardId: 'board-1',
+        boardName: 'Test Board',
+      },
+    ])
+  })
+
   test('skips a repository that is already on the target board', () => {
     // Arrange
     const requested = [{ name: 'gitbox', owner: { login: 'laststance' } }]
