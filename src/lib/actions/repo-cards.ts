@@ -20,7 +20,7 @@ import type { GitHubRepository } from '@/lib/actions/github'
 import { MOVE_UNCONFIRMED_MESSAGE } from '@/lib/constants/card-move'
 import {
   backfillVerifiedRepositoryIds,
-  verifyRepositoryIdentity,
+  verifyRepositoryIdentities,
 } from '@/lib/github/verify-repository-identity'
 import { createModuleLogger } from '@/lib/logger'
 import {
@@ -204,18 +204,22 @@ export async function addRepositoriesToBoard(
         return { addedCount: 0, cards: [], skipped: namedSkipped }
       }
 
-      // Ask GitHub, and compare and store only that answer.
+      // Ask GitHub, five at a time, and compare and store only that answer.
+      const confirmations = await verifyRepositoryIdentities(
+        namedAddable.map((repository) => ({
+          owner: repository.owner.login,
+          name: repository.name,
+        })),
+      )
       const confirmed: GitHubRepository[] = []
-      for (const repository of namedAddable) {
-        const verified = await verifyRepositoryIdentity(
-          repository.owner.login,
-          repository.name,
-        )
-        if (!verified) {
+      for (const [index, repository] of namedAddable.entries()) {
+        const confirmation = confirmations[index]
+        if (!confirmation || confirmation.outcome !== 'confirmed') {
           throw new ActionUserError(
             'Could not confirm the repository with GitHub. Try again.',
           )
         }
+        const verified = confirmation.repository
         confirmed.push({
           ...repository,
           id: verified.id,

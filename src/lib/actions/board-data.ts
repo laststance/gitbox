@@ -22,6 +22,7 @@
 'use server'
 
 import * as Sentry from '@sentry/nextjs'
+import { after } from 'next/server'
 
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 import { POSTGREST_MAX_ROWS } from '@/lib/constants/postgrest'
@@ -104,15 +105,19 @@ export async function getUserRepoPlacements(): Promise<
   ActionResult<RepoPlacementsLookup>
 > {
   return withAuthResult(async (supabase, claims) => {
-    // A renamed repository matches its card only after the id is confirmed.
-    // The list is still returned when confirmation fails.
-    try {
-      await backfillVerifiedRepositoryIds(supabase, claims.sub)
-    } catch (error) {
-      Sentry.captureException(error, {
-        tags: { action: 'backfillVerifiedRepositoryIds' },
-      })
-    }
+    // Confirm ids after the list is sent. Waiting here would hold the picker
+    // open for up to 25 GitHub requests. The next opening reads what this
+    // one stored. A failure leaves those ids null; the list is already on
+    // its way.
+    after(async (): Promise<void> => {
+      try {
+        await backfillVerifiedRepositoryIds(supabase, claims.sub)
+      } catch (error) {
+        Sentry.captureException(error, {
+          tags: { action: 'backfillVerifiedRepositoryIds' },
+        })
+      }
+    })
 
     const [placements, allSavedMemories] = await Promise.all([
       lookupRepoPlacements(supabase, claims.sub),

@@ -4,6 +4,7 @@
  * @see src/lib/github/verify-repository-identity.ts
  */
 
+import { AxiosError } from 'axios'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { createGitHubAxios, getGitHubToken } from '@/lib/axios-github'
@@ -36,10 +37,35 @@ describe('verifyRepositoryIdentity', () => {
     // Assert
     expect(get).toHaveBeenCalledWith('/repos/laststance/gitbox')
     expect(verified).toEqual({
-      id: 42,
-      owner: 'laststance',
-      name: 'gitbox-renamed',
+      outcome: 'confirmed',
+      repository: {
+        id: 42,
+        owner: 'laststance',
+        name: 'gitbox-renamed',
+      },
     })
+  })
+
+  test('says the repository is gone only when GitHub answers 404', async () => {
+    // Arrange
+    vi.mocked(getGitHubToken).mockResolvedValue('gho_token')
+    vi.mocked(createGitHubAxios).mockReturnValue({
+      get: vi.fn().mockRejectedValue(
+        new AxiosError('Not Found', '404', undefined, undefined, {
+          status: 404,
+          statusText: 'Not Found',
+          headers: {},
+          config: {} as never,
+          data: {},
+        }),
+      ),
+    } as never)
+
+    // Act
+    const verified = await verifyRepositoryIdentity('laststance', 'gitbox')
+
+    // Assert
+    expect(verified).toEqual({ outcome: 'gone' })
   })
 
   test('returns nothing when GitHub cannot be asked', async () => {
@@ -50,7 +76,7 @@ describe('verifyRepositoryIdentity', () => {
     const verified = await verifyRepositoryIdentity('laststance', 'gitbox')
 
     // Assert
-    expect(verified).toBeNull()
+    expect(verified).toEqual({ outcome: 'unavailable' })
     expect(createGitHubAxios).not.toHaveBeenCalled()
   })
 })
@@ -138,7 +164,7 @@ describe('backfillVerifiedRepositoryIds', () => {
     expect(memoryUpdate).toHaveBeenCalledWith({ github_repo_id: 42 })
   })
 
-  test('remembers a repository GitHub did not confirm, and does not store an id', async () => {
+  test('remembers a repository GitHub says is gone, and does not store an id', async () => {
     // Arrange
     const cardUpdate = vi.fn().mockReturnValue(updateResult(null))
     const memoryUpdate = vi.fn()
@@ -149,7 +175,15 @@ describe('backfillVerifiedRepositoryIds', () => {
     )
     vi.mocked(getGitHubToken).mockResolvedValue('gho_token')
     vi.mocked(createGitHubAxios).mockReturnValue({
-      get: vi.fn().mockRejectedValue(new Error('Not Found')),
+      get: vi.fn().mockRejectedValue(
+        new AxiosError('Not Found', '404', undefined, undefined, {
+          status: 404,
+          statusText: 'Not Found',
+          headers: {},
+          config: {} as never,
+          data: {},
+        }),
+      ),
     } as never)
 
     // Act
@@ -159,6 +193,36 @@ describe('backfillVerifiedRepositoryIds', () => {
     expect(cardUpdate).toHaveBeenCalledWith({
       github_identity_checked_at: '2026-10-16T00:00:00.000Z',
     })
+    expect(memoryUpdate).not.toHaveBeenCalled()
+  })
+
+  test('leaves a card unchecked when GitHub rate-limits the confirmation', async () => {
+    // Arrange
+    const cardUpdate = vi.fn()
+    const memoryUpdate = vi.fn()
+    const supabase = supabaseFor(
+      [{ id: 'card-1', repo_owner: 'laststance', repo_name: 'gitbox' }],
+      cardUpdate,
+      memoryUpdate,
+    )
+    vi.mocked(getGitHubToken).mockResolvedValue('gho_token')
+    vi.mocked(createGitHubAxios).mockReturnValue({
+      get: vi.fn().mockRejectedValue(
+        new AxiosError('rate limit', '429', undefined, undefined, {
+          status: 429,
+          statusText: 'Too Many Requests',
+          headers: {},
+          config: {} as never,
+          data: {},
+        }),
+      ),
+    } as never)
+
+    // Act
+    await backfillVerifiedRepositoryIds(supabase as never, 'user-1')
+
+    // Assert
+    expect(cardUpdate).not.toHaveBeenCalled()
     expect(memoryUpdate).not.toHaveBeenCalled()
   })
 

@@ -43,6 +43,18 @@ vi.mock('@sentry/nextjs', () => ({
   captureMessage: vi.fn(),
 }))
 
+// `after` throws outside a request. Run the callback here so the test still
+// exercises it, without holding the action open the way production does not.
+vi.mock('next/server', async () => {
+  const actual = await vi.importActual('next/server')
+  return {
+    ...(actual as Record<string, unknown>),
+    after: (task: () => void | Promise<void>): void => {
+      void task()
+    },
+  }
+})
+
 describe('getUserRepoPlacements()', () => {
   beforeEach(() => {
     vi.clearAllMocks()

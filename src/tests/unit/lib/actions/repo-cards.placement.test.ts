@@ -25,7 +25,7 @@ import {
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 import {
   backfillVerifiedRepositoryIds,
-  verifyRepositoryIdentity,
+  verifyRepositoryIdentities,
 } from '@/lib/github/verify-repository-identity'
 
 vi.mock('@sentry/nextjs', () => ({
@@ -45,17 +45,34 @@ vi.mock('@/lib/auth/get-cached-claims', () => ({
   getCachedClaims: vi.fn(),
 }))
 
+/** The confirmation GitHub would return for one repository in these tests. */
+const { confirmedRepository } = vi.hoisted(() => {
+  function confirmedRepository(owner: string, name: string, id?: number) {
+    return {
+      outcome: 'confirmed' as const,
+      repository: {
+        // free-repo is the id the insert assertions already expect. Any other
+        // name gets its own id, so two repositories are not one GitHub id.
+        id:
+          id ??
+          (name.toLowerCase() === 'free-repo'
+            ? 1001
+            : 2000 + name.toLowerCase().charCodeAt(0)),
+        owner,
+        name,
+      },
+    }
+  }
+  return { confirmedRepository }
+})
+
 vi.mock('@/lib/github/verify-repository-identity', () => ({
-  verifyRepositoryIdentity: vi.fn(async (owner: string, name: string) => ({
-    // free-repo is the id the insert assertions already expect. Any other
-    // name gets its own id, so two repositories are not one GitHub id.
-    id:
-      name.toLowerCase() === 'free-repo'
-        ? 1001
-        : 2000 + name.toLowerCase().charCodeAt(0),
-    owner,
-    name,
-  })),
+  verifyRepositoryIdentities: vi.fn(
+    async (repositories: { owner: string; name: string }[]) =>
+      repositories.map((repository) =>
+        confirmedRepository(repository.owner, repository.name),
+      ),
+  ),
   backfillVerifiedRepositoryIds: vi.fn(async () => undefined),
 }))
 
@@ -170,15 +187,11 @@ function makeRepository(owner: string, name: string): GitHubRepository {
 describe('addRepositoriesToBoard', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(verifyRepositoryIdentity).mockImplementation(
-      async (owner: string, name: string) => ({
-        id:
-          name.toLowerCase() === 'free-repo'
-            ? 1001
-            : 2000 + name.toLowerCase().charCodeAt(0),
-        owner,
-        name,
-      }),
+    vi.mocked(verifyRepositoryIdentities).mockImplementation(
+      async (repositories) =>
+        repositories.map((repository) =>
+          confirmedRepository(repository.owner, repository.name),
+        ),
     )
     vi.mocked(backfillVerifiedRepositoryIds).mockResolvedValue(undefined)
   })
@@ -410,11 +423,9 @@ describe('addRepositoriesToBoard', () => {
 
   test('stores the id GitHub confirmed, not the id the browser sent', async () => {
     // Arrange
-    vi.mocked(verifyRepositoryIdentity).mockResolvedValue({
-      id: 4242,
-      owner: 'laststance',
-      name: 'free-repo',
-    })
+    vi.mocked(verifyRepositoryIdentities).mockResolvedValue([
+      confirmedRepository('laststance', 'free-repo', 4242),
+    ])
     const { insert } = signInWithSupabaseStub({
       repocard: { data: [], error: null },
       repocardSingle: { data: { order: 0 }, error: null },
@@ -450,7 +461,9 @@ describe('addRepositoriesToBoard', () => {
 
   test('adds nothing when GitHub does not confirm the repository', async () => {
     // Arrange
-    vi.mocked(verifyRepositoryIdentity).mockResolvedValue(null)
+    vi.mocked(verifyRepositoryIdentities).mockResolvedValue([
+      { outcome: 'unavailable' },
+    ])
     const { insert } = signInWithSupabaseStub({
       repocard: { data: [], error: null },
     })
