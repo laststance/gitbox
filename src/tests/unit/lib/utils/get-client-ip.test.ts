@@ -1,9 +1,8 @@
 /**
  * Unit Tests: getForwardedClientIp
  *
- * The first hop of `x-forwarded-for` is caller-controlled on Vercel, because
- * the edge appends the connecting address. These tests lock the trusted
- * address: `x-real-ip`, otherwise the last hop.
+ * `x-real-ip` is the address to key. A forwarded list uses its last hop so a
+ * prefix cannot choose the bucket. One address is unchanged.
  */
 
 import { describe, expect, test } from 'vitest'
@@ -23,7 +22,7 @@ describe('getForwardedClientIp', () => {
     expect(ip).toBe('203.0.113.10')
   })
 
-  test('ignores a spoofed first hop and uses the address the edge appended', () => {
+  test('uses the last hop when x-forwarded-for is a list', () => {
     // Arrange
     const headers = new Headers({
       'x-forwarded-for': '198.51.100.1, 203.0.113.50',
@@ -36,7 +35,7 @@ describe('getForwardedClientIp', () => {
     expect(ip).toBe('203.0.113.50')
   })
 
-  test('uses x-real-ip when the forwarded chain starts with a spoofed address', () => {
+  test('uses x-real-ip when x-forwarded-for is a list', () => {
     // Arrange
     const headers = new Headers({
       'x-real-ip': '203.0.113.8',
@@ -66,7 +65,7 @@ describe('getForwardedClientIp', () => {
 })
 
 describe('getClientIp', () => {
-  test('rate-limits a spoofed forwarded chain as the edge address', () => {
+  test('keys a forwarded list by its last hop', () => {
     // Arrange
     const request = new Request('http://localhost/auth/callback', {
       headers: { 'x-forwarded-for': '198.51.100.1, 203.0.113.50' },

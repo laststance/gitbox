@@ -88,7 +88,7 @@ export function getEdgeRateLimitEntryCount(): number {
  *
  * @example
  * const ip = getClientIp(request)
- * // '203.0.113.42' (from x-real-ip, or the last x-forwarded-for hop)
+ * // '203.0.113.42' (x-real-ip, or the last x-forwarded-for hop)
  */
 export function getClientIp(request: Request): string {
   // A blank header must not become the shared rate-limit key.
