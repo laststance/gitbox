@@ -24,9 +24,15 @@ import {
 } from '@/lib/actions/github'
 import {
   addRepositoriesToBoard,
+  moveCardToBoard,
   type CreatedRepoCard,
 } from '@/lib/actions/repo-cards'
-import boardReducer, { setRepoCards } from '@/lib/redux/slices/boardSlice'
+import type { StatusListDomain } from '@/lib/models/domain'
+import boardReducer, {
+  setRepoCards,
+  setStatusLists,
+} from '@/lib/redux/slices/boardSlice'
+import boardSyncReducer from '@/lib/redux/slices/boardSyncSlice'
 import settingsReducer from '@/lib/redux/slices/settingsSlice'
 import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
 import { isOverlayOpen } from '@/lib/utils/is-overlay-open'
@@ -41,6 +47,7 @@ vi.mock('@/lib/actions/board-data', () => ({
 
 vi.mock('@/lib/actions/repo-cards', () => ({
   addRepositoriesToBoard: vi.fn(),
+  moveCardToBoard: vi.fn(),
 }))
 
 vi.mock('@/lib/utils/handle-github-token-missing', () => ({
@@ -49,7 +56,7 @@ vi.mock('@/lib/utils/handle-github-token-missing', () => ({
 }))
 
 vi.mock('sonner', () => ({
-  toast: { success: vi.fn(), warning: vi.fn() },
+  toast: { success: vi.fn(), warning: vi.fn(), error: vi.fn() },
 }))
 
 // happy-dom lays nothing out, so the real virtualizer finds no visible row.
@@ -122,10 +129,19 @@ function mockCatalog(repositories: GitHubRepository[]): void {
  * Render the open picker for board-1 inside a fresh store.
  * @param isBoardShared - board-1 has a public link.
  */
-function renderOpenPicker(isBoardShared = false) {
+function renderOpenPicker(
+  isBoardShared = false,
+  columns: StatusListDomain[] = [],
+) {
   const store = configureStore({
-    reducer: { board: boardReducer, settings: settingsReducer },
+    reducer: {
+      board: boardReducer,
+      settings: settingsReducer,
+      boardSync: boardSyncReducer,
+    },
   })
+  // Move Here reads the columns of the board on screen
+  if (columns.length > 0) store.dispatch(setStatusLists(columns))
   const onOpenChange = vi.fn()
   const onRepositoriesAdded = vi.fn()
   render(
@@ -584,6 +600,61 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     const options = await findRepositoryOptions()
     expect(options).toHaveLength(1)
     expect(options[0]).toHaveTextContent('laststance/free-repo')
+  })
+
+  test('moves a held repository onto the column the picker was opened for', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    mockCatalog([makeRepository(2, 'gitbox')])
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: true,
+      data: {
+        placements: [
+          {
+            identifier: 'laststance/gitbox',
+            boardId: 'board-2',
+            boardName: 'Work Projects',
+            cardId: '00000000-0000-4000-8000-0000000000c2',
+          },
+        ],
+        savedMemories: [],
+      },
+    })
+    vi.mocked(moveCardToBoard).mockResolvedValue({
+      success: true,
+      data: undefined,
+    })
+    renderOpenPicker(false, [
+      {
+        id: toStatusListId('status-1'),
+        title: 'To Do',
+        color: '#6B7280',
+        gridRow: 0,
+        gridCol: 0,
+        boardId: toBoardId('board-1'),
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    ])
+
+    // Act
+    const heldList = await screen.findByRole('list', {
+      name: 'Already placed elsewhere',
+    })
+    await user.click(
+      within(heldList).getByRole('button', {
+        name: 'Move Here, laststance/gitbox',
+      }),
+    )
+    const dialog = await screen.findByRole('dialog', { name: 'Move Here' })
+    await user.click(within(dialog).getByRole('button', { name: 'Move Here' }))
+
+    // Assert
+    expect(moveCardToBoard).toHaveBeenCalledWith(
+      '00000000-0000-4000-8000-0000000000c2',
+      'board-1',
+      'status-1',
+    )
   })
 
   test('shows where a repository lives when the search matches only a held repository', async () => {
