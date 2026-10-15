@@ -399,6 +399,26 @@ describe('useRepositoryCatalog', () => {
     expect(result.current.userRepos).toEqual([])
   })
 
+  test('asks for the catalog once when React replays the opening effect', async () => {
+    // Arrange
+    vi.mocked(getAuthenticatedRepositoryCatalog).mockResolvedValue({
+      success: true,
+      data: repositoryCatalog,
+    })
+
+    // Act
+    const { result } = renderHook(() => useRepositoryCatalog(true), {
+      reactStrictMode: true,
+    })
+
+    // Assert
+    await waitFor(() => {
+      expect(result.current.userRepos).toEqual(repositoryCatalog.repositories)
+    })
+    expect(getAuthenticatedRepositoryCatalog).toHaveBeenCalledTimes(1)
+    expect(result.current.catalogError).toBeNull()
+  })
+
   test('keeps the latest opening when an earlier catalog request answers afterwards', async () => {
     // Arrange
     const earlierRequest =

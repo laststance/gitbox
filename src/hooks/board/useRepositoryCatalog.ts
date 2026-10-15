@@ -60,6 +60,9 @@ export function useRepositoryCatalog(
   const oauthNavigationStarted = useRef(false)
   // Open → close → open starts another request. Only the newest may write.
   const latestRequestId = useRef(0)
+  // Strict Mode replays the effect for the same opening. That replay shares the request.
+  const openingId = useRef(0)
+  const requestedOpeningId = useRef<number | null>(null)
 
   // Read the latest committed picker intent after the catalog request settles.
   const refreshAuthentication = useEffectEvent((wasResumedPicker: boolean) => {
@@ -77,9 +80,12 @@ export function useRepositoryCatalog(
     )
   })
 
-  const loadCatalog = useEffectEvent(async () => {
+  const loadCatalog = useEffectEvent(async (opening: number) => {
     if (hasCatalog.current || oauthNavigationStarted.current) return
+    // The same opening already asked. A replay must not supersede that request.
+    if (requestedOpeningId.current === opening) return
 
+    requestedOpeningId.current = opening
     const requestId = ++latestRequestId.current
     // Classify this request before awaiting, even if its target or URL changes later.
     const returnStatusId = new URL(window.location.href).searchParams.get(
@@ -133,9 +139,12 @@ export function useRepositoryCatalog(
 
   /* eslint-disable react-you-might-not-need-an-effect/no-event-handler -- controlled picker open state triggers one cached Server Action */
   useEffect(() => {
-    if (isOpen) {
-      void loadCatalog()
+    if (!isOpen) {
+      // The next open is a new opening, so an in-flight answer from this one is stale.
+      openingId.current += 1
+      return
     }
+    void loadCatalog(openingId.current)
   }, [isOpen])
   /* eslint-enable react-you-might-not-need-an-effect/no-event-handler */
 
