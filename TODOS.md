@@ -33,18 +33,6 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
 
 From the `/autoplan` review of issue #215 (one card per user and repository). None blocks that change.
 
-### Paginate the repo placement lookup beyond 1000 rows
-
-**What:** Page through `repocard` in the shared placement lookup instead of stopping at the PostgREST `max_rows` cap.
-
-**Why:** A user with more than 1000 cards gets a truncated lookup, so the picker can offer a repo that is already placed and the add ends in the generic race sentence instead of naming the board.
-
-**Context:** The lookup lives in `src/lib/actions/repo-card-duplicates.ts` and sends one Sentry warning when it returns exactly 1000 rows. The unique index `repocard_unique_repo_per_user` still blocks the duplicate. Related to the existing "more than 1000 cards silently truncated" item above. Start with `.range()` pages ordered by `id`.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### Reveal and focus the card when arriving from the picker's "On <board>" link
 
 **What:** After following a held-row link, scroll to the card on the holding board and focus it.

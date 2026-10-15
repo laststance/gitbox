@@ -15,13 +15,12 @@
  * migration that adds the column and the unique index.
  */
 
-import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-import { POSTGREST_MAX_ROWS } from '@/lib/constants/postgrest'
 import { createModuleLogger } from '@/lib/logger'
 import type { Database } from '@/lib/supabase/types'
 import type { RepoIdentifier } from '@/lib/types/domain-primitives'
+import { readEveryRow } from '@/lib/utils/read-every-row'
 import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
 
 import { ActionUserError } from './types'
@@ -87,7 +86,9 @@ interface RequestedRepository {
  * boards, each with the board that holds it.
  *
  * Called by `addRepositoriesToBoard` and `getUserRepoPlacements`, so the owner
- * filter exists in exactly one place. Row level security already limits this
+ * filter exists in exactly one place. The read is ordered by card id and
+ * continues past the row cap, so a repository past the first 1000 is still
+ * named instead of looking unplaced. Row level security already limits this
  * read to the user's own boards; the explicit `board.user_id` filter keeps the
  * lookup correct by itself, so a future read policy cannot make another user's
  * cards block this user.
@@ -105,27 +106,21 @@ export async function lookupRepoPlacements(
   supabase: SupabaseClient<Database>,
   userId: string,
 ): Promise<BoardPlacement[]> {
-  const { data: cards, error } = await supabase
-    .from('repocard')
-    .select('repo_owner, repo_name, board!inner(id, user_id, name)')
-    .eq('board.user_id', userId)
-
-  if (error) {
+  // One read stops at the row cap. A card past it would be offered again,
+  // and the add would end in the race sentence instead of naming the board.
+  let cards
+  try {
+    cards = await readEveryRow((from, to) =>
+      supabase
+        .from('repocard')
+        .select('repo_owner, repo_name, board!inner(id, user_id, name)')
+        .eq('board.user_id', userId)
+        .order('id', { ascending: true })
+        .range(from, to),
+    )
+  } catch (error) {
     log.error({ error }, 'Repo placement lookup failed')
     throw new Error('Failed to look up repository placements')
-  }
-
-  // Surface a possible silent truncation at the PostgREST row cap. The unique
-  // index still blocks the duplicate beyond the cap (the user gets the race
-  // message), so this warning only keeps the frequency observable.
-  if (cards.length >= POSTGREST_MAX_ROWS) {
-    Sentry.captureMessage(
-      'Repo placement lookup may be truncated at PostgREST row limit',
-      {
-        level: 'warning',
-        extra: { userId, repoCardCount: cards.length },
-      },
-    )
   }
 
   return cards.map((card) => ({

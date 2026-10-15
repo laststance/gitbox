@@ -5,7 +5,7 @@
  * repositories may still be added, the sentence shown for each one that may
  * not, and the friendly error for a write the unique index rejected.
  * Also runs the placement lookup against a stubbed Supabase client: what it
- * reports, when it warns about a possibly truncated answer, and that it fails
+ * reports, that a full page is followed by the next one, and that it fails
  * closed.
  *
  * @see src/lib/actions/repo-card-duplicates.ts
@@ -45,17 +45,29 @@ type LookupResult = {
  * answers with the given result. `from` and `eq` are spies so a test can see
  * which table was read and how the read was filtered.
  */
-function makeSupabaseStub(result: LookupResult) {
+function makeSupabaseStub(result: LookupResult | LookupResult[]) {
+  const pages = Array.isArray(result) ? result : [result]
+  let pageIndex = 0
   const from = vi.fn()
   const eq = vi.fn()
+  const order = vi.fn()
+  const range = vi.fn()
   const query = {
     select: () => query,
     eq: (...args: unknown[]) => {
       eq(...args)
       return query
     },
-    // Makes the builder awaitable, like the real PostgREST builder
-    then: async (resolve: (value: LookupResult) => unknown) => resolve(result),
+    order: (...args: unknown[]) => {
+      order(...args)
+      return query
+    },
+    range: async (...args: unknown[]) => {
+      range(...args)
+      const page = pages[pageIndex] ?? { data: [], error: null }
+      pageIndex += 1
+      return page
+    },
   }
   from.mockImplementation(() => query)
 
@@ -63,6 +75,8 @@ function makeSupabaseStub(result: LookupResult) {
     supabase: { from } as unknown as SupabaseClient<Database>,
     from,
     eq,
+    order,
+    range,
   }
 }
 
@@ -120,26 +134,37 @@ describe('lookupRepoPlacements', () => {
     expect(eq).toHaveBeenCalledWith('board.user_id', 'user-1')
   })
 
-  test('warns once that the answer may be cut off when the card lookup returns exactly 1000 rows', async () => {
+  test('includes the card on the next page when the first page is full', async () => {
     // Arrange
-    const { supabase } = makeSupabaseStub({
-      data: makeCardRows(1000),
-      error: null,
-    })
+    const { supabase, order, range } = makeSupabaseStub([
+      { data: makeCardRows(1000), error: null },
+      {
+        data: [
+          {
+            repo_owner: 'laststance',
+            repo_name: 'past-the-cap',
+            board: { id: 'board-2', user_id: 'user-1', name: 'Work Projects' },
+          },
+        ],
+        error: null,
+      },
+    ])
 
     // Act
     const placements = await lookupRepoPlacements(supabase, 'user-1')
 
     // Assert
-    expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
-    expect(Sentry.captureMessage).toHaveBeenCalledWith(
-      'Repo placement lookup may be truncated at PostgREST row limit',
-      {
-        level: 'warning',
-        extra: { userId: 'user-1', repoCardCount: 1000 },
-      },
-    )
-    expect(placements).toHaveLength(1000)
+    expect(placements).toHaveLength(1001)
+    expect(placements[1000]).toEqual({
+      identifier: 'laststance/past-the-cap',
+      boardId: 'board-2',
+      boardName: 'Work Projects',
+    })
+    expect(order).toHaveBeenNthCalledWith(1, 'id', { ascending: true })
+    expect(order).toHaveBeenNthCalledWith(2, 'id', { ascending: true })
+    expect(range).toHaveBeenNthCalledWith(1, 0, 999)
+    expect(range).toHaveBeenNthCalledWith(2, 1000, 1999)
+    expect(Sentry.captureMessage).not.toHaveBeenCalled()
   })
 
   test('sends no truncation warning when the card lookup returns 999 rows', async () => {
