@@ -20,19 +20,28 @@
  * here check what getBoardBundle hands to the page for such a board: the new
  * columns, no cards and no comments.
  *
- * Out of scope here (and why): the embed query, RLS, and truncation branches
- * all depend on a live Supabase + PostgREST — they are covered by E2E (board
- * rendering, board-not-found.spec.ts).
+ * An embed that comes back as an error is thrown, so the page shows its error
+ * boundary instead of "Board not found". An embed of 1000 cards warns that
+ * the row cap may have cut the rest. What PostgREST actually returns at that
+ * cap is e2e/logged-in/board-bundle-db-contract.spec.ts.
  *
  * @see src/lib/actions/board-data.ts
  */
 
+import * as Sentry from '@sentry/nextjs'
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { createDefaultStatusLists } from '@/lib/actions/board-creation'
 import { getBoardBundle } from '@/lib/actions/board-data'
+import { BOARD_BUNDLE_SELECT } from '@/lib/actions/mappers'
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
+import { POSTGREST_MAX_ROWS } from '@/lib/constants/postgrest'
 import { toBoardId, toStatusListId } from '@/lib/types/brands'
+
+vi.mock('@sentry/nextjs', () => ({
+  captureException: vi.fn(),
+  captureMessage: vi.fn(),
+}))
 
 // getClaims is the real session check in production; here it reports no session.
 vi.mock('@/lib/auth/get-cached-claims', () => ({
@@ -239,5 +248,147 @@ describe('getBoardBundle() board without columns', () => {
     expect(bundle?.statusLists.map((column) => column.title)).toEqual([
       'Repositories',
     ])
+  })
+})
+
+const BOARD_ID = '00000000-0000-0000-0000-000000000100'
+const OWNER_ID = '00000000-0000-0000-0000-000000000001'
+
+/** One column, so the default-column repair does not run. */
+const ONE_COLUMN = {
+  id: '00000000-0000-0000-0000-000000000010',
+  board_id: BOARD_ID,
+  name: 'Repositories',
+  color: '#6B7280',
+  order: 0,
+  grid_row: 0,
+  grid_col: 0,
+  created_at: '2026-01-01T00:00:00+00:00',
+  updated_at: '2026-01-01T00:00:00+00:00',
+}
+
+/**
+ * A query that records the select list and resolves to `result`.
+ *
+ * @param result - The `{ data, error }` PostgREST would return
+ * @returns The chain `getBoardBundle` calls
+ */
+function queryResolving(result: { data: unknown; error: unknown }) {
+  const boardQuery = {
+    select: vi.fn(() => boardQuery),
+    eq: vi.fn(() => boardQuery),
+    order: vi.fn(() => boardQuery),
+    maybeSingle: vi.fn(() => boardQuery),
+    overrideTypes: vi.fn(async () => result),
+  }
+  return boardQuery
+}
+
+/** Sign in as the owner and point `from('board')` at `boardQuery`. */
+function signInWith(boardQuery: ReturnType<typeof queryResolving>): void {
+  vi.mocked(getCachedClaims).mockResolvedValueOnce({
+    supabase: { from: vi.fn(() => boardQuery) },
+    claims: { sub: OWNER_ID },
+  } as unknown as Awaited<ReturnType<typeof getCachedClaims>>)
+}
+
+/** `count` embedded cards, ordered 0..count-1, with no saved comment. */
+function embeddedCards(count: number) {
+  return Array.from({ length: count }, (_, order) => ({
+    id: `00000000-0000-0000-0000-${String(order).padStart(12, '0')}`,
+    board_id: BOARD_ID,
+    status_id: ONE_COLUMN.id,
+    repo_owner: 'laststance',
+    repo_name: `repo-${order}`,
+    order,
+    meta: null,
+    created_at: '2026-01-01T00:00:00+00:00',
+    updated_at: '2026-01-01T00:00:00+00:00',
+    projectinfo: null,
+  }))
+}
+
+describe('getBoardBundle() embed failure', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  test('throws when the board embed fails, so a database error is not shown as a missing board', async () => {
+    // Arrange: PostgREST reports the embed failed and returns no row
+    const embedError = {
+      message: 'permission denied for table statuslist',
+      code: '42501',
+    }
+    const boardQuery = queryResolving({ data: null, error: embedError })
+    signInWith(boardQuery)
+
+    // Act
+    const bundle = getBoardBundle(BOARD_ID)
+
+    // Assert
+    await expect(bundle).rejects.toThrow('Failed to fetch board bundle')
+    expect(boardQuery.select).toHaveBeenCalledWith(BOARD_BUNDLE_SELECT)
+    expect(Sentry.captureException).toHaveBeenCalledWith(embedError, {
+      extra: { context: 'getBoardBundle embed', boardId: BOARD_ID },
+    })
+    expect(Sentry.captureMessage).not.toHaveBeenCalled()
+  })
+})
+
+describe('getBoardBundle() card cap warning', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  test('warns that cards may be cut off when the embed returns 1000 cards', async () => {
+    // Arrange
+    const boardQuery = queryResolving({
+      data: {
+        id: BOARD_ID,
+        name: 'Capped',
+        user_id: OWNER_ID,
+        statuslist: [ONE_COLUMN],
+        repocard: embeddedCards(POSTGREST_MAX_ROWS),
+      },
+      error: null,
+    })
+    signInWith(boardQuery)
+
+    // Act
+    const bundle = await getBoardBundle(BOARD_ID)
+
+    // Assert
+    expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'Board repocard embed may be truncated at PostgREST row limit',
+      {
+        level: 'warning',
+        extra: { boardId: BOARD_ID, repoCardCount: 1000 },
+      },
+    )
+    expect(bundle?.repoCards).toHaveLength(1000)
+    expect(createDefaultStatusLists).not.toHaveBeenCalled()
+  })
+
+  test('stays quiet when the embed returns 999 cards', async () => {
+    // Arrange
+    const boardQuery = queryResolving({
+      data: {
+        id: BOARD_ID,
+        name: 'Under the cap',
+        user_id: OWNER_ID,
+        statuslist: [ONE_COLUMN],
+        repocard: embeddedCards(POSTGREST_MAX_ROWS - 1),
+      },
+      error: null,
+    })
+    signInWith(boardQuery)
+
+    // Act
+    const bundle = await getBoardBundle(BOARD_ID)
+
+    // Assert
+    expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    expect(bundle?.repoCards).toHaveLength(999)
   })
 })

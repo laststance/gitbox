@@ -23,23 +23,11 @@ import { DEFAULT_COMMENT_COLOR } from '@/lib/validations/project-info'
 
 import type { CommentData } from './project-info-core'
 
-/**
- * The `repocard` columns the app reads, as a PostgREST select list. Leaves out
- * `user_id`, which only the database uses (unique index and triggers), so it
- * is never fetched into a page. The public board page reads its cards through
- * the `get_public_board` database function, which returns the same columns.
- */
-export const REPO_CARD_COLUMNS =
-  'id, board_id, status_id, repo_owner, repo_name, order, meta, created_at, updated_at'
-
-/**
- * The comment of a card's repository, as a PostgREST embed (issue #216). The
- * computed relationship `projectinfo(repocard)` answers the repository's row
- * or `null`, which {@link toCommentData} turns into what the board shows.
- * The board read ({@link getBoardBundle}) and {@link addRepositoriesToBoard}
- * select it next to {@link REPO_CARD_COLUMNS}.
- */
-export const PROJECT_COMMENT_EMBED = 'projectinfo(comment, comment_color)'
+export {
+  BOARD_BUNDLE_SELECT,
+  PROJECT_COMMENT_EMBED,
+  REPO_CARD_COLUMNS,
+} from '@/lib/constants/board-bundle'
 
 type StatusListRow = Tables<'statuslist'>
 type RepoCardRow = Omit<Tables<'repocard'>, 'user_id'>
@@ -106,8 +94,7 @@ export function toRepoCardDomain(row: RepoCardRow): RepoCardDomain {
 
 /**
  * Raw shape of one board fetched with its children embedded via PostgREST.
- * Mirrors the embed select string in `getBoardBundle`
- * (`*, statuslist(*), repocard(<REPO_CARD_COLUMNS>, projectinfo(comment, comment_color))`).
+ * Mirrors {@link BOARD_BUNDLE_SELECT}.
  * `projectinfo` is an object-or-null (NOT an array): the computed relationship
  * `projectinfo(repocard)` returns the row of the card's repository and is
  * declared `ROWS 1` (issue #216); it is `null` whenever nothing is saved for
