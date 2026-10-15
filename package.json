@@ -120,7 +120,7 @@
     "@storybook/addon-docs": "^10.6.2",
     "@storybook/addon-mcp": "^10.6.2",
     "@storybook/addon-vitest": "^10.6.2",
-    "@storybook/nextjs-vite": "^10.6.2",
+    "@storybook/nextjs-vite": "10.6.2",
     "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",
