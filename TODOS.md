@@ -8,10 +8,6 @@ From the `/ship` adversarial review of `feat/silent-github-token-refresh` (PR #1
 
 > All items below are tracked as GitHub issues (#177-#187). Update issue status there; this file remains as the source narrative for context.
 
-### Tests
-
-- [ ] **Dedicated unit tests for `getForwardedClientIp`** — [#186](https://github.com/laststance/gitbox/issues/186)
-
 ### Risk acceptance
 
 - [ ] **30-day provider token cookie TTL — risk re-confirm** — [#187](https://github.com/laststance/gitbox/issues/187)
