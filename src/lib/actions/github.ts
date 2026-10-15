@@ -66,6 +66,9 @@ async function clearTokenCookieAfterUnauthorized(
   if (errorStatus !== 401) return
 
   try {
+    // This request can delete only the generations it arrived with. A refresh
+    // that finished in between stored the new token under the next generation
+    // name, which this deletion never writes.
     await deleteGitHubTokenCookie()
   } catch (cookieError) {
     log.warn(
