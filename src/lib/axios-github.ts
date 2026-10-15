@@ -137,7 +137,13 @@ export function createGitHubAxios(
       error.response?.status === 401
     ) {
       try {
-        await deleteGitHubTokenCookie()
+        const sent = bearerFromHeaders(error.config?.headers)
+        const current = await getGitHubToken()
+        // A refresh can store a new cookie while this request is still in
+        // flight. Delete only the token GitHub actually rejected.
+        if (sent && current && sent === current) {
+          await deleteGitHubTokenCookie()
+        }
       } catch {
         // Cookie deletion may fail in certain Next.js contexts (e.g., static
         // generation). Silently ignore — the token will expire naturally.
@@ -162,6 +168,32 @@ export function createGitHubAxios(
  *   return { data: null, error: 'GitHub token not found' }
  * }
  */
+/**
+ * Reads the bearer token a request actually sent.
+ *
+ * Axios stores it as a string or behind `headers.get`. Anything else was
+ * not this app's GitHub token, so a 401 for it must leave the cookie.
+ *
+ * @param headers - The failed request's headers, when Axios kept them.
+ * @returns The token after `Bearer `, or null when the header is absent.
+ */
+function bearerFromHeaders(
+  headers:
+    { Authorization?: unknown; get?: (name: string) => unknown } | undefined,
+): string | null {
+  if (!headers) return null
+  const field = headers.Authorization
+  const raw =
+    typeof field === 'string'
+      ? field
+      : typeof headers.get === 'function'
+        ? headers.get('Authorization')
+        : undefined
+  if (typeof raw !== 'string' || !raw.startsWith('Bearer ')) return null
+  const token = raw.slice('Bearer '.length)
+  return token.length > 0 ? token : null
+}
+
 export async function hasGitHubToken(): Promise<boolean> {
   return Boolean(await getGitHubToken())
 }

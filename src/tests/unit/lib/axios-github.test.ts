@@ -334,6 +334,9 @@ describe('axios-github', () => {
       process.env.NEXT_PUBLIC_ENABLE_MSW_MOCK = 'false'
       process.env.APP_ENV = 'production'
       vi.mocked(deleteGitHubTokenCookie).mockClear()
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue({ value: 'github-token' }),
+      } as never)
     })
 
     /**
@@ -344,21 +347,43 @@ describe('axios-github', () => {
      * chain matches what `isAxiosError` checks for — a plain `{ isAxiosError:
      * true, ... }` object would fail that check.
      */
-    function makeAxiosError(status: number) {
+    function makeAxiosError(status: number, bearer = 'github-token') {
       return new axios.AxiosError(
         'Request failed',
         'ERR_BAD_REQUEST',
-        undefined,
+        { headers: { Authorization: `Bearer ${bearer}` } } as never,
         undefined,
         {
           status,
           data: {},
           statusText: 'Error',
           headers: {},
-          config: { headers: {} as never },
+          config: {
+            headers: { Authorization: `Bearer ${bearer}` } as never,
+          },
         } as never,
       )
     }
+
+    test('leaves a cookie that a refresh replaced while the 401 was in flight', async () => {
+      // Arrange: the request left with the old token. The cookie is already the new one.
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue({ value: 'fresh-token' }),
+      } as never)
+      vi.resetModules()
+      const { createGitHubAxios } = await import('@/lib/axios-github')
+      const instance = createGitHubAxios()
+      const rejectedHandler = (instance.interceptors.response as any)
+        .handlers[0].rejected
+
+      // Act
+      await expect(
+        rejectedHandler(makeAxiosError(401, 'stale-token')),
+      ).rejects.toBeDefined()
+
+      // Assert
+      expect(deleteGitHubTokenCookie).not.toHaveBeenCalled()
+    })
 
     test('clears the GitHub cookie when the API responds 401', async () => {
       vi.resetModules()
