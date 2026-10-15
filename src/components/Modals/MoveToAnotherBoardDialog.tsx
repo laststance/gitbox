@@ -59,13 +59,8 @@ import {
 } from '@/components/ui/select'
 import { useCardDialogFocusReturn } from '@/hooks/board/useCardDialogFocusReturn'
 import { useMoveDestinations } from '@/hooks/board/useMoveDestinations'
-import {
-  useMoveDialogState,
-  type MoveFailure,
-} from '@/hooks/board/useMoveDialogState'
+import { useMoveDialogState } from '@/hooks/board/useMoveDialogState'
 import { moveCardToBoard } from '@/lib/actions/repo-cards'
-import type { ActionResult } from '@/lib/actions/types'
-import { MOVE_UNCONFIRMED_MESSAGE } from '@/lib/constants/card-move'
 import { SERVER_ANSWER_TIME_LIMIT_MS } from '@/lib/constants/requests'
 import { TOAST_WITH_ACTION_DURATION_MS } from '@/lib/constants/toast'
 import {
@@ -78,12 +73,13 @@ import {
 } from '@/lib/redux/slices/settingsSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { RepoCardId } from '@/lib/types/brands'
+import { toMoveFailure } from '@/lib/utils/move-failure'
 import { reloadPage } from '@/lib/utils/reload-page'
 import {
   requestBoardCreation,
   type BoardCreationAttempt,
 } from '@/lib/utils/request-board-creation'
-import { settleWithin, type RequestOutcome } from '@/lib/utils/settle-within'
+import { settleWithin } from '@/lib/utils/settle-within'
 
 import {
   CreateDestinationBoardForm,
@@ -91,8 +87,6 @@ import {
 } from './CreateDestinationBoardForm'
 
 /** Shown when a refused move comes without a message of its own. */
-const MOVE_FAILED_MESSAGE = 'Failed to move card'
-
 /**
  * Id of the sentence shown when the selected board is shared through a
  * public link. The Move button is described by it.
@@ -755,46 +749,4 @@ function toMoveButtonDescription(
     hasMoveFailed && MOVE_FAILURE_TEXT_ID,
   ].filter(Boolean)
   return textIds.length > 0 ? textIds.join(' ') : undefined
-}
-
-/**
- * Says what the dialog shows for a move that did not go through.
- *
- * The board is fetched again after every one of them. When nobody knows the
- * outcome, "Reload page" is offered next to the text as well: after a request
- * without an answer that fetch waits for the request to settle, and a reload
- * does not.
- *
- * @param outcome - How the move request ended.
- * @returns
- * - `null` when the server confirmed the move
- * - the server's reason when it refused the move (`isOutcomeKnown: true`)
- * - the server's text with `isOutcomeKnown: false` when its answer carries
- *   the code `MOVE_UNCONFIRMED`: the database gave it no answer, so the card
- *   may have moved all the same. The code decides, never the text.
- * - {@link MOVE_UNCONFIRMED_MESSAGE} with `isOutcomeKnown: false` when the
- *   request failed on the way or got no answer in time: the same case, seen
- *   from the browser.
- * @example
- * toMoveFailure({ status: 'overdue' })
- * // => { message: 'Could not confirm that the card was moved. Check the board before trying again.',
- * //      isOutcomeKnown: false }
- */
-function toMoveFailure(
-  outcome: RequestOutcome<ActionResult<void>>,
-): MoveFailure | null {
-  return match(outcome)
-    .with({ status: 'answered' }, ({ answer }) =>
-      answer.success
-        ? null
-        : {
-            message: answer.error || MOVE_FAILED_MESSAGE,
-            isOutcomeKnown: answer.errorCode !== 'MOVE_UNCONFIRMED',
-          },
-    )
-    .with({ status: 'failed' }, { status: 'overdue' }, () => ({
-      message: MOVE_UNCONFIRMED_MESSAGE,
-      isOutcomeKnown: false,
-    }))
-    .exhaustive()
 }
