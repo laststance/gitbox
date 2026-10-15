@@ -70,6 +70,8 @@ function makeQuery(
     single: async () => answers.single ?? result,
     maybeSingle: async () => answers.maybeSingle ?? result,
     insert: answers.insert,
+    // The placement lookup pages with `.range()`; a short answer is one page.
+    range: async () => result,
     // Makes the builder awaitable, like the real PostgREST builder
     then: async (resolve: (value: QueryResult) => unknown) => resolve(result),
   }
