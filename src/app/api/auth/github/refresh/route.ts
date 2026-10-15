@@ -2,9 +2,12 @@
  * GitHub Token Refresh Endpoint
  *
  * Silent re-authentication when the GitHub `provider_token` cookie is missing
- * but the Supabase session is still valid. This happens when a user returns
- * after the GitHub provider token (8h–30d) has expired or the cookie was
- * cleared, while Supabase's longer-lived refresh token (~30d) is still alive.
+ * but the Supabase session is still valid. The browser keeps that cookie for
+ * 30 days (`GITHUB_TOKEN_COOKIE_MAX_AGE_SECONDS`). The GitHub OAuth app leaves
+ * token expiration off, so a missing cookie is a browser lifetime or a
+ * deletion, not a GitHub expiry. Supabase refresh tokens do not expire by
+ * default; the access JWT lasts one hour, and session time-box and inactivity
+ * limits are separate settings that this project does not set.
  *
  * Flow:
  *  1. A Server Action returns `errorCode: 'GITHUB_TOKEN_MISSING'` (see

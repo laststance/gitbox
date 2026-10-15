@@ -96,7 +96,7 @@ describe('getGitHubTokenCookieName', () => {
 describe('GITHUB_TOKEN_COOKIE_MAX_AGE_SECONDS', () => {
   test('should equal 30 days in seconds (regression guard for the 8h bug)', () => {
     // The original bug used `60 * 60 * 8` (8 hours) which caused users to lose
-    // GitHub access after a workday. 30 days matches Supabase refresh_token TTL.
+    // GitHub access after a workday. 30 days is the browser-cookie lifetime.
     expect(GITHUB_TOKEN_COOKIE_MAX_AGE_SECONDS).toBe(30 * 24 * 60 * 60)
     expect(GITHUB_TOKEN_COOKIE_MAX_AGE_SECONDS).toBe(2_592_000)
   })
