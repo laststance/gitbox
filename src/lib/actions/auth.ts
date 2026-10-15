@@ -15,6 +15,7 @@ import { redirect } from 'next/navigation'
 
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 import { deleteGitHubTokenCookie } from '@/lib/constants/cookies'
+import { LOGIN_ERROR } from '@/lib/constants/login-errors'
 import { checkRateLimit } from '@/lib/rate-limit/check'
 import { logSecurityEvent } from '@/lib/security-events'
 import {
@@ -41,9 +42,12 @@ export async function signInWithGitHub(): Promise<void> {
   const ip = forwarded ?? '127.0.0.1'
   const rlResult = checkRateLimit('signInWithGitHub', ip)
   if (!rlResult.allowed) {
-    redirect(
-      `/login?error=rate_limited&message=${encodeURIComponent(rlResult.error!)}`,
-    )
+    // The sentence stays in the log. The URL carries only the stable code.
+    Sentry.captureMessage(rlResult.error ?? 'sign-in rate limit exceeded', {
+      level: 'warning',
+      tags: { category: 'rate_limit' },
+    })
+    redirect(`/login?error=${LOGIN_ERROR.rateLimited}`)
   }
 
   const supabase = await createServerActionClient()
@@ -61,9 +65,7 @@ export async function signInWithGitHub(): Promise<void> {
     Sentry.captureException(error, {
       extra: { context: 'GitHub OAuth sign in' },
     })
-    redirect(
-      `/login?error=oauth_failed&message=${encodeURIComponent(error.message)}`,
-    )
+    redirect(`/login?error=${LOGIN_ERROR.oauthFailed}`)
   }
 
   if (data.url) {
@@ -72,7 +74,7 @@ export async function signInWithGitHub(): Promise<void> {
 
   // Handle case where no URL is returned (unexpected state)
   Sentry.captureMessage('GitHub OAuth: No redirect URL returned', 'error')
-  redirect('/login?error=oauth_failed&message=No%20redirect%20URL%20returned')
+  redirect(`/login?error=${LOGIN_ERROR.oauthFailed}`)
 }
 
 /**

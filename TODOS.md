@@ -8,10 +8,6 @@ From the `/ship` adversarial review of `feat/silent-github-token-refresh` (PR #1
 
 > All items below are tracked as GitHub issues (#177-#187). Update issue status there; this file remains as the source narrative for context.
 
-### Security / rate-limit
-
-- [ ] **Error message reflection in `/login?error=...`** — [#184](https://github.com/laststance/gitbox/issues/184)
-
 ### Tests
 
 - [ ] **Dedicated unit tests for `sanitizeNextPath`** — [#185](https://github.com/laststance/gitbox/issues/185)

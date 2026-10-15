@@ -33,6 +33,7 @@
 import * as Sentry from '@sentry/nextjs'
 import { NextResponse } from 'next/server'
 
+import { LOGIN_ERROR } from '@/lib/constants/login-errors'
 import { createModuleLogger } from '@/lib/logger'
 import { checkRateLimit } from '@/lib/rate-limit/check'
 import { logSecurityEvent } from '@/lib/security-events'
@@ -120,7 +121,9 @@ export async function GET(request: Request) {
       { ip: clientIp, error: rateLimitResult.error },
       'Refresh rate limit exceeded',
     )
-    return NextResponse.redirect(`${origin}/login?error=rate_limited`)
+    return NextResponse.redirect(
+      `${origin}/login?error=${LOGIN_ERROR.rateLimited}`,
+    )
   }
 
   const supabase = await createRouteHandlerClient(request)
@@ -170,7 +173,9 @@ export async function GET(request: Request) {
         error: oauthError.message,
         path: 'silent_token_refresh',
       })
-      return NextResponse.redirect(`${origin}/login?error=oauth_failed`)
+      return NextResponse.redirect(
+        `${origin}/login?error=${LOGIN_ERROR.oauthFailed}`,
+      )
     }
 
     if (!data.url) {
@@ -183,7 +188,9 @@ export async function GET(request: Request) {
         error: 'no_redirect_url',
         path: 'silent_token_refresh',
       })
-      return NextResponse.redirect(`${origin}/login?error=oauth_failed`)
+      return NextResponse.redirect(
+        `${origin}/login?error=${LOGIN_ERROR.oauthFailed}`,
+      )
     }
 
     logSecurityEvent('login_success', {
@@ -210,6 +217,8 @@ export async function GET(request: Request) {
           : 'unexpected_error',
       path: 'silent_token_refresh',
     })
-    return NextResponse.redirect(`${origin}/login?error=unexpected_error`)
+    return NextResponse.redirect(
+      `${origin}/login?error=${LOGIN_ERROR.unexpectedError}`,
+    )
   }
 }

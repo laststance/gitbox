@@ -7,6 +7,8 @@
  * OAuth round trip, so the server caps the loop itself.
  */
 
+import { LOGIN_ERROR } from '@/lib/constants/login-errors'
+
 /** Cookie that records how many silent refreshes this browser has started. */
 export const REFRESH_ATTEMPT_COOKIE = 'gh_refresh_count'
 
@@ -20,7 +22,7 @@ export const REFRESH_ATTEMPT_COOKIE = 'gh_refresh_count'
 export const REFRESH_ATTEMPT_MAX_AGE_SECONDS = 10 * 60
 
 /** Login error the refresh route sends once the attempt cap is reached. */
-export const TOKEN_REFRESH_FAILED_ERROR = 'token_refresh_failed'
+export const TOKEN_REFRESH_FAILED_ERROR = LOGIN_ERROR.tokenRefreshFailed
 
 /**
  * Attributes for {@link REFRESH_ATTEMPT_COOKIE}.

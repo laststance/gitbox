@@ -13,6 +13,7 @@ import { NextResponse } from 'next/server'
 
 import { createFirstBoardIfNeeded } from '@/lib/actions/board-creation'
 import { setGitHubTokenCookie } from '@/lib/constants/cookies'
+import { LOGIN_ERROR } from '@/lib/constants/login-errors'
 import { createModuleLogger } from '@/lib/logger'
 import { checkRateLimit } from '@/lib/rate-limit/check'
 import { logSecurityEvent } from '@/lib/security-events'
@@ -54,7 +55,7 @@ export async function GET(request: Request) {
         }
         logSecurityEvent('login_failure', { error: error.message })
         return NextResponse.redirect(
-          `${origin}/login?error=auth_failed&message=${encodeURIComponent(error.message)}`,
+          `${origin}/login?error=${LOGIN_ERROR.authFailed}`,
         )
       }
 
@@ -78,12 +79,16 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${publicOrigin}${next}`)
     } catch (error) {
       log.error({ error }, 'Unexpected error in OAuth callback')
-      return NextResponse.redirect(`${origin}/login?error=unexpected_error`)
+      return NextResponse.redirect(
+        `${origin}/login?error=${LOGIN_ERROR.unexpectedError}`,
+      )
     }
   }
 
   // Redirect to login page if code parameter is missing
-  return NextResponse.redirect(`${origin}/login?error=missing_code`)
+  return NextResponse.redirect(
+    `${origin}/login?error=${LOGIN_ERROR.missingCode}`,
+  )
 }
 
 /**
@@ -158,12 +163,18 @@ async function restartSignInAfterVerifierMismatch({
   })
   // One restart is enough. A second mismatch is a real failure.
   if (alreadyRetried) {
-    return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+    return NextResponse.redirect(
+      `${origin}/login?error=${LOGIN_ERROR.authFailed}`,
+    )
   }
 
   const rateLimitResult = checkRateLimit('signInWithGitHub', clientIp)
   if (!rateLimitResult.allowed) {
-    return NextResponse.redirect(`${origin}/login?error=rate_limited`)
+    // The sentence stays in the log. The login URL keeps the stable code.
+    log.warn({ error: rateLimitResult.error }, 'OAuth retry rate limited')
+    return NextResponse.redirect(
+      `${origin}/login?error=${LOGIN_ERROR.rateLimited}`,
+    )
   }
 
   const callbackUrl = `${origin}/auth/callback?pkce_retry=1&next=${encodeURIComponent(next)}`
@@ -178,11 +189,17 @@ async function restartSignInAfterVerifierMismatch({
       },
     })
     if (oauthError || !data.url) {
-      return NextResponse.redirect(`${origin}/login?error=oauth_failed`)
+      log.error({ error: oauthError }, 'OAuth retry failed')
+      return NextResponse.redirect(
+        `${origin}/login?error=${LOGIN_ERROR.oauthFailed}`,
+      )
     }
     return NextResponse.redirect(data.url)
-  } catch {
+  } catch (error) {
     // A rejected client is not the handled `error` result. Send the same login.
-    return NextResponse.redirect(`${origin}/login?error=oauth_failed`)
+    log.error({ error }, 'OAuth retry exception')
+    return NextResponse.redirect(
+      `${origin}/login?error=${LOGIN_ERROR.oauthFailed}`,
+    )
   }
 }

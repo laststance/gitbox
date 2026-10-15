@@ -49,7 +49,8 @@ test.describe('Login Page', () => {
 
   test('should display error message when login fails', async ({ page }) => {
     // Navigate with error query param (simulating failed OAuth)
-    await page.goto('/login?error=auth_failed&message=Test%20error')
+    await page.goto('/login?error=auth_failed')
+    await page.waitForLoadState('networkidle')
 
     // Page should still load successfully (error handling may show a toast or inline message)
     const githubButton = page.getByRole('button', { name: /github|sign in/i })

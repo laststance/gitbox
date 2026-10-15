@@ -101,7 +101,7 @@ describe('GET /auth/callback', () => {
     // Assert
     expect(createFirstBoardIfNeeded).not.toHaveBeenCalled()
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3008/login?error=auth_failed&message=invalid%20grant',
+      'http://localhost:3008/login?error=auth_failed',
     )
   })
 
