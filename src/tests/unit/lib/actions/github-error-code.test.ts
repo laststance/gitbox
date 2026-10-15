@@ -15,10 +15,7 @@ import { cookies } from 'next/headers'
 import type * as NextHeaders from 'next/headers'
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 
-import type * as CookiesModule from '@/lib/constants/cookies'
-
 const actionHarness = vi.hoisted(() => ({
-  deleteGitHubTokenCookie: vi.fn(),
   getCachedGitHubRepositoryCatalog: vi.fn(),
   getGitHubCatalogErrorStatus: vi.fn(),
 }))
@@ -31,16 +28,6 @@ vi.mock('next/headers', async () => {
     headers: vi.fn().mockResolvedValue({
       get: vi.fn().mockReturnValue('127.0.0.1'),
     }),
-  }
-})
-
-vi.mock('@/lib/constants/cookies', async () => {
-  const actual = await vi.importActual<typeof CookiesModule>(
-    '@/lib/constants/cookies',
-  )
-  return {
-    ...actual,
-    deleteGitHubTokenCookie: actionHarness.deleteGitHubTokenCookie,
   }
 })
 
@@ -59,8 +46,6 @@ describe('GitHub Server Actions: errorCode=GITHUB_TOKEN_MISSING', () => {
 
   beforeEach(() => {
     vi.resetModules()
-    actionHarness.deleteGitHubTokenCookie.mockReset()
-    actionHarness.deleteGitHubTokenCookie.mockResolvedValue(undefined)
     actionHarness.getCachedGitHubRepositoryCatalog.mockReset()
     actionHarness.getGitHubCatalogErrorStatus.mockReset()
     actionHarness.getGitHubCatalogErrorStatus.mockReturnValue(null)
@@ -119,8 +104,10 @@ describe('GitHub Server Actions: errorCode=GITHUB_TOKEN_MISSING', () => {
         config: requestConfig,
       },
     )
+    const deleteSpy = vi.fn()
     const cookieStoreWithRevokedToken = {
       get: vi.fn().mockReturnValue({ value: 'gho_revoked_live_token' }),
+      delete: deleteSpy,
     }
     vi.mocked(cookies).mockResolvedValue(cookieStoreWithRevokedToken as never)
     actionHarness.getCachedGitHubRepositoryCatalog.mockRejectedValue(
@@ -136,7 +123,52 @@ describe('GitHub Server Actions: errorCode=GITHUB_TOKEN_MISSING', () => {
     expect(actionHarness.getCachedGitHubRepositoryCatalog).toHaveBeenCalledWith(
       'gho_revoked_live_token',
     )
-    expect(actionHarness.deleteGitHubTokenCookie).toHaveBeenCalledTimes(1)
+    expect(deleteSpy).toHaveBeenCalledTimes(1)
+    expect(deleteSpy).toHaveBeenCalledWith('gh_token_zfcwvzaz')
+    expect(result).toEqual({
+      success: false,
+      error: 'GitHub token expired. Please sign in again.',
+    })
+  })
+
+  test('deletes only the rejected generation when the request still carries an older token', async () => {
+    // Arrange
+    const unauthorizedError = new axios.AxiosError(
+      'Bad credentials',
+      'ERR_BAD_REQUEST',
+      undefined,
+      undefined,
+      {
+        status: 401,
+        data: { message: 'Bad credentials' },
+        statusText: 'Unauthorized',
+        headers: new axios.AxiosHeaders(),
+        config: { headers: new axios.AxiosHeaders() },
+      },
+    )
+    const deleteSpy = vi.fn()
+    vi.mocked(cookies).mockResolvedValue({
+      getAll: () => [
+        { name: 'gh_token_zfcwvzaz', value: 'gho_still_valid' },
+        { name: 'gh_token_zfcwvzaz_1', value: 'gho_revoked_live_token' },
+      ],
+      delete: deleteSpy,
+    } as never)
+    actionHarness.getCachedGitHubRepositoryCatalog.mockRejectedValue(
+      unauthorizedError,
+    )
+    const { getAuthenticatedRepositoryCatalog } =
+      await import('@/lib/actions/github')
+
+    // Act
+    const result = await getAuthenticatedRepositoryCatalog()
+
+    // Assert
+    expect(actionHarness.getCachedGitHubRepositoryCatalog).toHaveBeenCalledWith(
+      'gho_revoked_live_token',
+    )
+    expect(deleteSpy).toHaveBeenCalledTimes(1)
+    expect(deleteSpy).toHaveBeenCalledWith('gh_token_zfcwvzaz_1')
     expect(result).toEqual({
       success: false,
       error: 'GitHub token expired. Please sign in again.',
