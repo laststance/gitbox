@@ -50,14 +50,20 @@ function makeSupabaseStub(result: LookupResult | LookupResult[]) {
   let pageIndex = 0
   const from = vi.fn()
   const eq = vi.fn()
+  const order = vi.fn()
+  const range = vi.fn()
   const query = {
     select: () => query,
     eq: (...args: unknown[]) => {
       eq(...args)
       return query
     },
-    order: () => query,
-    range: async () => {
+    order: (...args: unknown[]) => {
+      order(...args)
+      return query
+    },
+    range: async (...args: unknown[]) => {
+      range(...args)
       const page = pages[pageIndex] ?? { data: [], error: null }
       pageIndex += 1
       return page
@@ -69,6 +75,8 @@ function makeSupabaseStub(result: LookupResult | LookupResult[]) {
     supabase: { from } as unknown as SupabaseClient<Database>,
     from,
     eq,
+    order,
+    range,
   }
 }
 
@@ -128,7 +136,7 @@ describe('lookupRepoPlacements', () => {
 
   test('includes the card on the next page when the first page is full', async () => {
     // Arrange
-    const { supabase } = makeSupabaseStub([
+    const { supabase, order, range } = makeSupabaseStub([
       { data: makeCardRows(1000), error: null },
       {
         data: [
@@ -152,6 +160,10 @@ describe('lookupRepoPlacements', () => {
       boardId: 'board-2',
       boardName: 'Work Projects',
     })
+    expect(order).toHaveBeenNthCalledWith(1, 'id', { ascending: true })
+    expect(order).toHaveBeenNthCalledWith(2, 'id', { ascending: true })
+    expect(range).toHaveBeenNthCalledWith(1, 0, 999)
+    expect(range).toHaveBeenNthCalledWith(2, 1000, 1999)
     expect(Sentry.captureMessage).not.toHaveBeenCalled()
   })
 
