@@ -12,32 +12,46 @@
  * - an embed PostgREST cannot resolve is an error, which getBoardBundle throws
  *   instead of treating as a missing board
  *
- * The select list is BOARD_BUNDLE_SELECT in src/lib/actions/mappers.ts.
  */
 
 import { test, expect } from '../fixtures/coverage'
+import { BOARD_BUNDLE_SELECT } from '../../src/lib/constants/board-bundle'
 import {
   TEST_USER_ID,
   createServiceRoleSupabaseClient,
   createTestUserSupabaseClient,
 } from '../helpers/db-query'
 
-/** Same select getBoardBundle sends. Keep it in step with BOARD_BUNDLE_SELECT. */
-const BOARD_BUNDLE_SELECT =
-  '*, statuslist(*), repocard(id, board_id, status_id, repo_owner, repo_name, order, meta, created_at, updated_at, projectinfo(comment, comment_color))'
-
 const CAP_BOARD_NAME = 'Board at the card cap'
 const EMPTY_BOARD_NAME = 'Board with its columns removed'
 const CARDS_ON_THE_CAPPED_BOARD = 1001
 
-/** Delete the boards this file creates. Cards go with the board. */
+/** Ids created in this process, so cleanup can name them exactly. */
+const createdBoardIds: string[] = []
+
+/**
+ * Delete the boards this file creates. Cards go with the board.
+ *
+ * Ids cover the boards this process created. The name filter covers a board
+ * left by a killed run, and it is limited to the test user so another
+ * account's board of the same name stays.
+ */
 async function removeBoardsOfThisSpec(): Promise<void> {
-  const { error } = await createServiceRoleSupabaseClient()
+  const service = createServiceRoleSupabaseClient()
+  if (createdBoardIds.length > 0) {
+    const byId = await service.from('board').delete().in('id', createdBoardIds)
+    if (byId.error) {
+      throw new Error(`removeBoardsOfThisSpec failed: ${byId.error.message}`)
+    }
+    createdBoardIds.length = 0
+  }
+  const byName = await service
     .from('board')
     .delete()
+    .eq('user_id', TEST_USER_ID)
     .in('name', [CAP_BOARD_NAME, EMPTY_BOARD_NAME])
-  if (error) {
-    throw new Error(`removeBoardsOfThisSpec failed: ${error.message}`)
+  if (byName.error) {
+    throw new Error(`removeBoardsOfThisSpec failed: ${byName.error.message}`)
   }
 }
 
@@ -75,6 +89,7 @@ test.describe('Board bundle database contract', () => {
     )
     expect(created.error).toBeNull()
     const boardId: string = created.data.id
+    createdBoardIds.push(boardId)
     const removed = await createServiceRoleSupabaseClient()
       .from('statuslist')
       .delete()
@@ -107,6 +122,7 @@ test.describe('Board bundle database contract', () => {
     )
     expect(created.error).toBeNull()
     const boardId: string = created.data.id
+    createdBoardIds.push(boardId)
     const statusId: string = created.data.status_lists[0].id
     const service = createServiceRoleSupabaseClient()
     const cards = Array.from(
@@ -146,9 +162,7 @@ test.describe('Board bundle database contract', () => {
     const orders = (data?.repocard ?? []).map(
       (card: { order: number }) => card.order,
     )
-    expect(orders).toHaveLength(1000)
-    expect(orders).toContain(0)
-    expect(orders).not.toContain(CARDS_ON_THE_CAPPED_BOARD - 1)
+    expect(orders).toEqual(Array.from({ length: 1000 }, (_, order) => order))
   })
 
   test('an embed PostgREST cannot resolve is an error, not a missing board', async () => {
