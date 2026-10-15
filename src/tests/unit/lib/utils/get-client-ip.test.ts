@@ -49,6 +49,92 @@ describe('getForwardedClientIp', () => {
     expect(ip).toBe('203.0.113.8')
   })
 
+  test('uses the last hop of a three-address chain', () => {
+    // Arrange
+    const headers = new Headers({
+      'x-forwarded-for': '203.0.113.1, 198.51.100.2, 192.0.2.3',
+    })
+
+    // Act
+    const ip = getForwardedClientIp(headers)
+
+    // Assert
+    expect(ip).toBe('192.0.2.3')
+  })
+
+  test('trims whitespace around the last hop', () => {
+    // Arrange
+    const headers = new Headers({
+      'x-forwarded-for': '198.51.100.1,  203.0.113.50  ',
+    })
+
+    // Act
+    const ip = getForwardedClientIp(headers)
+
+    // Assert
+    expect(ip).toBe('203.0.113.50')
+  })
+
+  test('trims whitespace around x-real-ip', () => {
+    // Arrange
+    const headers = new Headers({ 'x-real-ip': '  203.0.113.8  ' })
+
+    // Act
+    const ip = getForwardedClientIp(headers)
+
+    // Assert
+    expect(ip).toBe('203.0.113.8')
+  })
+
+  test('uses the last forwarded hop when x-real-ip is blank', () => {
+    // Arrange
+    const headers = new Headers({
+      'x-real-ip': '   ',
+      'x-forwarded-for': '198.51.100.1, 203.0.113.50',
+    })
+
+    // Act
+    const ip = getForwardedClientIp(headers)
+
+    // Assert
+    expect(ip).toBe('203.0.113.50')
+  })
+
+  test('returns null when the address headers are missing', () => {
+    // Arrange
+    const headers = new Headers()
+
+    // Act
+    const ip = getForwardedClientIp(headers)
+
+    // Assert
+    expect(ip).toBeNull()
+  })
+
+  test('returns null when x-forwarded-for is empty', () => {
+    // Arrange
+    const headers = new Headers({ 'x-forwarded-for': '' })
+
+    // Act
+    const ip = getForwardedClientIp(headers)
+
+    // Assert
+    expect(ip).toBeNull()
+  })
+
+  test('returns the last hop when it is not an address', () => {
+    // Arrange
+    const headers = new Headers({
+      'x-forwarded-for': '203.0.113.1, not-an-ip',
+    })
+
+    // Act
+    const ip = getForwardedClientIp(headers)
+
+    // Assert
+    expect(ip).toBe('not-an-ip')
+  })
+
   test('returns null when neither header has an address', () => {
     // Arrange
     const headers = new Headers({
