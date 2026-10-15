@@ -28,6 +28,16 @@ jobs:
         shardTotal: [12]
 
     steps:
+      # 54320-54329 (the database, the API, Studio, Inbucket, analytics,
+      # the shadow database and the pooler) sit inside Linux's ephemeral
+      # range (32768-60999). An outbound connection can take one as its
+      # source port, and Docker then fails to bind it: "address already in
+      # use" on 54322. Reserving the range keeps those ports out of
+      # automatic allocation; a container's own bind still succeeds. This
+      # has to precede the installs, which are what open the connections.
+      - name: Reserve Supabase ports
+        run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329
+
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
@@ -56,8 +66,19 @@ jobs:
       - name: Start Supabase
         run: |
           cd supabase
-          MAX_SUPABASE_BOOT_ATTEMPTS=3
-          SUPABASE_RETRY_DELAY_SECONDS=10
+          # A source port already in TIME_WAIT when the job starts stays
+          # taken for about 60s, and the reservation above does not free
+          # it. Three pauses of 20s cover that after the first failed bind.
+          MAX_SUPABASE_BOOT_ATTEMPTS=4
+          SUPABASE_RETRY_DELAY_SECONDS=20
+
+          show_supabase_port_sockets() {
+            echo "Sockets on the Supabase ports:"
+            for port in 54320 54321 54322 54323 54324 54327 54329; do
+              ss -tan "sport = :${port}" || true
+              ss -lptn "sport = :${port}" || true
+            done
+          }
 
           for attempt in $(seq 1 "${MAX_SUPABASE_BOOT_ATTEMPTS}"); do
             echo "Starting Supabase attempt ${attempt}/${MAX_SUPABASE_BOOT_ATTEMPTS}"
@@ -69,10 +90,12 @@ jobs:
 
             if [ "${attempt}" -eq "${MAX_SUPABASE_BOOT_ATTEMPTS}" ]; then
               echo "Supabase bootstrap failed after ${MAX_SUPABASE_BOOT_ATTEMPTS} attempts"
+              show_supabase_port_sockets
               exit 1
             fi
 
             echo "Supabase bootstrap failed on attempt ${attempt}; collecting status and retrying"
+            show_supabase_port_sockets
             supabase status || true
             supabase stop || true
             sleep "${SUPABASE_RETRY_DELAY_SECONDS}"
