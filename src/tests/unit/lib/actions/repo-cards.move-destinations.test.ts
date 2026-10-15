@@ -50,6 +50,7 @@ function makeQuery(answer: QueryAnswer) {
     eq: () => query,
     in: () => query,
     order: () => query,
+    range: () => query,
     then: (resolve: (value: QueryAnswer) => unknown) => resolve(answer),
   }
   return query
@@ -191,4 +192,64 @@ describe('getUserBoardsWithStatusLists()', () => {
       expect(Sentry.captureException).toHaveBeenCalledTimes(1)
     },
   )
+
+  test('loads columns past the first 1000, so a board is not offered without the rest', async () => {
+    // Arrange: one board, then a full page of columns and one more
+    const firstPage = Array.from({ length: 1000 }, (_, index) => ({
+      id: `status-${index}`,
+      name: `Column ${index}`,
+      color: '#6B7280',
+      board_id: 'board-work',
+    }))
+    const secondPage = [
+      {
+        id: 'status-1000',
+        name: 'Past the cap',
+        color: '#111111',
+        board_id: 'board-work',
+      },
+    ]
+    const pages = [firstPage, secondPage]
+    let statusPage = 0
+    const boardQuery = {
+      select: () => boardQuery,
+      eq: () => boardQuery,
+      order: () => boardQuery,
+      range: async () =>
+        Promise.resolve({
+          data: [{ id: 'board-work', name: 'Work', is_public: false }],
+          error: null,
+        }),
+    }
+    const statusQuery = {
+      select: () => statusQuery,
+      in: () => statusQuery,
+      order: () => statusQuery,
+      range: async () => {
+        const page = pages[statusPage] ?? []
+        statusPage += 1
+        return Promise.resolve({ data: page, error: null })
+      },
+    }
+    vi.mocked(getCachedClaims).mockResolvedValue({
+      supabase: {
+        from: (table: string) =>
+          table === 'statuslist' ? statusQuery : boardQuery,
+      },
+      claims: { sub: 'user-1' },
+    } as unknown as Awaited<ReturnType<typeof getCachedClaims>>)
+
+    // Act
+    const result = await getUserBoardsWithStatusLists()
+
+    // Assert
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data[0]?.statusLists).toHaveLength(1001)
+    expect(result.data[0]?.statusLists[1000]).toEqual({
+      id: 'status-1000',
+      name: 'Past the cap',
+      color: '#111111',
+    })
+  })
 })

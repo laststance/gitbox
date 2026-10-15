@@ -9,7 +9,7 @@
  *
  * Out of scope here (and why): the async getBoardBundle contract — an embed
  * error is thrown, null data stays null, a board with no columns gets the
- * defaults, and 1000 cards warn — lives in board-data.test.ts. What PostgREST
+ * defaults, and a full page is read on — lives in board-data.test.ts. What PostgREST
  * returns for a missing board, an empty column list and a board past the row
  * cap lives in e2e/logged-in/board-bundle-db-contract.spec.ts. projectinfo:null
  * here means a card without project info; these tests only prove the remap

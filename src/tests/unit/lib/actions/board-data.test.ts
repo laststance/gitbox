@@ -21,9 +21,10 @@
  * columns, no cards and no comments.
  *
  * An embed that comes back as an error is thrown, so the page shows its error
- * boundary instead of "Board not found". An embed of 1000 cards warns that
- * the row cap may have cut the rest. What PostgREST actually returns at that
- * cap is e2e/logged-in/board-bundle-db-contract.spec.ts.
+ * boundary instead of "Board not found". An embed that fills the row cap is
+ * read again, page by page, so the board the page counts is the whole one.
+ * What PostgREST returns at that cap is
+ * e2e/logged-in/board-bundle-db-contract.spec.ts.
  *
  * @see src/lib/actions/board-data.ts
  */
@@ -335,13 +336,13 @@ describe('getBoardBundle() embed failure', () => {
   })
 })
 
-describe('getBoardBundle() card cap warning', () => {
+describe('getBoardBundle() card cap', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  test('warns that cards may be cut off when the embed returns 1000 cards', async () => {
-    // Arrange
+  test('reads the cards past the first 1000, so the page does not count a cut-off board', async () => {
+    // Arrange: the embed is full, and the follow-up read has one more card
     const boardQuery = queryResolving({
       data: {
         id: BOARD_ID,
@@ -352,25 +353,137 @@ describe('getBoardBundle() card cap warning', () => {
       },
       error: null,
     })
-    signInWith(boardQuery)
+    const extraCard = {
+      ...embeddedCards(1)[0],
+      id: '00000000-0000-0000-0000-000000001000',
+      repo_name: 'past-the-cap',
+      order: 1000,
+    }
+    const cardPages = [embeddedCards(POSTGREST_MAX_ROWS), [extraCard]]
+    let cardPage = 0
+    const cardQuery = {
+      select: () => cardQuery,
+      eq: () => cardQuery,
+      order: () => cardQuery,
+      range: async () => {
+        const page = cardPages[cardPage] ?? []
+        cardPage += 1
+        return Promise.resolve({ data: page, error: null })
+      },
+    }
+    const from = vi.fn((table: string) =>
+      table === 'repocard' ? cardQuery : boardQuery,
+    )
+    vi.mocked(getCachedClaims).mockResolvedValueOnce({
+      supabase: { from },
+      claims: { sub: OWNER_ID },
+    } as unknown as Awaited<ReturnType<typeof getCachedClaims>>)
 
     // Act
     const bundle = await getBoardBundle(BOARD_ID)
 
     // Assert
-    expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
-    expect(Sentry.captureMessage).toHaveBeenCalledWith(
-      'Board repocard embed may be truncated at PostgREST row limit',
-      {
-        level: 'warning',
-        extra: { boardId: BOARD_ID, repoCardCount: 1000 },
-      },
+    expect(from).toHaveBeenCalledWith('repocard')
+    expect(bundle?.repoCards.map((card) => card.repoName)).toContain(
+      'past-the-cap',
     )
-    expect(bundle?.repoCards).toHaveLength(1000)
+    expect(bundle?.repoCards).toHaveLength(1001)
+    expect(Sentry.captureMessage).not.toHaveBeenCalled()
     expect(createDefaultStatusLists).not.toHaveBeenCalled()
   })
 
-  test('stays quiet when the embed returns 999 cards', async () => {
+  test('reads the columns past the first 1000', async () => {
+    // Arrange
+    const columns = Array.from({ length: POSTGREST_MAX_ROWS }, (_, index) => ({
+      ...ONE_COLUMN,
+      id: `00000000-0000-0000-0000-${String(index).padStart(12, '0')}`,
+      name: `Column ${index}`,
+      grid_col: index,
+    }))
+    const boardQuery = queryResolving({
+      data: {
+        id: BOARD_ID,
+        name: 'Many columns',
+        user_id: OWNER_ID,
+        statuslist: columns,
+        repocard: [],
+      },
+      error: null,
+    })
+    const extraColumn = {
+      ...ONE_COLUMN,
+      id: '00000000-0000-0000-0000-000000001000',
+      name: 'Past the cap',
+      grid_col: 1000,
+    }
+    const columnPages = [columns, [extraColumn]]
+    let columnPage = 0
+    const columnQuery = {
+      select: () => columnQuery,
+      eq: () => columnQuery,
+      order: () => columnQuery,
+      range: async () => {
+        const page = columnPages[columnPage] ?? []
+        columnPage += 1
+        return Promise.resolve({ data: page, error: null })
+      },
+    }
+    vi.mocked(getCachedClaims).mockResolvedValueOnce({
+      supabase: {
+        from: vi.fn((table: string) =>
+          table === 'statuslist' ? columnQuery : boardQuery,
+        ),
+      },
+      claims: { sub: OWNER_ID },
+    } as unknown as Awaited<ReturnType<typeof getCachedClaims>>)
+
+    // Act
+    const bundle = await getBoardBundle(BOARD_ID)
+
+    // Assert
+    expect(bundle?.statusLists.map((column) => column.title)).toContain(
+      'Past the cap',
+    )
+    expect(bundle?.statusLists).toHaveLength(1001)
+  })
+
+  test('throws when the page of cards does not advance, so a cut-off board is not shown', async () => {
+    // Arrange
+    const boardQuery = queryResolving({
+      data: {
+        id: BOARD_ID,
+        name: 'Stuck',
+        user_id: OWNER_ID,
+        statuslist: [ONE_COLUMN],
+        repocard: embeddedCards(POSTGREST_MAX_ROWS),
+      },
+      error: null,
+    })
+    const stuck = embeddedCards(POSTGREST_MAX_ROWS)
+    const cardQuery = {
+      select: () => cardQuery,
+      eq: () => cardQuery,
+      order: () => cardQuery,
+      range: async () => Promise.resolve({ data: stuck, error: null }),
+    }
+    vi.mocked(getCachedClaims).mockResolvedValueOnce({
+      supabase: {
+        from: vi.fn((table: string) =>
+          table === 'repocard' ? cardQuery : boardQuery,
+        ),
+      },
+      claims: { sub: OWNER_ID },
+    } as unknown as Awaited<ReturnType<typeof getCachedClaims>>)
+
+    // Act
+    const bundle = getBoardBundle(BOARD_ID)
+
+    // Assert
+    await expect(bundle).rejects.toThrow('Failed to fetch board bundle')
+    expect(Sentry.captureException).toHaveBeenCalled()
+  })
+
+  test('stays on the embed when it returns 999 cards', async () => {
     // Arrange
     const boardQuery = queryResolving({
       data: {
@@ -382,12 +495,18 @@ describe('getBoardBundle() card cap warning', () => {
       },
       error: null,
     })
-    signInWith(boardQuery)
+    const from = vi.fn(() => boardQuery)
+    vi.mocked(getCachedClaims).mockResolvedValueOnce({
+      supabase: { from },
+      claims: { sub: OWNER_ID },
+    } as unknown as Awaited<ReturnType<typeof getCachedClaims>>)
 
     // Act
     const bundle = await getBoardBundle(BOARD_ID)
 
     // Assert
+    expect(from).toHaveBeenCalledTimes(1)
+    expect(from).toHaveBeenCalledWith('board')
     expect(Sentry.captureMessage).not.toHaveBeenCalled()
     expect(bundle?.repoCards).toHaveLength(999)
   })

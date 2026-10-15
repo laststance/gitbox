@@ -29,6 +29,7 @@ import {
 } from '@/lib/types/brands'
 import type { ISOTimestamp, Visibility } from '@/lib/types/domain-primitives'
 import { didDatabaseRefuse } from '@/lib/utils/did-database-refuse'
+import { readEveryRow } from '@/lib/utils/read-every-row'
 import { addRepositoriesRequestSchema } from '@/lib/validations/repo-card'
 
 import {
@@ -321,41 +322,39 @@ export async function getUserBoardsWithStatusLists(): Promise<
   ActionResult<BoardOption[]>
 > {
   return withAuthResult(async (supabase, claims) => {
-    // Fetch boards
-    const { data: boards, error: boardsError } = await supabase
-      .from('board')
-      .select('id, name, is_public')
-      .eq('user_id', claims.sub)
-      .order('created_at', { ascending: false })
+    const boards = await readEveryRow((from, to) =>
+      supabase
+        .from('board')
+        .select('id, name, is_public')
+        .eq('user_id', claims.sub)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: true })
+        .range(from, to),
+    )
 
-    if (boardsError) {
-      log.error({ error: boardsError }, 'Failed to fetch boards')
-      throw new Error('Failed to fetch boards')
-    }
-
-    if (!boards || boards.length === 0) {
+    if (boards.length === 0) {
       return []
     }
 
-    // Fetch status lists for all boards, in the order the board page shows
-    // them. Dragging a column changes grid_row and grid_col and leaves
-    // "order" as it was at creation, so "order" would list them differently.
+    // Columns of every board, in the order the board page shows them.
+    // Dragging a column changes grid_row and grid_col and leaves "order"
+    // as it was at creation, so "order" would list them differently.
+    // `id` is the tiebreak so a later page does not repeat a column.
     const boardIds = boards.map((b) => b.id)
-    const { data: statusLists, error: statusError } = await supabase
-      .from('statuslist')
-      .select('id, name, color, board_id')
-      .in('board_id', boardIds)
-      .order('grid_row', { ascending: true })
-      .order('grid_col', { ascending: true })
-
-    if (statusError) {
-      log.error({ error: statusError }, 'Failed to fetch status lists')
-      throw new Error('Failed to fetch status lists')
-    }
+    const statusLists = await readEveryRow((from, to) =>
+      supabase
+        .from('statuslist')
+        .select('id, name, color, board_id')
+        .in('board_id', boardIds)
+        .order('grid_row', { ascending: true })
+        .order('grid_col', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, to),
+    )
 
     // Group status lists by board
     const statusListsByBoard = new Map<string, BoardOption['statusLists']>()
-    for (const sl of statusLists || []) {
+    for (const sl of statusLists) {
       const existing = statusListsByBoard.get(sl.board_id) || []
       existing.push({ id: sl.id, name: sl.name, color: sl.color ?? '#6B7280' })
       statusListsByBoard.set(sl.board_id, existing)

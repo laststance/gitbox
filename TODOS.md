@@ -29,24 +29,6 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
       (`.maybeSingle()` null). Asserts page content, not HTTP status, since the App
       Router may stream a 200 before `notFound()` throws._
 
-### Pre-existing product concerns (NOT introduced by this PR)
-
-> These conditions exist in `main` today; they were **surfaced — not introduced** — by this
-> PR's adversarial review. The single-embed refactor preserves the prior read behavior.
-
-- [ ] **>1000 cards/columns silently truncated at the PostgREST `db-max-rows` cap** — the old
-      `getRepoCards`/`getStatusLists` had the same cap with no warning; this PR added a Sentry
-      warning for `repocard` only. A partial board can undercount cards before a destructive
-      column-delete (`BoardPageClient` counts only loaded `repoCards`). Needs hard-fail / exact
-      count / pagination before mutation-capable UI. Also add a `statuslist` cap check.
-      The destination lookup of Move to Another Board (`getUserBoardsWithStatusLists` in
-      `src/lib/actions/repo-cards.ts`) reads the columns of all the user's boards under the same cap
-      and without a warning: past 1000 columns a board shows in the dialog without some or all of
-      its columns, and a card cannot be moved there. Raised again by the last review of #213.
-      _v0.3.1.0: the embed now orders `repocard` by `order` ascending, so truncation drops the
-      highest-order cards deterministically rather than an arbitrary subset; the silent
-      undercount / hard-fail / pagination work above remains open._
-
 ### Accepted tradeoff
 
 - [ ] **`generateMetadata` shares the full bundle fetch (and may create default columns)** —
