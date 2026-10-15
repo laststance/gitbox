@@ -136,6 +136,7 @@ export function clearGitHubRefreshAttempts(): void {
  * error, so the next refresh starts at 1.
  *
  * @param error - The `error` query of the login page, or null when there is none.
+ * @returns Nothing. The counter is removed only for this error.
  * @example
  * clearRefreshAttemptsAfterFailedRefresh('token_refresh_failed')
  */

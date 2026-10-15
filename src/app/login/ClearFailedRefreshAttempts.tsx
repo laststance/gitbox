@@ -12,6 +12,10 @@ import { clearRefreshAttemptsAfterFailedRefresh } from '@/lib/utils/handle-githu
  * The login page renders it. The query is read after mount because
  * sessionStorage is not available while the server renders the page.
  * It calls {@link clearRefreshAttemptsAfterFailedRefresh}.
+ *
+ * @returns Nothing. The counter is cleared after mount when the query matches.
+ * @example
+ * <ClearFailedRefreshAttempts />
  */
 export const ClearFailedRefreshAttempts = memo(
   function ClearFailedRefreshAttempts(): null {

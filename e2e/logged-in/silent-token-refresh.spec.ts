@@ -36,6 +36,7 @@ test.describe('Silent GitHub token refresh — route handler', () => {
     const response = await page.goto(
       '/api/auth/github/refresh?next=/board/abc&attempt=2',
     )
+    await page.waitForLoadState('networkidle')
 
     // Playwright follows redirects automatically — assert the final landing
     // page rather than the 307 itself.
