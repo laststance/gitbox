@@ -10,7 +10,6 @@ From the `/ship` adversarial review of `feat/silent-github-token-refresh` (PR #1
 
 ### Security / rate-limit
 
-- [ ] **`x-forwarded-for` first-IP spoofing on Vercel** — [#182](https://github.com/laststance/gitbox/issues/182)
 - [ ] **Server-side `attempt` cap bypassed when `sessionStorage` unavailable** — [#183](https://github.com/laststance/gitbox/issues/183)
 - [ ] **Error message reflection in `/login?error=...`** — [#184](https://github.com/laststance/gitbox/issues/184)
 

@@ -88,9 +88,9 @@ export async function GET(request: Request) {
 
   // Rate limit by IP. Reuses the `signInWithGitHub` bucket since each refresh
   // triggers a full GitHub OAuth round-trip — same upstream cost as a fresh
-  // sign-in. Prefer `x-real-ip` (Vercel sets it to the trusted edge IP) over
-  // the first hop of `x-forwarded-for`, which is client-controllable when the
-  // proxy *appends* rather than replaces the header (Vercel's behavior).
+  // sign-in. `x-real-ip` is the address Vercel sets. Without it,
+  // getForwardedClientIp uses the last `x-forwarded-for` hop, the one the
+  // edge appended, rather than a hop the caller put at the front.
   const realIp = request.headers.get('x-real-ip')?.trim()
   const forwarded = getForwardedClientIp(request.headers)
   const clientIp = realIp || forwarded || '127.0.0.1'
