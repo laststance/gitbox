@@ -14,8 +14,11 @@ import { NextResponse } from 'next/server'
 import { createFirstBoardIfNeeded } from '@/lib/actions/board-creation'
 import { setGitHubTokenCookie } from '@/lib/constants/cookies'
 import { createModuleLogger } from '@/lib/logger'
+import { checkRateLimit } from '@/lib/rate-limit/check'
 import { logSecurityEvent } from '@/lib/security-events'
 import { createRouteHandlerClient } from '@/lib/supabase/server'
+import { getForwardedClientIp } from '@/lib/utils/get-client-ip'
+import { isPkceVerifierMismatch } from '@/lib/utils/is-pkce-verifier-mismatch'
 import { sanitizeNextPath } from '@/lib/utils/sanitize-next'
 
 const log = createModuleLogger('auth-callback')
@@ -37,6 +40,17 @@ export async function GET(request: Request) {
 
       if (error) {
         log.error({ error }, 'OAuth callback error')
+        // Another tab replaced the code-verifier cookie. Sign in again
+        // instead of showing that failure on the login page.
+        if (isPkceVerifierMismatch(error.message)) {
+          return restartSignInAfterVerifierMismatch({
+            supabase,
+            origin,
+            next,
+            alreadyRetried: searchParams.get('pkce_retry') === '1',
+            clientIp: getForwardedClientIp(request.headers) ?? '127.0.0.1',
+          })
+        }
         logSecurityEvent('login_failure', { error: error.message })
         return NextResponse.redirect(
           `${origin}/login?error=auth_failed&message=${encodeURIComponent(error.message)}`,
@@ -75,4 +89,61 @@ export async function GET(request: Request) {
 
   // Redirect to login page if code parameter is missing
   return NextResponse.redirect(`${origin}/login?error=missing_code`)
+}
+
+/** Scopes the restarted sign-in asks for, matching a normal GitHub sign-in. */
+const GITHUB_SIGN_IN_SCOPES = 'read:user user:email repo'
+
+/**
+ * Starts GitHub sign-in again after another tab replaced the verifier.
+ *
+ * The first mismatch redirects to GitHub with `pkce_retry=1` on the
+ * callback, so a second mismatch stops instead of looping. The login
+ * page then gets a stable error code and not the verifier text.
+ *
+ * Called by {@link GET} when {@link isPkceVerifierMismatch} matches.
+ *
+ * @param supabase - The route client, which writes the new verifier cookie.
+ * @param origin - Origin of this callback request.
+ * @param next - Sanitized path to open after the restarted sign-in.
+ * @param alreadyRetried - The callback URL already carries `pkce_retry=1`.
+ * @param clientIp - Address the sign-in rate limit is counted against.
+ * @returns A redirect to GitHub, or to `/login` when the retry is used up.
+ */
+async function restartSignInAfterVerifierMismatch({
+  supabase,
+  origin,
+  next,
+  alreadyRetried,
+  clientIp,
+}: {
+  supabase: Awaited<ReturnType<typeof createRouteHandlerClient>>
+  origin: string
+  next: string
+  alreadyRetried: boolean
+  clientIp: string
+}): Promise<NextResponse> {
+  logSecurityEvent('login_failure', { error: 'pkce_verifier_mismatch' })
+  // One restart is enough. A second mismatch is a real failure.
+  if (alreadyRetried) {
+    return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+  }
+
+  const rateLimitResult = checkRateLimit('signInWithGitHub', clientIp)
+  if (!rateLimitResult.allowed) {
+    return NextResponse.redirect(`${origin}/login?error=rate_limited`)
+  }
+
+  const callbackUrl = `${origin}/auth/callback?pkce_retry=1&next=${encodeURIComponent(next)}`
+  const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+    provider: 'github',
+    options: {
+      redirectTo: callbackUrl,
+      scopes: GITHUB_SIGN_IN_SCOPES,
+    },
+  })
+  if (oauthError || !data.url) {
+    return NextResponse.redirect(`${origin}/login?error=oauth_failed`)
+  }
+  return NextResponse.redirect(data.url)
 }
