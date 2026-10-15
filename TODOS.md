@@ -29,13 +29,6 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
       (`.maybeSingle()` null). Asserts page content, not HTTP status, since the App
       Router may stream a 200 before `notFound()` throws._
 
-### Accepted tradeoff
-
-- [ ] **`generateMetadata` shares the full bundle fetch (and may create default columns)** —
-      intentional: `React.cache` dedups it with the page render, which is the whole point of
-      eliminating the duplicate board fetch. Reverting to a name-only metadata query would
-      re-introduce the second round-trip. Revisit only if metadata-only prefetch paths emerge.
-
 ## One Repo Across Boards (#215) — deferred follow-ups
 
 From the `/autoplan` review of issue #215 (one card per user and repository). None blocks that change.
