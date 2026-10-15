@@ -14,6 +14,8 @@
  * }
  */
 
+import { getForwardedClientIp } from '@/lib/utils/get-client-ip'
+
 const store = new Map<string, { count: number; resetAt: number }>()
 
 /** Shortest time between two sweeps of expired entries. */
@@ -86,16 +88,9 @@ export function getEdgeRateLimitEntryCount(): number {
  *
  * @example
  * const ip = getClientIp(request)
- * // '203.0.113.42' (from x-forwarded-for)
+ * // '203.0.113.42' (x-real-ip, or the last x-forwarded-for hop)
  */
 export function getClientIp(request: Request): string {
-  const forwarded = request.headers.get('x-forwarded-for')
-  const forwardedIp = forwarded?.split(',')[0]?.trim()
-  if (forwardedIp) return forwardedIp
-
-  // `??` would pass through an empty-string header; use `||` so blank
-  // values fall back to the loopback address instead of becoming the
-  // rate-limit key for every request.
-  const realIp = request.headers.get('x-real-ip')?.trim()
-  return realIp || '127.0.0.1'
+  // A blank header must not become the shared rate-limit key.
+  return getForwardedClientIp(request.headers) || '127.0.0.1'
 }
