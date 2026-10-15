@@ -169,6 +169,7 @@ test.describe('One repository per user - picker and dialogs', () => {
       `${WORK_PROJECTS_URL}?card=${FIXTURE_CARD_ID}`,
     )
     await boardLink.click()
+    await page.waitForLoadState('networkidle')
 
     // Assert: lands on the holding board, scrolled to that card and focused
     await expect(page).toHaveURL(WORK_PROJECTS_URL)

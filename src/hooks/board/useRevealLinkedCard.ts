@@ -16,10 +16,11 @@ import {
  *
  * Called once by {@link BoardPageClient}. The store can still hold another
  * board's cards when this page mounts, so the reveal waits until
- * {@link selectHydratedBoardId} is this board. A card that is on the board
- * but not in the document yet (the column has not drawn it) is tried again
- * on the next cards update. A card this board does not hold is given up, and
- * the parameter is removed either way.
+ * {@link selectHydratedBoardId} is this board. {@link KanbanBoard} draws its
+ * columns only after {@link useMounted} flips, and that render does not
+ * replace the card list, so a card that is stored but not drawn yet is
+ * watched until it appears. A card this board does not hold is given up, and
+ * the parameter is removed.
  *
  * @param boardId - Board this page is showing.
  * @example
@@ -38,12 +39,28 @@ export function useRevealLinkedCard(boardId: BoardId): void {
     if (hydratedBoardId !== boardId) return
     if (attemptedCardId.current === cardId) return
 
-    const revealed = revealCardOnBoard(cardId)
     const isOnBoard = repoCards.some((card) => card.id === cardId)
-    // The card belongs here and the column has not drawn it yet.
-    if (!revealed && isOnBoard) return
+    if (!isOnBoard) {
+      attemptedCardId.current = cardId
+      forgetLinkedCardSearchParam()
+      return
+    }
 
-    attemptedCardId.current = cardId
-    forgetLinkedCardSearchParam()
+    const reveal = (): boolean => {
+      if (attemptedCardId.current === cardId) return true
+      if (!revealCardOnBoard(cardId)) return false
+      attemptedCardId.current = cardId
+      forgetLinkedCardSearchParam()
+      return true
+    }
+
+    if (reveal()) return
+
+    // The column appears without a new card list. Watch until the card is drawn.
+    const observer = new MutationObserver((): void => {
+      if (reveal()) observer.disconnect()
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
+    return (): void => observer.disconnect()
   }, [boardId, cardId, hydratedBoardId, repoCards])
 }

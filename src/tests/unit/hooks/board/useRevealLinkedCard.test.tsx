@@ -126,8 +126,8 @@ describe('useRevealLinkedCard', () => {
     expect(window.location.search).toBe('')
   })
 
-  test('waits to drop the parameter while the card is on the board but not drawn yet', () => {
-    // Arrange: the store knows the card, the column has not drawn it
+  test('focuses the card when its column is drawn without a new card list', async () => {
+    // Arrange: the store already holds the card, and the column is not drawn
     const store = makeStore()
     store.dispatch(setRepoCards([makeCard(CARD_ID, BOARD_ID)]))
     store.dispatch(serverSnapshotApplied(toBoardId(BOARD_ID)))
@@ -138,14 +138,15 @@ describe('useRevealLinkedCard', () => {
     )
     expect(window.location.search).toBe(`?card=${CARD_ID}`)
 
-    // Act: the column draws the card and the list is replaced
-    const card = mountCard(CARD_ID)
-    act(() => {
-      store.dispatch(setRepoCards([makeCard(CARD_ID, BOARD_ID)]))
+    // Act: the column mounts. The card list does not change.
+    let card: HTMLDivElement
+    await act(async () => {
+      card = mountCard(CARD_ID)
+      await Promise.resolve()
     })
 
     // Assert
-    expect(document.activeElement).toBe(card)
+    expect(document.activeElement).toBe(card!)
     expect(window.location.search).toBe('')
   })
 })
