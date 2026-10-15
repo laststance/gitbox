@@ -7,12 +7,14 @@
  * returns the user to the original page once a fresh provider token
  * cookie is in place.
  *
- * Two layers of idempotency keep this safe:
+ * Three layers of idempotency keep this safe:
  *  1. Module-level `isRefreshInFlight` flag prevents duplicate redirects
  *     if multiple catalog consumers receive the same token error together.
  *  2. `sessionStorage` counter persists across the OAuth round-trip so
  *     that if a refresh fails to land a usable token, the next visit
  *     surfaces a hard error to the user instead of looping forever.
+ *  3. The refresh route records the same visit in an httpOnly cookie, so
+ *     a browser that cannot use sessionStorage is still capped.
  *
  * Cleanup: callers MUST invoke `clearGitHubRefreshAttempts()` whenever a
  * GitHub Server Action succeeds, so the counter resets after the token
@@ -30,10 +32,9 @@
  *   }
  */
 
-const REFRESH_ATTEMPTS_STORAGE_KEY = 'gh_refresh_attempts'
+import { TOKEN_REFRESH_FAILED_ERROR } from '@/lib/utils/refresh-attempt-cookie'
 
-/** Login error the refresh route sends once the attempt cap is reached. */
-const TOKEN_REFRESH_FAILED_ERROR = 'token_refresh_failed'
+const REFRESH_ATTEMPTS_STORAGE_KEY = 'gh_refresh_attempts'
 
 /**
  * Page-lifetime lock preventing duplicate redirects when many hooks see
@@ -72,8 +73,7 @@ export function handleGitHubTokenMissing(currentPath: string): boolean {
   isRefreshInFlight = true
 
   // sessionStorage can throw in Safari private mode or when quota is exceeded.
-  // Fall back to a single-attempt refresh (counter not persisted) if so —
-  // the server-side rate limit still bounds total refreshes per IP.
+  // This visit still counts: the refresh route stores it in an httpOnly cookie.
   let nextAttempt = 1
   try {
     const previousAttemptsRaw = window.sessionStorage.getItem(
@@ -89,7 +89,7 @@ export function handleGitHubTokenMissing(currentPath: string): boolean {
       String(nextAttempt),
     )
   } catch {
-    // Storage unavailable — proceed with attempt=1.
+    // Storage unavailable. Leave the query at 1. The cookie caps the next visit.
   }
 
   const params = new URLSearchParams()

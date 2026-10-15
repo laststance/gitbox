@@ -18,7 +18,9 @@
  *
  * Defenses:
  *  - Open-redirect prevention on `next` (mirrors `/auth/callback`)
- *  - Attempt cap to break infinite redirect loops if OAuth keeps failing
+ *  - Attempt cap to break infinite redirect loops if OAuth keeps failing.
+ *    The `attempt` query is one input. An httpOnly cookie records a visit
+ *    the query still calls 1, which is what happens when sessionStorage throws.
  *  - Rate limit by IP (reuses the `signInWithGitHub` bucket)
  *  - Supabase session check: refresh requires existing login
  *
@@ -36,6 +38,14 @@ import { checkRateLimit } from '@/lib/rate-limit/check'
 import { logSecurityEvent } from '@/lib/security-events'
 import { createRouteHandlerClient } from '@/lib/supabase/server'
 import { getForwardedClientIp } from '@/lib/utils/get-client-ip'
+import {
+  nextRefreshAttempt,
+  readRefreshAttempt,
+  REFRESH_ATTEMPT_COOKIE,
+  refreshAttemptCookieHeader,
+  refreshAttemptCookieOptions,
+  TOKEN_REFRESH_FAILED_ERROR,
+} from '@/lib/utils/refresh-attempt-cookie'
 import { sanitizeNextPath } from '@/lib/utils/sanitize-next'
 
 const log = createModuleLogger('github-token-refresh')
@@ -58,7 +68,8 @@ const MAX_REFRESH_ATTEMPTS = 1
  * messages are reflected into the URL).
  *
  * @param request - Incoming `Request` from Next.js. Read query params
- *   (`next`, `attempt`) and the `x-real-ip` / `x-forwarded-for` headers.
+ *   (`next`, `attempt`), the attempt cookie, and the `x-real-ip` /
+ *   `x-forwarded-for` headers.
  * @returns A `NextResponse` redirect — either to GitHub's OAuth URL on
  *   success, or to `/login?error=<code>` on failure (`token_refresh_failed`,
  *   `rate_limited`, `oauth_failed`, `unexpected_error`).
@@ -73,17 +84,24 @@ export async function GET(request: Request) {
 
   const next = sanitizeNextPath(searchParams.get('next'), '/boards')
 
-  // Bail if the attempt count exceeds the cap (prevents infinite loops).
+  // The query is the client's count. The cookie is the server's, and it
+  // still advances when sessionStorage could not store the client's count.
   const rawAttempt = Number.parseInt(searchParams.get('attempt') ?? '1', 10)
-  const attempt =
+  const queryAttempt =
     Number.isFinite(rawAttempt) && rawAttempt >= 1 ? rawAttempt : 1
+  const attempt = nextRefreshAttempt(
+    queryAttempt,
+    readRefreshAttempt(refreshAttemptCookieHeader(request)),
+  )
 
   if (attempt > MAX_REFRESH_ATTEMPTS) {
     log.warn({ attempt, next }, 'Silent refresh attempt cap exceeded')
     logSecurityEvent('login_failure', {
       error: 'refresh_attempt_cap_exceeded',
     })
-    return NextResponse.redirect(`${origin}/login?error=token_refresh_failed`)
+    return NextResponse.redirect(
+      `${origin}/login?error=${TOKEN_REFRESH_FAILED_ERROR}`,
+    )
   }
 
   // Rate limit by IP. Reuses the `signInWithGitHub` bucket since each refresh
@@ -172,7 +190,14 @@ export async function GET(request: Request) {
       userId: user.id,
       path: 'silent_token_refresh',
     })
-    return NextResponse.redirect(data.url)
+    const response = NextResponse.redirect(data.url)
+    // Record the visit on the redirect itself so the next page load can see it.
+    response.cookies.set(
+      REFRESH_ATTEMPT_COOKIE,
+      String(attempt),
+      refreshAttemptCookieOptions(),
+    )
+    return response
   } catch (unexpectedError) {
     log.error({ error: unexpectedError }, 'Unexpected error in token refresh')
     Sentry.captureException(unexpectedError, {

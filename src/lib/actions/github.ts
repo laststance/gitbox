@@ -11,7 +11,7 @@
 
 import * as Sentry from '@sentry/nextjs'
 import { isAxiosError } from 'axios'
-import { headers } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 
 import { getGitHubToken } from '@/lib/axios-github'
 import {
@@ -26,6 +26,7 @@ import { createModuleLogger } from '@/lib/logger'
 import { checkRateLimit } from '@/lib/rate-limit/check'
 import type { GitHubRepositoryCatalog } from '@/lib/types/github'
 import { getForwardedClientIp } from '@/lib/utils/get-client-ip'
+import { REFRESH_ATTEMPT_COOKIE } from '@/lib/utils/refresh-attempt-cookie'
 
 import type { ActionResult } from './types'
 
@@ -51,6 +52,30 @@ async function getClientIp(): Promise<string> {
     log.warn('x-forwarded-for header missing — falling back to 127.0.0.1')
   }
   return clientIp ?? '127.0.0.1'
+}
+
+/**
+ * Drops the silent-refresh count after a catalog load proves the token works.
+ *
+ * The page clears its sessionStorage counter on this success. The httpOnly
+ * cookie has to go too, or the next missing token inside the cookie's
+ * lifetime is refused. Called by {@link getAuthenticatedRepositoryCatalog}
+ * only after GitHub has answered.
+ *
+ * @returns Nothing. A cookie store this action cannot write leaves the count until it expires.
+ * @example
+ * await forgetRefreshAttempt()
+ */
+async function forgetRefreshAttempt(): Promise<void> {
+  try {
+    const cookieStore = await cookies()
+    cookieStore.delete(REFRESH_ATTEMPT_COOKIE)
+  } catch (cookieError) {
+    log.warn(
+      { error: cookieError },
+      'Could not clear the silent-refresh attempt',
+    )
+  }
 }
 
 /**
@@ -165,6 +190,7 @@ export async function getAuthenticatedRepositoryCatalog(): Promise<
 
   try {
     const catalog = await getCachedGitHubRepositoryCatalog(token)
+    await forgetRefreshAttempt()
     return { success: true, data: catalog }
   } catch (error) {
     // Cookie mutation must happen after leaving unstable_cache's request-free scope.

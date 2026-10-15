@@ -22,6 +22,11 @@ import {
 import { RATE_LIMIT_CONFIG } from '@/lib/rate-limit/config'
 import { edgeRateLimit, getClientIp } from '@/lib/rate-limit/edge-memory'
 import { logSecurityEvent } from '@/lib/security-events'
+import {
+  isSpentRefreshLogin,
+  REFRESH_ATTEMPT_COOKIE,
+  refreshAttemptCookieOptions,
+} from '@/lib/utils/refresh-attempt-cookie'
 import { isTestMode } from '@/tests/isTestMode'
 
 // Public paths that don't require authentication
@@ -59,11 +64,14 @@ export async function proxy(request: NextRequest) {
 
   // In E2E test mode, bypass authentication and allow all requests
   if (isTestMode()) {
-    return NextResponse.next({
-      request: {
-        headers: request.headers,
-      },
-    })
+    return dropSpentRefreshAttempt(
+      request,
+      NextResponse.next({
+        request: {
+          headers: request.headers,
+        },
+      }),
+    )
   }
 
   // The manifest and the preview images are the same for everyone
@@ -139,7 +147,7 @@ export async function proxy(request: NextRequest) {
 
   // Allow public paths without authentication
   if (publicPaths.includes(pathname) || isPublicBoardPath(pathname)) {
-    return supabaseResponse
+    return dropSpentRefreshAttempt(request, supabaseResponse)
   }
 
   // Redirect to login if not authenticated
@@ -155,6 +163,42 @@ export async function proxy(request: NextRequest) {
   }
 
   return supabaseResponse
+}
+
+/**
+ * Deletes the silent-refresh count on the login page the cap redirects to.
+ *
+ * The refresh route leaves the count set so a second visit is refused.
+ * This page is where that visit ends, and the sessionStorage counter is
+ * cleared here too. Leaving the cookie would refuse the next sign-in's
+ * first refresh. Called by {@link proxy} for the responses that render
+ * `/login`.
+ *
+ * @param request - Incoming request.
+ * @param response - Response already chosen for this request.
+ * @returns The same response, with the attempt cookie expired when this is the cap's login page.
+ * @example
+ * dropSpentRefreshAttempt(request, NextResponse.next())
+ */
+function dropSpentRefreshAttempt(
+  request: NextRequest,
+  response: NextResponse,
+): NextResponse {
+  if (
+    !isSpentRefreshLogin(
+      request.nextUrl.pathname,
+      request.nextUrl.searchParams.get('error'),
+    )
+  ) {
+    return response
+  }
+
+  // Same path and site as the cookie the refresh route set, so the browser drops that one.
+  response.cookies.set(REFRESH_ATTEMPT_COOKIE, '', {
+    ...refreshAttemptCookieOptions(),
+    maxAge: 0,
+  })
+  return response
 }
 
 /**

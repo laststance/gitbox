@@ -58,6 +58,34 @@ describe('proxy() for a signed-out visitor', () => {
     expect(response.headers.get('location')).toBeNull()
   })
 
+  test('drops the silent-refresh count on the login page the cap redirects to', async () => {
+    // Arrange
+    const loginRequest = new NextRequest(
+      'https://gitbox.example/login?error=token_refresh_failed',
+    )
+
+    // Act
+    const response = await proxy(loginRequest)
+
+    // Assert
+    expect(response.status).toBe(200)
+    expect(response.headers.get('set-cookie')).toContain('gh_refresh_count=')
+    expect(response.headers.get('set-cookie')).toContain('Max-Age=0')
+  })
+
+  test('leaves the silent-refresh count on a login page with a different error', async () => {
+    // Arrange
+    const loginRequest = new NextRequest(
+      'https://gitbox.example/login?error=auth_failed',
+    )
+
+    // Act
+    const response = await proxy(loginRequest)
+
+    // Assert
+    expect(response.headers.get('set-cookie')).toBeNull()
+  })
+
   test('sends the visitor to login for a board page', async () => {
     // Arrange
     const boardRequest = new NextRequest(

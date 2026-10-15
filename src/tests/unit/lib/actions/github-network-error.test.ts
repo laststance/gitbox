@@ -9,6 +9,7 @@ const actionHarness = vi.hoisted(() => ({
   getCachedGitHubRepositoryCatalog: vi.fn(),
   getGitHubCatalogErrorStatus: vi.fn(),
   getGitHubToken: vi.fn(),
+  cookieDelete: vi.fn(),
   logError: vi.fn(),
   logWarn: vi.fn(),
 }))
@@ -18,6 +19,9 @@ vi.mock('@sentry/nextjs', () => ({
 }))
 
 vi.mock('next/headers', () => ({
+  cookies: vi.fn(async () => ({
+    delete: actionHarness.cookieDelete,
+  })),
   headers: vi.fn().mockResolvedValue({
     get: vi.fn().mockReturnValue('127.0.0.1'),
   }),
@@ -128,5 +132,27 @@ describe('GitHub repository catalog network errors', () => {
     )
     expect(actionHarness.logError).not.toHaveBeenCalled()
     expect(actionHarness.captureException).not.toHaveBeenCalled()
+  })
+
+  test('drops the silent-refresh count after the catalog loads', async () => {
+    // Arrange
+    actionHarness.getCachedGitHubRepositoryCatalog.mockResolvedValue({
+      currentUser: {
+        id: 1,
+        login: 'octocat',
+        avatar_url: 'https://example.com/octocat.png',
+        name: 'The Octocat',
+        type: 'User',
+      },
+      organizations: [],
+      repositories: [],
+    })
+
+    // Act
+    const result = await getAuthenticatedRepositoryCatalog()
+
+    // Assert
+    expect(result.success).toBe(true)
+    expect(actionHarness.cookieDelete).toHaveBeenCalledWith('gh_refresh_count')
   })
 })
