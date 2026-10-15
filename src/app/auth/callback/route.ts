@@ -49,7 +49,7 @@ export async function GET(request: Request) {
             origin: publicOrigin,
             next,
             alreadyRetried: searchParams.get('pkce_retry') === '1',
-            clientIp: getForwardedClientIp(request.headers) ?? '127.0.0.1',
+            clientIp: clientIpForRestart(request),
           })
         }
         logSecurityEvent('login_failure', { error: error.message })
@@ -97,6 +97,21 @@ export async function GET(request: Request) {
  * @param origin - `request.url`'s origin.
  * @returns The public origin in production, otherwise `origin`.
  */
+/**
+ * Address the restart's rate limit is counted against.
+ *
+ * Prefers `x-real-ip`, which Vercel sets. A missing address is an empty
+ * string: {@link checkRateLimit} then skips the check. `127.0.0.1` would
+ * put every such request in one bucket.
+ *
+ * @param request - The callback request.
+ * @returns A client address, or `''` when none was provided.
+ */
+function clientIpForRestart(request: Request): string {
+  const realIp = request.headers.get('x-real-ip')?.trim()
+  return realIp || getForwardedClientIp(request.headers) || ''
+}
+
 function callbackOrigin(request: Request, origin: string): string {
   const forwardedHost = request.headers.get('x-forwarded-host')
   const isLocalEnv = process.env.NODE_ENV === 'development'
@@ -137,7 +152,10 @@ async function restartSignInAfterVerifierMismatch({
   alreadyRetried: boolean
   clientIp: string
 }): Promise<NextResponse> {
-  logSecurityEvent('login_failure', { error: 'pkce_verifier_mismatch' })
+  logSecurityEvent('login_failure', {
+    error: 'pkce_verifier_mismatch',
+    retried: alreadyRetried,
+  })
   // One restart is enough. A second mismatch is a real failure.
   if (alreadyRetried) {
     return NextResponse.redirect(`${origin}/login?error=auth_failed`)

@@ -43,6 +43,8 @@ interface SecurityEventContext {
   error?: string
   /** IP address or other request metadata */
   ip?: string
+  /** The silent restart was already used, so this failure is final. */
+  retried?: boolean
 }
 
 /**
