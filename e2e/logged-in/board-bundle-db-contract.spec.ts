@@ -7,8 +7,8 @@
  * - a missing board is no row and no error (the page calls notFound())
  * - a board with no columns is an empty list, not an error (the page then
  *   creates the default columns; the browser path is board-without-columns)
- * - 1001 cards come back as 1000, and the card with the highest order is the
- *   one that is dropped
+ * - 1001 cards come back from one embed as 1000, which is why a full page is
+ *   read again by getBoardBundle
  * - an embed PostgREST cannot resolve is an error, which getBoardBundle throws
  *   instead of treating as a missing board
  *

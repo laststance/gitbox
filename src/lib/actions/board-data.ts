@@ -26,12 +26,15 @@ import * as Sentry from '@sentry/nextjs'
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 import { POSTGREST_MAX_ROWS } from '@/lib/constants/postgrest'
 import { logBoardTiming } from '@/lib/utils/board-timing'
+import { readEveryRow } from '@/lib/utils/read-every-row'
 import { boardIdSchema } from '@/lib/validations/board'
 
 import { withAuthResult } from './auth-guard'
 import { createDefaultStatusLists } from './board-creation'
 import {
   BOARD_BUNDLE_SELECT,
+  PROJECT_COMMENT_EMBED,
+  REPO_CARD_COLUMNS,
   remapBoardEmbed,
   type BoardBundle,
   type BoardBundleRow,
@@ -185,10 +188,8 @@ export async function getBoardBundle(
     // uses /public/[slug]. Row level security hides other users' boards too;
     // this filter keeps the page correct without depending on the policies.
     .eq('user_id', claims.sub)
-    // Order embedded cards by `order` ascending so that if the embed hits the
-    // PostgREST row cap, truncation drops the highest-order cards rather than
-    // an arbitrary subset (ordering by `order` ascending). remapBoardEmbed
-    // re-sorts for render regardless.
+    // Order embedded cards by `order` ascending. A full page is read again
+    // below, past the row cap; under the cap this order is what the page gets.
     .order('order', { ascending: true, referencedTable: 'repocard' })
     .maybeSingle()
     .overrideTypes<BoardBundleRow, { merge: false }>()
@@ -208,18 +209,46 @@ export async function getBoardBundle(
     return null
   }
 
-  // Surface a possible silent truncation at the PostgREST embed row cap.
-  if (data.repocard.length >= POSTGREST_MAX_ROWS) {
-    Sentry.captureMessage(
-      'Board repocard embed may be truncated at PostgREST row limit',
-      {
-        level: 'warning',
-        extra: { boardId, repoCardCount: data.repocard.length },
-      },
-    )
+  // The embed stops at the row cap. A full list of cards or of columns is
+  // not the whole board: read the rest before the page can count them.
+  let row = data
+  if (row.repocard.length >= POSTGREST_MAX_ROWS) {
+    row = {
+      ...row,
+      repocard: await readCappedBoardRows(
+        boardId,
+        readEveryRow((from, to) =>
+          supabase
+            .from('repocard')
+            .select(`${REPO_CARD_COLUMNS}, ${PROJECT_COMMENT_EMBED}`)
+            .eq('board_id', boardId)
+            .order('order', { ascending: true })
+            .order('id', { ascending: true })
+            .range(from, to),
+        ),
+      ),
+    }
+  }
+  if (row.statuslist.length >= POSTGREST_MAX_ROWS) {
+    row = {
+      ...row,
+      statuslist: await readCappedBoardRows(
+        boardId,
+        readEveryRow((from, to) =>
+          supabase
+            .from('statuslist')
+            .select('*')
+            .eq('board_id', boardId)
+            .order('grid_row', { ascending: true })
+            .order('grid_col', { ascending: true })
+            .order('id', { ascending: true })
+            .range(from, to),
+        ),
+      ),
+    }
   }
 
-  const bundle = remapBoardEmbed(data)
+  const bundle = remapBoardEmbed(row)
 
   // A board with no columns gets the default preset created on first view and
   // renders with zero cards.
@@ -238,4 +267,29 @@ export async function getBoardBundle(
 
   logBoardTiming(boardId, { embedMs })
   return bundle
+}
+
+/**
+ * Read one capped child of a board, and turn a failed page into the same
+ * failure as a failed embed.
+ *
+ * A page that errors or does not advance must not become a 404: the board
+ * exists, the read of it did not finish.
+ *
+ * @param boardId - The board being read, for the error report.
+ * @param rows - The paged read.
+ * @returns The rows of every page.
+ */
+async function readCappedBoardRows<T>(
+  boardId: string,
+  rows: Promise<T>,
+): Promise<T> {
+  try {
+    return await rows
+  } catch (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'getBoardBundle page', boardId },
+    })
+    throw new Error('Failed to fetch board bundle')
+  }
 }
