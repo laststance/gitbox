@@ -30,7 +30,10 @@ export {
 } from '@/lib/constants/board-bundle'
 
 type StatusListRow = Tables<'statuslist'>
-type RepoCardRow = Omit<Tables<'repocard'>, 'user_id'>
+// user_id is the owner's and is never sent to the browser. github_repo_id is
+// confirmed server-side for placement; the card columns the page reads leave
+// it out, the way they leave user_id out.
+type RepoCardRow = Omit<Tables<'repocard'>, 'user_id' | 'github_repo_id'>
 
 /**
  * Convert a raw Supabase `statuslist` row into a {@link StatusListDomain}.

@@ -20,6 +20,10 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createModuleLogger } from '@/lib/logger'
 import type { Database } from '@/lib/supabase/types'
 import type { RepoIdentifier } from '@/lib/types/domain-primitives'
+import {
+  findIndexedPlacement,
+  indexBoardPlacements,
+} from '@/lib/utils/find-board-placement'
 import { readEveryRow } from '@/lib/utils/read-every-row'
 import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
 
@@ -47,6 +51,11 @@ export interface BoardPlacement {
   boardName: string
   /** Id of the card, so a link to the board can scroll to it. */
   cardId: string
+  /**
+   * GitHub repository id, once the API has confirmed it. Absent or null while
+   * the card still has only its owner and name.
+   */
+  githubRepoId?: number | null
 }
 
 /** Why a requested repository was not added. */
@@ -81,6 +90,8 @@ export interface SkippedRepository {
 interface RequestedRepository {
   name: string
   owner: { login: string }
+  /** GitHub repository id, once {@link verifyRepositoryIdentity} has confirmed it. */
+  id?: number
 }
 
 /**
@@ -115,7 +126,9 @@ export async function lookupRepoPlacements(
     cards = await readEveryRow((from, to) =>
       supabase
         .from('repocard')
-        .select('id, repo_owner, repo_name, board!inner(id, user_id, name)')
+        .select(
+          'id, repo_owner, repo_name, github_repo_id, board!inner(id, user_id, name)',
+        )
         .eq('board.user_id', userId)
         .order('id', { ascending: true })
         .range(from, to),
@@ -130,6 +143,7 @@ export async function lookupRepoPlacements(
     boardId: card.board.id,
     boardName: card.board.name,
     cardId: card.id,
+    githubRepoId: card.github_repo_id ?? null,
   }))
 }
 
@@ -161,27 +175,30 @@ export function splitRequestedRepos<Repository extends RequestedRepository>(
   placements: BoardPlacement[],
   currentBoardId: string,
 ): { addable: Repository[]; skipped: SkippedRepository[] } {
-  // First card wins if legacy data holds the same repository twice
-  const boardPlacementByIdentifier = new Map<RepoIdentifier, BoardPlacement>()
-  for (const placement of placements) {
-    if (!boardPlacementByIdentifier.has(placement.identifier)) {
-      boardPlacementByIdentifier.set(placement.identifier, placement)
-    }
-  }
+  // A confirmed GitHub id wins over the name, so a rename is the same card
+  const indexes = indexBoardPlacements(placements)
 
   const addable: Repository[] = []
   const skipped: SkippedRepository[] = []
   const seenIdentifiers = new Set<RepoIdentifier>()
+  const seenGitHubIds = new Set<number>()
 
   for (const repository of requested) {
     const identifier = toRepoIdentifier(repository.owner.login, repository.name)
 
     // Same repository twice in one request: keep the first, drop the rest silently
     if (seenIdentifiers.has(identifier)) continue
+    if (typeof repository.id === 'number' && seenGitHubIds.has(repository.id)) {
+      continue
+    }
     seenIdentifiers.add(identifier)
+    if (typeof repository.id === 'number') seenGitHubIds.add(repository.id)
 
     const fullName = `${repository.owner.login}/${repository.name}`
-    const boardPlacement = boardPlacementByIdentifier.get(identifier)
+    const boardPlacement = findIndexedPlacement(indexes, {
+      identifier,
+      githubId: repository.id,
+    })
 
     if (boardPlacement) {
       const isOnCurrentBoard = boardPlacement.boardId === currentBoardId

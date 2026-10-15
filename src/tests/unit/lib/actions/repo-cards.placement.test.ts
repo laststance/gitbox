@@ -23,6 +23,10 @@ import {
   moveCardToBoard,
 } from '@/lib/actions/repo-cards'
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
+import {
+  backfillVerifiedRepositoryIds,
+  verifyRepositoryIdentity,
+} from '@/lib/github/verify-repository-identity'
 
 vi.mock('@sentry/nextjs', () => ({
   captureException: vi.fn(),
@@ -39,6 +43,20 @@ vi.mock('@/lib/rate-limit/check', () => ({
 
 vi.mock('@/lib/auth/get-cached-claims', () => ({
   getCachedClaims: vi.fn(),
+}))
+
+vi.mock('@/lib/github/verify-repository-identity', () => ({
+  verifyRepositoryIdentity: vi.fn(async (owner: string, name: string) => ({
+    // free-repo is the id the insert assertions already expect. Any other
+    // name gets its own id, so two repositories are not one GitHub id.
+    id:
+      name.toLowerCase() === 'free-repo'
+        ? 1001
+        : 2000 + name.toLowerCase().charCodeAt(0),
+    owner,
+    name,
+  })),
+  backfillVerifiedRepositoryIds: vi.fn(async () => undefined),
 }))
 
 type QueryResult = {
@@ -152,6 +170,17 @@ function makeRepository(owner: string, name: string): GitHubRepository {
 describe('addRepositoriesToBoard', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(verifyRepositoryIdentity).mockImplementation(
+      async (owner: string, name: string) => ({
+        id:
+          name.toLowerCase() === 'free-repo'
+            ? 1001
+            : 2000 + name.toLowerCase().charCodeAt(0),
+        owner,
+        name,
+      }),
+    )
+    vi.mocked(backfillVerifiedRepositoryIds).mockResolvedValue(undefined)
   })
 
   test('adds nothing when the lookup of existing cards fails', async () => {
@@ -335,6 +364,7 @@ describe('addRepositoriesToBoard', () => {
         status_id: 'status-1',
         repo_owner: 'laststance',
         repo_name: 'free-repo',
+        github_repo_id: 1001,
         order: 5,
         meta: {
           stars: 0,
@@ -376,6 +406,66 @@ describe('addRepositoriesToBoard', () => {
         ],
       },
     })
+  })
+
+  test('stores the id GitHub confirmed, not the id the browser sent', async () => {
+    // Arrange
+    vi.mocked(verifyRepositoryIdentity).mockResolvedValue({
+      id: 4242,
+      owner: 'laststance',
+      name: 'free-repo',
+    })
+    const { insert } = signInWithSupabaseStub({
+      repocard: { data: [], error: null },
+      repocardSingle: { data: { order: 0 }, error: null },
+      insert: { data: [], error: null },
+    })
+
+    // Act
+    await addRepositoriesToBoard('board-1', 'status-1', [
+      makeRepository('laststance', 'free-repo'),
+    ])
+
+    // Assert
+    expect(insert).toHaveBeenCalledWith([
+      {
+        board_id: 'board-1',
+        status_id: 'status-1',
+        repo_owner: 'laststance',
+        repo_name: 'free-repo',
+        github_repo_id: 4242,
+        order: 1,
+        meta: {
+          stars: 0,
+          language: null,
+          topics: [],
+          visibility: 'public',
+          description: null,
+          updatedAt: '2026-01-01T00:00:00Z',
+          githubId: 4242,
+        },
+      },
+    ])
+  })
+
+  test('adds nothing when GitHub does not confirm the repository', async () => {
+    // Arrange
+    vi.mocked(verifyRepositoryIdentity).mockResolvedValue(null)
+    const { insert } = signInWithSupabaseStub({
+      repocard: { data: [], error: null },
+    })
+
+    // Act
+    const result = await addRepositoriesToBoard('board-1', 'status-1', [
+      makeRepository('laststance', 'free-repo'),
+    ])
+
+    // Assert
+    expect(result).toEqual({
+      success: false,
+      error: 'Could not confirm the repository with GitHub. Try again.',
+    })
+    expect(insert).not.toHaveBeenCalled()
   })
 
   // Value: protects=a repository added again shows the comment it kept, on the new card, without a reload (issue #216); fails_when=the insert stops selecting projectinfo or the comment is not mapped to CreatedRepoCard.comment; why_new=the add test only covers a repository with nothing saved; seam=none; no_claim=that the database returns the row (repository-memory.spec.ts runs it against PostgREST)

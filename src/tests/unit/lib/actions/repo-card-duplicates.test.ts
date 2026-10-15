@@ -119,6 +119,7 @@ describe('lookupRepoPlacements', () => {
         boardId: 'board-2',
         boardName: 'Work Projects',
         cardId: '00000000-0000-4000-8000-0000000000c2',
+        githubRepoId: null,
       },
     ])
     expect(Sentry.captureMessage).not.toHaveBeenCalled()
@@ -164,6 +165,7 @@ describe('lookupRepoPlacements', () => {
       boardId: 'board-2',
       boardName: 'Work Projects',
       cardId: '00000000-0000-4000-8000-000000001000',
+      githubRepoId: null,
     })
     expect(order).toHaveBeenNthCalledWith(1, 'id', { ascending: true })
     expect(order).toHaveBeenNthCalledWith(2, 'id', { ascending: true })
@@ -248,6 +250,38 @@ describe('splitRequestedRepos', () => {
         },
       ],
     })
+  })
+
+  test('treats a renamed repository as the card that already has its GitHub id', () => {
+    // Arrange
+    const requested = [
+      { name: 'gitbox-renamed', owner: { login: 'laststance' }, id: 42 },
+    ]
+    const placements: BoardPlacement[] = [
+      {
+        identifier: 'laststance/gitbox',
+        boardId: 'board-2',
+        boardName: 'Work Projects',
+        cardId: '00000000-0000-4000-8000-0000000000c2',
+        githubRepoId: 42,
+      },
+    ]
+
+    // Act
+    const result = splitRequestedRepos(requested, placements, 'board-1')
+
+    // Assert
+    expect(result.addable).toEqual([])
+    expect(result.skipped).toEqual([
+      {
+        fullName: 'laststance/gitbox-renamed',
+        reason: 'other-board',
+        message:
+          'laststance/gitbox-renamed is already on board "Work Projects"',
+        boardId: 'board-2',
+        boardName: 'Work Projects',
+      },
+    ])
   })
 
   test('skips a repository that is already on the target board', () => {

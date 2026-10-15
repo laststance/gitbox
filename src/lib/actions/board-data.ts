@@ -25,6 +25,7 @@ import * as Sentry from '@sentry/nextjs'
 
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 import { POSTGREST_MAX_ROWS } from '@/lib/constants/postgrest'
+import { backfillVerifiedRepositoryIds } from '@/lib/github/verify-repository-identity'
 import { logBoardTiming } from '@/lib/utils/board-timing'
 import { readEveryRow } from '@/lib/utils/read-every-row'
 import { boardIdSchema } from '@/lib/validations/board'
@@ -103,6 +104,16 @@ export async function getUserRepoPlacements(): Promise<
   ActionResult<RepoPlacementsLookup>
 > {
   return withAuthResult(async (supabase, claims) => {
+    // A renamed repository matches its card only after the id is confirmed.
+    // The list is still returned when confirmation fails.
+    try {
+      await backfillVerifiedRepositoryIds(supabase, claims.sub)
+    } catch (error) {
+      Sentry.captureException(error, {
+        tags: { action: 'backfillVerifiedRepositoryIds' },
+      })
+    }
+
     const [placements, allSavedMemories] = await Promise.all([
       lookupRepoPlacements(supabase, claims.sub),
       // The marks are extra: without them the picker still lists where each

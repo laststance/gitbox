@@ -205,7 +205,10 @@ export function normalizeLinks(links: unknown): ProjectLink[] {
 /** The repository a card holds, and whose memory a write may touch. */
 interface CardRepository {
   /** The card's `repo_owner` and `repo_name`, as a `projectinfo` row names them. */
-  repository: Pick<ProjectInfoInsert, 'repo_owner' | 'repo_name'>
+  repository: Pick<
+    ProjectInfoInsert,
+    'repo_owner' | 'repo_name' | 'github_repo_id'
+  >
   /** The owner of the card's board: the user whose row a write touches. */
   ownerId: string
 }
@@ -234,7 +237,7 @@ async function readCardRepository(
 ): Promise<CardRepository> {
   const { data: card, error } = await supabase
     .from('repocard')
-    .select('repo_owner, repo_name, board!inner(user_id)')
+    .select('repo_owner, repo_name, github_repo_id, board!inner(user_id)')
     .eq('id', repoCardId)
     .single()
 
@@ -247,7 +250,14 @@ async function readCardRepository(
   }
 
   return {
-    repository: { repo_owner: card.repo_owner, repo_name: card.repo_name },
+    repository: {
+      repo_owner: card.repo_owner,
+      repo_name: card.repo_name,
+      // Omit an unconfirmed id so a later save does not wipe one that exists
+      ...(typeof card.github_repo_id === 'number'
+        ? { github_repo_id: card.github_repo_id }
+        : {}),
+    },
     ownerId: card.board.user_id,
   }
 }

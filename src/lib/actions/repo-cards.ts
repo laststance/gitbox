@@ -18,6 +18,10 @@ import {
 } from '@/lib/actions/auth-guard'
 import type { GitHubRepository } from '@/lib/actions/github'
 import { MOVE_UNCONFIRMED_MESSAGE } from '@/lib/constants/card-move'
+import {
+  backfillVerifiedRepositoryIds,
+  verifyRepositoryIdentity,
+} from '@/lib/github/verify-repository-identity'
 import { createModuleLogger } from '@/lib/logger'
 import {
   toBoardId,
@@ -170,15 +174,60 @@ export async function addRepositoriesToBoard(
         throw new Error('Board not found')
       }
 
+      // Confirm ids that were saved before the column existed, so a renamed
+      // repository matches the card it already has. A failure here only
+      // leaves those ids null; the insert below still refuses an id GitHub
+      // did not just confirm.
+      try {
+        await backfillVerifiedRepositoryIds(supabase, claims.sub)
+      } catch (error) {
+        Sentry.captureException(error, {
+          tags: { action: 'backfillVerifiedRepositoryIds' },
+        })
+      }
+
       // Where every repository of this user already lives (all boards).
       // Throws on lookup failure: never insert without it.
       const placements = await lookupRepoPlacements(supabase, claims.sub)
 
-      const { addable: newRepos, skipped } = splitRequestedRepos(
-        repositories,
-        placements,
-        boardId,
-      )
+      // The id on the request is whatever the browser sent, so the first
+      // split uses the name only. Repositories already placed are not sent
+      // to GitHub.
+      const { addable: namedAddable, skipped: namedSkipped } =
+        splitRequestedRepos(
+          repositories.map((repository) => ({ ...repository, id: undefined })),
+          placements,
+          boardId,
+        )
+
+      if (namedAddable.length === 0) {
+        return { addedCount: 0, cards: [], skipped: namedSkipped }
+      }
+
+      // Ask GitHub, and compare and store only that answer.
+      const confirmed: GitHubRepository[] = []
+      for (const repository of namedAddable) {
+        const verified = await verifyRepositoryIdentity(
+          repository.owner.login,
+          repository.name,
+        )
+        if (!verified) {
+          throw new ActionUserError(
+            'Could not confirm the repository with GitHub. Try again.',
+          )
+        }
+        confirmed.push({
+          ...repository,
+          id: verified.id,
+          name: verified.name,
+          full_name: `${verified.owner}/${verified.name}`,
+          owner: { ...repository.owner, login: verified.owner },
+        })
+      }
+
+      const { addable: newRepos, skipped: confirmedSkipped } =
+        splitRequestedRepos(confirmed, placements, boardId)
+      const skipped = [...namedSkipped, ...confirmedSkipped]
 
       // Everything is already placed: not an error, the picker explains why
       if (newRepos.length === 0) {
@@ -202,6 +251,7 @@ export async function addRepositoriesToBoard(
         status_id: statusId,
         repo_owner: repo.owner.login,
         repo_name: repo.name,
+        github_repo_id: repo.id,
         order: nextOrder++,
         meta: {
           stars: repo.stargazers_count,
@@ -210,8 +260,8 @@ export async function addRepositoriesToBoard(
           visibility: repo.visibility,
           description: repo.description,
           updatedAt: repo.updated_at,
-          // Untrusted client hint for a later rename-safe identity backfill:
-          // re-verify against the GitHub API before relying on it
+          // The id GitHub just confirmed for this owner and name, not the
+          // number the browser sent
           githubId: repo.id,
         },
       }))
