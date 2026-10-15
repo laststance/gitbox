@@ -200,6 +200,28 @@ describe('GET /auth/callback', () => {
     )
   })
 
+  test('sends the slower tab to login when the restarted sign-in rejects', async () => {
+    // Arrange
+    exchangeCodeForSession.mockResolvedValue({
+      data: { session: null },
+      error: {
+        message: 'code challenge does not match previously saved code verifier',
+      },
+    })
+    signInWithOAuth.mockRejectedValue(new Error('network down'))
+    const request = new Request(
+      'http://localhost:3008/auth/callback?code=slower-tab',
+    )
+
+    // Act
+    const response = await GET(request)
+
+    // Assert
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3008/login?error=oauth_failed',
+    )
+  })
+
   test('sends the slower tab to login when another sign-in is not allowed yet', async () => {
     // Arrange
     exchangeCodeForSession.mockResolvedValue({

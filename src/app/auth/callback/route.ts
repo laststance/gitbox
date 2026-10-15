@@ -44,7 +44,7 @@ export async function GET(request: Request) {
         // Another tab replaced the code-verifier cookie. Sign in again
         // instead of showing that failure on the login page.
         if (isPkceVerifierMismatch(error)) {
-          return restartSignInAfterVerifierMismatch({
+          return await restartSignInAfterVerifierMismatch({
             supabase,
             origin: publicOrigin,
             next,
@@ -149,17 +149,22 @@ async function restartSignInAfterVerifierMismatch({
   }
 
   const callbackUrl = `${origin}/auth/callback?pkce_retry=1&next=${encodeURIComponent(next)}`
-  const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
-    provider: 'github',
-    options: {
-      redirectTo: callbackUrl,
-      scopes: GITHUB_SIGN_IN_SCOPES,
-      // The route returns the redirect. The client must not navigate itself.
-      skipBrowserRedirect: true,
-    },
-  })
-  if (oauthError || !data.url) {
+  try {
+    const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: callbackUrl,
+        scopes: GITHUB_SIGN_IN_SCOPES,
+        // The route returns the redirect. The client must not navigate itself.
+        skipBrowserRedirect: true,
+      },
+    })
+    if (oauthError || !data.url) {
+      return NextResponse.redirect(`${origin}/login?error=oauth_failed`)
+    }
+    return NextResponse.redirect(data.url)
+  } catch {
+    // A rejected client is not the handled `error` result. Send the same login.
     return NextResponse.redirect(`${origin}/login?error=oauth_failed`)
   }
-  return NextResponse.redirect(data.url)
 }
