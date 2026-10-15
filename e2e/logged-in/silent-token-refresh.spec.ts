@@ -43,11 +43,17 @@ test.describe('Silent GitHub token refresh — route handler', () => {
     expect(page.url()).toContain('error=token_refresh_failed')
     // The fetch chain that got us here should have started with a redirect.
     expect(response?.request().redirectedFrom()).not.toBeNull()
-    // The login page drops the counter, so the next visit starts at attempt 1.
-    expect(
-      await page.evaluate(() =>
-        window.sessionStorage.getItem('gh_refresh_attempts'),
-      ),
-    ).toBeNull()
+    // The counter is cleared in an effect after the page hydrates, which is
+    // after `goto` resolves. Wait until the sign-in control is on screen.
+    await expect(
+      page.getByRole('button', { name: 'Sign in with GitHub' }),
+    ).toBeVisible()
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          window.sessionStorage.getItem('gh_refresh_attempts'),
+        ),
+      )
+      .toBeNull()
   })
 })
