@@ -61,8 +61,17 @@ interface MoveHereDialogProps {
  * is the one on screen; the user picks the column, starting from the column
  * the picker was opened for. {@link moveCardToBoard} keeps the note, links
  * and comment. A move nobody could confirm offers "Reload page", the same
- * way {@link MoveToAnotherBoardDialog} does.
+ * way {@link MoveToAnotherBoardDialog} does. While that outcome is unknown,
+ * Move Here stays disabled: the first request may still finish, and a second
+ * one to another column could land the card somewhere else.
  *
+ * @param repository - The held repository the user asked to move onto this board.
+ * @param boardId - Board the picker is open on.
+ * @param defaultStatusId - Column the picker was opened for. The select starts there.
+ * @param isBoardShared - A public link shows whatever is moved onto this board.
+ * @param onClose - Closes the dialog. Not called while a move is in flight.
+ * @param onMoved - Called after the server confirms the move, so the held list can reload.
+ * @returns The confirmation dialog.
  * @example
  * <MoveHereDialog repository={held} boardId={boardId} defaultStatusId={statusId} isBoardShared={false} onClose={close} onMoved={refresh} />
  */
@@ -231,7 +240,11 @@ export const MoveHereDialog = memo(function MoveHereDialog({
             onClick={() => {
               void handleMove()
             }}
-            disabled={isBusy || !columnId}
+            disabled={
+              isBusy ||
+              !columnId ||
+              (failure !== null && !failure.isOutcomeKnown)
+            }
           >
             {isBusy ? 'Moving...' : 'Move Here'}
           </Button>

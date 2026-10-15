@@ -178,6 +178,9 @@ describe('Move Here from a held row', () => {
     expect(
       within(dialog).getByRole('button', { name: 'Reload page' }),
     ).toHaveFocus()
+    expect(
+      within(dialog).getByRole('button', { name: 'Move Here' }),
+    ).toBeDisabled()
     expect(selectIsBoardRefreshDue(store.getState())).toBe(true)
     expect(onMoved).not.toHaveBeenCalled()
   })
@@ -205,6 +208,9 @@ describe('Move Here from a held row', () => {
     expect(
       within(dialog).getByRole('button', { name: 'Reload page' }),
     ).toHaveFocus()
+    expect(
+      within(dialog).getByRole('button', { name: 'Move Here' }),
+    ).toBeDisabled()
     expect(selectIsBoardRefreshDue(store.getState())).toBe(true)
   })
 })
