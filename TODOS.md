@@ -10,7 +10,6 @@ From the `/ship` adversarial review of `feat/silent-github-token-refresh` (PR #1
 
 ### Tests
 
-- [ ] **Dedicated unit tests for `sanitizeNextPath`** — [#185](https://github.com/laststance/gitbox/issues/185)
 - [ ] **Dedicated unit tests for `getForwardedClientIp`** — [#186](https://github.com/laststance/gitbox/issues/186)
 
 ### Risk acceptance
