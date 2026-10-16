@@ -166,9 +166,14 @@ export const CommandPalette = memo(function CommandPalette() {
     let cancelled = false
     setPlacements([])
     const loadPlacements = async (): Promise<void> => {
-      const result = await getUserRepoPlacements()
-      if (cancelled) return
-      setPlacements(result.success ? result.data.placements : [])
+      try {
+        const result = await getUserRepoPlacements()
+        if (cancelled) return
+        setPlacements(result.success ? result.data.placements : [])
+      } catch {
+        // The request never answered. The list was already cleared.
+        if (!cancelled) setPlacements([])
+      }
     }
     void loadPlacements()
     return (): void => {

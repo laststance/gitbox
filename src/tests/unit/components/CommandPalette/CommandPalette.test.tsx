@@ -591,6 +591,24 @@ describe('CommandPalette', () => {
       expect(screen.getByText('No commands found')).toBeVisible()
     })
 
+    // Value: protects=the command list stays usable when the repository request rejects; fails_when=the rejection is unhandled or the palette stays stuck loading; why_new=only a returned failure was handled; seam=none; no_claim=a rejection after the palette has closed
+    test('leaves the commands usable when loading repositories fails on the way', async () => {
+      // Arrange
+      vi.mocked(getUserRepoPlacements).mockRejectedValue(new Error('network'))
+      render(<CommandPalette />)
+      openPalette()
+
+      // Act
+      fireEvent.change(screen.getByPlaceholderText('Search commands...'), {
+        target: { value: 'gitbox' },
+      })
+
+      // Assert
+      await waitFor(() => {
+        expect(screen.getByText('No commands found')).toBeVisible()
+      })
+    })
+
     // Value: protects=a board name finds the repository that sits on it; fails_when=only the owner/name is searched; why_new=the question is which board holds the repository; seam=none; no_claim=more than eight matches
     test('finds a repository by the name of the board that holds it', async () => {
       // Arrange
