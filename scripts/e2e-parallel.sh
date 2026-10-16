@@ -83,13 +83,21 @@ fi
 
 # ─── Step 2: Reset database ───────────────────────────────────
 echo "🔄 Resetting database..."
-# db:reset may exit non-zero due to a transient PostgREST 502 during container
-# restart. Migrations apply before that step, so we tolerate the error and wait
-# for PostgREST to come back. Print full output so real failures remain visible.
+# A restart can answer 502 after the seed is applied. Any other failure,
+# including a seed error, leaves a partial database: shards cloned from it
+# make a test pass because a fixture is missing. Print the output either way.
 RESET_OUTPUT=$(pnpm db:reset 2>&1) || RESET_EXIT=$?
-echo "$RESET_OUTPUT" | tail -10
+echo "$RESET_OUTPUT" | tail -20
 if [ "${RESET_EXIT:-0}" -ne 0 ]; then
-  echo "⚠️  db:reset exited with ${RESET_EXIT} (may be transient PostgREST 502)"
+  # A pipeline with grep -q can close early and, under pipefail, look like a
+  # failed reset. Match the captured text in the shell instead.
+  if [[ "$RESET_OUTPUT" == *502* && "$RESET_OUTPUT" != *ERROR:* ]]; then
+    echo "⚠️  db:reset exited with ${RESET_EXIT} (transient PostgREST 502)"
+  else
+    echo "❌ Database reset failed. Not starting shards from a partial seed."
+    echo "$RESET_OUTPUT" | grep 'ERROR:' || true
+    exit 1
+  fi
 fi
 echo "⏳ Waiting for PostgREST to be ready..."
 for i in $(seq 1 30); do

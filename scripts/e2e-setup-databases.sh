@@ -41,6 +41,12 @@ db_exec() {
   docker exec -e PGPASSWORD="$PG_PASS" "$DB_CONTAINER" "$@"
 }
 
+# psql exits 0 when a statement fails unless ON_ERROR_STOP is set, so a broken
+# dump would still be treated as a seeded shard.
+psql_stop() {
+  db_exec psql -U "$PG_USER" -v ON_ERROR_STOP=1 "$@"
+}
+
 # ─── Cleanup ─────────────────────────────────────────────────
 cleanup() {
   echo "🧹 Cleaning up shard databases and PostgREST containers..."
@@ -102,21 +108,29 @@ setup() {
   mkdir -p "$NGINX_CONF_DIR"
 
   # 1. Dump the main 'postgres' DB (migrations + seed already applied by db:reset)
+  # Copying vault.secrets is denied for this role, and a shard does not use it.
+  # Leaving the COPY in makes ON_ERROR_STOP stop after the fixture rows.
   db_exec pg_dump -U "$PG_USER" \
     -d postgres --no-owner --no-privileges \
+    --exclude-table-data=vault.secrets \
     -f /tmp/e2e-template.sql
+  # realtime functions set log_min_messages, which this role cannot do. Those
+  # lines are not the app's seed. Left in, ON_ERROR_STOP stops before any
+  # fixture row is copied.
+  db_exec sed -i "/SET log_min_messages TO 'fatal'/d" /tmp/e2e-template.sql
 
   # 2. Per shard: create DB, load dump, start PostgREST + nginx proxy
   for i in $(seq 1 "$SHARD_COUNT"); do
     DB_NAME="gitbox_shard_${i}"
     PORT=$((POSTGREST_BASE_PORT + i - 1))
 
-    # Create fresh database and load schema+seed from dump
-    db_exec psql -U "$PG_USER" \
+    # Create fresh database and load schema+seed from dump. stdout is the
+    # dump's notices; a statement error goes to stderr and stops the script.
+    psql_stop \
       -c "DROP DATABASE IF EXISTS ${DB_NAME};" \
-      -c "CREATE DATABASE ${DB_NAME};" 2>/dev/null
-    db_exec psql -U "$PG_USER" \
-      -d "$DB_NAME" -f /tmp/e2e-template.sql > /dev/null 2>&1
+      -c "CREATE DATABASE ${DB_NAME};"
+    psql_stop \
+      -d "$DB_NAME" -f /tmp/e2e-template.sql > /dev/null
 
     # Grant table permissions to anon, authenticated, and service_role roles
     # (pg_dump --no-privileges strips GRANTs)
@@ -129,7 +143,7 @@ setup() {
     # (create_board_with_status_lists) looks up auth.uid() by name when it
     # runs, which needs USAGE on the schema. Supabase grants it to these three
     # roles; a policy does not need it because it stores the function's OID.
-    db_exec psql -U "$PG_USER" -d "$DB_NAME" -c "
+    psql_stop -d "$DB_NAME" -c "
       GRANT USAGE ON SCHEMA auth TO anon;
       GRANT USAGE ON SCHEMA auth TO authenticated;
       GRANT USAGE ON SCHEMA auth TO service_role;
@@ -142,7 +156,7 @@ setup() {
       GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon;
       GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
       GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
-    " > /dev/null 2>&1
+    " > /dev/null
 
     # A function loaded from the dump is executable by everyone (PUBLIC), the
     # PostgreSQL default, because the dump carries no REVOKE. Repeat the rights
@@ -150,12 +164,12 @@ setup() {
     # refuses the same callers as a database built from the migrations (CI
     # and production). A migration that revokes EXECUTE on another function
     # needs its lines here too.
-    db_exec psql -U "$PG_USER" -d "$DB_NAME" -c "
+    psql_stop -d "$DB_NAME" -c "
       REVOKE ALL ON FUNCTION public.create_board_with_status_lists(text, jsonb) FROM PUBLIC, anon;
       GRANT EXECUTE ON FUNCTION public.create_board_with_status_lists(text, jsonb) TO authenticated, service_role;
       REVOKE ALL ON FUNCTION public.projectinfo(public.repocard) FROM PUBLIC, anon;
       GRANT EXECUTE ON FUNCTION public.projectinfo(public.repocard) TO authenticated, service_role;
-    " > /dev/null 2>&1
+    " > /dev/null
 
     # Start PostgREST container (internal only, no port mapping)
     docker run -d --name "e2e-postgrest-${i}" \
