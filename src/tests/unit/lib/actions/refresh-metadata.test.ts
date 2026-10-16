@@ -128,21 +128,25 @@ describe('refresh metadata actions', () => {
     expect(refreshBoardMetadataCore).not.toHaveBeenCalled()
   })
 
-  // Value: protects=a burst of board refreshes is refused with the repository refresh sentence; fails_when=the tenth refresh in a minute still asks GitHub; why_new=the limit; seam=none; no_claim=the limiter's clock
-  test('refuses a board refresh once the repository refresh limit is spent', async () => {
+  // Value: protects=a burst of board refreshes is refused on its own limit, so 100 GitHub reads cannot run ten times a minute; fails_when=the board refresh shares the card limit; why_new=the board key; seam=none; no_claim=the limiter's clock
+  test('refuses a board refresh once the board refresh limit is spent', async () => {
     // Arrange
     vi.mocked(checkRateLimit).mockReturnValue({
       allowed: false,
-      error: 'Too many repository refresh requests. Please try again later.',
+      error: 'Too many board refresh requests. Please try again later.',
     })
 
     // Act
     const result = await refreshBoardMetadata(BOARD_ID)
 
     // Assert
+    expect(checkRateLimit).toHaveBeenCalledWith(
+      'refreshBoardMetadata',
+      '00000000-0000-0000-0000-000000000001',
+    )
     expect(result).toEqual({
       success: false,
-      error: 'Too many repository refresh requests. Please try again later.',
+      error: 'Too many board refresh requests. Please try again later.',
     })
     expect(refreshBoardMetadataCore).not.toHaveBeenCalled()
   })

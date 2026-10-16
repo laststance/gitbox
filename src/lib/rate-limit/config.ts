@@ -68,12 +68,21 @@ export const RATE_LIMIT_CONFIG = {
     description: 'project info',
   },
 
-  // One card or one board. A board refresh is one request and then asks
-  // GitHub itself, so this stops a script from walking every board.
+  // One card is one GitHub request. Ten a minute stays well under the
+  // token's hourly quota.
   refreshRepoMetadata: {
     maxRequests: 10,
     windowMs: 60_000,
     description: 'repository refresh',
+  },
+
+  // One board refresh asks GitHub for up to 100 cards. Three such requests
+  // in ten minutes is 1,800 an hour, under GitHub's 5,000, so the picker
+  // and the other GitHub calls still have room.
+  refreshBoardMetadata: {
+    maxRequests: 3,
+    windowMs: 600_000,
+    description: 'board refresh',
   },
 
   // --- Low: User settings ---

@@ -2,8 +2,9 @@
  * Refresh the GitHub snapshot stored on a card.
  *
  * Thin wrappers around refresh-metadata-core.ts. This file is the `'use
- * server'` boundary. Both writes share the `refreshRepoMetadata` rate limit:
- * a signed-in browser can call them with any id, and each one asks GitHub.
+ * server'` boundary. A card refresh uses `refreshRepoMetadata` and a board
+ * refresh uses `refreshBoardMetadata`, because a board refresh asks GitHub
+ * for up to 100 cards.
  * A sentence the core throws as {@link ActionUserError} reaches the toast.
  */
 
@@ -66,7 +67,7 @@ export async function refreshBoardMetadata(
   boardId: string,
 ): Promise<ActionResult<RefreshBoardData>> {
   return withAuthResultRateLimit(
-    'refreshRepoMetadata',
+    'refreshBoardMetadata',
     async (supabase, claims) => {
       if (!uuidSchema.safeParse(boardId).success) {
         throw new Error('Invalid board')

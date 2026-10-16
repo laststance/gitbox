@@ -177,8 +177,8 @@ export const BoardPageClient = memo(function BoardPageClient({
   )
 
   const [isRefreshingBoard, setIsRefreshingBoard] = useState(false)
-  // A second click on the same card, or a click during the board refresh,
-  // would spend another unit of the shared refresh limit.
+  // A second click on the same card would spend another card refresh.
+  // A click while the board refresh is running would start a second one.
   const refreshingCardIds = useRef(new Set<RepoCardId>())
   const boardRefreshInFlight = useRef(false)
 
