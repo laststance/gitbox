@@ -33,18 +33,6 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
 
 From the `/autoplan` review of issue #215 (one card per user and repository). None blocks that change.
 
-### Drop late picker notices
-
-**What:** When an add finishes after the picker was closed, do not show its error or "not added" notice on the next opening.
-
-**Why:** Cancel and Escape stay enabled while an add is running, so its result can arrive on a closed picker; a later opening through a column's "Add Repo" button then shows that old notice.
-
-**Context:** Found by the red team pass of #215; older than that change. `src/components/Board/AddRepositoryCombobox.tsx` (`handleAddRepositories`, `openForStatus` in `useAddRepositoryCombobox`). Placements refreshed after close are already ignored by `useRepoPlacements`. The other half of this item (the cards of a deleted column stayed in the Redux store, so the picker hid their repositories until a reload) was fixed with #216 (`removeStatusListWithCards`). An undo can still bring such a card back on screen although its row is gone: the undo history keeps it.
-
-**Effort:** S
-**Priority:** P2
-**Depends on:** None
-
 ### Harden the #215 triggers and the undo history
 
 **What:** (1) Let `check_repocard_status_board` return early on an UPDATE that changes neither `board_id` nor `status_id`. (2) Schema-qualify `public.board` and `public.statuslist` inside the three trigger functions. (3) Do not push an undo entry for a drag that changed nothing, or skip such entries when Z is pressed. (4) Reword the duplicate guard's message to "more than one card for the same user and repository".
