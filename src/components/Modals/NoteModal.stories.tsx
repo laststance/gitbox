@@ -27,6 +27,7 @@ const meta = {
   tags: ['autodocs'],
   args: {
     repoKey: 'laststance/gitbox',
+    userId: 'user-1',
   },
 } satisfies Meta<typeof NoteModal>
 
@@ -106,7 +107,7 @@ const WithDraftDecorator = memo(function WithDraftDecorator({
     // Set up draft state for the card
     dispatch(
       updateDraftNote({
-        repoKey: 'laststance/gitbox',
+        repoKey: 'user-1/laststance/gitbox',
         legacyCardId: toRepoCardId('card-draft'),
         content:
           'This is an unsaved draft that was auto-saved.\n\nThe original note was different.',

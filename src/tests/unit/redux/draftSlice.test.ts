@@ -206,6 +206,32 @@ describe('draftSlice', () => {
       expect(nextState.notes[toRepoCardId('card-2')]).toBeDefined()
     })
 
+    test('leaves a newer draft in place when an earlier save finishes', () => {
+      const stateWithDraft = {
+        ...initialState,
+        notes: {
+          'user-1/laststance/gitbox': {
+            repoKey: 'user-1/laststance/gitbox',
+            content: 'typed while the save was in flight',
+            links: [],
+            lastModified: mockNow + 1,
+          },
+        },
+      }
+
+      const nextState = draftSlice(
+        stateWithDraft,
+        deleteDraftNote({
+          repoKey: 'user-1/laststance/gitbox',
+          savedVersion: mockNow,
+        }),
+      )
+
+      expect(nextState.notes['user-1/laststance/gitbox']?.content).toBe(
+        'typed while the save was in flight',
+      )
+    })
+
     test('should handle deleting non-existent draft gracefully', () => {
       const action = deleteDraftNote({ repoKey: toRepoCardId('non-existent') })
 

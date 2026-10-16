@@ -371,6 +371,7 @@ export const BoardPageClient = memo(function BoardPageClient({
           onSave={noteModal.save}
           cardId={noteModal.cardId}
           repoKey={noteModal.repoKey}
+          userId={board.user_id}
           initialNote={noteModal.initialNote}
           initialLinks={noteModal.initialLinks}
           cardTitle={noteModal.cardTitle}

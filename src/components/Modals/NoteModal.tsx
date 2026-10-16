@@ -30,6 +30,8 @@ interface NoteModalProps {
   cardId: RepoCardId
   /** Lowercase `owner/name`. The draft is kept under this key. */
   repoKey: RepoIdentifier
+  /** The signed-in account. Drafts of two accounts stay apart. */
+  userId: string
   /** Initial note value from Supabase */
   initialNote: string
   /** Initial links value from Supabase */
@@ -54,6 +56,7 @@ interface NoteModalProps {
  *   onSave={async (note, links) => await saveProjectInfo(cardId, note, links)}
  *   cardId="abc-123"
  *   repoKey="laststance/gitbox"
+ *   userId="user-1"
  *   initialNote="Current note content"
  *   initialLinks={[{ type: 'vercel', url: 'https://...' }]}
  *   cardTitle="laststance/gitbox"
@@ -65,6 +68,7 @@ export const NoteModal = memo(function NoteModal({
   onSave,
   cardId,
   repoKey,
+  userId,
   initialNote,
   initialLinks,
   cardTitle,
@@ -85,6 +89,7 @@ export const NoteModal = memo(function NoteModal({
   } = useNoteModalDraft({
     cardId,
     repoKey,
+    userId,
     initialNote,
     initialLinks,
     isOpen,

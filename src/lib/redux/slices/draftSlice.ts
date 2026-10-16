@@ -52,6 +52,24 @@ const initialState: DraftState = {
   notes: {},
 }
 
+/**
+ * Storage key of one account's draft for one repository.
+ *
+ * The `draft` slice is one localStorage entry shared by every account that
+ * uses the browser. A key of only `owner/name` would show the previous
+ * account's unsaved note when the next account opens the same repository.
+ * Called by {@link useNoteModalDraft}.
+ *
+ * @param userId - The signed-in account (`board.user_id`).
+ * @param repoKey - Lowercase `owner/name`.
+ * @returns The key the slice stores the draft under.
+ * @example
+ * noteDraftKey('user-1', 'laststance/gitbox') // => 'user-1/laststance/gitbox'
+ */
+export function noteDraftKey(userId: string, repoKey: RepoIdentifier): string {
+  return `${userId}/${repoKey}`
+}
+
 export const draftSlice = createSlice({
   name: 'draft',
   initialState,
@@ -83,7 +101,9 @@ export const draftSlice = createSlice({
         repoKey,
         content,
         links: links ?? previous?.links ?? [],
-        lastModified: Date.now(),
+        // A later edit in the same millisecond still has to differ, or a save
+        // that started on the previous version would delete it.
+        lastModified: Math.max(Date.now(), (previous?.lastModified ?? 0) + 1),
       }
       // The card-id copy would hide a later edit if the selector preferred it
       if (legacyCardId && legacyCardId !== repoKey) {
@@ -103,14 +123,31 @@ export const draftSlice = createSlice({
     deleteDraftNote: (
       state,
       action: PayloadAction<{
-        repoKey: RepoIdentifier
+        repoKey: string
         legacyCardId?: RepoCardId
+        /**
+         * The `lastModified` of the draft Save sent. Only a draft that still
+         * has this value is removed. `null` means Save had no draft, so a
+         * draft written while the save was in flight stays. Omitted removes
+         * the keys outright.
+         */
+        savedVersion?: number | null
       }>,
     ) => {
-      delete state.notes[action.payload.repoKey]
-      if (action.payload.legacyCardId) {
-        delete state.notes[action.payload.legacyCardId]
+      const { repoKey, legacyCardId, savedVersion } = action.payload
+      // A draft that appeared after Save was pressed is a newer edit.
+      if (savedVersion === null) return
+      const drop = (key: string | undefined): void => {
+        if (!key) return
+        if (
+          savedVersion === undefined ||
+          state.notes[key]?.lastModified === savedVersion
+        ) {
+          delete state.notes[key]
+        }
       }
+      drop(repoKey)
+      drop(legacyCardId)
     },
   },
 })
@@ -129,7 +166,7 @@ type DraftRootState = { draft: DraftState }
  * id is only the fallback: a repository added again has a new card id, and
  * the text typed against the old card is under the repository key.
  *
- * @param repoKey - Lowercase `owner/name`.
+ * @param repoKey - The storage key from {@link noteDraftKey}.
  * @param legacyCardId - The card that is open, for a draft saved before the key changed.
  * @returns The draft, or `null` when neither key has one.
  * @example

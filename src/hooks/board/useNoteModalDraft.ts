@@ -8,6 +8,7 @@ import { ActionUserError } from '@/lib/actions/types'
 import { NEAR_LIMIT_COUNTER_TEXT_CLASS } from '@/lib/constants/character-counter'
 import {
   deleteDraftNote,
+  noteDraftKey,
   selectDraftNote,
   updateDraftNote,
 } from '@/lib/redux/slices/draftSlice'
@@ -25,6 +26,8 @@ export const NOTE_WARNING_THRESHOLD = 18000
 interface UseNoteModalDraftParams {
   /** Card that is open. A draft from an older version is stored under this id. */
   cardId: RepoCardId
+  /** The signed-in account. Drafts of two accounts stay apart in localStorage. */
+  userId: string
   /**
    * Lowercase `owner/name`. The draft is kept here, so a new card of the same
    * repository finds the text after the old card is gone.
@@ -84,6 +87,7 @@ interface UseNoteModalDraftReturn {
  * @example
  * const draft = useNoteModalDraft({
  *   cardId: card.id, // RepoCardId from RepoCardForRedux
+ *   userId: board.user_id,
  *   repoKey: 'laststance/gitbox',
  *   initialNote: '',
  *   initialLinks: [],
@@ -95,6 +99,7 @@ interface UseNoteModalDraftReturn {
  */
 export function useNoteModalDraft({
   cardId,
+  userId,
   repoKey,
   initialNote,
   initialLinks,
@@ -104,7 +109,8 @@ export function useNoteModalDraft({
   cardTitle,
 }: UseNoteModalDraftParams): UseNoteModalDraftReturn {
   const dispatch = useAppDispatch()
-  const draft = useAppSelector(selectDraftNote(repoKey, cardId))
+  const draftKey = noteDraftKey(userId, repoKey)
+  const draft = useAppSelector(selectDraftNote(draftKey, cardId))
 
   // Use draft if exists, otherwise initial values
   const [note, setNote] = useState(draft?.content ?? initialNote)
@@ -162,7 +168,7 @@ export function useNoteModalDraft({
           setNote(value)
           dispatch(
             updateDraftNote({
-              repoKey,
+              repoKey: draftKey,
               legacyCardId: cardId,
               content: value,
               links,
@@ -173,7 +179,7 @@ export function useNoteModalDraft({
         setNote(value)
         dispatch(
           updateDraftNote({
-            repoKey,
+            repoKey: draftKey,
             legacyCardId: cardId,
             content: value,
             links,
@@ -181,7 +187,7 @@ export function useNoteModalDraft({
         )
       }
     },
-    [cardId, dispatch, links, repoKey],
+    [cardId, dispatch, draftKey, links],
   )
 
   /**
@@ -195,14 +201,14 @@ export function useNoteModalDraft({
       setLinks(newLinks)
       dispatch(
         updateDraftNote({
-          repoKey,
+          repoKey: draftKey,
           legacyCardId: cardId,
           content: note,
           links: newLinks,
         }),
       )
     },
-    [cardId, dispatch, note, repoKey],
+    [cardId, dispatch, draftKey, note],
   )
 
   /**
@@ -216,12 +222,21 @@ export function useNoteModalDraft({
     setIsSaving(true)
 
     const validLinks = links.filter((link) => link.url)
+    // The version Save is sending. An edit that lands while the save is in
+    // flight stores a newer lastModified, and that draft has to stay.
+    const savedVersion = draft?.lastModified ?? null
 
     onClose()
 
     try {
       await onSave(note, validLinks)
-      dispatch(deleteDraftNote({ repoKey, legacyCardId: cardId }))
+      dispatch(
+        deleteDraftNote({
+          repoKey: draftKey,
+          legacyCardId: cardId,
+          savedVersion,
+        }),
+      )
       toast.success('Project info saved', {
         description: `Note and links for ${cardTitle} have been saved.`,
       })
@@ -232,7 +247,17 @@ export function useNoteModalDraft({
     } finally {
       setIsSaving(false)
     }
-  }, [note, links, onSave, onClose, cardId, cardTitle, dispatch, repoKey])
+  }, [
+    note,
+    links,
+    onSave,
+    onClose,
+    cardId,
+    cardTitle,
+    dispatch,
+    draft?.lastModified,
+    draftKey,
+  ])
 
   /**
    * Handle modal close without saving.
