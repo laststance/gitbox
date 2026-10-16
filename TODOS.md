@@ -37,18 +37,6 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 From the `/plan-eng-review` of issue #216 (a repository keeps its note, links and comment when its card goes). None blocks that change.
 
-### Rate-limit the project info writes
-
-**What:** Wrap `upsertProjectInfo`, `updateComment`, `updateCommentColor` and `deleteComment` (`src/lib/actions/project-info.ts`) in `withAuthResultRateLimit` with a key of their own, and the read in `withAuthResult`.
-
-**Why:** They are endpoints any signed-in browser can call with arguments of its choice, and they have no limit. That predates #216, which raises the cost: each write is two round trips now (the card, then the row), and the rows it makes survive the card, so a flood is no longer cleaned up with its cards. Found by the security review of #216.
-
-**Context:** The actions catch their own errors today and return the message. Moving them onto the guards changes which messages reach the browser (the guards replace unexpected ones with a generic text): check the toasts of the Note dialog and the comment editor, and `browser-callable-actions.test.ts`.
-
-**Effort:** S
-**Priority:** P2
-**Depends on:** None
-
 ### Keep a note draft where its card's repository can reach it
 
 **What:** Key the Note dialog's draft by repository (the lowercase key of `projectinfo.repo_key`) instead of by card id, or say in the failure toast when the draft belongs to a card that is gone.

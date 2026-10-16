@@ -3,18 +3,21 @@
  *
  * Thin wrappers around project-info-core.ts core functions.
  * All logic is centralized in the core module; this file only provides
- * the 'use server' boundary and returns ActionResult<T> for type-safe
- * error handling.
+ * the 'use server' boundary. The read goes through {@link withAuthResult}.
+ * Each write goes through {@link withAuthResultRateLimit} on the
+ * `projectInfo` key: a signed-in browser can call them with any arguments,
+ * and the rows they make survive the card. A sentence the core throws as
+ * {@link ActionUserError} reaches the Note dialog; any other failure becomes
+ * the guard's generic message.
  *
  * @see project-info-core.ts for core implementation
  */
 
 'use server'
 
-import * as Sentry from '@sentry/nextjs'
-
 import type { CommentColor } from '@/lib/supabase/types'
 
+import { withAuthResult, withAuthResultRateLimit } from './auth-guard'
 import {
   getProjectInfoCore,
   upsertProjectInfoCore,
@@ -45,19 +48,9 @@ export type {
 export async function getProjectInfo(
   repoCardId: string,
 ): Promise<ActionResult<ProjectInfoData | null>> {
-  try {
-    const data = await getProjectInfoCore(repoCardId)
-    return { success: true, data }
-  } catch (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'getProjectInfo', repoCardId },
-    })
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : 'Failed to fetch project info',
-    }
-  }
+  // A read: no rate limit. A sentence from the core reaches the Note dialog;
+  // anything else becomes the guard's generic message.
+  return withAuthResult(async () => getProjectInfoCore(repoCardId))
 }
 
 /**
@@ -80,19 +73,9 @@ export async function upsertProjectInfo(
   repoCardId: string,
   data: ProjectInfoData,
 ): Promise<ActionResult<void>> {
-  try {
+  return withAuthResultRateLimit('projectInfo', async () => {
     await upsertProjectInfoCore(repoCardId, data)
-    return { success: true, data: undefined }
-  } catch (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'upsertProjectInfo', repoCardId },
-    })
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : 'Failed to save project info',
-    }
-  }
+  })
 }
 
 /**
@@ -113,19 +96,9 @@ export async function updateComment(
   comment: string,
   color?: CommentColor,
 ): Promise<ActionResult<void>> {
-  try {
+  return withAuthResultRateLimit('projectInfo', async () => {
     await updateCommentCore(repoCardId, comment, color)
-    return { success: true, data: undefined }
-  } catch (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'updateComment', repoCardId },
-    })
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : 'Failed to update comment',
-    }
-  }
+  })
 }
 
 /**
@@ -144,21 +117,9 @@ export async function updateCommentColor(
   repoCardId: string,
   color: CommentColor,
 ): Promise<ActionResult<void>> {
-  try {
+  return withAuthResultRateLimit('projectInfo', async () => {
     await updateCommentColorCore(repoCardId, color)
-    return { success: true, data: undefined }
-  } catch (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'updateCommentColor', repoCardId },
-    })
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Failed to update comment color',
-    }
-  }
+  })
 }
 
 /**
@@ -178,17 +139,7 @@ export async function updateCommentColor(
 export async function deleteComment(
   repoCardId: string,
 ): Promise<ActionResult<void>> {
-  try {
+  return withAuthResultRateLimit('projectInfo', async () => {
     await deleteCommentCore(repoCardId)
-    return { success: true, data: undefined }
-  } catch (error) {
-    Sentry.captureException(error, {
-      extra: { context: 'deleteComment', repoCardId },
-    })
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : 'Failed to delete comment',
-    }
-  }
+  })
 }

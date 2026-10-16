@@ -60,6 +60,14 @@ export const RATE_LIMIT_CONFIG = {
     description: 'board operation',
   },
 
+  // Note, links and comment. A person saving a note and editing comments
+  // stays under this; a script cannot fill rows that outlive their cards.
+  projectInfo: {
+    maxRequests: 60,
+    windowMs: 60_000,
+    description: 'project info',
+  },
+
   // --- Low: User settings ---
   userSettings: {
     maxRequests: 20,
