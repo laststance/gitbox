@@ -280,9 +280,16 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     [matchingRepositories, boardId, existingRepoIdentifiers, placements],
   )
 
-  // Options and held rows render only once both the catalog and the placements
-  // have settled, so a held repository never flashes as selectable
-  const isLoading = isLoadingCatalog || isLoadingPlacements || isAdding
+  // The catalog spinner, and "Adding repositories...", replace the lists.
+  // Placements still loading do not: the cached repositories stay on screen
+  // and nothing can be chosen until this opening's placements arrive, so a
+  // held repository never flashes as selectable.
+  const isReplacingLists = isLoadingCatalog || isAdding
+  const areOptionsLocked = isReplacingLists || isLoadingPlacements
+  const selectRepository = (repository: GitHubRepository): void => {
+    if (areOptionsLocked) return
+    toggleRepoSelection(repository)
+  }
   // A filter that hides everything is not an empty catalog: the empty states
   // below say which of the two the user is looking at
   const hasActiveFilter =
@@ -404,8 +411,8 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       // badge's remove button or on an option row keeps its own meaning.
       e.target === searchInputRef.current &&
       selectedRepos.length > 0 &&
-      // Same gate as the Add button: not while loading or while an add is in flight
-      !isLoading
+      // Same gate as the Add button: not while the lists are locked
+      !areOptionsLocked
     ) {
       handleAddRepositories()
     }
@@ -570,7 +577,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
           {/* Loading indicator. Submitting must not reuse the catalog's
               sentence, or the list reads as if it were loading again. */}
-          {isLoading && (
+          {isReplacingLists && (
             <div
               role="status"
               className="text-muted-foreground flex items-center justify-center py-8"
@@ -623,7 +630,13 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
           )}
 
           {/* Repository list with virtual scrolling support */}
-          {!isLoading && filteredRepositories.length > 0 && (
+          {isLoadingPlacements && !isReplacingLists && (
+            <p role="status" className="text-muted-foreground mt-3 text-xs">
+              Checking where repositories are placed...
+            </p>
+          )}
+
+          {!isReplacingLists && filteredRepositories.length > 0 && (
             <div
               ref={listRef}
               id="repository-listbox"
@@ -668,13 +681,14 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                         ref={rowVirtualizer.measureElement}
                         role="option"
                         aria-selected={isSelected}
-                        onClick={() => toggleRepoSelection(repo)}
-                        className={`border-border flex cursor-pointer items-center justify-between border-b p-3 transition-colors ${OPTION_ROW_COLOR_CLASS}`}
-                        tabIndex={0}
+                        aria-disabled={areOptionsLocked}
+                        onClick={() => selectRepository(repo)}
+                        className={`border-border flex items-center justify-between border-b p-3 transition-colors ${areOptionsLocked ? 'cursor-not-allowed opacity-60' : `cursor-pointer ${OPTION_ROW_COLOR_CLASS}`}`}
+                        tabIndex={areOptionsLocked ? -1 : 0}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault()
-                            toggleRepoSelection(repo)
+                            selectRepository(repo)
                           }
                         }}
                         style={{
@@ -727,13 +741,14 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                       key={repo.id}
                       role="option"
                       aria-selected={isSelected}
-                      onClick={() => toggleRepoSelection(repo)}
-                      className={`border-border flex cursor-pointer items-center justify-between border-b p-3 transition-colors last:border-b-0 ${OPTION_ROW_COLOR_CLASS}`}
-                      tabIndex={0}
+                      aria-disabled={areOptionsLocked}
+                      onClick={() => selectRepository(repo)}
+                      className={`border-border flex items-center justify-between border-b p-3 transition-colors last:border-b-0 ${areOptionsLocked ? 'cursor-not-allowed opacity-60' : `cursor-pointer ${OPTION_ROW_COLOR_CLASS}`}`}
+                      tabIndex={areOptionsLocked ? -1 : 0}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault()
-                          toggleRepoSelection(repo)
+                          selectRepository(repo)
                         }
                       }}
                     >
@@ -772,7 +787,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
           )}
 
           {/* No results: only when neither list has a match for the query */}
-          {!isLoading &&
+          {!isReplacingLists &&
             deferredSearchQuery &&
             filteredRepositories.length === 0 &&
             heldRepositories.length === 0 && (
@@ -782,7 +797,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             )}
 
           {/* Nothing addable, but some repositories are placed elsewhere */}
-          {!isLoading &&
+          {!isReplacingLists &&
             filteredRepositories.length === 0 &&
             heldRepositories.length > 0 && (
               <p className="text-muted-foreground mt-3 text-sm">
@@ -793,7 +808,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             )}
 
           {/* Nothing addable and nothing held, without a search */}
-          {!isLoading &&
+          {!isReplacingLists &&
             !catalogError &&
             !deferredSearchQuery &&
             filteredRepositories.length === 0 &&
@@ -806,12 +821,13 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             )}
 
           {/* Repositories already on another board */}
-          {!isLoading && (
+          {!isReplacingLists && (
             <HeldRepositoryList
               repositories={heldRepositories}
               boardId={boardId}
               defaultStatusId={statusId}
               isBoardShared={isBoardShared}
+              movesDisabled={areOptionsLocked}
               onMoved={() => {
                 void refreshPlacements()
               }}
@@ -852,7 +868,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
               aria-describedby={
                 isBoardShared ? SHARED_BOARD_TEXT_ID : undefined
               }
-              disabled={selectedRepos.length === 0 || isLoading || !statusId}
+              disabled={
+                selectedRepos.length === 0 || areOptionsLocked || !statusId
+              }
               title={
                 !statusId
                   ? 'Add a column before adding repositories'

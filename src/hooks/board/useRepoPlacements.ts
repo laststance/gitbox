@@ -1,9 +1,9 @@
 import * as Sentry from '@sentry/nextjs'
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 
-import { getUserRepoPlacements } from '@/lib/actions/board-data'
 import type { BoardPlacement } from '@/lib/actions/repo-card-duplicates'
 import type { SavedRepositoryMemory } from '@/lib/actions/saved-repository-memories'
+import { fetchRepoPlacements } from '@/lib/fetch-repo-placements'
 
 interface RepoPlacementsState {
   /** Latest placements, or `null` when the last fetch failed or none has run. */
@@ -40,13 +40,16 @@ const INITIAL_PLACEMENTS_STATE: RepoPlacementsState = {
 
 /**
  * Loads where the user's repositories are placed every time the repository
- * picker opens.
+ * picker opens, through a GET so the request is not queued behind the catalog
+ * Server Action.
  *
- * Called by {@link AddRepositoryCombobox}. Unlike {@link useRepositoryCatalog},
- * which caches the GitHub catalog for instant reopen, placements are fetched on
- * every open: they change whenever a card is added, moved or removed,
- * possibly in another tab, and stale data would offer a repository the server
- * then rejects.
+ * Called by {@link AddRepositoryCombobox}. The last settled placements stay
+ * on screen when the picker opens again, and `isLoadingPlacements` stays
+ * true until this opening's answer arrives: the picker keeps those rows
+ * non-interactive, so a repository that was placed in another tab cannot be
+ * chosen from the stale list. Closing forgets an in-flight answer. A refresh
+ * that finishes after the picker has closed does not become the next
+ * opening's list.
  *
  * @param isOpen - Whether the repository picker is currently open.
  * @returns The placements, a loading flag, and a manual refresh function.
@@ -70,7 +73,7 @@ export function useRepoPlacements(isOpen: boolean): UseRepoPlacementsReturn {
     let placements: BoardPlacement[] | null = null
     let savedMemories: SavedRepositoryMemory[] | null = null
     try {
-      const result = await getUserRepoPlacements()
+      const result = await fetchRepoPlacements()
       // A failed lookup is logged server-side; the picker degrades to no held list
       if (result.success) {
         placements = result.data.placements
@@ -91,7 +94,7 @@ export function useRepoPlacements(isOpen: boolean): UseRepoPlacementsReturn {
     void refreshPlacements()
   })
 
-  // Controlled picker open state triggers one Server Action per opening
+  // Each opening loads placements with a GET, beside the catalog action
   useEffect(() => {
     if (!isOpen) return
 
@@ -99,11 +102,13 @@ export function useRepoPlacements(isOpen: boolean): UseRepoPlacementsReturn {
     loadPlacementsForOpening()
 
     return (): void => {
-      // Closing invalidates any in-flight request and forgets the old data, so
-      // the next opening shows loading instead of a stale held list.
+      // Closing invalidates any in-flight request. The last settled placements
+      // stay, so the next opening can show them while its own request runs.
+      // They are not settled for that opening: the picker must not treat them
+      // as a fresh answer.
       isOpenRef.current = false
       latestRequestId.current += 1
-      setState(INITIAL_PLACEMENTS_STATE)
+      setState((current) => ({ ...current, isSettled: false }))
     }
   }, [isOpen])
 
