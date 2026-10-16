@@ -11,6 +11,7 @@ import {
   boardSettingsSchema,
   renameBoardFormSchema,
   deleteBoardFormSchema,
+  gridPositionSchema,
   statusListColorSchema,
   updateSettingsFormSchema,
 } from '@/lib/validations/board'
@@ -232,6 +233,55 @@ describe('updateSettingsFormSchema', () => {
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.settings).not.toHaveProperty('customProperty')
+    }
+  })
+})
+
+describe('gridPositionSchema', () => {
+  test('accepts a column at row 0, column 999', () => {
+    // Arrange & Act
+    const result = gridPositionSchema.safeParse({ gridRow: 0, gridCol: 999 })
+
+    // Assert
+    expect(result.success).toBe(true)
+  })
+
+  test('refuses a column past column 999', () => {
+    // Arrange & Act
+    const result = gridPositionSchema.safeParse({ gridRow: 0, gridCol: 1000 })
+
+    // Assert
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        'A column cannot sit past row 999 or column 999.',
+      )
+    }
+  })
+
+  test('refuses a column past row 999', () => {
+    // Arrange & Act
+    const result = gridPositionSchema.safeParse({ gridRow: 1000, gridCol: 0 })
+
+    // Assert
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        'A column cannot sit past row 999 or column 999.',
+      )
+    }
+  })
+
+  test('refuses a negative row', () => {
+    // Arrange & Act
+    const result = gridPositionSchema.safeParse({ gridRow: -1, gridCol: 0 })
+
+    // Assert
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        'Grid row must be non-negative',
+      )
     }
   })
 })

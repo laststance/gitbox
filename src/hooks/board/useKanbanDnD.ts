@@ -55,6 +55,7 @@ import {
   OwnElementTouchSensor,
 } from '@/lib/utils/own-element-sensors'
 import { reportUnconfirmedBoardSave } from '@/lib/utils/report-unconfirmed-board-save'
+import { rollbackIfPositionWriteFailed } from '@/lib/utils/rollback-if-position-write-failed'
 
 import type { BoardRollback } from './useBoardRollback'
 
@@ -188,6 +189,7 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
         .map((s) => `${s.gridRow}-${s.gridCol}`),
     )
 
+    // One zone per cell. statuslist_grid_position_bounds keeps the furthest cell at 999.
     for (let row = 0; row <= maxRow; row++) {
       for (let col = 0; col <= maxCol + 1; col++) {
         const posKey = `${row}-${col}`
@@ -248,10 +250,14 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
       dispatch(setStatusLists(updatedStatuses))
 
       try {
-        await trackBoardWrite(
-          dispatch,
-          updateStatusListPosition(activeStatus.id, targetRow, targetCol),
-          () => reportUnconfirmedBoardSave('moveColumnToNewRow'),
+        await rollbackIfPositionWriteFailed(
+          trackBoardWrite(
+            dispatch,
+            updateStatusListPosition(activeStatus.id, targetRow, targetCol),
+            () => reportUnconfirmedBoardSave('moveColumnToNewRow'),
+          ),
+          COLUMN_MOVE_FAILED_TOAST_TITLE,
+          () => rollbackStatusLists(updatedStatuses, statuses),
         )
       } catch (error) {
         Sentry.captureException(error, {
@@ -317,10 +323,14 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
       dispatch(setStatusLists(updatedStatuses))
 
       try {
-        await trackBoardWrite(
-          dispatch,
-          batchUpdateStatusListPositions(updates),
-          () => reportUnconfirmedBoardSave('insertColumn'),
+        await rollbackIfPositionWriteFailed(
+          trackBoardWrite(
+            dispatch,
+            batchUpdateStatusListPositions(updates),
+            () => reportUnconfirmedBoardSave('insertColumn'),
+          ),
+          COLUMN_MOVE_FAILED_TOAST_TITLE,
+          () => rollbackStatusLists(updatedStatuses, statuses),
         )
       } catch (error) {
         Sentry.captureException(error, { tags: { action: 'insertColumn' } })

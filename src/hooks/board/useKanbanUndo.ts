@@ -29,6 +29,7 @@ import { isOverlayOpen } from '@/lib/utils/is-overlay-open'
 import { notifyFailedBoardSave } from '@/lib/utils/notify-failed-board-save'
 import { reconcileUndoSnapshot } from '@/lib/utils/reconcile-undo-snapshot'
 import { reportUnconfirmedBoardSave } from '@/lib/utils/report-unconfirmed-board-save'
+import { rollbackIfPositionWriteFailed } from '@/lib/utils/rollback-if-position-write-failed'
 import {
   toColumnPositions,
   type CardColumnPosition,
@@ -118,8 +119,13 @@ export function useKanbanUndo(
         gridRow: s.gridRow,
         gridCol: s.gridCol,
       }))
-      trackBoardWrite(dispatch, batchUpdateStatusListPositions(updates), () =>
-        reportUnconfirmedBoardSave('undoColumnPositions'),
+      rollbackIfPositionWriteFailed(
+        trackBoardWrite(dispatch, batchUpdateStatusListPositions(updates), () =>
+          reportUnconfirmedBoardSave('undoColumnPositions'),
+        ),
+        UNDO_FAILED_TOAST_TITLE,
+        () => rollbackStatusLists(columnsAfterUndo, statuses),
+        UNDO_TOAST_ID,
       ).catch((error) => {
         Sentry.captureException(error, {
           tags: { action: 'undoColumnPositions' },

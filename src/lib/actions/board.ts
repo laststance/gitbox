@@ -18,6 +18,11 @@ import { toStatusListDomain } from '@/lib/actions/mappers'
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 import { BOARD_CREATION_UNCONFIRMED_MESSAGE } from '@/lib/constants/board-creation'
 import { DEFAULT_PRESET_ID, type PresetId } from '@/lib/constants/board-presets'
+import {
+  GRID_POSITION_MAX,
+  GRID_POSITION_REFUSED,
+  isGridPositionConstraintViolation,
+} from '@/lib/constants/grid-position'
 import type { StatusListDomain } from '@/lib/models/domain'
 import { createClient } from '@/lib/supabase/server'
 import type { TablesUpdate } from '@/lib/supabase/types'
@@ -49,18 +54,43 @@ import {
 // ========================================
 
 /**
- * Create a new status list
+ * Refuses a row and column the table would refuse, with the sentence the user
+ * reads. Called by the position writes before they ask the database, so the
+ * answer does not depend on the wording of a check violation.
+ *
+ * @param gridRow - Row the write would store.
+ * @param gridCol - Column the write would store.
+ * @throws {@link ActionUserError} when the position is outside
+ *   0..{@link GRID_POSITION_MAX}.
+ */
+function refuseOutOfRangeGridPosition(gridRow: number, gridCol: number): void {
+  const parsed = gridPositionSchema.safeParse({ gridRow, gridCol })
+  if (parsed.success) return
+  throw new ActionUserError(
+    parsed.error.issues[0]?.message ?? GRID_POSITION_REFUSED,
+  )
+}
+
+/**
+ * Create a new status list at the end of the first row.
+ *
+ * @param boardId - Board the column belongs to.
+ * @param name - Column name.
+ * @param color - `#RRGGBB`. Defaults to gray.
+ * @returns The column, or a failure. When the first row already ends at
+ *   column {@link GRID_POSITION_MAX}, `error` is {@link GRID_POSITION_REFUSED}
+ *   and nothing is inserted.
  */
 export async function createStatusList(
   boardId: string,
   name: string,
   color: string = '#6B7280',
-): Promise<StatusListDomain> {
+): Promise<ActionResult<StatusListDomain>> {
   // Validate inputs (P2-1)
   statusListNameSchema.parse(name)
   statusListColorSchema.parse(color)
 
-  return withAuthRateLimit('boardCrud', async (supabase) => {
+  return withAuthResultRateLimit('boardCrud', async (supabase) => {
     // Get the current max grid_col in row 0. maybeSingle() returns null
     // (no error) when the board has no columns yet — that's the legitimate
     // empty case. Any other error means RLS denial, network failure, etc.,
@@ -82,6 +112,10 @@ export async function createStatusList(
     }
 
     const nextCol = (maxColData?.grid_col ?? -1) + 1
+    // The next cell would sit past the table's bound. Say so before inserting.
+    if (nextCol > GRID_POSITION_MAX) {
+      throw new ActionUserError(GRID_POSITION_REFUSED)
+    }
 
     const { data, error } = await supabase
       .from('statuslist')
@@ -95,6 +129,10 @@ export async function createStatusList(
       })
       .select()
       .single()
+
+    if (isGridPositionConstraintViolation(error)) {
+      throw new ActionUserError(GRID_POSITION_REFUSED)
+    }
 
     if (error || !data) {
       Sentry.captureException(error ?? new Error('No data returned'), {
@@ -160,22 +198,24 @@ export async function deleteStatusList(
 }
 
 /**
- * Update a single status list position
- * Used for moving a column to a new grid cell
+ * Update a single status list position.
+ * Used for moving a column to a new grid cell.
  *
  * @param id - Status list ID
  * @param gridRow - New row position (0-indexed)
  * @param gridCol - New column position (0-indexed)
+ * @returns Nothing on success. A position outside 0..{@link GRID_POSITION_MAX}
+ *   comes back as {@link GRID_POSITION_REFUSED}, and the column stays where
+ *   it was.
  */
 export async function updateStatusListPosition(
   id: string,
   gridRow: number,
   gridCol: number,
-): Promise<void> {
-  // Validate grid position (P2-4)
-  gridPositionSchema.parse({ gridRow, gridCol })
+): Promise<ActionResult<void>> {
+  return withAuthResultRateLimit('batchDnD', async (supabase) => {
+    refuseOutOfRangeGridPosition(gridRow, gridCol)
 
-  return withAuthRateLimit('batchDnD', async (supabase) => {
     const { error } = await supabase
       .from('statuslist')
       .update({
@@ -183,6 +223,10 @@ export async function updateStatusListPosition(
         grid_col: gridCol,
       })
       .eq('id', id)
+
+    if (isGridPositionConstraintViolation(error)) {
+      throw new ActionUserError(GRID_POSITION_REFUSED)
+    }
 
     if (error) {
       Sentry.captureException(error, {
@@ -229,10 +273,12 @@ export async function swapStatusListPositions(
 }
 
 /**
- * Batch update status list positions
- * Used for complex drag & drop operations affecting multiple columns
+ * Batch update status list positions.
+ * Used for complex drag & drop operations affecting multiple columns.
  *
  * @param updates - Array of status list updates with id and new grid positions
+ * @returns Nothing on success. One position outside 0..{@link GRID_POSITION_MAX}
+ *   refuses the whole batch with {@link GRID_POSITION_REFUSED}, and no column moves.
  * @example
  * batchUpdateStatusListPositions([
  *   { id: 'status-1', gridRow: 0, gridCol: 0 },
@@ -241,8 +287,12 @@ export async function swapStatusListPositions(
  */
 export async function batchUpdateStatusListPositions(
   updates: Array<{ id: string; gridRow: number; gridCol: number }>,
-): Promise<void> {
-  return withAuthRateLimit('batchDnD', async (supabase) => {
+): Promise<ActionResult<void>> {
+  return withAuthResultRateLimit('batchDnD', async (supabase) => {
+    for (const update of updates) {
+      refuseOutOfRangeGridPosition(update.gridRow, update.gridCol)
+    }
+
     // Atomic batch update via PostgreSQL RPC — all updates succeed or all fail
     const { error } = await supabase.rpc('batch_update_statuslist_positions', {
       p_updates: updates.map(({ id, gridRow, gridCol }) => ({
@@ -251,6 +301,10 @@ export async function batchUpdateStatusListPositions(
         grid_col: gridCol,
       })),
     })
+
+    if (isGridPositionConstraintViolation(error)) {
+      throw new ActionUserError(GRID_POSITION_REFUSED)
+    }
 
     if (error) {
       Sentry.captureException(error, {

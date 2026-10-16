@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/autoplan` review and the code review of issue #213 (a repository that is set aside is a card on an ordinary board). None of the follow-ups blocks that change.
 
-### Bound the grid position of a column
-
-**What:** Give `statuslist.grid_row` and `statuslist.grid_col` an upper bound in the table (a `CHECK` such as `BETWEEN 0 AND 999`, after counting the rows it would refuse), and let the actions that write a position answer a refusal with a sentence.
-
-**Why:** A signed-in user can write any integer into the two columns through the API. The board page builds one drop zone per cell of the grid (`useKanbanDnD`), so a column at row or column 2147483647 makes that user's own board page hang, and each request for it runs until the function times out. The column color got its check in issue #213 for the same reason: the table refuses whoever writes. Older than that change.
-
-**Context:** `src/hooks/board/useKanbanDnD.ts` (the loop over rows and columns), `supabase/migrations/20261012085950_statuslist_color_check.sql` (the pattern to follow: count first, then add the constraint), the column drag and "new row" writes in `src/lib/actions/board.ts`.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### Say "this page is out of date" for an action the server no longer has
 
 **What:** Tell a Server Action call the server rejected without running it (a tab of the build before a deployment calls an action id the new build does not have) from a request with an unknown outcome, and offer "Reload page" with a sentence that says the page is out of date.
