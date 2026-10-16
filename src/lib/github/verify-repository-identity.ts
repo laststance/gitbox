@@ -13,6 +13,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { isAxiosError } from 'axios'
 
 import { createGitHubAxios, getGitHubToken } from '@/lib/axios-github'
+import { BOARD_OF_CARD_RELATION } from '@/lib/constants/board-bundle'
 import type { Database } from '@/lib/supabase/types'
 import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
 
@@ -216,7 +217,9 @@ export async function backfillVerifiedRepositoryIds(
   const retryBefore = new Date(Date.now() - BACKFILL_RETRY_MS).toISOString()
   const { data, error } = await supabase
     .from('repocard')
-    .select('id, repo_owner, repo_name, board!inner(user_id)')
+    .select(
+      `id, repo_owner, repo_name, ${BOARD_OF_CARD_RELATION}!inner(user_id)`,
+    )
     .eq('board.user_id', userId)
     .is('github_repo_id', null)
     .or(

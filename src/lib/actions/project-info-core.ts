@@ -16,6 +16,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+import { BOARD_OF_CARD_RELATION } from '@/lib/constants/board-bundle'
 import { lookupRepositoryByGitHubId } from '@/lib/github/verify-repository-identity'
 import { createClient } from '@/lib/supabase/server'
 import type { Database, TablesInsert, CommentColor } from '@/lib/supabase/types'
@@ -472,7 +473,9 @@ async function readCardRepository(
 ): Promise<CardRepository> {
   const { data: card, error } = await supabase
     .from('repocard')
-    .select('repo_owner, repo_name, github_repo_id, board!inner(user_id)')
+    .select(
+      `repo_owner, repo_name, github_repo_id, ${BOARD_OF_CARD_RELATION}!inner(user_id)`,
+    )
     .eq('id', repoCardId)
     .single()
 

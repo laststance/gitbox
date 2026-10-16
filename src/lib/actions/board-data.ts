@@ -193,7 +193,9 @@ export async function getBoardBundle(
   const { supabase, claims } = authedContext
 
   // One nested embed: board + its columns + its cards (each with its single
-  // projectinfo comment). PostgREST resolves the joins server-side under RLS.
+  // projectinfo comment). The card embed names `repocard_board_id_fkey`,
+  // because `repocard_board_owner_fkey` is a second link and an unnamed
+  // embed is refused. PostgREST resolves the joins server-side under RLS.
   const embedStart = performance.now()
   const { data, error } = await supabase
     .from('board')

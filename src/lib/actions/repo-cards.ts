@@ -18,6 +18,7 @@ import {
   withAuthResultRateLimit,
 } from '@/lib/actions/auth-guard'
 import type { GitHubRepository } from '@/lib/actions/github'
+import { BOARD_OF_CARD_RELATION } from '@/lib/constants/board-bundle'
 import { MOVE_UNCONFIRMED_MESSAGE } from '@/lib/constants/card-move'
 import {
   backfillVerifiedRepositoryIds,
@@ -579,7 +580,7 @@ export async function moveCardToBoard(
     // Fetch card with board ownership check
     const { data: card, error: cardError } = await supabase
       .from('repocard')
-      .select('*, board:board_id(user_id)')
+      .select(`*, ${BOARD_OF_CARD_RELATION}(user_id)`)
       .eq('id', cardId)
       .single()
 

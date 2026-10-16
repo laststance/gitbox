@@ -12,11 +12,10 @@
  * Database rules (asserted directly against PostgREST):
  * - Unique index per (user, lower(owner), lower(name))
  * - `repocard.user_id` always equals the board owner and cannot be forged
- * - An insert into another user's public board is refused (23514: the column
- *   of a board that is not yours cannot be seen, so no card can go into it)
- * - A card's column must be a column of the card's board, and a column cannot
- *   change boards (`check_repocard_status_board`,
- *   `forbid_statuslist_board_change`, 23514)
+ * - An insert into another user's public board is refused (23503: that board
+ *   is not visible, so the owner trigger cannot copy its user)
+ * - A card's column must be a column of the card's board, and a column that
+ *   holds cards cannot change boards (`repocard_status_board_fkey`, 23503)
  *
  * Fixtures: the MSW GitHub catalog offers `testuser/private-project`, which is
  * on none of the test user's boards in `seed.sql`. The seeded second account
@@ -595,10 +594,10 @@ test.describe('One repository per user - database rules', () => {
       meta: {},
     })
 
-    // Assert: refused, nothing written. Another user's column is invisible to
-    // the test user even on a public board, so check_repocard_status_board
-    // rejects the row (23514) before row-level security gets to (42501).
-    expect(error?.code).toBe('23514')
+    // Assert: refused, nothing written. Another user's board is invisible even
+    // when it is public, so set_repocard_user_id cannot copy an owner and
+    // raises 23503 before row-level security gets to 42501.
+    expect(error?.code).toBe('23503')
     const probeCards = await querySupabase('repocard', {
       repo_name: 'rls-probe',
     })
@@ -625,8 +624,8 @@ test.describe("A card's column belongs to the card's board - database rules", ()
       .update({ status_id: WORK_PROJECTS_STATUS_IDS.backlog })
       .eq('id', CARD_IDS.card1)
 
-    // Assert: check violation, and the card is still where it was
-    expect(error?.code).toBe('23514')
+    // Assert: foreign key violation, and the card is still where it was
+    expect(error?.code).toBe('23503')
     const card = await querySingle<{ board_id: string; status_id: string }>(
       'repocard',
       { id: CARD_IDS.card1 },
@@ -662,7 +661,7 @@ test.describe("A card's column belongs to the card's board - database rules", ()
     })
 
     // Assert: refused, and the card stays visible on Work Projects
-    expect(error?.code).toBe('23514')
+    expect(error?.code).toBe('23503')
     const card = await querySingle<{ board_id: string; status_id: string }>(
       'repocard',
       { id: CARD_IDS.card1 },
@@ -683,8 +682,8 @@ test.describe("A card's column belongs to the card's board - database rules", ()
       .update({ board_id: BOARD_IDS.workProjects })
       .eq('id', STATUS_IDS.planning)
 
-    // Assert: check violation, and the column is still on Test Board
-    expect(error?.code).toBe('23514')
+    // Assert: foreign key violation, and the column is still on Test Board
+    expect(error?.code).toBe('23503')
     const column = await querySingle<{ board_id: string }>('statuslist', {
       id: STATUS_IDS.planning,
     })
@@ -707,8 +706,8 @@ test.describe("A card's column belongs to the card's board - database rules", ()
       meta: {},
     })
 
-    // Assert: check violation, nothing written
-    expect(error?.code).toBe('23514')
+    // Assert: foreign key violation, nothing written
+    expect(error?.code).toBe('23503')
     const probeCards = await querySupabase('repocard', {
       repo_name: 'column-probe',
     })
