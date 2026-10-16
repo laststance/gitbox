@@ -686,7 +686,8 @@ test.describe('Project info data access', () => {
     expect(called.error?.code).toBe('PGRST202')
   })
 
-  test.each([
+  // Playwright's test has no test.each. Each case is its own test.
+  for (const row of [
     {
       column: 'owner',
       id: '00000000-0000-0000-0000-0000000003c2',
@@ -699,19 +700,18 @@ test.describe('Project info data access', () => {
       repo_owner: 'laststance',
       repo_name: 'slash/probe',
     },
-  ])(
-    'refuses a card whose $column contains a slash',
-    async ({ id, repo_owner, repo_name }) => {
+  ]) {
+    test(`refuses a card whose ${row.column} contains a slash`, async () => {
       // Arrange
       const testUser = createTestUserSupabaseClient()
 
       // Act
       const added = await testUser.from('repocard').insert({
-        id,
+        id: row.id,
         board_id: BOARD_IDS.workProjects,
         status_id: WORK_PROJECTS_STATUS_IDS.backlog,
-        repo_owner,
-        repo_name,
+        repo_owner: row.repo_owner,
+        repo_name: row.repo_name,
         order: 0,
         meta: {},
       })
@@ -721,13 +721,13 @@ test.describe('Project info data access', () => {
       const left = await createServiceRoleSupabaseClient()
         .from('repocard')
         .select('id')
-        .eq('id', id)
+        .eq('id', row.id)
       expect(left.error).toBeNull()
       expect(left.data).toEqual([])
-    },
-  )
+    })
+  }
 
-  test.each([
+  for (const row of [
     {
       column: 'owner',
       repo_owner: 'last/stance',
@@ -738,17 +738,16 @@ test.describe('Project info data access', () => {
       repo_owner: 'laststance',
       repo_name: 'slash/probe',
     },
-  ])(
-    'refuses project info whose $column contains a slash',
-    async ({ repo_owner, repo_name }) => {
+  ]) {
+    test(`refuses project info whose ${row.column} contains a slash`, async () => {
       // Arrange: the service role bypasses row level security, not the check
       const admin = createServiceRoleSupabaseClient()
 
       // Act
       const added = await admin.from('projectinfo').insert({
         user_id: TEST_USER_ID,
-        repo_owner,
-        repo_name,
+        repo_owner: row.repo_owner,
+        repo_name: row.repo_name,
         note: 'must not be stored',
       })
 
@@ -758,12 +757,12 @@ test.describe('Project info data access', () => {
         .from('projectinfo')
         .select('id')
         .eq('user_id', TEST_USER_ID)
-        .eq('repo_owner', repo_owner)
-        .eq('repo_name', repo_name)
+        .eq('repo_owner', row.repo_owner)
+        .eq('repo_name', row.repo_name)
       expect(left.error).toBeNull()
       expect(left.data).toEqual([])
-    },
-  )
+    })
+  }
 
   test('a visitor without an account reads no project info', async () => {
     // Arrange
