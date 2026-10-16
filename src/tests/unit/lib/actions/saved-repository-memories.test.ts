@@ -10,19 +10,15 @@
  * @see src/lib/actions/saved-repository-memories.ts
  */
 
-import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 
 import {
   lookupSavedRepositoryMemories,
   summarizeMemoryRow,
 } from '@/lib/actions/saved-repository-memories'
+import { POSTGREST_MAX_ROWS } from '@/lib/constants/postgrest'
 import type { Database } from '@/lib/supabase/types'
-
-vi.mock('@sentry/nextjs', () => ({
-  captureMessage: vi.fn(),
-}))
 
 vi.mock('@/lib/logger', () => ({
   createModuleLogger: () => ({
@@ -40,25 +36,43 @@ type MemoryQueryResult = {
 
 /**
  * Supabase stand-in for the memory lookup: the read of `projectinfo` answers
- * with the given result. `from` and `eq` are spies, so a test sees which table
- * was read and how the read was filtered.
- * @param result - What the query resolves to.
+ * with the given result. `from`, `eq`, `order` and `range` are spies, so a
+ * test sees which table was read, how the read was filtered, and each page.
+ * @param result - What one page resolves to, or a function of that page's range.
  * @returns The client and its spies.
  * @example
  * makeSupabaseStub({ data: [], error: null }).supabase
  */
-function makeSupabaseStub(result: MemoryQueryResult) {
+function makeSupabaseStub(
+  result: MemoryQueryResult | ((from: number, to: number) => MemoryQueryResult),
+) {
   const from = vi.fn()
   const eq = vi.fn()
+  const order = vi.fn()
+  const range = vi.fn()
+  let lastRange: [number, number] = [0, 0]
   const query = {
     select: () => query,
     eq: (...args: unknown[]) => {
       eq(...args)
       return query
     },
+    order: (...args: unknown[]) => {
+      order(...args)
+      return query
+    },
+    range: (start: number, end: number) => {
+      range(start, end)
+      lastRange = [start, end]
+      return query
+    },
     // Makes the builder awaitable, like the real PostgREST builder
     then: async (resolve: (value: MemoryQueryResult) => unknown) =>
-      resolve(result),
+      resolve(
+        typeof result === 'function'
+          ? result(lastRange[0], lastRange[1])
+          : result,
+      ),
   }
   from.mockImplementation(() => query)
 
@@ -66,6 +80,8 @@ function makeSupabaseStub(result: MemoryQueryResult) {
     supabase: { from } as unknown as SupabaseClient<Database>,
     from,
     eq,
+    order,
+    range,
   }
 }
 
@@ -236,10 +252,6 @@ describe('summarizeMemoryRow', () => {
 })
 
 describe('lookupSavedRepositoryMemories', () => {
-  beforeEach(() => {
-    vi.mocked(Sentry.captureMessage).mockClear()
-  })
-
   // Value: protects=the picker's marks come from the signed-in user's own memories, and a memory that holds nothing gets no mark (eng review R4, pre-landing review of #216); fails_when=the query drops the user filter (another user's rows would mark repositories once RLS is loosened), or empty rows reach the picker; why_new=only the row summary was tested; seam=Supabase client stub; no_claim=row level security itself (e2e project-info-data-access.spec.ts)
   test('reads the memories of the signed-in user only and leaves out the empty ones', async () => {
     // Arrange
@@ -279,28 +291,73 @@ describe('lookupSavedRepositoryMemories', () => {
     ])
   })
 
-  // Value: protects=marks cut off at the PostgREST row cap are reported, not lost without a word (pre-landing review of #216); fails_when=the warning is dropped or no longer names the user and the count; why_new=the cap check had no test; seam=Supabase client stub, Sentry mock; no_claim=the cap of the production API (POSTGREST_MAX_ROWS)
-  test('warns that marks may be missing when the lookup reaches the row limit', async () => {
+  // Value: protects=a memory past the first thousand rows still marks its repository in the picker; fails_when=the lookup stops at the PostgREST cap and that repository is added with no Saved mark; why_new=the lookup used to warn and stop; seam=Supabase client stub; no_claim=the cap of the production API (POSTGREST_MAX_ROWS)
+  test('includes a saved memory that sits past the first thousand rows', async () => {
     // Arrange
-    const emptyRow = {
+    const firstPage = Array.from(
+      { length: POSTGREST_MAX_ROWS },
+      (_, index) => ({
+        repo_owner: 'laststance',
+        repo_name: `empty-${index}`,
+        note: null,
+        comment: null,
+        links: [],
+      }),
+    )
+    const kept = {
       repo_owner: 'laststance',
-      repo_name: 'nsx',
+      repo_name: 'past-the-cap',
       note: null,
-      comment: null,
+      comment: 'kept',
       links: [],
     }
-    const { supabase } = makeSupabaseStub({
-      data: Array.from({ length: 1000 }, () => emptyRow),
+    const { supabase, order, range } = makeSupabaseStub((from) => ({
+      data: from === 0 ? firstPage : [kept],
       error: null,
-    })
+    }))
 
     // Act
-    await lookupSavedRepositoryMemories(supabase, 'user-1')
+    const memories = await lookupSavedRepositoryMemories(supabase, 'user-1')
 
     // Assert
-    expect(Sentry.captureMessage).toHaveBeenCalledWith(
-      'Saved repository memory lookup may be truncated at PostgREST row limit',
-      { level: 'warning', extra: { userId: 'user-1', memoryCount: 1000 } },
+    expect(order).toHaveBeenCalledWith('id', { ascending: true })
+    expect(range).toHaveBeenNthCalledWith(1, 0, 999)
+    expect(range).toHaveBeenNthCalledWith(2, 1000, 1999)
+    expect(memories).toEqual([
+      {
+        identifier: 'laststance/past-the-cap',
+        hasNote: false,
+        linkCount: 0,
+        hasComment: true,
+      },
+    ])
+  })
+
+  // Value: protects=a failed later page does not look like a complete list of memories; fails_when=the first thousand rows are returned after the next page fails; why_new=paging can fail on the second read; seam=Supabase client stub; no_claim=how the caller degrades (board-data.test.ts)
+  test('fails the lookup when a page past the first thousand cannot be read', async () => {
+    // Arrange
+    const firstPage = Array.from(
+      { length: POSTGREST_MAX_ROWS },
+      (_, index) => ({
+        repo_owner: 'laststance',
+        repo_name: `empty-${index}`,
+        note: null,
+        comment: 'kept',
+        links: [],
+      }),
+    )
+    const { supabase } = makeSupabaseStub((from) =>
+      from === 0
+        ? { data: firstPage, error: null }
+        : { data: null, error: { message: 'canceling statement' } },
+    )
+
+    // Act
+    const lookup = lookupSavedRepositoryMemories(supabase, 'user-1')
+
+    // Assert
+    await expect(lookup).rejects.toThrow(
+      'Failed to look up saved repository memories',
     )
   })
 

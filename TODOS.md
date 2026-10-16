@@ -37,18 +37,6 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 From the `/plan-eng-review` of issue #216 (a repository keeps its note, links and comment when its card goes). None blocks that change.
 
-### Page the saved-memory lookup beyond 1000 rows
-
-**What:** Page through `projectinfo` in `lookupSavedRepositoryMemories` instead of stopping at the PostgREST `max_rows` cap.
-
-**Why:** A user with more than 1000 saved repositories gets some picker rows without their `Saved: ...` mark. Adding such a repository still brings its memory back: the mark is the only thing missing.
-
-**Context:** The lookup in `src/lib/actions/saved-repository-memories.ts` reads every row of the user and sends one Sentry warning when it returns 1000 rows or more. Page it the way the placement lookup item above proposes (`.range()` pages ordered by `id`), or ask only for the repositories the picker lists.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### List more than 1000 repositories of a source in the picker
 
 **What:** Let the Add Repositories catalog page past 1000 repositories per user or organization.
@@ -67,7 +55,7 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 **Why:** `lookupSavedRepositoryMemories` selects the whole note (up to 20,000 characters), the links and the comment of every row of the user on each opening of the picker, only to compute three values per row. Rows now outlive their cards, so their number only grows. And the lookup runs in the same `Promise.all` as the placements: a slow memory query holds the list, although the marks are extra. Found by the pre-landing review of #216 (performance, security, data migration and red team); the owner has 10 rows today.
 
-**Context:** `src/lib/actions/saved-repository-memories.ts` and `getUserRepoPlacements` in `src/lib/actions/board-data.ts`. A note is an editor document (JSON): a view would have to decide "has text" the way `isSlateValueEmpty` does, or keep that decision in the app and select only the notes of repositories on no board. Pair it with the paging item above.
+**Context:** `src/lib/actions/saved-repository-memories.ts` and `getUserRepoPlacements` in `src/lib/actions/board-data.ts`. A note is an editor document (JSON): a view would have to decide "has text" the way `isSlateValueEmpty` does, or keep that decision in the app and select only the notes of repositories on no board. The lookup already pages past the row cap.
 
 **Effort:** S
 **Priority:** P3
