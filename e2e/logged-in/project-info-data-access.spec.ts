@@ -430,6 +430,43 @@ test.describe('Project info data access', () => {
     ])
   })
 
+  test('accepts a note whose saved document is longer than 20000 characters when its text is not', async () => {
+    // Arrange: markup past the old limit, two characters of text
+    const testUser = createTestUserSupabaseClient()
+    const note = `[{"type":"p","padding":"${'x'.repeat(20000)}","children":[{"text":"hi"}]}]`
+
+    // Act
+    const added = await testUser.from('projectinfo').insert({
+      repo_owner: 'laststance',
+      repo_name: 'use-app-state',
+      note,
+    })
+
+    // Assert
+    expect(note.length).toBeGreaterThan(20000)
+    expect(added.error).toBeNull()
+    expect(await readNotesOfRepository(TEST_USER_ID, USE_APP_STATE)).toEqual([
+      note,
+    ])
+  })
+
+  test('refuses a note whose text is longer than 20000 characters', async () => {
+    // Arrange
+    const testUser = createTestUserSupabaseClient()
+    const note = `[{"type":"p","children":[{"text":"${'y'.repeat(20001)}"}]}]`
+
+    // Act
+    const added = await testUser.from('projectinfo').insert({
+      repo_owner: 'laststance',
+      repo_name: 'use-app-state',
+      note,
+    })
+
+    // Assert
+    expect(added.error?.code).toBe('23514')
+    expect(await readNotesOfRepository(TEST_USER_ID, USE_APP_STATE)).toEqual([])
+  })
+
   test('a visitor without an account reads no project info', async () => {
     // Arrange
     const visitor = createAnonSupabaseClient()
