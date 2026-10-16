@@ -23,13 +23,16 @@ const LOCAL_SERVICE_ROLE_KEY =
 
 /**
  * The environment assignments of one command in a shell script.
+ * The window is the current command block, so a later command cannot pass
+ * on assignments that belong to an earlier one.
  * @param script - The whole script.
  * @param command - The command those assignments prefix.
- * @returns The lines immediately above the command.
+ * @returns The lines of that command's block, above the command.
  */
 function commandEnv(script: string, command: string): string {
   const at = script.indexOf(command)
-  return script.slice(Math.max(0, at - 900), at)
+  const blockStart = script.lastIndexOf('\n\n', at)
+  return script.slice(blockStart < 0 ? 0 : blockStart + 2, at)
 }
 
 describe('local E2E builds', () => {
@@ -48,8 +51,15 @@ describe('local E2E builds', () => {
     expect(script).toContain('LOCAL_SITE_URL="http://localhost:3008"')
     expect(buildEnv).toContain('NEXT_PUBLIC_SITE_URL="${LOCAL_SITE_URL}"')
     expect(buildEnv).toContain('SENTRY_AUTH_TOKEN=""')
+    // The build's own URL. The server block must not satisfy this.
+    expect(buildEnv).toContain(
+      'NEXT_PUBLIC_SUPABASE_URL="${LOCAL_SUPABASE_URL}"',
+    )
     expect(startEnv).toContain('NEXT_PUBLIC_SITE_URL="${LOCAL_SITE_URL}"')
     expect(startEnv).toContain('SENTRY_AUTH_TOKEN=""')
+    expect(startEnv).not.toContain(
+      'NEXT_PUBLIC_SUPABASE_URL="${LOCAL_SUPABASE_URL}"',
+    )
   })
 
   test('pnpm e2e gives its build and its server the local service-role key, the local site URL and an empty Sentry token', () => {
@@ -63,7 +73,9 @@ describe('local E2E builds', () => {
     // Assert
     expect(config).toContain(LOCAL_SERVICE_ROLE_KEY)
     expect(config).toContain("const LOCAL_SITE_URL = 'http://localhost:3008'")
-    expect(env).toContain('SUPABASE_URL: LOCAL_SUPABASE_URL')
+    expect(env).toMatch(
+      /(?:^|\r?\n)[ \t]*SUPABASE_URL[ \t]*:[ \t]*LOCAL_SUPABASE_URL[ \t]*(?:,|\r?\n|$)/,
+    )
     expect(env).toContain(
       'SUPABASE_SERVICE_ROLE_KEY: LOCAL_SUPABASE_SERVICE_ROLE_KEY',
     )
