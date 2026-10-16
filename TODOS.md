@@ -37,18 +37,6 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 From the `/plan-eng-review` of issue #216 (a repository keeps its note, links and comment when its card goes). None blocks that change.
 
-### Count a note's length where the database counts it
-
-**What:** Make the Note dialog's limit and `note_length_check` count the same thing: either the dialog counts the length of the stored editor document (JSON), or the check moves to a limit on the text and the column gets a larger cap for the markup.
-
-**Why:** The dialog counts the text and stops input at `NOTE_MAX_LENGTH` (20,000 characters). The database checks `length(note) <= 20000` on the JSON it stores, which is longer than the text: every paragraph, mark and link adds markup. A long note of 15,000 characters can be refused, the toast says the text is kept, and each later save is refused again, with nothing that says why. That predates #216; #216 makes notes outlive their cards, so a note that cannot be saved stays in the way longer. Found by the red team review of #216.
-
-**Context:** `NOTE_MAX_LENGTH` in `src/hooks/board/useNoteModalDraft.ts`, `NoteSection` (the counter), `supabase/migrations/20251230100000_add_note_to_projectinfo.sql` (the check). The refusal reaches the browser as the generic save failure; an error code for 23514 would let the toast name the limit.
-
-**Effort:** S
-**Priority:** P2
-**Depends on:** None
-
 ### Pin what #216's saves keep against a real database, and the other review leftovers
 
 **What:** Add data-access tests that send the exact payloads of `upsertProjectInfoCore`, `updateCommentCore` and `updateCommentColorCore` through the test user's client with `onConflict: 'user_id,repo_key'` (a comment save keeps the note and links, a note save keeps the comment and color, a color-only save makes a row with the column defaults), a test that deleting a user deletes their `projectinfo` rows, a test that a visitor cannot call `/rpc/projectinfo`, and a whitespace-only comment row in the `summarizeMemoryRow` table. Correct the header of `project-info-core.test.ts`, which says the e2e specs cover the upsert merge. Bring the JSDoc of `useRepoPlacements` (it returns `savedMemories` too) and the `CreatedRepoCard` example (its `comment` goes to the comment map, not to Redux) up to date. Keep the Delete Column dialog's title and card count while it fades out (it shows `""` and no card sentence for 200ms; on `main` it showed `"undefined"`).
