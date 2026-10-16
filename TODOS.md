@@ -37,22 +37,6 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 From the `/plan-eng-review` of issue #216 (a repository keeps its note, links and comment when its card goes). None blocks that change.
 
-## Set Work Aside on Boards (#213): deferred follow-ups
-
-From the `/autoplan` review and the code review of issue #213 (a repository that is set aside is a card on an ordinary board). None of the follow-ups blocks that change.
-
-### Two simplifications named in the last review round of #213
-
-**What:** (1) Hand the outcome of a board creation to the form of the move dialog as it is (`BoardCreationAttempt` without its `created` case) and let the form choose from it, as `CreateBoardForm` of `/boards/new` does. Today it is renamed twice on the way: `toCreationFailure` makes a `BoardCreationFailure` with a `nextStep`, and `toFormProblem` makes a `FormProblem` with a `recovery`. (2) Render a comment's menu beside the element that opens the editor, not inside it: wrap both in a `group relative` element, keep the role of a button on the text alone and make the menu its sibling.
-
-**Why:** Neither changes what the app does. (1) The mapping is one to one and `BoardCreationFailure` has one producer and one reader, about 50 lines. (2) The clicks and keys of the menu then never reach the handlers that open the editor, so `isOnCommentItself`, its ref and its two guards go (about 30 lines), and no button stands inside an element with the role of a button. Both were advice of the simplification reader on 2026-10-12, left out because each rewrites code that the tests and the checks of #213 had just pinned.
-
-**Context:** `src/components/Modals/CreateDestinationBoardForm.tsx`, `toCreationFailure` in `src/components/Modals/MoveToAnotherBoardDialog.tsx`, `src/lib/utils/request-board-creation.ts`; `src/components/Board/CommentDisplay.tsx`, whose one user is `CommentSection`. `startedOnOwnElement` stays: `mayStartDrag` asks it. The comment remains a place where a card can be picked up, so the drag tests of `e2e/logged-in/what-starts-a-drag.spec.ts` and the stories of `CommentEditingWorkflow.stories.tsx` decide whether (2) is right.
-
-**Effort:** S
-**Priority:** P4
-**Depends on:** None
-
 ## Board sync and the Sentry tunnel — deferred follow-ups
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.

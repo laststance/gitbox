@@ -12,11 +12,13 @@
 import { LayoutGrid, Loader2 } from 'lucide-react'
 import { memo, useRef, useState, type FormEvent } from 'react'
 import { flushSync } from 'react-dom'
+import { match } from 'ts-pattern'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { reloadPage } from '@/lib/utils/reload-page'
+import type { BoardCreationAttempt } from '@/lib/utils/request-board-creation'
 import { BOARD_NAME_MAX_LENGTH, boardNameSchema } from '@/lib/validations/board'
 
 /** Id of the name field; its label, hint and error text point to it. */
@@ -24,41 +26,15 @@ const NAME_FIELD_ID = 'destination-board-name'
 const NAME_HINT_ID = `${NAME_FIELD_ID}-hint`
 const NAME_ERROR_ID = `${NAME_FIELD_ID}-error`
 
-/** Why a creation the form asked for ended without a board to select. */
-export interface BoardCreationFailure {
-  /** Text shown under the name field. */
-  message: string
-  /**
-   * What the form offers after it.
-   * - `try-again`: the server answered and nothing was written, so "Create
-   *   Board" stays and the name can be sent again
-   * - `reload-boards`: a board may exist (the request failed on the way, or
-   *   the server could not confirm it). A second try could make a second
-   *   board, so "Reload boards" takes the place of "Create Board"
-   * - `reload-page`: a board may exist and the request got no answer in
-   *   time. It is still running, and loading the boards again would wait
-   *   behind it, so "Reload page", which waits for nothing, takes that place
-   */
-  nextStep: 'try-again' | UnconfirmedCreationRecovery
-}
-
-/** The way out of the form after a creation with an unknown outcome. */
-type UnconfirmedCreationRecovery = 'reload-boards' | 'reload-page'
+/** A creation that gave the form no board to select. */
+type CreationRefusal = Exclude<BoardCreationAttempt, { status: 'created' }>
 
 /**
  * What the form shows under the name field.
  * - `invalid-name`: the name did not pass the check, so nothing was sent
- * - `not-created`: the server answered and no board was created
- * - `unconfirmed`: a board may exist; the button of `recovery` takes the
- *   place of "Create Board"
+ * - a {@link CreationRefusal}: the creation ended as {@link requestBoardCreation} said
  */
-type FormProblem =
-  | { kind: 'invalid-name' | 'not-created'; message: string }
-  | {
-      kind: 'unconfirmed'
-      message: string
-      recovery: UnconfirmedCreationRecovery
-    }
+type FormProblem = { status: 'invalid-name'; message: string } | CreationRefusal
 
 interface CreateDestinationBoardFormProps {
   /**
@@ -70,10 +46,11 @@ interface CreateDestinationBoardFormProps {
   /**
    * Creates a board from the typed name. Resolves with `null` when the board
    * exists (the dialog shows the board list again and this form is gone), or
-   * with the {@link BoardCreationFailure} to show. `isCreating` is `false` on
-   * screen by the time it resolves, so the form can take the focus back.
+   * with the creation as it ended, so the form chooses the button from that
+   * status. `isCreating` is `false` on screen by the time it resolves, so the
+   * form can take the focus back.
    */
-  createBoardAction: (boardName: string) => Promise<BoardCreationFailure | null>
+  createBoardAction: (boardName: string) => Promise<CreationRefusal | null>
   /**
    * Loads the boards again and shows them. Offered after a creation with an
    * unknown outcome whose request has ended: the list on screen may lack a
@@ -111,7 +88,7 @@ interface CreateDestinationBoardFormProps {
  *   createBoardAction={async (boardName) =>
  *     (await createBoard(boardName, 'single-column')).success
  *       ? null
- *       : { message: 'The board was not created. Try again.', nextStep: 'try-again' }
+ *       : { status: 'not-created', message: 'The board was not created. Try again.' }
  *   }
  *   onReloadBoards={reloadDestinations}
  *   onChooseExisting={() => setIsCreateFormRequested(false)}
@@ -131,7 +108,9 @@ export const CreateDestinationBoardForm = memo(
     const nameFieldRef = useRef<HTMLInputElement>(null)
     const recoveryButtonRef = useRef<HTMLButtonElement>(null)
 
-    const isOutcomeUnknown = problem?.kind === 'unconfirmed'
+    const recovery = problem === null ? 'create' : creationRecovery(problem)
+    // A second try could make a second board, or this page can no longer send one
+    const isFormClosed = recovery !== 'create'
 
     const handleSubmit = async (
       event: FormEvent<HTMLFormElement>,
@@ -143,7 +122,7 @@ export const CreateDestinationBoardForm = memo(
       const nameValidation = boardNameSchema.safeParse(boardName)
       if (!nameValidation.success) {
         setProblem({
-          kind: 'invalid-name',
+          status: 'invalid-name',
           message:
             nameValidation.error.issues[0]?.message || 'Invalid board name',
         })
@@ -151,14 +130,14 @@ export const CreateDestinationBoardForm = memo(
         return
       }
 
-      const failure = await createBoardAction(nameValidation.data)
-      if (!failure) return
+      const refusal = await createBoardAction(nameValidation.data)
+      if (!refusal) return
 
       // flushSync: the control that takes the focus exists and is enabled
       // once this returns. The field lost the focus when it was disabled for
       // the request.
-      flushSync(() => setProblem(toFormProblem(failure)))
-      if (failure.nextStep === 'try-again') nameFieldRef.current?.focus()
+      flushSync(() => setProblem(refusal))
+      if (creationRecovery(refusal) === 'create') nameFieldRef.current?.focus()
       else recoveryButtonRef.current?.focus()
     }
 
@@ -179,13 +158,14 @@ export const CreateDestinationBoardForm = memo(
               setProblem(null)
             }}
             maxLength={BOARD_NAME_MAX_LENGTH}
-            // After an unknown outcome the name is not sent a second time
-            disabled={isCreating || isOutcomeUnknown}
+            // After an unknown outcome, or a page that is out of date, the
+            // name is not sent a second time
+            disabled={isCreating || isFormClosed}
             autoComplete="off"
             autoFocus
             // Only a name that failed the check is invalid; a refusal of the
             // server says nothing about the name
-            aria-invalid={problem?.kind === 'invalid-name'}
+            aria-invalid={problem?.status === 'invalid-name'}
             aria-describedby={[
               introductionId,
               NAME_HINT_ID,
@@ -209,22 +189,7 @@ export const CreateDestinationBoardForm = memo(
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {problem?.kind === 'unconfirmed' ? (
-            <Button
-              type="button"
-              ref={recoveryButtonRef}
-              // It takes the focus: read with it, the message says why it
-              // stands where "Create Board" stood
-              aria-describedby={NAME_ERROR_ID}
-              onClick={
-                problem.recovery === 'reload-page' ? reloadPage : onReloadBoards
-              }
-            >
-              {problem.recovery === 'reload-page'
-                ? 'Reload page'
-                : 'Reload boards'}
-            </Button>
-          ) : (
+          {recovery === 'create' ? (
             <Button type="submit" disabled={isCreating}>
               {isCreating ? (
                 <>
@@ -235,10 +200,21 @@ export const CreateDestinationBoardForm = memo(
                 'Create Board'
               )}
             </Button>
+          ) : (
+            <Button
+              type="button"
+              ref={recoveryButtonRef}
+              // It takes the focus: read with it, the message says why it
+              // stands where "Create Board" stood
+              aria-describedby={NAME_ERROR_ID}
+              onClick={recovery === 'reload-page' ? reloadPage : onReloadBoards}
+            >
+              {recovery === 'reload-page' ? 'Reload page' : 'Reload boards'}
+            </Button>
           )}
           {/* After an unknown outcome the list this would go back to may lack
               a board that exists; the button above shows the current one */}
-          {onChooseExisting && !isOutcomeUnknown && (
+          {onChooseExisting && !isFormClosed && (
             <Button
               type="button"
               variant="ghost"
@@ -255,23 +231,37 @@ export const CreateDestinationBoardForm = memo(
 )
 
 /**
- * Turns the failure of a creation into what the form shows under the name.
- * Called by the form when {@link CreateDestinationBoardFormProps.createBoardAction}
- * resolved with a failure.
+ * Chooses the button under the name field from the problem shown there.
  *
- * @param failure - Why the creation ended without a board to select.
+ * The creation arrives as {@link requestBoardCreation} ended it, and the form
+ * reads that status itself, as {@link CreateBoardForm} does: a refusal leaves
+ * "Create Board", a creation that may have happened offers "Reload boards"
+ * once the request has ended and "Reload page" while it is still running,
+ * and a page whose build no longer has the action offers "Reload page".
+ * Called by {@link CreateDestinationBoardForm} when it renders the button and
+ * when it puts the focus back after the request.
+ *
+ * @param problem - The name that failed the check, or the creation that gave no board.
  * @returns
- * - `not-created` when the name can be sent again
- * - `unconfirmed` with the recovery to offer when a board may exist
+ * - `create`: "Create Board" stays and the name can be sent again
+ * - `reload-boards`: "Reload boards" takes its place
+ * - `reload-page`: "Reload page" takes its place
  * @example
- * toFormProblem({ message: 'Could not confirm ...', nextStep: 'reload-page' })
- * // => { kind: 'unconfirmed', message: 'Could not confirm ...', recovery: 'reload-page' }
+ * creationRecovery({ status: 'unconfirmed', message: 'Could not confirm ...', isRequestStillRunning: true })
+ * // => 'reload-page'
  */
-function toFormProblem({
-  message,
-  nextStep,
-}: BoardCreationFailure): FormProblem {
-  return nextStep === 'try-again'
-    ? { kind: 'not-created', message }
-    : { kind: 'unconfirmed', message, recovery: nextStep }
+function creationRecovery(
+  problem: FormProblem,
+): 'create' | 'reload-boards' | 'reload-page' {
+  return match(problem)
+    .returnType<'create' | 'reload-boards' | 'reload-page'>()
+    .with({ status: 'invalid-name' }, () => 'create')
+    .with({ status: 'not-created' }, () => 'create')
+    .with(
+      { status: 'unconfirmed', isRequestStillRunning: true },
+      () => 'reload-page',
+    )
+    .with({ status: 'unconfirmed' }, () => 'reload-boards')
+    .with({ status: 'out-of-date' }, () => 'reload-page')
+    .exhaustive()
 }
