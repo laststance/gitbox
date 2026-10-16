@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/autoplan` review and the code review of issue #213 (a repository that is set aside is a card on an ordinary board). None of the follow-ups blocks that change.
 
-### Check in CI that no `SECURITY DEFINER` function is executable by `anon`
-
-**What:** Run the verification query's `anon_definer_functions` count (functions in schema `public` that are `SECURITY DEFINER`, return neither `trigger` nor `event_trigger`, and may be executed by `anon`) in the E2E job, against the `postgres` database after `supabase db reset`, and fail the job when it is above 0.
-
-**Why:** Such a function bypasses row level security for anyone who holds the public API key, which every browser receives. The function of the removed board sharing was the only one; every new function gets its `REVOKE` written by hand, and nothing notices one that is missing.
-
-**Context:** The query is in the plan of 2026-10-16 in `docs/plans/`. Read the `postgres` database, not a shard: shards are cloned with `pg_dump --no-privileges`, so every function there looks executable by `PUBLIC`.
-
-**Effort:** S
-**Priority:** P2
-**Depends on:** None
-
 ### Bound the grid position of a column
 
 **What:** Give `statuslist.grid_row` and `statuslist.grid_col` an upper bound in the table (a `CHECK` such as `BETWEEN 0 AND 999`, after counting the rows it would refuse), and let the actions that write a position answer a refusal with a sentence.
