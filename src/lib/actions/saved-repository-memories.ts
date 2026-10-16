@@ -10,13 +10,12 @@
  * NOT a 'use server' module: {@link getUserRepoPlacements} calls it on the server.
  */
 
-import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-import { POSTGREST_MAX_ROWS } from '@/lib/constants/postgrest'
 import { createModuleLogger } from '@/lib/logger'
 import type { Database, Tables } from '@/lib/supabase/types'
 import type { RepoIdentifier } from '@/lib/types/domain-primitives'
+import { readEveryRow } from '@/lib/utils/read-every-row'
 import { isSlateValueEmpty, parseSlateValue } from '@/lib/utils/slate-utils'
 import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
 
@@ -51,7 +50,8 @@ type MemoryRow = Pick<
  *
  * Called by {@link getUserRepoPlacements}, which leaves out the repositories that
  * sit on a board. Rows whose note, links and comment are all empty are
- * dropped here.
+ * dropped here. The read is ordered by id and continues past the PostgREST
+ * row cap, so a memory past the first thousand rows still marks its repository.
  *
  * @param supabase - Authenticated Supabase client (RLS applies).
  * @param userId - The current user's id (`claims.sub`).
@@ -65,22 +65,21 @@ export async function lookupSavedRepositoryMemories(
   supabase: SupabaseClient<Database>,
   userId: string,
 ): Promise<SavedRepositoryMemory[]> {
-  const { data: rows, error } = await supabase
-    .from('projectinfo')
-    .select('repo_owner, repo_name, note, comment, links')
-    .eq('user_id', userId)
-
-  if (error) {
+  // One read stops at the row cap. A memory past it would leave the picker
+  // without its Saved mark, although adding the repository would still show it.
+  let rows
+  try {
+    rows = await readEveryRow((from, to) =>
+      supabase
+        .from('projectinfo')
+        .select('repo_owner, repo_name, note, comment, links')
+        .eq('user_id', userId)
+        .order('id', { ascending: true })
+        .range(from, to),
+    )
+  } catch (error) {
     log.error({ error }, 'Saved repository memory lookup failed')
     throw new Error('Failed to look up saved repository memories')
-  }
-
-  // Marks beyond the PostgREST row cap would be missing without a word
-  if (rows.length >= POSTGREST_MAX_ROWS) {
-    Sentry.captureMessage(
-      'Saved repository memory lookup may be truncated at PostgREST row limit',
-      { level: 'warning', extra: { userId, memoryCount: rows.length } },
-    )
   }
 
   return rows
