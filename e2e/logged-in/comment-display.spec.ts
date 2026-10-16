@@ -108,7 +108,9 @@ test.describe('Comment Display on RepoCard (Authenticated)', () => {
     await expect(commentDisplay).toHaveClass(/border/)
   })
 
-  test('should show message icon in comment display', async ({ page }) => {
+  test('should keep the comment actions beside the comment', async ({
+    page,
+  }) => {
     await page.goto(BOARD_URL)
 
     // Wait for page to stabilize
@@ -121,15 +123,16 @@ test.describe('Comment Display on RepoCard (Authenticated)', () => {
       timeout: 10000,
     })
 
-    // Check that comment display contains the message square icon
-    const commentDisplay = page.locator(
-      `[data-testid="repo-card-${CARD_IDS.card1}"] [data-testid="comment-display"]`,
-    )
-    await expect(commentDisplay).toBeVisible({ timeout: 10000 })
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
+    const comment = card.locator('[data-testid="comment-display"]')
+    await expect(comment).toBeVisible({ timeout: 10000 })
 
-    // MessageSquare icon should be present (lucide-react icon)
-    const messageIcon = commentDisplay.locator('svg').first()
-    await expect(messageIcon).toBeVisible()
+    // The menu is a sibling of the text, so the text holds no button of its own
+    await expect(comment.getByRole('button')).toHaveCount(0)
+    await comment.hover()
+    await expect(
+      card.getByRole('button', { name: 'Comment actions' }),
+    ).toBeVisible()
   })
 
   test('should display full comment text without truncation', async ({
