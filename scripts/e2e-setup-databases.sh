@@ -169,6 +169,14 @@ setup() {
       GRANT EXECUTE ON FUNCTION public.create_board_with_status_lists(text, jsonb) TO authenticated, service_role;
       REVOKE ALL ON FUNCTION public.projectinfo(public.repocard) FROM PUBLIC, anon;
       GRANT EXECUTE ON FUNCTION public.projectinfo(public.repocard) TO authenticated, service_role;
+      REVOKE ALL ON FUNCTION public.projectinfo_slate_text(jsonb, text) FROM PUBLIC, anon;
+      GRANT EXECUTE ON FUNCTION public.projectinfo_slate_text(jsonb, text) TO authenticated;
+      REVOKE ALL ON FUNCTION public.projectinfo_note_holds_text(text) FROM PUBLIC, anon;
+      GRANT EXECUTE ON FUNCTION public.projectinfo_note_holds_text(text) TO authenticated;
+      REVOKE ALL ON FUNCTION public.projectinfo_link_count(jsonb) FROM PUBLIC, anon;
+      GRANT EXECUTE ON FUNCTION public.projectinfo_link_count(jsonb) TO authenticated;
+      REVOKE ALL ON TABLE public.saved_repository_mark FROM PUBLIC, anon;
+      GRANT SELECT ON TABLE public.saved_repository_mark TO authenticated;
     " > /dev/null
 
     # Start PostgREST container (internal only, no port mapping)

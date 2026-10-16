@@ -21,7 +21,11 @@ vi.mock('@/lib/actions/github', () => ({
 vi.mock('@/lib/fetch-repo-placements', () => ({
   fetchRepoPlacements: vi.fn(async () => ({
     success: true,
-    data: { placements: [], savedMemories: [] },
+    data: { placements: [] },
+  })),
+  fetchSavedRepositoryMemories: vi.fn(async () => ({
+    success: true,
+    data: [],
   })),
 }))
 

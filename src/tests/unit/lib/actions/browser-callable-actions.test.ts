@@ -39,7 +39,11 @@ describe('what a browser can call in src/lib/actions', () => {
     // Assert
     expect(endpointsByFile).toEqual({
       'auth.ts': ['signInWithGitHub', 'signOut', 'deleteAccount'],
-      'board-data.ts': ['getUserRepoPlacements', 'getBoardBundle'],
+      'board-data.ts': [
+        'getUserRepoPlacements',
+        'getSavedRepositoryMemories',
+        'getBoardBundle',
+      ],
       'board.ts': [
         'createStatusList',
         'updateStatusList',
