@@ -325,9 +325,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       return
     }
 
+    const attempt = addAttempt.current
     try {
       startAdding()
-      const attempt = addAttempt.current
 
       // Server Action: Add repositories to board with duplicate detection
       const result = await addRepositoriesToBoard(
@@ -390,14 +390,20 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
         )
       }
 
-      // Success: clear selection and close combobox
-      clearSelection()
-      updateSearch('')
-      handleClose()
+      // The cards belong on the board either way. Closing, and clearing the
+      // selection, belong to the opening that sent this add: a picker opened
+      // again since then stays as the user left it.
+      if (!closedWhileAdding) {
+        clearSelection()
+        updateSearch('')
+        handleClose()
+      }
 
       // Pass created cards for optimistic UI update (no page reload needed)
       onRepositoriesAdded(cards)
     } catch (err) {
+      // A rejection after Cancel is the same stale notice as an error result.
+      if (addAttempt.current !== attempt) return
       setAddingError(
         err instanceof Error ? err.message : 'Error adding repositories',
       )

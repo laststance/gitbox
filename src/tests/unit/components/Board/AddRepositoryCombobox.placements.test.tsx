@@ -217,6 +217,22 @@ function holdTheAdd(): {
   }
 }
 
+/** Holds `addRepositoriesToBoard` until the test rejects it. */
+function holdTheRejectedAdd(): { fail: (error: Error) => void } {
+  let fail: (error: Error) => void = () => {}
+  vi.mocked(addRepositoriesToBoard).mockImplementation(
+    async () =>
+      new Promise((_resolve, reject) => {
+        fail = reject
+      }),
+  )
+  return {
+    fail: (error): void => {
+      fail(error)
+    },
+  }
+}
+
 /**
  * Wait for the addable repositories and return their rows. Scoped to the
  * repository listbox because the visibility `<select>` also contains options.
@@ -1637,13 +1653,49 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     expect(screen.queryByText('Could not add the repositories')).toBeNull()
   })
 
-  // Value: protects=repositories that were added after Cancel still land on
-  //   the board;
-  //   fails_when=closing the picker drops a successful add along with the
-  //   notices;
-  //   why_new=the late error and the late success share one request;
+  // Value: protects=a request that rejects after Cancel does not leave its
+  //   message on the next opening;
+  //   fails_when=the catch path stores the error without looking at whether
+  //   the picker has since closed;
+  //   why_new=an error result and a rejected promise are stored in different
+  //   places;
   //   seam=none
-  test('repositories added after Cancel still reach the board', async () => {
+  test('a rejected add that arrives after Cancel is absent when Add Repo opens the picker', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    const pending = holdTheRejectedAdd()
+    mockCatalog([makeRepository(2, 'gitbox')])
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
+      success: true,
+      data: { placements: [], savedMemories: [] },
+    })
+    render(<ColumnReopenedPicker onRepositoriesAdded={vi.fn()} />)
+    const [onlyOption] = await findRepositoryOptions()
+    await user.click(onlyOption!)
+    await user.click(screen.getByRole('button', { name: 'Add (1)' }))
+    await screen.findByText('Adding repositories...')
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    // Act
+    await act(async () => {
+      pending.fail(new Error('The add request failed'))
+    })
+    await user.click(screen.getByRole('button', { name: 'Add Repo' }))
+    await findRepositoryOptions()
+
+    // Assert
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.queryByText('The add request failed')).toBeNull()
+  })
+
+  // Value: protects=repositories that were added after the picker was opened
+  //   again still land on the board, and that opening stays open;
+  //   fails_when=the success path closes whatever picker is on screen, or
+  //   drops the cards because the attempt had been cancelled;
+  //   why_new=Cancel starts a new opening, and the old request can finish
+  //   after Add Repo has opened it;
+  //   seam=none
+  test('repositories added after Add Repo reopens the picker still reach the board and leave it open', async () => {
     // Arrange
     const user = userEvent.setup()
     const pending = holdTheAdd()
@@ -1659,6 +1711,8 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     await user.click(screen.getByRole('button', { name: 'Add (1)' }))
     await screen.findByText('Adding repositories...')
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    await user.click(screen.getByRole('button', { name: 'Add Repo' }))
+    expect(screen.getByText('Adding repositories...')).toBeVisible()
     const card = makeCreatedFreeRepoCard()
 
     // Act
@@ -1671,6 +1725,9 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
 
     // Assert
     expect(onRepositoriesAdded).toHaveBeenCalledWith([card])
+    expect(
+      await screen.findByRole('listbox', { name: 'Repository options' }),
+    ).toBeVisible()
   })
 
   // Value: protects=Enter that confirms a Japanese (IME) conversion in the
