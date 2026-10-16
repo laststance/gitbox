@@ -33,18 +33,6 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
 
 From the `/autoplan` review of issue #215 (one card per user and repository). None blocks that change.
 
-### Tie `repocard.user_id` and `repocard.status_id` to the board declaratively
-
-**What:** Replace the two triggers with composite foreign keys: `repocard (board_id, user_id) -> board (id, user_id) ON UPDATE CASCADE` and `repocard (status_id, board_id) -> statuslist (id, board_id)`.
-
-**Why:** Triggers keep these invariants: `set_repocard_user_id` and `check_repocard_status_board` on `repocard`, `forbid_statuslist_board_change` on `statuslist`. Nothing covers a change of `board.user_id`: if a board ever changes owner, its cards keep the old `user_id` (and the direct cascade from `auth.users` would then delete them with the old owner's account).
-
-**Context:** Board ownership cannot change today (the board UPDATE policy pins `user_id` to the caller, and the app has no transfer). Needs `UNIQUE (id, user_id)` on `board`, `UNIQUE (id, board_id)` on `statuslist`, and an audit that no stranded card exists (`s.board_id <> r.board_id`) before the constraint is added.
-
-**Effort:** M
-**Priority:** P3
-**Depends on:** None
-
 ### Drop late picker notices
 
 **What:** When an add finishes after the picker was closed, do not show its error or "not added" notice on the next opening.
