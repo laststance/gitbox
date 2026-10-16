@@ -1157,7 +1157,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
       .mockResolvedValueOnce({
         success: false,
         error:
-          'Nothing was added. One of the selected repositories was just placed on a board. Reload the page and try again.',
+          'Nothing was added. One of the selected repositories was just placed on a board. The list is refreshing.',
       })
     const { onOpenChange, onRepositoriesAdded } = renderOpenPicker()
     const optionsOnOpen = await findRepositoryOptions()
@@ -1174,7 +1174,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
 
     // Assert
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Error: Nothing was added. One of the selected repositories was just placed on a board. Reload the page and try again.',
+      'Error: Nothing was added. One of the selected repositories was just placed on a board. The list is refreshing.',
     )
     expect(
       screen.queryByRole('note', { name: 'Repositories that were not added' }),
@@ -1271,7 +1271,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     vi.mocked(addRepositoriesToBoard).mockResolvedValue({
       success: false,
       error:
-        'Nothing was added. One of the selected repositories was just placed on a board. Reload the page and try again.',
+        'Nothing was added. One of the selected repositories was just placed on a board. The list is refreshing.',
     })
     renderOpenPicker()
     const [onlyOption] = await findRepositoryOptions()
@@ -1282,7 +1282,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
 
     // Assert
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Error: Nothing was added. One of the selected repositories was just placed on a board. Reload the page and try again.',
+      'Error: Nothing was added. One of the selected repositories was just placed on a board. The list is refreshing.',
     )
     const heldList = await screen.findByRole('list', {
       name: 'Already placed elsewhere',
@@ -1550,9 +1550,11 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     const [onlyOption] = await findRepositoryOptions()
     await user.click(onlyOption!)
     await user.click(screen.getByRole('button', { name: 'Add (1)' }))
-    await screen.findByRole('note', {
-      name: 'Repositories that were not added',
-    })
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Repositories that were not added',
+      }),
+    ).toBeVisible()
 
     // Act
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
@@ -1838,5 +1840,60 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     // ...while a plain Enter in the same box still adds
     fireEvent.keyDown(searchInput, { key: 'Enter', keyCode: 13 })
     expect(addRepositoriesToBoard).toHaveBeenCalledTimes(1)
+  })
+
+  // Value: protects=a repository placed while the picker was closed is not
+  //   still selected when it opens again;
+  //   fails_when=the selection survives a reopen that learned the repository
+  //   is already on a board, so Add can send it again;
+  //   why_new=the selection used to outlive the placements of a new opening;
+  //   seam=none
+  test('drops a selected repository that was placed while the picker was closed, and keeps one that is still free', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
+    vi.mocked(fetchRepoPlacements)
+      .mockResolvedValueOnce({
+        success: true,
+        data: { placements: [], savedMemories: [] },
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: {
+          placements: [
+            {
+              identifier: 'laststance/gitbox',
+              boardId: 'board-2',
+              boardName: 'Work Projects',
+              cardId: '00000000-0000-4000-8000-0000000000c2',
+            },
+          ],
+          savedMemories: [],
+        },
+      })
+    render(<ColumnReopenedPicker onRepositoriesAdded={vi.fn()} />)
+    const options = await findRepositoryOptions()
+    await user.click(options[0]!)
+    await user.click(options[1]!)
+    expect(
+      screen.getByRole('button', { name: 'Remove laststance/free-repo' }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: 'Remove laststance/gitbox' }),
+    ).toBeVisible()
+
+    // Act
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    await user.click(screen.getByRole('button', { name: 'Add Repo' }))
+
+    // Assert
+    await screen.findByRole('list', { name: 'Already placed elsewhere' })
+    expect(
+      screen.queryByRole('button', { name: 'Remove laststance/gitbox' }),
+    ).toBeNull()
+    expect(
+      screen.getByRole('button', { name: 'Remove laststance/free-repo' }),
+    ).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Add (1)' })).toBeVisible()
   })
 })

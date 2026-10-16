@@ -385,7 +385,7 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
           </DialogTitle>
           <DialogDescription>
             Move <span className="text-foreground font-medium">{repoName}</span>{' '}
-            to a different board. Notes, links, and comments will be preserved.
+            to a different board. Its note, links and comment will be preserved.
           </DialogDescription>
         </DialogHeader>
 
@@ -584,7 +584,7 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
                     <span>
                       {selectedBoard.name} is shared by a public link. Anyone
                       who has the link will see this repository there, with its
-                      description. Notes, links, and comments stay private.
+                      description. Its note, links and comment stay private.
                     </span>
                   </p>
                 )}

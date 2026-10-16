@@ -31,6 +31,11 @@ interface UseRepositorySearchReturn {
   toggleRepoSelection: (repo: GitHubRepository) => void
   /** Remove a repository from the selection by id */
   removeSelectedRepo: (repoId: number) => void
+  /**
+   * Remove these repositories from the selection.
+   * A no-op when none of them are selected, so it is safe to call during render.
+   */
+  dropSelectedRepos: (repoIds: readonly number[]) => void
   /** Clear all selected repositories */
   clearSelection: () => void
   /** Whether an add operation is in progress */
@@ -93,6 +98,15 @@ export function useRepositorySearch(): UseRepositorySearchReturn {
     setSelectedRepos((prev) => prev.filter((r) => r.id !== repoId))
   }, [])
 
+  const dropSelectedRepos = useCallback((repoIds: readonly number[]) => {
+    const dropping = new Set(repoIds)
+    setSelectedRepos((prev) => {
+      const next = prev.filter((repo) => !dropping.has(repo.id))
+      // Same array: nothing was selected that this opening can no longer add
+      return next.length === prev.length ? prev : next
+    })
+  }, [])
+
   const clearSelection = useCallback(() => {
     setSelectedRepos([])
   }, [])
@@ -130,6 +144,7 @@ export function useRepositorySearch(): UseRepositorySearchReturn {
     selectedRepos,
     toggleRepoSelection,
     removeSelectedRepo,
+    dropSelectedRepos,
     clearSelection,
     isAdding,
     startAdding,

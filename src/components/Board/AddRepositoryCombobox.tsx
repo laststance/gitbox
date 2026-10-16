@@ -38,6 +38,9 @@ import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
 
 import { HeldRepositoryList, type HeldRepository } from './HeldRepositoryList'
 
+/** Names the "not added" notice, so the heading is what a screen reader reads. */
+const NOT_ADDED_HEADING_ID = 'repositories-that-were-not-added'
+
 /**
  * Id of the sentence shown when the board is shared through a public link.
  * The Add button is described by it.
@@ -168,6 +171,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     clearError,
     toggleRepoSelection,
     removeSelectedRepo,
+    dropSelectedRepos,
     clearSelection,
     skippedMessages,
     showSkippedMessages,
@@ -451,6 +455,22 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     }
   }
 
+  // A selection survives closing the picker. Once this opening's placements
+  // have arrived, a repository that was placed since then leaves the
+  // selection. The previous opening's list is still on screen until then,
+  // and it must not decide.
+  if (isOpen && !isLoadingPlacements && !isAdding && selectedRepos.length > 0) {
+    const unavailable = selectedRepositoriesThatCannotBeAdded(
+      selectedRepos,
+      boardId,
+      existingRepoIdentifiers,
+      placements,
+    )
+    if (unavailable.length > 0) {
+      dropSelectedRepos(unavailable.map((repository) => repository.id))
+    }
+  }
+
   return (
     <div>
       {/* Combobox trigger button */}
@@ -651,9 +671,12 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             <div
               role="note"
               aria-live="polite"
-              aria-label="Repositories that were not added"
+              aria-labelledby={NOT_ADDED_HEADING_ID}
               className="border-border bg-muted text-foreground mt-3 rounded-md border p-3 text-sm"
             >
+              <h2 id={NOT_ADDED_HEADING_ID} className="mb-1 font-medium">
+                Repositories that were not added
+              </h2>
               <ul className="space-y-1">
                 {skippedMessages.map((message) => (
                   <li key={message}>{message}</li>
@@ -1041,4 +1064,35 @@ function classifyRepositories(params: {
   }
 
   return { addable, held }
+}
+
+/**
+ * Selected repositories this opening can no longer add.
+ *
+ * A selection survives closing the picker. Called by {@link AddRepositoryCombobox}
+ * once this opening's placements have arrived, so a repository placed since
+ * the selection was made is taken off Add instead of being sent again.
+ *
+ * @param selected - Repositories the user has selected.
+ * @param currentBoardId - Board the picker adds to.
+ * @param currentBoardIdentifiers - Lowercase `owner/name` of cards on that board.
+ * @param placements - This opening's placements, or `null` when the fetch failed.
+ * @returns The selected repositories that are on a board now. Empty when every
+ * selected repository can still be added.
+ */
+function selectedRepositoriesThatCannotBeAdded(
+  selected: GitHubRepository[],
+  currentBoardId: string,
+  currentBoardIdentifiers: Set<RepoIdentifier>,
+  placements: BoardPlacement[] | null,
+): GitHubRepository[] {
+  const { addable } = classifyRepositories({
+    repositories: selected,
+    currentBoardId,
+    currentBoardIdentifiers,
+    placements,
+  })
+  if (addable.length === selected.length) return []
+  const addableIds = new Set(addable.map((repository) => repository.id))
+  return selected.filter((repository) => !addableIds.has(repository.id))
 }

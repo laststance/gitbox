@@ -369,13 +369,13 @@ describe('MoveToAnotherBoardDialog', () => {
       // Assert
       expect(
         screen.getByText(
-          'Portfolio is shared by a public link. Anyone who has the link will see this repository there, with its description. Notes, links, and comments stay private.',
+          'Portfolio is shared by a public link. Anyone who has the link will see this repository there, with its description. Its note, links and comment stay private.',
         ),
       ).toBeVisible()
       expect(
         screen.getByRole('button', { name: 'Move' }),
       ).toHaveAccessibleDescription(
-        'Portfolio is shared by a public link. Anyone who has the link will see this repository there, with its description. Notes, links, and comments stay private.',
+        'Portfolio is shared by a public link. Anyone who has the link will see this repository there, with its description. Its note, links and comment stay private.',
       )
     })
 
@@ -622,7 +622,7 @@ describe('MoveToAnotherBoardDialog', () => {
       expect(
         screen.getByRole('button', { name: 'Move' }),
       ).toHaveAccessibleDescription(
-        'Portfolio is shared by a public link. Anyone who has the link will see this repository there, with its description. Notes, links, and comments stay private. An unexpected error occurred',
+        'Portfolio is shared by a public link. Anyone who has the link will see this repository there, with its description. Its note, links and comment stay private. An unexpected error occurred',
       )
     })
 
@@ -1379,7 +1379,7 @@ describe('MoveToAnotherBoardDialog', () => {
 
       // Assert
       expect(screen.getByRole('dialog')).toHaveAccessibleDescription(
-        'Move laststance/gitbox to a different board. Notes, links, and comments will be preserved.',
+        'Move laststance/gitbox to a different board. Its note, links and comment will be preserved.',
       )
     })
 

@@ -199,7 +199,12 @@ test.describe('One repository per user - picker and dialogs', () => {
       name: 'Repositories that were not added',
     })
     await expect(notice).toBeVisible({ timeout: 10000 })
-    await expect(notice).toHaveText(
+    await expect(
+      notice.getByRole('heading', { name: 'Repositories that were not added' }),
+    ).toBeVisible()
+    // The heading names the note. The repository sentence is the list item,
+    // so the note's own text is the heading plus that sentence.
+    await expect(notice.getByRole('listitem')).toHaveText(
       'testuser/private-project is already on board "Work Projects"',
     )
     // Scoped to the picker panel: Next.js renders its own page-level
