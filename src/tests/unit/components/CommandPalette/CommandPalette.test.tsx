@@ -11,10 +11,11 @@
  * - Escape key and backdrop click to close
  */
 
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { CommandPalette } from '@/components/CommandPalette/CommandPalette'
+import { getUserRepoPlacements } from '@/lib/actions/board-data'
 import { isOverlayOpen } from '@/lib/utils/is-overlay-open'
 
 // Mock next/navigation
@@ -54,6 +55,13 @@ vi.mock('@/lib/actions/auth', () => ({
   signOut: vi.fn(),
 }))
 
+vi.mock('@/lib/actions/board-data', () => ({
+  getUserRepoPlacements: vi.fn(async () => ({
+    success: true,
+    data: { placements: [], savedMemories: null },
+  })),
+}))
+
 // Mock sonner toast
 vi.mock('sonner', () => ({
   toast: {
@@ -85,6 +93,10 @@ function openPalette(): void {
 describe('CommandPalette', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: true,
+      data: { placements: [], savedMemories: null },
+    })
   })
 
   describe('Opening/Closing', () => {
@@ -461,6 +473,63 @@ describe('CommandPalette', () => {
       fireEvent.keyDown(input, { key: 'Enter' })
 
       expect(mockPush).toHaveBeenCalledWith('/settings')
+    })
+  })
+
+  describe('Repository search', () => {
+    const gitbox = {
+      identifier: 'laststance/gitbox' as const,
+      boardId: 'board-1',
+      boardName: 'Work Projects',
+      cardId: '00000000-0000-4000-8000-0000000000c2',
+      githubRepoId: 42,
+    }
+
+    beforeEach(() => {
+      vi.mocked(getUserRepoPlacements).mockResolvedValue({
+        success: true,
+        data: { placements: [gitbox], savedMemories: null },
+      })
+    })
+
+    // Value: protects=an empty palette stays the command list, and a matching name opens that card's board; fails_when=every repository is listed before a search, or Enter stays on a command; why_new=the palette had no repository search; seam=none; no_claim=the board scrolling to the card (useRevealLinkedCard)
+    test('opens the board of a repository whose name matches the search', async () => {
+      // Arrange
+      render(<CommandPalette />)
+      openPalette()
+      const input = screen.getByPlaceholderText('Search commands...')
+
+      // Act
+      expect(screen.queryByText('laststance/gitbox')).toBeNull()
+      fireEvent.change(input, { target: { value: 'gitbox' } })
+
+      // Assert
+      await waitFor(() => {
+        expect(screen.getByText('laststance/gitbox')).toBeVisible()
+      })
+      expect(screen.getByText('Work Projects')).toBeVisible()
+      fireEvent.keyDown(input, { key: 'Enter' })
+      expect(mockPush).toHaveBeenCalledWith(
+        '/board/board-1?card=00000000-0000-4000-8000-0000000000c2',
+      )
+      expect(screen.queryByPlaceholderText('Search commands...')).toBeNull()
+    })
+
+    // Value: protects=a board name finds the repository that sits on it; fails_when=only the owner/name is searched; why_new=the question is which board holds the repository; seam=none; no_claim=more than eight matches
+    test('finds a repository by the name of the board that holds it', async () => {
+      // Arrange
+      render(<CommandPalette />)
+      openPalette()
+
+      // Act
+      fireEvent.change(screen.getByPlaceholderText('Search commands...'), {
+        target: { value: 'work projects' },
+      })
+
+      // Assert
+      await waitFor(() => {
+        expect(screen.getByText('laststance/gitbox')).toBeVisible()
+      })
     })
   })
 })
