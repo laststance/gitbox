@@ -45,6 +45,9 @@
  * - `MOVE_UNCONFIRMED`: {@link moveCardToBoard} got no answer from the
  *   database, so the card may be on the other board; the client says so,
  *   fetches the board again and offers "Reload page"
+ * - `CARD_NOT_FOUND`: the card the browser sent is gone or not the user's.
+ *   The Note dialog keeps the typed text under the repository, and says to
+ *   add the repository again instead of opening the same card
  *
  * @example
  * if (!result.success && result.errorCode === 'GITHUB_TOKEN_MISSING') {
@@ -52,7 +55,10 @@
  * }
  */
 export type ActionErrorCode =
-  'GITHUB_TOKEN_MISSING' | 'BOARD_CREATION_UNCONFIRMED' | 'MOVE_UNCONFIRMED'
+  | 'GITHUB_TOKEN_MISSING'
+  | 'BOARD_CREATION_UNCONFIRMED'
+  | 'MOVE_UNCONFIRMED'
+  | 'CARD_NOT_FOUND'
 
 /**
  * Discriminated union for Server Action results.

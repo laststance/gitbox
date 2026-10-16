@@ -17,6 +17,7 @@ import {
 import { type ProjectLink } from '@/components/ui/editable-url-item'
 import { useNoteModalDraft } from '@/hooks/board/useNoteModalDraft'
 import type { RepoCardId } from '@/lib/types/brands'
+import type { RepoIdentifier } from '@/lib/types/domain-primitives'
 
 interface NoteModalProps {
   /** Whether the modal is open */
@@ -25,8 +26,12 @@ interface NoteModalProps {
   onClose: () => void
   /** Callback to save note and links to Supabase */
   onSave: (note: string, links: ProjectLink[]) => Promise<void>
-  /** Card ID for draft state management */
+  /** Card ID for a draft an older version stored under the card. */
   cardId: RepoCardId
+  /** Lowercase `owner/name`. The draft is kept under this key. */
+  repoKey: RepoIdentifier
+  /** The signed-in account. Drafts of two accounts stay apart. */
+  userId: string
   /** Initial note value from Supabase */
   initialNote: string
   /** Initial links value from Supabase */
@@ -50,6 +55,8 @@ interface NoteModalProps {
  *   onClose={() => setIsOpen(false)}
  *   onSave={async (note, links) => await saveProjectInfo(cardId, note, links)}
  *   cardId="abc-123"
+ *   repoKey="laststance/gitbox"
+ *   userId="user-1"
  *   initialNote="Current note content"
  *   initialLinks={[{ type: 'vercel', url: 'https://...' }]}
  *   cardTitle="laststance/gitbox"
@@ -60,6 +67,8 @@ export const NoteModal = memo(function NoteModal({
   onClose,
   onSave,
   cardId,
+  repoKey,
+  userId,
   initialNote,
   initialLinks,
   cardTitle,
@@ -79,6 +88,8 @@ export const NoteModal = memo(function NoteModal({
     handleClose,
   } = useNoteModalDraft({
     cardId,
+    repoKey,
+    userId,
     initialNote,
     initialLinks,
     isOpen,

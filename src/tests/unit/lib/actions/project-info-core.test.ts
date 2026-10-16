@@ -185,7 +185,10 @@ describe('project-info-core', () => {
       const attempt = run()
 
       // Assert
-      await expect(attempt).rejects.toThrow('Card not found')
+      await expect(attempt).rejects.toMatchObject({
+        message: 'Card not found',
+        errorCode: 'CARD_NOT_FOUND',
+      })
       expect(from).not.toHaveBeenCalledWith('projectinfo')
     },
   )

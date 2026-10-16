@@ -19,7 +19,8 @@ import { toast } from 'sonner'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { useNoteModalDraft } from '@/hooks/board/useNoteModalDraft'
-import draftReducer from '@/lib/redux/slices/draftSlice'
+import { ActionUserError } from '@/lib/actions/types'
+import draftReducer, { updateDraftNote } from '@/lib/redux/slices/draftSlice'
 import { toRepoCardId } from '@/lib/types/brands'
 
 vi.mock('sonner', () => ({
@@ -41,6 +42,8 @@ function renderNoteDraft(
     () =>
       useNoteModalDraft({
         cardId: toRepoCardId('card-1'),
+        userId: 'user-1',
+        repoKey: 'laststance/gitbox',
         initialNote: 'x'.repeat(noteLength),
         initialLinks: [],
         isOpen: true,
@@ -101,6 +104,8 @@ describe('useNoteModalDraft', () => {
         () =>
           useNoteModalDraft({
             cardId: toRepoCardId('card-1'),
+            userId: 'user-1',
+            repoKey: 'laststance/gitbox',
             initialNote: 'old note',
             initialLinks: [],
             isOpen: true,
@@ -135,7 +140,7 @@ describe('useNoteModalDraft', () => {
 
       // Assert
       expect(
-        store.getState().draft.notes[toRepoCardId('card-1')]?.content,
+        store.getState().draft.notes['user-1/laststance/gitbox']?.content,
       ).toBe('typed before the refusal')
       expect(toast.success).not.toHaveBeenCalled()
       expect(toast.error).toHaveBeenCalledWith('Failed to save project info', {
@@ -182,11 +187,141 @@ describe('useNoteModalDraft', () => {
       // Assert
       expect(onSave).toHaveBeenCalledWith('a saved note', [])
       expect(
+        store.getState().draft.notes['user-1/laststance/gitbox'],
+      ).toBeUndefined()
+      expect(
         store.getState().draft.notes[toRepoCardId('card-1')],
       ).toBeUndefined()
       expect(toast.success).toHaveBeenCalledWith('Project info saved', {
         description: 'Note and links for laststance/gitbox have been saved.',
       })
+    })
+
+    // Value: protects=a save refused because the card is gone does not tell the user to open that card, and the typed text stays under the repository; fails_when=the toast still says "open the note again" or the draft is stored only under the card id; why_new=a new card of the same repository could not see a draft keyed by the old card; seam=none; no_claim=the server deciding the card is gone (mocked onSave)
+    test('keeps the typed note under the repository when the card is gone', async () => {
+      // Arrange
+      const onSave = vi
+        .fn()
+        .mockRejectedValue(
+          new ActionUserError('Card not found', 'CARD_NOT_FOUND'),
+        )
+      const { result, store } = renderNoteDialog(onSave)
+      act(() => {
+        result.current.handleNoteChange('typed after the card left')
+      })
+
+      // Act
+      await act(async () => {
+        await result.current.handleSave()
+      })
+
+      // Assert
+      expect(
+        store.getState().draft.notes['user-1/laststance/gitbox']?.content,
+      ).toBe('typed after the card left')
+      expect(toast.error).toHaveBeenCalledWith('Failed to save project info', {
+        description:
+          'Your text is kept. Add the repository again and open its note to save it.',
+      })
+    })
+
+    // Value: protects=adding a repository again shows the note typed against its previous card; fails_when=the dialog reads the draft by card id, so a new card opens empty; why_new=drafts were keyed by the card; seam=none; no_claim=adding the repository (the store is seeded)
+    test('opens a draft saved for the repository on a new card of that repository', () => {
+      // Arrange
+      const store = configureStore({ reducer: { draft: draftReducer } })
+      store.dispatch(
+        updateDraftNote({
+          repoKey: 'user-1/laststance/gitbox',
+          content: 'typed on the old card',
+          links: [],
+        }),
+      )
+      const { result } = renderHook(
+        () =>
+          useNoteModalDraft({
+            cardId: toRepoCardId('card-2'),
+            userId: 'user-1',
+            repoKey: 'laststance/gitbox',
+            initialNote: '',
+            initialLinks: [],
+            isOpen: true,
+            onSave: vi.fn(),
+            onClose: vi.fn(),
+            cardTitle: 'laststance/gitbox',
+          }),
+        {
+          wrapper: ({ children }: { children: ReactNode }) => (
+            <Provider store={store}>{children}</Provider>
+          ),
+        },
+      )
+
+      // Act: the dialog initializes from the draft
+      // Assert
+      expect(result.current.note).toBe('typed on the old card')
+    })
+
+    // Value: protects=a second account on the same browser does not see the first account's unsaved note; fails_when=the draft is stored under owner/name alone; why_new=repository keys collide across accounts, while card ids did not; seam=none; no_claim=sign-out clearing localStorage
+    test("does not open another account's draft for the same repository", () => {
+      // Arrange
+      const store = configureStore({ reducer: { draft: draftReducer } })
+      store.dispatch(
+        updateDraftNote({
+          repoKey: 'user-1/laststance/gitbox',
+          content: 'the other account typed this',
+          links: [],
+        }),
+      )
+      const { result } = renderHook(
+        () =>
+          useNoteModalDraft({
+            cardId: toRepoCardId('card-2'),
+            userId: 'user-2',
+            repoKey: 'laststance/gitbox',
+            initialNote: '',
+            initialLinks: [],
+            isOpen: true,
+            onSave: vi.fn(),
+            onClose: vi.fn(),
+            cardTitle: 'laststance/gitbox',
+          }),
+        {
+          wrapper: ({ children }: { children: ReactNode }) => (
+            <Provider store={store}>{children}</Provider>
+          ),
+        },
+      )
+
+      // Act: the dialog initializes from this account's draft
+      // Assert
+      expect(result.current.note).toBe('')
+    })
+
+    // Value: protects=an edit made while a save is still in flight is not thrown away when that save succeeds; fails_when=the answer deletes the repository's draft whatever its version; why_new=a successful save used to delete the draft by repository, so a newer edit of the same repository went with it; seam=none; no_claim=the server (mocked onSave)
+    test('keeps an edit made while an earlier save is still in flight', async () => {
+      // Arrange
+      const save = Promise.withResolvers<void>()
+      const onSave = vi.fn(async () => save.promise)
+      const { result, store } = renderNoteDialog(onSave)
+      act(() => {
+        result.current.handleNoteChange('the note that was sent')
+      })
+      await act(async () => {
+        void result.current.handleSave()
+      })
+
+      // Act: the note is opened again and edited before the server answers
+      act(() => {
+        result.current.handleNoteChange('typed while the save was in flight')
+      })
+      await act(async () => {
+        save.resolve()
+      })
+
+      // Assert
+      expect(
+        store.getState().draft.notes['user-1/laststance/gitbox']?.content,
+      ).toBe('typed while the save was in flight')
     })
   })
 })

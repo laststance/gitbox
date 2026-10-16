@@ -37,30 +37,6 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 From the `/plan-eng-review` of issue #216 (a repository keeps its note, links and comment when its card goes). None blocks that change.
 
-### Keep a note draft where its card's repository can reach it
-
-**What:** Key the Note dialog's draft by repository (the lowercase key of `projectinfo.repo_key`) instead of by card id, or say in the failure toast when the draft belongs to a card that is gone.
-
-**Why:** A refused note save says "Your text is kept: open the note again to save it." The draft is kept under the card id. When the save failed because the card is gone (removed in another tab), adding the repository again makes a new card, and the typed text is out of reach: the toast promises too much. Found by the red team review of #216.
-
-**Context:** `useNoteModalDraft` (`src/hooks/board/useNoteModalDraft.ts`) and the `draft` slice. The client must tell a missing card from other failures by an error code, never by the message (CLAUDE.md): `getProjectInfoCore` and the writes throw "Card not found" today. Open Question 1 of the #216 design names the same key.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
-### Keep note edits made while an earlier save is pending
-
-**What:** In `handleSave` of `useNoteModalDraft`, delete the draft after a successful save only when it is still the draft that save sent (compare its `lastModified`, which `updateDraftNote` stores, with the value at the moment Save was pressed).
-
-**Why:** The draft is deleted when the server has answered, not when Save is pressed. It was before #216 too; #216 made a refused save keep the text. If the user opens the same note again while the save is on its way, types and closes the dialog, the answer that arrives then deletes the newer draft and those edits are gone. The window is one server round trip (a few hundred milliseconds on production). Found by CodeRabbit on #216's PR; left out of #216 because a fix there would have been the review's third fixing cycle.
-
-**Context:** `handleSave` and `deleteDraftNote` in `src/hooks/board/useNoteModalDraft.ts`, the `draft` slice. A test holds the save's promise open, reopens, edits, closes, then resolves it.
-
-**Effort:** S
-**Priority:** P2
-**Depends on:** None
-
 ### Count a note's length where the database counts it
 
 **What:** Make the Note dialog's limit and `note_length_check` count the same thing: either the dialog counts the length of the stored editor document (JSON), or the check moves to a limit on the text and the column gets a larger cap for the markup.
@@ -255,9 +231,9 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 **What:** On sign-out and account deletion, clear the `draft` slice stored under `gitbox-state` in localStorage and the `moveDestinationByBoard` map of the settings slice (keep the theme and display settings), or store the owner's user id with them and drop them when it differs from the signed-in user.
 
-**Why:** On a shared browser the next account still holds the previous user's note drafts. The columns and cards (private repository names included) are not stored any more since 2026-10-12, and a `board` slice that an older build stored is dropped the first time the app saves its state.
+**Why:** On a shared browser the previous account's note drafts and the last move destination stay in localStorage after sign-out. A note draft is stored under `userId/owner/name`, so the next account does not open it; the entry is still the previous account's text. The columns and cards (private repository names included) are not stored any more since 2026-10-12, and a `board` slice that an older build stored is dropped the first time the app saves its state.
 
-**Context:** `PERSISTED_SLICE_NAMES` in `src/lib/redux/persisted-slices.ts`; `signOut` in `src/lib/actions/auth.ts` redirects without touching client state. Older than this change. `moveDestinationByBoard` is a map of board ids to board ids (no names); another account never reads an entry, because its boards have other ids, but the map should be emptied with the rest.
+**Context:** `PERSISTED_SLICE_NAMES` in `src/lib/redux/persisted-slices.ts`; `noteDraftKey` in `src/lib/redux/slices/draftSlice.ts`; `signOut` in `src/lib/actions/auth.ts` redirects without touching client state. `moveDestinationByBoard` is a map of board ids to board ids (no names); another account never reads an entry, because its boards have other ids, but the map should be emptied with the rest.
 
 **Effort:** S
 **Priority:** P2

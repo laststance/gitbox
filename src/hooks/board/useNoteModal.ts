@@ -17,8 +17,11 @@ import {
   upsertProjectInfo,
   type ProjectLink,
 } from '@/lib/actions/project-info'
+import { ActionUserError } from '@/lib/actions/types'
 import type { RepoCardForRedux } from '@/lib/models/domain'
 import type { RepoCardId } from '@/lib/types/brands'
+import type { RepoIdentifier } from '@/lib/types/domain-primitives'
+import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
 
 interface UseNoteModalParams {
   /** Repository cards from Redux store (for looking up card titles) */
@@ -30,6 +33,8 @@ interface UseNoteModalReturn {
   isOpen: boolean
   /** Currently selected card ID */
   cardId: RepoCardId | null
+  /** Lowercase `owner/name` of the card that is open, for the note draft. */
+  repoKey: RepoIdentifier | null
   /** Card title for display */
   cardTitle: string
   /** Initial note content */
@@ -74,6 +79,7 @@ export function useNoteModal({
 }: UseNoteModalParams): UseNoteModalReturn {
   const [isOpen, setIsOpen] = useState(false)
   const [cardId, setCardId] = useState<RepoCardId | null>(null)
+  const [repoKey, setRepoKey] = useState<RepoIdentifier | null>(null)
   const [cardTitle, setCardTitle] = useState('')
   const [initialNote, setInitialNote] = useState('')
   const [initialLinks, setInitialLinks] = useState<ProjectLink[]>([])
@@ -113,6 +119,7 @@ export function useNoteModal({
       }
 
       setCardId(targetCardId)
+      setRepoKey(toRepoIdentifier(card.repoOwner, card.repoName))
       setCardTitle(card.title)
       setInitialNote(result.data?.note || '')
       setInitialLinks(result.data?.links || [])
@@ -127,6 +134,7 @@ export function useNoteModal({
   const close = useCallback(() => {
     setIsOpen(false)
     setCardId(null)
+    setRepoKey(null)
     setCardTitle('')
     setInitialNote('')
     setInitialLinks([])
@@ -148,7 +156,7 @@ export function useNoteModal({
       // A refused save has to reach the caller as an error, or the draft is
       // deleted with the typed text in it
       if (!result.success) {
-        throw new Error(result.error)
+        throw new ActionUserError(result.error, result.errorCode)
       }
     },
     [cardId],
@@ -157,6 +165,7 @@ export function useNoteModal({
   return {
     isOpen,
     cardId,
+    repoKey,
     cardTitle,
     initialNote,
     initialLinks,

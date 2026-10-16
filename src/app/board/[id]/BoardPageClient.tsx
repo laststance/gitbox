@@ -353,12 +353,14 @@ export const BoardPageClient = memo(function BoardPageClient({
       />
 
       {/* NoteModal - Unified modal for notes + links (Issue #37) */}
-      {noteModal.cardId && (
+      {noteModal.cardId && noteModal.repoKey && (
         <NoteModal
           isOpen={noteModal.isOpen}
           onClose={noteModal.close}
           onSave={noteModal.save}
           cardId={noteModal.cardId}
+          repoKey={noteModal.repoKey}
+          userId={board.user_id}
           initialNote={noteModal.initialNote}
           initialLinks={noteModal.initialLinks}
           cardTitle={noteModal.cardTitle}
