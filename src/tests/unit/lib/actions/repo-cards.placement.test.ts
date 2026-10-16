@@ -25,6 +25,7 @@ import {
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 import {
   backfillVerifiedRepositoryIds,
+  lookupRepositoryByGitHubId,
   verifyRepositoryIdentities,
 } from '@/lib/github/verify-repository-identity'
 
@@ -73,6 +74,9 @@ vi.mock('@/lib/github/verify-repository-identity', () => ({
         confirmedRepository(repository.owner, repository.name),
       ),
   ),
+  lookupRepositoryByGitHubId: vi.fn(async (id: number) =>
+    confirmedRepository('laststance', `moved-${id}`, id),
+  ),
   backfillVerifiedRepositoryIds: vi.fn(async () => undefined),
 }))
 
@@ -107,6 +111,7 @@ function makeQuery(
     insert: answers.insert,
     // The placement lookup pages with `.range()`; a short answer is one page.
     range: async () => result,
+    update: (_payload?: unknown) => query,
     // Makes the builder awaitable, like the real PostgREST builder
     then: async (resolve: (value: QueryResult) => unknown) => resolve(result),
   }
@@ -130,6 +135,7 @@ function signInWithSupabaseStub(tables: {
   insert?: QueryResult
   rpc?: QueryResult
 }) {
+  const cardUpdate = vi.fn()
   const insert = vi.fn(() =>
     makeQuery(tables.insert ?? { data: [], error: null }),
   )
@@ -151,11 +157,19 @@ function signInWithSupabaseStub(tables: {
       )
     }
     if (table === 'repocard') {
-      return makeQuery(tables.repocard, {
+      const query = makeQuery(tables.repocard, {
         insert,
         single: tables.repocardSingle,
         maybeSingle: tables.repocardMaybeSingle,
       })
+      query.update = (payload?: unknown) => {
+        cardUpdate(payload)
+        return query
+      }
+      return query
+    }
+    if (table === 'projectinfo') {
+      return makeQuery({ data: null, error: null })
     }
     throw new Error(`Unexpected table read: ${table}`)
   })
@@ -165,7 +179,7 @@ function signInWithSupabaseStub(tables: {
     claims: { sub: 'user-1' },
   } as unknown as Awaited<ReturnType<typeof getCachedClaims>>)
 
-  return { from, insert, rpc }
+  return { from, insert, rpc, cardUpdate }
 }
 
 /** A catalog repository as the picker sends it. */
@@ -456,6 +470,45 @@ describe('addRepositoriesToBoard', () => {
           githubId: 4242,
         },
       },
+    ])
+  })
+
+  test('adds a repository whose name is still on a card with a different GitHub id, and moves that card to its current name', async () => {
+    // Arrange: the card was confirmed as repository 99 and still spells free-repo
+    const { insert, cardUpdate } = signInWithSupabaseStub({
+      repocard: {
+        data: [
+          {
+            id: '00000000-0000-4000-8000-0000000000c2',
+            repo_owner: 'laststance',
+            repo_name: 'free-repo',
+            github_repo_id: 99,
+            board: { id: 'board-2', user_id: 'user-1', name: 'Work Projects' },
+          },
+        ],
+        error: null,
+      },
+      repocardSingle: { data: { order: 0 }, error: null },
+      insert: { data: [], error: null },
+    })
+
+    // Act
+    await addRepositoriesToBoard('board-1', 'status-1', [
+      makeRepository('laststance', 'free-repo'),
+    ])
+
+    // Assert
+    expect(lookupRepositoryByGitHubId).toHaveBeenCalledWith(99)
+    expect(cardUpdate).toHaveBeenCalledWith({
+      repo_owner: 'laststance',
+      repo_name: 'moved-99',
+    })
+    expect(insert).toHaveBeenCalledWith([
+      expect.objectContaining({
+        repo_owner: 'laststance',
+        repo_name: 'free-repo',
+        github_repo_id: 1001,
+      }),
     ])
   })
 

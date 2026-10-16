@@ -22,8 +22,14 @@ const BACKFILL_BATCH_SIZE = 25
 /** GitHub requests in flight during one batch. */
 const BACKFILL_CONCURRENCY = 5
 
-/** A repository GitHub says is gone is tried again after this long, so it does not block the batch. */
-const BACKFILL_RETRY_MS = 24 * 60 * 60 * 1000
+/**
+ * How long a 404 or 451 stays out of the batch.
+ *
+ * GitHub answers 404 both when the repository is gone and when this token
+ * cannot see it, even with the `repo` scope. An hour lets access come back.
+ * A deleted repository still does not fill every opening.
+ */
+const BACKFILL_RETRY_MS = 60 * 60 * 1000
 
 /** Statuses that mean this owner/name is not a repository GitHub will confirm. */
 const GONE_STATUS = new Set([404, 451])
@@ -105,6 +111,49 @@ export async function verifyRepositoryIdentity(
 }
 
 /**
+ * Asks GitHub which repository this id is now.
+ *
+ * Called when a card already confirmed under another id still spells the name
+ * of a repository the user is adding. The answer is that card's current
+ * owner and name, so the name can move with it.
+ *
+ * @param githubRepoId - The id already stored on the card.
+ * @returns The repository GitHub returns for that id, or why it did not.
+ * @example
+ * const current = await lookupRepositoryByGitHubId(42)
+ */
+export async function lookupRepositoryByGitHubId(
+  githubRepoId: number,
+): Promise<RepositoryConfirmation> {
+  const token = await getGitHubToken()
+  if (!token) return { outcome: 'unavailable' }
+
+  const api = createGitHubAxios({
+    token,
+    clearTokenCookieOnUnauthorized: false,
+  })
+  try {
+    const { data } = await api.get<GitHubRepositoryResponse>(
+      `/repositories/${githubRepoId}`,
+    )
+    if (!Number.isInteger(data.id) || data.id <= 0) {
+      return { outcome: 'unavailable' }
+    }
+    if (!data.owner?.login || !data.name) return { outcome: 'unavailable' }
+    return {
+      outcome: 'confirmed',
+      repository: { id: data.id, owner: data.owner.login, name: data.name },
+    }
+  } catch (error) {
+    const status = isAxiosError(error) ? error.response?.status : undefined
+    if (typeof status === 'number' && GONE_STATUS.has(status)) {
+      return { outcome: 'gone' }
+    }
+    return { outcome: 'unavailable' }
+  }
+}
+
+/**
  * Confirms several repositories at once, in the same order.
  *
  * Called by {@link addRepositoriesToBoard} so a large selection does not wait
@@ -145,10 +194,14 @@ export async function verifyRepositoryIdentities(
  * Also copies that id onto the repository's memory, so the note keeps matching
  * the card after a rename. A card whose id is already taken by another card of
  * the user is left null: the unique index refuses the write, and deleting a
- * card is not this function's decision. A repository GitHub says is gone is
- * remembered for a day, so the next opening confirms other cards. A rate
- * limit or a network failure leaves the row unchanged. One opening confirms
- * at most 25 cards, five GitHub requests at a time.
+ * card is not this function's decision. A 404 or 451 is remembered for an
+ * hour, so the next opening confirms other cards and a private repository
+ * the token could not see is tried again sooner than a day. A rate limit or
+ * a network failure leaves the row unchanged. One opening confirms at most
+ * 25 cards, five GitHub requests at a time. The id is written only when
+ * GitHub's answer names a different owner or name (a rename redirect). An
+ * answer that still spells the stored name is the repository that has that
+ * name now, which may be a new repository, so the card stays unconfirmed.
  *
  * @param supabase - Authenticated client. Row level security applies.
  * @param userId - The signed-in user (`claims.sub`).
@@ -187,8 +240,20 @@ export async function backfillVerifiedRepositoryIds(
     if (confirmation.outcome === 'unavailable') return
 
     const checkedAt = new Date().toISOString()
-    const verified =
-      confirmation.outcome === 'confirmed' ? confirmation.repository : null
+    // A redirect to a new name is this card's repository. The same name is
+    // whoever holds it now, which may be a different repository, so the id
+    // stays null and the card is checked again after the retry window.
+    const renamed =
+      confirmation.outcome === 'confirmed' &&
+      toRepoIdentifier(
+        confirmation.repository.owner,
+        confirmation.repository.name,
+      ) !== toRepoIdentifier(card.repo_owner, card.repo_name)
+    const verified = renamed ? confirmation.repository : null
+    const nameStillMatches = confirmation.outcome === 'confirmed' && !renamed
+    if (confirmation.outcome !== 'gone' && !nameStillMatches && !verified) {
+      return
+    }
     const { error: cardError } = await supabase
       .from('repocard')
       .update(

@@ -25,7 +25,6 @@ import * as Sentry from '@sentry/nextjs'
 
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
 import { POSTGREST_MAX_ROWS } from '@/lib/constants/postgrest'
-import { backfillVerifiedRepositoryIds } from '@/lib/github/verify-repository-identity'
 import { logBoardTiming } from '@/lib/utils/board-timing'
 import { readEveryRow } from '@/lib/utils/read-every-row'
 import { boardIdSchema } from '@/lib/validations/board'
@@ -100,31 +99,23 @@ export interface RepoPlacementsLookup {
  *   result.data.savedMemories // => [{ identifier: 'laststance/nsx', hasNote: true, linkCount: 1, hasComment: false }]
  * }
  */
-/** How long the picker waits for GitHub to confirm ids. The rest continues next time. */
-const PICKER_BACKFILL_BUDGET_MS = 2000
-
 export async function getUserRepoPlacements(): Promise<
   ActionResult<RepoPlacementsLookup>
 > {
   return withAuthResult(async (supabase, claims) => {
-    // Confirm ids, but do not hold the picker open for the whole batch.
-    // `after()` cannot be imported here: this module is bundled into the
-    // Storybook browser, and `next/server` needs Node. What finishes inside
-    // the budget is stored; the next opening continues the rest. A failure
-    // leaves those ids null and the list is still returned.
-    const backfill = backfillVerifiedRepositoryIds(supabase, claims.sub).catch(
-      (error: unknown) => {
-        Sentry.captureException(error, {
-          tags: { action: 'backfillVerifiedRepositoryIds' },
-        })
-      },
-    )
-    await Promise.race([
-      backfill,
-      new Promise<void>((resolve) => {
-        setTimeout(resolve, PICKER_BACKFILL_BUDGET_MS)
-      }),
-    ])
+    // Confirm ids after the list is sent, so the picker does not wait and
+    // the requests are not dropped when this action returns. The import is
+    // dynamic: this module is bundled into Storybook, and `next/server`
+    // cannot load there. A failure leaves the ids null; the list is returned.
+    try {
+      const { scheduleRepositoryBackfill } =
+        await import('@/lib/github/schedule-repository-backfill')
+      scheduleRepositoryBackfill(supabase, claims.sub)
+    } catch (error) {
+      Sentry.captureException(error, {
+        tags: { action: 'scheduleRepositoryBackfill' },
+      })
+    }
 
     const [placements, allSavedMemories] = await Promise.all([
       lookupRepoPlacements(supabase, claims.sub),

@@ -131,8 +131,8 @@ describe('backfillVerifiedRepositoryIds', () => {
     }
   }
 
-  test('writes the confirmed id onto the card and its memory', async () => {
-    // Arrange
+  test('writes the confirmed id onto the card and its memory when GitHub renamed it', async () => {
+    // Arrange: the card still spells gitbox; GitHub redirects to the new name
     const cardUpdate = vi.fn().mockReturnValue(updateResult(null))
     const memoryUpdate = vi.fn().mockReturnValue({
       eq: () => ({
@@ -141,6 +141,37 @@ describe('backfillVerifiedRepositoryIds', () => {
         }),
       }),
     })
+    const supabase = supabaseFor(
+      [{ id: 'card-1', repo_owner: 'laststance', repo_name: 'gitbox' }],
+      cardUpdate,
+      memoryUpdate,
+    )
+    vi.mocked(getGitHubToken).mockResolvedValue('gho_token')
+    vi.mocked(createGitHubAxios).mockReturnValue({
+      get: vi.fn().mockResolvedValue({
+        data: {
+          id: 42,
+          name: 'gitbox-renamed',
+          owner: { login: 'laststance' },
+        },
+      }),
+    } as never)
+
+    // Act
+    await backfillVerifiedRepositoryIds(supabase as never, 'user-1')
+
+    // Assert
+    expect(cardUpdate).toHaveBeenCalledWith({
+      github_repo_id: 42,
+      github_identity_checked_at: '2026-10-16T00:00:00.000Z',
+    })
+    expect(memoryUpdate).toHaveBeenCalledWith({ github_repo_id: 42 })
+  })
+
+  test("does not store an id when GitHub still answers with the card's name", async () => {
+    // Arrange: the name may have been taken by a different repository
+    const cardUpdate = vi.fn().mockReturnValue(updateResult(null))
+    const memoryUpdate = vi.fn()
     const supabase = supabaseFor(
       [{ id: 'card-1', repo_owner: 'laststance', repo_name: 'gitbox' }],
       cardUpdate,
@@ -158,10 +189,9 @@ describe('backfillVerifiedRepositoryIds', () => {
 
     // Assert
     expect(cardUpdate).toHaveBeenCalledWith({
-      github_repo_id: 42,
       github_identity_checked_at: '2026-10-16T00:00:00.000Z',
     })
-    expect(memoryUpdate).toHaveBeenCalledWith({ github_repo_id: 42 })
+    expect(memoryUpdate).not.toHaveBeenCalled()
   })
 
   test('remembers a repository GitHub says is gone, and does not store an id', async () => {
