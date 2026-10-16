@@ -177,8 +177,10 @@ export const BoardPageClient = memo(function BoardPageClient({
   )
 
   const [isRefreshingBoard, setIsRefreshingBoard] = useState(false)
+  const [cardRefreshCount, setCardRefreshCount] = useState(0)
   // A second click on the same card would spend another card refresh.
-  // A click while the board refresh is running would start a second one.
+  // A board refresh does not start while a card refresh is still running,
+  // and a card refresh does not start during the board refresh.
   const refreshingCardIds = useRef(new Set<RepoCardId>())
   const boardRefreshInFlight = useRef(false)
 
@@ -191,23 +193,28 @@ export const BoardPageClient = memo(function BoardPageClient({
         return
       }
       refreshingCardIds.current.add(cardId)
+      setCardRefreshCount((count) => count + 1)
+      const toastId = toast.loading('Refreshing from GitHub…')
       try {
         const result = await refreshCardMetadata(cardId)
         if (!result.success) {
-          toast.error(result.error)
+          toast.error(result.error, { id: toastId })
           return
         }
         dispatch(applyRefreshedRepoCards([result.data]))
-        toast.success('Refreshed from GitHub')
+        toast.success('Refreshed from GitHub', { id: toastId })
       } finally {
         refreshingCardIds.current.delete(cardId)
+        setCardRefreshCount((count) => count - 1)
       }
     },
     [dispatch],
   )
 
   const handleRefreshBoard = useCallback(async (): Promise<void> => {
-    if (boardRefreshInFlight.current) return
+    if (boardRefreshInFlight.current || refreshingCardIds.current.size > 0) {
+      return
+    }
     boardRefreshInFlight.current = true
     setIsRefreshingBoard(true)
     try {
@@ -431,7 +438,11 @@ export const BoardPageClient = memo(function BoardPageClient({
                 onClick={(): void => {
                   void handleRefreshBoard()
                 }}
-                disabled={isRefreshingBoard || repoCards.length === 0}
+                disabled={
+                  isRefreshingBoard ||
+                  cardRefreshCount > 0 ||
+                  repoCards.length === 0
+                }
                 aria-busy={isRefreshingBoard}
                 className="gap-1"
               >
