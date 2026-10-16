@@ -245,33 +245,46 @@ export async function addRepositoriesToBoard(
       }
       const requested = parsedRequest.data
 
-      // Check if board exists and user owns it
-      const { data: board, error: boardError } = await supabase
+      // The board, the cards this user already has, and the last order in
+      // the column do not need each other's answers, so they go out together.
+      // The placement read waits for the backfill: a rename confirmed in this
+      // request has to be visible to the split below. A backfill failure only
+      // leaves those ids null; the insert still refuses an id GitHub did not
+      // just confirm.
+      const boardQuery = supabase
         .from('board')
         .select('id, user_id')
         .eq('id', boardId)
         .eq('user_id', claims.sub)
         .single()
+      const placementsQuery = (async (): Promise<BoardPlacement[]> => {
+        try {
+          await backfillVerifiedRepositoryIds(supabase, claims.sub)
+        } catch (error) {
+          Sentry.captureException(error, {
+            tags: { action: 'backfillVerifiedRepositoryIds' },
+          })
+        }
+        // Throws on lookup failure: never insert without it.
+        return lookupRepoPlacements(supabase, claims.sub)
+      })()
+      const maxOrderQuery = supabase
+        .from('repocard')
+        .select('order')
+        .eq('status_id', statusId)
+        .order('order', { ascending: false })
+        .limit(1)
+        .single()
 
+      const [boardResult, placements, maxOrderResult] = await Promise.all([
+        boardQuery,
+        placementsQuery,
+        maxOrderQuery,
+      ])
+      const { data: board, error: boardError } = boardResult
       if (boardError || !board) {
         throw new Error('Board not found')
       }
-
-      // Confirm ids that were saved before the column existed, so a renamed
-      // repository matches the card it already has. A failure here only
-      // leaves those ids null; the insert below still refuses an id GitHub
-      // did not just confirm.
-      try {
-        await backfillVerifiedRepositoryIds(supabase, claims.sub)
-      } catch (error) {
-        Sentry.captureException(error, {
-          tags: { action: 'backfillVerifiedRepositoryIds' },
-        })
-      }
-
-      // Where every repository of this user already lives (all boards).
-      // Throws on lookup failure: never insert without it.
-      const placements = await lookupRepoPlacements(supabase, claims.sub)
 
       // The id on the request is whatever the browser sent, so the first
       // split uses the name only. A card that already has a confirmed id is
@@ -334,16 +347,8 @@ export async function addRepositoriesToBoard(
         placements,
       )
 
-      // Get current maximum order value
-      const { data: maxOrderData } = await supabase
-        .from('repocard')
-        .select('order')
-        .eq('status_id', statusId)
-        .order('order', { ascending: false })
-        .limit(1)
-        .single()
-
-      let nextOrder = (maxOrderData?.order ?? -1) + 1
+      // An empty column makes `.single()` fail; the first card is order 0.
+      let nextOrder = (maxOrderResult.data?.order ?? -1) + 1
 
       // Add new cards
       const cardsToInsert = newRepos.map((repo) => ({
