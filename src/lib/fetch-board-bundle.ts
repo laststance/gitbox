@@ -11,6 +11,7 @@
 import axios from 'axios'
 
 import type { BoardBundle } from '@/lib/actions/mappers'
+import { SERVER_ANSWER_TIME_LIMIT_MS } from '@/lib/constants/requests'
 
 /**
  * Path of the board bundle route.
@@ -33,7 +34,8 @@ export function boardBundlePath(boardId: string): string {
  *
  * @param boardId - Board to read.
  * @returns The bundle, or `null` when the route answers 404.
- * @throws When the response is not this route's JSON, or the request fails on the way.
+ * @throws When the response is not this route's JSON, the request fails on the
+ * way, or it gets no answer within {@link SERVER_ANSWER_TIME_LIMIT_MS}.
  * @example
  * const bundle = await fetchBoardBundle('board-1')
  * bundle?.repoCards
@@ -43,6 +45,8 @@ export async function fetchBoardBundle(
 ): Promise<BoardBundle | null> {
   const response = await axios.get<unknown>(boardBundlePath(boardId), {
     headers: { accept: 'application/json' },
+    // A hung read must reject. Until it does, no other fetch is sent.
+    timeout: SERVER_ANSWER_TIME_LIMIT_MS,
     // 404 still carries `{ bundle: null }`. A 500 does not, and throws.
     validateStatus: (status) => status === 200 || status === 404,
   })

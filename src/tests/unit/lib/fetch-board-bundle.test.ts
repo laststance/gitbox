@@ -10,6 +10,7 @@
 import axios from 'axios'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
+import { SERVER_ANSWER_TIME_LIMIT_MS } from '@/lib/constants/requests'
 import { boardBundlePath, fetchBoardBundle } from '@/lib/fetch-board-bundle'
 
 vi.mock('axios', () => ({
@@ -40,6 +41,7 @@ describe('fetchBoardBundle', () => {
       boardBundlePath('board 1'),
       expect.objectContaining({
         headers: { accept: 'application/json' },
+        timeout: SERVER_ANSWER_TIME_LIMIT_MS,
       }),
     )
     expect(boardBundlePath('board 1')).toBe('/api/boards/board%201')
