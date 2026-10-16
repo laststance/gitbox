@@ -76,7 +76,11 @@ const log = createModuleLogger('repo-cards')
 async function releaseNamesHeldByAnotherRepository(
   supabase: SupabaseClient<Database>,
   userId: string,
-  repositories: GitHubRepository[],
+  repositories: Array<{
+    id: number
+    name: string
+    owner: { login: string }
+  }>,
   placements: BoardPlacement[],
 ): Promise<void> {
   for (const repository of repositories) {
@@ -223,9 +227,10 @@ export async function addRepositoriesToBoard(
   return withAuthResultRateLimit(
     'addReposToBoard',
     async (supabase, claims) => {
-      // Reject a malformed identity (id, owner, name) before any query: owner
-      // and name are echoed back in messages and stored on the card. Display
-      // metadata (stars, topics, ...) is not validated here.
+      // Reject a malformed identity or display payload before any query.
+      // Owner and name are echoed in messages. Description, stars, topics
+      // and the rest of `meta` are rendered as text, so the insert below
+      // copies the parsed value, never the object the browser sent.
       const parsedRequest = addRepositoriesRequestSchema.safeParse(repositories)
       if (!parsedRequest.success) {
         // The picker has no selection cap, so an oversized batch is a user
@@ -238,6 +243,7 @@ export async function addRepositoriesToBoard(
           ? new ActionUserError(tooManyRepositoriesIssue.message)
           : new Error('Invalid repositories payload')
       }
+      const requested = parsedRequest.data
 
       // Check if board exists and user owns it
       const { data: board, error: boardError } = await supabase
@@ -274,7 +280,7 @@ export async function addRepositoriesToBoard(
       // match by name, and are not sent to GitHub.
       const { addable: namedAddable, skipped: namedSkipped } =
         splitRequestedRepos(
-          repositories.map((repository) => ({ ...repository, id: undefined })),
+          requested.map((repository) => ({ ...repository, id: undefined })),
           placements.filter(
             (placement) => typeof placement.githubRepoId !== 'number',
           ),
@@ -292,7 +298,7 @@ export async function addRepositoriesToBoard(
           name: repository.name,
         })),
       )
-      const confirmed: GitHubRepository[] = []
+      const confirmed: typeof requested = []
       for (const [index, repository] of namedAddable.entries()) {
         const confirmation = confirmations[index]
         if (!confirmation || confirmation.outcome !== 'confirmed') {
@@ -301,12 +307,12 @@ export async function addRepositoriesToBoard(
           )
         }
         const verified = confirmation.repository
+        // Identity comes from GitHub. Display fields stay the parsed ones.
         confirmed.push({
           ...repository,
           id: verified.id,
           name: verified.name,
-          full_name: `${verified.owner}/${verified.name}`,
-          owner: { ...repository.owner, login: verified.owner },
+          owner: { login: verified.owner },
         })
       }
 
@@ -350,7 +356,7 @@ export async function addRepositoriesToBoard(
         meta: {
           stars: repo.stargazers_count,
           language: repo.language,
-          topics: repo.topics || [],
+          topics: repo.topics ?? [],
           visibility: repo.visibility,
           description: repo.description,
           updatedAt: repo.updated_at,

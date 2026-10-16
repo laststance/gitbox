@@ -33,18 +33,6 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
 
 From the `/autoplan` review of issue #215 (one card per user and repository). None blocks that change.
 
-### Validate the display metadata of an add request
-
-**What:** Extend `addRepositoriesRequestSchema` to the fields stored in `repocard.meta` (description, language, topics, stars, visibility, updated date) and build the insert from the parsed data.
-
-**Why:** Only `id`, `name` and `owner.login` are checked. A hand-crafted request can store a non-string description or an oversized payload, which breaks the render of the caller's own board and its public page.
-
-**Context:** Found by the pre-landing security review of #215; the gap is older than that change and affects only the caller's own boards. Keep the schema as loose as the real GitHub payload (`visibility` may be `internal`, `description` and `language` may be null, `topics` may be missing), or legitimate repositories stop being addable. A database CHECK is needed if direct PostgREST inserts must obey it too.
-
-**Effort:** S
-**Priority:** P2
-**Depends on:** None
-
 ### Load placements without waiting behind the catalog action
 
 **What:** Fetch the picker's placements through a GET route handler (or return them with the catalog), and keep the cached options on screen, non-interactive, while only placements are pending.
