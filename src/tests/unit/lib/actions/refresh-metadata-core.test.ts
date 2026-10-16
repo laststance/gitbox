@@ -276,6 +276,37 @@ describe('refreshBoardMetadataCore', () => {
     expect(result.updated[0]?.meta.githubId).toBe(42)
   })
 
+  // Value: protects=a board GitHub did not answer is not announced as empty; fails_when=the toast says there are no cards to refresh and the user thinks the board was updated; why_new=a skipped read used to be dropped from the result; seam=none; no_claim=the toast method
+  test('reports every card GitHub did not answer', async () => {
+    // Arrange
+    const supabase = fakeSupabase({
+      cards: [
+        {
+          id: 'card-1',
+          repo_owner: 'laststance',
+          repo_name: 'gitbox',
+          github_repo_id: 42,
+        },
+      ],
+    })
+
+    // Act
+    const result = await refreshBoardMetadataCore(
+      supabase as unknown as SupabaseClient<Database>,
+      USER_ID,
+      'board-1',
+      readAs({ outcome: 'unavailable' }),
+    )
+
+    // Assert
+    expect(result).toEqual({
+      updated: [],
+      failed: [{ id: 'card-1', reason: 'unavailable' }],
+      remaining: 0,
+    })
+    expect(supabase.updates).toEqual([])
+  })
+
   // Value: protects=a board refresh does not ask GitHub about more than 100 cards at once; fails_when=one click requests every card and the request runs long enough to time out; why_new=the cap; seam=none; no_claim=the order of the next batch
   test('leaves cards past the first 100 for the next refresh', () => {
     // Arrange

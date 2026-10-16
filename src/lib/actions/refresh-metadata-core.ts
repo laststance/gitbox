@@ -131,7 +131,7 @@ export async function refreshCardMetadataCore(
  * first, five GitHub requests at a time. A card GitHub no longer has, or
  * whose name now belongs to a different repository, is marked checked and
  * left otherwise, so the next refresh moves on. A card GitHub did not answer
- * is left untouched and comes first next time.
+ * is left untouched, counted as unread, and comes first next time.
  *
  * @param supabase - Server client of the signed-in user.
  * @param userId - The signed-in user (`claims.sub`).
@@ -174,9 +174,12 @@ export async function refreshBoardMetadataCore(
       updated.push(outcome.card)
       return
     }
-    if (outcome.kind === 'failed') {
-      failed.push({ id: card.id, reason: outcome.reason })
-    }
+    // A skip is GitHub not answering, or the write failing. Count it, or a
+    // board of such cards looks empty and the toast says the refresh worked.
+    failed.push({
+      id: card.id,
+      reason: outcome.kind === 'failed' ? outcome.reason : 'unavailable',
+    })
   })
 
   return { updated, failed, remaining }
