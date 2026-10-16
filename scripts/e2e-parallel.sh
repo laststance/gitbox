@@ -89,7 +89,9 @@ echo "🔄 Resetting database..."
 RESET_OUTPUT=$(pnpm db:reset 2>&1) || RESET_EXIT=$?
 echo "$RESET_OUTPUT" | tail -20
 if [ "${RESET_EXIT:-0}" -ne 0 ]; then
-  if echo "$RESET_OUTPUT" | grep -q '502' && ! echo "$RESET_OUTPUT" | grep -q 'ERROR:'; then
+  # A pipeline with grep -q can close early and, under pipefail, look like a
+  # failed reset. Match the captured text in the shell instead.
+  if [[ "$RESET_OUTPUT" == *502* && "$RESET_OUTPUT" != *ERROR:* ]]; then
     echo "⚠️  db:reset exited with ${RESET_EXIT} (transient PostgREST 502)"
   else
     echo "❌ Database reset failed. Not starting shards from a partial seed."
