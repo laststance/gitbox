@@ -17,6 +17,8 @@
 --
 -- Existing rows are counted first. A row that would fail stops the migration
 -- before the constraint is added, and the message carries the count only.
+-- The constraint is added NOT VALID, so that scan does not hold an
+-- ACCESS EXCLUSIVE lock. The next migration validates it.
 --
 -- One statement (a DO block) and re-runnable.
 --
@@ -117,6 +119,6 @@ BEGIN
 
   ALTER TABLE public.repocard
     ADD CONSTRAINT repocard_meta_display
-    CHECK (public.repocard_meta_is_display_metadata(meta));
+    CHECK (public.repocard_meta_is_display_metadata(meta)) NOT VALID;
 END
 $migration$;
