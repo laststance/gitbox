@@ -13,7 +13,7 @@
 --   repocard.github_identity_checked_at
 --                               - when confirmation was last tried. A miss is
 --                                 remembered so the next batch is not the same
---                                 rows. The app tries again after a day.
+--                                 rows. The app tries again after an hour.
 --   projectinfo.github_repo_id  - the same id, so the note, links and comment
 --                                 follow the repository rather than its name.
 --   partial unique indexes      - one card, and one memory, per user and
@@ -53,7 +53,9 @@ BEGIN
   -- A memory with an id must be the same card: that id and that owner/name.
   -- A memory without an id may still match the card by owner/name. An id of
   -- a different card is refused, so the relationship cannot hand one card
-  -- another repository's memory.
+  -- another repository's memory. A memory whose id is on no card may still
+  -- be renamed: the note outlives the card, and the name has to be able to
+  -- move so a new repository can use it.
   DROP POLICY IF EXISTS "Users can manage their project info" ON projectinfo;
 
   CREATE POLICY "Users can manage their project info"
@@ -61,22 +63,32 @@ BEGIN
     USING (user_id = (select auth.uid()))
     WITH CHECK (
       user_id = (select auth.uid())
-      AND EXISTS (
-        SELECT 1 FROM repocard r
-        WHERE r.user_id = (select auth.uid())
-          AND (
-            (
-              projectinfo.github_repo_id IS NOT NULL
-              AND r.github_repo_id = projectinfo.github_repo_id
-              AND lower(r.repo_owner) = lower(projectinfo.repo_owner)
-              AND lower(r.repo_name) = lower(projectinfo.repo_name)
+      AND (
+        EXISTS (
+          SELECT 1 FROM repocard r
+          WHERE r.user_id = (select auth.uid())
+            AND (
+              (
+                projectinfo.github_repo_id IS NOT NULL
+                AND r.github_repo_id = projectinfo.github_repo_id
+                AND lower(r.repo_owner) = lower(projectinfo.repo_owner)
+                AND lower(r.repo_name) = lower(projectinfo.repo_name)
+              )
+              OR (
+                projectinfo.github_repo_id IS NULL
+                AND lower(r.repo_owner) = lower(projectinfo.repo_owner)
+                AND lower(r.repo_name) = lower(projectinfo.repo_name)
+              )
             )
-            OR (
-              projectinfo.github_repo_id IS NULL
-              AND lower(r.repo_owner) = lower(projectinfo.repo_owner)
-              AND lower(r.repo_name) = lower(projectinfo.repo_name)
-            )
+        )
+        OR (
+          projectinfo.github_repo_id IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM repocard held
+            WHERE held.user_id = (select auth.uid())
+              AND held.github_repo_id = projectinfo.github_repo_id
           )
+        )
       )
     );
 

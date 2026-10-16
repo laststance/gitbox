@@ -16,6 +16,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+import { lookupRepositoryByGitHubId } from '@/lib/github/verify-repository-identity'
 import { createClient } from '@/lib/supabase/server'
 import type { Database, TablesInsert, CommentColor } from '@/lib/supabase/types'
 import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
@@ -129,6 +130,68 @@ function memoryBelongsToAnotherRepository(
 }
 
 /**
+ * Moves a memory off a name when no card still holds its GitHub id.
+ *
+ * The note outlives the card. After the card is deleted the memory keeps the
+ * old name, and a new repository that takes that name cannot save. Called by
+ * {@link writeRepositoryMemory} before it would refuse the save. A card that
+ * still has the id keeps the memory where it is.
+ *
+ * @param supabase - Server client of the signed-in user.
+ * @param ownerId - The user whose memory the write may touch.
+ * @param githubRepoId - The id on the memory that currently has this name.
+ * @param repository - The name the new repository needs.
+ * @returns `moved` when the name is free. `moved: false` when a card still
+ *   holds the id, or GitHub still gives that id this name.
+ * @example
+ * await relocateOrphanMemory(supabase, 'user-1', 99, repository)
+ */
+async function relocateOrphanMemory(
+  supabase: SupabaseClient<Database>,
+  ownerId: string,
+  githubRepoId: number,
+  repository: Pick<ProjectInfoInsert, 'repo_owner' | 'repo_name'>,
+): Promise<{ moved: boolean; error: { message: string } | null }> {
+  const { data: heldByCard, error: heldError } = await supabase
+    .from('repocard')
+    .select('id')
+    .eq('github_repo_id', githubRepoId)
+    .limit(1)
+    .maybeSingle()
+  if (heldError) return { moved: false, error: heldError }
+  if (heldByCard) return { moved: false, error: null }
+
+  const current = await lookupRepositoryByGitHubId(githubRepoId)
+  if (current.outcome !== 'confirmed') {
+    return {
+      moved: false,
+      error: { message: 'Could not confirm the repository with GitHub' },
+    }
+  }
+  const currentIdentifier = toRepoIdentifier(
+    current.repository.owner,
+    current.repository.name,
+  )
+  if (
+    currentIdentifier ===
+    toRepoIdentifier(repository.repo_owner, repository.repo_name)
+  ) {
+    return { moved: false, error: null }
+  }
+
+  const { error } = await supabase
+    .from('projectinfo')
+    .update({
+      repo_owner: current.repository.owner,
+      repo_name: current.repository.name,
+    })
+    .eq('user_id', ownerId)
+    .eq('github_repo_id', githubRepoId)
+  if (error) return { moved: false, error }
+  return { moved: true, error: null }
+}
+
+/**
  * Create or update the memory of the repository a card holds.
  *
  * When the card has a confirmed id and a memory already has it, that row is
@@ -176,11 +239,25 @@ async function writeRepositoryMemory(
       return { error }
     }
 
-    // The name may still belong to a memory whose id is a different repository
+    // The name may still belong to a memory whose id is a different repository.
+    // A card that holds that id keeps its memory. A memory whose card is gone
+    // moves to the name GitHub gives that id, so this repository can have a row.
     const byName = await findMemoryByRepoKey(supabase, ownerId, repository)
     if (byName.error) return { error: byName.error }
-    if (memoryBelongsToAnotherRepository(byName.githubRepoId, githubRepoId)) {
-      return { error: { message: 'Memory belongs to another repository' } }
+    if (
+      byName.githubRepoId !== null &&
+      memoryBelongsToAnotherRepository(byName.githubRepoId, githubRepoId)
+    ) {
+      const relocated = await relocateOrphanMemory(
+        supabase,
+        ownerId,
+        byName.githubRepoId,
+        repository,
+      )
+      if (relocated.error) return relocated
+      if (!relocated.moved) {
+        return { error: { message: 'Memory belongs to another repository' } }
+      }
     }
   }
 

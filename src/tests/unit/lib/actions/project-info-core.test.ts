@@ -24,10 +24,22 @@ import {
   updateCommentCore,
   upsertProjectInfoCore,
 } from '@/lib/actions/project-info-core'
+import { lookupRepositoryByGitHubId } from '@/lib/github/verify-repository-identity'
 
-const { createClient } = vi.hoisted(() => ({ createClient: vi.fn() }))
+const { createClient, lookupRepositoryByGitHubId: lookupById } = vi.hoisted(
+  () => ({
+    createClient: vi.fn(),
+    lookupRepositoryByGitHubId: vi.fn(async (id: number) => ({
+      outcome: 'confirmed' as const,
+      repository: { id, owner: 'laststance', name: `moved-${id}` },
+    })),
+  }),
+)
 
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
+vi.mock('@/lib/github/verify-repository-identity', () => ({
+  lookupRepositoryByGitHubId: lookupById,
+}))
 
 /** What PostgREST answers for one request. */
 type Answer = {
@@ -63,6 +75,7 @@ function signInWithStub(
   writeError: Answer['error'] = null,
   memory: Answer = { data: null, error: null },
   namedMemory?: Answer,
+  heldCard: Answer = { data: null, error: null },
 ) {
   const upsert = vi.fn(async () => ({ error: writeError }))
   // A PostgREST filter builder: chainable, and awaited for its answer
@@ -85,6 +98,8 @@ function signInWithStub(
       const query = {
         select: () => query,
         eq: () => query,
+        limit: () => query,
+        maybeSingle: async () => heldCard,
         single: async () => card,
       }
       return query
@@ -340,7 +355,39 @@ describe('project-info-core', () => {
 
   // Value: protects=a note saved under a name that now belongs to another repository is not overwritten with the new repository's text; fails_when=the name upsert sets the new GitHub id on the old memory; why_new=the name is no longer the identity once both rows have ids; seam=none; no_claim=the dialog copy
   test('saves nothing when the name already belongs to a memory with a different GitHub id', async () => {
-    // Arrange: no memory has id 42; the name still holds repository 99's note
+    // Arrange: a card still holds repository 99, so its memory stays on this name
+    const { upsert, update } = signInWithStub(
+      {
+        data: {
+          repo_owner: 'laststance',
+          repo_name: 'gitbox',
+          github_repo_id: 42,
+          board: { user_id: 'user-1' },
+        },
+        error: null,
+      },
+      null,
+      { data: null, error: null },
+      { data: { github_repo_id: 99 }, error: null },
+      { data: { id: 'card-99' }, error: null },
+    )
+
+    // Act
+    const attempt = upsertProjectInfoCore('card-1', {
+      note: 'a note',
+      links: [],
+    })
+
+    // Assert
+    await expect(attempt).rejects.toThrow('Failed to save project information')
+    expect(upsert).not.toHaveBeenCalled()
+    expect(update).not.toHaveBeenCalled()
+    expect(lookupRepositoryByGitHubId).not.toHaveBeenCalled()
+  })
+
+  // Value: protects=deleting the card does not leave the new repository unable to save a note; fails_when=the old memory keeps the name and every save is refused; why_new=the memory outlives the card; seam=none; no_claim=the row level security exception for an orphan memory
+  test('moves an orphaned memory to the name GitHub gives its id, then saves the note', async () => {
+    // Arrange: no card holds repository 99; its memory still spells gitbox
     const { upsert, update } = signInWithStub(
       {
         data: {
@@ -357,15 +404,27 @@ describe('project-info-core', () => {
     )
 
     // Act
-    const attempt = upsertProjectInfoCore('card-1', {
-      note: 'a note',
+    await upsertProjectInfoCore('card-1', {
+      note: 'the new repository',
       links: [],
     })
 
     // Assert
-    await expect(attempt).rejects.toThrow('Failed to save project information')
-    expect(upsert).not.toHaveBeenCalled()
-    expect(update).not.toHaveBeenCalled()
+    expect(lookupRepositoryByGitHubId).toHaveBeenCalledWith(99)
+    expect(update).toHaveBeenCalledWith({
+      repo_owner: 'laststance',
+      repo_name: 'moved-99',
+    })
+    expect(upsert).toHaveBeenCalledWith(
+      {
+        repo_owner: 'laststance',
+        repo_name: 'gitbox',
+        github_repo_id: 42,
+        note: 'the new repository',
+        links: [],
+      },
+      { onConflict: 'user_id,repo_key' },
+    )
   })
 
   // Value: protects=deleting a comment does not clear the comment of a different repository that used to have this name; fails_when=the name update runs after the id lookup misses; why_new=the delete followed the name whenever the id had no row; seam=none; no_claim=the dialog copy
