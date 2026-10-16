@@ -72,8 +72,11 @@ export function useBoardRollback(): BoardRollback {
         store.dispatch(setRepoCards(previousCards))
         return 'restored'
       }
-      // The board moved on: the snapshot is stale, so ask the server
-      store.dispatch(boardRefreshRequested())
+      // The board moved on: the snapshot is stale, so ask the server.
+      // The board id is the one that was written, which may no longer be on screen.
+      store.dispatch(
+        boardRefreshRequested(boardOfCards(optimisticCards, previousCards)),
+      )
       return 'reload-requested'
     },
     [store],
@@ -87,11 +90,52 @@ export function useBoardRollback(): BoardRollback {
         return 'restored'
       }
       // The board moved on: the snapshot is stale, so ask the server
-      store.dispatch(boardRefreshRequested())
+      store.dispatch(
+        boardRefreshRequested(
+          boardOfColumns(optimisticStatusLists, previousStatusLists),
+        ),
+      )
       return 'reload-requested'
     },
     [store],
   )
 
   return { rollbackRepoCards, rollbackStatusLists }
+}
+
+/**
+ * Board a failed card write belongs to.
+ *
+ * Called by {@link useBoardRollback} when the cards on screen are no longer
+ * the ones that write put there. An empty list has no board, and the fetch
+ * is then of the board on screen.
+ *
+ * @param optimisticCards - Cards the failed write put on screen.
+ * @param previousCards - Cards the store held before that write.
+ * @returns The request for that board, or nothing when neither list has a card.
+ */
+function boardOfCards(
+  optimisticCards: RepoCardForRedux[],
+  previousCards: RepoCardForRedux[],
+): { boardId: RepoCardForRedux['boardId'] } | undefined {
+  const boardId = optimisticCards[0]?.boardId ?? previousCards[0]?.boardId
+  return boardId !== undefined ? { boardId } : undefined
+}
+
+/**
+ * Board a failed column write belongs to.
+ *
+ * Called by {@link useBoardRollback} when the columns on screen are no longer
+ * the ones that write put there.
+ *
+ * @param optimisticColumns - Columns the failed write put on screen.
+ * @param previousColumns - Columns the store held before that write.
+ * @returns The request for that board, or nothing when neither list has a column.
+ */
+function boardOfColumns(
+  optimisticColumns: StatusListDomain[],
+  previousColumns: StatusListDomain[],
+): { boardId: StatusListDomain['boardId'] } | undefined {
+  const boardId = optimisticColumns[0]?.boardId ?? previousColumns[0]?.boardId
+  return boardId !== undefined ? { boardId } : undefined
 }

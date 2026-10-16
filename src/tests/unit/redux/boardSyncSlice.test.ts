@@ -247,6 +247,10 @@ describe('trackBoardWrite()', () => {
     })
     const trackedSave = trackBoardWrite(store.dispatch, lateSave)
     await vi.advanceTimersByTimeAsync(15_000)
+    expect(store.getState().boardSync.refreshBypassesActionQueue).toBe(true)
+    expect(store.getState().boardSync.refreshForBoardId).toBe(
+      toBoardId('board-1'),
+    )
     store.dispatch(boardRefreshSent())
     store.dispatch(serverSnapshotApplied(toBoardId('board-1')))
     const isRefreshWantedBeforeTheAnswer =
@@ -258,6 +262,30 @@ describe('trackBoardWrite()', () => {
 
     // Assert
     expect(isRefreshWantedBeforeTheAnswer).toBe(false)
+    expect(selectIsBoardRefreshDue(store.getState())).toBe(true)
+  })
+
+  test('drops the fetch sent at the limit when the save answers after it, so that copy cannot replace the save', async () => {
+    // Arrange: the fetch sent at the limit is still on its way
+    vi.useFakeTimers()
+    const store = createStoreHoldingBoard('board-1', [])
+    let answerSave: () => void = () => {}
+    const lateSave = new Promise<void>((resolve) => {
+      answerSave = resolve
+    })
+    const trackedSave = trackBoardWrite(store.dispatch, lateSave)
+    await vi.advanceTimersByTimeAsync(15_000)
+    store.dispatch(boardRefreshSent())
+    const requestSentAtTheLimit =
+      store.getState().boardSync.sentRefreshRequestId
+
+    // Act
+    answerSave()
+    await trackedSave
+
+    // Assert
+    expect(requestSentAtTheLimit).not.toBeNull()
+    expect(store.getState().boardSync.sentRefreshRequestId).toBeNull()
     expect(selectIsBoardRefreshDue(store.getState())).toBe(true)
   })
 

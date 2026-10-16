@@ -40,6 +40,26 @@ interface BoardSyncState {
   /** The board has to be fetched again and that fetch has not been sent yet. */
   isRefreshWanted: boolean
   /**
+   * Board the wanted fetch is for, or `null` before one was asked for.
+   * A save of one board can fail after another board is open; the fetch is
+   * for the board that was saved, and the board on screen is left alone.
+   */
+  refreshForBoardId: BoardId | null
+  /**
+   * The wanted fetch has to go out while a write is still unanswered, so it
+   * cannot be a Server Action: those wait behind the write. {@link useBoardServerSync}
+   * reads `GET /api/boards/[id]` instead.
+   */
+  refreshBypassesActionQueue: boolean
+  /** How many fetches this page has sent. The next one gets the next number. */
+  refreshRequestSerial: number
+  /**
+   * Id of the fetch in flight, or `null` when none is. An answer whose id is
+   * no longer this one is dropped: the board was left and opened again, or a
+   * newer fetch was sent.
+   */
+  sentRefreshRequestId: number | null
+  /**
    * Board whose server data the store holds, or `null` before any board was
    * opened. Kept here and not in a component because the store outlives the
    * board page: to a page that is mounted again (the board was left and
@@ -48,11 +68,47 @@ interface BoardSyncState {
   hydratedBoardId: BoardId | null
 }
 
+/**
+ * Dispatch of the store that holds the board.
+ *
+ * A write reads the board on screen through a thunk, so the dispatch has to
+ * run one. Every caller passes the store's dispatch.
+ */
+type BoardDispatch = Dispatch & {
+  (
+    read: (
+      dispatch: Dispatch,
+      getState: () => { boardSync: BoardSyncState },
+    ) => void,
+  ): void
+}
+
+/** Which board to fetch, and whether that fetch must not wait behind a write. */
+interface BoardRefreshRequest {
+  /** Board the fetch is for. Left out, the board on screen is used. */
+  boardId?: BoardId
+  /**
+   * `true` when a write got no answer in time and the fetch has to go out
+   * while that write is still unanswered.
+   */
+  bypassActionQueue?: boolean
+  /**
+   * `true` when a fetch is already on its way and its answer must not be
+   * shown. A write that answers after the time limit uses this: the fetch
+   * sent at the limit may have read the board before that write landed.
+   */
+  invalidateInFlight?: boolean
+}
+
 const initialState: BoardSyncState = {
   pendingWriteCount: 0,
   contentRevision: 0,
   sentRefreshRevision: null,
   isRefreshWanted: false,
+  refreshForBoardId: null,
+  refreshBypassesActionQueue: false,
+  refreshRequestSerial: 0,
+  sentRefreshRequestId: null,
   hydratedBoardId: null,
 }
 
@@ -75,18 +131,55 @@ export const boardSyncSlice = createSlice({
      * The store can no longer be trusted to match the database, so the board
      * has to be fetched again. {@link useBoardServerSync} sends the fetch once
      * no write is pending.
+     *
+     * @param action.payload.boardId - Board the fetch is for. Left out, the
+     *   board on screen is used.
+     * @param action.payload.bypassActionQueue - The fetch must not wait behind
+     *   a write that is still unanswered.
      */
-    boardRefreshRequested: (state) => {
-      state.isRefreshWanted = true
+    boardRefreshRequested: {
+      reducer(state, action: PayloadAction<BoardRefreshRequest>) {
+        state.isRefreshWanted = true
+        state.refreshForBoardId =
+          action.payload.boardId !== undefined
+            ? action.payload.boardId
+            : state.hydratedBoardId
+        if (action.payload.invalidateInFlight) {
+          state.sentRefreshRevision = null
+          state.sentRefreshRequestId = null
+        }
+        if (action.payload.bypassActionQueue) {
+          state.refreshBypassesActionQueue = true
+        }
+      },
+      prepare(request?: BoardRefreshRequest) {
+        return { payload: request ?? {} }
+      },
     },
     /** The fetch went out; remember what the board looked like at that moment. */
     boardRefreshSent: (state) => {
       state.isRefreshWanted = false
+      state.refreshBypassesActionQueue = false
       state.sentRefreshRevision = state.contentRevision
+      state.refreshRequestSerial += 1
+      state.sentRefreshRequestId = state.refreshRequestSerial
+    },
+    /**
+     * The fetch failed, so it is no longer in flight. A retry asks for the
+     * board again. An answer for a fetch that was already given up on is
+     * ignored.
+     *
+     * @param action.payload - Id of the fetch that failed.
+     */
+    boardRefreshFailed: (state, action: PayloadAction<number>) => {
+      if (state.sentRefreshRequestId !== action.payload) return
+      state.sentRefreshRequestId = null
+      state.sentRefreshRevision = null
+      state.isRefreshWanted = false
     },
     /**
      * Server data of this board went into the store, so no fetch is in flight
-     * any more. A fetch still wanted for the board shown before is dropped.
+     * any more.
      *
      * Pending writes are counted for the whole app, not per board. Data shown
      * for another board while a save is pending may therefore be that save's
@@ -95,14 +188,27 @@ export const boardSyncSlice = createSlice({
      * has settled. The price is one fetch too many for a board opened while
      * a save of another board was pending.
      *
+     * A fetch wanted for a different board is left wanted: a save of that
+     * board failed after this one was opened, and this one is not fetched
+     * in its place.
+     *
      * @param action.payload - The {@link BoardId} the data belongs to.
      */
     serverSnapshotApplied: (state, action: PayloadAction<BoardId>) => {
       if (state.hydratedBoardId !== action.payload) {
-        state.isRefreshWanted = state.pendingWriteCount > 0
+        if (state.pendingWriteCount > 0) {
+          // This page may have been read before the save landed
+          state.isRefreshWanted = true
+          state.refreshForBoardId = action.payload
+        } else if (state.refreshForBoardId === action.payload) {
+          state.isRefreshWanted = true
+        } else if (state.refreshForBoardId === null) {
+          state.isRefreshWanted = false
+        }
       }
       state.hydratedBoardId = action.payload
       state.sentRefreshRevision = null
+      state.sentRefreshRequestId = null
     },
     /**
      * Fetched data arrived too old to use (the board changed while it was on
@@ -110,6 +216,7 @@ export const boardSyncSlice = createSlice({
      */
     serverSnapshotSkipped: (state) => {
       state.sentRefreshRevision = null
+      state.sentRefreshRequestId = null
       state.isRefreshWanted = true
     },
   },
@@ -139,11 +246,36 @@ const { boardWriteStarted, boardWriteSettled } = boardSyncSlice.actions
 export const {
   boardRefreshRequested,
   boardRefreshSent,
+  boardRefreshFailed,
   serverSnapshotApplied,
   serverSnapshotSkipped,
 } = boardSyncSlice.actions
 
 export default boardSyncSlice.reducer
+
+/**
+ * Board on screen when a write starts.
+ *
+ * The failure of that write can be handled after another board was opened, and
+ * the fetch has to be of the board that was written. Called by
+ * {@link trackBoardWrite} at the start of the write. The dispatch is the
+ * store's, which runs a thunk.
+ *
+ * @param dispatch - Dispatch of the store that holds the board.
+ * @returns The hydrated board id, or `null` before any board was opened.
+ */
+function readHydratedBoardId(dispatch: BoardDispatch): BoardId | null {
+  let boardId: BoardId | null = null
+  dispatch(
+    (
+      _dispatch: Dispatch,
+      getState: () => { boardSync: BoardSyncState },
+    ): void => {
+      boardId = getState().boardSync.hydratedBoardId
+    },
+  )
+  return boardId
+}
 
 /**
  * Counts a board write as pending until the server answers, for
@@ -172,11 +304,14 @@ export default boardSyncSlice.reducer
  * )
  */
 export async function trackBoardWrite<WriteResult>(
-  dispatch: Dispatch,
+  dispatch: BoardDispatch,
   write: Promise<WriteResult>,
   onOverdue?: () => void,
 ): Promise<WriteResult> {
   dispatch(boardWriteStarted())
+  // The board on screen when the write started. A failure after another board
+  // was opened still asks for this one.
+  const boardId = readHydratedBoardId(dispatch)
 
   let isCounted = true
   const countOut = (): void => {
@@ -185,8 +320,15 @@ export async function trackBoardWrite<WriteResult>(
   }
   const timeLimit = setTimeout(() => {
     countOut()
-    // No answer in time: what the board shows may not be what was saved
-    dispatch(boardRefreshRequested())
+    // No answer in time: what the board shows may not be what was saved.
+    // The write is still in the Server Action queue, so this fetch must not
+    // be one: it would wait behind the write.
+    dispatch(
+      boardRefreshRequested({
+        ...(boardId !== null ? { boardId } : {}),
+        bypassActionQueue: true,
+      }),
+    )
     onOverdue?.()
   }, SERVER_ANSWER_TIME_LIMIT_MS)
 
@@ -197,8 +339,14 @@ export async function trackBoardWrite<WriteResult>(
     if (isCounted) {
       countOut()
     } else {
-      // Answered after the limit: the fetch sent then may lack this write
-      dispatch(boardRefreshRequested())
+      // Answered after the limit: the fetch sent then may lack this write,
+      // so its answer is dropped and the board is read once more.
+      dispatch(
+        boardRefreshRequested({
+          ...(boardId !== null ? { boardId } : {}),
+          invalidateInFlight: true,
+        }),
+      )
     }
   }
 }

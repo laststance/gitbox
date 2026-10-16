@@ -18,9 +18,10 @@ const BOARD_SAVE_UNCONFIRMED_TOAST_ID = 'board-save-unconfirmed'
  *
  * The text holds whether the browser is online or not: offline the fetch
  * waits for the connection, and {@link useBoardServerSync} says so itself.
- * Online it waits too, for the save that has no answer yet: Next.js sends
- * Server Actions and `router.refresh()` one after another. So the toast
- * offers "Reload page", which waits for nothing.
+ * Online the fetch goes out at once, through `GET /api/boards/[id]`, because
+ * a Server Action would wait behind the save that has no answer. The copy it
+ * reads can still be the one from before that save landed. The toast offers
+ * "Reload page", which waits for nothing.
  *
  * @param action - Name of the save, as the failure reports of the caller tag it.
  * @example

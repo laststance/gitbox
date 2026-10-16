@@ -16,6 +16,7 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { BoardPageClient } from '@/app/board/[id]/BoardPageClient'
 import type * as BoardServerSyncModule from '@/hooks/board/useBoardServerSync'
+import type * as BoardDataModule from '@/lib/actions/board-data'
 import type { BoardInitialData } from '@/lib/actions/board-data'
 import boardSlice, { setRepoCards } from '@/lib/redux/slices/boardSlice'
 import boardSyncSlice, {
@@ -33,6 +34,31 @@ vi.mock('next/navigation', () => ({
     push: mockPush,
     refresh: mockRefresh,
   }),
+  unstable_isUnrecognizedActionError: (error: unknown) =>
+    error instanceof Error && error.name === 'UnrecognizedActionError',
+}))
+
+const { mockGetBoardBundle, mockFetchBoardBundle } = vi.hoisted(() => ({
+  mockGetBoardBundle: vi.fn(
+    async (_boardId: string): Promise<unknown> => new Promise(() => undefined),
+  ),
+  mockFetchBoardBundle: vi.fn(
+    async (_boardId: string): Promise<unknown> => new Promise(() => undefined),
+  ),
+}))
+
+vi.mock('@/lib/actions/board-data', async () => {
+  const actual = await vi.importActual<typeof BoardDataModule>(
+    '@/lib/actions/board-data',
+  )
+  return {
+    ...actual,
+    getBoardBundle: async (boardId: string) => mockGetBoardBundle(boardId),
+  }
+})
+
+vi.mock('@/lib/fetch-board-bundle', () => ({
+  fetchBoardBundle: async (boardId: string) => mockFetchBoardBundle(boardId),
 }))
 
 // Mock Sentry
@@ -369,7 +395,17 @@ describe('BoardPageClient Component', () => {
       // Arrange: the board is on screen with the first server snapshot, and a
       // failed save asks for a fresh copy
       const board = createMockBoard()
-      const { rerender } = render(
+      const refreshedInitialData = createMockInitialData({
+        statusLists: [],
+        repoCards: [],
+      })
+      mockGetBoardBundle.mockResolvedValueOnce({
+        board,
+        statusLists: refreshedInitialData.statusLists,
+        repoCards: refreshedInitialData.repoCards,
+        comments: {},
+      })
+      render(
         <Provider store={store}>
           <BoardPageClient
             board={board}
@@ -380,36 +416,33 @@ describe('BoardPageClient Component', () => {
       await waitFor(() => {
         expect(store.getState().board.repoCards).toHaveLength(1)
       })
+
+      // Act
       act(() => {
         store.dispatch(boardRefreshRequested())
       })
-      await waitFor(() => {
-        expect(mockRefresh).toHaveBeenCalledTimes(1)
-      })
-      const refreshedInitialData = createMockInitialData({
-        statusLists: [],
-        repoCards: [],
-      })
 
-      // Act: router.refresh() delivers a new snapshot as props
-      rerender(
-        <Provider store={store}>
-          <BoardPageClient board={board} initialData={refreshedInitialData} />
-        </Provider>,
-      )
-
-      // Assert: the store follows the server
+      // Assert: the store follows the server, without a new page
       await waitFor(() => {
         expect(store.getState().board.repoCards).toEqual([])
       })
       expect(store.getState().board.statusLists).toEqual([])
+      expect(mockGetBoardBundle).toHaveBeenCalledTimes(1)
+      expect(mockRefresh).not.toHaveBeenCalled()
     })
 
     test('keeps a card the user moved while the board was being fetched again', async () => {
       // Arrange: the board is on screen and a fetch is on its way
       const board = createMockBoard()
       const firstInitialData = createMockInitialData()
-      const { rerender } = render(
+      let answerFetch: (bundle: unknown) => void = () => undefined
+      mockGetBoardBundle.mockImplementationOnce(
+        async () =>
+          new Promise((resolve) => {
+            answerFetch = resolve
+          }),
+      )
+      render(
         <Provider store={store}>
           <BoardPageClient board={board} initialData={firstInitialData} />
         </Provider>,
@@ -421,7 +454,7 @@ describe('BoardPageClient Component', () => {
         store.dispatch(boardRefreshRequested())
       })
       await waitFor(() => {
-        expect(mockRefresh).toHaveBeenCalledTimes(1)
+        expect(mockGetBoardBundle).toHaveBeenCalledTimes(1)
       })
       // The user drags the card to Done; the save has not come back yet
       const cardInDone = {
@@ -434,14 +467,14 @@ describe('BoardPageClient Component', () => {
       })
 
       // Act: the fetch answers with the card where it was before the drag
-      rerender(
-        <Provider store={store}>
-          <BoardPageClient
-            board={board}
-            initialData={createMockInitialData()}
-          />
-        </Provider>,
-      )
+      await act(async () => {
+        answerFetch({
+          board,
+          statusLists: firstInitialData.statusLists,
+          repoCards: firstInitialData.repoCards,
+          comments: {},
+        })
+      })
 
       // Assert: the card stays where the user put it
       expect(store.getState().board.repoCards).toEqual([cardInDone])

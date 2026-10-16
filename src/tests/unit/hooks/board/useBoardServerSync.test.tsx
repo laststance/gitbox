@@ -7,8 +7,10 @@
  * it into the store moved the card back on screen while the database kept the
  * new place, and the board stayed wrong until reload.
  *
- * Each test drives the real store. "The server answers" is a re-render with
- * new page data, which is how router.refresh() delivers it.
+ * Each test drives the real store. A refetch is {@link getBoardBundle}. The
+ * test holds that promise and resolves it when "the server answers". Page
+ * data that arrives on its own is still a re-render: that is a navigation,
+ * not a refetch.
  *
  * @see src/hooks/board/useBoardServerSync.ts
  */
@@ -21,6 +23,7 @@ import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { useBoardServerSync } from '@/hooks/board/useBoardServerSync'
+import type { BoardBundle } from '@/lib/actions/mappers'
 import type { RepoCardForRedux, StatusListDomain } from '@/lib/models/domain'
 import boardReducer, { setRepoCards } from '@/lib/redux/slices/boardSlice'
 import boardSyncReducer, {
@@ -34,10 +37,22 @@ import {
   type BoardId,
 } from '@/lib/types/brands'
 
-const fetchBoardAgain = vi.fn()
+const { readBoard, readBoardOutsideTheQueue } = vi.hoisted(() => ({
+  readBoard: vi.fn(),
+  readBoardOutsideTheQueue: vi.fn(),
+}))
 
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ refresh: fetchBoardAgain }),
+vi.mock('@/lib/actions/board-data', () => ({
+  getBoardBundle: readBoard,
+}))
+
+vi.mock('@/lib/fetch-board-bundle', () => ({
+  fetchBoardBundle: readBoardOutsideTheQueue,
+}))
+
+vi.mock('@sentry/nextjs', () => ({
+  captureException: vi.fn(),
+  captureMessage: vi.fn(),
 }))
 
 vi.mock('sonner', () => ({
@@ -49,6 +64,64 @@ vi.mock('sonner', () => ({
     dismiss: vi.fn(),
   },
 }))
+
+/** A refetch the test answers on demand. */
+interface HeldFetch {
+  /** Resolves the refetch with a bundle, or `null` when the board is gone. */
+  resolve: (bundle: BoardBundle | null) => void
+  /** Rejects the refetch. */
+  reject: (error: unknown) => void
+}
+
+/** Refetches that have been sent and not answered, oldest first. */
+const heldFetches: HeldFetch[] = []
+
+/**
+ * Holds a refetch until the test answers it.
+ *
+ * @returns A promise that settles when {@link answerFetch} or {@link failFetch} runs.
+ */
+async function holdFetch(): Promise<BoardBundle | null> {
+  return new Promise((resolve, reject) => {
+    heldFetches.push({ resolve, reject })
+  })
+}
+
+/**
+ * Answers the oldest refetch that is still waiting.
+ *
+ * @param page - Columns and cards the answer carries.
+ */
+function answerFetch(page: PageData): void {
+  const held = heldFetches.shift()
+  if (held === undefined) throw new Error('No board fetch is waiting')
+  held.resolve({
+    board: { id: page.boardId },
+    statusLists: page.statusLists,
+    repoCards: page.repoCards,
+    comments: {},
+  } as unknown as BoardBundle)
+}
+
+/**
+ * Answers the oldest refetch with no board to show.
+ */
+function answerThatTheBoardIsGone(): void {
+  const held = heldFetches.shift()
+  if (held === undefined) throw new Error('No board fetch is waiting')
+  held.resolve(null)
+}
+
+/**
+ * Fails the oldest refetch that is still waiting.
+ *
+ * @param error - What the read rejects with.
+ */
+function failFetch(error: unknown): void {
+  const held = heldFetches.shift()
+  if (held === undefined) throw new Error('No board fetch is waiting')
+  held.reject(error)
+}
 
 /** The page data of one board: what the server component hands the client. */
 interface PageData {
@@ -140,6 +213,9 @@ function setBrowserOnline(isOnline: boolean): void {
 describe('board data from the server', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    heldFetches.length = 0
+    readBoard.mockImplementation(holdFetch)
+    readBoardOutsideTheQueue.mockImplementation(holdFetch)
   })
 
   afterEach(() => {
@@ -159,35 +235,37 @@ describe('board data from the server', () => {
     // Assert
     expect(store.getState().board.repoCards).toEqual([makeCard('status-todo')])
     expect(store.getState().board.statusLists).toEqual(makeColumns())
-    expect(fetchBoardAgain).not.toHaveBeenCalled()
+    expect(readBoard).not.toHaveBeenCalled()
   })
 
-  test('shows the server copy of the board after a fetch that nothing interrupted', () => {
+  test('shows the server copy of the board after a fetch that nothing interrupted', async () => {
     // Arrange: the board is open and a failed save asks for a fresh copy
     const { store, wrapper } = createAppStore()
-    const { rerender } = renderHook(
-      (pageData: PageData) => useBoardServerSync(pageData),
-      { wrapper, initialProps: makePageData('status-todo') },
-    )
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
     act(() => {
       store.dispatch(boardRefreshRequested())
     })
 
     // Act: the server answers with the card in Done
-    rerender(makePageData('status-done'))
+    await act(async () => {
+      answerFetch(makePageData('status-done'))
+    })
 
     // Assert
-    expect(fetchBoardAgain).toHaveBeenCalledTimes(1)
+    expect(readBoard).toHaveBeenCalledTimes(1)
     expect(store.getState().board.repoCards).toEqual([makeCard('status-done')])
   })
 
   test('keeps a card dragged while the board was being fetched, then fetches again once the drag is saved', async () => {
     // Arrange: a fetch is on its way
     const { store, wrapper } = createAppStore()
-    const { rerender } = renderHook(
-      (pageData: PageData) => useBoardServerSync(pageData),
-      { wrapper, initialProps: makePageData('status-todo') },
-    )
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
     act(() => {
       store.dispatch(boardRefreshRequested())
     })
@@ -200,11 +278,13 @@ describe('board data from the server', () => {
     })
 
     // Act: the fetch answers with the card still in To Do
-    rerender(makePageData('status-todo'))
+    await act(async () => {
+      answerFetch(makePageData('status-todo'))
+    })
 
     // Assert: the drag stays on screen and no second fetch races the save
     expect(store.getState().board.repoCards).toEqual([makeCard('status-done')])
-    expect(fetchBoardAgain).toHaveBeenCalledTimes(1)
+    expect(readBoard).toHaveBeenCalledTimes(1)
 
     // Act: the save lands
     await act(async () => {
@@ -213,23 +293,25 @@ describe('board data from the server', () => {
     })
 
     // Assert: now the board is fetched again
-    expect(fetchBoardAgain).toHaveBeenCalledTimes(2)
+    expect(readBoard).toHaveBeenCalledTimes(2)
 
     // Act: that fetch answers with the saved place
-    rerender(makePageData('status-done'))
+    await act(async () => {
+      answerFetch(makePageData('status-done'))
+    })
 
     // Assert
     expect(store.getState().board.repoCards).toEqual([makeCard('status-done')])
-    expect(fetchBoardAgain).toHaveBeenCalledTimes(2)
+    expect(readBoard).toHaveBeenCalledTimes(2)
   })
 
   test('drops a fetch that began before a drag, even when the drag is already saved when it answers', async () => {
     // Arrange: a fetch is on its way
     const { store, wrapper } = createAppStore()
-    const { rerender } = renderHook(
-      (pageData: PageData) => useBoardServerSync(pageData),
-      { wrapper, initialProps: makePageData('status-todo') },
-    )
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
     act(() => {
       store.dispatch(boardRefreshRequested())
     })
@@ -240,11 +322,13 @@ describe('board data from the server', () => {
     })
 
     // Act: the earlier fetch answers with the card still in To Do
-    rerender(makePageData('status-todo'))
+    await act(async () => {
+      answerFetch(makePageData('status-todo'))
+    })
 
     // Assert: the drag stays on screen and the board is fetched once more
     expect(store.getState().board.repoCards).toEqual([makeCard('status-done')])
-    expect(fetchBoardAgain).toHaveBeenCalledTimes(2)
+    expect(readBoard).toHaveBeenCalledTimes(2)
   })
 
   test('shows page data that arrives on its own while nothing is being saved', () => {
@@ -261,7 +345,7 @@ describe('board data from the server', () => {
 
     // Assert: it is shown at once, with no extra fetch
     expect(store.getState().board.repoCards).toEqual([makeCard('status-done')])
-    expect(fetchBoardAgain).not.toHaveBeenCalled()
+    expect(readBoard).not.toHaveBeenCalled()
   })
 
   // The store outlives the page: a board that is left and opened again is
@@ -292,7 +376,7 @@ describe('board data from the server', () => {
 
     // Assert: the drag stays on screen and the board is fetched once more
     expect(store.getState().board.repoCards).toEqual([makeCard('status-done')])
-    expect(fetchBoardAgain).toHaveBeenCalledTimes(2)
+    expect(readBoard).toHaveBeenCalledTimes(2)
   })
 
   test('waits for a pending save before fetching the board again', async () => {
@@ -314,7 +398,7 @@ describe('board data from the server', () => {
     })
 
     // Assert: a fetch now could miss the pending save, so none is sent
-    expect(fetchBoardAgain).not.toHaveBeenCalled()
+    expect(readBoard).not.toHaveBeenCalled()
 
     // Act
     await act(async () => {
@@ -323,7 +407,7 @@ describe('board data from the server', () => {
     })
 
     // Assert
-    expect(fetchBoardAgain).toHaveBeenCalledTimes(1)
+    expect(readBoard).toHaveBeenCalledTimes(1)
   })
 
   test('fetches the board again after a save that was refused', async () => {
@@ -352,7 +436,7 @@ describe('board data from the server', () => {
     })
 
     // Assert: a refused save no longer holds the fetch back
-    expect(fetchBoardAgain).toHaveBeenCalledTimes(1)
+    expect(readBoard).toHaveBeenCalledTimes(1)
   })
 
   test('does not fetch the board while offline, says so until the connection is back, then fetches', () => {
@@ -372,7 +456,7 @@ describe('board data from the server', () => {
     })
 
     // Assert: a notice that stays up for as long as the board cannot reload
-    expect(fetchBoardAgain).not.toHaveBeenCalled()
+    expect(readBoard).not.toHaveBeenCalled()
     expect(toast.warning).toHaveBeenCalledWith("You're offline", {
       id: 'board-refresh-offline',
       description: 'The board reloads when the connection is back.',
@@ -387,7 +471,7 @@ describe('board data from the server', () => {
 
     // Assert: the notice is taken down and the board is fetched
     expect(toast.dismiss).toHaveBeenCalledWith('board-refresh-offline')
-    expect(fetchBoardAgain).toHaveBeenCalledTimes(1)
+    expect(readBoard).toHaveBeenCalledTimes(1)
   })
 
   test('keeps a card dragged just before leaving the board when the board is opened again mid-save', async () => {
@@ -414,7 +498,7 @@ describe('board data from the server', () => {
 
     // Assert: the drag stays on screen, and no fetch is sent yet
     expect(store.getState().board.repoCards).toEqual([makeCard('status-done')])
-    expect(fetchBoardAgain).not.toHaveBeenCalled()
+    expect(readBoard).not.toHaveBeenCalled()
 
     // Act
     await act(async () => {
@@ -423,7 +507,7 @@ describe('board data from the server', () => {
     })
 
     // Assert: with the save in the database, the board is fetched again
-    expect(fetchBoardAgain).toHaveBeenCalledTimes(1)
+    expect(readBoard).toHaveBeenCalledTimes(1)
   })
 
   test('shows another board at once even while a save of the previous board is pending', () => {
@@ -449,7 +533,7 @@ describe('board data from the server', () => {
     expect(store.getState().board.repoCards).toEqual([
       makeCard('status-todo', 'board-2'),
     ])
-    expect(fetchBoardAgain).not.toHaveBeenCalled()
+    expect(readBoard).not.toHaveBeenCalled()
   })
 
   test('shows another board at once when the page switches boards', () => {
@@ -472,7 +556,7 @@ describe('board data from the server', () => {
       makeCard('status-done', 'board-2'),
     ])
     expect(store.getState().board.statusLists).toEqual(makeColumns('board-2'))
-    expect(fetchBoardAgain).not.toHaveBeenCalled()
+    expect(readBoard).not.toHaveBeenCalled()
   })
 
   test('fetches a board once more when it was reopened through another board while its save was pending', async () => {
@@ -501,7 +585,7 @@ describe('board data from the server', () => {
     // Assert: the old copy is all there is to show, and nothing is fetched
     // while the save is still on its way
     expect(store.getState().board.repoCards).toEqual([makeCard('status-todo')])
-    expect(fetchBoardAgain).not.toHaveBeenCalled()
+    expect(readBoard).not.toHaveBeenCalled()
 
     // Act: the save lands
     await act(async () => {
@@ -510,7 +594,7 @@ describe('board data from the server', () => {
     })
 
     // Assert: the board is fetched again, so the saved place shows up
-    expect(fetchBoardAgain).toHaveBeenCalledTimes(1)
+    expect(readBoard).toHaveBeenCalledTimes(1)
   })
 
   test('does not fetch the next board because the previous one was waiting for the connection', () => {
@@ -538,7 +622,7 @@ describe('board data from the server', () => {
     })
 
     // Assert: board-2 came fresh from the server, and the notice is gone
-    expect(fetchBoardAgain).not.toHaveBeenCalled()
+    expect(readBoard).not.toHaveBeenCalled()
     expect(toast.dismiss).toHaveBeenCalledWith('board-refresh-offline')
   })
 
@@ -566,7 +650,7 @@ describe('board data from the server', () => {
     })
 
     // Assert: the second one is still on its way
-    expect(fetchBoardAgain).not.toHaveBeenCalled()
+    expect(readBoard).not.toHaveBeenCalled()
 
     // Act
     await act(async () => {
@@ -575,7 +659,7 @@ describe('board data from the server', () => {
     })
 
     // Assert
-    expect(fetchBoardAgain).toHaveBeenCalledTimes(1)
+    expect(readBoard).toHaveBeenCalledTimes(1)
   })
 
   // React StrictMode (on in development) runs each effect twice when a
@@ -611,6 +695,174 @@ describe('board data from the server', () => {
 
     // Assert: the drag stays on screen and the board is fetched once more
     expect(store.getState().board.repoCards).toEqual([makeCard('status-done')])
-    expect(fetchBoardAgain).toHaveBeenCalledTimes(2)
+    expect(readBoard).toHaveBeenCalledTimes(2)
+  })
+
+  test('drops a fetch that answers after the board was left and opened again', async () => {
+    // Arrange: a fetch is on its way, then the card is dragged and the page is rebuilt
+    const { store, wrapper } = createAppStore()
+    const { unmount } = renderHook(
+      (pageData: PageData) => useBoardServerSync(pageData),
+      { wrapper, initialProps: makePageData('status-todo') },
+    )
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+    await act(async () => {
+      store.dispatch(setRepoCards([makeCard('status-done')]))
+      await trackBoardWrite(store.dispatch, Promise.resolve())
+    })
+    unmount()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+
+    // Act: the fetch from before the rebuild answers with the card in To Do
+    await act(async () => {
+      answerFetch(makePageData('status-todo'))
+    })
+
+    // Assert: the drag stays, and that answer is not the fetch the new page sent
+    expect(store.getState().board.repoCards).toEqual([makeCard('status-done')])
+    expect(readBoard).toHaveBeenCalledTimes(2)
+  })
+
+  test('reloads the page when the board cannot be shown', async () => {
+    // Arrange
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+
+    // Act: the read answers that there is no board to show
+    await act(async () => {
+      answerThatTheBoardIsGone()
+    })
+
+    // Assert: reading it again would answer the same way
+    expect(toast.error).toHaveBeenCalledWith(
+      'The board could not be reloaded',
+      expect.objectContaining({
+        id: 'board-refresh-failed',
+        action: expect.objectContaining({ label: 'Reload page' }) as object,
+      }),
+    )
+    expect(readBoard).toHaveBeenCalledTimes(1)
+  })
+
+  test('offers another try when the board could not be reloaded', async () => {
+    // Arrange
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+
+    // Act
+    await act(async () => {
+      failFetch(new Error('The server could not be reached'))
+    })
+
+    // Assert
+    expect(toast.error).toHaveBeenCalledWith(
+      'The board could not be reloaded',
+      expect.objectContaining({
+        id: 'board-refresh-failed',
+        action: expect.objectContaining({ label: 'Try again' }) as object,
+      }),
+    )
+    expect(readBoard).toHaveBeenCalledTimes(1)
+
+    // Act: Try again
+    const notice = vi.mocked(toast.error).mock.calls[0]?.[1] as
+      { action?: { onClick: () => void } } | undefined
+    await act(async () => {
+      notice?.action?.onClick()
+    })
+
+    // Assert
+    expect(readBoard).toHaveBeenCalledTimes(2)
+  })
+
+  test('tries a route read again through the route', async () => {
+    // Arrange: the read that must not wait behind a write fails
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested({ bypassActionQueue: true }))
+    })
+    await act(async () => {
+      failFetch(new Error('The server could not be reached'))
+    })
+
+    // Act
+    const notice = vi.mocked(toast.error).mock.calls[0]?.[1] as
+      { action?: { onClick: () => void } } | undefined
+    await act(async () => {
+      notice?.action?.onClick()
+    })
+
+    // Assert: the retry does not stand behind the write that has no answer
+    expect(readBoardOutsideTheQueue).toHaveBeenCalledTimes(2)
+    expect(readBoard).not.toHaveBeenCalled()
+  })
+
+  test('reads through the route when the fetch must not wait behind a write', () => {
+    // Arrange
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+
+    // Act
+    act(() => {
+      store.dispatch(boardRefreshRequested({ bypassActionQueue: true }))
+    })
+
+    // Assert
+    expect(readBoardOutsideTheQueue).toHaveBeenCalledTimes(1)
+    expect(readBoardOutsideTheQueue).toHaveBeenCalledWith(toBoardId('board-1'))
+    expect(readBoard).not.toHaveBeenCalled()
+  })
+
+  test('does not fetch a board that is not the one on screen', () => {
+    // Arrange: board-2 is on screen
+    const { store, wrapper } = createAppStore()
+    const { rerender } = renderHook(
+      (pageData: PageData) => useBoardServerSync(pageData),
+      { wrapper, initialProps: makePageData('status-todo') },
+    )
+    rerender({
+      boardId: toBoardId('board-2'),
+      statusLists: makeColumns('board-2'),
+      repoCards: [makeCard('status-todo', 'board-2')],
+    })
+
+    // Act: a save of board-1 asks for board-1
+    act(() => {
+      store.dispatch(boardRefreshRequested({ boardId: toBoardId('board-1') }))
+    })
+
+    // Assert
+    expect(readBoard).not.toHaveBeenCalled()
+
+    // Act: board-1 is on screen again
+    rerender(makePageData('status-todo'))
+
+    // Assert
+    expect(readBoard).toHaveBeenCalledTimes(1)
+    expect(readBoard).toHaveBeenCalledWith(toBoardId('board-1'))
   })
 })
