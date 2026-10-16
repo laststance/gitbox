@@ -53,6 +53,14 @@ const COMMAND_KBD_BASE = 'rounded px-1.5 py-0.5 text-xs'
 const COMMAND_KBD_SELECTED = 'bg-primary-foreground/20 text-primary-foreground'
 const COMMAND_KBD_UNSELECTED = 'bg-muted text-muted-foreground'
 
+/**
+ * Board name beside a repository. Capped at 45% and allowed to shrink, so a
+ * long board name cannot push the repository identifier off the row.
+ */
+const COMMAND_DETAIL_BASE = 'max-w-[45%] min-w-0 truncate text-xs'
+const COMMAND_DETAIL_SELECTED = `text-primary-foreground ${COMMAND_DETAIL_BASE}`
+const COMMAND_DETAIL_UNSELECTED = `text-muted-foreground ${COMMAND_DETAIL_BASE}`
+
 interface Command {
   id: string
   label: string
@@ -231,7 +239,7 @@ export const CommandPalette = memo(function CommandPalette() {
 
   /**
    * Memoized styles for each command item based on current selectedIndex.
-   * Returns a Map of command id -> { button, icon, kbd } classNames.
+   * Returns a Map of command id -> { button, icon, kbd, detail } classNames.
    */
   const commandStyles = useMemo(() => {
     const styles = new Map<
@@ -245,8 +253,8 @@ export const CommandPalette = memo(function CommandPalette() {
         icon: isSelected ? COMMAND_ICON_SELECTED : COMMAND_ICON_UNSELECTED,
         kbd: `${COMMAND_KBD_BASE} ${isSelected ? COMMAND_KBD_SELECTED : COMMAND_KBD_UNSELECTED}`,
         detail: isSelected
-          ? 'text-primary-foreground shrink-0 truncate text-xs'
-          : 'text-muted-foreground shrink-0 truncate text-xs',
+          ? COMMAND_DETAIL_SELECTED
+          : COMMAND_DETAIL_UNSELECTED,
       })
     })
     return styles

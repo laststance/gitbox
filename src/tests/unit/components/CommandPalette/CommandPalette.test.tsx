@@ -507,7 +507,10 @@ describe('CommandPalette', () => {
       await waitFor(() => {
         expect(screen.getByText('laststance/gitbox')).toBeVisible()
       })
-      expect(screen.getByText('Work Projects')).toBeVisible()
+      const boardName = screen.getByText('Work Projects')
+      expect(boardName).toBeVisible()
+      expect(boardName.className).toContain('max-w-[45%]')
+      expect(boardName.className).toContain('min-w-0')
       fireEvent.keyDown(input, { key: 'Enter' })
       expect(mockPush).toHaveBeenCalledWith(
         '/board/board-1?card=00000000-0000-4000-8000-0000000000c2',
