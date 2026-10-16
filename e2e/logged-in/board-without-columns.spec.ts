@@ -6,6 +6,7 @@
  * column too. A board without columns can take no card, so the next time it
  * is opened the server gives it the five columns of the Software Release
  * preset (`createDefaultStatusLists`, called by `getBoardBundle`).
+ * Two repairs at once are `e2e/logged-in/default-columns-once.spec.ts`.
  *
  * Nothing fetches the board again after a column is deleted, so the columns
  * are written by the one page load this test makes.

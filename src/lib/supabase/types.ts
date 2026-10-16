@@ -305,6 +305,14 @@ export type Database = {
         Args: { p_name: string; p_columns: Json }
         Returns: Json
       }
+      create_first_board_if_needed: {
+        Args: { p_name: string; p_columns: Json }
+        Returns: Json
+      }
+      ensure_default_status_lists: {
+        Args: { p_board_id: string; p_columns: Json }
+        Returns: Json
+      }
       move_card_to_board: {
         Args: {
           p_card_id: string

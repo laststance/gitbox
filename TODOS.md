@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/autoplan` review and the code review of issue #213 (a repository that is set aside is a card on an ordinary board). None of the follow-ups blocks that change.
 
-### Give a board without columns its default columns once, and a new account one first board
-
-**What:** (1) Make the write in `createDefaultStatusLists` safe against two requests that read the same board without columns at the same moment: a database function that inserts the default columns only while the board has none (it takes a lock on the board row first), or a unique index on `(board_id, grid_row, grid_col)` with `ON CONFLICT DO NOTHING`. (2) Do the "only when the user has no board" check of `createFirstBoardIfNeeded` inside the database function, under a lock for that user (`pg_advisory_xact_lock`).
-
-**Why:** (1) `getBoardBundle` reads the board, sees no column and inserts five. Two tabs that open the board at once both see none, and the board gets ten. It takes a board whose last column was deleted (or one made before boards were created with their columns) and two first views within the same moment, so it is rare, and the extra columns can be deleted by hand. (2) Two first sign-ins of one account that end at the same moment both count no board and both create "First Board". The second board can be deleted by hand. Both were seen in the reviews of issue #213; the behavior is older than that change. Two boards that one user creates at the same moment can also get the same position (`MAX(position) + 1` in `create_board_with_status_lists`); the lock of (2) would give them two.
-
-**Context:** `src/lib/actions/board-creation.ts` (`createDefaultStatusLists`, `createFirstBoardIfNeeded`), `src/lib/actions/board-data.ts` (`getBoardBundle`), `supabase/migrations/20261012085900_create_board_with_status_lists.sql`. `e2e/logged-in/board-without-columns.spec.ts` covers the single view. A unique index on the grid cell would also have to hold during a column swap, which writes two rows one after the other.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### Check in CI that no `SECURITY DEFINER` function is executable by `anon`
 
 **What:** Run the verification query's `anon_definer_functions` count (functions in schema `public` that are `SECURITY DEFINER`, return neither `trigger` nor `event_trigger`, and may be executed by `anon`) in the E2E job, against the `postgres` database after `supabase db reset`, and fail the job when it is above 0.

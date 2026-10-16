@@ -2,16 +2,18 @@
  * Unit Tests: createBoard(), createFirstBoardIfNeeded() and
  * createDefaultStatusLists()
  *
- * Both create a board through the `create_board_with_status_lists` database
- * function, which writes the board and its columns in one transaction. These
- * tests cover the app's side of that call: what it sends, what it hands back,
- * and what the user reads when the database refuses, does not answer or
- * answers in a shape the app cannot read. Which functions a browser can call
- * is pinned in browser-callable-actions.test.ts.
+ * createBoard() writes through `create_board_with_status_lists`, and
+ * createFirstBoardIfNeeded() through `create_first_board_if_needed`. Both
+ * write the board and its columns in one transaction. These tests cover the
+ * app's side of that call: what it sends, what it hands back, and what the
+ * user reads when the database refuses, does not answer or answers in a
+ * shape the app cannot read. Which functions a browser can call is pinned in
+ * browser-callable-actions.test.ts.
  *
  * createDefaultStatusLists() is the repair for a board found without columns
  * (its last column was deleted, or it is older than the database function).
- * It is the one place that still writes columns directly.
+ * It calls `ensure_default_status_lists`, which inserts only while the board
+ * still has none.
  *
  * What the function itself does is covered against a real database: the
  * column order through the page in e2e/logged-in/create-board.spec.ts, the
@@ -37,19 +39,10 @@ import type { Database } from '@/lib/supabase/types'
 /** The database function call; each test sets its answer. */
 const callDatabaseFunction = vi.fn()
 /**
- * A direct table write. Creating a board must never make one; giving a board
- * without columns its default ones is one.
+ * A direct table write. Creating a board, the first board and the default
+ * columns all go through a database function, so nothing here may insert.
  */
 const insertRow = vi.fn()
-/** Number of boards the signed-in user already has (first-board check). */
-let existingBoardCount = 0
-/** The filter of the first-board check: which user's boards are counted. */
-const countBoardsWhere = vi.fn<
-  () => Promise<{
-    count: number | null
-    error: { code: string; message: string } | null
-  }>
->(async () => ({ count: existingBoardCount, error: null }))
 
 vi.mock('@sentry/nextjs', () => ({
   captureException: vi.fn(),
@@ -64,14 +57,12 @@ vi.mock('@/lib/auth/get-cached-claims', () => ({
 }))
 
 /**
- * Stand-in for the Supabase client: `rpc` is the database function, and a
- * table can only be counted (the first-board check) or written through the
- * `insertRow` spy.
+ * Stand-in for the Supabase client: `rpc` is the database function. A table
+ * write would be the old path, where two requests could both insert.
  */
 const supabaseStub = {
   rpc: callDatabaseFunction,
   from: () => ({
-    select: () => ({ eq: countBoardsWhere }),
     insert: insertRow,
   }),
 }
@@ -96,7 +87,6 @@ const SINGLE_COLUMN_BOARD_ROW = {
 describe('createBoard()', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    existingBoardCount = 0
     // The stub implements only what board creation calls
     vi.mocked(getCachedClaims).mockResolvedValue({
       supabase: supabaseStub,
@@ -352,10 +342,18 @@ describe('createBoard()', () => {
   })
 })
 
+/** The five columns of the Software Release preset, in preset order. */
+const SOFTWARE_RELEASE_COLUMNS = [
+  { name: 'Pending', color: '#8B7355' },
+  { name: 'Planning', color: '#6B8E23' },
+  { name: 'Focus Development', color: '#CD853F' },
+  { name: 'MVP Release', color: '#4682B4' },
+  { name: 'Production Release', color: '#556B2F' },
+]
+
 describe('createFirstBoardIfNeeded()', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    existingBoardCount = 0
   })
 
   test('gives a user without boards a "First Board" with the five default columns', async () => {
@@ -378,37 +376,31 @@ describe('createFirstBoardIfNeeded()', () => {
     // Act
     const firstBoard = await createFirstBoardIfNeeded(sessionClient, 'user-1')
 
-    // Assert
+    // Assert: the count of boards is the database function's, under its lock
     expect(callDatabaseFunction).toHaveBeenCalledTimes(1)
     expect(callDatabaseFunction).toHaveBeenCalledWith(
-      'create_board_with_status_lists',
+      'create_first_board_if_needed',
       {
         p_name: 'First Board',
-        p_columns: [
-          { name: 'Pending', color: '#8B7355' },
-          { name: 'Planning', color: '#6B8E23' },
-          { name: 'Focus Development', color: '#CD853F' },
-          { name: 'MVP Release', color: '#4682B4' },
-          { name: 'Production Release', color: '#556B2F' },
-        ],
+        p_columns: SOFTWARE_RELEASE_COLUMNS,
       },
     )
     expect(insertRow).not.toHaveBeenCalled()
     expect(firstBoard).toEqual({ id: 'board-1', name: 'First Board' })
-    // The boards counted are those of the user the session belongs to
-    expect(countBoardsWhere).toHaveBeenCalledWith('user_id', 'user-1')
   })
 
   test('leaves a user who already has a board without a second one', async () => {
-    // Arrange
-    existingBoardCount = 1
+    // Arrange: the function found a board and wrote nothing
+    callDatabaseFunction.mockResolvedValue({ data: null, error: null })
 
     // Act
     const firstBoard = await createFirstBoardIfNeeded(sessionClient, 'user-1')
 
     // Assert
     expect(firstBoard).toBeNull()
-    expect(callDatabaseFunction).not.toHaveBeenCalled()
+    expect(callDatabaseFunction).toHaveBeenCalledTimes(1)
+    expect(Sentry.captureException).not.toHaveBeenCalled()
+    expect(insertRow).not.toHaveBeenCalled()
   })
 
   test('lets the sign-in continue and reports the failure when the first board cannot be created', async () => {
@@ -427,22 +419,6 @@ describe('createFirstBoardIfNeeded()', () => {
         userId: 'user-1',
         status: 'not-created',
       },
-    })
-  })
-
-  test('creates no board and reports it when the boards of the user cannot be counted', async () => {
-    // Arrange: without the count nobody knows whether a board exists already
-    const countError = { code: '57014', message: 'statement timeout' }
-    countBoardsWhere.mockResolvedValueOnce({ count: null, error: countError })
-
-    // Act
-    const firstBoard = await createFirstBoardIfNeeded(sessionClient, 'user-1')
-
-    // Assert
-    expect(firstBoard).toBeNull()
-    expect(callDatabaseFunction).not.toHaveBeenCalled()
-    expect(Sentry.captureException).toHaveBeenCalledWith(countError, {
-      extra: { context: 'Check existing boards', userId: 'user-1' },
     })
   })
 
@@ -470,18 +446,17 @@ describe('createFirstBoardIfNeeded()', () => {
     })
   })
 
-  test('lets the sign-in continue and reports it when counting the boards throws', async () => {
+  test('lets the sign-in continue and reports it when the call throws', async () => {
     // Arrange: the session is set by now; a rejection here would send the
     // user back to the login page
     const thrownError = new Error('socket hang up')
-    countBoardsWhere.mockRejectedValueOnce(thrownError)
+    callDatabaseFunction.mockRejectedValueOnce(thrownError)
 
     // Act
     const firstBoard = await createFirstBoardIfNeeded(sessionClient, 'user-1')
 
     // Assert
     expect(firstBoard).toBeNull()
-    expect(callDatabaseFunction).not.toHaveBeenCalled()
     expect(Sentry.captureException).toHaveBeenCalledWith(thrownError, {
       extra: {
         context: 'Create first board: unexpected failure',
@@ -540,76 +515,33 @@ describe('createDefaultStatusLists()', () => {
   })
 
   test('gives a board without columns the five default columns, side by side in one row', async () => {
-    // Arrange: the database answers with the rows it wrote
-    const writtenRows = [
-      'Pending',
-      'Planning',
-      'Focus Development',
-      'MVP Release',
-      'Production Release',
-    ].map((name, index) => ({
+    // Arrange: the database answers with the columns it kept
+    const writtenRows = SOFTWARE_RELEASE_COLUMNS.map((column, index) => ({
       id: `status-${index + 1}`,
       board_id: 'board-1',
-      name,
-      color: '#8B7355',
+      name: column.name,
+      color: column.color,
       order: index,
       grid_row: 0,
       grid_col: index,
       created_at: '2026-01-01T00:00:00+00:00',
       updated_at: '2026-01-01T00:00:00+00:00',
     }))
-    insertRow.mockReturnValue({
-      select: async () => ({ data: writtenRows, error: null }),
-    })
+    callDatabaseFunction.mockResolvedValue({ data: writtenRows, error: null })
 
     // Act
     const columns = await createDefaultStatusLists('board-1')
 
-    // Assert: each column has a cell of its own. Left at the default of 0,
-    // grid_col would put all five into the same cell.
-    expect(insertRow).toHaveBeenCalledTimes(1)
-    expect(insertRow).toHaveBeenCalledWith([
+    // Assert: the function places each column. The app sends names and
+    // colors only; the cells are the database's.
+    expect(callDatabaseFunction).toHaveBeenCalledWith(
+      'ensure_default_status_lists',
       {
-        board_id: 'board-1',
-        name: 'Pending',
-        color: '#8B7355',
-        order: 0,
-        grid_row: 0,
-        grid_col: 0,
+        p_board_id: 'board-1',
+        p_columns: SOFTWARE_RELEASE_COLUMNS,
       },
-      {
-        board_id: 'board-1',
-        name: 'Planning',
-        color: '#6B8E23',
-        order: 1,
-        grid_row: 0,
-        grid_col: 1,
-      },
-      {
-        board_id: 'board-1',
-        name: 'Focus Development',
-        color: '#CD853F',
-        order: 2,
-        grid_row: 0,
-        grid_col: 2,
-      },
-      {
-        board_id: 'board-1',
-        name: 'MVP Release',
-        color: '#4682B4',
-        order: 3,
-        grid_row: 0,
-        grid_col: 3,
-      },
-      {
-        board_id: 'board-1',
-        name: 'Production Release',
-        color: '#556B2F',
-        order: 4,
-        grid_row: 0,
-        grid_col: 4,
-      },
-    ])
+    )
+    expect(insertRow).not.toHaveBeenCalled()
     expect(columns.map((column) => [column.title, column.gridCol])).toEqual([
       ['Pending', 0],
       ['Planning', 1],
@@ -622,9 +554,7 @@ describe('createDefaultStatusLists()', () => {
   test('reports the failure and stops the page when the columns cannot be written', async () => {
     // Arrange
     const databaseError = { code: '42501', message: 'permission denied' }
-    insertRow.mockReturnValue({
-      select: async () => ({ data: null, error: databaseError }),
-    })
+    callDatabaseFunction.mockResolvedValue({ data: null, error: databaseError })
 
     // Act
     const creation = createDefaultStatusLists('board-1')
@@ -634,5 +564,23 @@ describe('createDefaultStatusLists()', () => {
     expect(Sentry.captureException).toHaveBeenCalledWith(databaseError, {
       extra: { context: 'Create default status lists', boardId: 'board-1' },
     })
+  })
+
+  test('stops the page when the answer about the columns cannot be read', async () => {
+    // Arrange: the call succeeded and named no column
+    callDatabaseFunction.mockResolvedValue({ data: [], error: null })
+
+    // Act
+    const creation = createDefaultStatusLists('board-1')
+
+    // Assert
+    await expect(creation).rejects.toThrow('Failed to create status lists')
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'ZodError' }),
+      {
+        extra: { context: 'Create default status lists', boardId: 'board-1' },
+      },
+    )
+    expect(insertRow).not.toHaveBeenCalled()
   })
 })

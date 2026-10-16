@@ -62,6 +62,29 @@ export function createTestUserSupabaseClient(): SupabaseClient {
 }
 
 /**
+ * Create a Supabase client that sends a bearer token of a signed-in user.
+ *
+ * The seed user's client is {@link createTestUserSupabaseClient}. This one is
+ * for a user a test just created, whose access token came from
+ * `signInWithPassword`. Row level security sees that user, and `auth.uid()`
+ * inside a database function is theirs.
+ *
+ * @param accessToken - Access token of the session just opened.
+ * @returns Client that sends the token on every request.
+ * @example
+ * const client = createAuthenticatedSupabaseClient(session.access_token)
+ * await client.rpc('create_first_board_if_needed', { p_name: 'First Board', p_columns })
+ */
+export function createAuthenticatedSupabaseClient(
+  accessToken: string,
+): SupabaseClient {
+  return createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+}
+
+/**
  * Create a Supabase client for a visitor who is not signed in (role `anon`).
  *
  * Use it to prove what the database hands to anyone holding the project's
