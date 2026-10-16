@@ -6,6 +6,7 @@
  */
 
 import { configureStore } from '@reduxjs/toolkit'
+import * as Sentry from '@sentry/nextjs'
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Provider } from 'react-redux'
@@ -183,6 +184,34 @@ describe('Move Here from a held row', () => {
     ).toBeDisabled()
     expect(selectIsBoardRefreshDue(store.getState())).toBe(true)
     expect(onMoved).not.toHaveBeenCalled()
+  })
+
+  test('offers Reload page when this page is out of date, without fetching the board', async () => {
+    // Arrange: the server rejected the call without running it
+    const stalePage = new Error(
+      'Server Action "abc" was not found on the server.',
+    )
+    stalePage.name = 'UnrecognizedActionError'
+    vi.mocked(moveCardToBoard).mockRejectedValue(stalePage)
+    const { store, onMoved } = renderHeldList()
+    const { user, dialog } = await openDialog()
+
+    // Act
+    await user.click(within(dialog).getByRole('button', { name: 'Move Here' }))
+
+    // Assert
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      'This page is out of date. Reload the page and try again.',
+    )
+    expect(
+      within(dialog).getByRole('button', { name: 'Reload page' }),
+    ).toHaveFocus()
+    expect(
+      within(dialog).getByRole('button', { name: 'Move Here' }),
+    ).toBeDisabled()
+    expect(selectIsBoardRefreshDue(store.getState())).toBe(false)
+    expect(onMoved).not.toHaveBeenCalled()
+    expect(Sentry.captureException).not.toHaveBeenCalled()
   })
 
   test('stops waiting after 15 seconds without an answer and offers Reload page', async () => {

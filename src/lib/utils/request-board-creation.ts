@@ -5,7 +5,9 @@ import type { BoardOption } from '@/lib/actions/types'
 import { BOARD_CREATION_UNCONFIRMED_MESSAGE } from '@/lib/constants/board-creation'
 import type { PresetId } from '@/lib/constants/board-presets'
 import { SERVER_ANSWER_TIME_LIMIT_MS } from '@/lib/constants/requests'
+import { PAGE_OUT_OF_DATE_MESSAGE } from '@/lib/constants/stale-page'
 
+import { isStalePageAction } from './is-stale-page-action'
 import { settleWithin } from './settle-within'
 
 /**
@@ -19,11 +21,16 @@ import { settleWithin } from './settle-within'
  *   the wait ended without an answer: Next.js sends Server Actions one after
  *   another, so the next one (a reload of the boards, say) would wait behind
  *   this request. Only a navigation or a reload of the page goes ahead of it.
+ * - `out-of-date`: the server rejected the call without running it, because
+ *   this page's build no longer has that action. Nothing was written. Sending
+ *   it again from this page fails the same way. Reloading the page loads the
+ *   build that has the action.
  */
 export type BoardCreationAttempt =
   | { status: 'created'; board: BoardOption }
   | { status: 'not-created'; message: string }
   | { status: 'unconfirmed'; message: string; isRequestStillRunning: boolean }
+  | { status: 'out-of-date'; message: string }
 
 /**
  * Asks the server for a new board and waits a limited time for the answer.
@@ -45,6 +52,7 @@ export type BoardCreationAttempt =
  * // => { status: 'created', board: { id: 'uuid', name: 'Side Projects', statusLists: [...] } }
  * // => { status: 'not-created', message: 'The board was not created. Try again.' }
  * // => { status: 'unconfirmed', message: BOARD_CREATION_UNCONFIRMED_MESSAGE, isRequestStillRunning: false }
+ * // => { status: 'out-of-date', message: PAGE_OUT_OF_DATE_MESSAGE }
  */
 export async function requestBoardCreation(
   boardName: string,
@@ -55,8 +63,13 @@ export async function requestBoardCreation(
     SERVER_ANSWER_TIME_LIMIT_MS,
   )
 
-  // The request failed on the way: the board may have been written before
   if (outcome.status === 'failed') {
+    // The server did not run the action: this page's build no longer has it.
+    // Nothing was written, and reporting it would mark every stale tab.
+    if (isStalePageAction(outcome.error)) {
+      return { status: 'out-of-date', message: PAGE_OUT_OF_DATE_MESSAGE }
+    }
+    // The request failed on the way: the board may have been written before
     Sentry.captureException(outcome.error, { tags: { action: 'createBoard' } })
     return {
       status: 'unconfirmed',

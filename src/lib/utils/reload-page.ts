@@ -7,7 +7,8 @@
  * behind a request that never answers. A reload does not wait: it drops what
  * is on its way and shows what the server has.
  * Offered by {@link reportUnconfirmedBoardSave},
- * {@link MoveToAnotherBoardDialog} and {@link CreateDestinationBoardForm}.
+ * {@link MoveToAnotherBoardDialog}, {@link CreateDestinationBoardForm} and
+ * {@link CreateBoardForm}.
  *
  * @example
  * <Button onClick={reloadPage}>Reload page</Button>
