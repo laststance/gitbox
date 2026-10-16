@@ -110,7 +110,6 @@
 - Batch addition / duplicate detection
 - **Organization Filter**: Filter repositories by user/org (persisted to Redux/localStorage)
 - **One repository, one card per user** ([#215](https://github.com/laststance/gitbox/issues/215)): a repository can sit on at most one of a user's boards. Identity is `owner/name`, case-insensitive. The database enforces it.
-- **Shared board**: on a board that is shared by a public link, the combobox says above its buttons that anyone who has the link will see the added repositories with their descriptions
 - **Already placed elsewhere**: the combobox lists repos held by another board (`On <board name>`) under their own heading, each with a link to that board, instead of offering them. Repos on the current board stay hidden. Placements are fetched every time the combobox opens.
 - **Repository memory** ([#216](https://github.com/laststance/gitbox/issues/216)): a repository keeps its note, links and comment when its card leaves the board (Remove from Board, Delete Column, Delete Board). Added again, to any board, the card shows them at once. The combobox marks a repository on no board that has something saved: `Saved: note, 3 links, comment`, naming only the parts that exist ("1 link" in the singular). A note or a comment counts when it holds more than whitespace, a link when it has a URL; a comment color alone does not. The marks are looked up with the placements; when that lookup fails the combobox shows no mark and still lists the placements. There is no screen that deletes a memory: to clear one, add the repository again and empty its note, links and comment. Deleting the account deletes every memory.
 - **Panel**: the combobox panel is 480px wide. From 640px of window width it stands below the Add Repositories button and ends at the right edge of the header, so all of it is on the page; below 640px it spans the screen. It ends above the bottom edge of the window, however far down its button stands: its two lists give up height and scroll by themselves, and the search box and Cancel / Add stay in view. Where less than 26rem would be left below the button, the panel moves up over the header instead, as far as the top edge of the window; and it follows its button when the header changes while the panel is open (the sidebar opens, the title is edited)
@@ -139,17 +138,14 @@
 - **Inline Editable Header**: Board title and subtitle are click-to-edit (`InlineEditableText` component)
 - **Names without a space**: a board name, a column name, a repository name, a subtitle or the title of the boards page that is one long word (snake_case, no hyphen) breaks where its line ends: in the header of a board, in a column header, on a card, on a board's card in the boards list, in a dialog and in the lists of boards and columns of the move dialog. The controls beside it stay in reach (the buttons of the board header, "Column options", the menu of a card, "Create Board"), and a dialog and its lists stay as wide as the screen on a phone. A select shows one line of the chosen name. An ordinary word is not broken to make room: a board name of one word that fits its card stays on one line there (it may run on under the star and the menu of the card), and so does a title of the boards page that fits the line
 - **Boards page header**: the title and the subtitle are click-to-edit. From 640px on "Create Board" stands at the right end of their row; below 640px it stands under them, as the buttons of a board's header do
-- **Board Settings**: 4-tab dialog (General, Cards, Sharing, Danger Zone). On a phone, where the dialog is as wide as the screen, the tabs take a second row, so the dialog does not scroll sideways
+- **Board Settings**: 3-tab dialog (General, Cards, Danger Zone). On a phone, where the dialog is as wide as the screen, tabs that do not fit in one row take a second row, so the dialog does not scroll sideways
   - **General**: Rename board, subtitle edit form, "Show Subtitle" visibility toggle
   - **Cards**: Card display settings (description, comment, font size/weight)
-  - **Sharing**: Public board toggle, share link generation/copy, and a line that says what the link shows (board name, subtitle, columns, each repository's name, description, language and stars) and what it hides (comments, notes, links)
   - **Danger Zone**: Delete board with confirmation. The cards go with the board; the notes, links and comments of their repositories are kept (see Repository memory in 3.1)
-- **Public Board Sharing**: Make boards publicly viewable via unique share slug (read-only for visitors)
-- **Copy Link** (board header): Copies the public share link while the board is shared; otherwise the board's own address, with a note that only the owner can open it
+- **Copy Link** (board header): Copies the board's own address (`/board/<id>`, without a query), with a note that only the account that owns the board can open it
 - **Move to Another Board**: Move repo cards between boards via dialog (DB RPC `move_card_to_board`). The card keeps its note, links and comment
   - The dialog can create the destination board: **New Board...** under the board selector, or the create form directly when the user has no other board. A board made there has one column, "Repositories"
-  - The dialog opens on the board the last move from this board went to, when that board is still offered (remembered in this browser). Without one it opens on the newest board that is not shared by a public link
-  - A board that is shared by a public link carries the mark of a public board in the list. When it is the destination, the dialog says that anyone who has the link will see the repository there with its description, and that notes, links and comments stay private
+  - The dialog opens on the board the last move from this board went to, when that board is still offered (remembered in this browser). Without one it opens on the newest board
   - The columns of the destination are listed in the order its board shows them, and the first one (the left-most of the first row) is selected until another is picked
   - While the move or a board creation waits for the server the dialog stays open and its controls are disabled. After 15 seconds without an answer it says that the outcome could not be confirmed and can be closed again. After every move that was not confirmed the board is fetched again, and the same move can be sent a second time without harm. That fetch waits until the request has settled, so the dialog offers **Reload page** next to the message of a move with an unknown outcome. A move the server itself could not confirm (the database gave it no answer) is shown the same way
   - A board creation that could not be confirmed is not sent a second time from the dialog, because the board may exist: **Reload boards** loads the list again and shows it. When the creation got no answer in 15 seconds its request is still running and that load would wait behind it, so **Reload page** takes the place of Reload boards
@@ -393,7 +389,6 @@ interface BoardSettings {
 | `batchDnD`         | 60           | 1 min  | D&D batch operations  |
 | `boardCrud`        | 20           | 1 min  | Board CRUD            |
 | `userSettings`     | 20           | 1 min  | User settings         |
-| `publicBoardView`  | 60           | 1 min  | Shared board view     |
 | `sentryTunnel`     | 120          | 1 min  | Error reports (edge)  |
 
 #### Integration
@@ -699,8 +694,6 @@ board {
   is_favorite boolean DEFAULT false,  -- Favorite board
   position integer DEFAULT 0,        -- Board order for D&D reordering on /boards
   settings jsonb,                     -- Board-level settings (card display, showSubtitle, etc.)
-  is_public boolean DEFAULT false,   -- Public board visibility
-  share_slug text UNIQUE,            -- Unique URL slug for public sharing
   created_at, updated_at
 }
 
@@ -904,7 +897,6 @@ interface RepoCardMeta {
 - Component decomposition (Landing, AddRepositoryCombobox) ✅
 - Inline editable board title and subtitle ✅
 - Board subtitle edit form and visibility toggle in Board Settings ✅
-- Public board sharing (share slug, read-only public view) ✅
 - XSS prevention (DOMPurify sanitization, open redirect protection) ✅
 - Inline editable boards page header with DB persistence ✅
 - user_settings table for per-user page customization ✅
@@ -1025,8 +1017,6 @@ The workflow (`.github/workflows/supabase-production.yml`) installs a pinned Sup
 #### RLS (Row Level Security)
 
 All tables have RLS enabled. Users can only access their own data via `user_id` match.
-
-A shared board (`is_public`) is the one exception, and it does not go through the tables: visitors read it with the `get_public_board(p_slug)` function, which returns the name and subtitle of the board with that share slug, its columns and its cards, without any `user_id`. Public boards cannot be listed.
 
 ---
 
@@ -1357,8 +1347,7 @@ export async function cdpBoardDragAndDrop(
 | Unauth     | `landing.spec.ts`                          | Landing page                          |
 | Unauth     | `login.spec.ts`                            | Login page                            |
 | Unauth     | `page-titles.spec.ts`                      | Unauthenticated page titles           |
-| Unauth     | `public-board.spec.ts`                     | Public board (read-only)              |
-| Unauth     | `public-board-data-access.spec.ts`         | Public board database access          |
+| Unauth     | `board-data-access.spec.ts`                | Board database access                 |
 | Unauth     | `ssr-hydration.spec.ts`                    | SSR hydration (unauth)                |
 | Security   | `xss-smoke.spec.ts`                        | XSS injection prevention              |
 
