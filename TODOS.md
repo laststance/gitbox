@@ -37,18 +37,6 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 From the `/plan-eng-review` of issue #216 (a repository keeps its note, links and comment when its card goes). None blocks that change.
 
-### Harden #216's note paths against what its last review found
-
-**What:** Refuse a `/` in `repocard.repo_owner`, `repocard.repo_name` and the same columns of `projectinfo` with a check constraint, so the generated `repo_key` names the same repository as `repocard_unique_repo_per_user`. Hand the PostgREST error of a failed note read, note save or comment save to Sentry (`new Error(message, { cause: error })` and `error.code` in `extra`). Let `useNoteModal.open` drop an answer when another card was opened after it was sent. Let the server's comment win over a restored one in `BoardPageClient` (`{ ...restoredComments, ...initialData.comments }`). Say on the Account page that deleting the account deletes the notes, links and comments too.
-
-**Why:** The adversarial pass of #216's ship review found these. GitHub never puts a `/` in an owner or a name and the server actions refuse one, but a signed-in user can write the table through PostgREST: two cards `a/b`+`c` and `a`+`b/c` pass the card's key and collide in `repo_key`, which stops the migration (it rolls back). Production had 0 such cards out of 50 on 2026-10-15, and the rollout runbook checks again in its freeze window. A failed save now reaches Sentry as one generic message whatever the database said (42703 during the deploy window, 42501 for a card deleted in another tab, 23514 for a note over the limit). The other three are low: an earlier request answering last opens the wrong card's note, a restored comment shadows a newer server comment only if the board remounts, and the Account copy names boards, cards and settings only.
-
-**Context:** `supabase/migrations/20261014130000_projectinfo_belongs_to_repository.sql`, `src/lib/actions/project-info-core.ts`, `src/lib/actions/project-info.ts`, `src/hooks/board/useNoteModal.ts`, `src/app/board/[id]/BoardPageClient.tsx`, `src/app/account/AccountClient.tsx`. A constraint needs a migration that counts the rows it would refuse first.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ## Set Work Aside on Boards (#213): deferred follow-ups
 
 From the `/autoplan` review and the code review of issue #213 (a repository that is set aside is a card on an ordinary board). None of the follow-ups blocks that change.

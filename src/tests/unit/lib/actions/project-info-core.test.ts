@@ -17,6 +17,7 @@
  * @see src/lib/actions/project-info-core.ts
  */
 
+import * as Sentry from '@sentry/nextjs'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 import {
@@ -39,6 +40,9 @@ const { createClient, lookupRepositoryByGitHubId: lookupById } = vi.hoisted(
   }),
 )
 
+vi.mock('@sentry/nextjs', () => ({
+  captureException: vi.fn(),
+}))
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/github/verify-repository-identity', () => ({
   lookupRepositoryByGitHubId: lookupById,
@@ -192,6 +196,7 @@ describe('project-info-core', () => {
         errorCode: 'CARD_NOT_FOUND',
       })
       expect(from).not.toHaveBeenCalledWith('projectinfo')
+      expect(Sentry.captureException).not.toHaveBeenCalled()
     },
   )
 
@@ -209,6 +214,13 @@ describe('project-info-core', () => {
     // Assert
     await expect(attempt).rejects.toThrow('Failed to read the card')
     expect(from).not.toHaveBeenCalledWith('projectinfo')
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Failed to read the card',
+        cause: { code: '57014', message: 'canceling statement' },
+      }),
+      { extra: { code: '57014' } },
+    )
   })
 
   // Value: protects=a write the database refuses reaches the caller as an error, which keeps the note draft and rolls back the comment; fails_when=a write error is ignored and the save reports success; why_new=testing review of #216: the stub accepted every write; seam=none; no_claim=what the dialog does with the error (useNoteModalDraft.test.tsx)
@@ -248,6 +260,16 @@ describe('project-info-core', () => {
 
       // Assert
       await expect(attempt).rejects.toThrow(message)
+      expect(Sentry.captureException).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message,
+          cause: {
+            code: '42501',
+            message: 'new row violates row-level security policy',
+          },
+        }),
+        { extra: { code: '42501' } },
+      )
     },
   )
 
@@ -617,5 +639,19 @@ describe('project-info-core', () => {
 
     // Assert
     expect(outcome).toEqual(expected)
+    if (
+      answer.error?.code === '57014' &&
+      expected === 'Failed to fetch project information'
+    ) {
+      expect(Sentry.captureException).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Failed to fetch project information',
+          cause: { code: '57014', message: 'canceling statement' },
+        }),
+        { extra: { code: '57014' } },
+      )
+    } else {
+      expect(Sentry.captureException).not.toHaveBeenCalled()
+    }
   })
 })

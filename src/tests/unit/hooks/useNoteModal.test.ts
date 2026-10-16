@@ -67,6 +67,8 @@ describe('useNoteModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    mockGetProjectInfo.mockReset()
+    mockUpsertProjectInfo.mockReset()
   })
 
   describe('Initial State', () => {
@@ -178,6 +180,51 @@ describe('useNoteModal', () => {
       expect(Sentry.captureException).toHaveBeenCalledWith(transportError, {
         extra: { context: 'useNoteModal.open', cardId: 'card-1' },
       })
+    })
+
+    // Value: protects=opening a second card drops the note of the first when that read answers later; fails_when=the slower read opens its card over the one the user asked for last; why_new=open() applied every answer, whichever card it was for; seam=none; no_claim=how long a read takes
+    test('keeps the card that was opened later when an earlier note arrives after it', async () => {
+      // Arrange
+      let finishFirst: (
+        value: Awaited<ReturnType<typeof getProjectInfo>>,
+      ) => void
+      const firstRead = new Promise<Awaited<ReturnType<typeof getProjectInfo>>>(
+        (resolve) => {
+          finishFirst = resolve
+        },
+      )
+      mockGetProjectInfo.mockImplementation(async (cardId: string) => {
+        if (cardId === 'card-1') return firstRead
+        return {
+          success: true,
+          data: { note: 'note of the second card', comment: '', links: [] },
+        }
+      })
+      const { result } = renderHook(() =>
+        useNoteModal({ repoCards: mockRepoCards }),
+      )
+
+      // Act: the first read is still running when the second card is opened
+      let firstOpen: Promise<void> = Promise.resolve()
+      act(() => {
+        firstOpen = result.current.open(toRepoCardId('card-1'))
+      })
+      await act(async () => {
+        await result.current.open(toRepoCardId('card-2'))
+      })
+      await act(async () => {
+        finishFirst({
+          success: true,
+          data: { note: 'note of the first card', comment: '', links: [] },
+        })
+        await firstOpen
+      })
+
+      // Assert
+      expect(result.current.isOpen).toBe(true)
+      expect(result.current.cardId).toBe('card-2')
+      expect(result.current.cardTitle).toBe('test/repo-2')
+      expect(result.current.initialNote).toBe('note of the second card')
     })
 
     test('should not open when card is not found', async () => {

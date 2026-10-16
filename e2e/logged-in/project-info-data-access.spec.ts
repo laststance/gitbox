@@ -69,10 +69,34 @@ async function removeProjectInfoOfProbeRepositories(): Promise<void> {
       `removeProjectInfoOfProbeRepositories failed for the second user: ${otherUserError.message}`,
     )
   }
+  const { error: slashOwnerError } = await serviceRole
+    .from('projectinfo')
+    .delete()
+    .eq('user_id', TEST_USER_ID)
+    .eq('repo_owner', 'last/stance')
+  if (slashOwnerError) {
+    throw new Error(
+      `removeProjectInfoOfProbeRepositories failed on a slash row: ${slashOwnerError.message}`,
+    )
+  }
+  const { error: slashNameError } = await serviceRole
+    .from('projectinfo')
+    .delete()
+    .eq('user_id', TEST_USER_ID)
+    .eq('repo_name', 'slash/probe')
+  if (slashNameError) {
+    throw new Error(
+      `removeProjectInfoOfProbeRepositories failed on a slash row: ${slashNameError.message}`,
+    )
+  }
   const { error: cardError } = await serviceRole
     .from('repocard')
     .delete()
-    .eq('id', PROBE_CARD_ID)
+    .in('id', [
+      PROBE_CARD_ID,
+      '00000000-0000-0000-0000-0000000003c2',
+      '00000000-0000-0000-0000-0000000003c3',
+    ])
   if (cardError) {
     throw new Error(
       `removeProjectInfoOfProbeRepositories failed on the card: ${cardError.message}`,
@@ -661,6 +685,85 @@ test.describe('Project info data access', () => {
     expect(called.data).toBeNull()
     expect(called.error?.code).toBe('PGRST202')
   })
+
+  test.each([
+    {
+      column: 'owner',
+      id: '00000000-0000-0000-0000-0000000003c2',
+      repo_owner: 'last/stance',
+      repo_name: 'slash-probe',
+    },
+    {
+      column: 'name',
+      id: '00000000-0000-0000-0000-0000000003c3',
+      repo_owner: 'laststance',
+      repo_name: 'slash/probe',
+    },
+  ])(
+    'refuses a card whose $column contains a slash',
+    async ({ id, repo_owner, repo_name }) => {
+      // Arrange
+      const testUser = createTestUserSupabaseClient()
+
+      // Act
+      const added = await testUser.from('repocard').insert({
+        id,
+        board_id: BOARD_IDS.workProjects,
+        status_id: WORK_PROJECTS_STATUS_IDS.backlog,
+        repo_owner,
+        repo_name,
+        order: 0,
+        meta: {},
+      })
+
+      // Assert
+      expect(added.error?.code).toBe('23514')
+      const left = await createServiceRoleSupabaseClient()
+        .from('repocard')
+        .select('id')
+        .eq('id', id)
+      expect(left.error).toBeNull()
+      expect(left.data).toEqual([])
+    },
+  )
+
+  test.each([
+    {
+      column: 'owner',
+      repo_owner: 'last/stance',
+      repo_name: 'slash-probe',
+    },
+    {
+      column: 'name',
+      repo_owner: 'laststance',
+      repo_name: 'slash/probe',
+    },
+  ])(
+    'refuses project info whose $column contains a slash',
+    async ({ repo_owner, repo_name }) => {
+      // Arrange: the service role bypasses row level security, not the check
+      const admin = createServiceRoleSupabaseClient()
+
+      // Act
+      const added = await admin.from('projectinfo').insert({
+        user_id: TEST_USER_ID,
+        repo_owner,
+        repo_name,
+        note: 'must not be stored',
+      })
+
+      // Assert
+      expect(added.error?.code).toBe('23514')
+      const left = await admin
+        .from('projectinfo')
+        .select('id')
+        .eq('user_id', TEST_USER_ID)
+        .eq('repo_owner', repo_owner)
+        .eq('repo_name', repo_name)
+      expect(left.error).toBeNull()
+      expect(left.data).toEqual([])
+    },
+  )
 
   test('a visitor without an account reads no project info', async () => {
     // Arrange

@@ -14,6 +14,7 @@
  * @see project-info.ts for the server action wrappers
  */
 
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { BOARD_OF_CARD_RELATION } from '@/lib/constants/board-bundle'
@@ -330,6 +331,33 @@ function explainToUser(message: string, errorCode?: ActionErrorCode): never {
   throw new ActionUserError(message, errorCode)
 }
 
+/**
+ * Reports a project-info read or write the database refused, then refuses
+ * it with the sentence the dialog shows.
+ *
+ * The auth guard does not report an {@link ActionUserError}, and it replaces
+ * any other thrown error with one generic sentence. The PostgREST code
+ * (42703 while a migration is deploying, 42501, 23514) would be lost.
+ * Called when a project-info read or write gets an error that is not a
+ * missing card: a note read, a note save, a comment save, a color change
+ * or a comment delete.
+ *
+ * @param message - What the user reads.
+ * @param error - The error PostgREST returned. `code` is sent to Sentry.
+ * @throws {@link ActionUserError} always.
+ * @example
+ * reportDatabaseRefusal('Failed to save project information', error)
+ */
+function reportDatabaseRefusal(
+  message: string,
+  error: { message: string; code?: string },
+): never {
+  Sentry.captureException(new Error(message, { cause: error }), {
+    extra: { code: error.code },
+  })
+  explainToUser(message)
+}
+
 // ========================================
 // Validation
 // ========================================
@@ -509,7 +537,7 @@ async function readCardRepository(
     explainToUser('Card not found', 'CARD_NOT_FOUND')
   }
   if (error) {
-    explainToUser('Failed to read the card')
+    reportDatabaseRefusal('Failed to read the card', error)
   }
 
   return {
@@ -559,7 +587,7 @@ export async function getProjectInfoCore(
     if (error.code === 'PGRST116') {
       explainToUser('Card not found', 'CARD_NOT_FOUND')
     }
-    explainToUser('Failed to fetch project information')
+    reportDatabaseRefusal('Failed to fetch project information', error)
   }
 
   const projectInfo = card.projectinfo
@@ -617,7 +645,7 @@ export async function upsertProjectInfoCore(
   })
 
   if (error) {
-    explainToUser('Failed to save project information')
+    reportDatabaseRefusal('Failed to save project information', error)
   }
 }
 
@@ -659,7 +687,7 @@ export async function updateCommentCore(
   })
 
   if (error) {
-    explainToUser('Failed to update comment')
+    reportDatabaseRefusal('Failed to update comment', error)
   }
 }
 
@@ -690,7 +718,7 @@ export async function updateCommentColorCore(
   })
 
   if (error) {
-    explainToUser('Failed to update comment color')
+    reportDatabaseRefusal('Failed to update comment color', error)
   }
 }
 
@@ -726,7 +754,7 @@ export async function deleteCommentCore(repoCardId: string): Promise<void> {
       githubRepoId,
     )
     if (found.error) {
-      explainToUser('Failed to delete comment')
+      reportDatabaseRefusal('Failed to delete comment', found.error)
     }
     if (found.id) {
       const { error } = await supabase
@@ -735,7 +763,7 @@ export async function deleteCommentCore(repoCardId: string): Promise<void> {
         .eq('id', found.id)
         .eq('user_id', ownerId)
       if (error) {
-        explainToUser('Failed to delete comment')
+        reportDatabaseRefusal('Failed to delete comment', error)
       }
       return
     }
@@ -743,7 +771,7 @@ export async function deleteCommentCore(repoCardId: string): Promise<void> {
     // Do not clear a comment that belongs to a different repository's id
     const byName = await findMemoryByRepoKey(supabase, ownerId, repository)
     if (byName.error) {
-      explainToUser('Failed to delete comment')
+      reportDatabaseRefusal('Failed to delete comment', byName.error)
     }
     if (memoryBelongsToAnotherRepository(byName.githubRepoId, githubRepoId)) {
       return
@@ -763,6 +791,6 @@ export async function deleteCommentCore(repoCardId: string): Promise<void> {
     )
 
   if (error) {
-    explainToUser('Failed to delete comment')
+    reportDatabaseRefusal('Failed to delete comment', error)
   }
 }
