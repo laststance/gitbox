@@ -147,7 +147,8 @@ export const AccountClient = memo(function AccountClient({
             <div className="border-destructive/20 bg-destructive/5 rounded-lg border p-4">
               <p className="text-muted-foreground text-sm">
                 Deleting your account will permanently remove all your boards,
-                cards, and settings. This action cannot be undone.
+                cards, notes, links, comments, and settings. This action cannot
+                be undone.
               </p>
               <p className="text-foreground mt-2 text-sm font-medium">
                 Your GitHub repositories will NOT be affected.

@@ -63,6 +63,23 @@ describe('AccountClient data summary', () => {
     expect(tileGrid?.children[1]).toHaveTextContent('Repository Cards')
   })
 
+  test('says deleting the account deletes the notes, links and comments too', () => {
+    // Arrange
+    const accountData = { boardsCount: 1, cardsCount: 1 }
+
+    // Act
+    render(
+      <AccountClient userProfile={userProfile} accountData={accountData} />,
+    )
+
+    // Assert
+    expect(
+      screen.getByText(
+        'Deleting your account will permanently remove all your boards, cards, notes, links, comments, and settings. This action cannot be undone.',
+      ),
+    ).toBeVisible()
+  })
+
   test('the loading skeleton stands in the same column as the loaded page, so the page does not jump when the data arrives', () => {
     // Arrange
     const accountData = { boardsCount: 0, cardsCount: 0 }

@@ -9,7 +9,7 @@
  */
 
 import * as Sentry from '@sentry/nextjs'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -83,22 +83,28 @@ export function useNoteModal({
   const [cardTitle, setCardTitle] = useState('')
   const [initialNote, setInitialNote] = useState('')
   const [initialLinks, setInitialLinks] = useState<ProjectLink[]>([])
+  // The card open() was last asked for. An answer for an earlier card is
+  // dropped, so a slow read cannot open that card over the one asked for later.
+  const requestedCardId = useRef<RepoCardId | null>(null)
 
   /**
    * Open NoteModal for a card
    * Fetches current note and links from Supabase. A failed read, refused or
    * lost on the way, shows a toast and leaves the modal closed, holding no
-   * card.
+   * card. An answer for a card opened earlier is dropped.
    */
   const open = useCallback(
     async (targetCardId: RepoCardId) => {
       const card = repoCards.find((c) => c.id === targetCardId)
       if (!card) return
+      requestedCardId.current = targetCardId
 
       let result: Awaited<ReturnType<typeof getProjectInfo>>
       try {
         result = await getProjectInfo(targetCardId)
       } catch (error) {
+        // A newer open owns the dialog. This answer is for the card before it.
+        if (requestedCardId.current !== targetCardId) return
         // The request never got an answer (offline, a deploy in between):
         // the menu that called open() has nobody to tell, so tell the user
         Sentry.captureException(error, {
@@ -109,6 +115,7 @@ export function useNoteModal({
         })
         return
       }
+      if (requestedCardId.current !== targetCardId) return
       // An empty editor over a note that could not be read would let a save
       // overwrite the note with nothing: say so and stay closed
       if (!result.success) {

@@ -67,6 +67,7 @@ import {
   describeColumnDeletion,
   holdColumnDeletionDescription,
 } from '@/lib/utils/describe-column-deletion'
+import { mergeRestoredComments } from '@/lib/utils/merge-restored-comments'
 import {
   BOARD_NAME_MAX_LENGTH,
   BOARD_SUBTITLE_MAX_LENGTH,
@@ -173,13 +174,14 @@ export const BoardPageClient = memo(function BoardPageClient({
   // Comments of repositories added on this page
   // ========================================
 
-  // Comments that repositories added on this page brought back (issue #216):
-  // the server's comments are read once per page load
+  // Comments that repositories added on this page brought back (issue #216).
+  // A later load of this page wins: the restored comment is only for a card
+  // the server has not sent yet.
   const [restoredComments, setRestoredComments] = useState<
     Record<string, CommentData>
   >({})
   const boardComments = useMemo(
-    () => ({ ...initialData.comments, ...restoredComments }),
+    () => mergeRestoredComments(initialData.comments, restoredComments),
     [initialData.comments, restoredComments],
   )
 
