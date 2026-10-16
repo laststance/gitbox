@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1.0] - 2026-10-17
+
+### Removed
+
+- The database no longer keeps anything for board sharing: the public flag of a board, its share code and the lookup that served shared boards are gone. The oldest app build that runs on this database is the one released as 0.7.0.0 (merge commit `a3a3090`).
+
 ## [0.7.0.0] - 2026-10-16
 
 ### Removed
