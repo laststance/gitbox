@@ -271,7 +271,14 @@ async function applyFetchedBoard(request: {
       action: {
         label: 'Try again',
         onClick: () => {
-          dispatch(boardRefreshRequested({ boardId }))
+          // A route read timed out while a write still has no answer. Trying
+          // again through a Server Action would wait behind that write.
+          dispatch(
+            boardRefreshRequested({
+              boardId,
+              ...(bypassesActionQueue ? { bypassActionQueue: true } : {}),
+            }),
+          )
         },
       },
     })

@@ -792,6 +792,32 @@ describe('board data from the server', () => {
     expect(readBoard).toHaveBeenCalledTimes(2)
   })
 
+  test('tries a route read again through the route', async () => {
+    // Arrange: the read that must not wait behind a write fails
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested({ bypassActionQueue: true }))
+    })
+    await act(async () => {
+      failFetch(new Error('The server could not be reached'))
+    })
+
+    // Act
+    const notice = vi.mocked(toast.error).mock.calls[0]?.[1] as
+      { action?: { onClick: () => void } } | undefined
+    await act(async () => {
+      notice?.action?.onClick()
+    })
+
+    // Assert: the retry does not stand behind the write that has no answer
+    expect(readBoardOutsideTheQueue).toHaveBeenCalledTimes(2)
+    expect(readBoard).not.toHaveBeenCalled()
+  })
+
   test('reads through the route when the fetch must not wait behind a write', () => {
     // Arrange
     const { store, wrapper } = createAppStore()
