@@ -265,6 +265,30 @@ describe('trackBoardWrite()', () => {
     expect(selectIsBoardRefreshDue(store.getState())).toBe(true)
   })
 
+  test('drops the fetch sent at the limit when the save answers after it, so that copy cannot replace the save', async () => {
+    // Arrange: the fetch sent at the limit is still on its way
+    vi.useFakeTimers()
+    const store = createStoreHoldingBoard('board-1', [])
+    let answerSave: () => void = () => {}
+    const lateSave = new Promise<void>((resolve) => {
+      answerSave = resolve
+    })
+    const trackedSave = trackBoardWrite(store.dispatch, lateSave)
+    await vi.advanceTimersByTimeAsync(15_000)
+    store.dispatch(boardRefreshSent())
+    const requestSentAtTheLimit =
+      store.getState().boardSync.sentRefreshRequestId
+
+    // Act
+    answerSave()
+    await trackedSave
+
+    // Assert
+    expect(requestSentAtTheLimit).not.toBeNull()
+    expect(store.getState().boardSync.sentRefreshRequestId).toBeNull()
+    expect(selectIsBoardRefreshDue(store.getState())).toBe(true)
+  })
+
   test('counts a late save out once only, so a second save that is still on its way keeps holding fetches back', async () => {
     // Arrange: the first save is 15 seconds old and gets its answer now; the
     // second one was sent 10 seconds after it and has no answer yet

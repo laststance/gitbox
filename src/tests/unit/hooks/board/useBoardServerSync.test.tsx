@@ -108,6 +108,12 @@ function answerFetch(page: PageData): void {
  *
  * @param error - What the read rejects with.
  */
+function answerThatTheBoardIsGone(): void {
+  const held = heldFetches.shift()
+  if (held === undefined) throw new Error('No board fetch is waiting')
+  held.resolve(null)
+}
+
 function failFetch(error: unknown): void {
   const held = heldFetches.shift()
   if (held === undefined) throw new Error('No board fetch is waiting')
@@ -717,6 +723,33 @@ describe('board data from the server', () => {
     // Assert: the drag stays, and that answer is not the fetch the new page sent
     expect(store.getState().board.repoCards).toEqual([makeCard('status-done')])
     expect(readBoard).toHaveBeenCalledTimes(2)
+  })
+
+  test('reloads the page when the board cannot be shown', async () => {
+    // Arrange
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+
+    // Act: the read answers that there is no board to show
+    await act(async () => {
+      answerThatTheBoardIsGone()
+    })
+
+    // Assert: reading it again would answer the same way
+    expect(toast.error).toHaveBeenCalledWith(
+      'The board could not be reloaded',
+      expect.objectContaining({
+        id: 'board-refresh-failed',
+        action: expect.objectContaining({ label: 'Reload page' }) as object,
+      }),
+    )
+    expect(readBoard).toHaveBeenCalledTimes(1)
   })
 
   test('offers another try when the board could not be reloaded', async () => {

@@ -78,8 +78,9 @@ interface BoardServerSnapshot {
  *   That is a fetch of a board that was left and opened again.
  * - A wanted fetch waits for pending writes to settle and for the browser to
  *   be online. While it waits for the connection, a notice says so.
- * - A fetch that fails offers "Try again". A page whose build no longer has
- *   the action offers "Reload page".
+ * - A fetch that fails on the way offers "Try again". A page whose build no
+ *   longer has the action, or a read that finds no board, offers "Reload
+ *   page": the same read would answer the same way.
  *
  * The store outlives this component: a board that is left and opened again
  * is mounted anew while the store still holds its cards. So nothing here may
@@ -237,7 +238,12 @@ async function applyFetchedBoard(request: {
       : await getBoardBundle(boardId)
     if (!isCurrentFetch(isStillMounted, getState, requestId)) return
     if (!bundle) {
-      offerAnotherTry(dispatch, requestId, boardId)
+      // No session, or the board is gone. Reading it again answers the same way.
+      dispatch(boardRefreshFailed(requestId))
+      toast.error('The board could not be reloaded', {
+        id: FAILED_REFRESH_TOAST_ID,
+        action: { label: 'Reload page', onClick: () => reloadPage() },
+      })
       return
     }
     // The board changed while this was on its way: keep the screen and fetch once more
@@ -288,31 +294,4 @@ function isCurrentFetch(
   return (
     isStillMounted() && getState().boardSync.sentRefreshRequestId === requestId
   )
-}
-
-/**
- * Ends a fetch that found no board, and offers another try.
- *
- * Called by {@link applyFetchedBoard} when the read answered that the board
- * cannot be shown. The button asks for the same board again.
- *
- * @param dispatch - Dispatch of the store that holds the board.
- * @param requestId - Id of the fetch that failed.
- * @param boardId - Board the retry reads.
- */
-function offerAnotherTry(
-  dispatch: AppDispatch,
-  requestId: number,
-  boardId: BoardId,
-): void {
-  dispatch(boardRefreshFailed(requestId))
-  toast.error('The board could not be reloaded', {
-    id: FAILED_REFRESH_TOAST_ID,
-    action: {
-      label: 'Try again',
-      onClick: () => {
-        dispatch(boardRefreshRequested({ boardId }))
-      },
-    },
-  })
 }

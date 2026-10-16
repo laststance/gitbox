@@ -92,6 +92,12 @@ interface BoardRefreshRequest {
    * while that write is still unanswered.
    */
   bypassActionQueue?: boolean
+  /**
+   * `true` when a fetch is already on its way and its answer must not be
+   * shown. A write that answers after the time limit uses this: the fetch
+   * sent at the limit may have read the board before that write landed.
+   */
+  invalidateInFlight?: boolean
 }
 
 const initialState: BoardSyncState = {
@@ -138,6 +144,10 @@ export const boardSyncSlice = createSlice({
           action.payload.boardId !== undefined
             ? action.payload.boardId
             : state.hydratedBoardId
+        if (action.payload.invalidateInFlight) {
+          state.sentRefreshRevision = null
+          state.sentRefreshRequestId = null
+        }
         if (action.payload.bypassActionQueue) {
           state.refreshBypassesActionQueue = true
         }
@@ -329,9 +339,13 @@ export async function trackBoardWrite<WriteResult>(
     if (isCounted) {
       countOut()
     } else {
-      // Answered after the limit: the fetch sent then may lack this write
+      // Answered after the limit: the fetch sent then may lack this write,
+      // so its answer is dropped and the board is read once more.
       dispatch(
-        boardRefreshRequested(boardId !== null ? { boardId } : undefined),
+        boardRefreshRequested({
+          ...(boardId !== null ? { boardId } : {}),
+          invalidateInFlight: true,
+        }),
       )
     }
   }
