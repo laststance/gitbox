@@ -229,6 +229,123 @@ describe('addRepositoriesToBoard', () => {
     expect(insert).not.toHaveBeenCalled()
   })
 
+  test('reads the board while the rename backfill is still running, and reads the column order only after placements have come back', async () => {
+    // Arrange — the board starts at once. The placement read waits for the
+    // backfill, and the column order waits until that placement answer is
+    // back, so two adds do not share a maximum taken before either inserts.
+    // The backfill is the mock, not a query on the stub.
+    const releases: Array<() => void> = []
+    let releaseBackfill: (() => void) | undefined
+    const backfillDone = new Promise<void>((resolve) => {
+      releaseBackfill = (): void => {
+        resolve()
+      }
+    })
+    vi.mocked(backfillVerifiedRepositoryIds).mockReturnValue(backfillDone)
+    async function answerWhenTheReadHasStarted<T>(value: T): Promise<T> {
+      return new Promise((resolve) => {
+        releases.push(() => resolve(value))
+      })
+    }
+    const insert = vi.fn(() => ({
+      select: async () => ({
+        data: [
+          {
+            id: 'card-1',
+            board_id: 'board-1',
+            status_id: 'status-1',
+            repo_owner: 'laststance',
+            repo_name: 'free-repo',
+            order: 3,
+            meta: { stars: 0, visibility: 'public', githubId: 1001 },
+            created_at: '2026-10-16T00:00:00Z',
+            updated_at: '2026-10-16T00:00:00Z',
+            projectinfo: null,
+          },
+        ],
+        error: null,
+      }),
+    }))
+    const repocard = {
+      select: () => repocard,
+      eq: () => repocard,
+      order: () => repocard,
+      limit: () => repocard,
+      range: async () => answerWhenTheReadHasStarted({ data: [], error: null }),
+      single: async () =>
+        answerWhenTheReadHasStarted({ data: { order: 2 }, error: null }),
+      insert,
+    }
+    const from = vi.fn((table: string) => {
+      if (table === 'board') {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                single: async () =>
+                  answerWhenTheReadHasStarted({
+                    data: { id: 'board-1', user_id: 'user-1' },
+                    error: null,
+                  }),
+              }),
+            }),
+          }),
+        }
+      }
+      if (table === 'repocard') return repocard
+      throw new Error(`Unexpected table read: ${table}`)
+    })
+    vi.mocked(getCachedClaims).mockResolvedValue({
+      supabase: { from, rpc: vi.fn() },
+      claims: { sub: 'user-1' },
+    } as unknown as Awaited<ReturnType<typeof getCachedClaims>>)
+
+    // Act
+    const pending = addRepositoriesToBoard('board-1', 'status-1', [
+      makeRepository('laststance', 'free-repo'),
+    ])
+    await vi.waitFor(() => {
+      expect(releases).toHaveLength(1)
+    })
+    expect(insert).not.toHaveBeenCalled()
+
+    releaseBackfill?.()
+    await vi.waitFor(() => {
+      expect(releases).toHaveLength(2)
+    })
+    expect(insert).not.toHaveBeenCalled()
+
+    const startedBeforeOrder = releases.splice(0, 2)
+    for (const release of startedBeforeOrder) release()
+    await vi.waitFor(() => {
+      expect(releases).toHaveLength(1)
+    })
+    for (const release of releases) release()
+    const result = await pending
+
+    // Assert
+    expect(result.success).toBe(true)
+    expect(insert).toHaveBeenCalledWith([
+      {
+        board_id: 'board-1',
+        status_id: 'status-1',
+        repo_owner: 'laststance',
+        repo_name: 'free-repo',
+        github_repo_id: 1001,
+        order: 3,
+        meta: {
+          stars: 0,
+          language: null,
+          topics: [],
+          visibility: 'public',
+          description: null,
+          updatedAt: '2026-01-01T00:00:00Z',
+          githubId: 1001,
+        },
+      },
+    ])
+  })
+
   test('rejects a repository name carrying markup before running any query', async () => {
     // Arrange
     const { from } = signInWithSupabaseStub({

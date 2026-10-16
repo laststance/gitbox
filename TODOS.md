@@ -33,18 +33,6 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
 
 From the `/autoplan` review of issue #215 (one card per user and repository). None blocks that change.
 
-### Run the independent queries of add in parallel
-
-**What:** Use `Promise.all` for the board check, the placement lookup and the max-order query in `addRepositoriesToBoard`.
-
-**Why:** The action sends these queries one after the other, and none of them needs the answer of another.
-
-**Context:** `src/lib/actions/repo-cards.ts`. The unit tests stub the queries in call order, so they need updating together.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### Tie `repocard.user_id` and `repocard.status_id` to the board declaratively
 
 **What:** Replace the two triggers with composite foreign keys: `repocard (board_id, user_id) -> board (id, user_id) ON UPDATE CASCADE` and `repocard (status_id, board_id) -> statuslist (id, board_id)`.

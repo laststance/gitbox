@@ -245,33 +245,39 @@ export async function addRepositoriesToBoard(
       }
       const requested = parsedRequest.data
 
-      // Check if board exists and user owns it
-      const { data: board, error: boardError } = await supabase
+      // The board and the cards this user already has do not need each
+      // other's answers, so they go out together. The placement read waits
+      // for the backfill: a rename confirmed in this request has to be
+      // visible to the split below. A backfill failure only leaves those ids
+      // null; the insert still refuses an id GitHub did not just confirm.
+      // The column's last order is read later, after GitHub confirmation, so
+      // two adds do not share a maximum taken before either of them inserts.
+      const boardQuery = supabase
         .from('board')
         .select('id, user_id')
         .eq('id', boardId)
         .eq('user_id', claims.sub)
         .single()
+      const placementsQuery = (async (): Promise<BoardPlacement[]> => {
+        try {
+          await backfillVerifiedRepositoryIds(supabase, claims.sub)
+        } catch (error) {
+          Sentry.captureException(error, {
+            tags: { action: 'backfillVerifiedRepositoryIds' },
+          })
+        }
+        // Throws on lookup failure: never insert without it.
+        return lookupRepoPlacements(supabase, claims.sub)
+      })()
 
+      const [boardResult, placements] = await Promise.all([
+        boardQuery,
+        placementsQuery,
+      ])
+      const { data: board, error: boardError } = boardResult
       if (boardError || !board) {
         throw new Error('Board not found')
       }
-
-      // Confirm ids that were saved before the column existed, so a renamed
-      // repository matches the card it already has. A failure here only
-      // leaves those ids null; the insert below still refuses an id GitHub
-      // did not just confirm.
-      try {
-        await backfillVerifiedRepositoryIds(supabase, claims.sub)
-      } catch (error) {
-        Sentry.captureException(error, {
-          tags: { action: 'backfillVerifiedRepositoryIds' },
-        })
-      }
-
-      // Where every repository of this user already lives (all boards).
-      // Throws on lookup failure: never insert without it.
-      const placements = await lookupRepoPlacements(supabase, claims.sub)
 
       // The id on the request is whatever the browser sent, so the first
       // split uses the name only. A card that already has a confirmed id is
@@ -334,7 +340,9 @@ export async function addRepositoriesToBoard(
         placements,
       )
 
-      // Get current maximum order value
+      // Read after confirmation, not with the board: an earlier maximum would
+      // be shared by two adds that both pass GitHub before either inserts.
+      // An empty column makes `.single()` fail; the first card is order 0.
       const { data: maxOrderData } = await supabase
         .from('repocard')
         .select('order')
@@ -342,7 +350,6 @@ export async function addRepositoriesToBoard(
         .order('order', { ascending: false })
         .limit(1)
         .single()
-
       let nextOrder = (maxOrderData?.order ?? -1) + 1
 
       // Add new cards
