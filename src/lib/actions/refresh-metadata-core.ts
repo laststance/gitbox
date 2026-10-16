@@ -131,7 +131,8 @@ export async function refreshCardMetadataCore(
  * first, five GitHub requests at a time. A card GitHub no longer has, or
  * whose name now belongs to a different repository, is marked checked and
  * left otherwise, so the next refresh moves on. A card GitHub did not answer
- * is left untouched, counted as unread, and comes first next time.
+ * is marked checked and counted as unread, so the next refresh moves on too.
+ * A later refresh tries that card again.
  *
  * @param supabase - Server client of the signed-in user.
  * @param userId - The signed-in user (`claims.sub`).
@@ -200,7 +201,12 @@ async function refreshOneCard(
   read: ReadRepositorySnapshot,
 ): Promise<CardRefreshOutcome> {
   const readResult = await read(card.repo_owner, card.repo_name)
-  if (readResult.outcome === 'unavailable') return { kind: 'skipped' }
+  // Mark the attempt, or a board whose first 100 reads fail keeps picking
+  // those same cards and never reaches the rest.
+  if (readResult.outcome === 'unavailable') {
+    await rememberRefreshAttempt(supabase, card.id)
+    return { kind: 'skipped' }
+  }
   if (readResult.outcome === 'gone') {
     await rememberRefreshAttempt(supabase, card.id)
     return { kind: 'failed', reason: 'gone' }

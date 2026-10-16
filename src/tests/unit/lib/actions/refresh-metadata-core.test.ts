@@ -304,7 +304,14 @@ describe('refreshBoardMetadataCore', () => {
       failed: [{ id: 'card-1', reason: 'unavailable' }],
       remaining: 0,
     })
-    expect(supabase.updates).toEqual([])
+    expect(supabase.updates).toEqual([
+      {
+        github_identity_checked_at: expect.stringMatching(
+          /^\d{4}-\d{2}-\d{2}T/,
+        ) as string,
+      },
+    ])
+    expect(supabase.updates[0]).not.toHaveProperty('meta')
   })
 
   // Value: protects=a board refresh does not ask GitHub about more than 100 cards at once; fails_when=one click requests every card and the request runs long enough to time out; why_new=the cap; seam=none; no_claim=the order of the next batch
