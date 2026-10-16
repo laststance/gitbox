@@ -554,8 +554,8 @@ describe('CommandPalette', () => {
       expect(mockPush).toHaveBeenCalledWith('/settings')
     })
 
-    // Value: protects=a failed reload does not offer a repository from the previous opening; fails_when=the old card stays searchable after the load fails; why_new=placements stay in memory between openings; seam=none; no_claim=a failure before the first list arrives
-    test('drops the repositories when a later opening cannot load them', async () => {
+    // Value: protects=reopening the palette does not offer the previous repositories while the new load is still running; fails_when=a card that moved can still be opened from the old list; why_new=placements stay in memory between openings; seam=none; no_claim=a failure before the first list arrives
+    test('does not offer the previous repositories while a new load is running', async () => {
       // Arrange
       const pending: Array<
         (result: Awaited<ReturnType<typeof getUserRepoPlacements>>) => void
@@ -581,10 +581,7 @@ describe('CommandPalette', () => {
       fireEvent.keyDown(window, { key: 'Escape' })
       openPalette()
 
-      // Act
-      await act(async () => {
-        pending[1]?.({ success: false, error: 'Could not load repositories' })
-      })
+      // Act: search again before the new load answers
       fireEvent.change(screen.getByPlaceholderText('Search commands...'), {
         target: { value: 'gitbox' },
       })

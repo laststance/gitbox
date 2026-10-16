@@ -157,12 +157,14 @@ export const CommandPalette = memo(function CommandPalette() {
     [router],
   )
 
-  // Where each repository sits. Loaded when the palette opens. A failure
-  // drops what an earlier opening loaded, so a moved card is not offered,
-  // and the commands stay usable.
+  // Where each repository sits. Loaded when the palette opens. The previous
+  // list is dropped as the load starts, so a card that moved cannot be opened
+  // while the new answer is still on its way. A failure leaves the commands
+  // usable.
   useEffect(() => {
     if (!isOpen) return
     let cancelled = false
+    setPlacements([])
     const loadPlacements = async (): Promise<void> => {
       const result = await getUserRepoPlacements()
       if (cancelled) return
