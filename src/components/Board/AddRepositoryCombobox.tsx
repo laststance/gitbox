@@ -113,6 +113,10 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 }: AddRepositoryComboboxProps) {
   // State - supports both controlled and uncontrolled modes
   const [internalIsOpen, setInternalIsOpen] = useState(false)
+  // Bumped on every close. Cancel stays enabled while an add runs, and the
+  // column's Add Repo button opens the picker again without clearing state,
+  // so a result from an earlier number must not be kept.
+  const addAttempt = useRef(0)
 
   // Use controlled state if provided, otherwise use internal state
   const isOpen = controlledIsOpen ?? internalIsOpen
@@ -123,7 +127,11 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
    */
   const handleToggleOpen = (): void => {
     const newOpen = !isOpen
+    // Closing invalidates the add that is in flight. Opening forgets a
+    // notice that was already on screen.
+    if (!newOpen) addAttempt.current += 1
     clearSkippedMessages()
+    clearError()
     if (onOpenChange) {
       onOpenChange(newOpen)
     } else {
@@ -136,7 +144,9 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
    * Used for Cancel button, Escape and after successful add
    */
   const handleClose = (): void => {
+    addAttempt.current += 1
     clearSkippedMessages()
+    clearError()
     if (onOpenChange) {
       onOpenChange(false)
     } else {
@@ -155,6 +165,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     finishAdding,
     addError,
     setAddingError,
+    clearError,
     toggleRepoSelection,
     removeSelectedRepo,
     clearSelection,
@@ -316,6 +327,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
     try {
       startAdding()
+      const attempt = addAttempt.current
 
       // Server Action: Add repositories to board with duplicate detection
       const result = await addRepositoriesToBoard(
@@ -324,7 +336,13 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
         selectedRepos,
       )
 
+      // The picker may have been closed while this request ran. Keep a
+      // successful add: the cards were created. Do not keep an error or a
+      // "not added" notice, or the next opening shows it.
+      const closedWhileAdding = addAttempt.current !== attempt
+
       if (!result.success) {
+        if (closedWhileAdding) return
         setAddingError(result.error || 'Failed to add repositories')
         // A lost race means the server knows a placement this picker does
         // not: refetch so the raced repository moves to the held list
@@ -338,6 +356,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       // the skipped repositories to the "Already placed elsewhere" list, clear
       // the selection (all of it was skipped) and say where each one lives.
       if (addedCount === 0) {
+        if (closedWhileAdding) return
         void refreshPlacements()
         clearSelection()
         showSkippedMessages(skipped.map((skippedRepo) => skippedRepo.message))

@@ -12,6 +12,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { memo, useState } from 'react'
 import { Provider } from 'react-redux'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
@@ -157,6 +158,63 @@ function renderOpenPicker(
     </Provider>,
   )
   return { onOpenChange, onRepositoriesAdded }
+}
+
+/**
+ * The picker, opened and closed by its own Cancel, plus the column button
+ * that opens it again. That button does not clear the picker's notices.
+ */
+const ColumnReopenedPicker = memo(function ColumnReopenedPicker({
+  onRepositoriesAdded,
+}: {
+  onRepositoriesAdded: (cards: CreatedRepoCard[]) => void
+}) {
+  const [isOpen, setIsOpen] = useState(true)
+  const [store] = useState(() =>
+    configureStore({
+      reducer: {
+        board: boardReducer,
+        settings: settingsReducer,
+        boardSync: boardSyncReducer,
+      },
+    }),
+  )
+  return (
+    <>
+      <button type="button" onClick={() => setIsOpen(true)}>
+        Add Repo
+      </button>
+      <Provider store={store}>
+        <AddRepositoryCombobox
+          boardId={toBoardId('board-1')}
+          statusId={toStatusListId('status-1')}
+          isOpen={isOpen}
+          onOpenChange={setIsOpen}
+          onRepositoriesAdded={onRepositoriesAdded}
+        />
+      </Provider>
+    </>
+  )
+})
+
+/** Holds `addRepositoriesToBoard` until the test lets it finish. */
+function holdTheAdd(): {
+  finish: (result: Awaited<ReturnType<typeof addRepositoriesToBoard>>) => void
+} {
+  let finish: (
+    result: Awaited<ReturnType<typeof addRepositoriesToBoard>>,
+  ) => void = () => {}
+  vi.mocked(addRepositoriesToBoard).mockImplementation(
+    async () =>
+      new Promise((resolve) => {
+        finish = resolve
+      }),
+  )
+  return {
+    finish: (result): void => {
+      finish(result)
+    },
+  }
 }
 
 /**
@@ -1488,6 +1546,131 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
       screen.queryByRole('note', { name: 'Repositories that were not added' }),
     ).toBeNull()
     expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  // Value: protects=an add that finishes after Cancel does not leave its
+  //   "not added" notice for the column's next Add Repo;
+  //   fails_when=the result is stored after the picker has closed;
+  //   why_new=Cancel stays enabled while the add runs, and Add Repo does not
+  //   clear the notice the way the header button does;
+  //   seam=none
+  test('a not-added notice that arrives after Cancel is absent when Add Repo opens the picker', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    const pending = holdTheAdd()
+    mockCatalog([makeRepository(2, 'gitbox')])
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
+      success: true,
+      data: { placements: [], savedMemories: [] },
+    })
+    const onRepositoriesAdded = vi.fn()
+    render(<ColumnReopenedPicker onRepositoriesAdded={onRepositoriesAdded} />)
+    const [onlyOption] = await findRepositoryOptions()
+    await user.click(onlyOption!)
+    await user.click(screen.getByRole('button', { name: 'Add (1)' }))
+    await screen.findByText('Adding repositories...')
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    // Act
+    await act(async () => {
+      pending.finish({
+        success: true,
+        data: {
+          addedCount: 0,
+          cards: [],
+          skipped: [
+            {
+              fullName: 'laststance/gitbox',
+              reason: 'other-board',
+              message: 'laststance/gitbox is already on board "Work Projects"',
+              boardId: 'board-2',
+              boardName: 'Work Projects',
+            },
+          ],
+        },
+      })
+    })
+    await user.click(screen.getByRole('button', { name: 'Add Repo' }))
+    await findRepositoryOptions()
+
+    // Assert
+    expect(
+      screen.queryByRole('note', { name: 'Repositories that were not added' }),
+    ).toBeNull()
+    expect(onRepositoriesAdded).not.toHaveBeenCalled()
+  })
+
+  // Value: protects=an error that arrives after Cancel is not waiting on the
+  //   next opening;
+  //   fails_when=the failed add stores its message after the picker closed;
+  //   why_new=the "not added" notice and the error are stored on different
+  //   paths, and only the notice was cleared on close;
+  //   seam=none
+  test('an add error that arrives after Cancel is absent when Add Repo opens the picker', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    const pending = holdTheAdd()
+    mockCatalog([makeRepository(2, 'gitbox')])
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
+      success: true,
+      data: { placements: [], savedMemories: [] },
+    })
+    render(<ColumnReopenedPicker onRepositoriesAdded={vi.fn()} />)
+    const [onlyOption] = await findRepositoryOptions()
+    await user.click(onlyOption!)
+    await user.click(screen.getByRole('button', { name: 'Add (1)' }))
+    await screen.findByText('Adding repositories...')
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    // Act
+    await act(async () => {
+      pending.finish({
+        success: false,
+        error: 'Could not add the repositories',
+      })
+    })
+    await user.click(screen.getByRole('button', { name: 'Add Repo' }))
+    await findRepositoryOptions()
+
+    // Assert
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.queryByText('Could not add the repositories')).toBeNull()
+  })
+
+  // Value: protects=repositories that were added after Cancel still land on
+  //   the board;
+  //   fails_when=closing the picker drops a successful add along with the
+  //   notices;
+  //   why_new=the late error and the late success share one request;
+  //   seam=none
+  test('repositories added after Cancel still reach the board', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    const pending = holdTheAdd()
+    mockCatalog([makeRepository(1, 'free-repo')])
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
+      success: true,
+      data: { placements: [], savedMemories: [] },
+    })
+    const onRepositoriesAdded = vi.fn()
+    render(<ColumnReopenedPicker onRepositoriesAdded={onRepositoriesAdded} />)
+    const [onlyOption] = await findRepositoryOptions()
+    await user.click(onlyOption!)
+    await user.click(screen.getByRole('button', { name: 'Add (1)' }))
+    await screen.findByText('Adding repositories...')
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    const card = makeCreatedFreeRepoCard()
+
+    // Act
+    await act(async () => {
+      pending.finish({
+        success: true,
+        data: { addedCount: 1, cards: [card], skipped: [] },
+      })
+    })
+
+    // Assert
+    expect(onRepositoriesAdded).toHaveBeenCalledWith([card])
   })
 
   // Value: protects=Enter that confirms a Japanese (IME) conversion in the
