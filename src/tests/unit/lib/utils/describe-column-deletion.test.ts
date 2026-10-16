@@ -9,7 +9,10 @@
 
 import { describe, expect, test } from 'vitest'
 
-import { describeColumnDeletion } from '@/lib/utils/describe-column-deletion'
+import {
+  describeColumnDeletion,
+  holdColumnDeletionDescription,
+} from '@/lib/utils/describe-column-deletion'
 
 describe('describeColumnDeletion', () => {
   // Value: protects=the Delete Column dialog promises the kept memory in words that fit the number of cards, after saying the deletion cannot be undone (design review of #216); fails_when=an empty column mentions cards, one card is spoken of in the plural, or the order changes; why_new=the copy was built inline in the board page, untested for 0 and 1 card; seam=none; no_claim=that the memory is really kept (repository-memory.spec.ts)
@@ -45,4 +48,27 @@ describe('describeColumnDeletion', () => {
       expect(description).toBe(expected)
     },
   )
+})
+
+describe('holdColumnDeletionDescription', () => {
+  // Value: protects=the Delete Column dialog still names the column and its cards while it fades out; fails_when=closing clears the sentence to an empty title and no card count; why_new=the page rebuilds the sentence from state that Cancel and Delete clear at once; seam=none; no_claim=the 200ms fade itself
+  test('keeps the column title and the card count after the dialog closes', () => {
+    // Arrange
+    const live = {
+      title: 'Done',
+      description: describeColumnDeletion('Done', 1),
+    }
+    const empty = { title: '', description: '' }
+
+    // Act
+    const open = holdColumnDeletionDescription(true, live, empty)
+    const closed = holdColumnDeletionDescription(false, null, open.held)
+
+    // Assert
+    expect(open.shown).toEqual(live)
+    expect(closed.shown.title).toBe('Done')
+    expect(closed.shown.description).toBe(
+      'Are you sure you want to delete "Done"? This action cannot be undone. This will also remove 1 card in this column. The note, links and comment of its repository are kept for when you add it again.',
+    )
+  })
 })

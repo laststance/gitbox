@@ -153,7 +153,11 @@ async function releaseNamesHeldByAnotherRepository(
  *   meta: { stars: 42, language: 'TypeScript', visibility: 'public' },
  *   createdAt: '2026-04-21T12:00:00Z',
  *   updatedAt: '2026-04-21T12:00:00Z',
+ *   comment: { comment: 'v2 soon', color: 'blue' },
  * }
+ * // `comment` is not a field of the card in Redux. The board page puts it
+ * // in the comment map and leaves it off the card:
+ * // `({ comment: _comment, ...card })`, then `setRestoredComments`.
  */
 export interface CreatedRepoCard {
   /** Newly-inserted {@link RepoCardId}. */
@@ -210,7 +214,9 @@ export interface CreatedRepoCard {
  * @example
  * const result = await addRepositoriesToBoard(boardId, statusId, repos)
  * if (result.success) {
- *   dispatch(addRepoCards(result.data.cards)) // Optimistic update
+ *   // `comment` goes to the comment map; the rest is the card in Redux
+ *   const cards = result.data.cards.map(({ comment: _comment, ...card }) => card)
+ *   dispatch(addRepoCards(cards))
  *   result.data.skipped // => [{ fullName: 'a/b', reason: 'other-board', message: 'a/b is already on board "Work"', ... }]
  * }
  */

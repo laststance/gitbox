@@ -63,7 +63,10 @@ import type { Board } from '@/lib/supabase/types'
 import { parseBoardSettings } from '@/lib/types/board-settings'
 import { toBoardId, type RepoCardId } from '@/lib/types/brands'
 import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
-import { describeColumnDeletion } from '@/lib/utils/describe-column-deletion'
+import {
+  describeColumnDeletion,
+  holdColumnDeletionDescription,
+} from '@/lib/utils/describe-column-deletion'
 import {
   BOARD_NAME_MAX_LENGTH,
   BOARD_SUBTITLE_MAX_LENGTH,
@@ -112,6 +115,37 @@ export const BoardPageClient = memo(function BoardPageClient({
 
   // StatusList Dialog (5 states extracted: 3 original + 2 delete confirmation)
   const statusListDialog = useStatusListDialog({ boardId })
+  // Cancel and Delete clear the column at once. The dialog stays for its
+  // 200ms exit, so the sentence is kept from the last render that had it.
+  const liveColumnDeletion =
+    statusListDialog.isDeleteConfirmOpen &&
+    statusListDialog.pendingDeleteStatusTitle !== undefined
+      ? {
+          title: statusListDialog.pendingDeleteStatusTitle,
+          description: describeColumnDeletion(
+            statusListDialog.pendingDeleteStatusTitle,
+            repoCards.filter(
+              (card) =>
+                card.statusId === statusListDialog.pendingDeleteStatusId,
+            ).length,
+          ),
+        }
+      : null
+  const [heldColumnDeletion, setHeldColumnDeletion] = useState({
+    title: '',
+    description: '',
+  })
+  const columnDeletion = holdColumnDeletionDescription(
+    statusListDialog.isDeleteConfirmOpen,
+    liveColumnDeletion,
+    heldColumnDeletion,
+  )
+  if (
+    columnDeletion.held.title !== heldColumnDeletion.title ||
+    columnDeletion.held.description !== heldColumnDeletion.description
+  ) {
+    setHeldColumnDeletion(columnDeletion.held)
+  }
 
   // NoteModal (4 states extracted)
   const noteModal = useNoteModal({ repoCards })
@@ -406,12 +440,7 @@ export const BoardPageClient = memo(function BoardPageClient({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Column</AlertDialogTitle>
             <AlertDialogDescription>
-              {describeColumnDeletion(
-                statusListDialog.pendingDeleteStatusTitle ?? '',
-                repoCards.filter(
-                  (c) => c.statusId === statusListDialog.pendingDeleteStatusId,
-                ).length,
-              )}
+              {columnDeletion.shown.description}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -421,7 +450,7 @@ export const BoardPageClient = memo(function BoardPageClient({
             <Button
               variant="destructive"
               onClick={statusListDialog.confirmDelete}
-              aria-label={`Delete column ${statusListDialog.pendingDeleteStatusTitle}`}
+              aria-label={`Delete column ${columnDeletion.shown.title}`}
             >
               Delete Column
             </Button>

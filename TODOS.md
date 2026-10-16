@@ -37,18 +37,6 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 From the `/plan-eng-review` of issue #216 (a repository keeps its note, links and comment when its card goes). None blocks that change.
 
-### Pin what #216's saves keep against a real database, and the other review leftovers
-
-**What:** Add data-access tests that send the exact payloads of `upsertProjectInfoCore`, `updateCommentCore` and `updateCommentColorCore` through the test user's client with `onConflict: 'user_id,repo_key'` (a comment save keeps the note and links, a note save keeps the comment and color, a color-only save makes a row with the column defaults), a test that deleting a user deletes their `projectinfo` rows, a test that a visitor cannot call `/rpc/projectinfo`, and a whitespace-only comment row in the `summarizeMemoryRow` table. Correct the header of `project-info-core.test.ts`, which says the e2e specs cover the upsert merge. Bring the JSDoc of `useRepoPlacements` (it returns `savedMemories` too) and the `CreatedRepoCard` example (its `comment` goes to the comment map, not to Redux) up to date. Keep the Delete Column dialog's title and card count while it fades out (it shows `""` and no card sentence for 200ms; on `main` it showed `"undefined"`).
-
-**Why:** The third review pass of #216 found these. Each was checked by hand before the merge (the functional QA of the review saved a comment over a note and read both back, and the local check as ryota-murakami deleted a comment and kept the note and two links), but no committed test pins them: a regression in the upsert payloads would silently wipe the memory #216 exists to keep. They were left out of #216 because a fix there would have been the review's third fixing cycle.
-
-**Context:** `e2e/logged-in/project-info-data-access.spec.ts`, `src/tests/unit/lib/actions/project-info-core.test.ts`, `src/tests/unit/lib/actions/saved-repository-memories.test.ts`, `src/hooks/board/useRepoPlacements.ts`, `src/lib/actions/repo-cards.ts`, `src/hooks/board/useStatusListDialog.ts`. The user deletion needs a throwaway user from the admin API, never a seeded one.
-
-**Effort:** S
-**Priority:** P2
-**Depends on:** None
-
 ### Harden #216's note paths against what its last review found
 
 **What:** Refuse a `/` in `repocard.repo_owner`, `repocard.repo_name` and the same columns of `projectinfo` with a check constraint, so the generated `repo_key` names the same repository as `repocard_unique_repo_per_user`. Hand the PostgREST error of a failed note read, note save or comment save to Sentry (`new Error(message, { cause: error })` and `error.code` in `extra`). Let `useNoteModal.open` drop an answer when another card was opened after it was sent. Let the server's comment win over a restored one in `BoardPageClient` (`{ ...restoredComments, ...initialData.comments }`). Say on the Account page that deleting the account deletes the notes, links and comments too.
