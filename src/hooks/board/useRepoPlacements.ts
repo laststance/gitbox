@@ -52,9 +52,11 @@ const INITIAL_PLACEMENTS_STATE: RepoPlacementsState = {
  * true until this opening's placement answer arrives: the picker keeps those
  * rows non-interactive, so a repository that was placed in another tab cannot
  * be chosen from the stale list. The Saved marks are a second request. They
- * do not hold the list; they replace the previous marks when they arrive.
- * Closing forgets an in-flight answer. A refresh that finishes after the
- * picker has closed does not become the next opening's list.
+ * do not hold the list. Closing clears them, so the next opening shows none
+ * until its own answer arrives: a mark from the previous opening can name a
+ * repository that is on a board now. Closing also forgets an in-flight
+ * answer. A refresh that finishes after the picker has closed does not
+ * become the next opening's list.
  *
  * @param isOpen - Whether the repository picker is currently open.
  * @returns The placements, a loading flag, and a manual refresh function.
@@ -126,12 +128,16 @@ export function useRepoPlacements(isOpen: boolean): UseRepoPlacementsReturn {
 
     return (): void => {
       // Closing invalidates any in-flight request. The last settled placements
-      // stay, so the next opening can show them while its own request runs.
-      // They are not settled for that opening: the picker must not treat them
-      // as a fresh answer.
+      // stay, unsettled, so the next opening can show them while its own
+      // request runs. Marks do not: a Saved label from this opening can name
+      // a repository that another tab has since placed.
       isOpenRef.current = false
       latestRequestId.current += 1
-      setState((current) => ({ ...current, isSettled: false }))
+      setState((current) => ({
+        ...current,
+        savedMemories: null,
+        isSettled: false,
+      }))
     }
   }, [isOpen])
 

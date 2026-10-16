@@ -234,6 +234,69 @@ describe('useRepoPlacements', () => {
     expect(result.current.isLoadingPlacements).toBe(false)
   })
 
+  // Value: protects=reopening the picker does not keep showing a Saved mark from the previous opening; fails_when=close leaves savedMemories in place, so a repository placed in another tab still wears its old mark until the new request settles; why_new=marks used to arrive with placements and were replaced together; seam=none; no_claim=the row label (AddRepositoryCombobox.placements.test.tsx)
+  test('drops the previous Saved marks when the picker opens again', async () => {
+    // Arrange
+    vi.mocked(fetchRepoPlacements)
+      .mockResolvedValueOnce({
+        success: true,
+        data: {
+          placements: [
+            {
+              identifier: 'laststance/gitbox',
+              boardId: 'board-2',
+              boardName: 'Work Projects',
+              cardId: '00000000-0000-4000-8000-0000000000c2',
+            },
+          ],
+        },
+      })
+      .mockReturnValueOnce(new Promise(() => {}))
+    vi.mocked(fetchSavedRepositoryMemories)
+      .mockResolvedValueOnce({
+        success: true,
+        data: [
+          {
+            identifier: 'laststance/nsx',
+            hasNote: true,
+            linkCount: 1,
+            hasComment: false,
+          },
+        ],
+      })
+      .mockReturnValueOnce(new Promise(() => {}))
+    const { result, rerender } = renderHook(
+      ({ isOpen }) => useRepoPlacements(isOpen),
+      { initialProps: { isOpen: true } },
+    )
+    await waitFor(() => {
+      expect(result.current.savedMemories).toEqual([
+        {
+          identifier: 'laststance/nsx',
+          hasNote: true,
+          linkCount: 1,
+          hasComment: false,
+        },
+      ])
+    })
+    rerender({ isOpen: false })
+
+    // Act
+    rerender({ isOpen: true })
+
+    // Assert
+    expect(result.current.savedMemories).toBeNull()
+    expect(result.current.isLoadingPlacements).toBe(true)
+    expect(result.current.placements).toEqual([
+      {
+        identifier: 'laststance/gitbox',
+        boardId: 'board-2',
+        boardName: 'Work Projects',
+        cardId: '00000000-0000-4000-8000-0000000000c2',
+      },
+    ])
+  })
+
   // Value: protects=a mark request that fails after the picker closed is not an unhandled rejection; fails_when=the rejection handler is attached only at the later await, so Vitest reports the rejection and Sentry's global handler sees it too; why_new=the marks request now outlives the placements await; seam=none; no_claim=the list staying usable (the test above)
   test('handles a rejected mark request that settles after the picker has closed', async () => {
     // Arrange
