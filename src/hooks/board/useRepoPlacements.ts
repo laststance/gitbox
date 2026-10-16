@@ -59,10 +59,12 @@ const INITIAL_PLACEMENTS_STATE: RepoPlacementsState = {
  * become the next opening's list.
  *
  * @param isOpen - Whether the repository picker is currently open.
- * @returns The placements, a loading flag, and a manual refresh function.
+ * @returns The placements, the saved memories, a loading flag, and a manual refresh.
  * @example
- * const { placements, isLoadingPlacements, refreshPlacements } = useRepoPlacements(isOpen)
+ * const { placements, savedMemories, isLoadingPlacements, refreshPlacements } =
+ *   useRepoPlacements(isOpen)
  * // placements => [{ identifier: 'a/b', boardId: '…', boardName: 'Work' }]
+ * // savedMemories => [{ identifier: 'a/c', hasNote: true, linkCount: 0, hasComment: false }]
  */
 export function useRepoPlacements(isOpen: boolean): UseRepoPlacementsReturn {
   const [state, setState] = useState<RepoPlacementsState>(

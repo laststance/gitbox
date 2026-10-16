@@ -91,9 +91,10 @@ function makeSupabaseStub(
 }
 
 describe('summarizeMemoryRow', () => {
-  // Value: protects=the picker marks only memories that bring something back; fails_when=whitespace or an emptied editor document counts as a note, a color alone gets a mark, or a link without URL is counted; why_new=new rule (eng review R4); seam=none; no_claim=the database query (mocked out; e2e repository-memory.spec.ts)
+  // Value: protects=the picker marks only memories that bring something back; fails_when=whitespace or an emptied editor document counts as a note, a comment of spaces gets a mark, a color alone gets a mark, or a link without URL is counted; why_new=new rule (eng review R4); seam=none; no_claim=the database query (mocked out; e2e repository-memory.spec.ts)
   test.each([
     { holds: 'a note of spaces', note: '   ', comment: null, links: [] },
+    { holds: 'a comment of spaces', note: null, comment: '   ', links: [] },
     {
       holds: 'a note the Note dialog emptied',
       note: '[{"type":"p","children":[{"text":""}]}]',

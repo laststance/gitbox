@@ -122,6 +122,30 @@ async function readNotesOfRepository(
 }
 
 /**
+ * The project info of laststance/use-app-state for the test user, read with
+ * the service role so a column the upsert did not send is still visible.
+ * @returns The note, links, comment and color of every matching row.
+ */
+async function readProjectInfoOfUseAppState(): Promise<
+  {
+    note: string | null
+    links: unknown
+    comment: string | null
+    comment_color: string | null
+  }[]
+> {
+  const { data, error } = await createServiceRoleSupabaseClient()
+    .from('projectinfo')
+    .select('note, links, comment, comment_color')
+    .eq('user_id', TEST_USER_ID)
+    .eq('repo_key', USE_APP_STATE)
+  if (error) {
+    throw new Error(`readProjectInfoOfUseAppState failed: ${error.message}`)
+  }
+  return data
+}
+
+/**
  * Put the probe card on Work Projects with the service role, as adding it
  * from the picker would.
  */
@@ -465,6 +489,177 @@ test.describe('Project info data access', () => {
     // Assert
     expect(added.error?.code).toBe('23514')
     expect(await readNotesOfRepository(TEST_USER_ID, USE_APP_STATE)).toEqual([])
+  })
+
+  test('a comment save keeps the note and the links', async () => {
+    // Arrange: a row that already holds a note, links, a comment and a color
+    const testUser = createTestUserSupabaseClient()
+    const seeded = await testUser.from('projectinfo').insert({
+      repo_owner: 'laststance',
+      repo_name: 'use-app-state',
+      note: 'the note',
+      links: [
+        {
+          type: 'npm',
+          url: 'https://www.npmjs.com/package/use-app-state',
+        },
+      ],
+      comment: 'old comment',
+      comment_color: 'blue',
+    })
+    expect(seeded.error).toBeNull()
+
+    // Act: the payload of updateCommentCore when no color is given
+    const saved = await testUser.from('projectinfo').upsert(
+      {
+        repo_owner: 'laststance',
+        repo_name: 'use-app-state',
+        comment: 'new comment',
+      },
+      { onConflict: 'user_id,repo_key' },
+    )
+
+    // Assert
+    expect(saved.error).toBeNull()
+    expect(await readProjectInfoOfUseAppState()).toEqual([
+      {
+        note: 'the note',
+        links: [
+          {
+            url: 'https://www.npmjs.com/package/use-app-state',
+            type: 'npm',
+          },
+        ],
+        comment: 'new comment',
+        comment_color: 'blue',
+      },
+    ])
+  })
+
+  test('a note save keeps the comment and the color', async () => {
+    // Arrange
+    const testUser = createTestUserSupabaseClient()
+    const seeded = await testUser.from('projectinfo').insert({
+      repo_owner: 'laststance',
+      repo_name: 'use-app-state',
+      comment: 'kept comment',
+      comment_color: 'green',
+    })
+    expect(seeded.error).toBeNull()
+
+    // Act: the payload of upsertProjectInfoCore when no comment is given
+    const saved = await testUser.from('projectinfo').upsert(
+      {
+        repo_owner: 'laststance',
+        repo_name: 'use-app-state',
+        note: 'the note',
+        links: [
+          {
+            type: 'npm',
+            url: 'https://www.npmjs.com/package/use-app-state',
+          },
+        ],
+      },
+      { onConflict: 'user_id,repo_key' },
+    )
+
+    // Assert
+    expect(saved.error).toBeNull()
+    expect(await readProjectInfoOfUseAppState()).toEqual([
+      {
+        note: 'the note',
+        links: [
+          {
+            url: 'https://www.npmjs.com/package/use-app-state',
+            type: 'npm',
+          },
+        ],
+        comment: 'kept comment',
+        comment_color: 'green',
+      },
+    ])
+  })
+
+  test('a color-only save makes a row with the column defaults', async () => {
+    // Arrange: use-app-state has a card and no project info (beforeEach)
+    const testUser = createTestUserSupabaseClient()
+
+    // Act: the payload of updateCommentColorCore
+    const saved = await testUser.from('projectinfo').upsert(
+      {
+        repo_owner: 'laststance',
+        repo_name: 'use-app-state',
+        comment_color: 'blue',
+      },
+      { onConflict: 'user_id,repo_key' },
+    )
+
+    // Assert: note and comment have no default, links default to {}
+    expect(saved.error).toBeNull()
+    expect(await readProjectInfoOfUseAppState()).toEqual([
+      {
+        note: null,
+        links: {},
+        comment: null,
+        comment_color: 'blue',
+      },
+    ])
+  })
+
+  test('deleting an account deletes the project info of that account', async () => {
+    // Arrange: a throwaway user, never one of the seed
+    const admin = createServiceRoleSupabaseClient()
+    const created = await admin.auth.admin.createUser({
+      email: `projectinfo-cascade-${crypto.randomUUID()}@gitbox.dev`,
+      password: 'throwaway-password-1',
+      email_confirm: true,
+    })
+    expect(created.error).toBeNull()
+    const userId = created.data.user?.id
+    if (typeof userId !== 'string') {
+      throw new Error('createUser returned no id')
+    }
+
+    try {
+      const noted = await admin
+        .from('projectinfo')
+        .insert({
+          user_id: userId,
+          repo_owner: 'laststance',
+          repo_name: 'cascade-probe',
+          note: 'goes with the account',
+        })
+        .select('id')
+      expect(noted.error).toBeNull()
+      expect(noted.data).toHaveLength(1)
+
+      // Act
+      const deleted = await admin.auth.admin.deleteUser(userId)
+
+      // Assert
+      expect(deleted.error).toBeNull()
+      const left = await admin
+        .from('projectinfo')
+        .select('id')
+        .eq('user_id', userId)
+      expect(left.error).toBeNull()
+      expect(left.data).toEqual([])
+    } finally {
+      await admin.auth.admin.deleteUser(userId)
+    }
+  })
+
+  test('a visitor without an account cannot call /rpc/projectinfo', async () => {
+    // Arrange
+    const visitor = createAnonSupabaseClient()
+
+    // Act
+    const called = await visitor.rpc('projectinfo', { repocard: {} })
+
+    // Assert: PostgREST does not offer the computed relationship as an RPC,
+    // so a visitor gets no row
+    expect(called.data).toBeNull()
+    expect(called.error?.code).toBe('PGRST202')
   })
 
   test('a visitor without an account reads no project info', async () => {

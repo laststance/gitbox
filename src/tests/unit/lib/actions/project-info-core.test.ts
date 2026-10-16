@@ -8,9 +8,11 @@
  * what the app sends and when it refuses to send anything.
  *
  * What the database does with the rows (row level security, one row per user
- * and repository, the upsert merging only the columns it is sent) is covered
- * against a real database in `e2e/logged-in/project-info-data-access.spec.ts`
- * and `e2e/logged-in/repository-memory.spec.ts`.
+ * and repository, an upsert that sends only the columns of one save) is
+ * covered against a real database in
+ * `e2e/logged-in/project-info-data-access.spec.ts`. A card that is removed
+ * and added again still showing its note is covered in
+ * `e2e/logged-in/repository-memory.spec.ts`.
  *
  * @see src/lib/actions/project-info-core.ts
  */
