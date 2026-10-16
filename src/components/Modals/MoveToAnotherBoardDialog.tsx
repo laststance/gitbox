@@ -80,10 +80,7 @@ import {
 } from '@/lib/utils/request-board-creation'
 import { settleWithin } from '@/lib/utils/settle-within'
 
-import {
-  CreateDestinationBoardForm,
-  type BoardCreationFailure,
-} from './CreateDestinationBoardForm'
+import { CreateDestinationBoardForm } from './CreateDestinationBoardForm'
 
 /** Shown when a refused move comes without a message of its own. */
 /**
@@ -309,34 +306,23 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
   }
 
   /**
-   * Ends the wait for a creation that gave no board to select.
-   * flushSync: the form is unlocked on screen once this returns, so it can
-   * take the keyboard focus back.
-   * @param failure - What the form shows.
-   * @returns The same failure, for the form.
-   */
-  const endCreationWith = (
-    failure: BoardCreationFailure,
-  ): BoardCreationFailure => {
-    flushSync(endRequest)
-    return failure
-  }
-
-  /**
    * Creates the destination board with one column and selects it.
    * @param boardName - Validated name from the form.
-   * @returns `null` when the board exists; otherwise what the form shows
-   * and what it offers next ({@link toCreationFailure}).
+   * @returns `null` when the board exists; otherwise the creation as it
+   * ended, for the form to choose its button from.
    */
   const createDestinationBoard = async (
     boardName: string,
-  ): Promise<BoardCreationFailure | null> => {
+  ): Promise<Exclude<BoardCreationAttempt, { status: 'created' }> | null> => {
     startBoardCreation()
 
     const attempt = await requestBoardCreation(boardName, 'single-column')
 
     if (attempt.status !== 'created') {
-      return endCreationWith(toCreationFailure(attempt))
+      // flushSync: the form is unlocked on screen once this returns, so it
+      // can take the keyboard focus back
+      flushSync(endRequest)
+      return attempt
     }
 
     const createdBoard = attempt.board
@@ -656,39 +642,6 @@ function isFocusAtRest(
     focusedElement === dialogContent ||
     focusedElement === cancelButton
   )
-}
-
-/**
- * Says what the create form shows, and offers next, for a creation that gave
- * no board to select. Called by the dialog when {@link requestBoardCreation}
- * ended without one.
- *
- * @param attempt - How the creation ended.
- * @returns The text of the attempt with
- * - `try-again` when the server answered and nothing was written
- * - `reload-boards` when a board may exist and the request has ended
- * - `reload-page` when a board may exist and the request is still running
- *   (Next.js sends Server Actions one after another, so loading the boards
- *   again would wait behind it), or when this page's build no longer has
- *   the action and nothing was written
- * @example
- * toCreationFailure({ status: 'unconfirmed', message: 'Could not confirm ...', isRequestStillRunning: true })
- * // => { message: 'Could not confirm ...', nextStep: 'reload-page' }
- */
-function toCreationFailure(
-  attempt: Exclude<BoardCreationAttempt, { status: 'created' }>,
-): BoardCreationFailure {
-  const nextStep = match(attempt)
-    .returnType<BoardCreationFailure['nextStep']>()
-    .with({ status: 'not-created' }, () => 'try-again')
-    .with(
-      { status: 'unconfirmed', isRequestStillRunning: true },
-      () => 'reload-page',
-    )
-    .with({ status: 'unconfirmed' }, () => 'reload-boards')
-    .with({ status: 'out-of-date' }, () => 'reload-page')
-    .exhaustive()
-  return { message: attempt.message, nextStep }
 }
 
 /**

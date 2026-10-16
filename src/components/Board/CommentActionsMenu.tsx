@@ -93,8 +93,9 @@ interface CommentActionsMenuProps {
  * keyboard, showing color options with visual dots and a checkmark for the
  * selected color.
  *
- * Nothing here stops an event on its way up: the element that renders the
- * menu tells the events of the menu from its own ({@link CommentDisplay}).
+ * Nothing here stops an event on its way up. The menu is a sibling of the
+ * comment that opens the editor ({@link CommentDisplay}), so a click or a
+ * key on the menu is not one on that comment.
  *
  * @example
  * <CommentActionsMenu
