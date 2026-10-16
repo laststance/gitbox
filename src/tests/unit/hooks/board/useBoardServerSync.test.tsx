@@ -104,9 +104,7 @@ function answerFetch(page: PageData): void {
 }
 
 /**
- * Fails the oldest refetch that is still waiting.
- *
- * @param error - What the read rejects with.
+ * Answers the oldest refetch with no board to show.
  */
 function answerThatTheBoardIsGone(): void {
   const held = heldFetches.shift()
@@ -114,6 +112,11 @@ function answerThatTheBoardIsGone(): void {
   held.resolve(null)
 }
 
+/**
+ * Fails the oldest refetch that is still waiting.
+ *
+ * @param error - What the read rejects with.
+ */
 function failFetch(error: unknown): void {
   const held = heldFetches.shift()
   if (held === undefined) throw new Error('No board fetch is waiting')
