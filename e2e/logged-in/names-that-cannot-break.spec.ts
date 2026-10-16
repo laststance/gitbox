@@ -473,6 +473,81 @@ test.describe('Names without a place to break', () => {
     })
   })
 
+  // Value: protects=the repository name in the command palette stays readable when the board that holds it is one long word; fails_when=the board name refuses to shrink, so the repository name is squeezed to nothing; why_new=the palette lists a repository beside its board, and the unit test cannot lay that row out; seam=none; no_claim=a board name of several words, which stays as it is
+  test('keeps the repository name whole in the command palette when the board name is one long word', async ({
+    page,
+  }) => {
+    // Arrange
+    await writeRow('board', BOARD_IDS.testBoard, {
+      name: FIFTY_LETTERS_WITHOUT_A_SPACE,
+    })
+    await page.setViewportSize(PHONE_VIEWPORT)
+
+    // Act
+    await openTestBoard(page)
+    await page.keyboard.press(
+      `${process.platform === 'darwin' ? 'Meta' : 'Control'}+k`,
+    )
+    await page.getByPlaceholder('Search commands...').fill('test-repo')
+
+    // Assert
+    const row = page.locator('[data-index="0"]')
+    const repository = row.getByText('testuser/test-repo', { exact: true })
+    const boardName = row.getByText(FIFTY_LETTERS_WITHOUT_A_SPACE, {
+      exact: true,
+    })
+    await expect(repository).toBeVisible()
+    await expect(boardName).toBeVisible()
+    const repositoryBox = await repository.boundingBox()
+    const boardNameBox = await boardName.boundingBox()
+    // The repository stays one whole line. The board name is cut inside its
+    // own box, and that box starts at or after the repository.
+    expect(await measureTextBeyondItsBox(repository)).toBe(0)
+    expect((await measureTextLines(repository)).lines).toBe(1)
+    expect(await measureTextBeyondItsBox(boardName)).toBeGreaterThan(0)
+    expect(await measureTextBeyondItsBox(row)).toBe(0)
+    expect(
+      Math.round(
+        (boardNameBox?.x ?? 0) -
+          ((repositoryBox?.x ?? 0) + (repositoryBox?.width ?? 0)),
+      ),
+    ).toBeGreaterThanOrEqual(0)
+  })
+
+  // Value: protects=an ordinary board name stays whole beside the repository in the command palette; fails_when=the board name is cut even though the word fits the row; why_new=the long-name test uses a word no row can hold; seam=none; no_claim=a name of several words
+  test('keeps "Experiments" whole beside the repository in the command palette', async ({
+    page,
+  }) => {
+    // Arrange
+    await writeRow('board', BOARD_IDS.testBoard, { name: 'Experiments' })
+    await page.setViewportSize(PHONE_VIEWPORT)
+
+    // Act
+    await openTestBoard(page)
+    await page.keyboard.press(
+      `${process.platform === 'darwin' ? 'Meta' : 'Control'}+k`,
+    )
+    await page.getByPlaceholder('Search commands...').fill('test-repo')
+
+    // Assert
+    const row = page.locator('[data-index="0"]')
+    const repository = row.getByText('testuser/test-repo', { exact: true })
+    const boardName = row.getByText('Experiments', { exact: true })
+    await expect(repository).toBeVisible()
+    await expect(boardName).toBeVisible()
+    expect({
+      repositoryClippedPx: await measureTextBeyondItsBox(repository),
+      repositoryLines: (await measureTextLines(repository)).lines,
+      boardNameClippedPx: await measureTextBeyondItsBox(boardName),
+      boardNameLines: (await measureTextLines(boardName)).lines,
+    }).toEqual({
+      repositoryClippedPx: 0,
+      repositoryLines: 1,
+      boardNameClippedPx: 0,
+      boardNameLines: 1,
+    })
+  })
+
   test.describe('in a dialog on a 375px phone', () => {
     test.use({ viewport: PHONE_VIEWPORT })
 
