@@ -24,6 +24,7 @@ import {
   updateCommentCore,
   upsertProjectInfoCore,
 } from '@/lib/actions/project-info-core'
+import { ActionUserError } from '@/lib/actions/types'
 import { lookupRepositoryByGitHubId } from '@/lib/github/verify-repository-identity'
 
 const { createClient, lookupRepositoryByGitHubId: lookupById } = vi.hoisted(
@@ -129,6 +130,25 @@ function signInWithStub(
 describe('project-info-core', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  // Value: protects=a note past the limit is explained and nothing is written; fails_when=the refusal is a plain Error, so the auth guard replaces it with "An unexpected error occurred" and the Note dialog no longer says why; why_new=the writes moved onto the guards; seam=none; no_claim=the toast wording (useNoteModalDraft.test.tsx)
+  test('a note past the limit is explained to the user and nothing is written', async () => {
+    // Arrange
+    const { upsert } = signInWithStub(NSX_CARD)
+
+    // Act
+    const attempt = upsertProjectInfoCore('card-1', {
+      note: 'x'.repeat(20001),
+      links: [],
+    })
+
+    // Assert
+    await expect(attempt).rejects.toBeInstanceOf(ActionUserError)
+    await expect(attempt).rejects.toThrow(
+      'Note must be 20000 characters or less',
+    )
+    expect(upsert).not.toHaveBeenCalled()
   })
 
   // Value: protects=a note, comment or color is written only for a card the user holds; the card is the gate to a repository's row; fails_when=a write skips the card lookup or ignores its error; why_new=no unit test ran these functions after they were keyed by repository; seam=none; no_claim=the policy that also refuses a repository without a card (project-info-data-access.spec.ts)

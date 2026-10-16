@@ -29,6 +29,8 @@ import {
   DEFAULT_COMMENT_COLOR,
 } from '@/lib/validations/project-info'
 
+import { ActionUserError } from './types'
+
 type ProjectInfoInsert = TablesInsert<'projectinfo'>
 
 /**
@@ -305,6 +307,26 @@ export interface CommentData {
   color: CommentColor
 }
 
+/**
+ * Refuses a project-info read or write with a sentence the Note dialog or
+ * the comment editor can show.
+ *
+ * {@link getProjectInfo} and the write actions run inside the auth guards,
+ * which replace any other thrown message with a generic one. These sentences
+ * are already safe: a missing card, a validation message, or a write the
+ * database refused. The Note dialog puts a save's message in its toast, so
+ * the sentence has to survive the guard. Called by the validators, by
+ * {@link readCardRepository}, and by each write.
+ *
+ * @param message - What the user reads.
+ * @throws {@link ActionUserError} always.
+ * @example
+ * explainToUser('Card not found')
+ */
+function explainToUser(message: string): never {
+  throw new ActionUserError(message)
+}
+
 // ========================================
 // Validation
 // ========================================
@@ -316,7 +338,7 @@ export interface CommentData {
 function validateNote(note: string): boolean {
   const result = noteSchema.safeParse(note)
   if (!result.success) {
-    throw new Error(result.error.issues[0]?.message || 'Invalid note')
+    explainToUser(result.error.issues[0]?.message || 'Invalid note')
   }
   return true
 }
@@ -328,7 +350,7 @@ function validateNote(note: string): boolean {
 function validateComment(comment: string): boolean {
   const result = commentSchema.safeParse(comment)
   if (!result.success) {
-    throw new Error(result.error.issues[0]?.message || 'Invalid comment')
+    explainToUser(result.error.issues[0]?.message || 'Invalid comment')
   }
   return true
 }
@@ -340,7 +362,7 @@ function validateComment(comment: string): boolean {
 function validateCommentColor(color: string): color is CommentColor {
   const result = commentColorSchema.safeParse(color)
   if (!result.success) {
-    throw new Error(`Invalid comment color: ${color}`)
+    explainToUser(`Invalid comment color: ${color}`)
   }
   return true
 }
@@ -352,7 +374,7 @@ function validateCommentColor(color: string): color is CommentColor {
 function validateUrl(url: string): boolean {
   const result = projectLinkUrlSchema.safeParse(url)
   if (!result.success) {
-    throw new Error(result.error.issues[0]?.message || 'Invalid URL')
+    explainToUser(result.error.issues[0]?.message || 'Invalid URL')
   }
   return true
 }
@@ -481,10 +503,10 @@ async function readCardRepository(
 
   // PGRST116: no row, so the card is gone or not the user's
   if (error?.code === 'PGRST116') {
-    throw new Error('Card not found')
+    explainToUser('Card not found')
   }
   if (error) {
-    throw new Error('Failed to read the card')
+    explainToUser('Failed to read the card')
   }
 
   return {
@@ -532,9 +554,9 @@ export async function getProjectInfoCore(
     // PGRST116: no card (or not the user's). Its repository's note outlives
     // it, so this is no empty note
     if (error.code === 'PGRST116') {
-      throw new Error('Card not found')
+      explainToUser('Card not found')
     }
-    throw new Error('Failed to fetch project information')
+    explainToUser('Failed to fetch project information')
   }
 
   const projectInfo = card.projectinfo
@@ -592,7 +614,7 @@ export async function upsertProjectInfoCore(
   })
 
   if (error) {
-    throw new Error('Failed to save project information')
+    explainToUser('Failed to save project information')
   }
 }
 
@@ -634,7 +656,7 @@ export async function updateCommentCore(
   })
 
   if (error) {
-    throw new Error('Failed to update comment')
+    explainToUser('Failed to update comment')
   }
 }
 
@@ -665,7 +687,7 @@ export async function updateCommentColorCore(
   })
 
   if (error) {
-    throw new Error('Failed to update comment color')
+    explainToUser('Failed to update comment color')
   }
 }
 
@@ -701,7 +723,7 @@ export async function deleteCommentCore(repoCardId: string): Promise<void> {
       githubRepoId,
     )
     if (found.error) {
-      throw new Error('Failed to delete comment')
+      explainToUser('Failed to delete comment')
     }
     if (found.id) {
       const { error } = await supabase
@@ -710,7 +732,7 @@ export async function deleteCommentCore(repoCardId: string): Promise<void> {
         .eq('id', found.id)
         .eq('user_id', ownerId)
       if (error) {
-        throw new Error('Failed to delete comment')
+        explainToUser('Failed to delete comment')
       }
       return
     }
@@ -718,7 +740,7 @@ export async function deleteCommentCore(repoCardId: string): Promise<void> {
     // Do not clear a comment that belongs to a different repository's id
     const byName = await findMemoryByRepoKey(supabase, ownerId, repository)
     if (byName.error) {
-      throw new Error('Failed to delete comment')
+      explainToUser('Failed to delete comment')
     }
     if (memoryBelongsToAnotherRepository(byName.githubRepoId, githubRepoId)) {
       return
@@ -738,6 +760,6 @@ export async function deleteCommentCore(repoCardId: string): Promise<void> {
     )
 
   if (error) {
-    throw new Error('Failed to delete comment')
+    explainToUser('Failed to delete comment')
   }
 }
