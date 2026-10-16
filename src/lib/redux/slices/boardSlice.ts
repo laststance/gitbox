@@ -10,7 +10,11 @@
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice } from '@reduxjs/toolkit'
 
-import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
+import type {
+  StatusListDomain,
+  RepoCardForRedux,
+  RepoCardMeta,
+} from '@/lib/models/domain'
 import type { RepoCardId, StatusListId } from '@/lib/types/brands'
 
 /**
@@ -58,6 +62,33 @@ export const boardSlice = createSlice({
       )
     },
     /**
+     * Replace the GitHub snapshot of the cards a refresh just wrote.
+     *
+     * Dispatched by {@link BoardPageClient} after
+     * {@link refreshCardMetadata} or {@link refreshBoardMetadata}. Cards the
+     * refresh did not write stay as they are. `description` is the line the
+     * card shows; it is copied from the new snapshot.
+     *
+     * @param action.payload - The cards whose snapshot was rewritten.
+     */
+    applyRefreshedRepoCards: (
+      state,
+      action: PayloadAction<
+        Array<{ id: string; description: string; meta: RepoCardMeta }>
+      >,
+    ) => {
+      const byId = new Map(action.payload.map((card) => [card.id, card]))
+      state.repoCards = state.repoCards.map((card) => {
+        const refreshed = byId.get(card.id)
+        if (!refreshed) return card
+        return {
+          ...card,
+          description: refreshed.description,
+          meta: refreshed.meta,
+        }
+      })
+    },
+    /**
      * Remove a deleted column and the cards it held. The database deletes
      * those cards with the column; while they stayed in the store, the Add
      * Repositories picker hid their repositories as on this board until a
@@ -84,6 +115,7 @@ export const {
   setRepoCards,
   addRepoCards,
   removeRepoCard,
+  applyRefreshedRepoCards,
   removeStatusListWithCards,
 } = boardSlice.actions
 

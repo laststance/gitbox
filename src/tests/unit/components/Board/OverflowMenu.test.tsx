@@ -178,6 +178,27 @@ describe('OverflowMenu', () => {
       expect(screen.getByText('Move to Another Board')).toBeInTheDocument()
     })
 
+    test('shows Refresh from GitHub when the card can be refreshed', () => {
+      const onRefresh = vi.fn()
+      render(
+        <OverflowMenu {...defaultProps} open={true} onRefresh={onRefresh} />,
+      )
+
+      expect(screen.getByText('Refresh from GitHub')).toBeVisible()
+    })
+
+    test('asks GitHub again for the card that was chosen', async () => {
+      const user = userEvent.setup()
+      const onRefresh = vi.fn()
+      render(
+        <OverflowMenu {...defaultProps} open={true} onRefresh={onRefresh} />,
+      )
+
+      await user.click(screen.getByText('Refresh from GitHub'))
+
+      expect(onRefresh).toHaveBeenCalledWith(toRepoCardId('card-1'))
+    })
+
     test('should render Remove from Board when the callback is provided', () => {
       render(
         <OverflowMenu {...defaultProps} open={true} onRemove={mockOnRemove} />,

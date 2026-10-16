@@ -6,6 +6,7 @@ import {
   BarChart2,
   Database,
   ArrowRightLeft,
+  RefreshCw,
   Trash2,
 } from 'lucide-react'
 import React, { memo, useState } from 'react'
@@ -39,6 +40,8 @@ interface OverflowMenuProps {
   trackingUrl?: string
   supabaseUrl?: string
   onMoveToAnotherBoard?: (id: RepoCardId) => void
+  /** Read this card's repository from GitHub and rewrite its snapshot. */
+  onRefresh?: (id: RepoCardId) => void
   /** Callback when repository is removed from board */
   onRemove?: (id: RepoCardId) => void
   open?: boolean
@@ -53,6 +56,7 @@ interface OverflowMenuProps {
  * - Open Production URL
  * - Open Tracking dashboard
  * - Open Supabase dashboard
+ * - Refresh from GitHub - Rewrites the stored snapshot. The note stays.
  * - Move to Another Board - Keeps the note, links and comment
  * - Remove from Board - Deletes the card; the note, links and comment stay with the repository
  *
@@ -66,6 +70,7 @@ export const OverflowMenu = memo(function OverflowMenu({
   trackingUrl,
   supabaseUrl,
   onMoveToAnotherBoard,
+  onRefresh,
   onRemove,
   open,
   onOpenChange,
@@ -210,7 +215,19 @@ export const OverflowMenu = memo(function OverflowMenu({
 
           {/* Separator before actions */}
           {(githubUrl || productionUrl || trackingUrl || supabaseUrl) &&
-            (onMoveToAnotherBoard || onRemove) && <DropdownMenuSeparator />}
+            (onRefresh || onMoveToAnotherBoard || onRemove) && (
+              <DropdownMenuSeparator />
+            )}
+
+          {onRefresh && (
+            <DropdownMenuItem
+              onClick={() => onRefresh(cardId)}
+              data-testid={`refresh-from-github-${cardId}`}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh from GitHub
+            </DropdownMenuItem>
+          )}
 
           {/* Move to Another Board */}
           {onMoveToAnotherBoard && (

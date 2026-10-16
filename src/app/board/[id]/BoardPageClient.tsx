@@ -16,9 +16,9 @@
 'use client'
 
 import * as Sentry from '@sentry/nextjs'
-import { Link, Plus, Settings } from 'lucide-react'
+import { Link, Plus, RefreshCw, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState, useCallback, useMemo, memo } from 'react'
+import { useState, useCallback, useMemo, useRef, memo } from 'react'
 import { toast } from 'sonner'
 
 import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox'
@@ -50,10 +50,15 @@ import {
 import { renameBoardDirect, updateBoardSubtitle } from '@/lib/actions/board'
 import type { BoardInitialData } from '@/lib/actions/board-data'
 import type { CommentData } from '@/lib/actions/project-info'
+import {
+  refreshBoardMetadata,
+  refreshCardMetadata,
+} from '@/lib/actions/refresh-metadata'
 import { deleteRepoCard, type CreatedRepoCard } from '@/lib/actions/repo-cards'
 import type { RepoCardForRedux } from '@/lib/models/domain'
 import {
   addRepoCards,
+  applyRefreshedRepoCards,
   selectStatusLists,
   selectRepoCards,
 } from '@/lib/redux/slices/boardSlice'
@@ -63,6 +68,7 @@ import type { Board } from '@/lib/supabase/types'
 import { parseBoardSettings } from '@/lib/types/board-settings'
 import { toBoardId, type RepoCardId } from '@/lib/types/brands'
 import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
+import { describeBoardRefresh } from '@/lib/utils/describe-board-refresh'
 import {
   describeColumnDeletion,
   holdColumnDeletionDescription,
@@ -169,6 +175,73 @@ export const BoardPageClient = memo(function BoardPageClient({
       }),
     [executeCardAction],
   )
+
+  const [isRefreshingBoard, setIsRefreshingBoard] = useState(false)
+  const [cardRefreshCount, setCardRefreshCount] = useState(0)
+  // A second click on the same card would spend another card refresh.
+  // A board refresh does not start while a card refresh is still running,
+  // and a card refresh does not start during the board refresh.
+  const refreshingCardIds = useRef(new Set<RepoCardId>())
+  const boardRefreshInFlight = useRef(false)
+
+  const handleRefreshCard = useCallback(
+    async (cardId: RepoCardId): Promise<void> => {
+      if (
+        boardRefreshInFlight.current ||
+        refreshingCardIds.current.has(cardId)
+      ) {
+        return
+      }
+      refreshingCardIds.current.add(cardId)
+      setCardRefreshCount((count) => count + 1)
+      const toastId = toast.loading('Refreshing from GitHub…')
+      try {
+        const result = await refreshCardMetadata(cardId)
+        if (!result.success) {
+          toast.error(result.error, { id: toastId })
+          return
+        }
+        dispatch(applyRefreshedRepoCards([result.data]))
+        toast.success('Refreshed from GitHub', { id: toastId })
+      } finally {
+        refreshingCardIds.current.delete(cardId)
+        setCardRefreshCount((count) => count - 1)
+      }
+    },
+    [dispatch],
+  )
+
+  const handleRefreshBoard = useCallback(async (): Promise<void> => {
+    if (boardRefreshInFlight.current || refreshingCardIds.current.size > 0) {
+      return
+    }
+    boardRefreshInFlight.current = true
+    setIsRefreshingBoard(true)
+    try {
+      const result = await refreshBoardMetadata(boardId)
+      if (!result.success) {
+        toast.error(result.error)
+        return
+      }
+      if (result.data.updated.length > 0) {
+        dispatch(applyRefreshedRepoCards(result.data.updated))
+      }
+      const sentence = describeBoardRefresh({
+        updated: result.data.updated.length,
+        failed: result.data.failed.length,
+        remaining: result.data.remaining,
+      })
+      // Nothing was written and GitHub refused the cards that were asked
+      if (result.data.updated.length === 0 && result.data.failed.length > 0) {
+        toast.error(sentence)
+        return
+      }
+      toast.success(sentence)
+    } finally {
+      boardRefreshInFlight.current = false
+      setIsRefreshingBoard(false)
+    }
+  }, [boardId, dispatch])
 
   // ========================================
   // Comments of repositories added on this page
@@ -359,6 +432,23 @@ export const BoardPageClient = memo(function BoardPageClient({
                 <Link className="h-4 w-4" />
                 Copy Link
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(): void => {
+                  void handleRefreshBoard()
+                }}
+                disabled={
+                  isRefreshingBoard ||
+                  cardRefreshCount > 0 ||
+                  repoCards.length === 0
+                }
+                aria-busy={isRefreshingBoard}
+                className="gap-1"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh from GitHub
+              </Button>
             </div>
           </div>
         </header>
@@ -371,6 +461,9 @@ export const BoardPageClient = memo(function BoardPageClient({
             cardDisplaySettings={boardSettings.cardDisplaySettings}
             onMoveToAnotherBoard={handleMoveToAnotherBoard}
             onNote={noteModal.open}
+            onRefresh={(cardId): void => {
+              void handleRefreshCard(cardId)
+            }}
             onRemove={handleRemoveFromBoard}
             onEditStatus={statusListDialog.openEdit}
             onDeleteStatus={statusListDialog.requestDelete}

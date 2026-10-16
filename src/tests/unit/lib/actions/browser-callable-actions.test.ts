@@ -64,6 +64,7 @@ describe('what a browser can call in src/lib/actions', () => {
         'toggleBoardSubtitleVisibility',
       ],
       'github.ts': ['getAuthenticatedRepositoryCatalog'],
+      'refresh-metadata.ts': ['refreshCardMetadata', 'refreshBoardMetadata'],
       'project-info.ts': [
         'getProjectInfo',
         'upsertProjectInfo',

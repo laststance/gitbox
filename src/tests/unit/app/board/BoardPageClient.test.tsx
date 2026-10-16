@@ -262,6 +262,23 @@ describe('BoardPageClient Component', () => {
       })
     })
 
+    test('shows Refresh from GitHub for the board', async () => {
+      const board = createMockBoard()
+      const initialData = createMockInitialData()
+
+      render(
+        <Provider store={store}>
+          <BoardPageClient board={board} initialData={initialData} />
+        </Provider>,
+      )
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: 'Refresh from GitHub' }),
+        ).toBeVisible()
+      })
+    })
+
     test('should render Add Column button', async () => {
       const board = createMockBoard()
       const initialData = createMockInitialData()

@@ -15,6 +15,7 @@ import type { RepoCardForRedux, StatusListDomain } from '@/lib/models/domain'
 import boardSlice, {
   setRepoCards,
   addRepoCards,
+  applyRefreshedRepoCards,
   selectRepoCards,
   setStatusLists,
   removeRepoCard,
@@ -324,6 +325,51 @@ describe('boardSlice', () => {
       )
 
       expect(nextState.repoCards).toHaveLength(1)
+    })
+  })
+
+  describe('applyRefreshedRepoCards', () => {
+    test('shows the description GitHub just returned and leaves the other card', () => {
+      // Arrange
+      const kept = createMockCard({
+        id: toRepoCardId('card-kept'),
+        description: 'Stays',
+      })
+      const refreshed = createMockCard({
+        id: toRepoCardId('card-refreshed'),
+        description: 'Old description',
+      })
+      const initialState = {
+        statusLists: [],
+        repoCards: [kept, refreshed],
+      }
+
+      // Act
+      const nextState = boardSlice(
+        initialState,
+        applyRefreshedRepoCards([
+          {
+            id: 'card-refreshed',
+            description: 'Boards for repositories',
+            meta: {
+              stars: 7,
+              githubId: 42,
+              description: 'Boards for repositories',
+            },
+          },
+        ]),
+      )
+
+      // Assert
+      expect(nextState.repoCards[0]).toBe(kept)
+      expect(nextState.repoCards[1]?.description).toBe(
+        'Boards for repositories',
+      )
+      expect(nextState.repoCards[1]?.meta).toEqual({
+        stars: 7,
+        githubId: 42,
+        description: 'Boards for repositories',
+      })
     })
   })
 

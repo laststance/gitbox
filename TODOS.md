@@ -41,20 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/autoplan` review and the code review of issue #213 (a repository that is set aside is a card on an ordinary board). None of the follow-ups blocks that change.
 
-### Refresh a card's GitHub metadata
-
-**What:** Add an action that reads a repository from GitHub again and rewrites the `meta` of its card (description, language, topics, stars, visibility, updated date), for one card and for a whole board.
-
-**Why:** `meta` is a snapshot from the moment a card is added and nothing updates it. A new description, star count, language or visibility on GitHub never reaches the card. Removing the card and adding it again refreshes it, and since #216 the note, links and comment come back with it, but the card loses its column and its place there.
-
-A repository that was renamed or transferred keeps its former owner and name on the card. GitHub answers the former name with the repository at its new place, so the card still opens. But the picker compares names: it offers the repository under its new name as one that sits on no board, and it can be added a second time. Seen on 2026-10-12 in the local check of issue #213, with one migrated card whose repository had moved from the organization to the owner's account.
-
-**Context:** `meta` is written in one place, `addRepositoriesToBoard` in `src/lib/actions/repo-cards.ts`, from the repository object the browser sends. A refresh should read GitHub on the server (`src/lib/actions/github.ts`) rather than trust a browser payload. It is a feature of its own: a server action with its own rate-limit key, a card-menu entry or a board-level button, and tests, about ten files in all. `meta.githubId` is the value that tells a renamed repository from another one: the picker has stored it since 2026-10-11, and the metadata fill of issue #213 wrote it for the migrated cards. Cards added before that date have none (19 on production on 2026-10-12), so a refresh has to write it too.
-
-**Effort:** M
-**Priority:** P3
-**Depends on:** None
-
 ### Give a board without columns its default columns once, and a new account one first board
 
 **What:** (1) Make the write in `createDefaultStatusLists` safe against two requests that read the same board without columns at the same moment: a database function that inserts the default columns only while the board has none (it takes a lock on the board row first), or a unique index on `(board_id, grid_row, grid_col)` with `ON CONFLICT DO NOTHING`. (2) Do the "only when the user has no board" check of `createFirstBoardIfNeeded` inside the database function, under a lock for that user (`pg_advisory_xact_lock`).
