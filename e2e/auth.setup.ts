@@ -81,9 +81,12 @@ function createMockSupabaseSession(): string {
  *
  * The storage state is saved to AUTH_FILE for reuse by dependent test projects.
  *
- * LIMITATION: This mock auth works for UI rendering but NOT for server-side auth
- * validation. Tests that verify database mutations after UI actions will fail
- * because supabase.auth.getUser() returns null with the mock token.
+ * The cookie is a fixture session, not a GitHub sign-in. With APP_ENV=test,
+ * createClient() in src/lib/supabase/server.ts swaps in E2E_TEST_JWT (role
+ * authenticated, sub = the seed user) and getUser() returns that user, so a
+ * server action can write and a test can read the row back.
+ * e2e/logged-in/move-to-another-board.spec.ts does that after Move. GitHub
+ * data is still the MSW fixtures, and this is not the ryota-murakami check.
  *
  * NOTE: For local Supabase, the project ref is "gitbox" (from config.toml project_id).
  */
