@@ -33,18 +33,6 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
 
 From the `/autoplan` review of issue #215 (one card per user and repository). None blocks that change.
 
-### Identify repositories by GitHub id instead of `owner/name`
-
-**What:** Key uniqueness on the GitHub repository id so renames and transfers keep one identity.
-
-**Why:** A renamed repo can be added a second time under its new name.
-
-**Context:** New cards store `meta.githubId` as an untrusted client hint. A backfill must re-verify every id against the GitHub API before any constraint uses it. Since #216 the note, links and comment of a repository are keyed by `owner/name` too (`projectinfo.repo_key`, unique per user): a repository renamed or transferred on GitHub and added again under its new name starts empty, while its memory waits under the old name. The `projectinfo` key and the computed relationship `projectinfo(repocard)` have to move to the GitHub id together with the card's key.
-
-**Effort:** L
-**Priority:** P3
-**Depends on:** None
-
 ### Repo search in the command palette
 
 **What:** Find a repo across all boards from `⌘K` and jump to its board.

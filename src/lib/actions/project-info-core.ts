@@ -3,8 +3,9 @@
  *
  * Internal module containing the types, validation, and core functions for
  * project info operations. The note, links and comment belong to the user and
- * the repository, not to the card (issue #216): a `projectinfo` row is keyed
- * by `user_id` and `repo_key` (lowercase `owner/name`) and outlives the card.
+ * the repository, not to the card (issue #216): a `projectinfo` row outlives
+ * the card. A confirmed GitHub id is its identity; until then the row is keyed
+ * by `user_id` and `repo_key` (lowercase `owner/name`).
  * Every function still takes the id of the RepoCard the browser has, reads
  * the repository that card holds and works on that repository's row.
  *
@@ -15,6 +16,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+import { lookupRepositoryByGitHubId } from '@/lib/github/verify-repository-identity'
 import { createClient } from '@/lib/supabase/server'
 import type { Database, TablesInsert, CommentColor } from '@/lib/supabase/types'
 import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
@@ -29,11 +31,244 @@ import {
 type ProjectInfoInsert = TablesInsert<'projectinfo'>
 
 /**
- * Column PostgREST upserts a memory on: one row per user and repository.
+ * Column PostgREST upserts a memory on when no row has the GitHub id yet.
  * `user_id` is filled by its default (`auth.uid()`), `repo_key` by the
  * database from `repo_owner` and `repo_name`.
  */
 const PROJECT_INFO_CONFLICT_TARGET = 'user_id,repo_key'
+
+/**
+ * The memory that already carries this repository's confirmed GitHub id.
+ *
+ * A rename changes `owner/name`, so that row is no longer found by
+ * `repo_key`. Called before a write so the note stays on the row instead of
+ * inserting a second one the partial unique index rejects.
+ *
+ * @param supabase - Server client of the signed-in user.
+ * @param ownerId - The user whose memory the write may touch.
+ * @param githubRepoId - The id GitHub confirmed for the card.
+ * @returns The memory id, or `null` when this id has no row yet. `error` is
+ *   set when the read itself failed; the caller must not insert past it.
+ * @example
+ * await findMemoryIdByGitHubRepoId(supabase, 'user-1', 42)
+ * // => { id: 'memory-1', error: null }
+ */
+async function findMemoryIdByGitHubRepoId(
+  supabase: SupabaseClient<Database>,
+  ownerId: string,
+  githubRepoId: number,
+): Promise<{ id: string | null; error: { message: string } | null }> {
+  const { data, error } = await supabase
+    .from('projectinfo')
+    .select('id')
+    .eq('user_id', ownerId)
+    .eq('github_repo_id', githubRepoId)
+    .maybeSingle()
+
+  if (error) return { id: null, error }
+  return { id: data?.id ?? null, error: null }
+}
+
+/**
+ * The memory stored under this owner/name, whatever GitHub id it carries.
+ *
+ * Called when no memory has the card's id yet, before an upsert on
+ * `repo_key`. A row with a different confirmed id is another repository
+ * that used to have this name, and must not be overwritten.
+ *
+ * @param supabase - Server client of the signed-in user.
+ * @param ownerId - The user whose memory the write may touch.
+ * @param repository - The card's owner and name.
+ * @returns The id on that row, whether a row exists, and a read error.
+ * @example
+ * await findMemoryByRepoKey(supabase, 'user-1', repository)
+ * // => { githubRepoId: null, found: false, error: null }
+ */
+async function findMemoryByRepoKey(
+  supabase: SupabaseClient<Database>,
+  ownerId: string,
+  repository: Pick<ProjectInfoInsert, 'repo_owner' | 'repo_name'>,
+): Promise<{
+  githubRepoId: number | null
+  found: boolean
+  error: { message: string } | null
+}> {
+  const { data, error } = await supabase
+    .from('projectinfo')
+    .select('github_repo_id')
+    .eq('user_id', ownerId)
+    .eq(
+      'repo_key',
+      toRepoIdentifier(repository.repo_owner, repository.repo_name),
+    )
+    .maybeSingle()
+
+  if (error) return { githubRepoId: null, found: false, error }
+  if (!data) return { githubRepoId: null, found: false, error: null }
+  return {
+    githubRepoId:
+      typeof data.github_repo_id === 'number' ? data.github_repo_id : null,
+    found: true,
+    error: null,
+  }
+}
+
+/**
+ * Whether this name's memory is a different repository's.
+ *
+ * @param githubRepoId - The id on the row, when it has one.
+ * @param cardGitHubRepoId - The id GitHub confirmed for the card.
+ * @returns `true` when writing here would attach another repository's note.
+ * @example
+ * memoryBelongsToAnotherRepository(99, 42) // => true
+ */
+function memoryBelongsToAnotherRepository(
+  githubRepoId: number | null,
+  cardGitHubRepoId: number,
+): boolean {
+  return githubRepoId !== null && githubRepoId !== cardGitHubRepoId
+}
+
+/**
+ * Moves a memory off a name when no card still holds its GitHub id.
+ *
+ * The note outlives the card. After the card is deleted the memory keeps the
+ * old name, and a new repository that takes that name cannot save. Called by
+ * {@link writeRepositoryMemory} before it would refuse the save. A card that
+ * still has the id keeps the memory where it is.
+ *
+ * @param supabase - Server client of the signed-in user.
+ * @param ownerId - The user whose memory the write may touch.
+ * @param githubRepoId - The id on the memory that currently has this name.
+ * @param repository - The name the new repository needs.
+ * @returns `moved` when the name is free. `moved: false` when a card still
+ *   holds the id, or GitHub still gives that id this name.
+ * @example
+ * await relocateOrphanMemory(supabase, 'user-1', 99, repository)
+ */
+async function relocateOrphanMemory(
+  supabase: SupabaseClient<Database>,
+  ownerId: string,
+  githubRepoId: number,
+  repository: Pick<ProjectInfoInsert, 'repo_owner' | 'repo_name'>,
+): Promise<{ moved: boolean; error: { message: string } | null }> {
+  const { data: heldByCard, error: heldError } = await supabase
+    .from('repocard')
+    .select('id')
+    .eq('github_repo_id', githubRepoId)
+    .limit(1)
+    .maybeSingle()
+  if (heldError) return { moved: false, error: heldError }
+  if (heldByCard) return { moved: false, error: null }
+
+  const current = await lookupRepositoryByGitHubId(githubRepoId)
+  if (current.outcome !== 'confirmed') {
+    return {
+      moved: false,
+      error: { message: 'Could not confirm the repository with GitHub' },
+    }
+  }
+  const currentIdentifier = toRepoIdentifier(
+    current.repository.owner,
+    current.repository.name,
+  )
+  if (
+    currentIdentifier ===
+    toRepoIdentifier(repository.repo_owner, repository.repo_name)
+  ) {
+    return { moved: false, error: null }
+  }
+
+  const { error } = await supabase
+    .from('projectinfo')
+    .update({
+      repo_owner: current.repository.owner,
+      repo_name: current.repository.name,
+    })
+    .eq('user_id', ownerId)
+    .eq('github_repo_id', githubRepoId)
+  if (error) return { moved: false, error }
+  return { moved: true, error: null }
+}
+
+/**
+ * Create or update the memory of the repository a card holds.
+ *
+ * When the card has a confirmed id and a memory already has it, that row is
+ * updated and its owner/name move with the card. The `user_id,repo_key`
+ * upsert runs only when no memory has the id, which is a first save or a
+ * card whose id is not confirmed yet.
+ *
+ * @param supabase - Server client of the signed-in user.
+ * @param ownerId - The user whose memory the write may touch.
+ * @param repository - The card's owner, name and confirmed id.
+ * @param fields - The note, comment or color this save changes.
+ * @returns The database error, or `null` when the write was accepted.
+ * @example
+ * await writeRepositoryMemory(supabase, 'user-1', repository, { note: 'a' })
+ */
+async function writeRepositoryMemory(
+  supabase: SupabaseClient<Database>,
+  ownerId: string,
+  repository: CardRepository['repository'],
+  fields: Omit<
+    ProjectInfoInsert,
+    'repo_owner' | 'repo_name' | 'github_repo_id'
+  >,
+): Promise<{ error: { message: string } | null }> {
+  const githubRepoId = repository.github_repo_id
+  // A confirmed id is the row. Updating it by name would insert a duplicate.
+  if (typeof githubRepoId === 'number') {
+    const found = await findMemoryIdByGitHubRepoId(
+      supabase,
+      ownerId,
+      githubRepoId,
+    )
+    if (found.error) return found
+    if (found.id) {
+      const { error } = await supabase
+        .from('projectinfo')
+        .update({
+          repo_owner: repository.repo_owner,
+          repo_name: repository.repo_name,
+          github_repo_id: githubRepoId,
+          ...fields,
+        })
+        .eq('id', found.id)
+        .eq('user_id', ownerId)
+      return { error }
+    }
+
+    // The name may still belong to a memory whose id is a different repository.
+    // A card that holds that id keeps its memory. A memory whose card is gone
+    // moves to the name GitHub gives that id, so this repository can have a row.
+    const byName = await findMemoryByRepoKey(supabase, ownerId, repository)
+    if (byName.error) return { error: byName.error }
+    if (
+      byName.githubRepoId !== null &&
+      memoryBelongsToAnotherRepository(byName.githubRepoId, githubRepoId)
+    ) {
+      const relocated = await relocateOrphanMemory(
+        supabase,
+        ownerId,
+        byName.githubRepoId,
+        repository,
+      )
+      if (relocated.error) return relocated
+      if (!relocated.moved) {
+        return { error: { message: 'Memory belongs to another repository' } }
+      }
+    }
+  }
+
+  const { error } = await supabase
+    .from('projectinfo')
+    .upsert(
+      { ...repository, ...fields },
+      { onConflict: PROJECT_INFO_CONFLICT_TARGET },
+    )
+  return { error }
+}
 
 // ========================================
 // Types
@@ -205,7 +440,10 @@ export function normalizeLinks(links: unknown): ProjectLink[] {
 /** The repository a card holds, and whose memory a write may touch. */
 interface CardRepository {
   /** The card's `repo_owner` and `repo_name`, as a `projectinfo` row names them. */
-  repository: Pick<ProjectInfoInsert, 'repo_owner' | 'repo_name'>
+  repository: Pick<
+    ProjectInfoInsert,
+    'repo_owner' | 'repo_name' | 'github_repo_id'
+  >
   /** The owner of the card's board: the user whose row a write touches. */
   ownerId: string
 }
@@ -234,7 +472,7 @@ async function readCardRepository(
 ): Promise<CardRepository> {
   const { data: card, error } = await supabase
     .from('repocard')
-    .select('repo_owner, repo_name, board!inner(user_id)')
+    .select('repo_owner, repo_name, github_repo_id, board!inner(user_id)')
     .eq('id', repoCardId)
     .single()
 
@@ -247,7 +485,14 @@ async function readCardRepository(
   }
 
   return {
-    repository: { repo_owner: card.repo_owner, repo_name: card.repo_name },
+    repository: {
+      repo_owner: card.repo_owner,
+      repo_name: card.repo_name,
+      // Omit an unconfirmed id so a later save does not wipe one that exists
+      ...(typeof card.github_repo_id === 'number'
+        ? { github_repo_id: card.github_repo_id }
+        : {}),
+    },
     ownerId: card.board.user_id,
   }
 }
@@ -335,18 +580,13 @@ export async function upsertProjectInfoCore(
     .filter((link) => link.url && link.url.trim() !== '')
     .map((link) => ({ type: link.type, url: link.url }))
 
-  const { repository } = await readCardRepository(supabase, repoCardId)
+  const { repository, ownerId } = await readCardRepository(supabase, repoCardId)
 
-  const upsertData: ProjectInfoInsert = {
-    ...repository,
+  const { error } = await writeRepositoryMemory(supabase, ownerId, repository, {
     note: data.note,
     ...(data.comment !== undefined && { comment: data.comment }),
     links: linksArray,
-  }
-
-  const { error } = await supabase
-    .from('projectinfo')
-    .upsert(upsertData, { onConflict: PROJECT_INFO_CONFLICT_TARGET })
+  })
 
   if (error) {
     throw new Error('Failed to save project information')
@@ -356,9 +596,9 @@ export async function upsertProjectInfoCore(
 /**
  * Update the comment of the repository a RepoCard holds.
  *
- * One upsert: it creates the row when nothing is saved yet and otherwise
- * changes the comment (and the color, when given) and leaves the note and the
- * links alone.
+ * It creates the row when nothing is saved yet and otherwise changes the
+ * comment (and the color, when given) and leaves the note and the links
+ * alone. A row that already has the card's GitHub id is updated in place.
  *
  * @param repoCardId - The RepoCard ID
  * @param comment - New comment text (max 2000 chars)
@@ -382,17 +622,13 @@ export async function updateCommentCore(
     validateCommentColor(color)
   }
 
-  const { repository } = await readCardRepository(supabase, repoCardId)
+  const { repository, ownerId } = await readCardRepository(supabase, repoCardId)
 
-  const { error } = await supabase.from('projectinfo').upsert(
-    {
-      ...repository,
-      comment,
-      // Without a color a new row takes the column default (primary)
-      ...(color && { comment_color: color }),
-    },
-    { onConflict: PROJECT_INFO_CONFLICT_TARGET },
-  )
+  const { error } = await writeRepositoryMemory(supabase, ownerId, repository, {
+    comment,
+    // Without a color a new row takes the column default (primary)
+    ...(color && { comment_color: color }),
+  })
 
   if (error) {
     throw new Error('Failed to update comment')
@@ -419,14 +655,11 @@ export async function updateCommentColorCore(
 
   validateCommentColor(color)
 
-  const { repository } = await readCardRepository(supabase, repoCardId)
+  const { repository, ownerId } = await readCardRepository(supabase, repoCardId)
 
-  const { error } = await supabase
-    .from('projectinfo')
-    .upsert(
-      { ...repository, comment_color: color },
-      { onConflict: PROJECT_INFO_CONFLICT_TARGET },
-    )
+  const { error } = await writeRepositoryMemory(supabase, ownerId, repository, {
+    comment_color: color,
+  })
 
   if (error) {
     throw new Error('Failed to update comment color')
@@ -451,15 +684,50 @@ export async function deleteCommentCore(repoCardId: string): Promise<void> {
 
   const { repository, ownerId } = await readCardRepository(supabase, repoCardId)
 
+  const cleared = {
+    comment: null,
+    comment_color: DEFAULT_COMMENT_COLOR,
+  }
+  const githubRepoId = repository.github_repo_id
+  // The note the card shows is the row with this id, which may still spell
+  // the name from before a rename
+  if (typeof githubRepoId === 'number') {
+    const found = await findMemoryIdByGitHubRepoId(
+      supabase,
+      ownerId,
+      githubRepoId,
+    )
+    if (found.error) {
+      throw new Error('Failed to delete comment')
+    }
+    if (found.id) {
+      const { error } = await supabase
+        .from('projectinfo')
+        .update(cleared)
+        .eq('id', found.id)
+        .eq('user_id', ownerId)
+      if (error) {
+        throw new Error('Failed to delete comment')
+      }
+      return
+    }
+
+    // Do not clear a comment that belongs to a different repository's id
+    const byName = await findMemoryByRepoKey(supabase, ownerId, repository)
+    if (byName.error) {
+      throw new Error('Failed to delete comment')
+    }
+    if (memoryBelongsToAnotherRepository(byName.githubRepoId, githubRepoId)) {
+      return
+    }
+  }
+
   // The key is the same for every user holding the repository: the owner
   // filter keeps the update to this user's row whatever row level security
   // does. A repository with nothing saved matches no row and nothing changes
   const { error } = await supabase
     .from('projectinfo')
-    .update({
-      comment: null,
-      comment_color: DEFAULT_COMMENT_COLOR,
-    })
+    .update(cleared)
     .eq('user_id', ownerId)
     .eq(
       'repo_key',

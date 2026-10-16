@@ -24,10 +24,22 @@ import {
   updateCommentCore,
   upsertProjectInfoCore,
 } from '@/lib/actions/project-info-core'
+import { lookupRepositoryByGitHubId } from '@/lib/github/verify-repository-identity'
 
-const { createClient } = vi.hoisted(() => ({ createClient: vi.fn() }))
+const { createClient, lookupRepositoryByGitHubId: lookupById } = vi.hoisted(
+  () => ({
+    createClient: vi.fn(),
+    lookupRepositoryByGitHubId: vi.fn(async (id: number) => ({
+      outcome: 'confirmed' as const,
+      repository: { id, owner: 'laststance', name: `moved-${id}` },
+    })),
+  }),
+)
 
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
+vi.mock('@/lib/github/verify-repository-identity', () => ({
+  lookupRepositoryByGitHubId: lookupById,
+}))
 
 /** What PostgREST answers for one request. */
 type Answer = {
@@ -58,7 +70,13 @@ const NSX_CARD: Answer = {
  * @example
  * const { upsert } = signInWithStub(NSX_CARD)
  */
-function signInWithStub(card: Answer, writeError: Answer['error'] = null) {
+function signInWithStub(
+  card: Answer,
+  writeError: Answer['error'] = null,
+  memory: Answer = { data: null, error: null },
+  namedMemory?: Answer,
+  heldCard: Answer = { data: null, error: null },
+) {
   const upsert = vi.fn(async () => ({ error: writeError }))
   // A PostgREST filter builder: chainable, and awaited for its answer
   const filteredUpdate = {
@@ -67,22 +85,45 @@ function signInWithStub(card: Answer, writeError: Answer['error'] = null) {
       resolve({ error: writeError }),
   }
   const update = vi.fn(() => filteredUpdate)
+  const memoryQuery = {
+    columns: 'id',
+    eq: vi.fn(() => memoryQuery),
+    maybeSingle: async () =>
+      memoryQuery.columns === 'github_repo_id'
+        ? (namedMemory ?? memory)
+        : memory,
+  }
   const from = vi.fn((table: string) => {
     if (table === 'repocard') {
       const query = {
         select: () => query,
         eq: () => query,
+        limit: () => query,
+        maybeSingle: async () => heldCard,
         single: async () => card,
       }
       return query
     }
     if (table === 'projectinfo') {
-      return { upsert, update }
+      return {
+        upsert,
+        update,
+        select: (columns: string) => {
+          memoryQuery.columns = columns
+          return memoryQuery
+        },
+      }
     }
     throw new Error(`Unexpected table: ${table}`)
   })
   createClient.mockResolvedValue({ from })
-  return { from, upsert, update, filterUpdatedRows: filteredUpdate.eq }
+  return {
+    from,
+    upsert,
+    update,
+    filterUpdatedRows: filteredUpdate.eq,
+    filterMemoryLookup: memoryQuery.eq,
+  }
 }
 
 describe('project-info-core', () => {
@@ -247,6 +288,199 @@ describe('project-info-core', () => {
     },
   )
 
+  // Value: protects=a renamed repository keeps the note that was saved under its old name; fails_when=the save inserts a second row keyed by the new name and the unique GitHub id rejects it; why_new=the id became the memory's identity; seam=none; no_claim=the policy that also requires a card with that id
+  test("updates the memory that already has the card's GitHub id when the repository was renamed", async () => {
+    // Arrange: the card now spells the new name; the memory row is the old one
+    const { upsert, update, filterUpdatedRows } = signInWithStub(
+      {
+        data: {
+          repo_owner: 'laststance',
+          repo_name: 'gitbox-renamed',
+          github_repo_id: 42,
+          board: { user_id: 'user-1' },
+        },
+        error: null,
+      },
+      null,
+      { data: { id: 'memory-1' }, error: null },
+    )
+
+    // Act
+    await upsertProjectInfoCore('card-1', {
+      note: 'still the same repository',
+      links: [],
+    })
+
+    // Assert
+    expect(upsert).not.toHaveBeenCalled()
+    expect(update).toHaveBeenCalledWith({
+      repo_owner: 'laststance',
+      repo_name: 'gitbox-renamed',
+      github_repo_id: 42,
+      note: 'still the same repository',
+      links: [],
+    })
+    expect(filterUpdatedRows).toHaveBeenCalledWith('id', 'memory-1')
+    expect(filterUpdatedRows).toHaveBeenCalledWith('user_id', 'user-1')
+  })
+
+  // Value: protects=the first save of a confirmed repository still creates the row by name; fails_when=a missing memory is updated instead of inserted, or the confirmed id is left off the insert; why_new=the id lookup returns no row on a first save; seam=none; no_claim=the database default for user_id
+  test("inserts a memory on the repository name when no row has the card's GitHub id yet", async () => {
+    // Arrange
+    const { upsert, update } = signInWithStub({
+      data: {
+        repo_owner: 'laststance',
+        repo_name: 'nsx',
+        github_repo_id: 42,
+        board: { user_id: 'user-1' },
+      },
+      error: null,
+    })
+
+    // Act
+    await updateCommentCore('card-1', 'ship it')
+
+    // Assert
+    expect(update).not.toHaveBeenCalled()
+    expect(upsert).toHaveBeenCalledWith(
+      {
+        repo_owner: 'laststance',
+        repo_name: 'nsx',
+        github_repo_id: 42,
+        comment: 'ship it',
+      },
+      { onConflict: 'user_id,repo_key' },
+    )
+  })
+
+  // Value: protects=a note saved under a name that now belongs to another repository is not overwritten with the new repository's text; fails_when=the name upsert sets the new GitHub id on the old memory; why_new=the name is no longer the identity once both rows have ids; seam=none; no_claim=the dialog copy
+  test('saves nothing when the name already belongs to a memory with a different GitHub id', async () => {
+    // Arrange: a card still holds repository 99, so its memory stays on this name
+    const { upsert, update } = signInWithStub(
+      {
+        data: {
+          repo_owner: 'laststance',
+          repo_name: 'gitbox',
+          github_repo_id: 42,
+          board: { user_id: 'user-1' },
+        },
+        error: null,
+      },
+      null,
+      { data: null, error: null },
+      { data: { github_repo_id: 99 }, error: null },
+      { data: { id: 'card-99' }, error: null },
+    )
+
+    // Act
+    const attempt = upsertProjectInfoCore('card-1', {
+      note: 'a note',
+      links: [],
+    })
+
+    // Assert
+    await expect(attempt).rejects.toThrow('Failed to save project information')
+    expect(upsert).not.toHaveBeenCalled()
+    expect(update).not.toHaveBeenCalled()
+    expect(lookupRepositoryByGitHubId).not.toHaveBeenCalled()
+  })
+
+  // Value: protects=deleting the card does not leave the new repository unable to save a note; fails_when=the old memory keeps the name and every save is refused; why_new=the memory outlives the card; seam=none; no_claim=the row level security exception for an orphan memory
+  test('moves an orphaned memory to the name GitHub gives its id, then saves the note', async () => {
+    // Arrange: no card holds repository 99; its memory still spells gitbox
+    const { upsert, update } = signInWithStub(
+      {
+        data: {
+          repo_owner: 'laststance',
+          repo_name: 'gitbox',
+          github_repo_id: 42,
+          board: { user_id: 'user-1' },
+        },
+        error: null,
+      },
+      null,
+      { data: null, error: null },
+      { data: { github_repo_id: 99 }, error: null },
+    )
+
+    // Act
+    await upsertProjectInfoCore('card-1', {
+      note: 'the new repository',
+      links: [],
+    })
+
+    // Assert
+    expect(lookupRepositoryByGitHubId).toHaveBeenCalledWith(99)
+    expect(update).toHaveBeenCalledWith({
+      repo_owner: 'laststance',
+      repo_name: 'moved-99',
+    })
+    expect(upsert).toHaveBeenCalledWith(
+      {
+        repo_owner: 'laststance',
+        repo_name: 'gitbox',
+        github_repo_id: 42,
+        note: 'the new repository',
+        links: [],
+      },
+      { onConflict: 'user_id,repo_key' },
+    )
+  })
+
+  // Value: protects=deleting a comment does not clear the comment of a different repository that used to have this name; fails_when=the name update runs after the id lookup misses; why_new=the delete followed the name whenever the id had no row; seam=none; no_claim=the dialog copy
+  test("clears nothing when the name's memory belongs to a different GitHub id", async () => {
+    // Arrange
+    const { update } = signInWithStub(
+      {
+        data: {
+          repo_owner: 'laststance',
+          repo_name: 'gitbox',
+          github_repo_id: 42,
+          board: { user_id: 'user-1' },
+        },
+        error: null,
+      },
+      null,
+      { data: null, error: null },
+      { data: { github_repo_id: 99 }, error: null },
+    )
+
+    // Act
+    await deleteCommentCore('card-1')
+
+    // Assert
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  // Value: protects=a failed lookup does not insert a second memory; fails_when=the save continues to the name upsert after the id read fails; why_new=the id lookup is a new request; seam=none; no_claim=the text the dialog shows
+  test("saves nothing when the memory for the card's GitHub id cannot be read", async () => {
+    // Arrange
+    const { upsert, update } = signInWithStub(
+      {
+        data: {
+          repo_owner: 'laststance',
+          repo_name: 'nsx',
+          github_repo_id: 42,
+          board: { user_id: 'user-1' },
+        },
+        error: null,
+      },
+      null,
+      { data: null, error: { message: 'canceling statement' } },
+    )
+
+    // Act
+    const attempt = upsertProjectInfoCore('card-1', {
+      note: 'a note',
+      links: [],
+    })
+
+    // Assert
+    await expect(attempt).rejects.toThrow('Failed to save project information')
+    expect(upsert).not.toHaveBeenCalled()
+    expect(update).not.toHaveBeenCalled()
+  })
+
   // Value: protects=Delete comment reaches only the user's row of the repository whichever letter case its card spells; the key is shared by every user holding the repository; fails_when=the update filters on the raw owner/name, or drops the owner filter and leans on row level security alone; why_new=deleteCommentCore had no unit test (security review of #216); seam=none; no_claim=that the row really changes (e2e)
   test("clears the comment of the user's row of the repository whatever letter case its card spells", async () => {
     // Arrange: GitHub spells the repository LastStance/NSX, the row's repo_key is lowercase
@@ -269,6 +503,39 @@ describe('project-info-core', () => {
     })
     expect(filterUpdatedRows).toHaveBeenCalledWith('user_id', 'user-1')
     expect(filterUpdatedRows).toHaveBeenCalledWith('repo_key', 'laststance/nsx')
+  })
+
+  // Value: protects=deleting a comment after a rename clears the memory the card shows, which still has the old name; fails_when=the update filters on the new name and leaves the comment in place; why_new=the card and the memory meet on the GitHub id; seam=none; no_claim=that the row really changes (e2e)
+  test("clears the comment of the memory that already has the card's GitHub id", async () => {
+    // Arrange
+    const { update, filterUpdatedRows } = signInWithStub(
+      {
+        data: {
+          repo_owner: 'laststance',
+          repo_name: 'gitbox-renamed',
+          github_repo_id: 42,
+          board: { user_id: 'user-1' },
+        },
+        error: null,
+      },
+      null,
+      { data: { id: 'memory-1' }, error: null },
+    )
+
+    // Act
+    await deleteCommentCore('card-1')
+
+    // Assert
+    expect(update).toHaveBeenCalledWith({
+      comment: null,
+      comment_color: 'primary',
+    })
+    expect(filterUpdatedRows).toHaveBeenCalledWith('id', 'memory-1')
+    expect(filterUpdatedRows).toHaveBeenCalledWith('user_id', 'user-1')
+    expect(filterUpdatedRows).not.toHaveBeenCalledWith(
+      'repo_key',
+      'laststance/gitbox-renamed',
+    )
   })
 
   // Value: protects=the Note dialog shows what is saved for the card's repository, an empty note when nothing is, and never an empty editor over a note it could not read (a card gone in another tab, a failed request); fails_when=the embed's fields are mapped wrong, null project info throws, or a missing card or failed read is answered as an empty note; why_new=getProjectInfoCore had no unit test after the embed read; seam=none; no_claim=the note editor refusing to open (useNoteModal.test.ts)

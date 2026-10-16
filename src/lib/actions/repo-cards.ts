@@ -11,6 +11,7 @@
 'use server'
 
 import * as Sentry from '@sentry/nextjs'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 import {
   withAuthResult,
@@ -18,7 +19,13 @@ import {
 } from '@/lib/actions/auth-guard'
 import type { GitHubRepository } from '@/lib/actions/github'
 import { MOVE_UNCONFIRMED_MESSAGE } from '@/lib/constants/card-move'
+import {
+  backfillVerifiedRepositoryIds,
+  lookupRepositoryByGitHubId,
+  verifyRepositoryIdentities,
+} from '@/lib/github/verify-repository-identity'
 import { createModuleLogger } from '@/lib/logger'
+import type { Database } from '@/lib/supabase/types'
 import {
   toBoardId,
   toRepoCardId,
@@ -30,6 +37,7 @@ import {
 import type { ISOTimestamp, Visibility } from '@/lib/types/domain-primitives'
 import { didDatabaseRefuse } from '@/lib/utils/did-database-refuse'
 import { readEveryRow } from '@/lib/utils/read-every-row'
+import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
 import { addRepositoriesRequestSchema } from '@/lib/validations/repo-card'
 
 import {
@@ -44,11 +52,84 @@ import {
   lookupRepoPlacements,
   splitRequestedRepos,
   toUniqueViolationError,
+  type BoardPlacement,
   type SkippedRepository,
 } from './repo-card-duplicates'
 import { ActionUserError, type ActionResult, type BoardOption } from './types'
 
 const log = createModuleLogger('repo-cards')
+
+/**
+ * Moves a card off a name that now belongs to a different repository.
+ *
+ * The card was confirmed under its own GitHub id and still spells the old
+ * name. Called by {@link addRepositoriesToBoard} before the insert, so the
+ * unique owner/name index does not reject the repository that has the name now.
+ *
+ * @param supabase - Authenticated client.
+ * @param userId - The signed-in user.
+ * @param repositories - Repositories GitHub just confirmed and the board does not hold.
+ * @param placements - Every card the user already has.
+ * @example
+ * await releaseNamesHeldByAnotherRepository(supabase, claims.sub, newRepos, placements)
+ */
+async function releaseNamesHeldByAnotherRepository(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  repositories: GitHubRepository[],
+  placements: BoardPlacement[],
+): Promise<void> {
+  for (const repository of repositories) {
+    const identifier = toRepoIdentifier(repository.owner.login, repository.name)
+    const held = placements.find(
+      (placement) =>
+        placement.identifier === identifier &&
+        typeof placement.githubRepoId === 'number' &&
+        placement.githubRepoId !== repository.id,
+    )
+    if (!held || typeof held.githubRepoId !== 'number') continue
+
+    const current = await lookupRepositoryByGitHubId(held.githubRepoId)
+    if (current.outcome !== 'confirmed') {
+      throw new ActionUserError(
+        'Could not confirm the repository with GitHub. Try again.',
+      )
+    }
+    const currentIdentifier = toRepoIdentifier(
+      current.repository.owner,
+      current.repository.name,
+    )
+    // GitHub still gives this name to the card's id, so it is not free
+    if (currentIdentifier === identifier) {
+      throw new ActionUserError(
+        'Could not confirm the repository with GitHub. Try again.',
+      )
+    }
+
+    const { error: cardError } = await supabase
+      .from('repocard')
+      .update({
+        repo_owner: current.repository.owner,
+        repo_name: current.repository.name,
+      })
+      .eq('id', held.cardId)
+    if (cardError) {
+      throw new Error('Failed to update the repository name')
+    }
+
+    const { error: memoryError } = await supabase
+      .from('projectinfo')
+      .update({
+        repo_owner: current.repository.owner,
+        repo_name: current.repository.name,
+      })
+      .eq('user_id', userId)
+      .eq('github_repo_id', held.githubRepoId)
+    if (memoryError && memoryError.code !== '23505') {
+      throw new Error('Failed to update the repository name')
+    }
+  }
+}
 
 /**
  * Server-authored card data returned from {@link addRepositoriesToBoard}.
@@ -170,20 +251,82 @@ export async function addRepositoriesToBoard(
         throw new Error('Board not found')
       }
 
+      // Confirm ids that were saved before the column existed, so a renamed
+      // repository matches the card it already has. A failure here only
+      // leaves those ids null; the insert below still refuses an id GitHub
+      // did not just confirm.
+      try {
+        await backfillVerifiedRepositoryIds(supabase, claims.sub)
+      } catch (error) {
+        Sentry.captureException(error, {
+          tags: { action: 'backfillVerifiedRepositoryIds' },
+        })
+      }
+
       // Where every repository of this user already lives (all boards).
       // Throws on lookup failure: never insert without it.
       const placements = await lookupRepoPlacements(supabase, claims.sub)
 
-      const { addable: newRepos, skipped } = splitRequestedRepos(
-        repositories,
-        placements,
-        boardId,
+      // The id on the request is whatever the browser sent, so the first
+      // split uses the name only. A card that already has a confirmed id is
+      // left out of that split: the name may have been taken by another
+      // repository, and only GitHub can tell. Cards with no id yet still
+      // match by name, and are not sent to GitHub.
+      const { addable: namedAddable, skipped: namedSkipped } =
+        splitRequestedRepos(
+          repositories.map((repository) => ({ ...repository, id: undefined })),
+          placements.filter(
+            (placement) => typeof placement.githubRepoId !== 'number',
+          ),
+          boardId,
+        )
+
+      if (namedAddable.length === 0) {
+        return { addedCount: 0, cards: [], skipped: namedSkipped }
+      }
+
+      // Ask GitHub, five at a time, and compare and store only that answer.
+      const confirmations = await verifyRepositoryIdentities(
+        namedAddable.map((repository) => ({
+          owner: repository.owner.login,
+          name: repository.name,
+        })),
       )
+      const confirmed: GitHubRepository[] = []
+      for (const [index, repository] of namedAddable.entries()) {
+        const confirmation = confirmations[index]
+        if (!confirmation || confirmation.outcome !== 'confirmed') {
+          throw new ActionUserError(
+            'Could not confirm the repository with GitHub. Try again.',
+          )
+        }
+        const verified = confirmation.repository
+        confirmed.push({
+          ...repository,
+          id: verified.id,
+          name: verified.name,
+          full_name: `${verified.owner}/${verified.name}`,
+          owner: { ...repository.owner, login: verified.owner },
+        })
+      }
+
+      const { addable: newRepos, skipped: confirmedSkipped } =
+        splitRequestedRepos(confirmed, placements, boardId)
+      const skipped = [...namedSkipped, ...confirmedSkipped]
 
       // Everything is already placed: not an error, the picker explains why
       if (newRepos.length === 0) {
         return { addedCount: 0, cards: [], skipped }
       }
+
+      // A confirmed card may still spell this name. Move it to the name
+      // GitHub gives its id, then the insert can take the name.
+      await releaseNamesHeldByAnotherRepository(
+        supabase,
+        claims.sub,
+        newRepos,
+        placements,
+      )
 
       // Get current maximum order value
       const { data: maxOrderData } = await supabase
@@ -202,6 +345,7 @@ export async function addRepositoriesToBoard(
         status_id: statusId,
         repo_owner: repo.owner.login,
         repo_name: repo.name,
+        github_repo_id: repo.id,
         order: nextOrder++,
         meta: {
           stars: repo.stargazers_count,
@@ -210,8 +354,8 @@ export async function addRepositoriesToBoard(
           visibility: repo.visibility,
           description: repo.description,
           updatedAt: repo.updated_at,
-          // Untrusted client hint for a later rename-safe identity backfill:
-          // re-verify against the GitHub API before relying on it
+          // The id GitHub just confirmed for this owner and name, not the
+          // number the browser sent
           githubId: repo.id,
         },
       }))

@@ -29,6 +29,10 @@ import {
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { BoardId, StatusListId } from '@/lib/types/brands'
 import type { RepoIdentifier } from '@/lib/types/domain-primitives'
+import {
+  findIndexedPlacement,
+  indexBoardPlacements,
+} from '@/lib/utils/find-board-placement'
 import { formatSavedMemoryLabel } from '@/lib/utils/saved-memory-label'
 import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
 
@@ -947,13 +951,8 @@ function classifyRepositories(params: {
   const { repositories, currentBoardId, currentBoardIdentifiers, placements } =
     params
 
-  // First card wins if legacy data holds the same repository on two boards
-  const boardPlacementByIdentifier = new Map<RepoIdentifier, BoardPlacement>()
-  for (const placement of placements ?? []) {
-    if (!boardPlacementByIdentifier.has(placement.identifier)) {
-      boardPlacementByIdentifier.set(placement.identifier, placement)
-    }
-  }
+  // A confirmed GitHub id wins over the name, so a rename stays on its card
+  const indexes = indexBoardPlacements(placements ?? [])
 
   const addable: GitHubRepository[] = []
   const held: HeldRepository[] = []
@@ -962,7 +961,10 @@ function classifyRepositories(params: {
     // GitHub's own `owner/name`, lowercased: the same string toRepoIdentifier
     // builds, and it survives a repository with missing owner data (GITBOX-1)
     const identifier = repository.full_name.toLowerCase()
-    const boardPlacement = boardPlacementByIdentifier.get(identifier)
+    const boardPlacement = findIndexedPlacement(indexes, {
+      identifier,
+      githubId: repository.id,
+    })
 
     // Already on this board: hidden, as before
     if (

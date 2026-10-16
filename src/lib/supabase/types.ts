@@ -81,6 +81,7 @@ export type Database = {
           comment: string | null
           comment_color: string | null
           created_at: string | null
+          github_repo_id: number | null
           id: string
           links: Json | null
           note: string | null
@@ -94,6 +95,7 @@ export type Database = {
           comment?: string | null
           comment_color?: string | null
           created_at?: string | null
+          github_repo_id?: number | null
           id?: string
           links?: Json | null
           note?: string | null
@@ -107,6 +109,7 @@ export type Database = {
           comment?: string | null
           comment_color?: string | null
           created_at?: string | null
+          github_repo_id?: number | null
           id?: string
           links?: Json | null
           note?: string | null
@@ -122,6 +125,8 @@ export type Database = {
         Row: {
           board_id: string
           created_at: string | null
+          github_identity_checked_at: string | null
+          github_repo_id: number | null
           id: string
           meta: Json | null
           order: number
@@ -134,6 +139,8 @@ export type Database = {
         Insert: {
           board_id: string
           created_at?: string | null
+          github_identity_checked_at?: string | null
+          github_repo_id?: number | null
           id?: string
           meta?: Json | null
           order?: number
@@ -146,6 +153,8 @@ export type Database = {
         Update: {
           board_id?: string
           created_at?: string | null
+          github_identity_checked_at?: string | null
+          github_repo_id?: number | null
           id?: string
           meta?: Json | null
           order?: number
@@ -309,6 +318,7 @@ export type Database = {
           comment: string | null
           comment_color: string | null
           created_at: string | null
+          github_repo_id: number | null
           id: string
           links: Json | null
           note: string | null

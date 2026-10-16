@@ -103,6 +103,20 @@ export async function getUserRepoPlacements(): Promise<
   ActionResult<RepoPlacementsLookup>
 > {
   return withAuthResult(async (supabase, claims) => {
+    // Confirm ids after the list is sent, so the picker does not wait and
+    // the requests are not dropped when this action returns. The import is
+    // dynamic: this module is bundled into Storybook, and `next/server`
+    // cannot load there. A failure leaves the ids null; the list is returned.
+    try {
+      const { scheduleRepositoryBackfill } =
+        await import('@/lib/github/schedule-repository-backfill')
+      scheduleRepositoryBackfill(supabase, claims.sub)
+    } catch (error) {
+      Sentry.captureException(error, {
+        tags: { action: 'scheduleRepositoryBackfill' },
+      })
+    }
+
     const [placements, allSavedMemories] = await Promise.all([
       lookupRepoPlacements(supabase, claims.sub),
       // The marks are extra: without them the picker still lists where each
