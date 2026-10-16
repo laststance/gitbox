@@ -92,6 +92,8 @@ export function toRepoCardDomain(row: RepoCardRow): RepoCardDomain {
       language: meta.language,
       topics: meta.topics,
       description: meta.description,
+      // Left off when the card was saved before the id was stored
+      ...(typeof meta.githubId === 'number' ? { githubId: meta.githubId } : {}),
     },
     createdAt: row.created_at ?? new Date().toISOString(),
     updatedAt: row.updated_at ?? new Date().toISOString(),

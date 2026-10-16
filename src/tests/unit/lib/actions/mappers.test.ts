@@ -252,6 +252,36 @@ describe('remapBoardEmbed', () => {
     expect(bundle.comments).toEqual({})
   })
 
+  test('keeps the GitHub id stored on a card', () => {
+    // Arrange
+    const row = makeBundleRow({
+      repocard: [
+        makeRepoCardRow({
+          meta: {
+            stars: 3,
+            githubId: 42,
+            description: 'Kept',
+          },
+        }),
+      ],
+    })
+
+    // Act
+    const bundle = remapBoardEmbed(row)
+
+    // Assert
+    expect(bundle.repoCards[0]?.meta).toEqual({
+      stars: 3,
+      updatedAt: undefined,
+      visibility: undefined,
+      language: undefined,
+      topics: undefined,
+      description: 'Kept',
+      githubId: 42,
+    })
+    expect(bundle.repoCards[0]?.description).toBe('Kept')
+  })
+
   test('returns the plain board row without the embedded statuslist/repocard children', () => {
     // Arrange: a fully populated bundle
     const row = makeBundleRow({

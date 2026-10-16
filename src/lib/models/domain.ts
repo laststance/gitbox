@@ -130,8 +130,8 @@ export interface RepoCardDomain {
 
 /**
  * Snapshot of a repository's GitHub metadata, cached in `repocard.meta`.
- * Refreshed by the background GitHub sync. Every field is optional because
- * older cards may predate a given field's introduction.
+ * Written when the card is added and again when the user refreshes it from
+ * GitHub. Every field is optional because older cards may predate a field.
  *
  * @example
  * { stars: 120, language: 'TypeScript', visibility: 'public', topics: ['react'] }

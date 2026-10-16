@@ -26,6 +26,8 @@ interface SortableColumnProps {
   onMoveToBoard?: (id: RepoCardId) => void
   /** Callback when Note button is clicked (opens unified NoteModal) */
   onNote?: (id: RepoCardId) => void
+  /** Read this card's repository from GitHub and rewrite its snapshot. */
+  onRefresh?: (id: RepoCardId) => void
   /** Callback when repository is removed from board */
   onRemove?: (id: RepoCardId) => void
   /** Callback when comment is updated (for optimistic updates) */
@@ -69,6 +71,7 @@ export const SortableColumn = memo<SortableColumnProps>(
     cardDisplaySettings,
     onMoveToBoard,
     onNote,
+    onRefresh,
     onRemove,
     onCommentChange,
     onCommentColorChange,
@@ -117,6 +120,7 @@ export const SortableColumn = memo<SortableColumnProps>(
             cardDisplaySettings={cardDisplaySettings}
             onMoveToBoard={onMoveToBoard}
             onNote={onNote}
+            onRefresh={onRefresh}
             onRemove={onRemove}
             onCommentChange={onCommentChange}
             onCommentColorChange={onCommentColorChange}

@@ -68,6 +68,14 @@ export const RATE_LIMIT_CONFIG = {
     description: 'project info',
   },
 
+  // One card or one board. A board refresh is one request and then asks
+  // GitHub itself, so this stops a script from walking every board.
+  refreshRepoMetadata: {
+    maxRequests: 10,
+    windowMs: 60_000,
+    description: 'repository refresh',
+  },
+
   // --- Low: User settings ---
   userSettings: {
     maxRequests: 20,

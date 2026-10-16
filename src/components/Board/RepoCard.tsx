@@ -51,6 +51,8 @@ interface RepoCardProps {
   onMoveToBoard?: (id: RepoCardId) => void
   /** Callback when Note button is clicked (opens unified NoteModal with notes + links) */
   onNote?: (id: RepoCardId) => void
+  /** Read this card's repository from GitHub and rewrite its snapshot. */
+  onRefresh?: (id: RepoCardId) => void
   /** Callback when repository is removed from board */
   onRemove?: (id: RepoCardId) => void
   /** Callback when comment area is clicked (for editing) - deprecated, editing is now built-in */
@@ -80,6 +82,7 @@ export const RepoCard = memo<RepoCardProps>(
     showComment = true,
     onMoveToBoard,
     onNote,
+    onRefresh,
     onRemove,
     onCommentClick,
     onCommentChange,
@@ -240,6 +243,7 @@ export const RepoCard = memo<RepoCardProps>(
                       ? (): void => onMoveToBoard(card.id)
                       : undefined
                   }
+                  onRefresh={onRefresh}
                   onRemove={onRemove}
                   open={menuOpen}
                   onOpenChange={handleMenuOpenChange}

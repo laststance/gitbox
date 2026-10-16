@@ -52,6 +52,8 @@ interface KanbanBoardProps {
   onMoveToAnotherBoard?: (cardId: RepoCardId) => void
   /** Callback when Note button is clicked (opens unified NoteModal with notes + links) */
   onNote?: (cardId: RepoCardId) => void
+  /** Read one card's repository from GitHub and rewrite its snapshot. */
+  onRefresh?: (cardId: RepoCardId) => void
   /** Callback when repository is removed from board */
   onRemove?: (cardId: RepoCardId) => void
   onEditStatus?: (status: StatusListDomain) => void
@@ -66,6 +68,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     cardDisplaySettings,
     onMoveToAnotherBoard,
     onNote,
+    onRefresh,
     onRemove,
     onEditStatus,
     onDeleteStatus,
@@ -193,6 +196,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                       cardDisplaySettings={cardDisplaySettings}
                       onMoveToBoard={onMoveToAnotherBoard}
                       onNote={onNote}
+                      onRefresh={onRefresh}
                       onRemove={onRemove}
                       onCommentChange={handleCommentChange}
                       onCommentColorChange={handleCommentColorChange}
