@@ -58,46 +58,40 @@ import type { ActionResult } from './types'
 export type BoardInitialData = Omit<BoardBundle, 'board'>
 
 /**
- * What the Add Repositories picker learns when it opens.
+ * Where the signed-in user's repositories are placed.
+ *
+ * The picker's Saved marks are a second read ({@link getSavedRepositoryMemories}).
+ * They are not part of this result, so a slow mark query cannot hold the list.
  *
  * @example
- * {
- *   placements: [{ identifier: 'laststance/gitbox', boardId: '…', boardName: 'Work' }],
- *   savedMemories: [{ identifier: 'laststance/nsx', hasNote: true, linkCount: 1, hasComment: false }],
- * }
+ * { placements: [{ identifier: 'laststance/gitbox', boardId: '…', boardName: 'Work' }] }
  */
 export interface RepoPlacementsLookup {
   /** Every card of the user, with the board that holds it. */
   placements: BoardPlacement[]
-  /**
-   * Repositories on no board whose note, links or comment are saved (issue
-   * #216); `null` when that lookup failed, and the picker then shows no marks.
-   */
-  savedMemories: SavedRepositoryMemory[] | null
 }
 
 /**
  * Get every placement of the current user's repositories (which board holds
- * each one) and what is saved for the repositories on no board.
+ * each one).
  *
  * Called by `GET /api/repo-placements` (the picker) and by the command
  * palette. The picker uses the route so the request is not queued behind the
  * catalog Server Action. The picker lists repositories that are already
- * placed elsewhere instead of offering them (Issue #215) and marks the ones
- * whose note, links or comment come back when they are added (Issue #216).
- * Fetched on open rather than with the page so Back / Forward navigation and
- * moves made in other tabs never leave it stale.
+ * placed elsewhere instead of offering them (Issue #215). The Saved marks
+ * (Issue #216) are {@link getSavedRepositoryMemories}, fetched beside this
+ * one so the list does not wait for them. Fetched on open rather than with
+ * the page so Back / Forward navigation and moves made in other tabs never
+ * leave it stale.
  *
  * @returns
- * - On success: `{ success: true, data: RepoPlacementsLookup }`; `savedMemories`
- *   is `null` when only that lookup failed
+ * - On success: `{ success: true, data: RepoPlacementsLookup }`
  * - On auth error: `{ success: false, error: 'Authentication required' }`
  * - On placement lookup failure: `{ success: false, error: 'An unexpected error occurred' }`
  * @example
  * const result = await getUserRepoPlacements()
  * if (result.success) {
  *   result.data.placements // => [{ identifier: 'laststance/gitbox', boardId: '…', boardName: 'Work' }]
- *   result.data.savedMemories // => [{ identifier: 'laststance/nsx', hasNote: true, linkCount: 1, hasComment: false }]
  * }
  */
 export async function getUserRepoPlacements(): Promise<
@@ -118,30 +112,39 @@ export async function getUserRepoPlacements(): Promise<
       })
     }
 
-    const [placements, allSavedMemories] = await Promise.all([
-      lookupRepoPlacements(supabase, claims.sub),
-      // The marks are extra: without them the picker still lists where each
-      // repository is placed
-      lookupSavedRepositoryMemories(supabase, claims.sub).catch(
-        (error: unknown) => {
-          Sentry.captureException(error, {
-            tags: { action: 'lookupSavedRepositoryMemories' },
-          })
-          return null
-        },
-      ),
-    ])
+    const placements = await lookupRepoPlacements(supabase, claims.sub)
+    return { placements }
+  })
+}
 
-    // A repository on a board shows its memory on its card, not in the picker
-    const placedIdentifiers = new Set(
-      placements.map((placement) => placement.identifier),
-    )
-    const savedMemories =
-      allSavedMemories?.filter(
-        (memory) => !placedIdentifiers.has(memory.identifier),
-      ) ?? null
-
-    return { placements, savedMemories }
+/**
+ * What is saved for the signed-in user's repositories that sit on no board.
+ *
+ * Called by `GET /api/saved-repository-memories` when the Add Repositories
+ * picker opens. The list of repositories does not wait for this: the marks
+ * are extra, and a failure here leaves them off. `null` is that failure.
+ *
+ * @returns
+ * - On success: `{ success: true, data }` — the marks, or `null` when the lookup failed
+ * - On auth error: `{ success: false, error: 'Authentication required' }`
+ * @example
+ * const result = await getSavedRepositoryMemories()
+ * if (result.success && result.data) {
+ *   result.data // => [{ identifier: 'laststance/nsx', hasNote: true, linkCount: 1, hasComment: false }]
+ * }
+ */
+export async function getSavedRepositoryMemories(): Promise<
+  ActionResult<SavedRepositoryMemory[] | null>
+> {
+  return withAuthResult(async (supabase, claims) => {
+    try {
+      return await lookupSavedRepositoryMemories(supabase, claims.sub)
+    } catch (error) {
+      Sentry.captureException(error, {
+        tags: { action: 'lookupSavedRepositoryMemories' },
+      })
+      return null
+    }
   })
 }
 

@@ -58,7 +58,7 @@ vi.mock('@/lib/actions/auth', () => ({
 vi.mock('@/lib/actions/board-data', () => ({
   getUserRepoPlacements: vi.fn(async () => ({
     success: true,
-    data: { placements: [], savedMemories: null },
+    data: { placements: [] },
   })),
 }))
 
@@ -95,7 +95,7 @@ describe('CommandPalette', () => {
     vi.clearAllMocks()
     vi.mocked(getUserRepoPlacements).mockResolvedValue({
       success: true,
-      data: { placements: [], savedMemories: null },
+      data: { placements: [] },
     })
   })
 
@@ -488,7 +488,7 @@ describe('CommandPalette', () => {
     beforeEach(() => {
       vi.mocked(getUserRepoPlacements).mockResolvedValue({
         success: true,
-        data: { placements: [gitbox], savedMemories: null },
+        data: { placements: [gitbox] },
       })
     })
 
@@ -543,7 +543,6 @@ describe('CommandPalette', () => {
                 boardName: 'Settings Archive',
               },
             ],
-            savedMemories: null,
           },
         })
       })
@@ -571,7 +570,7 @@ describe('CommandPalette', () => {
       await act(async () => {
         pending[0]?.({
           success: true,
-          data: { placements: [gitbox], savedMemories: null },
+          data: { placements: [gitbox] },
         })
       })
       fireEvent.change(screen.getByPlaceholderText('Search commands...'), {

@@ -15,7 +15,8 @@ import {
 import type { ActionResult } from '@/lib/actions/types'
 
 /**
- * Returns the signed-in user's placements and saved-repository marks.
+ * Returns the signed-in user's placements. The Saved marks are
+ * `GET /api/saved-repository-memories`, so this answer does not wait for them.
  *
  * Called by {@link fetchRepoPlacements} each time the picker opens. The
  * answer is not cached: a card added in another tab has to show up on the

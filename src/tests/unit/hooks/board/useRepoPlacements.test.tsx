@@ -14,10 +14,14 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { useRepoPlacements } from '@/hooks/board/useRepoPlacements'
-import { fetchRepoPlacements } from '@/lib/fetch-repo-placements'
+import {
+  fetchRepoPlacements,
+  fetchSavedRepositoryMemories,
+} from '@/lib/fetch-repo-placements'
 
 vi.mock('@/lib/fetch-repo-placements', () => ({
   fetchRepoPlacements: vi.fn(),
+  fetchSavedRepositoryMemories: vi.fn(),
 }))
 
 vi.mock('@sentry/nextjs', () => ({
@@ -27,6 +31,10 @@ vi.mock('@sentry/nextjs', () => ({
 describe('useRepoPlacements', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(fetchSavedRepositoryMemories).mockResolvedValue({
+      success: true,
+      data: [],
+    })
   })
 
   test('ignores an answer from an earlier opening that arrives after the picker was closed and reopened', async () => {
@@ -39,7 +47,7 @@ describe('useRepoPlacements', () => {
       // Second opening: nothing is placed anymore
       .mockResolvedValueOnce({
         success: true,
-        data: { placements: [], savedMemories: [] },
+        data: { placements: [] },
       })
     const { result, rerender } = renderHook(
       ({ isOpen }) => useRepoPlacements(isOpen),
@@ -64,7 +72,6 @@ describe('useRepoPlacements', () => {
               cardId: '00000000-0000-4000-8000-0000000000c2',
             },
           ],
-          savedMemories: [],
         },
       })
     })
@@ -90,7 +97,6 @@ describe('useRepoPlacements', () => {
               cardId: '00000000-0000-4000-8000-0000000000c2',
             },
           ],
-          savedMemories: [],
         },
       })
       // Second opening: the server does not answer for the rest of this test
@@ -143,7 +149,7 @@ describe('useRepoPlacements', () => {
       // First opening
       .mockResolvedValueOnce({
         success: true,
-        data: { placements: [], savedMemories: [] },
+        data: { placements: [] },
       })
       // Refresh asked for after closing, e.g. by an add that was still running
       .mockResolvedValueOnce({
@@ -157,7 +163,6 @@ describe('useRepoPlacements', () => {
               cardId: '00000000-0000-4000-8000-0000000000c2',
             },
           ],
-          savedMemories: [],
         },
       })
       // Second opening: the server does not answer for the rest of this test
@@ -180,5 +185,52 @@ describe('useRepoPlacements', () => {
     // Assert: the next opening loads from the previous settled list, not the late answer
     expect(result.current.isLoadingPlacements).toBe(true)
     expect(result.current.placements).toEqual([])
+  })
+
+  // Value: protects=the repository list is usable before the Saved marks arrive; fails_when=isLoadingPlacements stays true until the mark request settles; why_new=the marks used to share the placements response; seam=none; no_claim=the label on a row (AddRepositoryCombobox.placements.test.tsx)
+  test('settles the list when placements arrive and the marks when they arrive later', async () => {
+    // Arrange
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
+      success: true,
+      data: { placements: [] },
+    })
+    const marks =
+      Promise.withResolvers<
+        Awaited<ReturnType<typeof fetchSavedRepositoryMemories>>
+      >()
+    vi.mocked(fetchSavedRepositoryMemories).mockReturnValue(marks.promise)
+
+    // Act
+    const { result } = renderHook(() => useRepoPlacements(true))
+
+    // Assert
+    await waitFor(() => {
+      expect(result.current.isLoadingPlacements).toBe(false)
+    })
+    expect(result.current.placements).toEqual([])
+    expect(result.current.savedMemories).toBeNull()
+
+    await act(async () => {
+      marks.resolve({
+        success: true,
+        data: [
+          {
+            identifier: 'laststance/nsx',
+            hasNote: true,
+            linkCount: 0,
+            hasComment: false,
+          },
+        ],
+      })
+    })
+    expect(result.current.savedMemories).toEqual([
+      {
+        identifier: 'laststance/nsx',
+        hasNote: true,
+        linkCount: 0,
+        hasComment: false,
+      },
+    ])
+    expect(result.current.isLoadingPlacements).toBe(false)
   })
 })

@@ -10,7 +10,14 @@
  */
 
 import { configureStore } from '@reduxjs/toolkit'
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { memo, useState } from 'react'
 import { Provider } from 'react-redux'
@@ -27,7 +34,10 @@ import {
   moveCardToBoard,
   type CreatedRepoCard,
 } from '@/lib/actions/repo-cards'
-import { fetchRepoPlacements } from '@/lib/fetch-repo-placements'
+import {
+  fetchRepoPlacements,
+  fetchSavedRepositoryMemories,
+} from '@/lib/fetch-repo-placements'
 import type { StatusListDomain } from '@/lib/models/domain'
 import boardReducer, {
   setRepoCards,
@@ -44,7 +54,15 @@ vi.mock('@/lib/actions/github', () => ({
 
 vi.mock('@/lib/fetch-repo-placements', () => ({
   fetchRepoPlacements: vi.fn(),
+  fetchSavedRepositoryMemories: vi.fn(),
 }))
+
+beforeEach(() => {
+  vi.mocked(fetchSavedRepositoryMemories).mockResolvedValue({
+    success: true,
+    data: [],
+  })
+})
 
 vi.mock('@/lib/actions/repo-cards', () => ({
   addRepositoriesToBoard: vi.fn(),
@@ -254,7 +272,7 @@ describe('AddRepositoryCombobox on a board that is shared by a public link', () 
     mockCatalog([makeRepository(1, 'free-repo')])
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: { placements: [], savedMemories: [] },
+      data: { placements: [] },
     })
 
     // Act
@@ -279,7 +297,7 @@ describe('AddRepositoryCombobox on a board that is shared by a public link', () 
     mockCatalog([makeRepository(1, 'free-repo')])
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: { placements: [], savedMemories: [] },
+      data: { placements: [] },
     })
 
     // Act
@@ -306,7 +324,7 @@ describe('AddRepositoryCombobox with a selected repository', () => {
     mockCatalog([makeRepository(1, 'free-repo')])
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: { placements: [], savedMemories: [] },
+      data: { placements: [] },
     })
     renderOpenPicker()
     const [freeRepoOption] = await findRepositoryOptions()
@@ -362,7 +380,7 @@ describe('AddRepositoryCombobox panel and the place of its button', () => {
     mockCatalog([makeRepository(1, 'free-repo')])
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: { placements: [], savedMemories: [] },
+      data: { placements: [] },
     })
     const store = configureStore({
       reducer: { board: boardReducer, settings: settingsReducer },
@@ -436,7 +454,7 @@ describe('AddRepositoryCombobox as a layer over the board', () => {
     mockCatalog([])
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: { placements: [], savedMemories: [] },
+      data: { placements: [] },
     })
     const store = configureStore({
       reducer: { board: boardReducer, settings: settingsReducer },
@@ -474,7 +492,7 @@ describe('AddRepositoryCombobox and the Escape key', () => {
     mockCatalog([makeRepository(1, 'free-repo')])
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: { placements: [], savedMemories: [] },
+      data: { placements: [] },
     })
     const { onOpenChange } = renderOpenPicker()
     await findRepositoryOptions()
@@ -502,7 +520,7 @@ describe('AddRepositoryCombobox and the Escape key', () => {
     mockCatalog([makeRepository(1, 'free-repo')])
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: { placements: [], savedMemories: [] },
+      data: { placements: [] },
     })
     const { onOpenChange } = renderOpenPicker()
     await findRepositoryOptions()
@@ -530,17 +548,18 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'NSX')])
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: {
-        placements: [],
-        savedMemories: [
-          {
-            identifier: 'laststance/nsx',
-            hasNote: true,
-            linkCount: 2,
-            hasComment: true,
-          },
-        ],
-      },
+      data: { placements: [] },
+    })
+    vi.mocked(fetchSavedRepositoryMemories).mockResolvedValue({
+      success: true,
+      data: [
+        {
+          identifier: 'laststance/nsx',
+          hasNote: true,
+          linkCount: 2,
+          hasComment: true,
+        },
+      ],
     })
 
     // Act
@@ -561,6 +580,51 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     ).not.toBeInTheDocument()
   })
 
+  // Value: protects=the repository list can be used before the Saved marks arrive; fails_when=the options stay locked until the mark request settles; why_new=the marks used to share the placements response; seam=none; no_claim=which rows count as saved (saved-repository-memories.test.ts)
+  test('lets a repository be chosen before its Saved mark arrives', async () => {
+    // Arrange
+    mockCatalog([makeRepository(2, 'NSX')])
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
+      success: true,
+      data: { placements: [] },
+    })
+    const marks =
+      Promise.withResolvers<
+        Awaited<ReturnType<typeof fetchSavedRepositoryMemories>>
+      >()
+    vi.mocked(fetchSavedRepositoryMemories).mockReturnValue(marks.promise)
+
+    // Act
+    renderOpenPicker()
+
+    // Assert
+    const option = await screen.findByRole('option', {
+      name: /laststance\/NSX/,
+    })
+    await waitFor(() => {
+      expect(option).toHaveAttribute('aria-disabled', 'false')
+    })
+    expect(screen.queryByTestId('saved-memory-label')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('Checking where repositories are placed...'),
+    ).not.toBeInTheDocument()
+
+    await act(async () => {
+      marks.resolve({
+        success: true,
+        data: [
+          {
+            identifier: 'laststance/nsx',
+            hasNote: true,
+            linkCount: 0,
+            hasComment: false,
+          },
+        ],
+      })
+    })
+    expect(within(option).getByText('Saved: note')).toBeVisible()
+  })
+
   // Value: protects=a failed saved-memory lookup costs only the marks: the picker still lists free repositories and the ones placed elsewhere (issue #216, R3); fails_when=the picker breaks or hides the held list on savedMemories null; why_new=only the server action's degrade was tested; seam=none; no_claim=the Sentry report of the failed lookup (board-data.placements.test.ts)
   test('lists free and held repositories without marks when what is saved could not be looked up', async () => {
     // Arrange
@@ -576,9 +640,11 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
             cardId: '00000000-0000-4000-8000-0000000000c2',
           },
         ],
-        savedMemories: null,
       },
     })
+    vi.mocked(fetchSavedRepositoryMemories).mockRejectedValue(
+      new Error('Failed to fetch'),
+    )
 
     // Act
     renderOpenPicker()
@@ -602,17 +668,18 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog(repositories)
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: {
-        placements: [],
-        savedMemories: [
-          {
-            identifier: 'laststance/repo-3',
-            hasNote: true,
-            linkCount: 0,
-            hasComment: false,
-          },
-        ],
-      },
+      data: { placements: [] },
+    })
+    vi.mocked(fetchSavedRepositoryMemories).mockResolvedValue({
+      success: true,
+      data: [
+        {
+          identifier: 'laststance/repo-3',
+          hasNote: true,
+          linkCount: 0,
+          hasComment: false,
+        },
+      ],
     })
 
     // Act
@@ -644,7 +711,6 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
             cardId: '00000000-0000-4000-8000-0000000000c2',
           },
         ],
-        savedMemories: [],
       },
     })
 
@@ -691,7 +757,6 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
             cardId: '00000000-0000-4000-8000-0000000000c2',
           },
         ],
-        savedMemories: [],
       },
     })
     vi.mocked(moveCardToBoard).mockResolvedValue({
@@ -746,7 +811,6 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
             cardId: '00000000-0000-4000-8000-0000000000c2',
           },
         ],
-        savedMemories: [],
       },
     })
     renderOpenPicker()
@@ -790,7 +854,6 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
             cardId: '00000000-0000-4000-8000-0000000000c2',
           },
         ],
-        savedMemories: [],
       },
     })
     renderOpenPicker()
@@ -841,7 +904,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
       // On open: this picker does not know about the placement yet
       .mockResolvedValueOnce({
         success: true,
-        data: { placements: [], savedMemories: [] },
+        data: { placements: [] },
       })
       // Refetch after the skipped result
       .mockResolvedValue({
@@ -855,7 +918,6 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
               cardId: '00000000-0000-4000-8000-0000000000c2',
             },
           ],
-          savedMemories: [],
         },
       })
     vi.mocked(addRepositoriesToBoard).mockResolvedValue({
@@ -910,7 +972,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: { placements: [], savedMemories: [] },
+      data: { placements: [] },
     })
     const createdCard = makeCreatedFreeRepoCard()
     vi.mocked(addRepositoriesToBoard).mockResolvedValue({
@@ -970,7 +1032,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(1, 'free-repo')])
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: { placements: [], savedMemories: [] },
+      data: { placements: [] },
     })
     vi.mocked(addRepositoriesToBoard).mockResolvedValue({
       success: true,
@@ -1010,7 +1072,6 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
             cardId: '00000000-0000-4000-8000-0000000000c2',
           },
         ],
-        savedMemories: [],
       },
     })
     renderOpenPicker()
@@ -1077,7 +1138,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(1, 'free-repo')])
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: { placements: [], savedMemories: [] },
+      data: { placements: [] },
     })
     // The server does not answer for the duration of this test
     vi.mocked(addRepositoriesToBoard).mockReturnValue(new Promise(() => {}))
@@ -1118,7 +1179,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
       // On open: this picker does not know about the placement yet
       .mockResolvedValueOnce({
         success: true,
-        data: { placements: [], savedMemories: [] },
+        data: { placements: [] },
       })
       // Refetch after the skipped result
       .mockResolvedValue({
@@ -1132,7 +1193,6 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
               cardId: '00000000-0000-4000-8000-0000000000c2',
             },
           ],
-          savedMemories: [],
         },
       })
     vi.mocked(addRepositoriesToBoard)
@@ -1211,7 +1271,6 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
             cardId: '00000000-0000-4000-8000-0000000000c2',
           },
         ],
-        savedMemories: [],
       },
     })
 
@@ -1251,7 +1310,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
       // On open: this picker does not know about the placement yet
       .mockResolvedValueOnce({
         success: true,
-        data: { placements: [], savedMemories: [] },
+        data: { placements: [] },
       })
       // Refetch after the lost race
       .mockResolvedValue({
@@ -1265,7 +1324,6 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
               cardId: '00000000-0000-4000-8000-0000000000c2',
             },
           ],
-          savedMemories: [],
         },
       })
     vi.mocked(addRepositoriesToBoard).mockResolvedValue({
@@ -1311,7 +1369,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: { placements: [], savedMemories: [] },
+      data: { placements: [] },
     })
     renderOpenPicker()
     await findRepositoryOptions()
@@ -1343,7 +1401,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(1, 'free-repo')])
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: { placements: [], savedMemories: [] },
+      data: { placements: [] },
     })
     const { onOpenChange } = renderOpenPicker()
     const [onlyOption] = await findRepositoryOptions()
@@ -1376,7 +1434,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
       // First opening
       .mockResolvedValueOnce({
         success: true,
-        data: { placements: [], savedMemories: [] },
+        data: { placements: [] },
       })
       // Second opening: the server does not answer for the rest of this test
       .mockReturnValueOnce(new Promise(() => {}))
@@ -1430,7 +1488,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     vi.mocked(fetchRepoPlacements)
       .mockResolvedValueOnce({
         success: true,
-        data: { placements: [], savedMemories: [] },
+        data: { placements: [] },
       })
       .mockReturnValueOnce(new Promise(() => {}))
     const store = configureStore({
@@ -1528,7 +1586,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(2, 'gitbox')])
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: { placements: [], savedMemories: [] },
+      data: { placements: [] },
     })
     vi.mocked(addRepositoriesToBoard).mockResolvedValue({
       success: true,
@@ -1579,7 +1637,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(2, 'gitbox')])
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: { placements: [], savedMemories: [] },
+      data: { placements: [] },
     })
     const onRepositoriesAdded = vi.fn()
     render(<ColumnReopenedPicker onRepositoriesAdded={onRepositoriesAdded} />)
@@ -1636,16 +1694,15 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
       cardId: '00000000-0000-4000-8000-0000000000c2',
     }
     const answers = [
-      { placements: [], savedMemories: [] },
-      { placements: [], savedMemories: [] },
+      { placements: [] },
+      { placements: [] },
       {
         placements: [held],
-        savedMemories: [],
       },
     ]
     vi.mocked(fetchRepoPlacements).mockImplementation(async () => ({
       success: true as const,
-      data: answers.shift() ?? { placements: [held], savedMemories: [] },
+      data: answers.shift() ?? { placements: [held] },
     }))
     render(<ColumnReopenedPicker onRepositoriesAdded={vi.fn()} />)
     const [onlyOption] = await findRepositoryOptions()
@@ -1702,7 +1759,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(2, 'gitbox')])
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: { placements: [], savedMemories: [] },
+      data: { placements: [] },
     })
     render(<ColumnReopenedPicker onRepositoriesAdded={vi.fn()} />)
     const [onlyOption] = await findRepositoryOptions()
@@ -1740,7 +1797,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(2, 'gitbox')])
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: { placements: [], savedMemories: [] },
+      data: { placements: [] },
     })
     render(<ColumnReopenedPicker onRepositoriesAdded={vi.fn()} />)
     const [onlyOption] = await findRepositoryOptions()
@@ -1775,7 +1832,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(1, 'free-repo')])
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: { placements: [], savedMemories: [] },
+      data: { placements: [] },
     })
     const onRepositoriesAdded = vi.fn()
     render(<ColumnReopenedPicker onRepositoriesAdded={onRepositoriesAdded} />)
@@ -1815,7 +1872,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     mockCatalog([makeRepository(1, 'free-repo')])
     vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
-      data: { placements: [], savedMemories: [] },
+      data: { placements: [] },
     })
     vi.mocked(addRepositoriesToBoard).mockResolvedValue({
       success: true,
@@ -1855,7 +1912,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     vi.mocked(fetchRepoPlacements)
       .mockResolvedValueOnce({
         success: true,
-        data: { placements: [], savedMemories: [] },
+        data: { placements: [] },
       })
       .mockResolvedValueOnce({
         success: true,
@@ -1868,7 +1925,6 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
               cardId: '00000000-0000-4000-8000-0000000000c2',
             },
           ],
-          savedMemories: [],
         },
       })
     render(<ColumnReopenedPicker onRepositoriesAdded={vi.fn()} />)

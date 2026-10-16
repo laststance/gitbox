@@ -37,18 +37,6 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 From the `/plan-eng-review` of issue #216 (a repository keeps its note, links and comment when its card goes). None blocks that change.
 
-### Read only what the picker's marks need, after the list
-
-**What:** Let the database answer the marks (`has_note`, `link_count`, `has_comment` per repository key, for example through a view), and stop holding the Add Repositories list until they arrive.
-
-**Why:** `lookupSavedRepositoryMemories` selects the whole note (up to 20,000 characters), the links and the comment of every row of the user on each opening of the picker, only to compute three values per row. Rows now outlive their cards, so their number only grows. And the lookup runs in the same `Promise.all` as the placements: a slow memory query holds the list, although the marks are extra. Found by the pre-landing review of #216 (performance, security, data migration and red team); the owner has 10 rows today.
-
-**Context:** `src/lib/actions/saved-repository-memories.ts` and `getUserRepoPlacements` in `src/lib/actions/board-data.ts`. A note is an editor document (JSON): a view would have to decide "has text" the way `isSlateValueEmpty` does, or keep that decision in the app and select only the notes of repositories on no board. The lookup already pages past the row cap.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### Rate-limit the project info writes
 
 **What:** Wrap `upsertProjectInfo`, `updateComment`, `updateCommentColor` and `deleteComment` (`src/lib/actions/project-info.ts`) in `withAuthResultRateLimit` with a key of their own, and the read in `withAuthResult`.

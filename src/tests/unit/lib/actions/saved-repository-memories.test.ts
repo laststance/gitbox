@@ -35,9 +35,9 @@ type MemoryQueryResult = {
 }
 
 /**
- * Supabase stand-in for the memory lookup: the read of `projectinfo` answers
- * with the given result. `from`, `eq`, `order` and `range` are spies, so a
- * test sees which table was read, how the read was filtered, and each page.
+ * Supabase stand-in for the memory lookup: the read of `saved_repository_mark`
+ * answers with the given result. `from`, `select`, `eq`, `order` and `range`
+ * are spies, so a test sees which view was read, which columns, and each page.
  * @param result - What one page resolves to, or a function of that page's range.
  * @returns The client and its spies.
  * @example
@@ -47,12 +47,16 @@ function makeSupabaseStub(
   result: MemoryQueryResult | ((from: number, to: number) => MemoryQueryResult),
 ) {
   const from = vi.fn()
+  const select = vi.fn()
   const eq = vi.fn()
   const order = vi.fn()
   const range = vi.fn()
   let lastRange: [number, number] = [0, 0]
   const query = {
-    select: () => query,
+    select: (...args: unknown[]) => {
+      select(...args)
+      return query
+    },
     eq: (...args: unknown[]) => {
       eq(...args)
       return query
@@ -79,6 +83,7 @@ function makeSupabaseStub(
   return {
     supabase: { from } as unknown as SupabaseClient<Database>,
     from,
+    select,
     eq,
     order,
     range,
@@ -252,24 +257,24 @@ describe('summarizeMemoryRow', () => {
 })
 
 describe('lookupSavedRepositoryMemories', () => {
-  // Value: protects=the picker's marks come from the signed-in user's own memories, and a memory that holds nothing gets no mark (eng review R4, pre-landing review of #216); fails_when=the query drops the user filter (another user's rows would mark repositories once RLS is loosened), or empty rows reach the picker; why_new=only the row summary was tested; seam=Supabase client stub; no_claim=row level security itself (e2e project-info-data-access.spec.ts)
-  test('reads the memories of the signed-in user only and leaves out the empty ones', async () => {
+  // Value: protects=the picker's marks come from the signed-in user's own rows of saved_repository_mark, without the note body, and an empty row gets no mark; fails_when=the query reads projectinfo (the note body would travel again), drops the user filter, or an empty row reaches the picker; why_new=the lookup now reads the view; seam=Supabase client stub; no_claim=row level security itself (e2e project-info-data-access.spec.ts) and that the view's has_note matches the Note dialog (the migration checks)
+  test('reads the marks of the signed-in user only and leaves out an empty row', async () => {
     // Arrange
-    const { supabase, from, eq } = makeSupabaseStub({
+    const { supabase, from, select, eq } = makeSupabaseStub({
       data: [
         {
           repo_owner: 'Laststance',
           repo_name: 'NSX',
-          note: null,
-          comment: 'v2.0 release',
-          links: [],
+          has_note: false,
+          link_count: 0,
+          has_comment: true,
         },
         {
           repo_owner: 'laststance',
           repo_name: 'gitbox',
-          note: '   ',
-          comment: null,
-          links: [],
+          has_note: false,
+          link_count: 0,
+          has_comment: false,
         },
       ],
       error: null,
@@ -279,7 +284,10 @@ describe('lookupSavedRepositoryMemories', () => {
     const memories = await lookupSavedRepositoryMemories(supabase, 'user-1')
 
     // Assert
-    expect(from).toHaveBeenCalledWith('projectinfo')
+    expect(from).toHaveBeenCalledWith('saved_repository_mark')
+    expect(select).toHaveBeenCalledWith(
+      'repo_owner, repo_name, has_note, link_count, has_comment',
+    )
     expect(eq).toHaveBeenCalledWith('user_id', 'user-1')
     expect(memories).toEqual([
       {
@@ -299,17 +307,17 @@ describe('lookupSavedRepositoryMemories', () => {
       (_, index) => ({
         repo_owner: 'laststance',
         repo_name: `empty-${index}`,
-        note: null,
-        comment: null,
-        links: [],
+        has_note: false,
+        link_count: 0,
+        has_comment: false,
       }),
     )
     const kept = {
       repo_owner: 'laststance',
       repo_name: 'past-the-cap',
-      note: null,
-      comment: 'kept',
-      links: [],
+      has_note: false,
+      link_count: 0,
+      has_comment: true,
     }
     const { supabase, order, range } = makeSupabaseStub((from) => ({
       data: from === 0 ? firstPage : [kept],
@@ -340,10 +348,10 @@ describe('lookupSavedRepositoryMemories', () => {
       { length: POSTGREST_MAX_ROWS },
       (_, index) => ({
         repo_owner: 'laststance',
-        repo_name: `empty-${index}`,
-        note: null,
-        comment: 'kept',
-        links: [],
+        repo_name: `kept-${index}`,
+        has_note: false,
+        link_count: 0,
+        has_comment: true,
       }),
     )
     const { supabase } = makeSupabaseStub((from) =>

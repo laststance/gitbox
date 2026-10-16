@@ -3,7 +3,10 @@ import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 
 import type { BoardPlacement } from '@/lib/actions/repo-card-duplicates'
 import type { SavedRepositoryMemory } from '@/lib/actions/saved-repository-memories'
-import { fetchRepoPlacements } from '@/lib/fetch-repo-placements'
+import {
+  fetchRepoPlacements,
+  fetchSavedRepositoryMemories,
+} from '@/lib/fetch-repo-placements'
 
 interface RepoPlacementsState {
   /** Latest placements, or `null` when the last fetch failed or none has run. */
@@ -23,7 +26,8 @@ interface UseRepoPlacementsReturn {
   placements: BoardPlacement[] | null
   /**
    * Repositories on no board whose note, links or comment are saved (issue
-   * #216), or `null` when unknown. The picker then shows no marks.
+   * #216), or `null` while that request is still running or when it failed.
+   * The picker then shows no marks. The list does not wait for them.
    */
   savedMemories: SavedRepositoryMemory[] | null
   /** True from the moment the picker opens until its placement fetch settles. */
@@ -45,11 +49,12 @@ const INITIAL_PLACEMENTS_STATE: RepoPlacementsState = {
  *
  * Called by {@link AddRepositoryCombobox}. The last settled placements stay
  * on screen when the picker opens again, and `isLoadingPlacements` stays
- * true until this opening's answer arrives: the picker keeps those rows
- * non-interactive, so a repository that was placed in another tab cannot be
- * chosen from the stale list. Closing forgets an in-flight answer. A refresh
- * that finishes after the picker has closed does not become the next
- * opening's list.
+ * true until this opening's placement answer arrives: the picker keeps those
+ * rows non-interactive, so a repository that was placed in another tab cannot
+ * be chosen from the stale list. The Saved marks are a second request. They
+ * do not hold the list; they replace the previous marks when they arrive.
+ * Closing forgets an in-flight answer. A refresh that finishes after the
+ * picker has closed does not become the next opening's list.
  *
  * @param isOpen - Whether the repository picker is currently open.
  * @returns The placements, a loading flag, and a manual refresh function.
@@ -69,16 +74,15 @@ export function useRepoPlacements(isOpen: boolean): UseRepoPlacementsReturn {
 
   const refreshPlacements = useCallback(async (): Promise<void> => {
     const requestId = ++latestRequestId.current
+    // Both start now. The list settles on the placements answer alone.
+    const placementsPromise = Promise.resolve().then(fetchRepoPlacements)
+    const memoriesPromise = Promise.resolve().then(fetchSavedRepositoryMemories)
 
     let placements: BoardPlacement[] | null = null
-    let savedMemories: SavedRepositoryMemory[] | null = null
     try {
-      const result = await fetchRepoPlacements()
+      const result = await placementsPromise
       // A failed lookup is logged server-side; the picker degrades to no held list
-      if (result.success) {
-        placements = result.data.placements
-        savedMemories = result.data.savedMemories
-      }
+      if (result.success) placements = result.data.placements
     } catch (error) {
       Sentry.captureException(error, {
         tags: { action: 'fetchRepoPlacements' },
@@ -87,7 +91,21 @@ export function useRepoPlacements(isOpen: boolean): UseRepoPlacementsReturn {
 
     // A newer request superseded this one, or the picker closed meanwhile
     if (requestId !== latestRequestId.current || !isOpenRef.current) return
-    setState({ placements, savedMemories, isSettled: true })
+    setState((current) => ({ ...current, placements, isSettled: true }))
+
+    let savedMemories: SavedRepositoryMemory[] | null = null
+    try {
+      const result = await memoriesPromise
+      // A failed mark lookup leaves the list as it is and shows no marks
+      if (result.success) savedMemories = result.data
+    } catch (error) {
+      Sentry.captureException(error, {
+        tags: { action: 'fetchSavedRepositoryMemories' },
+      })
+    }
+
+    if (requestId !== latestRequestId.current || !isOpenRef.current) return
+    setState((current) => ({ ...current, savedMemories }))
   }, [])
 
   const loadPlacementsForOpening = useEffectEvent(() => {

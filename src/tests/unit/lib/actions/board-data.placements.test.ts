@@ -12,7 +12,10 @@
 import * as Sentry from '@sentry/nextjs'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-import { getUserRepoPlacements } from '@/lib/actions/board-data'
+import {
+  getSavedRepositoryMemories,
+  getUserRepoPlacements,
+} from '@/lib/actions/board-data'
 import { lookupRepoPlacements } from '@/lib/actions/repo-card-duplicates'
 import { lookupSavedRepositoryMemories } from '@/lib/actions/saved-repository-memories'
 import { getCachedClaims } from '@/lib/auth/get-cached-claims'
@@ -60,28 +63,13 @@ describe('getUserRepoPlacements()', () => {
     ])
   })
 
-  // Value: protects=a repository on a board shows its memory on its card, not as a mark in the picker; fails_when=placed repositories are not filtered out of savedMemories; why_new=new field (issue #216); seam=none; no_claim=the database queries (both lookups mocked)
-  test('marks only the saved repositories that sit on no board', async () => {
-    // Arrange
-    vi.mocked(lookupSavedRepositoryMemories).mockResolvedValue([
-      {
-        identifier: 'laststance/gitbox',
-        hasNote: true,
-        linkCount: 0,
-        hasComment: false,
-      },
-      {
-        identifier: 'laststance/nsx',
-        hasNote: false,
-        linkCount: 1,
-        hasComment: true,
-      },
-    ])
-
+  // Value: protects=the placement list does not wait on the Saved marks; fails_when=getUserRepoPlacements calls the memory lookup again and a slow mark query holds the list; why_new=the two lookups used to share one Promise.all; seam=none; no_claim=the view that leaves out repositories on a board (saved_repository_mark)
+  test('returns the placements without looking up saved memories', async () => {
     // Act
     const result = await getUserRepoPlacements()
 
     // Assert
+    expect(lookupSavedRepositoryMemories).not.toHaveBeenCalled()
     expect(result).toEqual({
       success: true,
       data: {
@@ -93,50 +81,11 @@ describe('getUserRepoPlacements()', () => {
             cardId: '00000000-0000-4000-8000-0000000000c2',
           },
         ],
-        savedMemories: [
-          {
-            identifier: 'laststance/nsx',
-            hasNote: false,
-            linkCount: 1,
-            hasComment: true,
-          },
-        ],
       },
     })
   })
 
-  // Value: protects=the "Already placed elsewhere" list survives a failed memory lookup (eng review R3), and the swallowed failure still reaches Sentry; fails_when=one rejected lookup fails the whole action, or the catch drops the report; why_new=new lookup; seam=none; no_claim=a real network failure (mocked rejection)
-  test('still lists the placements, without marks, when the saved-memory lookup fails, and reports the failure', async () => {
-    // Arrange
-    vi.mocked(lookupSavedRepositoryMemories).mockRejectedValue(
-      new Error('Failed to look up saved repository memories'),
-    )
-
-    // Act
-    const result = await getUserRepoPlacements()
-
-    // Assert
-    expect(result).toEqual({
-      success: true,
-      data: {
-        placements: [
-          {
-            identifier: 'laststance/gitbox',
-            boardId: 'board-2',
-            boardName: 'Work',
-            cardId: '00000000-0000-4000-8000-0000000000c2',
-          },
-        ],
-        savedMemories: null,
-      },
-    })
-    expect(Sentry.captureException).toHaveBeenCalledWith(
-      new Error('Failed to look up saved repository memories'),
-      { tags: { action: 'lookupSavedRepositoryMemories' } },
-    )
-  })
-
-  // Value: protects=a picker never shows a free list built without the placements: a failed placement lookup fails the action, which the picker shows as an error; fails_when=the placement lookup gets a catch of its own and the action answers with an empty list; why_new=the two lookups now run together in Promise.all (testing review of #216); seam=none; no_claim=the picker's error view (AddRepositoryCombobox.placements.test.tsx)
+  // Value: protects=a picker never shows a free list built without the placements: a failed placement lookup fails the action, which the picker shows as an error; fails_when=the placement lookup gets a catch of its own and the action answers with an empty list; why_new=the memory lookup used to run in the same Promise.all (testing review of #216); seam=none; no_claim=the picker's error view (AddRepositoryCombobox.placements.test.tsx)
   test('fails, rather than list nothing as placed, when the placement lookup fails', async () => {
     // Arrange
     vi.mocked(lookupRepoPlacements).mockRejectedValue(
@@ -152,5 +101,63 @@ describe('getUserRepoPlacements()', () => {
       success: false,
       error: 'An unexpected error occurred',
     })
+  })
+})
+
+describe('getSavedRepositoryMemories()', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(getCachedClaims).mockResolvedValue({
+      supabase: {},
+      claims: { sub: '00000000-0000-0000-0000-000000000001' },
+    } as unknown as Awaited<ReturnType<typeof getCachedClaims>>)
+  })
+
+  // Value: protects=the picker receives the marks the lookup returned; fails_when=the action drops them or waits on placements; why_new=the marks left the placements action; seam=none; no_claim=which rows the view returns (saved-repository-memories.test.ts)
+  test('returns the marks of repositories on no board', async () => {
+    // Arrange
+    vi.mocked(lookupSavedRepositoryMemories).mockResolvedValue([
+      {
+        identifier: 'laststance/nsx',
+        hasNote: false,
+        linkCount: 1,
+        hasComment: true,
+      },
+    ])
+
+    // Act
+    const result = await getSavedRepositoryMemories()
+
+    // Assert
+    expect(lookupRepoPlacements).not.toHaveBeenCalled()
+    expect(result).toEqual({
+      success: true,
+      data: [
+        {
+          identifier: 'laststance/nsx',
+          hasNote: false,
+          linkCount: 1,
+          hasComment: true,
+        },
+      ],
+    })
+  })
+
+  // Value: protects=a failed mark lookup costs only the marks, and the failure still reaches Sentry; fails_when=the action fails the request or the catch drops the report; why_new=the catch moved off the placements action; seam=none; no_claim=a real network failure (mocked rejection)
+  test('returns no marks and reports the failure when the lookup fails', async () => {
+    // Arrange
+    vi.mocked(lookupSavedRepositoryMemories).mockRejectedValue(
+      new Error('Failed to look up saved repository memories'),
+    )
+
+    // Act
+    const result = await getSavedRepositoryMemories()
+
+    // Assert
+    expect(result).toEqual({ success: true, data: null })
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      new Error('Failed to look up saved repository memories'),
+      { tags: { action: 'lookupSavedRepositoryMemories' } },
+    )
   })
 })

@@ -35,7 +35,6 @@ describe('GET /api/repo-placements', () => {
             githubRepoId: null,
           },
         ],
-        savedMemories: [],
       },
     })
 
@@ -57,7 +56,6 @@ describe('GET /api/repo-placements', () => {
             githubRepoId: null,
           },
         ],
-        savedMemories: [],
       },
     })
   })

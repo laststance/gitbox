@@ -281,7 +281,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      saved_repository_mark: {
+        Row: {
+          has_comment: boolean
+          has_note: boolean
+          id: string
+          link_count: number
+          repo_name: string
+          repo_owner: string
+          user_id: string
+        }
+        Relationships: []
+      }
     }
     Functions: {
       batch_update_board_positions: {

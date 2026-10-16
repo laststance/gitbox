@@ -3,11 +3,13 @@
  *
  * The note, links and comment of a repository outlive its card. The Add
  * Repositories picker marks a repository on no board whose memory holds
- * something, so the user sees what comes back when it is added again: this
- * module reads the memories, {@link getUserRepoPlacements} keeps the ones of
- * repositories on no board.
+ * something, so the user sees what comes back when it is added again.
+ * `saved_repository_mark` answers the three values (a note with text, a link
+ * count, a comment with text) and leaves out repositories that sit on a
+ * board. This module pages that view. {@link getSavedRepositoryMemories}
+ * is the caller.
  *
- * NOT a 'use server' module: {@link getUserRepoPlacements} calls it on the server.
+ * NOT a 'use server' module: the route and the Server Action call it.
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -45,13 +47,19 @@ type MemoryRow = Pick<
   'repo_owner' | 'repo_name' | 'note' | 'comment' | 'links'
 >
 
+type MarkRow = Pick<
+  Tables<'saved_repository_mark'>,
+  'repo_owner' | 'repo_name' | 'has_note' | 'link_count' | 'has_comment'
+>
+
 /**
- * Loads what is saved for every repository of the user, placed or not.
+ * Loads the picker's marks for the signed-in user.
  *
- * Called by {@link getUserRepoPlacements}, which leaves out the repositories that
- * sit on a board. Rows whose note, links and comment are all empty are
- * dropped here. The read is ordered by id and continues past the PostgREST
- * row cap, so a memory past the first thousand rows still marks its repository.
+ * Called by {@link getSavedRepositoryMemories}. The view already leaves out
+ * a repository that sits on a board and a row that holds nothing; a row that
+ * arrives with all three empty is dropped here as well. The read is ordered
+ * by id and continues past the PostgREST row cap, so a mark past the first
+ * thousand rows still reaches the picker. The note body is not selected.
  *
  * @param supabase - Authenticated Supabase client (RLS applies).
  * @param userId - The current user's id (`claims.sub`).
@@ -65,14 +73,14 @@ export async function lookupSavedRepositoryMemories(
   supabase: SupabaseClient<Database>,
   userId: string,
 ): Promise<SavedRepositoryMemory[]> {
-  // One read stops at the row cap. A memory past it would leave the picker
-  // without its Saved mark, although adding the repository would still show it.
-  let rows
+  // One read stops at the row cap. A mark past it would leave the picker
+  // without its Saved label, although adding the repository would still show it.
+  let rows: MarkRow[]
   try {
     rows = await readEveryRow((from, to) =>
       supabase
-        .from('projectinfo')
-        .select('repo_owner, repo_name, note, comment, links')
+        .from('saved_repository_mark')
+        .select('repo_owner, repo_name, has_note, link_count, has_comment')
         .eq('user_id', userId)
         .order('id', { ascending: true })
         .range(from, to),
@@ -82,9 +90,39 @@ export async function lookupSavedRepositoryMemories(
     throw new Error('Failed to look up saved repository memories')
   }
 
-  return rows
-    .map(summarizeMemoryRow)
-    .filter((memory): memory is SavedRepositoryMemory => memory !== null)
+  return rows.flatMap((row) => {
+    const memory = memoryFromMark(row)
+    return memory === null ? [] : [memory]
+  })
+}
+
+/**
+ * Turns one view row into the mark the picker shows.
+ *
+ * The view is supposed to omit an empty row. This still drops one, so a row
+ * that holds nothing cannot be labeled "Saved".
+ *
+ * @param row - One row of `saved_repository_mark`.
+ * @returns The mark, or `null` when the row holds nothing.
+ * @example
+ * memoryFromMark({
+ *   repo_owner: 'laststance',
+ *   repo_name: 'nsx',
+ *   has_note: true,
+ *   link_count: 0,
+ *   has_comment: false,
+ * })
+ * // => { identifier: 'laststance/nsx', hasNote: true, linkCount: 0, hasComment: false }
+ */
+function memoryFromMark(row: MarkRow): SavedRepositoryMemory | null {
+  if (!row.has_note && !row.has_comment && row.link_count === 0) return null
+
+  return {
+    identifier: toRepoIdentifier(row.repo_owner, row.repo_name),
+    hasNote: row.has_note,
+    linkCount: row.link_count,
+    hasComment: row.has_comment,
+  }
 }
 
 /**
