@@ -568,7 +568,8 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             </div>
           )}
 
-          {/* Loading indicator */}
+          {/* Loading indicator. Submitting must not reuse the catalog's
+              sentence, or the list reads as if it were loading again. */}
           {isLoading && (
             <div
               role="status"
@@ -590,7 +591,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              Loading repositories...
+              {isAdding ? 'Adding repositories...' : 'Loading repositories...'}
             </div>
           )}
 

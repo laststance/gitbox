@@ -33,18 +33,6 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
 
 From the `/autoplan` review of issue #215 (one card per user and repository). None blocks that change.
 
-### Separate "Adding" state in the picker
-
-**What:** Show an adding state on submit instead of `Loading repositories...`.
-
-**Why:** Submitting reuses the catalog loading text, which reads as if the list were reloading.
-
-**Context:** Pre-existing. Same component.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### Fail the parallel E2E run when seeding fails
 
 **What:** Make `scripts/e2e-parallel.sh` and the shard restore stop on seed or restore errors (`ON_ERROR_STOP`).
