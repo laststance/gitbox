@@ -245,12 +245,13 @@ export async function addRepositoriesToBoard(
       }
       const requested = parsedRequest.data
 
-      // The board, the cards this user already has, and the last order in
-      // the column do not need each other's answers, so they go out together.
-      // The placement read waits for the backfill: a rename confirmed in this
-      // request has to be visible to the split below. A backfill failure only
-      // leaves those ids null; the insert still refuses an id GitHub did not
-      // just confirm.
+      // The board and the cards this user already has do not need each
+      // other's answers, so they go out together. The placement read waits
+      // for the backfill: a rename confirmed in this request has to be
+      // visible to the split below. A backfill failure only leaves those ids
+      // null; the insert still refuses an id GitHub did not just confirm.
+      // The column's last order is read later, after GitHub confirmation, so
+      // two adds do not share a maximum taken before either of them inserts.
       const boardQuery = supabase
         .from('board')
         .select('id, user_id')
@@ -268,18 +269,10 @@ export async function addRepositoriesToBoard(
         // Throws on lookup failure: never insert without it.
         return lookupRepoPlacements(supabase, claims.sub)
       })()
-      const maxOrderQuery = supabase
-        .from('repocard')
-        .select('order')
-        .eq('status_id', statusId)
-        .order('order', { ascending: false })
-        .limit(1)
-        .single()
 
-      const [boardResult, placements, maxOrderResult] = await Promise.all([
+      const [boardResult, placements] = await Promise.all([
         boardQuery,
         placementsQuery,
-        maxOrderQuery,
       ])
       const { data: board, error: boardError } = boardResult
       if (boardError || !board) {
@@ -347,8 +340,17 @@ export async function addRepositoriesToBoard(
         placements,
       )
 
+      // Read after confirmation, not with the board: an earlier maximum would
+      // be shared by two adds that both pass GitHub before either inserts.
       // An empty column makes `.single()` fail; the first card is order 0.
-      let nextOrder = (maxOrderResult.data?.order ?? -1) + 1
+      const { data: maxOrderData } = await supabase
+        .from('repocard')
+        .select('order')
+        .eq('status_id', statusId)
+        .order('order', { ascending: false })
+        .limit(1)
+        .single()
+      let nextOrder = (maxOrderData?.order ?? -1) + 1
 
       // Add new cards
       const cardsToInsert = newRepos.map((repo) => ({

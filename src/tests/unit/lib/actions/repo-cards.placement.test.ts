@@ -229,10 +229,11 @@ describe('addRepositoriesToBoard', () => {
     expect(insert).not.toHaveBeenCalled()
   })
 
-  test('asks for the board and the column order while the rename backfill is still running, and for placements only after it finishes', async () => {
-    // Arrange — the board and the column order start together. The placement
-    // read waits for the backfill, so it stays unsent while that backfill is
-    // still running. The backfill is the mock, not a query on the stub.
+  test('reads the board while the rename backfill is still running, and reads the column order only after placements have come back', async () => {
+    // Arrange — the board starts at once. The placement read waits for the
+    // backfill, and the column order waits until that placement answer is
+    // back, so two adds do not share a maximum taken before either inserts.
+    // The backfill is the mock, not a query on the stub.
     const releases: Array<() => void> = []
     let releaseBackfill: (() => void) | undefined
     const backfillDone = new Promise<void>((resolve) => {
@@ -304,15 +305,21 @@ describe('addRepositoriesToBoard', () => {
       makeRepository('laststance', 'free-repo'),
     ])
     await vi.waitFor(() => {
-      expect(releases).toHaveLength(2)
+      expect(releases).toHaveLength(1)
     })
     expect(insert).not.toHaveBeenCalled()
 
     releaseBackfill?.()
     await vi.waitFor(() => {
-      expect(releases).toHaveLength(3)
+      expect(releases).toHaveLength(2)
     })
+    expect(insert).not.toHaveBeenCalled()
 
+    const startedBeforeOrder = releases.splice(0, 2)
+    for (const release of startedBeforeOrder) release()
+    await vi.waitFor(() => {
+      expect(releases).toHaveLength(1)
+    })
     for (const release of releases) release()
     const result = await pending
 
