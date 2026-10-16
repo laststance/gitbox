@@ -469,16 +469,16 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
       }
       const targetStatusId = resolveTargetStatusId()
 
-      // Save card history for undo
-      pushCardHistory(cards)
-
       if (activeCard.statusId === targetStatusId) {
         // Reorder within same column
         const columnCards = cardsByStatus[targetStatusId] ?? EMPTY_CARDS
         const oldIndex = columnCards.findIndex((c) => c.id === active.id)
         const newIndex = columnCards.findIndex((c) => c.id === over.id)
 
+        // Dropping a card on itself changes nothing. Remembering it would
+        // make the next Z say there is nothing to undo, and hide an earlier drag.
         if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+          pushCardHistory(cards)
           const reordered = arrayMove(columnCards, oldIndex, newIndex)
           const otherCards = cards.filter((c) => c.statusId !== targetStatusId)
           const reorderedCards = [...otherCards, ...reordered]
@@ -507,6 +507,7 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
         }
       } else {
         // Move to different column
+        pushCardHistory(cards)
         const updatedCards = cards.map((c) =>
           c.id === activeCard.id ? { ...c, statusId: targetStatusId } : c,
         )

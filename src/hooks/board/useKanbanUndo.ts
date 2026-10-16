@@ -136,16 +136,27 @@ export function useKanbanUndo(
     }
 
     if (history.length === 0) return
-    const previousState = history[history.length - 1]!
-    setHistory((prev) => prev.slice(0, -1))
 
-    // The board may have changed since the snapshot (card moved to another
-    // board, removed, added): only cards still here go back to their old place
-    const cardsAfterUndo = reconcileUndoSnapshot(previousState, cards)
-    const positionsAfterUndo = toColumnPositions(cardsAfterUndo)
+    // A drag that put the card back where it was is still on the stack.
+    // One Z walks past it. The entry that moved a card is the one that returns.
+    const currentPositions = toColumnPositions(cards)
+    let remaining = history
+    let cardsAfterUndo = cards
+    let positionsAfterUndo = currentPositions
+    while (remaining.length > 0) {
+      const previousState = remaining[remaining.length - 1]!
+      remaining = remaining.slice(0, -1)
+      // The board may have changed since the snapshot (card moved to another
+      // board, removed, added): only cards still here go back to their old place
+      cardsAfterUndo = reconcileUndoSnapshot(previousState, cards)
+      positionsAfterUndo = toColumnPositions(cardsAfterUndo)
+      if (!hasSameLayout(currentPositions, positionsAfterUndo)) break
+    }
 
-    // The dragged card has left the board, so nothing here moves back
-    if (hasSameLayout(toColumnPositions(cards), positionsAfterUndo)) {
+    setHistory(remaining)
+
+    // Every remembered drag left the board as it is
+    if (hasSameLayout(currentPositions, positionsAfterUndo)) {
       toast.info('Nothing to undo on this board')
       return
     }
