@@ -4,6 +4,7 @@ import { unstable_cache } from 'next/cache'
 import { createGitHubAxios } from '@/lib/axios-github'
 import {
   GITHUB_CATALOG_MAX_PAGES,
+  GITHUB_CATALOG_REPOSITORY_PAGE_LIMIT,
   GITHUB_REPOSITORY_AFFILIATIONS,
   GITHUB_REPOSITORY_CATALOG_CACHE_VERSION,
   GITHUB_REPOSITORY_CATALOG_REVALIDATE_SECONDS,
@@ -245,7 +246,7 @@ async function fetchAllOrganizations(
  * Loads user or organization repositories into page-sized cache entries while dropping malformed rows.
  * @param cacheContext - Authenticated client and user-isolated cache identity.
  * @param organizationLogin - Organization to supplement, or undefined for `/user/repos`.
- * @returns Up to 1,000 compact repositories for this source.
+ * @returns Every compact repository of this source, one cached page at a time.
  * @example
  * await fetchAllRepositories(cacheContext, 'laststance') // => [{ id: 1, ... }]
  */
@@ -256,8 +257,9 @@ async function fetchAllRepositories(
   const repositories: GitHubRepository[] = []
   const sourceKey = organizationLogin ?? 'authenticated-user'
 
-  // Each source retains the previous 1,000-item safety cap without creating one giant cache entry.
-  for (let page = 1; page <= GITHUB_CATALOG_MAX_PAGES; page += 1) {
+  // A short page is the end of the source. A full page is not, including the
+  // tenth, so a repository past the first 1,000 is still listed.
+  for (let page = 1; ; page += 1) {
     const searchParams = new URLSearchParams({
       per_page: GITHUB_REPOSITORY_PAGE_SIZE.toString(),
       page: page.toString(),
@@ -300,10 +302,42 @@ async function fetchAllRepositories(
     })
 
     repositories.push(...cachedPage.items)
-    if (cachedPage.upstreamItemCount < GITHUB_REPOSITORY_PAGE_SIZE) break
+    if (!shouldFetchAnotherRepositoryPage(cachedPage.upstreamItemCount, page)) {
+      // The page was full and the safety stop ended the source. Say so,
+      // instead of looking like GitHub had nothing further.
+      if (cachedPage.upstreamItemCount >= GITHUB_REPOSITORY_PAGE_SIZE) {
+        log.warn(
+          { source: sourceKey, page },
+          'GitHub repository catalog stopped at the page safety limit',
+        )
+      }
+      break
+    }
   }
 
   return repositories
+}
+
+/**
+ * Whether one more page of a repository source should be requested.
+ *
+ * Called by {@link fetchAllRepositories} after each page. A short page is the
+ * end of the source. A full page continues, including past the first 1,000
+ * repositories, until {@link GITHUB_CATALOG_REPOSITORY_PAGE_LIMIT}.
+ *
+ * @param upstreamItemCount - Raw rows GitHub returned, before malformed rows are dropped.
+ * @param page - The page just read, starting at 1.
+ * @returns Whether the next page may still hold a repository.
+ * @example
+ * shouldFetchAnotherRepositoryPage(100, 10) // => true
+ * shouldFetchAnotherRepositoryPage(100, 100) // => false
+ */
+export function shouldFetchAnotherRepositoryPage(
+  upstreamItemCount: number,
+  page: number,
+): boolean {
+  if (upstreamItemCount < GITHUB_REPOSITORY_PAGE_SIZE) return false
+  return page < GITHUB_CATALOG_REPOSITORY_PAGE_LIMIT
 }
 
 /**
