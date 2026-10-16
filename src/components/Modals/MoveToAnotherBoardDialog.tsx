@@ -28,7 +28,6 @@ import * as Sentry from '@sentry/nextjs'
 import {
   ArrowRightLeft,
   Columns3,
-  Globe,
   LayoutGrid,
   Loader2,
   Plus,
@@ -87,12 +86,6 @@ import {
 } from './CreateDestinationBoardForm'
 
 /** Shown when a refused move comes without a message of its own. */
-/**
- * Id of the sentence shown when the selected board is shared through a
- * public link. The Move button is described by it.
- */
-const PUBLIC_DESTINATION_TEXT_ID = 'move-dialog-public-destination'
-
 /**
  * Id of the sentence shown above the create form when the user has no other
  * board. The name field is described by it.
@@ -479,17 +472,7 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
                     <SelectContent>
                       {boards.map((board) => (
                         <SelectItem key={board.id} value={board.id}>
-                          <span className="flex items-center gap-2">
-                            {board.name}
-                            {/* The mark the board list puts on a shared board */}
-                            {board.isPublic && (
-                              <Globe
-                                className="text-muted-foreground h-4 w-4 shrink-0"
-                                role="img"
-                                aria-label="Public board"
-                              />
-                            )}
-                          </span>
+                          {board.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -570,25 +553,6 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
                   )}
                 </div>
 
-                {/* A card on a shared board is readable through its link;
-                      the board list alone does not say what that means */}
-                {selectedBoard.isPublic && (
-                  <p
-                    id={PUBLIC_DESTINATION_TEXT_ID}
-                    className="text-foreground flex items-start gap-2 text-sm"
-                  >
-                    <Globe
-                      className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0"
-                      aria-hidden="true"
-                    />
-                    <span>
-                      {selectedBoard.name} is shared by a public link. Anyone
-                      who has the link will see this repository there, with its
-                      description. Its note, links and comment stay private.
-                    </span>
-                  </p>
-                )}
-
                 {moveFailure && (
                   <div className="space-y-2">
                     <p
@@ -635,10 +599,9 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
             type="button"
             ref={moveButtonRef}
             onClick={handleMove}
-            // Read with the button: pressing it makes the card public, and
-            // after a move that failed it takes the focus back
+            // Read with the button: after a move that failed it takes the
+            // focus back
             aria-describedby={toMoveButtonDescription(
-              view.kind === 'choose-destination' && view.selectedBoard.isPublic,
               view.kind === 'choose-destination' && moveFailure !== null,
             )}
             disabled={
@@ -723,30 +686,20 @@ function toCreationFailure(
 }
 
 /**
- * Names the texts a screen reader reads with the Move button.
+ * Names the text a screen reader reads with the Move button.
  *
- * Exists because the button has up to two of them: the sentence about a
- * shared destination, since pressing Move makes the card public, and the
- * message of a failed move, since the button takes the focus back after a
- * refusal. Called by {@link MoveToAnotherBoardDialog} when it renders Move.
+ * Exists because the button takes the focus back after a refused move, so
+ * the message of that failure must be read with it. Called by
+ * {@link MoveToAnotherBoardDialog} when it renders Move.
  *
- * @param isDestinationShared - Whether the sentence about the public link is on screen.
  * @param hasMoveFailed - Whether the message of a failed move is on screen.
  * @returns
- * - the ids of the texts on screen, separated by a space
- * - `undefined` when neither is shown, so the button gets no attribute
+ * - the id of that message
+ * - `undefined` when it is not shown, so the button gets no attribute
  * @example
- * toMoveButtonDescription(true, false) // => 'move-dialog-public-destination'
- * toMoveButtonDescription(true, true) // => 'move-dialog-public-destination move-dialog-move-failure'
- * toMoveButtonDescription(false, false) // => undefined
+ * toMoveButtonDescription(true) // => 'move-dialog-move-failure'
+ * toMoveButtonDescription(false) // => undefined
  */
-function toMoveButtonDescription(
-  isDestinationShared: boolean,
-  hasMoveFailed: boolean,
-): string | undefined {
-  const textIds = [
-    isDestinationShared && PUBLIC_DESTINATION_TEXT_ID,
-    hasMoveFailed && MOVE_FAILURE_TEXT_ID,
-  ].filter(Boolean)
-  return textIds.length > 0 ? textIds.join(' ') : undefined
+function toMoveButtonDescription(hasMoveFailed: boolean): string | undefined {
+  return hasMoveFailed ? MOVE_FAILURE_TEXT_ID : undefined
 }

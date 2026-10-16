@@ -20,8 +20,7 @@ export const TOO_MANY_REPOSITORIES_MESSAGE = `Add at most ${MAX_REPOSITORIES_PER
  * They match what GitHub will actually send (a description of 350 characters,
  * 20 topics of 50, visibility `public` / `private` / `internal`) with room for
  * a language name and an ISO timestamp. A longer or non-text value is a
- * hand-crafted request: the card and the public page render these fields as
- * text. The same caps are enforced by `repocard_meta_display` for a direct
+ * hand-crafted request: the card renders these fields as text. The same caps are enforced by `repocard_meta_display` for a direct
  * insert.
  */
 export const REPO_DESCRIPTION_MAX_LENGTH = 350
@@ -38,8 +37,8 @@ const githubNameSegmentSchema = z.string().regex(GITHUB_NAME_SEGMENT)
  * The payload comes from the browser. Owner and name are echoed in messages
  * and stored on the card. Description, language, topics, stars, visibility
  * and the updated date are stored in `repocard.meta` and rendered on the
- * caller's board and its public page, so a non-text or oversized value is
- * refused before any query. Fields the card does not store (`full_name`,
+ * caller's board, so a non-text or oversized value is refused before any
+ * query. Fields the card does not store (`full_name`,
  * `avatar_url`, ...) are accepted and dropped. Description and language may
  * be null, topics may be missing, and visibility may be `internal`: that is
  * what GitHub sends.

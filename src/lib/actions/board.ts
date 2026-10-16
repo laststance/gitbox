@@ -378,8 +378,8 @@ const BOARD_CREATION_FAILURES = {
  * @param presetId - One of {@link PRESET_IDS}; `web-app` when left out. Checked
  *   here again, because a browser can send any string.
  * @returns
- * - On success: `{ success: true, data: { id, name, isPublic, statusLists } }`,
- *   the columns in their order; `isPublic` is `false` for a new board
+ * - On success: `{ success: true, data: { id, name, statusLists } }`, the
+ *   columns in their order
  * - Invalid name or preset: `{ success: false, error }` with the validation message
  * - Not signed in: `{ success: false, error: 'Authentication required' }`
  * - The database refused, so nothing was written:
@@ -389,7 +389,7 @@ const BOARD_CREATION_FAILURES = {
  *   `{ success: false, error: BOARD_CREATION_UNCONFIRMED_MESSAGE, errorCode: 'BOARD_CREATION_UNCONFIRMED' }`
  * @example
  * await createBoard('Side Projects', 'single-column')
- * // => { success: true, data: { id: 'uuid', name: 'Side Projects', isPublic: false,
+ * // => { success: true, data: { id: 'uuid', name: 'Side Projects',
  * //      statusLists: [{ id: 'uuid', name: 'Repositories', color: '#6B7280' }] } }
  */
 export async function createBoard(
@@ -990,72 +990,5 @@ export async function toggleBoardSubtitleVisibility(
     }
 
     return { showSubtitle: show }
-  })
-}
-
-// ============================================================================
-// Public Board Sharing
-// ============================================================================
-
-/**
- * Generate a 12-character hex slug for public board sharing.
- *
- * @returns A URL-safe slug like "a1b2c3d4e5f6"
- * @example
- * generateSlug() // => "f47ac10b58cc"
- */
-function generateSlug(): string {
-  return crypto.randomUUID().replace(/-/g, '').slice(0, 12)
-}
-
-/**
- * Toggle a board's public visibility and generate a share slug if needed.
- *
- * @param boardId - UUID of the board
- * @param isPublic - Whether the board should be publicly visible
- * @returns
- * - On success: { success: true, data: { is_public, share_slug } }
- * - On failure: { success: false, error: string }
- *
- * @example
- * const result = await toggleBoardPublic("uuid", true)
- * // { success: true, data: { is_public: true, share_slug: "a1b2c3d4e5f6" } }
- */
-export async function toggleBoardPublic(
-  boardId: string,
-  isPublic: boolean,
-): Promise<ActionResult<{ is_public: boolean; share_slug: string | null }>> {
-  return withAuthResultRateLimit('boardCrud', async (supabase, claims) => {
-    const idResult = boardIdSchema.safeParse(boardId)
-    if (!idResult.success) throw new Error('Invalid board ID')
-
-    // Verify ownership
-    const { data: board, error: fetchError } = await supabase
-      .from('board')
-      .select('share_slug')
-      .eq('id', idResult.data)
-      .eq('user_id', claims.sub)
-      .single()
-
-    if (fetchError || !board) throw new Error('Board not found')
-
-    // Generate slug on first enable (keep existing slug on re-enable)
-    const shareSlug =
-      isPublic && !board.share_slug ? generateSlug() : board.share_slug
-
-    const { error: updateError } = await supabase
-      .from('board')
-      .update({ is_public: isPublic, share_slug: shareSlug })
-      .eq('id', idResult.data)
-      .eq('user_id', claims.sub)
-
-    if (updateError) {
-      Sentry.captureException(updateError, {
-        extra: { context: 'Toggle board public', boardId: idResult.data },
-      })
-      throw new Error('Failed to update board visibility')
-    }
-
-    return { is_public: isPublic, share_slug: shareSlug }
   })
 }

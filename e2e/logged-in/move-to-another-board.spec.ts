@@ -27,7 +27,6 @@ import {
   WORK_PROJECTS_STATUS_IDS,
   createServiceRoleSupabaseClient,
   createTestUserSupabaseClient,
-  resetBoardPublicState,
   resetRepoCards,
   TEST_USER_ID,
 } from '../helpers/db-query'
@@ -37,9 +36,6 @@ const BOARD_CREATED_IN_DIALOG = 'Move spec: parked repositories'
 
 /** Name of the board one test creates as the user's newest. No other spec uses it. */
 const BOARD_CREATED_LAST = 'Move spec: newest board'
-
-/** Fixed id of the card one test puts on Work Projects; `resetRepoCards` removes it. */
-const CARD_ON_WORK_PROJECTS_ID = '00000000-0000-0000-0000-0000000003d1'
 
 /**
  * Put the three columns of Work Projects at the given places of its one row,
@@ -511,49 +507,6 @@ test.describe('Move to Another Board Feature', () => {
       'Backlog',
       'Complete',
     ])
-  })
-
-  test('says that the destination is shared, and what that shows of the repository, when the board has a public link', async ({
-    page,
-  }) => {
-    // Arrange: Test Board has a public link, and a card sits on Work Projects,
-    // whose only possible destination Test Board is
-    await resetBoardPublicState()
-    const placed = await createServiceRoleSupabaseClient()
-      .from('repocard')
-      .insert({
-        id: CARD_ON_WORK_PROJECTS_ID,
-        board_id: BOARD_IDS.workProjects,
-        status_id: WORK_PROJECTS_STATUS_IDS.backlog,
-        repo_owner: 'laststance',
-        repo_name: 'move-spec-private-notes',
-        order: 0,
-        meta: { visibility: 'private' },
-      })
-    expect(placed.error).toBeNull()
-    await page.goto(`/board/${BOARD_IDS.workProjects}`)
-    await page.waitForLoadState('networkidle')
-
-    // Act
-    const dialog = await openMoveDialog(page, CARD_ON_WORK_PROJECTS_ID)
-
-    // Assert: the board carries the mark of a shared board, and the sentence
-    // is read with the button that would make the card readable
-    const boardSelect = dialog.locator('#board-select')
-    await expect(boardSelect).toContainText('Test Board')
-    await expect(
-      boardSelect.getByRole('img', { name: 'Public board' }),
-    ).toBeVisible()
-    await expect(
-      dialog.getByText(
-        'Test Board is shared by a public link. Anyone who has the link will see this repository there, with its description. Its note, links and comment stay private.',
-      ),
-    ).toBeVisible()
-    await expect(
-      dialog.getByRole('button', { name: 'Move' }),
-    ).toHaveAccessibleDescription(
-      'Test Board is shared by a public link. Anyone who has the link will see this repository there, with its description. Its note, links and comment stay private.',
-    )
   })
 
   test('puts the keyboard focus on the next card of the column after a move', async ({

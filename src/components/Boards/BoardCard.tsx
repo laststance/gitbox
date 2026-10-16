@@ -8,14 +8,7 @@
 'use client'
 
 import * as Sentry from '@sentry/nextjs'
-import {
-  Calendar,
-  Globe,
-  MoreHorizontal,
-  Pencil,
-  Star,
-  Trash2,
-} from 'lucide-react'
+import { Calendar, MoreHorizontal, Pencil, Star, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { memo, useCallback, useState, useTransition } from 'react'
 import { toast } from 'sonner'
@@ -222,7 +215,7 @@ export const BoardCard = memo(function BoardCard({
             name of several words breaks between them. One word that is
             wider than that room stays whole and runs on under the buttons,
             as it always did (eleven letters in a card of 216px). The inner
-            box of name and globe may reach as far as the card's own padding
+            box of the name may reach as far as the card's own padding
             (max-w is the room plus the 4rem of pr-16), and only a word that
             is wider than that breaks (min-w-0 and wrap-break-word). Without
             the limit a name of one long word ran out of the card, across
@@ -230,13 +223,6 @@ export const BoardCard = memo(function BoardCard({
         <h2 className="text-foreground group-hover:text-primary flex pr-16 text-xl font-semibold transition-colors">
           <span className="flex max-w-[calc(100%+4rem)] items-center gap-2">
             <span className="min-w-0 wrap-break-word">{board.name}</span>
-            {board.is_public && (
-              <Globe
-                className="text-muted-foreground h-4 w-4 shrink-0"
-                role="img"
-                aria-label="Public board"
-              />
-            )}
           </span>
         </h2>
 

@@ -64,7 +64,6 @@ import { parseBoardSettings } from '@/lib/types/board-settings'
 import { toBoardId, type RepoCardId } from '@/lib/types/brands'
 import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 import { describeColumnDeletion } from '@/lib/utils/describe-column-deletion'
-import { toPublicBoardUrl } from '@/lib/utils/to-public-board-url'
 import {
   BOARD_NAME_MAX_LENGTH,
   BOARD_SUBTITLE_MAX_LENGTH,
@@ -109,8 +108,6 @@ export const BoardPageClient = memo(function BoardPageClient({
     boardName,
     boardSubtitle: board.subtitle,
     boardSettings: board.settings,
-    isPublic: board.is_public,
-    shareSlug: board.share_slug,
   })
 
   // StatusList Dialog (5 states extracted: 3 original + 2 delete confirmation)
@@ -185,27 +182,20 @@ export const BoardPageClient = memo(function BoardPageClient({
     router.push('/boards')
   }, [router])
 
-  // Set while the board is shared by link; follows the Sharing switch live
-  const { publicShareSlug } = boardSettings
-
   /**
    * Copy Board Link to Clipboard
    *
-   * A shared board has a public link that anyone can open, so that is the
-   * link worth handing out. A private board only has this page's address,
-   * which opens for its owner alone; the toast says so, because everyone else
-   * who follows it lands on "Board not found".
+   * Copies the board's own address without a query: `?card=<id>` stays in
+   * the address bar after a linked card was revealed. The address opens for
+   * its owner alone; the toast says so, because everyone else who follows it
+   * lands on "Board not found".
    */
   const handleCopyBoardLink = useCallback(async () => {
-    const boardLink = publicShareSlug
-      ? toPublicBoardUrl(window.location.origin, publicShareSlug)
-      : window.location.href
+    const boardLink = `${window.location.origin}/board/${boardId}`
     try {
       await navigator.clipboard.writeText(boardLink)
       toast.success('Link copied!', {
-        description: publicShareSlug
-          ? 'Anyone with this link can view the board.'
-          : 'Only you can open this link. Turn on Public Sharing in the board settings to get one for others.',
+        description: 'Only the account that owns this board can open it.',
       })
     } catch (error) {
       Sentry.captureException(error, { tags: { action: 'copyBoardLink' } })
@@ -213,7 +203,7 @@ export const BoardPageClient = memo(function BoardPageClient({
         description: 'Please try again.',
       })
     }
-  }, [publicShareSlug])
+  }, [boardId])
 
   return (
     <>
@@ -284,7 +274,6 @@ export const BoardPageClient = memo(function BoardPageClient({
                 statusId={addRepoCombobox.statusId}
                 isOpen={addRepoCombobox.isOpen}
                 onOpenChange={addRepoCombobox.handleOpenChange}
-                isBoardShared={publicShareSlug !== null}
                 onRepositoriesAdded={(createdCards: CreatedRepoCard[]) => {
                   // Optimistic UI update: cards appear instantly without a reload.
                   const newCards: RepoCardForRedux[] = createdCards.map(
@@ -383,15 +372,12 @@ export const BoardPageClient = memo(function BoardPageClient({
         boardId={boardId}
         boardName={boardSettings.displayName}
         boardSettings={parseBoardSettings(board.settings)}
-        isPublic={board.is_public}
-        shareSlug={board.share_slug}
         boardSubtitle={boardSettings.displaySubtitle}
         onSubtitleSuccess={boardSettings.handleSubtitleChange}
         showSubtitle={boardSettings.showSubtitle}
         onShowSubtitleChange={boardSettings.handleShowSubtitleChange}
         onRenameSuccess={boardSettings.handleRenameSuccess}
         onCardDisplayChange={boardSettings.handleCardDisplayChange}
-        onPublicChange={boardSettings.handlePublicChange}
         onDeleteSuccess={handleDeleteSuccess}
       />
 

@@ -1,9 +1,9 @@
 /**
  * Unit Tests: what the proxy lets a signed-out visitor open
  *
- * A shared board link (`/public/<slug>`) is meant for people without an
- * account, and the PWA manifest and the link-preview images are fetched
- * without a session. The E2E specs cannot catch a regression here: test mode
+ * The PWA manifest and the link-preview images are fetched without a
+ * session, and an address of link sharing (removed) goes to the login page
+ * like every other page. The E2E specs cannot catch a regression here: test mode
  * skips the sign-in check in the proxy, so they pass even when production
  * sends every visitor to the login page. This file runs the real sign-in
  * check with a Supabase client that reports no session.
@@ -39,23 +39,25 @@ describe('proxy() for a signed-out visitor', () => {
     vi.clearAllMocks()
   })
 
-  // Value: protects=a shared board link opens without an account;
-  //   fails_when=the /public/ pass-through is removed from the proxy;
-  //   why_new=E2E test mode bypasses the sign-in check, so no existing test
-  //   runs it for this path; seam=none; no_claim=that the page renders the
-  //   board (the page and database are not involved)
-  test('opens a shared board link without sending the visitor to login', async () => {
+  // Value: protects=an address of link sharing (removed) needs an account
+  //   like every other page; fails_when=a pass-through for /public/ comes
+  //   back in the proxy; why_new=E2E test mode bypasses the sign-in check,
+  //   so no other test runs it for this path; seam=none; no_claim=what a
+  //   signed-in visitor sees there (the root 404)
+  test('sends the visitor of an address from the removed link sharing to login', async () => {
     // Arrange
-    const sharedBoardRequest = new NextRequest(
+    const oldSharingRequest = new NextRequest(
       'https://gitbox.example/public/a1b2c3d4e5f6',
     )
 
     // Act
-    const response = await proxy(sharedBoardRequest)
+    const response = await proxy(oldSharingRequest)
 
     // Assert
-    expect(response.status).toBe(200)
-    expect(response.headers.get('location')).toBeNull()
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toBe(
+      'https://gitbox.example/login',
+    )
   })
 
   test('drops the silent-refresh count on the login page the cap redirects to', async () => {
@@ -94,50 +96,6 @@ describe('proxy() for a signed-out visitor', () => {
 
     // Act
     const response = await proxy(boardRequest)
-
-    // Assert
-    expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toBe(
-      'https://gitbox.example/login',
-    )
-  })
-
-  test('sends the visitor to login for the bare /public/ path', async () => {
-    // Arrange: no slug, so this is not a shared board link
-    const bareRequest = new NextRequest('https://gitbox.example/public/')
-
-    // Act
-    const response = await proxy(bareRequest)
-
-    // Assert
-    expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toBe(
-      'https://gitbox.example/login',
-    )
-  })
-
-  test('sends the visitor to login for a path that only starts like /public', async () => {
-    // Arrange
-    const lookalikeRequest = new NextRequest('https://gitbox.example/publicity')
-
-    // Act
-    const response = await proxy(lookalikeRequest)
-
-    // Assert
-    expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toBe(
-      'https://gitbox.example/login',
-    )
-  })
-
-  test('sends the visitor to login for a path below a shared board link', async () => {
-    // Arrange: only /public/<slug> itself is a shared board page
-    const nestedRequest = new NextRequest(
-      'https://gitbox.example/public/a1b2c3d4e5f6/edit',
-    )
-
-    // Act
-    const response = await proxy(nestedRequest)
 
     // Assert
     expect(response.status).toBe(307)

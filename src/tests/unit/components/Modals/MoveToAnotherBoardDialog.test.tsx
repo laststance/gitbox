@@ -87,7 +87,6 @@ vi.mock('@/lib/utils/reload-page', () => ({
 const CURRENT_BOARD: BoardOption = {
   id: 'board-1',
   name: 'Test Board',
-  isPublic: false,
   statusLists: [{ id: 'status-11', name: 'Todo', color: '#3b82f6' }],
 }
 
@@ -96,7 +95,6 @@ const OTHER_BOARDS: BoardOption[] = [
   {
     id: 'board-2',
     name: 'Work Projects',
-    isPublic: false,
     statusLists: [
       { id: 'status-21', name: 'Backlog', color: '#3b82f6' },
       { id: 'status-22', name: 'In Progress', color: '#f59e0b' },
@@ -105,24 +103,14 @@ const OTHER_BOARDS: BoardOption[] = [
   {
     id: 'board-3',
     name: 'Side Projects',
-    isPublic: false,
     statusLists: [{ id: 'status-31', name: 'Ideas', color: '#10b981' }],
   },
 ]
-
-/** A board the user shares through a public link, with one column. */
-const SHARED_BOARD: BoardOption = {
-  id: 'board-5',
-  name: 'Portfolio',
-  isPublic: true,
-  statusLists: [{ id: 'status-51', name: 'Shipped', color: '#10b981' }],
-}
 
 /** What `createBoard` answers for a board named Archive made inside the dialog. */
 const CREATED_BOARD: BoardOption = {
   id: 'board-9',
   name: 'Archive',
-  isPublic: false,
   statusLists: [{ id: 'status-91', name: 'Repositories', color: '#6B7280' }],
 }
 
@@ -295,7 +283,6 @@ describe('MoveToAnotherBoardDialog', () => {
         {
           id: 'board-4',
           name: 'Empty Board',
-          isPublic: false,
           statusLists: [],
         },
       ])
@@ -314,101 +301,6 @@ describe('MoveToAnotherBoardDialog', () => {
         ),
       ).toBeVisible()
       expect(screen.getByRole('button', { name: 'Move' })).toBeDisabled()
-    })
-
-    test('opens on the newest board that is not shared, so no card is made public by the first press of Move', async () => {
-      // Arrange: Portfolio, the newest board, is shared by a public link
-      mockBoards([SHARED_BOARD, ...OTHER_BOARDS])
-
-      // Act
-      renderOpenDialog()
-
-      // Assert
-      expect(
-        await screen.findByRole('combobox', { name: 'Board' }),
-      ).toHaveTextContent('Work Projects')
-      expect(screen.queryByText(/is shared by a public link/)).toBeNull()
-      expect(
-        screen.getByRole('button', { name: 'Move' }),
-      ).not.toHaveAccessibleDescription()
-    })
-
-    test('marks a shared board in the list of boards', async () => {
-      // Arrange
-      const user = userEvent.setup()
-      mockBoards([SHARED_BOARD, ...OTHER_BOARDS])
-      renderOpenDialog()
-
-      // Act
-      await user.click(await screen.findByRole('combobox', { name: 'Board' }))
-
-      // Assert: the mark the board list uses, on the shared board only
-      expect(
-        await screen.findByRole('option', { name: 'Portfolio Public board' }),
-      ).toBeVisible()
-      expect(
-        screen.getByRole('option', { name: 'Work Projects' }),
-      ).toBeVisible()
-      expect(screen.getAllByRole('img', { name: 'Public board' })).toHaveLength(
-        1,
-      )
-    })
-
-    test('says who will see the repository once a shared board is picked, and Move is described by that sentence', async () => {
-      // Arrange
-      const user = userEvent.setup()
-      mockBoards([SHARED_BOARD, ...OTHER_BOARDS])
-      renderOpenDialog()
-
-      // Act
-      await user.click(await screen.findByRole('combobox', { name: 'Board' }))
-      await user.click(
-        await screen.findByRole('option', { name: 'Portfolio Public board' }),
-      )
-
-      // Assert
-      expect(
-        screen.getByText(
-          'Portfolio is shared by a public link. Anyone who has the link will see this repository there, with its description. Its note, links and comment stay private.',
-        ),
-      ).toBeVisible()
-      expect(
-        screen.getByRole('button', { name: 'Move' }),
-      ).toHaveAccessibleDescription(
-        'Portfolio is shared by a public link. Anyone who has the link will see this repository there, with its description. Its note, links and comment stay private.',
-      )
-    })
-
-    test('opens on a shared board when the last move from this board went there, and says that it is shared', async () => {
-      // Arrange
-      mockBoards([SHARED_BOARD, ...OTHER_BOARDS])
-
-      // Act
-      renderOpenDialog({ 'board-1': 'board-5' })
-
-      // Assert
-      expect(
-        await screen.findByRole('combobox', { name: 'Board' }),
-      ).toHaveTextContent('Portfolio')
-      expect(
-        screen.getByText(/Portfolio is shared by a public link/),
-      ).toBeVisible()
-    })
-
-    test('opens on a shared board when the user has no other, and says that it is shared', async () => {
-      // Arrange
-      mockBoards([SHARED_BOARD])
-
-      // Act
-      renderOpenDialog()
-
-      // Assert
-      expect(
-        await screen.findByRole('combobox', { name: 'Board' }),
-      ).toHaveTextContent('Portfolio')
-      expect(
-        screen.getByText(/Portfolio is shared by a public link/),
-      ).toBeVisible()
     })
 
     test('puts the keyboard on the Board select once the boards are loaded', async () => {
@@ -595,35 +487,6 @@ describe('MoveToAnotherBoardDialog', () => {
       expect(
         screen.getByRole('button', { name: 'Move' }),
       ).toHaveAccessibleDescription('An unexpected error occurred')
-    })
-
-    // Value: protects=after a refused move to a shared board, Move still says who will see the repository, and the refusal after it; fails_when=the refusal takes the place of the sentence about the public link, so a second press of Move makes the card public unannounced, or the refusal is left out; why_new=the test of the public sentence has no refusal and the test of the refusal has no shared board; seam=none; no_claim=what a screen reader says aloud
-    test('reads who will see the repository and then the refusal with Move, after a refused move to a shared board', async () => {
-      // Arrange
-      const user = userEvent.setup()
-      mockBoards([SHARED_BOARD, ...OTHER_BOARDS])
-      vi.mocked(moveCardToBoard).mockResolvedValue({
-        success: false,
-        error: 'An unexpected error occurred',
-      })
-      renderOpenDialog()
-      await user.click(await screen.findByRole('combobox', { name: 'Board' }))
-      await user.click(
-        await screen.findByRole('option', { name: 'Portfolio Public board' }),
-      )
-
-      // Act
-      await user.click(screen.getByRole('button', { name: 'Move' }))
-
-      // Assert
-      expect(await screen.findByRole('alert')).toHaveTextContent(
-        'An unexpected error occurred',
-      )
-      expect(
-        screen.getByRole('button', { name: 'Move' }),
-      ).toHaveAccessibleDescription(
-        'Portfolio is shared by a public link. Anyone who has the link will see this repository there, with its description. Its note, links and comment stay private. An unexpected error occurred',
-      )
     })
 
     // Value: protects=Move names no text that is not on the page: once the refusal is gone, so is the reference to it; fails_when=the button keeps an aria-describedby for the message of a failed move after another column was chosen, an id without an element, which an accessibility checker reports; why_new=the tests that hide the refusal read the alert, not what Move refers to; seam=the attribute itself, because a reference without a target computes to no description and would pass a check of the description; no_claim=none

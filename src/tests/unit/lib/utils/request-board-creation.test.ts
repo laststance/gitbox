@@ -42,7 +42,6 @@ describe('requestBoardCreation()', () => {
       data: {
         id: 'board-7',
         name: 'Side Projects',
-        isPublic: false,
         statusLists: [
           { id: 'status-1', name: 'Repositories', color: '#6B7280' },
         ],
@@ -58,7 +57,6 @@ describe('requestBoardCreation()', () => {
       board: {
         id: 'board-7',
         name: 'Side Projects',
-        isPublic: false,
         statusLists: [
           { id: 'status-1', name: 'Repositories', color: '#6B7280' },
         ],

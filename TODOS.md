@@ -127,13 +127,13 @@ A repository that was renamed or transferred keeps its former owner and name on 
 **Priority:** P3
 **Depends on:** None
 
-### Decide what a shared board shows of a private repository
+### Check in CI that no `SECURITY DEFINER` function is executable by `anon`
 
-**What:** Leave private repositories out of the public page, or show them without their description, in `get_public_board`; and say in the Sharing tab of the board settings how many private repositories the board holds when it is made public.
+**What:** Run the verification query's `anon_definer_functions` count (functions in schema `public` that are `SECURITY DEFINER`, return neither `trigger` nor `event_trigger`, and may be executed by `anon`) in the E2E job, against the `postgres` database after `supabase db reset`, and fail the job when it is above 0.
 
-**Why:** A shared board shows the owner, the name and the stored `meta` of every card to whoever has the link, with no filter on `meta.visibility`. Since issue #213 the move dialog and the Add Repositories picker say so at the moment a repository is put on a shared board. Making a board public that already holds private repositories says nothing, and the choice itself (should a public page ever show a private repository) was never made.
+**Why:** Such a function bypasses row level security for anyone who holds the public API key, which every browser receives. The function of the removed board sharing was the only one; every new function gets its `REVOKE` written by hand, and nothing notices one that is missing.
 
-**Context:** `supabase/migrations/20261011030000_public_board_by_slug_only.sql` (`get_public_board`), `src/app/public/[slug]/PublicBoardClient.tsx`, `src/components/Boards/BoardSettingsDialog.tsx`. The sentences are in `src/components/Modals/MoveToAnotherBoardDialog.tsx` and `src/components/Board/AddRepositoryCombobox.tsx`. `meta.visibility` is a snapshot from when the card was added (see "Refresh a card's GitHub metadata").
+**Context:** The query is in the plan of 2026-10-16 in `docs/plans/`. Read the `postgres` database, not a shard: shards are cloned with `pg_dump --no-privileges`, so every function there looks executable by `PUBLIC`.
 
 **Effort:** S
 **Priority:** P2
@@ -143,9 +143,9 @@ A repository that was renamed or transferred keeps its former owner and name on 
 
 **What:** Give `statuslist.grid_row` and `statuslist.grid_col` an upper bound in the table (a `CHECK` such as `BETWEEN 0 AND 999`, after counting the rows it would refuse), and let the actions that write a position answer a refusal with a sentence.
 
-**Why:** A signed-in user can write any integer into the two columns through the API. The board page builds one drop zone per cell of the grid (`useKanbanDnD`), so a column at row or column 2147483647 makes that user's own board page hang, and each request for it runs until the function times out. The shared page prints the numbers into `repeat(N, …)`: Chromium laid out `repeat(2147483648, …)` in under half a second (measured on 2026-10-12), so a visitor sees a very wide page and nothing worse. The column color got its check in issue #213 for the same reason: the table refuses whoever writes. Older than that change.
+**Why:** A signed-in user can write any integer into the two columns through the API. The board page builds one drop zone per cell of the grid (`useKanbanDnD`), so a column at row or column 2147483647 makes that user's own board page hang, and each request for it runs until the function times out. The column color got its check in issue #213 for the same reason: the table refuses whoever writes. Older than that change.
 
-**Context:** `src/hooks/board/useKanbanDnD.ts` (the loop over rows and columns), `src/app/public/[slug]/PublicBoardClient.tsx`, `supabase/migrations/20261012085950_statuslist_color_check.sql` (the pattern to follow: count first, then add the constraint), the column drag and "new row" writes in `src/lib/actions/board.ts`.
+**Context:** `src/hooks/board/useKanbanDnD.ts` (the loop over rows and columns), `supabase/migrations/20261012085950_statuslist_color_check.sql` (the pattern to follow: count first, then add the constraint), the column drag and "new row" writes in `src/lib/actions/board.ts`.
 
 **Effort:** S
 **Priority:** P3
@@ -187,7 +187,7 @@ A repository that was renamed or transferred keeps its former owner and name on 
 **Priority:** P4
 **Depends on:** None
 
-## Board sync, shared boards and the Sentry tunnel — deferred follow-ups
+## Board sync and the Sentry tunnel — deferred follow-ups
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
@@ -205,11 +205,11 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 ### Show the fetched board name, subtitle and card display settings after a refetch
 
-**What:** Let `useBoardSettings` take the board name, the subtitle, the card display settings and the show-subtitle switch from the board that was fetched again, the way it already does for the share slug.
+**What:** Let `useBoardSettings` take the board name, the subtitle, the card display settings and the show-subtitle switch from the board that was fetched again, the way `useCommentState` does for the comments it adopted.
 
 **Why:** Since `router.refresh()` keeps the page's state (Issue #218), these four keep the value this tab showed. Changed in another tab, they stay old until the page is reloaded. Before, the refetch built the page again and they were read anew as a side effect.
 
-**Context:** `src/hooks/board/useBoardSettings.ts`: the four are `useState` values that start from the props. `shareLink` there remembers which fetched value it was set from and resets when that changes; the same applies here. Compare the settings by content, not by reference: the fetched `board.settings` is a new object on every fetch, and a copy read before a save landed must not put the old settings back.
+**Context:** `src/hooks/board/useBoardSettings.ts`: the four are `useState` values that start from the props. `adoptedComments` in `useCommentState` (`src/hooks/board/useCommentState.ts:77`) remembers which fetched value it was set from and resets when that changes; the same applies here. Compare the settings by content, not by reference: the fetched `board.settings` is a new object on every fetch, and a copy read before a save landed must not put the old settings back.
 
 **Effort:** S
 **Priority:** P3
@@ -289,11 +289,11 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 ### Break a name of one long word in the places that are left
 
-**What:** Break a name of one long word in three more places, as the board, the cards, the dialogs and the select lists do: (1) the badge of a selected repository in the Add Repositories picker, with `shrink-0` on its remove button; (2) the column title of a shared board; (3) the title of the column that is being dragged. Then look once more for a name that is shown beside something it can cover.
+**What:** Break a name of one long word in two more places, as the board, the cards, the dialogs and the select lists do: (1) the badge of a selected repository in the Add Repositories picker, with `shrink-0` on its remove button; (2) the title of the column that is being dragged. Then look once more for a name that is shown beside something it can cover.
 
-**Why:** #213 fixed the places where a name without a space or a hyphen pushed a control out of reach (the menu of a card, "Column options", the buttons of a board's header, "Create Board"), made a dialog scroll sideways or made a list wider than a phone. These three were read from the code on 2026-10-13 and not measured. (1) A repository name near the 100 characters GitHub allows makes the badge wider than the panel and takes its remove button along; the repository can still be taken out of the selection by its row in the list. (2) and (3) put nothing out of reach: on the shared page a column title of one long word is drawn across the next column, and the picture of a dragged column lets it run out of its frame.
+**Why:** #213 fixed the places where a name without a space or a hyphen pushed a control out of reach (the menu of a card, "Column options", the buttons of a board's header, "Create Board"), made a dialog scroll sideways or made a list wider than a phone. These were read from the code on 2026-10-13 and not measured. (1) A repository name near the 100 characters GitHub allows makes the badge wider than the panel and takes its remove button along; the repository can still be taken out of the selection by its row in the list. (2) puts nothing out of reach: the picture of a dragged column lets a title of one long word run out of its frame.
 
-**Context:** The badge in `src/components/Board/AddRepositoryCombobox.tsx` (the repositories of the browser tests have short names, so a test needs a story or a fixture with a long one), the `h2` of the column header in `src/app/public/[slug]/PublicBoardClient.tsx` and of the `DragOverlay` in `src/components/Board/KanbanBoard.tsx`. `e2e/logged-in/names-that-cannot-break.spec.ts` has the measuring helpers; the rule is in `CLAUDE.md` under "Names that cannot break", with the two classes and what each does to an ordinary word.
+**Context:** The badge in `src/components/Board/AddRepositoryCombobox.tsx` (the repositories of the browser tests have short names, so a test needs a story or a fixture with a long one), the `h2` of the `DragOverlay` in `src/components/Board/KanbanBoard.tsx`. `e2e/logged-in/names-that-cannot-break.spec.ts` has the measuring helpers; the rule is in `CLAUDE.md` under "Names that cannot break", with the two classes and what each does to an ordinary word.
 
 **Effort:** S
 **Priority:** P4
@@ -419,28 +419,16 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 **Priority:** P2
 **Depends on:** None
 
-### Cover the board-sync and sharing wiring the unit tests mock away
+### Cover the board-sync wiring the unit tests mock away
 
-**What:** (1) Correct the Arrange comment of "still offers and adds a repository that sits on another user's public board" in `e2e/logged-in/one-repo-across-boards.spec.ts`. Add tests for (2) `BoardSettingsDialog` calling `onPublicChange`, and `BoardPageClient` copying the public link with the real `useBoardSettings`; (3) `setStatusLists`, `addRepoCards` and `removeRepoCard` each making a fetch in flight out of date, plus a test that lists `boardSlice`'s actions so a new reducer forces the decision; (4) the rate-limit refusal of `getPublicBoardBySlug`.
+**What:** (1) Correct the Arrange comment of "still offers and adds a repository that sits on another user's board" in `e2e/logged-in/one-repo-across-boards.spec.ts`. (2) Add tests for `setStatusLists`, `addRepoCards` and `removeRepoCard` each making a fetch in flight out of date, plus a test that lists `boardSlice`'s actions so a new reducer forces the decision.
 
-**Why:** Removing any of (2) to (4) leaves every test green. (1) The browser test stopped proving the owner filter of `lookupRepoPlacements` when the public read policies were dropped: row level security now hides other users' cards with or without the filter. The filter has a unit test of its own since #213 ("reads only the cards on boards owned by the given user" in `repo-card-duplicates.test.ts`); the comment still names the fixture as what the test relies on. (3) `addRepoCards` and `removeRepoCard` are not wrapped in `trackBoardWrite`, so the revision bump is their only protection against a stale fetch.
+**Why:** Removing what (2) names leaves every test green. (1) The browser test stopped proving the owner filter of `lookupRepoPlacements` when the public read policies were dropped: row level security now hides other users' cards with or without the filter. The filter has a unit test of its own since #213 ("reads only the cards on boards owned by the given user" in `repo-card-duplicates.test.ts`); the comment still names the fixture as what the test relies on. (2) `addRepoCards` and `removeRepoCard` are not wrapped in `trackBoardWrite`, so the revision bump is their only protection against a stale fetch.
 
-**Context:** `e2e/logged-in/one-repo-across-boards.spec.ts`, `src/tests/unit/app/board/BoardPageClient.test.tsx`, `src/tests/unit/hooks/board/useBoardServerSync.test.tsx`, `src/tests/unit/lib/actions/public-board.test.ts`, the `isAnyOf(...)` matcher in `src/lib/redux/slices/boardSyncSlice.ts`.
+**Context:** `e2e/logged-in/one-repo-across-boards.spec.ts`, `src/tests/unit/hooks/board/useBoardServerSync.test.tsx`, the `isAnyOf(...)` matcher in `src/lib/redux/slices/boardSyncSlice.ts`.
 
 **Effort:** M
 **Priority:** P2
-**Depends on:** None
-
-### Tell a failed lookup apart from a missing shared board
-
-**What:** Give `/public/[slug]` its own answers for "too many requests" and "the lookup failed" instead of the 404 page.
-
-**Why:** `getPublicBoardBySlug` returns `null` for a rate-limited visitor and for a database error as well as for an unknown slug, so a working share link can say "This shared board isn't available" for a minute.
-
-**Context:** `src/lib/actions/public-board.ts`, `src/app/public/[slug]/not-found.tsx`. Older than this change.
-
-**Effort:** S
-**Priority:** P3
 **Depends on:** None
 
 ### Let a refused undo be tried again
@@ -491,37 +479,13 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 **Priority:** P3
 **Depends on:** None
 
-### Trim what a shared board link gives away
+### Correct the board-sync docstrings
 
-**What:** (1) Issue a new slug when sharing is turned on again, or add a "reset link" action. (2) Leave `board_id` out of the JSON `get_public_board` returns and map shared columns and cards without it. (3) Return only the card `meta` fields the shared page renders (description, language, stars), say in the validator's comment that nested objects are not filtered, and decide whether the description of a private repository belongs on a shared board. (4) Decide whether the function needs a limit of its own: the app's `publicBoardView` rate limit does not cover a direct call through the REST API, and its key is the first `X-Forwarded-For` entry, or a new UUID per request when the header is missing.
+**What:** (1) Wrap the server action in `trackBoardWrite` in the `@example` of `useBoardRollback`, and state that the optimistic array must be created for that write. (2) In the JSDoc of `useBoardServerSync`, say that only saves tracked with `trackBoardWrite` are protected and that pending saves are counted for the whole app. (3) Add a note above `reducers` in `boardSlice.ts` that points at the stale-fetch matcher.
 
-**Why:** The 12-hex slug is now the only thing between a visitor and a shared board. A leaked link cannot be revoked, because turning sharing off and on keeps the slug. The board's id and each card's `visibility`, `topics` and `updatedAt` reach the page payload although the page shows none of them.
+**Why:** A write copied from the example is not counted as pending. The JSDoc promises more than the code does.
 
-**Context:** `supabase/migrations/20261011030000_public_board_by_slug_only.sql` (change it through a new migration once applied), `toggleBoardPublic` and `generateSlug` in `src/lib/actions/board.ts`, `src/lib/validations/public-board.ts`, `src/lib/actions/mappers.ts`, `src/lib/utils/get-client-ip.ts`. None of this is new with this change: before it, shared boards could be listed without knowing a slug.
-
-**Effort:** M
-**Priority:** P3
-**Depends on:** None
-
-### Correct the board-sync docstrings and the shape-check report
-
-**What:** (1) Wrap the server action in `trackBoardWrite` in the `@example` of `useBoardRollback`, and state that the optimistic array must be created for that write. (2) In the JSDoc of `useBoardServerSync`, say that only saves tracked with `trackBoardWrite` are protected and that pending saves are counted for the whole app. (3) Send the slug with the "unexpected get_public_board shape" report, as the RPC-error report does, and assert the whole call in its test. (4) Add a note above `reducers` in `boardSlice.ts` that points at the stale-fetch matcher.
-
-**Why:** A write copied from the example is not counted as pending. The JSDoc promises more than the code does. A shape report without the slug cannot be traced to a board.
-
-**Context:** `src/hooks/board/useBoardRollback.ts`, `src/hooks/board/useBoardServerSync.ts`, `src/lib/actions/public-board.ts`, `src/lib/redux/slices/boardSlice.ts`.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
-### Keep the Copy Link target in step with the board's sharing state
-
-**What:** (1) Show on the Copy Link button whether it copies a public or an owner-only link, and decide whether the board should be fetched again when the tab gets focus. (2) Make `toggleBoardPublic` write a new slug only where none is stored (`.is('share_slug', null)`) and return the stored one. (3) Catch a failed toggle in `handleTogglePublic` and say so.
-
-**Why:** `useBoardSettings` follows the sharing state of the fetched board, but the board is fetched again only after a failed save or a reload. After sharing was changed in another tab, Copy Link hands out the owner-only address, or a dead public link with the wrong toast text, until then. The button looks the same in both states. Two toggles sent at once can each generate a slug, and the dialog keeps one the database does not hold. A toggle that fails on the network shows nothing.
-
-**Context:** `src/hooks/board/useBoardSettings.ts`, `handleCopyBoardLink` in `src/app/board/[id]/BoardPageClient.tsx`, `toggleBoardPublic` in `src/lib/actions/board.ts`, `handleTogglePublic` in `src/components/Boards/BoardSettingsDialog.tsx`. The server code and the missing catch are older than this change; Copy Link now reads their result.
+**Context:** `src/hooks/board/useBoardRollback.ts`, `src/hooks/board/useBoardServerSync.ts`, `src/lib/redux/slices/boardSlice.ts`.
 
 **Effort:** S
 **Priority:** P3
@@ -539,13 +503,13 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 **Priority:** P3
 **Depends on:** None
 
-### Polish and simplification left from the board-sync review
+### Simplification left from the board-sync review
 
-**What:** (1) Label the URL field of the Sharing tab in `BoardSettingsDialog`. (2) Give the shared-board 404 page the app's name and logo. (3) Consider turning `useBoardRollback` into two thunks next to `trackBoardWrite`, which removes the hook, its types and four threaded parameters (about 70 lines). (4) Consider sending a signed-in visitor of someone else's shared board from `/board/<id>` to its public link instead of "Board not found".
+**What:** Consider turning `useBoardRollback` into two thunks next to `trackBoardWrite`, which removes the hook, its types and four threaded parameters (about 70 lines).
 
-**Why:** Small accessibility, identity and structure gaps. None changes what is saved. The unlabelled field is older than this change.
+**Why:** A structure gap. It changes nothing that is saved.
 
-**Context:** `src/components/Boards/BoardSettingsDialog.tsx`, `src/app/public/[slug]/not-found.tsx`, `src/hooks/board/useBoardRollback.ts`, `src/app/board/[id]/not-found.tsx`.
+**Context:** `src/hooks/board/useBoardRollback.ts`.
 
 **Effort:** M
 **Priority:** P4
@@ -617,25 +581,13 @@ From `/design-review` of the change for issue #213. The review found 27 issues a
 
 ### Stop using the theme color and the muted color where they cannot be read
 
-**What:** (1) Replace `text-primary` where it colors text on the page background, or give the themes a second token for text in the theme color: the two links of the login page, the `link` variant of `Button`, the link of the note editor (`link-node.tsx`), the URL of a project link (`editable-url-item.tsx`), "Save" of the comment editor, the labels of the two drop zones while a card is dragged over them, and the hovered title of a board card and of a repository on a shared board. (2) Darken `--muted-foreground` of `:root`, the block of the System theme on a light screen: on `bg-muted` and on `bg-accent` it is 4.34:1 there, for example in the language chip of the Add Repositories picker.
+**What:** (1) Replace `text-primary` where it colors text on the page background, or give the themes a second token for text in the theme color: the two links of the login page, the `link` variant of `Button`, the link of the note editor (`link-node.tsx`), the URL of a project link (`editable-url-item.tsx`), "Save" of the comment editor, the labels of the two drop zones while a card is dragged over them, and the hovered title of a board card. (2) Darken `--muted-foreground` of `:root`, the block of the System theme on a light screen: on `bg-muted` and on `bg-accent` it is 4.34:1 there, for example in the language chip of the Add Repositories picker.
 
 **Why:** `text-primary` on the page background is below 4.5:1 in 11 of the 14 themes: 3.19:1 on Sunrise to 4.42:1 on Rose, 3.30:1 on Plum to 4.12:1 on Graphite. #213 fixed the places where the theme color or the muted color stood on a tint or on the accent fill (the sidebar's current page, the picker's badges, rows and check marks, the chosen option of the comment text settings, the check marks of two menus). The places above are on `main` as well and need one decision on the theme tokens instead of ten local ones.
 
-**Context:** `src/app/login/page.tsx`, `src/components/ui/button.tsx`, `src/components/ui/link-node.tsx`, `src/components/ui/editable-url-item.tsx`, `src/components/Board/CommentInlineEdit.tsx`, `src/components/Board/NewRowDropZone.tsx`, `src/components/Board/ColumnInsertZone.tsx`, `src/components/Boards/BoardCard.tsx`, `src/app/public/[slug]/PublicBoardClient.tsx`, `src/styles/globals.css`. `src/tests/unit/styles/theme-color-math.ts` reads the tokens of every theme and computes a contrast; `accent-fill-contrast.test.ts` and `selected-repository-badge-contrast.test.ts` are tests of this kind. The rule for new code is in `CLAUDE.md` under "14 Theme System".
+**Context:** `src/app/login/page.tsx`, `src/components/ui/button.tsx`, `src/components/ui/link-node.tsx`, `src/components/ui/editable-url-item.tsx`, `src/components/Board/CommentInlineEdit.tsx`, `src/components/Board/NewRowDropZone.tsx`, `src/components/Board/ColumnInsertZone.tsx`, `src/components/Boards/BoardCard.tsx`, `src/styles/globals.css`. `src/tests/unit/styles/theme-color-math.ts` reads the tokens of every theme and computes a contrast; `accent-fill-contrast.test.ts` and `selected-repository-badge-contrast.test.ts` are tests of this kind. The rule for new code is in `CLAUDE.md` under "14 Theme System".
 
 **Effort:** M
-**Priority:** P3
-**Depends on:** None
-
-### Show a hidden subtitle on the shared page only when the owner wants it
-
-**What:** Decide whether "Show subtitle" of a board's settings also decides what a public link shows, and make `get_public_board` and the Sharing tab say the same.
-
-**Why:** The setting hides the subtitle in the header of the owner's board page. The shared page prints the subtitle whenever the board has one, and uses it as the description of the page, whatever the setting says. Since #213 the Sharing tab lists the subtitle among what is visible, so the owner can know; the two switches still answer one question in two ways.
-
-**Context:** `get_public_board` in `supabase/migrations/20261011030000_public_board_by_slug_only.sql` returns `subtitle` without reading `settings`; `src/app/public/[slug]/PublicBoardClient.tsx` and `page.tsx` print it; `toggleBoardSubtitleVisibility` in `src/lib/actions/board.ts` writes `settings.showSubtitle`. A change of the function is a new migration.
-
-**Effort:** S
 **Priority:** P3
 **Depends on:** None
 

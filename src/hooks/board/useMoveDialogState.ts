@@ -213,12 +213,10 @@ export function useMoveDialogState({
  * return of this function.
  *
  * The board is the one picked by hand, else the one the last move from this
- * board went to, else the first that is not shared through a public link,
- * else the first. A shared board is never the destination just because it is
- * the newest: a card moved there can be read by everyone who has the link,
- * so the user picks it. The column is the one picked by hand when it belongs
- * to that board, else the board's first: the left-most column of its first
- * row, because the columns arrive in the order the board shows them.
+ * board went to, else the first (the newest, the likeliest destination).
+ * The column is the one picked by hand when it belongs to that board, else
+ * the board's first: the left-most column of its first row, because the
+ * columns arrive in the order the board shows them.
  *
  * @param destinations - What {@link useMoveDestinations} loaded.
  * @param isCreateFormRequested - The user pressed "New Board...".
@@ -259,7 +257,6 @@ function toMoveDialogView({
   const selectedBoard =
     boards.find((board) => board.id === selection?.boardId) ??
     boards.find((board) => board.id === rememberedBoardId) ??
-    boards.find((board) => !board.isPublic) ??
     firstBoard
   const isPickedColumnOnBoard = selectedBoard.statusLists.some(
     (status) => status.id === selection?.statusId,

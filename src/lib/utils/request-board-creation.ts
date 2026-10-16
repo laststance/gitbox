@@ -42,7 +42,7 @@ export type BoardCreationAttempt =
  * @returns The {@link BoardCreationAttempt}.
  * @example
  * const attempt = await requestBoardCreation('Side Projects', 'single-column')
- * // => { status: 'created', board: { id: 'uuid', name: 'Side Projects', isPublic: false, statusLists: [...] } }
+ * // => { status: 'created', board: { id: 'uuid', name: 'Side Projects', statusLists: [...] } }
  * // => { status: 'not-created', message: 'The board was not created. Try again.' }
  * // => { status: 'unconfirmed', message: BOARD_CREATION_UNCONFIRMED_MESSAGE, isRequestStillRunning: false }
  */

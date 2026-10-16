@@ -341,12 +341,12 @@ test.describe('Names without a place to break', () => {
     })
   })
 
-  // Value: protects=a board whose name is one ordinary word of eleven letters, as the board has that #213 makes for the repositories set aside, shows it in one piece on a tablet; fails_when=the name of a board card may shrink to the room beside the star and the menu, 102px in a card of 216px, so the word loses its last letters to a second line; why_new=the long-name tests use a word no card can hold, and no test looked at a word that fits the card but not that room; seam=none; no_claim=a name of several words, which breaks between them as before, a shared board, whose globe takes 24px of the card, and a font in which this word is wider than 166px
+  // Value: protects=a board whose name is one ordinary word of eleven letters, as the board has that #213 makes for the repositories set aside, shows it in one piece on a tablet; fails_when=the name of a board card may shrink to the room beside the star and the menu, 102px in a card of 216px, so the word loses its last letters to a second line; why_new=the long-name tests use a word no card can hold, and no test looked at a word that fits the card but not that room; seam=none; no_claim=a name of several words, which breaks between them as before, and a font in which this word is wider than 166px
   test('keeps "Experiments" on one line in its board card on a 768px screen, where the word is wider than the room beside the buttons of the card', async ({
     page,
   }) => {
-    // Arrange: a board that is not shared, so the whole width of the card is
-    // there for the word. The app uses the system font, and the word is
+    // Arrange: the whole width of the card is there for the word. The app
+    // uses the system font, and the word is
     // wider than the room (102px) and narrower than the card's inside
     // (166px) on macOS and on Linux alike: 115px in the system font of
     // macOS, 120px in Arial bold, whose metrics the font of Linux has
@@ -567,7 +567,7 @@ test.describe('Names without a place to break', () => {
       })
     })
 
-    // Value: protects=the board settings stay as wide as a phone's screen whatever the board is called; fails_when=the description, which names the board, cannot break the name, so the one column of the dialog grows and the dialog scrolls sideways; why_new=board-settings-narrow-viewport.spec.ts opens the dialog for a board with a short name; seam=none; no_claim=the four tabs, which that spec walks through
+    // Value: protects=the board settings stay as wide as a phone's screen whatever the board is called; fails_when=the description, which names the board, cannot break the name, so the one column of the dialog grows and the dialog scrolls sideways; why_new=board-settings-narrow-viewport.spec.ts opens the dialog for a board with a short name; seam=none; no_claim=the tabs, which that spec walks through
     test('breaks the board name in the description of the board settings', async ({
       page,
     }) => {

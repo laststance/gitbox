@@ -146,12 +146,9 @@ function mockCatalog(repositories: GitHubRepository[]): void {
 
 /**
  * Render the open picker for board-1 inside a fresh store.
- * @param isBoardShared - board-1 has a public link.
+ * @param columns - Columns of board-1, which Move Here reads.
  */
-function renderOpenPicker(
-  isBoardShared = false,
-  columns: StatusListDomain[] = [],
-) {
+function renderOpenPicker(columns: StatusListDomain[] = []) {
   const store = configureStore({
     reducer: {
       board: boardReducer,
@@ -171,7 +168,6 @@ function renderOpenPicker(
         isOpen
         onOpenChange={onOpenChange}
         onRepositoriesAdded={onRepositoriesAdded}
-        isBoardShared={isBoardShared}
       />
     </Provider>,
   )
@@ -261,56 +257,6 @@ async function findRepositoryOptions(): Promise<HTMLElement[]> {
   })
   return within(listbox).getAllByRole('option')
 }
-
-describe('AddRepositoryCombobox on a board that is shared by a public link', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
-  test('says who will see the added repositories, and the Add button is described by that sentence', async () => {
-    // Arrange
-    mockCatalog([makeRepository(1, 'free-repo')])
-    vi.mocked(fetchRepoPlacements).mockResolvedValue({
-      success: true,
-      data: { placements: [] },
-    })
-
-    // Act
-    renderOpenPicker(true)
-
-    // Assert
-    await findRepositoryOptions()
-    expect(
-      screen.getByText(
-        'This board is shared by a public link. Anyone who has the link will see the repositories you add, with their descriptions.',
-      ),
-    ).toBeVisible()
-    expect(
-      screen.getByRole('button', { name: 'Add (0)' }),
-    ).toHaveAccessibleDescription(
-      'This board is shared by a public link. Anyone who has the link will see the repositories you add, with their descriptions.',
-    )
-  })
-
-  test('says nothing of a public link on a board that is not shared', async () => {
-    // Arrange
-    mockCatalog([makeRepository(1, 'free-repo')])
-    vi.mocked(fetchRepoPlacements).mockResolvedValue({
-      success: true,
-      data: { placements: [] },
-    })
-
-    // Act
-    renderOpenPicker()
-
-    // Assert
-    await findRepositoryOptions()
-    expect(screen.queryByText(/shared by a public link/)).toBeNull()
-    expect(
-      screen.getByRole('button', { name: 'Add (0)' }),
-    ).not.toHaveAccessibleDescription()
-  })
-})
 
 describe('AddRepositoryCombobox with a selected repository', () => {
   beforeEach(() => {
@@ -763,7 +709,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
       success: true,
       data: undefined,
     })
-    renderOpenPicker(false, [
+    renderOpenPicker([
       {
         id: toStatusListId('status-1'),
         title: 'To Do',

@@ -129,8 +129,6 @@ describe('createBoard()', () => {
       data: {
         id: 'board-1',
         name: 'Archive',
-        // A new board is never shared
-        isPublic: false,
         statusLists: [
           { id: 'status-1', name: 'Repositories', color: '#6B7280' },
         ],

@@ -55,12 +55,6 @@ vi.mock('@/lib/actions/repo-cards', () => ({
   deleteRepoCard: (...args: unknown[]) => mockDeleteRepoCard(...args),
 }))
 
-// Share slug the mocked useBoardSettings reports: set while the board under
-// test is shared by link, null while it is private.
-const boardSettingsMock = vi.hoisted(() => ({
-  publicShareSlug: null as string | null,
-}))
-
 // Mock hooks with minimal implementations. useBoardServerSync is the real
 // one: it is what puts the page data into the store.
 vi.mock('@/hooks/board', async () => ({
@@ -74,13 +68,11 @@ vi.mock('@/hooks/board', async () => ({
     displayName: 'Test Board',
     displaySubtitle: '',
     cardDisplaySettings: { showStars: true, showLanguage: true },
-    publicShareSlug: boardSettingsMock.publicShareSlug,
     open: vi.fn(),
     close: vi.fn(),
     handleRenameSuccess: vi.fn(),
     handleSubtitleChange: vi.fn(),
     handleCardDisplayChange: vi.fn(),
-    handlePublicChange: vi.fn(),
   }),
   useProjectInfoModal: () => ({
     isOpen: false,
@@ -133,16 +125,9 @@ vi.mock('@/components/Board/KanbanBoard', () => ({
 }))
 
 vi.mock('@/components/Board/AddRepositoryCombobox', () => ({
-  AddRepositoryCombobox: vi.fn(
-    ({ isBoardShared }: { isBoardShared?: boolean }) => (
-      <div
-        data-testid="add-repo-combobox"
-        data-board-shared={String(Boolean(isBoardShared))}
-      >
-        AddRepositoryCombobox
-      </div>
-    ),
-  ),
+  AddRepositoryCombobox: vi.fn(() => (
+    <div data-testid="add-repo-combobox">AddRepositoryCombobox</div>
+  )),
 }))
 
 vi.mock('@/components/Modals/NoteModal', () => ({
@@ -197,8 +182,6 @@ function createMockBoard(overrides?: Partial<Board>): Board {
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
     is_favorite: false,
-    is_public: false,
-    share_slug: null,
     settings: null,
     position: 0,
     ...overrides,
@@ -553,7 +536,6 @@ describe('BoardPageClient Copy Link', () => {
     vi.clearAllMocks()
     localStorage.clear()
     store = createMockStore()
-    boardSettingsMock.publicShareSlug = null
     // The page is open at the board's own address
     originalLocation = window.location
     Object.defineProperty(window, 'location', {
@@ -579,34 +561,7 @@ describe('BoardPageClient Copy Link', () => {
     })
   })
 
-  test('copies the public share link of a shared board and says anyone can open it', async () => {
-    // Arrange
-    boardSettingsMock.publicShareSlug = 'a1b2c3d4e5f6'
-    render(
-      <Provider store={store}>
-        <BoardPageClient
-          board={createMockBoard({
-            is_public: true,
-            share_slug: 'a1b2c3d4e5f6',
-          })}
-          initialData={createMockInitialData()}
-        />
-      </Provider>,
-    )
-
-    // Act
-    await userEvent.click(screen.getByRole('button', { name: /Copy Link/i }))
-
-    // Assert
-    expect(writeToClipboard).toHaveBeenCalledWith(
-      'https://gitbox.example/public/a1b2c3d4e5f6',
-    )
-    expect(toast.success).toHaveBeenCalledWith('Link copied!', {
-      description: 'Anyone with this link can view the board.',
-    })
-  })
-
-  test('copies the page address of a private board and says only the owner can open it', async () => {
+  test('copies the board address and says only the account that owns the board can open it', async () => {
     // Arrange
     render(
       <Provider store={store}>
@@ -625,58 +580,37 @@ describe('BoardPageClient Copy Link', () => {
       'https://gitbox.example/board/board-1',
     )
     expect(toast.success).toHaveBeenCalledWith('Link copied!', {
-      description:
-        'Only you can open this link. Turn on Public Sharing in the board settings to get one for others.',
+      description: 'Only the account that owns this board can open it.',
     })
   })
-})
 
-describe('BoardPageClient Add Repositories on a shared board', () => {
-  let store: ReturnType<typeof createMockStore>
+  // Value: protects=Copy Link hands out the board, not the card a link revealed; fails_when=the copied address is the address bar again, which keeps ?card=<id> after the card was revealed; why_new=the other case opens the page without a query; seam=none; no_claim=how the card is revealed (linked-card tests cover it)
+  test('copies the board address without the card query of the address bar', async () => {
+    // Arrange: the page was opened from a link to one of its cards
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      writable: true,
+      value: {
+        ...originalLocation,
+        origin: 'https://gitbox.example',
+        href: 'https://gitbox.example/board/board-1?card=card-9',
+      },
+    })
+    render(
+      <Provider store={store}>
+        <BoardPageClient
+          board={createMockBoard()}
+          initialData={createMockInitialData()}
+        />
+      </Provider>,
+    )
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-    localStorage.clear()
-    store = createMockStore()
-    boardSettingsMock.publicShareSlug = null
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: /Copy Link/i }))
+
+    // Assert
+    expect(writeToClipboard).toHaveBeenCalledWith(
+      'https://gitbox.example/board/board-1',
+    )
   })
-
-  // Value: protects=the Add Repositories picker is told when the board has a public link, so it warns that anyone with the link sees what is added; fails_when=the page stops passing isBoardShared or passes it for a private board; why_new=the picker test sets the prop by hand and this page test mocks the picker without reading it; seam=none; no_claim=the warning text itself (picker mocked; AddRepositoryCombobox.placements.test.tsx covers it)
-  test.each([
-    {
-      board: 'shared',
-      publicShareSlug: 'a1b2c3d4e5f6',
-      expectedIsBoardShared: 'true',
-    },
-    {
-      board: 'private',
-      publicShareSlug: null,
-      expectedIsBoardShared: 'false',
-    },
-  ])(
-    'tells the Add Repositories picker whether the board is shared: a $board board gets isBoardShared=$expectedIsBoardShared',
-    ({ publicShareSlug, expectedIsBoardShared }) => {
-      // Arrange: the sharing switch of the board settings is on, or off
-      boardSettingsMock.publicShareSlug = publicShareSlug
-
-      // Act
-      render(
-        <Provider store={store}>
-          <BoardPageClient
-            board={createMockBoard({
-              is_public: publicShareSlug !== null,
-              share_slug: publicShareSlug,
-            })}
-            initialData={createMockInitialData()}
-          />
-        </Provider>,
-      )
-
-      // Assert
-      expect(screen.getByTestId('add-repo-combobox')).toHaveAttribute(
-        'data-board-shared',
-        expectedIsBoardShared,
-      )
-    },
-  )
 })

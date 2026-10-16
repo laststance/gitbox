@@ -32,7 +32,7 @@ When you have dozens (or hundreds) of repos from side projects, experiments, and
 - Project info links (55 built-in types + custom presets)
 - Inline comments on repo cards with color customization
 - Inline editable board title and subtitle
-- Public board sharing with unique share links
+- Private boards: a board opens only for the account that owns it
 - 14 themes (7 light + 7 dark) + system preference
 - Collapsible sidebar with state persistence
 - Command palette (⌘K)

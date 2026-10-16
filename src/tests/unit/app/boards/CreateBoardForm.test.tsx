@@ -64,7 +64,6 @@ describe('CreateBoardForm', () => {
       data: {
         id: 'board-7',
         name: 'Side Projects',
-        isPublic: false,
         statusLists: [],
       },
     })

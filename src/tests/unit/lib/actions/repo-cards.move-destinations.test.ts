@@ -2,9 +2,9 @@
  * Unit Tests: getUserBoardsWithStatusLists()
  *
  * The action lists the boards a card can be moved to, with their columns, for
- * the Move to Another Board dialog. The order of the boards (newest first),
- * the order of a board's columns and the shared flag of a board are read
- * against a real database in `e2e/logged-in/move-to-another-board.spec.ts`.
+ * the Move to Another Board dialog. The order of the boards (newest first)
+ * and the order of a board's columns are read against a real database in
+ * `e2e/logged-in/move-to-another-board.spec.ts`.
  * These tests cover what that spec does not reach: the shape the dialog gets
  * for a board without columns, and what the action does when the database
  * cannot answer. The stand-in below ignores filters and sort order, so
@@ -82,16 +82,16 @@ describe('getUserBoardsWithStatusLists()', () => {
     vi.clearAllMocks()
   })
 
-  // Value: protects=a board without columns and a shared board reach the move dialog as the dialog expects them; fails_when=the board is dropped, isPublic is lost or the empty column list becomes undefined; why_new=only e2e reads this action and it has no board without columns; seam=none; no_claim=real ordering and RLS (stubbed client; e2e move-to-another-board.spec.ts covers them)
-  test('hands the dialog every board of the user, a board without columns and a shared board included, with its columns in the order the database sent', async () => {
-    // Arrange: Archive is shared and newest, Work has two columns of which the
+  // Value: protects=a board without columns reaches the move dialog as the dialog expects it; fails_when=the board is dropped or the empty column list becomes undefined; why_new=only e2e reads this action and it has no board without columns; seam=none; no_claim=real ordering and RLS (stubbed client; e2e move-to-another-board.spec.ts covers them)
+  test('hands the dialog every board of the user, a board without columns included, with its columns in the order the database sent', async () => {
+    // Arrange: Archive is newest, Work has two columns of which the
     // second has no color, Empty has no column at all
     signInWithBoardsAndColumns({
       board: {
         data: [
-          { id: 'board-archive', name: 'Archive', is_public: true },
-          { id: 'board-work', name: 'Work', is_public: false },
-          { id: 'board-empty', name: 'Empty', is_public: false },
+          { id: 'board-archive', name: 'Archive' },
+          { id: 'board-work', name: 'Work' },
+          { id: 'board-empty', name: 'Empty' },
         ],
         error: null,
       },
@@ -130,7 +130,6 @@ describe('getUserBoardsWithStatusLists()', () => {
         {
           id: 'board-archive',
           name: 'Archive',
-          isPublic: true,
           statusLists: [
             { id: 'status-inbox', name: 'Inbox', color: '#2563EB' },
           ],
@@ -138,7 +137,6 @@ describe('getUserBoardsWithStatusLists()', () => {
         {
           id: 'board-work',
           name: 'Work',
-          isPublic: false,
           statusLists: [
             { id: 'status-doing', name: 'Doing', color: '#16A34A' },
             { id: 'status-done', name: 'Done', color: '#6B7280' },
@@ -147,7 +145,6 @@ describe('getUserBoardsWithStatusLists()', () => {
         {
           id: 'board-empty',
           name: 'Empty',
-          isPublic: false,
           statusLists: [],
         },
       ],
@@ -167,7 +164,7 @@ describe('getUserBoardsWithStatusLists()', () => {
     {
       unreadable: 'columns',
       board: {
-        data: [{ id: 'board-work', name: 'Work', is_public: false }],
+        data: [{ id: 'board-work', name: 'Work' }],
         error: null,
       },
       statuslist: {
@@ -217,7 +214,7 @@ describe('getUserBoardsWithStatusLists()', () => {
       order: () => boardQuery,
       range: async () =>
         Promise.resolve({
-          data: [{ id: 'board-work', name: 'Work', is_public: false }],
+          data: [{ id: 'board-work', name: 'Work' }],
           error: null,
         }),
     }

@@ -12,14 +12,14 @@
  * Database rules (asserted directly against PostgREST):
  * - Unique index per (user, lower(owner), lower(name))
  * - `repocard.user_id` always equals the board owner and cannot be forged
- * - An insert into another user's public board is refused (23503: that board
+ * - An insert into another user's board is refused (23503: that board
  *   is not visible, so the owner trigger cannot copy its user)
  * - A card's column must be a column of the card's board, and a column that
  *   holds cards cannot change boards (`repocard_status_board_fkey`, 23503)
  *
  * Fixtures: the MSW GitHub catalog offers `testuser/private-project`, which is
  * on none of the test user's boards in `seed.sql`. The seeded second account
- * owns a PUBLIC board holding `testuser/test-repo` and `testuser/private-project`.
+ * owns a board holding `testuser/test-repo` and `testuser/private-project`.
  */
 
 import type { Page } from '@playwright/test'
@@ -318,18 +318,16 @@ test.describe('One repository per user - picker and dialogs', () => {
     ).toHaveCount(0)
   })
 
-  test("still offers and adds a repository that sits on another user's public board", async ({
+  test("still offers and adds a repository that sits on another user's board", async ({
     page,
   }) => {
     // Arrange: the fixture this test relies on must really exist, otherwise
     // it would pass for the wrong reason
     const otherUserBoard = await querySingle<{
       user_id: string
-      is_public: boolean
     }>('board', { id: OTHER_USER.boardId })
     expect(otherUserBoard).toMatchObject({
       user_id: OTHER_USER.id,
-      is_public: true,
     })
     const otherUserCards = await querySupabase<{ repo_name: string }>(
       'repocard',
@@ -585,7 +583,7 @@ test.describe('One repository per user - database rules', () => {
     expect(cardBeforeIt?.order).toBe(0)
   })
 
-  test("refuses a signed-in user's insert into another user's public board", async () => {
+  test("refuses a signed-in user's insert into another user's board", async () => {
     // Arrange: acts as the test user with RLS applied (not the service role)
     const supabase = createTestUserSupabaseClient()
 
@@ -599,9 +597,9 @@ test.describe('One repository per user - database rules', () => {
       meta: {},
     })
 
-    // Assert: refused, nothing written. Another user's board is invisible even
-    // when it is public, so set_repocard_user_id cannot copy an owner and
-    // raises 23503 before row-level security gets to 42501.
+    // Assert: refused, nothing written. Another user's board is invisible,
+    // so set_repocard_user_id cannot copy an owner and raises 23503 before
+    // row-level security gets to 42501.
     expect(error?.code).toBe('23503')
     const probeCards = await querySupabase('repocard', {
       repo_name: 'rls-probe',

@@ -46,8 +46,6 @@ interface MoveHereDialogProps {
   boardId: BoardId
   /** Column the picker was opened for. The select starts there. */
   defaultStatusId: StatusListId | null
-  /** A public link shows whatever is moved onto this board. */
-  isBoardShared: boolean
   /** Closes the dialog. Not called while a move is in flight. */
   onClose: () => void
   /** Called after the server confirms the move, so the held list can reload. */
@@ -68,18 +66,16 @@ interface MoveHereDialogProps {
  * @param repository - The held repository the user asked to move onto this board.
  * @param boardId - Board the picker is open on.
  * @param defaultStatusId - Column the picker was opened for. The select starts there.
- * @param isBoardShared - A public link shows whatever is moved onto this board.
  * @param onClose - Closes the dialog. Not called while a move is in flight.
  * @param onMoved - Called after the server confirms the move, so the held list can reload.
  * @returns The confirmation dialog.
  * @example
- * <MoveHereDialog repository={held} boardId={boardId} defaultStatusId={statusId} isBoardShared={false} onClose={close} onMoved={refresh} />
+ * <MoveHereDialog repository={held} boardId={boardId} defaultStatusId={statusId} onClose={close} onMoved={refresh} />
  */
 export const MoveHereDialog = memo(function MoveHereDialog({
   repository,
   boardId,
   defaultStatusId,
-  isBoardShared,
   onClose,
   onMoved,
 }: MoveHereDialogProps) {
@@ -199,12 +195,6 @@ export const MoveHereDialog = memo(function MoveHereDialog({
             <p className="text-muted-foreground text-sm">
               This board has no columns. Add a column before moving a repository
               here.
-            </p>
-          )}
-          {isBoardShared && (
-            <p className="text-foreground text-sm">
-              This board is shared by a public link. Anyone who has the link
-              will see this repository.
             </p>
           )}
           {failure && (

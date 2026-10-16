@@ -11,10 +11,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-import {
-  PUBLIC_BOARD_ROUTE_PREFIX,
-  SENTRY_TUNNEL_ROUTE,
-} from '@/lib/constants/routes'
+import { SENTRY_TUNNEL_ROUTE } from '@/lib/constants/routes'
 import {
   SENTRY_ENVELOPE_URL,
   SENTRY_TUNNEL_MAX_BODY_BYTES,
@@ -146,7 +143,7 @@ export async function proxy(request: NextRequest) {
     nowInSeconds <= claims.exp
 
   // Allow public paths without authentication
-  if (publicPaths.includes(pathname) || isPublicBoardPath(pathname)) {
+  if (publicPaths.includes(pathname)) {
     return dropSpentRefreshAttempt(request, supabaseResponse)
   }
 
@@ -281,30 +278,6 @@ const forwardSentryReport = (request: NextRequest): NextResponse => {
   return NextResponse.rewrite(SENTRY_ENVELOPE_URL, {
     request: { headers: forwardedHeaders },
   })
-}
-
-/**
- * Tells whether a path is a shared board page, which anyone with the link may
- * open without signing in. Exists because the sign-in check would otherwise
- * send those visitors to the login page. Called by {@link proxy} next to the
- * exact-match {@link publicPaths}.
- *
- * @param pathname - Path of the incoming request, without the query string.
- * @returns
- * - `true` for `/public/<slug>`: the prefix and exactly one more segment
- * - `false` for every other path, including `/public/` alone and anything
- *   below a slug
- * @example
- * isPublicBoardPath('/public/a1b2c3d4e5f6')      // => true
- * isPublicBoardPath('/public/')                  // => false
- * isPublicBoardPath('/public/a1b2c3d4e5f6/edit') // => false
- * isPublicBoardPath('/publicity')                // => false
- */
-const isPublicBoardPath = (pathname: string): boolean => {
-  if (!pathname.startsWith(PUBLIC_BOARD_ROUTE_PREFIX)) return false
-
-  const slug = pathname.slice(PUBLIC_BOARD_ROUTE_PREFIX.length)
-  return slug.length > 0 && !slug.includes('/')
 }
 
 export const config = {

@@ -45,15 +45,15 @@ test.describe('Board Not Found', () => {
     ).toBeVisible()
   })
 
-  test('shows "Board not found" when opening another user\'s public board by its id', async ({
+  test('shows "Board not found" when opening another user\'s board by its id', async ({
     page,
   }) => {
-    // Arrange: seed.sql gives other-user a public board. /board/[id] is the
-    // owner's editing view, so getBoardBundle must not return it to testuser.
+    // Arrange: seed.sql gives other-user a board. A board opens only for the
+    // account that owns it, so getBoardBundle must not return it to testuser.
     // Act
     await page.goto('/board/00000000-0000-0000-0000-000000000110')
     await page.waitForLoadState('networkidle')
-    // Assert: the page says why, and where such a board can be opened
+    // Assert: the page says why, and does not show the board
     await expect(
       page.getByRole('heading', { name: 'Board not found' }),
     ).toBeVisible()
@@ -63,10 +63,8 @@ test.describe('Board Not Found', () => {
       ),
     ).toBeVisible()
     await expect(
-      page.getByText(
-        "To see someone else's board, ask them for its public link.",
-      ),
+      page.getByText('A board opens only for the account that owns it.'),
     ).toBeVisible()
-    await expect(page.getByText('Other User Public Board')).toHaveCount(0)
+    await expect(page.getByText('Other User Board')).toHaveCount(0)
   })
 })

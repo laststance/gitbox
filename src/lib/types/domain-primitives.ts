@@ -62,15 +62,6 @@ export type GitHubLogin = string
 export type ISOTimestamp = string
 
 /**
- * Public share slug for a board, or `null` when sharing is disabled.
- *
- * Slugs live under `board.share_slug` and are surfaced at `/public/:slug`.
- *
- * @example 'my-awesome-board-a1b2c3'
- */
-export type ShareSlug = string | null
-
-/**
  * Current organization filter for the "Add repository" picker.
  *
  * The literal `'all'` is the "no filter" sentinel; any other value is a

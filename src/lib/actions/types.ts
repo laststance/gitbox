@@ -112,19 +112,12 @@ export class ActionUserError extends Error {
  * const option: BoardOption = {
  *   id: 'board-uuid-456',
  *   name: 'Work',
- *   isPublic: false,
  *   statusLists: [{ id: 'status-uuid-1', name: 'Repositories', color: '#6B7280' }],
  * }
  */
 export interface BoardOption {
   id: string
   name: string
-  /**
-   * The board is shared through a public link: everyone who has the link
-   * reads the name and the description of each repository on it. A board
-   * that was just created never is.
-   */
-  isPublic: boolean
   statusLists: Array<{
     id: string
     name: string

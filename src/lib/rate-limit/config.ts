@@ -76,11 +76,6 @@ export const RATE_LIMIT_CONFIG = {
   },
 
   // --- Public: Unauthenticated endpoints ---
-  publicBoardView: {
-    maxRequests: 60,
-    windowMs: 60_000,
-    description: 'public board view',
-  },
   // Browser error reports through the Sentry tunnel, per client address. One
   // tab sends at most 12 replay segments a minute (the SDK flushes every 5 s)
   // plus a transaction per navigation, so this leaves room for several tabs.
