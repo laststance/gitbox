@@ -37,18 +37,6 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 From the `/plan-eng-review` of issue #216 (a repository keeps its note, links and comment when its card goes). None blocks that change.
 
-### List more than 1000 repositories of a source in the picker
-
-**What:** Let the Add Repositories catalog page past 1000 repositories per user or organization.
-
-**Why:** A repository beyond that cap is never listed, so it can neither be added nor show that something is saved for it.
-
-**Context:** Measured during the #216 review: the owner sees 212 repositories, far below the cap. Revisit when a source comes near it.
-
-**Effort:** M
-**Priority:** P3
-**Depends on:** None
-
 ### Read only what the picker's marks need, after the list
 
 **What:** Let the database answer the marks (`has_note`, `link_count`, `has_comment` per repository key, for example through a view), and stop holding the Add Repositories list until they arrive.

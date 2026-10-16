@@ -50,9 +50,11 @@ vi.mock('@/lib/logger', () => ({
   createModuleLogger: vi.fn(() => ({ warn: loggerHarness.warn })),
 }))
 
+import { GITHUB_CATALOG_REPOSITORY_PAGE_LIMIT } from '@/lib/constants/github'
 import {
   getCachedGitHubRepositoryCatalog,
   getGitHubCatalogErrorStatus,
+  shouldFetchAnotherRepositoryPage,
 } from '@/lib/github/repository-catalog'
 
 const AUTHENTICATED_USER = {
@@ -138,10 +140,49 @@ function createRepository(id: number, ownerLogin: string | null = 'octocat') {
  * @example
  * createRepositories(2, 101) // => [{ id: 101, ... }, { id: 102, ... }]
  */
-function createRepositories(count: number, startId: number) {
+function createRepositories(
+  count: number,
+  startId: number,
+  ownerLogin = 'octocat',
+) {
   return Array.from({ length: count }, (_, index) =>
-    createRepository(startId + index),
+    createRepository(startId + index, ownerLogin),
   )
+}
+
+/**
+ * The user-repository page URL the catalog requests.
+ * @param page - Page number, starting at 1.
+ * @returns The relative URL, with the same query the catalog sends.
+ * @example
+ * userRepositoryPageUrl(11)
+ */
+function userRepositoryPageUrl(page: number): string {
+  const searchParams = new URLSearchParams({
+    per_page: '100',
+    page: String(page),
+    affiliation: 'owner,collaborator,organization_member',
+    visibility: 'all',
+    sort: 'updated',
+    direction: 'desc',
+  })
+  return `/user/repos?${searchParams.toString()}`
+}
+
+/**
+ * The organization-repository page URL the catalog requests for laststance.
+ * @param page - Page number, starting at 1.
+ * @returns The relative URL, with the same query the catalog sends.
+ * @example
+ * organizationRepositoryPageUrl(11)
+ */
+function organizationRepositoryPageUrl(page: number): string {
+  const searchParams = new URLSearchParams({
+    per_page: '100',
+    page: String(page),
+    type: 'all',
+  })
+  return `/orgs/laststance/repos?${searchParams.toString()}`
 }
 
 /**
@@ -757,5 +798,95 @@ describe('GitHub repository catalog page cache', () => {
     expect(
       requestedUrls.filter((url) => url === ORGANIZATION_PAGE_ONE_URL),
     ).toHaveLength(1)
+  })
+
+  // Value: protects=a repository past the first thousand of a user or an organization is still offered in the picker; fails_when=the catalog stops at page 10 while that page is full; why_new=the catalog used to stop at 1,000 repositories per source; seam=mocked GitHub pages; no_claim=GitHub's own page size
+  test('lists a repository that sits past the first thousand of a user and of an organization', async () => {
+    // Arrange
+    const responses = new Map<string, unknown>([
+      ['/user', AUTHENTICATED_USER],
+      [ORGANIZATION_PAGE_ONE_URL, [LASTSTANCE_ORGANIZATION]],
+    ])
+    for (let page = 1; page <= 10; page += 1) {
+      responses.set(
+        userRepositoryPageUrl(page),
+        createRepositories(100, (page - 1) * 100 + 1),
+      )
+      responses.set(
+        organizationRepositoryPageUrl(page),
+        createRepositories(100, 10_000 + (page - 1) * 100 + 1, 'laststance'),
+      )
+    }
+    responses.set(userRepositoryPageUrl(11), [createRepository(1001)])
+    responses.set(organizationRepositoryPageUrl(11), [
+      createRepository(11_001, 'laststance'),
+    ])
+    const apiGet = createApiGet(responses)
+    githubAxiosHarness.createGitHubAxios.mockReturnValue({ get: apiGet })
+
+    // Act
+    const catalog = await getCachedGitHubRepositoryCatalog(
+      'gho_past_one_thousand',
+    )
+
+    // Assert
+    expect(apiGet).toHaveBeenCalledWith(userRepositoryPageUrl(11))
+    expect(apiGet).toHaveBeenCalledWith(organizationRepositoryPageUrl(11))
+    expect(apiGet).not.toHaveBeenCalledWith(userRepositoryPageUrl(12))
+    expect(apiGet).not.toHaveBeenCalledWith(organizationRepositoryPageUrl(12))
+    expect(catalog.repositories.some(({ id }) => id === 1001)).toBe(true)
+    expect(catalog.repositories.some(({ id }) => id === 11_001)).toBe(true)
+    expect(catalog.repositories).toHaveLength(2002)
+    expect(loggerHarness.warn).not.toHaveBeenCalled()
+  })
+})
+
+describe('shouldFetchAnotherRepositoryPage', () => {
+  // Value: protects=the tenth full page is not treated as the end of a source; fails_when=page 10 of 100 rows stops the catalog; why_new=that stop was the 1,000-repository cap; seam=none; no_claim=the catalog request itself
+  test('asks for another page when the tenth page is full', () => {
+    // Arrange
+    const upstreamItemCount = 100
+    const page = 10
+
+    // Act
+    const anotherPage = shouldFetchAnotherRepositoryPage(
+      upstreamItemCount,
+      page,
+    )
+
+    // Assert
+    expect(anotherPage).toBe(true)
+  })
+
+  // Value: protects=a short page ends the source, so an empty following page is not requested forever; fails_when=any full-sized count is required before stopping; why_new=the stop moved off the page count; seam=none; no_claim=none
+  test('stops when the page is shorter than GitHub returns at most', () => {
+    // Arrange
+    const upstreamItemCount = 99
+    const page = 1
+
+    // Act
+    const anotherPage = shouldFetchAnotherRepositoryPage(
+      upstreamItemCount,
+      page,
+    )
+
+    // Assert
+    expect(anotherPage).toBe(false)
+  })
+
+  // Value: protects=a source whose pages never shorten does not request forever; fails_when=a full page at the safety limit asks for another; why_new=the loop no longer has the old page cap; seam=none; no_claim=that the warning is logged (the catalog test covers a source that ends)
+  test('stops at the safety limit even when that page is full', () => {
+    // Arrange
+    const upstreamItemCount = 100
+    const page = GITHUB_CATALOG_REPOSITORY_PAGE_LIMIT
+
+    // Act
+    const anotherPage = shouldFetchAnotherRepositoryPage(
+      upstreamItemCount,
+      page,
+    )
+
+    // Assert
+    expect(anotherPage).toBe(false)
   })
 })

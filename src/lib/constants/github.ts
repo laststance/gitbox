@@ -19,8 +19,17 @@ export const GITHUB_E2E_MOCK_TOKEN = 'mock-github-provider-token-for-testing'
 /** GitHub's maximum supported repository page size. */
 export const GITHUB_REPOSITORY_PAGE_SIZE = 100
 
-/** Safety cap preserving the existing 1,000-item upper bound per catalog collection. */
+/** Safety cap for the organization list. A user belongs to far fewer than 1,000 organizations. */
 export const GITHUB_CATALOG_MAX_PAGES = 10
+
+/**
+ * Safety stop for one repository source, after a full page.
+ *
+ * GitHub's list endpoints keep going past 1,000 repositories. This only stops
+ * a source whose pages never shorten, which would otherwise request forever.
+ * 100 pages is 10,000 repositories.
+ */
+export const GITHUB_CATALOG_REPOSITORY_PAGE_LIMIT = 100
 
 /** One day keeps repeat picker opens fast while allowing automatic refreshes. */
 export const GITHUB_REPOSITORY_CATALOG_REVALIDATE_SECONDS = 24 * 60 * 60
