@@ -33,18 +33,6 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
 
 From the `/autoplan` review of issue #215 (one card per user and repository). None blocks that change.
 
-### Load placements without waiting behind the catalog action
-
-**What:** Fetch the picker's placements through a GET route handler (or return them with the catalog), and keep the cached options on screen, non-interactive, while only placements are pending.
-
-**Why:** Server Actions run one at a time on the client, so on first open the placement request waits for the catalog request. Every reopen also shows the spinner and resizes the panel, where it used to be instant.
-
-**Context:** `src/hooks/board/useRepoPlacements.ts` resets on close on purpose: a held repository must never flash as selectable. A stale-while-revalidate variant has to keep that guarantee (options disabled until fresh placements arrive). Related: the "Separate Adding state" item above.
-
-**Effort:** M
-**Priority:** P2
-**Depends on:** None
-
 ### Run the independent queries of add in parallel
 
 **What:** Use `Promise.all` for the board check, the placement lookup and the max-order query in `addRepositoriesToBoard`.

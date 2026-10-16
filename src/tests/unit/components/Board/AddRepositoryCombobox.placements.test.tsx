@@ -17,7 +17,6 @@ import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox'
-import { getUserRepoPlacements } from '@/lib/actions/board-data'
 import {
   getAuthenticatedRepositoryCatalog,
   type GitHubRepository,
@@ -27,6 +26,7 @@ import {
   moveCardToBoard,
   type CreatedRepoCard,
 } from '@/lib/actions/repo-cards'
+import { fetchRepoPlacements } from '@/lib/fetch-repo-placements'
 import type { StatusListDomain } from '@/lib/models/domain'
 import boardReducer, {
   setRepoCards,
@@ -41,8 +41,8 @@ vi.mock('@/lib/actions/github', () => ({
   getAuthenticatedRepositoryCatalog: vi.fn(),
 }))
 
-vi.mock('@/lib/actions/board-data', () => ({
-  getUserRepoPlacements: vi.fn(),
+vi.mock('@/lib/fetch-repo-placements', () => ({
+  fetchRepoPlacements: vi.fn(),
 }))
 
 vi.mock('@/lib/actions/repo-cards', () => ({
@@ -178,7 +178,7 @@ describe('AddRepositoryCombobox on a board that is shared by a public link', () 
   test('says who will see the added repositories, and the Add button is described by that sentence', async () => {
     // Arrange
     mockCatalog([makeRepository(1, 'free-repo')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: { placements: [], savedMemories: [] },
     })
@@ -203,7 +203,7 @@ describe('AddRepositoryCombobox on a board that is shared by a public link', () 
   test('says nothing of a public link on a board that is not shared', async () => {
     // Arrange
     mockCatalog([makeRepository(1, 'free-repo')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: { placements: [], savedMemories: [] },
     })
@@ -230,7 +230,7 @@ describe('AddRepositoryCombobox with a selected repository', () => {
     // Arrange
     const user = userEvent.setup()
     mockCatalog([makeRepository(1, 'free-repo')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: { placements: [], savedMemories: [] },
     })
@@ -286,7 +286,7 @@ describe('AddRepositoryCombobox panel and the place of its button', () => {
       'getBoundingClientRect',
     ).mockImplementation(() => new DOMRect(900, buttonBottomPx - 38, 160, 38))
     mockCatalog([makeRepository(1, 'free-repo')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: { placements: [], savedMemories: [] },
     })
@@ -343,7 +343,7 @@ describe('AddRepositoryCombobox as a layer over the board', () => {
     vi.mocked(getAuthenticatedRepositoryCatalog).mockReturnValue(
       new Promise(() => {}),
     )
-    vi.mocked(getUserRepoPlacements).mockReturnValue(new Promise(() => {}))
+    vi.mocked(fetchRepoPlacements).mockReturnValue(new Promise(() => {}))
 
     // Act
     renderOpenPicker()
@@ -360,7 +360,7 @@ describe('AddRepositoryCombobox as a layer over the board', () => {
   test('is no layer while it is closed', () => {
     // Arrange
     mockCatalog([])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: { placements: [], savedMemories: [] },
     })
@@ -398,7 +398,7 @@ describe('AddRepositoryCombobox and the Escape key', () => {
     // Arrange
     const user = userEvent.setup()
     mockCatalog([makeRepository(1, 'free-repo')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: { placements: [], savedMemories: [] },
     })
@@ -426,7 +426,7 @@ describe('AddRepositoryCombobox and the Escape key', () => {
     // Arrange
     const user = userEvent.setup()
     mockCatalog([makeRepository(1, 'free-repo')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: { placements: [], savedMemories: [] },
     })
@@ -454,7 +454,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
   test('marks a repository on no board with what comes back when it is added again', async () => {
     // Arrange
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'NSX')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: {
         placements: [],
@@ -491,7 +491,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
   test('lists free and held repositories without marks when what is saved could not be looked up', async () => {
     // Arrange
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: {
         placements: [
@@ -526,7 +526,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
       makeRepository(index + 1, `repo-${index + 1}`),
     )
     mockCatalog(repositories)
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: {
         placements: [],
@@ -559,7 +559,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
   test('lists a repository held by another board with a link to that board instead of offering it', async () => {
     // Arrange
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: {
         placements: [
@@ -606,7 +606,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     // Arrange
     const user = userEvent.setup()
     mockCatalog([makeRepository(2, 'gitbox')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: {
         placements: [
@@ -661,7 +661,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     // Arrange
     const user = userEvent.setup()
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: {
         placements: [
@@ -705,7 +705,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     // Arrange
     const user = userEvent.setup()
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: {
         placements: [
@@ -740,7 +740,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
   test('keeps the picker usable without a held list when placements cannot be loaded', async () => {
     // Arrange
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: false,
       error: 'An unexpected error occurred',
     })
@@ -763,7 +763,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     // Arrange
     const user = userEvent.setup()
     mockCatalog([makeRepository(2, 'gitbox')])
-    vi.mocked(getUserRepoPlacements)
+    vi.mocked(fetchRepoPlacements)
       // On open: this picker does not know about the placement yet
       .mockResolvedValueOnce({
         success: true,
@@ -834,7 +834,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     // Arrange
     const user = userEvent.setup()
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: { placements: [], savedMemories: [] },
     })
@@ -894,7 +894,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     // Arrange
     const user = userEvent.setup()
     mockCatalog([makeRepository(1, 'free-repo')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: { placements: [], savedMemories: [] },
     })
@@ -925,7 +925,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     // Arrange
     const user = userEvent.setup()
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: {
         placements: [
@@ -960,7 +960,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
   // Generated by /ship test coverage audit (pass 1).
   // Value: protects=the picker still offers repositories when the placement
   //   request rejects (offline, server action transport error);
-  //   fails_when=the try/catch around getUserRepoPlacements is removed, leaving
+  //   fails_when=the try/catch around fetchRepoPlacements is removed, leaving
   //   the picker on "Loading repositories..." forever with an unhandled
   //   rejection;
   //   why_new=the neighbouring test covers a resolved { success: false }, which
@@ -969,7 +969,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
   test('keeps the picker usable when the placement request itself fails', async () => {
     // Arrange
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
-    vi.mocked(getUserRepoPlacements).mockRejectedValue(
+    vi.mocked(fetchRepoPlacements).mockRejectedValue(
       new Error('Failed to fetch'),
     )
 
@@ -1001,7 +1001,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     // Arrange
     const user = userEvent.setup()
     mockCatalog([makeRepository(1, 'free-repo')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: { placements: [], savedMemories: [] },
     })
@@ -1040,7 +1040,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     // Arrange
     const user = userEvent.setup()
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
-    vi.mocked(getUserRepoPlacements)
+    vi.mocked(fetchRepoPlacements)
       // On open: this picker does not know about the placement yet
       .mockResolvedValueOnce({
         success: true,
@@ -1126,7 +1126,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
   test('neither offers nor lists as held a repository the server reports on this board', async () => {
     // Arrange: the board's cards are not in the store, only the server knows
     mockCatalog([makeRepository(2, 'gitbox')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: {
         placements: [
@@ -1173,7 +1173,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     // Arrange
     const user = userEvent.setup()
     mockCatalog([makeRepository(2, 'gitbox')])
-    vi.mocked(getUserRepoPlacements)
+    vi.mocked(fetchRepoPlacements)
       // On open: this picker does not know about the placement yet
       .mockResolvedValueOnce({
         success: true,
@@ -1222,7 +1222,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     expect(
       screen.queryByRole('listbox', { name: 'Repository options' }),
     ).toBeNull()
-    expect(getUserRepoPlacements).toHaveBeenCalledTimes(2)
+    expect(fetchRepoPlacements).toHaveBeenCalledTimes(2)
   })
 
   // Value: protects=a visibility filter that hides every repository says so,
@@ -1235,7 +1235,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     // Arrange: every repository in the catalog is public
     const user = userEvent.setup()
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: { placements: [], savedMemories: [] },
     })
@@ -1267,7 +1267,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     // Arrange
     const user = userEvent.setup()
     mockCatalog([makeRepository(1, 'free-repo')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: { placements: [], savedMemories: [] },
     })
@@ -1298,7 +1298,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     // Arrange
     const user = userEvent.setup()
     mockCatalog([makeRepository(1, 'free-repo')])
-    vi.mocked(getUserRepoPlacements)
+    vi.mocked(fetchRepoPlacements)
       // First opening
       .mockResolvedValueOnce({
         success: true,
@@ -1337,13 +1337,57 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     // Assert
     expect(addRepositoriesToBoard).not.toHaveBeenCalled()
     expect(searchInput).toHaveFocus()
+    expect(screen.queryByText('Loading repositories...')).toBeNull()
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Loading repositories...',
+      'Checking where repositories are placed...',
     )
+    const [reopenedOption] = await findRepositoryOptions()
+    expect(reopenedOption).toHaveAttribute('aria-disabled', 'true')
     expect(
       screen.getByRole('button', { name: 'Remove laststance/free-repo' }),
     ).toBeVisible()
     expect(screen.getByRole('button', { name: 'Add (1)' })).toBeDisabled()
+  })
+
+  test('keeps a cached repository on screen and ignores a click while placements are still loading', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    mockCatalog([makeRepository(1, 'free-repo')])
+    vi.mocked(fetchRepoPlacements)
+      .mockResolvedValueOnce({
+        success: true,
+        data: { placements: [], savedMemories: [] },
+      })
+      .mockReturnValueOnce(new Promise(() => {}))
+    const store = configureStore({
+      reducer: { board: boardReducer, settings: settingsReducer },
+    })
+    const renderPicker = (isOpen: boolean) => (
+      <Provider store={store}>
+        <AddRepositoryCombobox
+          boardId={toBoardId('board-1')}
+          statusId={toStatusListId('status-1')}
+          isOpen={isOpen}
+          onRepositoriesAdded={vi.fn()}
+        />
+      </Provider>
+    )
+    const { rerender } = render(renderPicker(true))
+    await findRepositoryOptions()
+    rerender(renderPicker(false))
+    rerender(renderPicker(true))
+    const [onlyOption] = await findRepositoryOptions()
+
+    // Act
+    await user.click(onlyOption!)
+
+    // Assert
+    expect(onlyOption).toBeVisible()
+    expect(onlyOption).toHaveAttribute('aria-disabled', 'true')
+    expect(
+      screen.queryByRole('button', { name: 'Remove laststance/free-repo' }),
+    ).toBeNull()
+    expect(screen.queryByText('Loading repositories...')).toBeNull()
   })
 
   // Value: protects=a repository already on this board stays hidden when the
@@ -1356,7 +1400,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
   test('keeps hiding a repository that is already on this board when placements cannot be loaded', async () => {
     // Arrange: the board's card is in the store with a different letter case
     mockCatalog([makeRepository(1, 'free-repo'), makeRepository(2, 'gitbox')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: false,
       error: 'An unexpected error occurred',
     })
@@ -1408,7 +1452,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     // Arrange
     const user = userEvent.setup()
     mockCatalog([makeRepository(2, 'gitbox')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: { placements: [], savedMemories: [] },
     })
@@ -1456,7 +1500,7 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     // Arrange
     const user = userEvent.setup()
     mockCatalog([makeRepository(1, 'free-repo')])
-    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
       success: true,
       data: { placements: [], savedMemories: [] },
     })

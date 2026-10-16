@@ -43,6 +43,11 @@ interface HeldRepositoryListProps {
   isBoardShared?: boolean
   /** Reloads the held list after a move the server confirmed. */
   onMoved: () => void
+  /**
+   * Disables Move Here while this opening's placements are still on the way.
+   * The row stays visible; a move from a stale placement must wait.
+   */
+  movesDisabled?: boolean
 }
 
 /**
@@ -62,6 +67,7 @@ export const HeldRepositoryList = memo(function HeldRepositoryList({
   boardId,
   defaultStatusId,
   isBoardShared = false,
+  movesDisabled = false,
   onMoved,
 }: HeldRepositoryListProps) {
   const columns = useAppSelector(selectStatusLists)
@@ -115,7 +121,7 @@ export const HeldRepositoryList = memo(function HeldRepositoryList({
                   variant="outline"
                   size="sm"
                   className="relative z-10 h-7 shrink-0 px-2 pointer-coarse:min-h-11"
-                  disabled={columns.length === 0}
+                  disabled={columns.length === 0 || movesDisabled}
                   aria-label={`Move Here, ${repository.fullName}`}
                   onClick={() => setMoving(repository)}
                 >

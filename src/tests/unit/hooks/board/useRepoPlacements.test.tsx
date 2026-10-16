@@ -2,8 +2,8 @@
  * Unit Tests: useRepoPlacements Hook
  *
  * Verifies the repository picker asks where the user's repositories live on
- * every opening, shows loading again after a reopen instead of the previous
- * answer, ignores an answer that belongs to an earlier opening, and degrades
+ * every opening, keeps the previous answer on screen while a reopen is still
+ * loading, ignores an answer that belongs to an earlier opening, and degrades
  * to "placements unknown" when the request itself fails.
  *
  * @see src/hooks/board/useRepoPlacements.ts
@@ -14,10 +14,10 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { useRepoPlacements } from '@/hooks/board/useRepoPlacements'
-import { getUserRepoPlacements } from '@/lib/actions/board-data'
+import { fetchRepoPlacements } from '@/lib/fetch-repo-placements'
 
-vi.mock('@/lib/actions/board-data', () => ({
-  getUserRepoPlacements: vi.fn(),
+vi.mock('@/lib/fetch-repo-placements', () => ({
+  fetchRepoPlacements: vi.fn(),
 }))
 
 vi.mock('@sentry/nextjs', () => ({
@@ -32,8 +32,8 @@ describe('useRepoPlacements', () => {
   test('ignores an answer from an earlier opening that arrives after the picker was closed and reopened', async () => {
     // Arrange
     const firstOpeningRequest =
-      Promise.withResolvers<Awaited<ReturnType<typeof getUserRepoPlacements>>>()
-    vi.mocked(getUserRepoPlacements)
+      Promise.withResolvers<Awaited<ReturnType<typeof fetchRepoPlacements>>>()
+    vi.mocked(fetchRepoPlacements)
       // First opening: the server does not answer yet
       .mockReturnValueOnce(firstOpeningRequest.promise)
       // Second opening: nothing is placed anymore
@@ -72,12 +72,12 @@ describe('useRepoPlacements', () => {
     // Assert
     expect(result.current.placements).toEqual([])
     expect(result.current.isLoadingPlacements).toBe(false)
-    expect(getUserRepoPlacements).toHaveBeenCalledTimes(2)
+    expect(fetchRepoPlacements).toHaveBeenCalledTimes(2)
   })
 
-  test('shows loading again right after reopening instead of the placements of the previous opening', async () => {
+  test('keeps the previous placements on screen and unsettled when the picker opens again', async () => {
     // Arrange
-    vi.mocked(getUserRepoPlacements)
+    vi.mocked(fetchRepoPlacements)
       // First opening: another board holds the repository
       .mockResolvedValueOnce({
         success: true,
@@ -109,13 +109,20 @@ describe('useRepoPlacements', () => {
 
     // Assert
     expect(result.current.isLoadingPlacements).toBe(true)
-    expect(result.current.placements).toBeNull()
+    expect(result.current.placements).toEqual([
+      {
+        identifier: 'laststance/gitbox',
+        boardId: 'board-2',
+        boardName: 'Work Projects',
+        cardId: '00000000-0000-4000-8000-0000000000c2',
+      },
+    ])
   })
 
   test('stops loading with unknown placements and reports the failure when the request is rejected', async () => {
     // Arrange
     const networkError = new Error('Failed to fetch')
-    vi.mocked(getUserRepoPlacements).mockRejectedValue(networkError)
+    vi.mocked(fetchRepoPlacements).mockRejectedValue(networkError)
 
     // Act
     const { result } = renderHook(() => useRepoPlacements(true))
@@ -132,7 +139,7 @@ describe('useRepoPlacements', () => {
 
   test('does not keep placements that were refreshed after the picker closed', async () => {
     // Arrange: the picker was open, settled, and is closed again
-    vi.mocked(getUserRepoPlacements)
+    vi.mocked(fetchRepoPlacements)
       // First opening
       .mockResolvedValueOnce({
         success: true,
@@ -170,8 +177,8 @@ describe('useRepoPlacements', () => {
     // Act
     rerender({ isOpen: true })
 
-    // Assert: the next opening loads instead of starting from the late answer
+    // Assert: the next opening loads from the previous settled list, not the late answer
     expect(result.current.isLoadingPlacements).toBe(true)
-    expect(result.current.placements).toBeNull()
+    expect(result.current.placements).toEqual([])
   })
 })

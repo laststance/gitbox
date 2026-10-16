@@ -80,12 +80,13 @@ export interface RepoPlacementsLookup {
  * Get every placement of the current user's repositories (which board holds
  * each one) and what is saved for the repositories on no board.
  *
- * Called by {@link useRepoPlacements} each time the Add Repositories picker
- * opens, so the picker can list repositories that are already placed elsewhere
- * instead of offering them (Issue #215) and mark the ones whose note, links or
- * comment come back when they are added (Issue #216). Fetched on open rather
- * than with the page so Back / Forward navigation and moves made in other tabs
- * never leave it stale.
+ * Called by `GET /api/repo-placements` (the picker) and by the command
+ * palette. The picker uses the route so the request is not queued behind the
+ * catalog Server Action. The picker lists repositories that are already
+ * placed elsewhere instead of offering them (Issue #215) and marks the ones
+ * whose note, links or comment come back when they are added (Issue #216).
+ * Fetched on open rather than with the page so Back / Forward navigation and
+ * moves made in other tabs never leave it stale.
  *
  * @returns
  * - On success: `{ success: true, data: RepoPlacementsLookup }`; `savedMemories`
