@@ -33,18 +33,6 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
 
 From the `/autoplan` review of issue #215 (one card per user and repository). None blocks that change.
 
-### Fail the parallel E2E run when seeding fails
-
-**What:** Make `scripts/e2e-parallel.sh` and the shard restore stop on seed or restore errors (`ON_ERROR_STOP`).
-
-**Why:** A failed seed leaves shards running against a partial fixture set, and tests that expect a fixture to be absent pass for the wrong reason.
-
-**Context:** Found by the Codex eng review. The owner-independence test asserts its fixtures as a local guard.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### Correct the "fixture auth cannot mutate" notes
 
 **What:** Update the comments in `e2e/auth.setup.ts` and the E2E fixture section of `CLAUDE.md`.
