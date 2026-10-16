@@ -63,6 +63,7 @@ describe('local E2E builds', () => {
     // Assert
     expect(config).toContain(LOCAL_SERVICE_ROLE_KEY)
     expect(config).toContain("const LOCAL_SITE_URL = 'http://localhost:3008'")
+    expect(env).toContain('SUPABASE_URL: LOCAL_SUPABASE_URL')
     expect(env).toContain(
       'SUPABASE_SERVICE_ROLE_KEY: LOCAL_SUPABASE_SERVICE_ROLE_KEY',
     )

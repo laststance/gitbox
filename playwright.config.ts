@@ -284,6 +284,9 @@ export default defineConfig({
           NEXT_PUBLIC_ENABLE_MSW_MOCK: 'true',
           APP_ENV: 'test',
           NEXT_PUBLIC_SUPABASE_URL: LOCAL_SUPABASE_URL,
+          // Server clients prefer this over the public URL, which is inlined
+          // at build time. The parallel servers set it per shard.
+          SUPABASE_URL: LOCAL_SUPABASE_URL,
           NEXT_PUBLIC_SUPABASE_ANON_KEY: LOCAL_SUPABASE_ANON_KEY,
           SUPABASE_SERVICE_ROLE_KEY: LOCAL_SUPABASE_SERVICE_ROLE_KEY,
           NEXT_PUBLIC_SITE_URL: LOCAL_SITE_URL,
