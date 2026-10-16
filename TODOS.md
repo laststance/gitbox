@@ -33,18 +33,6 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
 
 From the `/autoplan` review of issue #215 (one card per user and repository). None blocks that change.
 
-### Harden the #215 triggers and the undo history
-
-**What:** (1) Let `check_repocard_status_board` return early on an UPDATE that changes neither `board_id` nor `status_id`. (2) Schema-qualify `public.board` and `public.statuslist` inside the three trigger functions. (3) Do not push an undo entry for a drag that changed nothing, or skip such entries when Z is pressed. (4) Reword the duplicate guard's message to "more than one card for the same user and repository".
-
-**Why:** (1) The batch order RPC sets `status_id` on every row, so the trigger also checks unchanged rows; on a board that already holds a stranded card, every undo would be refused. Production held 0 stranded cards on 2026-10-11. (2) Defence in depth; no path to a temp-table shadow exists today. (3) Dropping a card back where it was pushes an entry equal to the board, and the next Z answers "Nothing to undo on this board" although an earlier drag can still be undone with one more Z. (4) The guard also counts letter-case variants on one board, which its message does not describe.
-
-**Context:** `supabase/migrations/20261011011500_repocard_unique_repo_per_user.sql`, `supabase/migrations/20261011020000_repocard_status_board_guard.sql` (change them through a new migration once applied), `src/hooks/board/useKanbanDnD.ts` (`pushCardHistory` before the same-column branch), `src/hooks/board/useKanbanUndo.ts`.
-
-**Effort:** S
-**Priority:** P2
-**Depends on:** None
-
 ### Polish left from the #215 design review
 
 **What:** (1) Use one wording for a card's data in the Remove and Move dialogs ("its note, links and comment" vs "Notes, links, and comments"). (2) Done by #216: the Remove dialog no longer has a permanent-loss sentence (the note, links and comment are kept). (3) Add a visible heading to the "not added" notice. (4) Soften "Reload the page and try again" in the add race message, since the picker now refreshes itself. (5) Drop selected repositories that are no longer addable when the picker reopens.

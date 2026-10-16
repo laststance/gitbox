@@ -37,8 +37,9 @@ BEGIN
   PERFORM set_config('lock_timeout', '5s', true);
   LOCK TABLE repocard IN ACCESS EXCLUSIVE MODE;
 
-  -- 1. Guard: refuse to run while any user holds one repository on 2+ boards.
-  --    The message carries a count only (no repository names, no user ids).
+  -- 1. Guard: refuse while one user has more than one card for the same
+  --    repository. Two cards on one board that differ only in letter case
+  --    count too. The message carries a count only (no repository names, no user ids).
   SELECT count(*) INTO v_duplicate_groups
   FROM (
     SELECT 1
@@ -50,7 +51,7 @@ BEGIN
 
   IF v_duplicate_groups > 0 THEN
     RAISE EXCEPTION
-      'repocard_unique_repo_per_user: % repository group(s) sit on more than one board of the same user. Remove the extra card(s) in the app, then re-run this migration. Nothing was changed.',
+      'repocard_unique_repo_per_user: % group(s) have more than one card for the same user and repository. Remove the extra card(s) in the app, then re-run this migration. Nothing was changed.',
       v_duplicate_groups;
   END IF;
 

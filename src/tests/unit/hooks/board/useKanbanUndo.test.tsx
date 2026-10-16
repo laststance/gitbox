@@ -229,6 +229,55 @@ describe('useKanbanUndo', () => {
     expect(dispatch).not.toHaveBeenCalled()
     expect(batchUpdateRepoCardOrders).not.toHaveBeenCalled()
   })
+
+  // Value: protects=one Z undoes the drag that moved a card, even when a
+  //   later drag put a card back where it was;
+  //   fails_when=Z stops on that empty entry and says there is nothing to undo;
+  //   why_new=dropping a card on itself used to be remembered;
+  //   seam=none
+  test('one Z undoes the earlier drag when the latest remembered drag changed nothing', () => {
+    // Arrange: card-2 was dragged above card-1, then a later drag changed nothing
+    const dispatch = vi.fn()
+    const beforeTheMove = [
+      makeCard('card-1', 'gitbox', 'status-todo', 0),
+      makeCard('card-2', 'corelive', 'status-todo', 1),
+    ]
+    const afterTheMove = [
+      makeCard('card-2', 'corelive', 'status-todo', 0),
+      makeCard('card-1', 'gitbox', 'status-todo', 1),
+    ]
+    const { result } = renderHook(() =>
+      useKanbanUndo({
+        dispatch,
+        cards: afterTheMove,
+        statuses: [],
+        rollbackRepoCards: vi.fn(),
+        rollbackStatusLists: vi.fn(),
+      }),
+    )
+    act(() => {
+      result.current.pushCardHistory(beforeTheMove)
+      result.current.pushCardHistory(afterTheMove)
+    })
+
+    // Act
+    pressUndoKey()
+
+    // Assert
+    expect(toast.info).not.toHaveBeenCalled()
+    expect(toast.success).toHaveBeenCalledWith('Card operation undone', {
+      id: 'board-undo',
+    })
+    const cardUpdates = dispatch.mock.calls
+      .map(([action]) => action)
+      .filter(setRepoCards.match)
+    expect(cardUpdates).toEqual([
+      setRepoCards([
+        makeCard('card-1', 'gitbox', 'status-todo', 0),
+        makeCard('card-2', 'corelive', 'status-todo', 1),
+      ]),
+    ])
+  })
 })
 
 describe('useKanbanUndo: Z while something lies on top of the board', () => {
