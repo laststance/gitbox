@@ -229,11 +229,18 @@ describe('addRepositoriesToBoard', () => {
     expect(insert).not.toHaveBeenCalled()
   })
 
-  test('asks for the board, the cards already placed and the column order before any of those answers returns', async () => {
-    // Arrange — each of the three reads stays pending until the action has
-    // started all of them. A sequential action would leave the later two
-    // unsent, and this wait would time out.
+  test('asks for the board and the column order while the rename backfill is still running, and for placements only after it finishes', async () => {
+    // Arrange — the board and the column order start together. The placement
+    // read waits for the backfill, so it stays unsent while that backfill is
+    // still running. The backfill is the mock, not a query on the stub.
     const releases: Array<() => void> = []
+    let releaseBackfill: (() => void) | undefined
+    const backfillDone = new Promise<void>((resolve) => {
+      releaseBackfill = (): void => {
+        resolve()
+      }
+    })
+    vi.mocked(backfillVerifiedRepositoryIds).mockReturnValue(backfillDone)
     async function answerWhenTheReadHasStarted<T>(value: T): Promise<T> {
       return new Promise((resolve) => {
         releases.push(() => resolve(value))
@@ -297,9 +304,15 @@ describe('addRepositoriesToBoard', () => {
       makeRepository('laststance', 'free-repo'),
     ])
     await vi.waitFor(() => {
-      expect(releases).toHaveLength(3)
+      expect(releases).toHaveLength(2)
     })
     expect(insert).not.toHaveBeenCalled()
+
+    releaseBackfill?.()
+    await vi.waitFor(() => {
+      expect(releases).toHaveLength(3)
+    })
+
     for (const release of releases) release()
     const result = await pending
 
