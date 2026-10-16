@@ -15,6 +15,7 @@ import {
   HelpCircle,
   LogOut,
   Keyboard,
+  FolderGit2,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, {
@@ -28,8 +29,14 @@ import React, {
 import { toast } from 'sonner'
 
 import { signOut } from '@/lib/actions/auth'
+import { getUserRepoPlacements } from '@/lib/actions/board-data'
+import type { BoardPlacement } from '@/lib/actions/repo-card-duplicates'
 import { TOAST_WITH_LONG_TEXT_DURATION_MS } from '@/lib/constants/toast'
 import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
+import { linkedCardHref } from '@/lib/utils/linked-card'
+
+/** How many repositories a search shows. A shorter query narrows the rest. */
+const REPOSITORY_RESULT_LIMIT = 8
 
 /** Base styles for command item button */
 const COMMAND_BUTTON_BASE =
@@ -46,13 +53,23 @@ const COMMAND_KBD_BASE = 'rounded px-1.5 py-0.5 text-xs'
 const COMMAND_KBD_SELECTED = 'bg-primary-foreground/20 text-primary-foreground'
 const COMMAND_KBD_UNSELECTED = 'bg-muted text-muted-foreground'
 
+/**
+ * Board name beside a repository. Capped at 45% and allowed to shrink, so a
+ * long board name cannot push the repository identifier off the row.
+ */
+const COMMAND_DETAIL_BASE = 'max-w-[45%] min-w-0 truncate text-xs'
+const COMMAND_DETAIL_SELECTED = `text-primary-foreground ${COMMAND_DETAIL_BASE}`
+const COMMAND_DETAIL_UNSELECTED = `text-muted-foreground ${COMMAND_DETAIL_BASE}`
+
 interface Command {
   id: string
   label: string
+  /** Board name, shown beside a repository. */
+  detail?: string
   icon: React.ReactNode
   shortcut?: string
   action: () => void
-  category: 'navigation' | 'actions' | 'settings'
+  category: 'navigation' | 'actions' | 'settings' | 'repositories'
 }
 
 /**
@@ -70,6 +87,7 @@ export const CommandPalette = memo(function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [placements, setPlacements] = useState<BoardPlacement[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -139,13 +157,63 @@ export const CommandPalette = memo(function CommandPalette() {
     [router],
   )
 
+  // Where each repository sits. Loaded when the palette opens. The previous
+  // list is dropped as the load starts, so a card that moved cannot be opened
+  // while the new answer is still on its way. A failure leaves the commands
+  // usable.
+  useEffect(() => {
+    if (!isOpen) return
+    let cancelled = false
+    setPlacements([])
+    const loadPlacements = async (): Promise<void> => {
+      try {
+        const result = await getUserRepoPlacements()
+        if (cancelled) return
+        setPlacements(result.success ? result.data.placements : [])
+      } catch {
+        // The request never answered. The list was already cleared.
+        if (!cancelled) setPlacements([])
+      }
+    }
+    void loadPlacements()
+    return (): void => {
+      cancelled = true
+    }
+  }, [isOpen])
+
+  // Repositories appear only while a search matches. An empty query keeps
+  // the command list as it was.
+  const repositoryCommands = useMemo((): Command[] => {
+    const query = search.trim().toLowerCase()
+    if (query.length === 0) return []
+    return placements
+      .filter(
+        (placement) =>
+          placement.identifier.includes(query) ||
+          placement.boardName.toLowerCase().includes(query),
+      )
+      .slice(0, REPOSITORY_RESULT_LIMIT)
+      .map((placement) => ({
+        id: `repo-${placement.cardId}`,
+        label: placement.identifier,
+        detail: placement.boardName,
+        icon: <FolderGit2 className="h-4 w-4" />,
+        action: (): void => {
+          router.push(linkedCardHref(placement.boardId, placement.cardId))
+        },
+        category: 'repositories',
+      }))
+  }, [placements, router, search])
+
   // Filter commands based on search
   const filteredCommands = useMemo(
-    () =>
-      commands.filter((cmd) =>
+    () => [
+      ...repositoryCommands,
+      ...commands.filter((cmd) =>
         cmd.label.toLowerCase().includes(search.toLowerCase()),
       ),
-    [commands, search],
+    ],
+    [commands, repositoryCommands, search],
   )
 
   // Group commands by category
@@ -165,6 +233,7 @@ export const CommandPalette = memo(function CommandPalette() {
   )
 
   const categoryLabels: Record<string, string> = {
+    repositories: 'Repositories',
     navigation: 'Navigation',
     actions: 'Actions',
     settings: 'Settings',
@@ -176,14 +245,35 @@ export const CommandPalette = memo(function CommandPalette() {
     [groupedCommands],
   )
 
+  // Repositories arrive after the palette is open. Keep the highlight on the
+  // command the user already chose; a new search still starts at the first row.
+  const [trackedCommandIds, setTrackedCommandIds] = useState<string[]>([])
+  const [trackedSearch, setTrackedSearch] = useState('')
+  const flatCommandIds = flatCommands.map((command) => command.id)
+  const commandListChanged =
+    flatCommandIds.length !== trackedCommandIds.length ||
+    flatCommandIds.some((id, index) => id !== trackedCommandIds[index])
+  if (commandListChanged || search !== trackedSearch) {
+    const previousCommandId = trackedCommandIds[selectedIndex]
+    setTrackedCommandIds(flatCommandIds)
+    setTrackedSearch(search)
+    if (commandListChanged && search === trackedSearch) {
+      const nextIndex =
+        previousCommandId === undefined
+          ? -1
+          : flatCommandIds.indexOf(previousCommandId)
+      setSelectedIndex(nextIndex === -1 ? 0 : nextIndex)
+    }
+  }
+
   /**
    * Memoized styles for each command item based on current selectedIndex.
-   * Returns a Map of command id -> { button, icon, kbd } classNames.
+   * Returns a Map of command id -> { button, icon, kbd, detail } classNames.
    */
   const commandStyles = useMemo(() => {
     const styles = new Map<
       string,
-      { button: string; icon: string; kbd: string }
+      { button: string; icon: string; kbd: string; detail: string }
     >()
     flatCommands.forEach((cmd, index) => {
       const isSelected = index === selectedIndex
@@ -191,6 +281,9 @@ export const CommandPalette = memo(function CommandPalette() {
         button: `${COMMAND_BUTTON_BASE} ${isSelected ? COMMAND_BUTTON_SELECTED : COMMAND_BUTTON_UNSELECTED}`,
         icon: isSelected ? COMMAND_ICON_SELECTED : COMMAND_ICON_UNSELECTED,
         kbd: `${COMMAND_KBD_BASE} ${isSelected ? COMMAND_KBD_SELECTED : COMMAND_KBD_UNSELECTED}`,
+        detail: isSelected
+          ? COMMAND_DETAIL_SELECTED
+          : COMMAND_DETAIL_UNSELECTED,
       })
     })
     return styles
@@ -351,7 +444,14 @@ export const CommandPalette = memo(function CommandPalette() {
                             className={styles?.button}
                           >
                             <span className={styles?.icon}>{cmd.icon}</span>
-                            <span className="flex-1">{cmd.label}</span>
+                            <span className="min-w-0 flex-1 truncate">
+                              {cmd.label}
+                            </span>
+                            {cmd.detail && (
+                              <span className={styles?.detail}>
+                                {cmd.detail}
+                              </span>
+                            )}
                             {cmd.shortcut && (
                               <kbd className={styles?.kbd}>{cmd.shortcut}</kbd>
                             )}

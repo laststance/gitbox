@@ -33,18 +33,6 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
 
 From the `/autoplan` review of issue #215 (one card per user and repository). None blocks that change.
 
-### Repo search in the command palette
-
-**What:** Find a repo across all boards from `⌘K` and jump to its board.
-
-**Why:** With one placement per repo, "where is it" becomes the common question. The installed PWA has no find-in-page, so a long column can only be scrolled.
-
-**Context:** `getUserRepoPlacements()` in `src/lib/actions/board-data.ts` already returns repo, board id and board name.
-
-**Effort:** M
-**Priority:** P3
-**Depends on:** None
-
 ### Separate "Adding" state in the picker
 
 **What:** Show an adding state on submit instead of `Loading repositories...`.

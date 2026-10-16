@@ -11,10 +11,11 @@
  * - Escape key and backdrop click to close
  */
 
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { CommandPalette } from '@/components/CommandPalette/CommandPalette'
+import { getUserRepoPlacements } from '@/lib/actions/board-data'
 import { isOverlayOpen } from '@/lib/utils/is-overlay-open'
 
 // Mock next/navigation
@@ -54,6 +55,13 @@ vi.mock('@/lib/actions/auth', () => ({
   signOut: vi.fn(),
 }))
 
+vi.mock('@/lib/actions/board-data', () => ({
+  getUserRepoPlacements: vi.fn(async () => ({
+    success: true,
+    data: { placements: [], savedMemories: null },
+  })),
+}))
+
 // Mock sonner toast
 vi.mock('sonner', () => ({
   toast: {
@@ -85,6 +93,10 @@ function openPalette(): void {
 describe('CommandPalette', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(getUserRepoPlacements).mockResolvedValue({
+      success: true,
+      data: { placements: [], savedMemories: null },
+    })
   })
 
   describe('Opening/Closing', () => {
@@ -461,6 +473,157 @@ describe('CommandPalette', () => {
       fireEvent.keyDown(input, { key: 'Enter' })
 
       expect(mockPush).toHaveBeenCalledWith('/settings')
+    })
+  })
+
+  describe('Repository search', () => {
+    const gitbox = {
+      identifier: 'laststance/gitbox' as const,
+      boardId: 'board-1',
+      boardName: 'Work Projects',
+      cardId: '00000000-0000-4000-8000-0000000000c2',
+      githubRepoId: 42,
+    }
+
+    beforeEach(() => {
+      vi.mocked(getUserRepoPlacements).mockResolvedValue({
+        success: true,
+        data: { placements: [gitbox], savedMemories: null },
+      })
+    })
+
+    // Value: protects=an empty palette stays the command list, and a matching name opens that card's board; fails_when=every repository is listed before a search, or Enter stays on a command; why_new=the palette had no repository search; seam=none; no_claim=the board scrolling to the card (useRevealLinkedCard)
+    test('opens the board of a repository whose name matches the search', async () => {
+      // Arrange
+      render(<CommandPalette />)
+      openPalette()
+      const input = screen.getByPlaceholderText('Search commands...')
+
+      // Act
+      expect(screen.queryByText('laststance/gitbox')).toBeNull()
+      fireEvent.change(input, { target: { value: 'gitbox' } })
+
+      // Assert
+      await waitFor(() => {
+        expect(screen.getByText('laststance/gitbox')).toBeVisible()
+      })
+      expect(screen.getByText('Work Projects')).toBeVisible()
+      fireEvent.keyDown(input, { key: 'Enter' })
+      expect(mockPush).toHaveBeenCalledWith(
+        '/board/board-1?card=00000000-0000-4000-8000-0000000000c2',
+      )
+      expect(screen.queryByPlaceholderText('Search commands...')).toBeNull()
+    })
+
+    // Value: protects=Enter runs the command the user highlighted when repositories arrive late; fails_when=the arriving repository takes that row and Enter opens it instead; why_new=placements load after the palette is open; seam=none; no_claim=arrow keys after the list has settled
+    test('keeps Go to Settings selected when a matching repository arrives', async () => {
+      // Arrange
+      let resolvePlacements: (
+        result: Awaited<ReturnType<typeof getUserRepoPlacements>>,
+      ) => void = () => {}
+      vi.mocked(getUserRepoPlacements).mockImplementation(
+        async () =>
+          new Promise((resolve) => {
+            resolvePlacements = resolve
+          }),
+      )
+      render(<CommandPalette />)
+      openPalette()
+      const input = screen.getByPlaceholderText('Search commands...')
+      fireEvent.change(input, { target: { value: 'settings' } })
+
+      // Act
+      await act(async () => {
+        resolvePlacements({
+          success: true,
+          data: {
+            placements: [
+              {
+                ...gitbox,
+                boardName: 'Settings Archive',
+              },
+            ],
+            savedMemories: null,
+          },
+        })
+      })
+
+      // Assert
+      expect(screen.getByText('laststance/gitbox')).toBeVisible()
+      fireEvent.keyDown(input, { key: 'Enter' })
+      expect(mockPush).toHaveBeenCalledWith('/settings')
+    })
+
+    // Value: protects=reopening the palette does not offer the previous repositories while the new load is still running; fails_when=a card that moved can still be opened from the old list; why_new=placements stay in memory between openings; seam=none; no_claim=a failure before the first list arrives
+    test('does not offer the previous repositories while a new load is running', async () => {
+      // Arrange
+      const pending: Array<
+        (result: Awaited<ReturnType<typeof getUserRepoPlacements>>) => void
+      > = []
+      vi.mocked(getUserRepoPlacements).mockImplementation(
+        async () =>
+          new Promise((resolve) => {
+            pending.push(resolve)
+          }),
+      )
+      render(<CommandPalette />)
+      openPalette()
+      await act(async () => {
+        pending[0]?.({
+          success: true,
+          data: { placements: [gitbox], savedMemories: null },
+        })
+      })
+      fireEvent.change(screen.getByPlaceholderText('Search commands...'), {
+        target: { value: 'gitbox' },
+      })
+      expect(screen.getByText('laststance/gitbox')).toBeVisible()
+      fireEvent.keyDown(window, { key: 'Escape' })
+      openPalette()
+
+      // Act: search again before the new load answers
+      fireEvent.change(screen.getByPlaceholderText('Search commands...'), {
+        target: { value: 'gitbox' },
+      })
+
+      // Assert
+      expect(screen.queryByText('laststance/gitbox')).toBeNull()
+      expect(screen.getByText('No commands found')).toBeVisible()
+    })
+
+    // Value: protects=the command list stays usable when the repository request rejects; fails_when=the rejection is unhandled or the palette stays stuck loading; why_new=only a returned failure was handled; seam=none; no_claim=a rejection after the palette has closed
+    test('leaves the commands usable when loading repositories fails on the way', async () => {
+      // Arrange
+      vi.mocked(getUserRepoPlacements).mockRejectedValue(new Error('network'))
+      render(<CommandPalette />)
+      openPalette()
+
+      // Act
+      fireEvent.change(screen.getByPlaceholderText('Search commands...'), {
+        target: { value: 'gitbox' },
+      })
+
+      // Assert
+      await waitFor(() => {
+        expect(screen.getByText('No commands found')).toBeVisible()
+      })
+    })
+
+    // Value: protects=a board name finds the repository that sits on it; fails_when=only the owner/name is searched; why_new=the question is which board holds the repository; seam=none; no_claim=more than eight matches
+    test('finds a repository by the name of the board that holds it', async () => {
+      // Arrange
+      render(<CommandPalette />)
+      openPalette()
+
+      // Act
+      fireEvent.change(screen.getByPlaceholderText('Search commands...'), {
+        target: { value: 'work projects' },
+      })
+
+      // Assert
+      await waitFor(() => {
+        expect(screen.getByText('laststance/gitbox')).toBeVisible()
+      })
     })
   })
 })
