@@ -157,15 +157,16 @@ export const CommandPalette = memo(function CommandPalette() {
     [router],
   )
 
-  // Where each repository sits. Loaded when the palette opens; a failure
-  // leaves the commands usable.
+  // Where each repository sits. Loaded when the palette opens. A failure
+  // drops what an earlier opening loaded, so a moved card is not offered,
+  // and the commands stay usable.
   useEffect(() => {
     if (!isOpen) return
     let cancelled = false
     const loadPlacements = async (): Promise<void> => {
       const result = await getUserRepoPlacements()
-      if (cancelled || !result.success) return
-      setPlacements(result.data.placements)
+      if (cancelled) return
+      setPlacements(result.success ? result.data.placements : [])
     }
     void loadPlacements()
     return (): void => {
@@ -236,6 +237,27 @@ export const CommandPalette = memo(function CommandPalette() {
     () => Object.values(groupedCommands).flat(),
     [groupedCommands],
   )
+
+  // Repositories arrive after the palette is open. Keep the highlight on the
+  // command the user already chose; a new search still starts at the first row.
+  const [trackedCommandIds, setTrackedCommandIds] = useState<string[]>([])
+  const [trackedSearch, setTrackedSearch] = useState('')
+  const flatCommandIds = flatCommands.map((command) => command.id)
+  const commandListChanged =
+    flatCommandIds.length !== trackedCommandIds.length ||
+    flatCommandIds.some((id, index) => id !== trackedCommandIds[index])
+  if (commandListChanged || search !== trackedSearch) {
+    const previousCommandId = trackedCommandIds[selectedIndex]
+    setTrackedCommandIds(flatCommandIds)
+    setTrackedSearch(search)
+    if (commandListChanged && search === trackedSearch) {
+      const nextIndex =
+        previousCommandId === undefined
+          ? -1
+          : flatCommandIds.indexOf(previousCommandId)
+      setSelectedIndex(nextIndex === -1 ? 0 : nextIndex)
+    }
+  }
 
   /**
    * Memoized styles for each command item based on current selectedIndex.

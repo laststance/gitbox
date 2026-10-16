@@ -11,7 +11,7 @@
  * - Escape key and backdrop click to close
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { CommandPalette } from '@/components/CommandPalette/CommandPalette'
@@ -513,6 +513,85 @@ describe('CommandPalette', () => {
         '/board/board-1?card=00000000-0000-4000-8000-0000000000c2',
       )
       expect(screen.queryByPlaceholderText('Search commands...')).toBeNull()
+    })
+
+    // Value: protects=Enter runs the command the user highlighted when repositories arrive late; fails_when=the arriving repository takes that row and Enter opens it instead; why_new=placements load after the palette is open; seam=none; no_claim=arrow keys after the list has settled
+    test('keeps Go to Settings selected when a matching repository arrives', async () => {
+      // Arrange
+      let resolvePlacements: (
+        result: Awaited<ReturnType<typeof getUserRepoPlacements>>,
+      ) => void = () => {}
+      vi.mocked(getUserRepoPlacements).mockImplementation(
+        async () =>
+          new Promise((resolve) => {
+            resolvePlacements = resolve
+          }),
+      )
+      render(<CommandPalette />)
+      openPalette()
+      const input = screen.getByPlaceholderText('Search commands...')
+      fireEvent.change(input, { target: { value: 'settings' } })
+
+      // Act
+      await act(async () => {
+        resolvePlacements({
+          success: true,
+          data: {
+            placements: [
+              {
+                ...gitbox,
+                boardName: 'Settings Archive',
+              },
+            ],
+            savedMemories: null,
+          },
+        })
+      })
+
+      // Assert
+      expect(screen.getByText('laststance/gitbox')).toBeVisible()
+      fireEvent.keyDown(input, { key: 'Enter' })
+      expect(mockPush).toHaveBeenCalledWith('/settings')
+    })
+
+    // Value: protects=a failed reload does not offer a repository from the previous opening; fails_when=the old card stays searchable after the load fails; why_new=placements stay in memory between openings; seam=none; no_claim=a failure before the first list arrives
+    test('drops the repositories when a later opening cannot load them', async () => {
+      // Arrange
+      const pending: Array<
+        (result: Awaited<ReturnType<typeof getUserRepoPlacements>>) => void
+      > = []
+      vi.mocked(getUserRepoPlacements).mockImplementation(
+        async () =>
+          new Promise((resolve) => {
+            pending.push(resolve)
+          }),
+      )
+      render(<CommandPalette />)
+      openPalette()
+      await act(async () => {
+        pending[0]?.({
+          success: true,
+          data: { placements: [gitbox], savedMemories: null },
+        })
+      })
+      fireEvent.change(screen.getByPlaceholderText('Search commands...'), {
+        target: { value: 'gitbox' },
+      })
+      expect(screen.getByText('laststance/gitbox')).toBeVisible()
+      fireEvent.keyDown(window, { key: 'Escape' })
+      openPalette()
+
+      // Act
+      await act(async () => {
+        pending[1]?.({ success: false, error: 'Could not load repositories' })
+      })
+      fireEvent.change(screen.getByPlaceholderText('Search commands...'), {
+        target: { value: 'gitbox' },
+      })
+
+      // Assert
+      expect(screen.queryByText('laststance/gitbox')).toBeNull()
+      expect(screen.getByText('No commands found')).toBeVisible()
     })
 
     // Value: protects=a board name finds the repository that sits on it; fails_when=only the owner/name is searched; why_new=the question is which board holds the repository; seam=none; no_claim=more than eight matches
