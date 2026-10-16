@@ -769,7 +769,7 @@ describe('addRepositoriesToBoard', () => {
     expect(result).toEqual({
       success: false,
       error:
-        'Nothing was added. One of the selected repositories was just placed on a board. Reload the page and try again.',
+        'Nothing was added. One of the selected repositories was just placed on a board. The list is refreshing.',
     })
   })
 })

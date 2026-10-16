@@ -546,13 +546,13 @@ test.describe('Move to Another Board Feature', () => {
     ).toBeVisible()
     await expect(
       dialog.getByText(
-        'Test Board is shared by a public link. Anyone who has the link will see this repository there, with its description. Notes, links, and comments stay private.',
+        'Test Board is shared by a public link. Anyone who has the link will see this repository there, with its description. Its note, links and comment stay private.',
       ),
     ).toBeVisible()
     await expect(
       dialog.getByRole('button', { name: 'Move' }),
     ).toHaveAccessibleDescription(
-      'Test Board is shared by a public link. Anyone who has the link will see this repository there, with its description. Notes, links, and comments stay private.',
+      'Test Board is shared by a public link. Anyone who has the link will see this repository there, with its description. Its note, links and comment stay private.',
     )
   })
 

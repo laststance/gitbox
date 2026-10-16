@@ -38,9 +38,11 @@ const POSTGRES_UNIQUE_VIOLATION = '23505'
 /**
  * Shown by the picker when the unique index rejected the insert: another tab
  * placed one of the selected repositories between the check and the insert.
+ * The picker refetches placements itself, so the sentence does not ask for a
+ * page reload.
  */
 export const ADD_RACE_MESSAGE =
-  'Nothing was added. One of the selected repositories was just placed on a board. Reload the page and try again.'
+  'Nothing was added. One of the selected repositories was just placed on a board. The list is refreshing.'
 
 /** One repository of the user that currently sits on a board. */
 export interface BoardPlacement {

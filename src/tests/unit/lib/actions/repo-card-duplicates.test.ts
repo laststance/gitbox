@@ -487,7 +487,7 @@ describe('unique violation mapping', () => {
     const error = toUniqueViolationError({
       error: violation,
       raceMessage:
-        'Nothing was added. One of the selected repositories was just placed on a board. Reload the page and try again.',
+        'Nothing was added. One of the selected repositories was just placed on a board. The list is refreshing.',
       action: 'addRepositoriesToBoard',
       userId: 'user-1',
     })
@@ -495,7 +495,7 @@ describe('unique violation mapping', () => {
     // Assert
     expect(error).toBeInstanceOf(ActionUserError)
     expect(error.message).toBe(
-      'Nothing was added. One of the selected repositories was just placed on a board. Reload the page and try again.',
+      'Nothing was added. One of the selected repositories was just placed on a board. The list is refreshing.',
     )
     expect(warn).toHaveBeenCalledWith(
       {
