@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { type ProjectLink } from '@/components/ui/editable-url-item'
+import { ActionUserError } from '@/lib/actions/types'
 import { NEAR_LIMIT_COUNTER_TEXT_CLASS } from '@/lib/constants/character-counter'
 import {
   deleteDraftNote,
@@ -12,6 +13,7 @@ import {
 } from '@/lib/redux/slices/draftSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { RepoCardId } from '@/lib/types/brands'
+import type { RepoIdentifier } from '@/lib/types/domain-primitives'
 import { getSlateTextLength, parseSlateValue } from '@/lib/utils/slate-utils'
 import { isValidUrl } from '@/lib/validations'
 
@@ -21,8 +23,13 @@ export const NOTE_MAX_LENGTH = 20000
 export const NOTE_WARNING_THRESHOLD = 18000
 
 interface UseNoteModalDraftParams {
-  /** Card ID for draft state management */
+  /** Card that is open. A draft from an older version is stored under this id. */
   cardId: RepoCardId
+  /**
+   * Lowercase `owner/name`. The draft is kept here, so a new card of the same
+   * repository finds the text after the old card is gone.
+   */
+  repoKey: RepoIdentifier
   /** Initial note value from Supabase */
   initialNote: string
   /** Initial links value from Supabase */
@@ -77,6 +84,7 @@ interface UseNoteModalDraftReturn {
  * @example
  * const draft = useNoteModalDraft({
  *   cardId: card.id, // RepoCardId from RepoCardForRedux
+ *   repoKey: 'laststance/gitbox',
  *   initialNote: '',
  *   initialLinks: [],
  *   isOpen: true,
@@ -87,6 +95,7 @@ interface UseNoteModalDraftReturn {
  */
 export function useNoteModalDraft({
   cardId,
+  repoKey,
   initialNote,
   initialLinks,
   isOpen,
@@ -95,7 +104,7 @@ export function useNoteModalDraft({
   cardTitle,
 }: UseNoteModalDraftParams): UseNoteModalDraftReturn {
   const dispatch = useAppDispatch()
-  const draft = useAppSelector(selectDraftNote(cardId))
+  const draft = useAppSelector(selectDraftNote(repoKey, cardId))
 
   // Use draft if exists, otherwise initial values
   const [note, setNote] = useState(draft?.content ?? initialNote)
@@ -151,14 +160,28 @@ export function useNoteModalDraft({
 
         if (textLength <= NOTE_MAX_LENGTH) {
           setNote(value)
-          dispatch(updateDraftNote({ cardId, content: value, links }))
+          dispatch(
+            updateDraftNote({
+              repoKey,
+              legacyCardId: cardId,
+              content: value,
+              links,
+            }),
+          )
         }
       } catch {
         setNote(value)
-        dispatch(updateDraftNote({ cardId, content: value, links }))
+        dispatch(
+          updateDraftNote({
+            repoKey,
+            legacyCardId: cardId,
+            content: value,
+            links,
+          }),
+        )
       }
     },
-    [cardId, dispatch, links],
+    [cardId, dispatch, links, repoKey],
   )
 
   /**
@@ -170,9 +193,16 @@ export function useNoteModalDraft({
   const handleLinksChange = useCallback(
     (newLinks: ProjectLink[]) => {
       setLinks(newLinks)
-      dispatch(updateDraftNote({ cardId, content: note, links: newLinks }))
+      dispatch(
+        updateDraftNote({
+          repoKey,
+          legacyCardId: cardId,
+          content: note,
+          links: newLinks,
+        }),
+      )
     },
-    [cardId, dispatch, note],
+    [cardId, dispatch, note, repoKey],
   )
 
   /**
@@ -191,20 +221,18 @@ export function useNoteModalDraft({
 
     try {
       await onSave(note, validLinks)
-      dispatch(deleteDraftNote(cardId))
+      dispatch(deleteDraftNote({ repoKey, legacyCardId: cardId }))
       toast.success('Project info saved', {
         description: `Note and links for ${cardTitle} have been saved.`,
       })
     } catch (error) {
       toast.error('Failed to save project info', {
-        description: `${endWithFullStop(
-          error instanceof Error ? error.message : 'Please try again.',
-        )} Your text is kept: open the note again to save it.`,
+        description: keptDraftMessage(error),
       })
     } finally {
       setIsSaving(false)
     }
-  }, [note, links, onSave, onClose, cardId, cardTitle, dispatch])
+  }, [note, links, onSave, onClose, cardId, cardTitle, dispatch, repoKey])
 
   /**
    * Handle modal close without saving.
@@ -241,6 +269,32 @@ export function useNoteModalDraft({
     handleSave,
     handleClose,
   }
+}
+
+/**
+ * Says where the typed text went after a save the server did not confirm.
+ *
+ * A missing card cannot be opened again. The draft is under the repository,
+ * so the toast says to add the repository and open its note. Any other
+ * failure still says to open the note of the card that is on the board.
+ * The client tells the two apart by {@link ActionUserError}'s code, never
+ * by the message.
+ *
+ * @param error - What {@link useNoteModal}'s save threw.
+ * @returns The toast description.
+ * @example
+ * keptDraftMessage(new ActionUserError('Card not found', 'CARD_NOT_FOUND'))
+ * // => 'Your text is kept. Add the repository again and open its note to save it.'
+ */
+function keptDraftMessage(error: unknown): string {
+  if (
+    error instanceof ActionUserError &&
+    error.errorCode === 'CARD_NOT_FOUND'
+  ) {
+    return 'Your text is kept. Add the repository again and open its note to save it.'
+  }
+  const message = error instanceof Error ? error.message : 'Please try again.'
+  return `${endWithFullStop(message)} Your text is kept: open the note again to save it.`
 }
 
 /**

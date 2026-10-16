@@ -1,19 +1,18 @@
 /**
  * Draft Notes Slice
  *
- * Manages draft note content and links for repo cards before saving to Supabase.
- * Drafts are persisted to LocalStorage via redux-storage-middleware,
- * ensuring users don't lose unsaved work if they close the browser.
+ * Manages draft note content and links before saving to Supabase.
+ * A draft belongs to the repository, the same key as `projectinfo.repo_key`,
+ * so a card that is removed and added again still has the typed text.
+ * Drafts are persisted to LocalStorage via redux-storage-middleware.
+ *
+ * A draft saved by an older version is keyed by the card id. {@link selectDraftNote}
+ * still reads that key, and the next edit moves it under the repository.
  *
  * @example
- * // Save draft while typing
- * dispatch(updateDraftNote({ cardId: 'abc-123', content: 'My note...', links: [] }))
- *
- * // Get draft for a card
- * const draft = useAppSelector(selectDraftNote('abc-123'))
- *
- * // Clear draft after successful save
- * dispatch(deleteDraftNote('abc-123'))
+ * dispatch(updateDraftNote({ repoKey: 'laststance/gitbox', content: 'My note...', links: [] }))
+ * const draft = useAppSelector(selectDraftNote('laststance/gitbox', card.id))
+ * dispatch(deleteDraftNote({ repoKey: 'laststance/gitbox', legacyCardId: card.id }))
  */
 
 import type { PayloadAction } from '@reduxjs/toolkit'
@@ -21,16 +20,17 @@ import { createSlice } from '@reduxjs/toolkit'
 
 import type { ProjectLink } from '@/lib/actions/project-info'
 import type { RepoCardId } from '@/lib/types/brands'
+import type { RepoIdentifier } from '@/lib/types/domain-primitives'
 
 /**
- * In-progress note content for a single repository card.
+ * In-progress note content for one repository.
  *
  * @example
- * { cardId: 'c1' as RepoCardId, content: 'WIP…', links: [], lastModified: 1700000000000 }
+ * { repoKey: 'laststance/gitbox', content: 'WIP…', links: [], lastModified: 1700000000000 }
  */
 interface DraftNote {
-  /** The {@link RepoCardId} this draft belongs to. */
-  cardId: RepoCardId
+  /** Lowercase `owner/name`, the key of `projectinfo.repo_key`. */
+  repoKey: RepoIdentifier
   /** Draft content (may differ from what's saved in Supabase). */
   content: string
   /** Draft external links (may differ from saved links). */
@@ -41,8 +41,11 @@ interface DraftNote {
 
 /** Shape of the `state.draft` Redux slice. */
 interface DraftState {
-  /** Keyed lookup of drafts by {@link RepoCardId}. */
-  notes: Record<RepoCardId, DraftNote>
+  /**
+   * Drafts by repository key. An entry left by an older version is keyed by
+   * the card id instead, and is read only as a fallback.
+   */
+  notes: Record<string, DraftNote>
 }
 
 const initialState: DraftState = {
@@ -54,38 +57,60 @@ export const draftSlice = createSlice({
   initialState,
   reducers: {
     /**
-     * Update or create a draft note for a card
+     * Update or create the draft of a repository.
+     *
+     * Called while the Note dialog is edited. A draft an older version stored
+     * under the card id is dropped here, so the repository's key is the only
+     * copy from then on.
      *
      * @param state - Current state
-     * @param action - Payload with cardId, content, and optional links
+     * @param action - The repository key, the note, and the links
      */
     updateDraftNote: (
       state,
       action: PayloadAction<{
-        cardId: RepoCardId
+        repoKey: RepoIdentifier
         content: string
         links?: ProjectLink[]
+        legacyCardId?: RepoCardId
       }>,
     ) => {
-      const { cardId, content, links } = action.payload
-      // Preserve existing links if not provided (backward compatible)
-      const existingLinks = state.notes[cardId]?.links ?? []
-      state.notes[cardId] = {
-        cardId,
+      const { repoKey, content, links, legacyCardId } = action.payload
+      const previous =
+        state.notes[repoKey] ??
+        (legacyCardId ? state.notes[legacyCardId] : undefined)
+      state.notes[repoKey] = {
+        repoKey,
         content,
-        links: links ?? existingLinks,
+        links: links ?? previous?.links ?? [],
         lastModified: Date.now(),
+      }
+      // The card-id copy would hide a later edit if the selector preferred it
+      if (legacyCardId && legacyCardId !== repoKey) {
+        delete state.notes[legacyCardId]
       }
     },
 
     /**
-     * Delete a draft note (typically after successful save)
+     * Delete the draft of a repository after the server has saved it.
+     *
+     * Also drops the card-id copy an older version may still hold, so a
+     * confirmed save does not come back the next time the note opens.
      *
      * @param state - Current state
-     * @param action - {@link RepoCardId} to delete draft for
+     * @param action - The repository key, and the card id when one is open
      */
-    deleteDraftNote: (state, action: PayloadAction<RepoCardId>) => {
-      delete state.notes[action.payload]
+    deleteDraftNote: (
+      state,
+      action: PayloadAction<{
+        repoKey: RepoIdentifier
+        legacyCardId?: RepoCardId
+      }>,
+    ) => {
+      delete state.notes[action.payload.repoKey]
+      if (action.payload.legacyCardId) {
+        delete state.notes[action.payload.legacyCardId]
+      }
     },
   },
 })
@@ -94,20 +119,25 @@ export const { updateDraftNote, deleteDraftNote } = draftSlice.actions
 
 export default draftSlice.reducer
 
-// ============================================================================
-// Selectors
-// ============================================================================
-
 type DraftRootState = { draft: DraftState }
 
 /**
- * Select draft note for a specific card
+ * Select the draft of a repository, or the draft an older version stored
+ * under the card id when the repository has none yet.
  *
- * @param cardId - The {@link RepoCardId} to get draft for
- * @returns Selector function
+ * Called by {@link useNoteModalDraft} when the Note dialog opens. The card
+ * id is only the fallback: a repository added again has a new card id, and
+ * the text typed against the old card is under the repository key.
+ *
+ * @param repoKey - Lowercase `owner/name`.
+ * @param legacyCardId - The card that is open, for a draft saved before the key changed.
+ * @returns The draft, or `null` when neither key has one.
  * @example
- * const draft = useAppSelector(selectDraftNote(card.id))
+ * const draft = useAppSelector(selectDraftNote('laststance/gitbox', card.id))
  */
 export const selectDraftNote =
-  (cardId: RepoCardId) => (state: DraftRootState) =>
-    state.draft.notes[cardId] ?? null
+  (repoKey: RepoIdentifier, legacyCardId?: RepoCardId) =>
+  (state: DraftRootState): DraftNote | null =>
+    state.draft.notes[repoKey] ??
+    (legacyCardId ? state.draft.notes[legacyCardId] : undefined) ??
+    null

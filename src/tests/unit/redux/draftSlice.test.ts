@@ -14,7 +14,7 @@ import draftSlice, {
   deleteDraftNote,
   selectDraftNote,
 } from '@/lib/redux/slices/draftSlice'
-import { toRepoCardId, type RepoCardId } from '@/lib/types/brands'
+import { toRepoCardId } from '@/lib/types/brands'
 
 describe('draftSlice', () => {
   // Mock Date.now for consistent timestamps
@@ -30,16 +30,16 @@ describe('draftSlice', () => {
   })
 
   // Type for draft slice state (matches the slice's internal state).
-  // Slice keys and the drafts' card ids are RepoCardId values.
+  // The keys in these tests are repository keys, stored as plain strings.
   interface DraftNote {
-    cardId: RepoCardId
+    repoKey: string
     content: string
     links: { url: string; type: string }[]
     lastModified: number
   }
 
   interface DraftState {
-    notes: Record<RepoCardId, DraftNote>
+    notes: Record<string, DraftNote>
   }
 
   const initialState: DraftState = {
@@ -49,7 +49,7 @@ describe('draftSlice', () => {
   describe('updateDraftNote action', () => {
     test('should create a new draft note for a card', () => {
       const action = updateDraftNote({
-        cardId: toRepoCardId('card-123'),
+        repoKey: toRepoCardId('card-123'),
         content: 'My draft content',
         links: [],
       })
@@ -57,7 +57,7 @@ describe('draftSlice', () => {
       const nextState = draftSlice(initialState, action)
 
       expect(nextState.notes[toRepoCardId('card-123')]).toEqual({
-        cardId: toRepoCardId('card-123'),
+        repoKey: toRepoCardId('card-123'),
         content: 'My draft content',
         links: [],
         lastModified: mockNow,
@@ -69,7 +69,7 @@ describe('draftSlice', () => {
         ...initialState,
         notes: {
           [toRepoCardId('card-123')]: {
-            cardId: toRepoCardId('card-123'),
+            repoKey: toRepoCardId('card-123'),
             content: 'Old content',
             links: [],
             lastModified: mockNow - 1000,
@@ -78,7 +78,7 @@ describe('draftSlice', () => {
       }
 
       const action = updateDraftNote({
-        cardId: toRepoCardId('card-123'),
+        repoKey: toRepoCardId('card-123'),
         content: 'Updated content',
         links: [{ url: 'https://example.com', type: 'vercel' }],
       })
@@ -102,7 +102,7 @@ describe('draftSlice', () => {
       state = draftSlice(
         state,
         updateDraftNote({
-          cardId: toRepoCardId('card-1'),
+          repoKey: toRepoCardId('card-1'),
           content: 'Content 1',
           links: [],
         }),
@@ -110,7 +110,7 @@ describe('draftSlice', () => {
       state = draftSlice(
         state,
         updateDraftNote({
-          cardId: toRepoCardId('card-2'),
+          repoKey: toRepoCardId('card-2'),
           content: 'Content 2',
           links: [],
         }),
@@ -118,7 +118,7 @@ describe('draftSlice', () => {
       state = draftSlice(
         state,
         updateDraftNote({
-          cardId: toRepoCardId('card-3'),
+          repoKey: toRepoCardId('card-3'),
           content: 'Content 3',
           links: [],
         }),
@@ -132,7 +132,7 @@ describe('draftSlice', () => {
 
     test('should handle empty content', () => {
       const action = updateDraftNote({
-        cardId: toRepoCardId('card-123'),
+        repoKey: toRepoCardId('card-123'),
         content: '',
         links: [],
       })
@@ -145,7 +145,7 @@ describe('draftSlice', () => {
     test('should handle very long content', () => {
       const longContent = 'x'.repeat(10000)
       const action = updateDraftNote({
-        cardId: toRepoCardId('card-123'),
+        repoKey: toRepoCardId('card-123'),
         content: longContent,
         links: [],
       })
@@ -164,7 +164,7 @@ describe('draftSlice', () => {
         ...initialState,
         notes: {
           [toRepoCardId('card-123')]: {
-            cardId: toRepoCardId('card-123'),
+            repoKey: toRepoCardId('card-123'),
             content: 'Some content',
             links: [],
             lastModified: mockNow,
@@ -172,7 +172,7 @@ describe('draftSlice', () => {
         },
       }
 
-      const action = deleteDraftNote(toRepoCardId('card-123'))
+      const action = deleteDraftNote({ repoKey: toRepoCardId('card-123') })
 
       const nextState = draftSlice(stateWithDraft, action)
 
@@ -184,13 +184,13 @@ describe('draftSlice', () => {
         ...initialState,
         notes: {
           [toRepoCardId('card-1')]: {
-            cardId: toRepoCardId('card-1'),
+            repoKey: toRepoCardId('card-1'),
             content: 'Content 1',
             links: [],
             lastModified: mockNow,
           },
           [toRepoCardId('card-2')]: {
-            cardId: toRepoCardId('card-2'),
+            repoKey: toRepoCardId('card-2'),
             content: 'Content 2',
             links: [],
             lastModified: mockNow,
@@ -198,7 +198,7 @@ describe('draftSlice', () => {
         },
       }
 
-      const action = deleteDraftNote(toRepoCardId('card-1'))
+      const action = deleteDraftNote({ repoKey: toRepoCardId('card-1') })
 
       const nextState = draftSlice(stateWithMultipleDrafts, action)
 
@@ -207,7 +207,7 @@ describe('draftSlice', () => {
     })
 
     test('should handle deleting non-existent draft gracefully', () => {
-      const action = deleteDraftNote(toRepoCardId('non-existent'))
+      const action = deleteDraftNote({ repoKey: toRepoCardId('non-existent') })
 
       const nextState = draftSlice(initialState, action)
 
@@ -219,7 +219,7 @@ describe('draftSlice', () => {
     describe('selectDraftNote', () => {
       test('should return draft for specific card', () => {
         const draftNote = {
-          cardId: toRepoCardId('card-123'),
+          repoKey: toRepoCardId('card-123'),
           content: 'Test content',
           links: [],
           lastModified: mockNow,
@@ -232,6 +232,27 @@ describe('draftSlice', () => {
 
         const selector = selectDraftNote(toRepoCardId('card-123'))
         const result = selector(rootState)
+
+        expect(result).toEqual(draftNote)
+      })
+
+      test('returns a draft an older version stored under the card id', () => {
+        const draftNote = {
+          repoKey: toRepoCardId('card-123'),
+          content: 'Typed on the old card',
+          links: [],
+          lastModified: mockNow,
+        }
+        const rootState = {
+          draft: {
+            notes: { [toRepoCardId('card-123')]: draftNote },
+          },
+        }
+
+        const result = selectDraftNote(
+          'laststance/gitbox',
+          toRepoCardId('card-123'),
+        )(rootState)
 
         expect(result).toEqual(draftNote)
       })

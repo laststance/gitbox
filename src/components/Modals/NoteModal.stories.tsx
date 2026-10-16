@@ -25,6 +25,9 @@ const meta = {
     layout: 'centered',
   },
   tags: ['autodocs'],
+  args: {
+    repoKey: 'laststance/gitbox',
+  },
 } satisfies Meta<typeof NoteModal>
 
 export default meta
@@ -103,7 +106,8 @@ const WithDraftDecorator = memo(function WithDraftDecorator({
     // Set up draft state for the card
     dispatch(
       updateDraftNote({
-        cardId: toRepoCardId('card-draft'),
+        repoKey: 'laststance/gitbox',
+        legacyCardId: toRepoCardId('card-draft'),
         content:
           'This is an unsaved draft that was auto-saved.\n\nThe original note was different.',
         links: [],

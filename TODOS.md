@@ -37,25 +37,13 @@ From the `/autoplan` review of issue #215 (one card per user and repository). No
 
 From the `/plan-eng-review` of issue #216 (a repository keeps its note, links and comment when its card goes). None blocks that change.
 
-### Keep a note draft where its card's repository can reach it
-
-**What:** Key the Note dialog's draft by repository (the lowercase key of `projectinfo.repo_key`) instead of by card id, or say in the failure toast when the draft belongs to a card that is gone.
-
-**Why:** A refused note save says "Your text is kept: open the note again to save it." The draft is kept under the card id. When the save failed because the card is gone (removed in another tab), adding the repository again makes a new card, and the typed text is out of reach: the toast promises too much. Found by the red team review of #216.
-
-**Context:** `useNoteModalDraft` (`src/hooks/board/useNoteModalDraft.ts`) and the `draft` slice. The client must tell a missing card from other failures by an error code, never by the message (CLAUDE.md): `getProjectInfoCore` and the writes throw "Card not found" today. Open Question 1 of the #216 design names the same key.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### Keep note edits made while an earlier save is pending
 
 **What:** In `handleSave` of `useNoteModalDraft`, delete the draft after a successful save only when it is still the draft that save sent (compare its `lastModified`, which `updateDraftNote` stores, with the value at the moment Save was pressed).
 
 **Why:** The draft is deleted when the server has answered, not when Save is pressed. It was before #216 too; #216 made a refused save keep the text. If the user opens the same note again while the save is on its way, types and closes the dialog, the answer that arrives then deletes the newer draft and those edits are gone. The window is one server round trip (a few hundred milliseconds on production). Found by CodeRabbit on #216's PR; left out of #216 because a fix there would have been the review's third fixing cycle.
 
-**Context:** `handleSave` and `deleteDraftNote` in `src/hooks/board/useNoteModalDraft.ts`, the `draft` slice. A test holds the save's promise open, reopens, edits, closes, then resolves it.
+**Context:** `handleSave` and `deleteDraftNote` in `src/hooks/board/useNoteModalDraft.ts`, the `draft` slice. The draft is keyed by the repository (`repoKey`). A test holds the save's promise open, reopens, edits, closes, then resolves it.
 
 **Effort:** S
 **Priority:** P2

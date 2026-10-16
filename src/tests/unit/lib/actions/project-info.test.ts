@@ -63,14 +63,18 @@ describe('project info actions', () => {
   test('a missing card is still explained when the note is opened', async () => {
     // Arrange
     vi.mocked(getProjectInfoCore).mockRejectedValue(
-      new ActionUserError('Card not found'),
+      new ActionUserError('Card not found', 'CARD_NOT_FOUND'),
     )
 
     // Act
     const result = await getProjectInfo('card-1')
 
     // Assert
-    expect(result).toEqual({ success: false, error: 'Card not found' })
+    expect(result).toEqual({
+      success: false,
+      error: 'Card not found',
+      errorCode: 'CARD_NOT_FOUND',
+    })
     expect(checkRateLimit).not.toHaveBeenCalled()
     expect(Sentry.captureException).not.toHaveBeenCalled()
   })

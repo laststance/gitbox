@@ -29,7 +29,7 @@ import {
   DEFAULT_COMMENT_COLOR,
 } from '@/lib/validations/project-info'
 
-import { ActionUserError } from './types'
+import { ActionUserError, type ActionErrorCode } from './types'
 
 type ProjectInfoInsert = TablesInsert<'projectinfo'>
 
@@ -319,12 +319,15 @@ export interface CommentData {
  * {@link readCardRepository}, and by each write.
  *
  * @param message - What the user reads.
+ * @param errorCode - Set when the client has to tell this refusal from the
+ *   others. A missing card is `CARD_NOT_FOUND`: the Note dialog keeps the
+ *   draft under the repository and does not say to open the same card.
  * @throws {@link ActionUserError} always.
  * @example
- * explainToUser('Card not found')
+ * explainToUser('Card not found', 'CARD_NOT_FOUND')
  */
-function explainToUser(message: string): never {
-  throw new ActionUserError(message)
+function explainToUser(message: string, errorCode?: ActionErrorCode): never {
+  throw new ActionUserError(message, errorCode)
 }
 
 // ========================================
@@ -503,7 +506,7 @@ async function readCardRepository(
 
   // PGRST116: no row, so the card is gone or not the user's
   if (error?.code === 'PGRST116') {
-    explainToUser('Card not found')
+    explainToUser('Card not found', 'CARD_NOT_FOUND')
   }
   if (error) {
     explainToUser('Failed to read the card')
@@ -554,7 +557,7 @@ export async function getProjectInfoCore(
     // PGRST116: no card (or not the user's). Its repository's note outlives
     // it, so this is no empty note
     if (error.code === 'PGRST116') {
-      explainToUser('Card not found')
+      explainToUser('Card not found', 'CARD_NOT_FOUND')
     }
     explainToUser('Failed to fetch project information')
   }

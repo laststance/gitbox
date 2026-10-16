@@ -19,7 +19,8 @@ import { toast } from 'sonner'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { useNoteModalDraft } from '@/hooks/board/useNoteModalDraft'
-import draftReducer from '@/lib/redux/slices/draftSlice'
+import { ActionUserError } from '@/lib/actions/types'
+import draftReducer, { updateDraftNote } from '@/lib/redux/slices/draftSlice'
 import { toRepoCardId } from '@/lib/types/brands'
 
 vi.mock('sonner', () => ({
@@ -41,6 +42,7 @@ function renderNoteDraft(
     () =>
       useNoteModalDraft({
         cardId: toRepoCardId('card-1'),
+        repoKey: 'laststance/gitbox',
         initialNote: 'x'.repeat(noteLength),
         initialLinks: [],
         isOpen: true,
@@ -101,6 +103,7 @@ describe('useNoteModalDraft', () => {
         () =>
           useNoteModalDraft({
             cardId: toRepoCardId('card-1'),
+            repoKey: 'laststance/gitbox',
             initialNote: 'old note',
             initialLinks: [],
             isOpen: true,
@@ -134,9 +137,9 @@ describe('useNoteModalDraft', () => {
       })
 
       // Assert
-      expect(
-        store.getState().draft.notes[toRepoCardId('card-1')]?.content,
-      ).toBe('typed before the refusal')
+      expect(store.getState().draft.notes['laststance/gitbox']?.content).toBe(
+        'typed before the refusal',
+      )
       expect(toast.success).not.toHaveBeenCalled()
       expect(toast.error).toHaveBeenCalledWith('Failed to save project info', {
         description:
@@ -181,12 +184,76 @@ describe('useNoteModalDraft', () => {
 
       // Assert
       expect(onSave).toHaveBeenCalledWith('a saved note', [])
+      expect(store.getState().draft.notes['laststance/gitbox']).toBeUndefined()
       expect(
         store.getState().draft.notes[toRepoCardId('card-1')],
       ).toBeUndefined()
       expect(toast.success).toHaveBeenCalledWith('Project info saved', {
         description: 'Note and links for laststance/gitbox have been saved.',
       })
+    })
+
+    // Value: protects=a save refused because the card is gone does not tell the user to open that card, and the typed text stays under the repository; fails_when=the toast still says "open the note again" or the draft is stored only under the card id; why_new=a new card of the same repository could not see a draft keyed by the old card; seam=none; no_claim=the server deciding the card is gone (mocked onSave)
+    test('keeps the typed note under the repository when the card is gone', async () => {
+      // Arrange
+      const onSave = vi
+        .fn()
+        .mockRejectedValue(
+          new ActionUserError('Card not found', 'CARD_NOT_FOUND'),
+        )
+      const { result, store } = renderNoteDialog(onSave)
+      act(() => {
+        result.current.handleNoteChange('typed after the card left')
+      })
+
+      // Act
+      await act(async () => {
+        await result.current.handleSave()
+      })
+
+      // Assert
+      expect(store.getState().draft.notes['laststance/gitbox']?.content).toBe(
+        'typed after the card left',
+      )
+      expect(toast.error).toHaveBeenCalledWith('Failed to save project info', {
+        description:
+          'Your text is kept. Add the repository again and open its note to save it.',
+      })
+    })
+
+    // Value: protects=adding a repository again shows the note typed against its previous card; fails_when=the dialog reads the draft by card id, so a new card opens empty; why_new=drafts were keyed by the card; seam=none; no_claim=adding the repository (the store is seeded)
+    test('opens a draft saved for the repository on a new card of that repository', () => {
+      // Arrange
+      const store = configureStore({ reducer: { draft: draftReducer } })
+      store.dispatch(
+        updateDraftNote({
+          repoKey: 'laststance/gitbox',
+          content: 'typed on the old card',
+          links: [],
+        }),
+      )
+      const { result } = renderHook(
+        () =>
+          useNoteModalDraft({
+            cardId: toRepoCardId('card-2'),
+            repoKey: 'laststance/gitbox',
+            initialNote: '',
+            initialLinks: [],
+            isOpen: true,
+            onSave: vi.fn(),
+            onClose: vi.fn(),
+            cardTitle: 'laststance/gitbox',
+          }),
+        {
+          wrapper: ({ children }: { children: ReactNode }) => (
+            <Provider store={store}>{children}</Provider>
+          ),
+        },
+      )
+
+      // Act: the dialog initializes from the draft
+      // Assert
+      expect(result.current.note).toBe('typed on the old card')
     })
   })
 })
