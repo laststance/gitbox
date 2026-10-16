@@ -109,7 +109,9 @@ export const MoveHereDialog = memo(function MoveHereDialog({
     )
     const moveFailure = toMoveFailure(outcome)
     if (moveFailure) {
-      if (outcome.status === 'failed') {
+      // A stale page never ran the action. Reporting it would mark every tab
+      // left open across a deploy.
+      if (outcome.status === 'failed' && !moveFailure.isPageOutOfDate) {
         Sentry.captureException(outcome.error, {
           tags: { action: 'moveCardToBoard' },
         })
@@ -128,8 +130,9 @@ export const MoveHereDialog = memo(function MoveHereDialog({
       } else {
         reloadButtonRef.current?.focus()
       }
-      // The card may have moved all the same. Fetch this board again.
-      dispatch(boardRefreshRequested())
+      // The card may have moved all the same. A stale page did not run the
+      // action, so the card is where it was and this board is not fetched.
+      if (!moveFailure.isPageOutOfDate) dispatch(boardRefreshRequested())
       return
     }
 

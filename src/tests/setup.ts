@@ -63,6 +63,13 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useSearchParams: () => new URLSearchParams(),
   redirect: vi.fn(),
+  // The real check is `instanceof`. Tests build the error by its name,
+  // which is what Next.js sets on that class.
+  unstable_isUnrecognizedActionError: (error: unknown): boolean =>
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    error.name === 'UnrecognizedActionError',
 }))
 
 // Mocked because next/headers requires a Next.js request context unavailable in Vitest

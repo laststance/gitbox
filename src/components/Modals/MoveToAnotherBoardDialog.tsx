@@ -255,7 +255,9 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
 
     const failure = toMoveFailure(outcome)
     if (failure) {
-      if (outcome.status === 'failed') {
+      // A stale page never ran the action. Reporting it would mark every tab
+      // left open across a deploy.
+      if (outcome.status === 'failed' && !failure.isPageOutOfDate) {
         Sentry.captureException(outcome.error, {
           tags: { action: 'moveCardToBoard' },
         })
@@ -279,8 +281,9 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
       }
       // The card may have moved all the same (an answer that was lost on the
       // way, or a refused second try of a move that went through): fetch the
-      // board again so the screen shows where it is
-      dispatch(boardRefreshRequested())
+      // board again so the screen shows where it is. A stale page did not
+      // run the action, so the card is where it was.
+      if (!failure.isPageOutOfDate) dispatch(boardRefreshRequested())
       return
     }
 
@@ -562,9 +565,10 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
                     >
                       {moveFailure.message}
                     </p>
-                    {/* Where the card is has to be looked up. A reload does
-                          that at once; the board's own fetch can wait behind
-                          a move that has no answer yet */}
+                    {/* The next step is off this page: a move that may have
+                          happened, or a page whose action the server no longer
+                          has. A reload loads the current build and waits for
+                          nothing. */}
                     {!moveFailure.isOutcomeKnown && (
                       <Button
                         ref={reloadButtonRef}
@@ -663,9 +667,10 @@ function isFocusAtRest(
  * @returns The text of the attempt with
  * - `try-again` when the server answered and nothing was written
  * - `reload-boards` when a board may exist and the request has ended
- * - `reload-page` when a board may exist and the request is still running:
- *   Next.js sends Server Actions one after another, so loading the boards
- *   again would wait behind it
+ * - `reload-page` when a board may exist and the request is still running
+ *   (Next.js sends Server Actions one after another, so loading the boards
+ *   again would wait behind it), or when this page's build no longer has
+ *   the action and nothing was written
  * @example
  * toCreationFailure({ status: 'unconfirmed', message: 'Could not confirm ...', isRequestStillRunning: true })
  * // => { message: 'Could not confirm ...', nextStep: 'reload-page' }
@@ -681,6 +686,7 @@ function toCreationFailure(
       () => 'reload-page',
     )
     .with({ status: 'unconfirmed' }, () => 'reload-boards')
+    .with({ status: 'out-of-date' }, () => 'reload-page')
     .exhaustive()
   return { message: attempt.message, nextStep }
 }

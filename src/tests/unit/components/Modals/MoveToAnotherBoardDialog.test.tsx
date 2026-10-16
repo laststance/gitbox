@@ -63,6 +63,12 @@ vi.mock('@sentry/nextjs', () => ({
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: pushRoute }),
+  // The real check is `instanceof`. Tests build the error by its name.
+  unstable_isUnrecognizedActionError: (error: unknown): boolean =>
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    error.name === 'UnrecognizedActionError',
 }))
 
 vi.mock('@/lib/actions/repo-cards', () => ({
@@ -1280,6 +1286,59 @@ describe('MoveToAnotherBoardDialog', () => {
       expect(showSuccessToast.mock.calls[0]?.[1].description).toBe(
         'laststance/gitbox',
       )
+    })
+  })
+
+  describe('a page the server no longer has', () => {
+    test('offers Reload page when the move was rejected without running, and does not fetch the board or report it', async () => {
+      // Arrange: the server rejected the call without running it
+      const user = userEvent.setup()
+      mockBoards()
+      const stalePage = new Error(
+        'Server Action "abc" was not found on the server.',
+      )
+      stalePage.name = 'UnrecognizedActionError'
+      vi.mocked(moveCardToBoard).mockRejectedValue(stalePage)
+      const { onMoved, store } = renderOpenDialog()
+
+      // Act
+      await user.click(await screen.findByRole('button', { name: 'Move' }))
+
+      // Assert
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'This page is out of date. Reload the page and try again.',
+      )
+      expect(screen.getByRole('button', { name: 'Reload page' })).toHaveFocus()
+      expect(selectIsBoardRefreshDue(store.getState())).toBe(false)
+      expect(onMoved).not.toHaveBeenCalled()
+      expect(Sentry.captureException).not.toHaveBeenCalled()
+    })
+
+    test('offers Reload page when creating a board was rejected without running, instead of sending the name again', async () => {
+      // Arrange: the server rejected the call without running it
+      const user = userEvent.setup()
+      mockBoards([])
+      const stalePage = new Error(
+        'Server Action "abc" was not found on the server.',
+      )
+      stalePage.name = 'UnrecognizedActionError'
+      vi.mocked(createBoard).mockRejectedValue(stalePage)
+      renderOpenDialog()
+
+      // Act
+      await user.type(await screen.findByLabelText('Board Name'), 'Archive')
+      await user.click(screen.getByRole('button', { name: 'Create Board' }))
+
+      // Assert
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'This page is out of date. Reload the page and try again.',
+      )
+      expect(screen.getByLabelText('Board Name')).toBeDisabled()
+      expect(screen.queryByRole('button', { name: 'Create Board' })).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Reload boards' })).toBeNull()
+      expect(screen.getByRole('button', { name: 'Reload page' })).toHaveFocus()
+      expect(createBoard).toHaveBeenCalledTimes(1)
+      expect(Sentry.captureException).not.toHaveBeenCalled()
     })
   })
 

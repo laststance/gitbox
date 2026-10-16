@@ -124,6 +124,26 @@ describe('requestBoardCreation()', () => {
     })
   })
 
+  test('says this page is out of date when the server does not have the action, and does not report it', async () => {
+    // Arrange: the server rejected the call without running it
+    const stalePage = new Error(
+      'Server Action "abc" was not found on the server.',
+    )
+    stalePage.name = 'UnrecognizedActionError'
+    vi.mocked(createBoard).mockRejectedValue(stalePage)
+
+    // Act
+    const attempt = await requestBoardCreation('Side Projects', 'single-column')
+
+    // Assert: nothing was written, so this is not "the board may exist"
+    expect(attempt).toEqual({
+      status: 'out-of-date',
+      message: 'This page is out of date. Reload the page and try again.',
+    })
+    expect(Sentry.captureException).not.toHaveBeenCalled()
+    expect(Sentry.captureMessage).not.toHaveBeenCalled()
+  })
+
   test('says the board may exist when the request fails on the way, and reports the failure', async () => {
     // Arrange: the connection broke, perhaps after the board was written
     const networkError = new TypeError('Failed to fetch')

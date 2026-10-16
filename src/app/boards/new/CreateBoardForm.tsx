@@ -10,10 +10,14 @@
  *   request failed on the way or got no answer in time) is worded as that and
  *   ends the form: the board may exist and a second try could make a second
  *   board, so "Open your boards" takes the place of "Create Board"
+ * - A page whose action the server no longer has ends the form too: nothing
+ *   was written, and sending it again from this page fails the same way, so
+ *   "Reload page" takes the place of "Create Board"
  * - The field and the buttons are disabled while the request runs, and a
  *   disabled control loses the focus. Each ending hands it to the control
  *   needed next: the name field after a refusal, "Open your boards" after a
- *   creation that could not be confirmed
+ *   creation that could not be confirmed, "Reload page" when this page is
+ *   out of date
  */
 
 'use client'
@@ -32,6 +36,7 @@ import {
   type SelectablePresetId,
 } from '@/lib/constants/board-presets'
 import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
+import { reloadPage } from '@/lib/utils/reload-page'
 import { requestBoardCreation } from '@/lib/utils/request-board-creation'
 import { BOARD_NAME_MAX_LENGTH, boardNameSchema } from '@/lib/validations/board'
 
@@ -49,9 +54,11 @@ const PRESET_HINT_ID = 'board-preset-hint'
  * - `not-created`: the server answered and no board was created
  * - `unconfirmed`: a board may exist; "Open your boards" takes the place of
  *   "Create Board" and nothing more is sent from this form
+ * - `out-of-date`: this page's action is gone; nothing was written, and
+ *   "Reload page" takes the place of "Create Board"
  */
 interface FormProblem {
-  kind: 'invalid-name' | 'not-created' | 'unconfirmed'
+  kind: 'invalid-name' | 'not-created' | 'unconfirmed' | 'out-of-date'
   message: string
 }
 
@@ -66,13 +73,17 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
   const formRef = useRef<HTMLFormElement>(null)
   const nameFieldRef = useRef<HTMLInputElement>(null)
   const boardsLinkRef = useRef<HTMLAnchorElement>(null)
+  const reloadButtonRef = useRef<HTMLButtonElement>(null)
 
   const isOutcomeUnknown = problem?.kind === 'unconfirmed'
+  // A second send from this page is wrong for both: a board may exist, or
+  // the action this page has is gone
+  const isFormClosed =
+    problem?.kind === 'unconfirmed' || problem?.kind === 'out-of-date'
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
-    // The board may exist: a second creation could make a second board
-    if (isOutcomeUnknown) return
+    if (isFormClosed) return
     setProblem(null)
 
     // Validate using Zod schema (same as server-side)
@@ -105,7 +116,7 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
     // Said once, in the form, next to the buttons: a toast with the same
     // words lands on those buttons on a laptop screen.
     // flushSync: once this returns the field is enabled again after a
-    // refusal, and "Open your boards" is on the page after an unknown outcome
+    // refusal, and the way on is on the page after the form has closed
     flushSync(() => {
       setIsPending(false)
       setProblem({ kind: attempt.status, message: attempt.message })
@@ -116,6 +127,9 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
     if (attempt.status === 'not-created') {
       // After a refusal the name is what the user can change
       nameFieldRef.current?.focus()
+    } else if (attempt.status === 'out-of-date') {
+      // This page cannot create the board: reload loads the current build
+      reloadButtonRef.current?.focus()
     } else {
       // The board may exist: the way to the boards is the next step
       boardsLinkRef.current?.focus()
@@ -139,8 +153,8 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
           placeholder="e.g., AI Experiments, Side Projects"
           maxLength={BOARD_NAME_MAX_LENGTH}
           autoFocus
-          // After an unknown outcome the name is not sent a second time
-          disabled={isPending || isOutcomeUnknown}
+          // After the form has closed the name is not sent a second time
+          disabled={isPending || isFormClosed}
           // Only a name that failed the check is invalid; a refusal of the
           // server says nothing about the name
           aria-invalid={problem?.kind === 'invalid-name'}
@@ -173,7 +187,7 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
         <PresetSelector
           value={presetId}
           onChange={setPresetId}
-          disabled={isPending || isOutcomeUnknown}
+          disabled={isPending || isFormClosed}
           aria-labelledby={PRESET_LABEL_ID}
           aria-describedby={PRESET_HINT_ID}
         />
@@ -203,7 +217,20 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
         >
           Cancel
         </Button>
-        {isOutcomeUnknown ? (
+        {problem?.kind === 'out-of-date' ? (
+          // This page's action is gone. Reloading loads the build that has it.
+          // Described by the message: a screen reader that follows the focus
+          // reads why the button took the place of "Create Board".
+          <Button
+            type="button"
+            ref={reloadButtonRef}
+            className="flex-1"
+            aria-describedby={PROBLEM_TEXT_ID}
+            onClick={reloadPage}
+          >
+            Reload page
+          </Button>
+        ) : isOutcomeUnknown ? (
           // The text above says "check your boards": this is the way there.
           // handleSubmit gives it the keyboard the disabled form let go of.
           // Described by that text: a screen reader that follows the focus

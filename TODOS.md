@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/autoplan` review and the code review of issue #213 (a repository that is set aside is a card on an ordinary board). None of the follow-ups blocks that change.
 
-### Say "this page is out of date" for an action the server no longer has
-
-**What:** Tell a Server Action call the server rejected without running it (a tab of the build before a deployment calls an action id the new build does not have) from a request with an unknown outcome, and offer "Reload page" with a sentence that says the page is out of date.
-
-**Why:** `requestBoardCreation` and the move dialog count every request that failed on the way as "may have happened". For such a tab that is wrong in a harmless direction: the user is told to check the boards, and the way offered there ("Open your boards", "Reload page") loads the new build. Seen in the review of issue #213, which renames arguments of `createBoard` and removes actions, so the first deployment is one where it can happen.
-
-**Context:** `src/lib/utils/request-board-creation.ts`, `toMoveFailure` in `src/components/Modals/MoveToAnotherBoardDialog.tsx`. Next.js exports `unstable_isUnrecognizedActionError` from `next/navigation`; the name says that it may change. Vercel's skew protection would keep an old tab on its own build instead.
-
-**Effort:** S
-**Priority:** P4
-**Depends on:** None
-
 ### Keep `.env.production` out of the E2E builds
 
 **What:** Pass an empty `SENTRY_AUTH_TOKEN` and the local `NEXT_PUBLIC_SITE_URL` to the builds of `pnpm e2e:parallel` and `pnpm e2e`, and the local service-role key to the server of `pnpm e2e`.

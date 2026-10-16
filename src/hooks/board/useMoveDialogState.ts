@@ -47,11 +47,17 @@ export interface MoveFailure {
   /**
    * `false` when the card may have moved all the same: the server answered
    * that the database gave it no answer (`MOVE_UNCONFIRMED`), or the request
-   * failed on the way or got no answer in time. The dialog then offers to
-   * reload the page, the one way to see where the card is that waits for
-   * nothing.
+   * failed on the way or got no answer in time. Also `false` when
+   * {@link MoveFailure.isPageOutOfDate} is set: this page cannot move the
+   * card. The dialog then offers to reload the page.
    */
   isOutcomeKnown: boolean
+  /**
+   * The server rejected the call without running it, because this page's
+   * build no longer has that action. The card did not move, so the board is
+   * not fetched again. Absent for every other failure.
+   */
+  isPageOutOfDate?: boolean
 }
 
 /**

@@ -36,6 +36,12 @@ vi.mock('@sentry/nextjs', () => ({
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: pushRoute, back: vi.fn() }),
+  // The real check is `instanceof`. Tests build the error by its name.
+  unstable_isUnrecognizedActionError: (error: unknown): boolean =>
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    error.name === 'UnrecognizedActionError',
 }))
 
 vi.mock('@/lib/actions/board', () => ({
@@ -214,6 +220,41 @@ describe('CreateBoardForm', () => {
     expect(screen.queryByRole('button', { name: 'Create Board' })).toBeNull()
     expect(screen.getByLabelText('Board Name')).toBeDisabled()
     expect(screen.getByRole('radio', { name: /Web App/ })).toBeDisabled()
+  })
+
+  test('offers Reload page when this page is out of date, and sends no second creation', async () => {
+    // Arrange: the server rejected the call without running it
+    const user = userEvent.setup()
+    const stalePage = new Error(
+      'Server Action "abc" was not found on the server.',
+    )
+    stalePage.name = 'UnrecognizedActionError'
+    vi.mocked(createBoard).mockRejectedValue(stalePage)
+    render(<CreateBoardForm />)
+    await user.type(screen.getByLabelText('Board Name'), 'Side Projects')
+    await user.click(screen.getByRole('button', { name: 'Create Board' }))
+
+    // Act: the form is sent once more, the way Enter or a second press would
+    const reloadButton = await screen.findByRole('button', {
+      name: 'Reload page',
+    })
+    const form = reloadButton.closest('form')
+    if (form) fireEvent.submit(form)
+
+    // Assert
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This page is out of date. Reload the page and try again.',
+    )
+    expect(createBoard).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('button', { name: 'Create Board' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Open your boards' })).toBeNull()
+    expect(screen.getByLabelText('Board Name')).toBeDisabled()
+    expect(screen.getByRole('radio', { name: /Web App/ })).toBeDisabled()
+    expect(reloadButton).toHaveFocus()
+    expect(reloadButton).toHaveAccessibleDescription(
+      'This page is out of date. Reload the page and try again.',
+    )
+    expect(Sentry.captureException).not.toHaveBeenCalled()
   })
 
   test('puts the keyboard on "Open your boards" after a creation the server could not confirm', async () => {

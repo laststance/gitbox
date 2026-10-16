@@ -3,6 +3,8 @@ import { match } from 'ts-pattern'
 import type { MoveFailure } from '@/hooks/board/useMoveDialogState'
 import type { ActionResult } from '@/lib/actions/types'
 import { MOVE_UNCONFIRMED_MESSAGE } from '@/lib/constants/card-move'
+import { PAGE_OUT_OF_DATE_MESSAGE } from '@/lib/constants/stale-page'
+import { isStalePageAction } from '@/lib/utils/is-stale-page-action'
 import type { RequestOutcome } from '@/lib/utils/settle-within'
 
 /** Shown when the server refused a move and sent no sentence of its own. */
@@ -24,6 +26,8 @@ const MOVE_FAILED_MESSAGE = 'Failed to move card'
  *   may have moved all the same. The code decides, never the text.
  * - {@link MOVE_UNCONFIRMED_MESSAGE} with `isOutcomeKnown: false` when the
  *   request failed on the way or got no answer in time
+ * - {@link PAGE_OUT_OF_DATE_MESSAGE} with `isPageOutOfDate: true` when the
+ *   server rejected the call without running it. The card did not move.
  * @example
  * toMoveFailure({ status: 'overdue' })
  * // => { message: 'Could not confirm that the card was moved. Check the board before trying again.',
@@ -41,7 +45,20 @@ export function toMoveFailure(
             isOutcomeKnown: answer.errorCode !== 'MOVE_UNCONFIRMED',
           },
     )
-    .with({ status: 'failed' }, { status: 'overdue' }, () => ({
+    .with({ status: 'failed' }, (failed) =>
+      // The server did not run the action, so the card is where it was
+      isStalePageAction(failed.error)
+        ? {
+            message: PAGE_OUT_OF_DATE_MESSAGE,
+            isOutcomeKnown: false,
+            isPageOutOfDate: true,
+          }
+        : {
+            message: MOVE_UNCONFIRMED_MESSAGE,
+            isOutcomeKnown: false,
+          },
+    )
+    .with({ status: 'overdue' }, () => ({
       message: MOVE_UNCONFIRMED_MESSAGE,
       isOutcomeKnown: false,
     }))
