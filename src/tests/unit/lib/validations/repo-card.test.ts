@@ -166,6 +166,155 @@ describe('addRepositoriesRequestSchema', () => {
     expect(result.success).toBe(false)
   })
 
+  test('accepts a catalog repository whose description and language are null', () => {
+    // Arrange
+    const request = [
+      {
+        id: 1,
+        name: 'gitbox',
+        full_name: 'laststance/gitbox',
+        owner: { login: 'laststance', avatar_url: 'https://example.com/a.png' },
+        description: null,
+        language: null,
+        visibility: 'internal',
+        stargazers_count: 0,
+        updated_at: '2024-01-15T00:00:00.000Z',
+      },
+    ]
+
+    // Act
+    const result = addRepositoriesRequestSchema.safeParse(request)
+
+    // Assert
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data[0]?.description).toBeNull()
+    expect(result.data[0]?.visibility).toBe('internal')
+    expect(result.data[0]).not.toHaveProperty('full_name')
+    expect(result.data[0]?.owner).toEqual({ login: 'laststance' })
+  })
+
+  test('accepts a repository that omits topics', () => {
+    // Arrange
+    const request = [{ id: 1, name: 'gitbox', owner: { login: 'laststance' } }]
+
+    // Act
+    const result = addRepositoriesRequestSchema.safeParse(request)
+
+    // Assert
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data[0]?.topics).toBeUndefined()
+  })
+
+  test('rejects a description that is not text', () => {
+    // Arrange
+    const request = [
+      {
+        id: 1,
+        name: 'gitbox',
+        owner: { login: 'laststance' },
+        description: { text: 'not a string' },
+      },
+    ]
+
+    // Act
+    const result = addRepositoriesRequestSchema.safeParse(request)
+
+    // Assert
+    expect(result.success).toBe(false)
+  })
+
+  test('rejects a description longer than 350 characters', () => {
+    // Arrange
+    const request = [
+      {
+        id: 1,
+        name: 'gitbox',
+        owner: { login: 'laststance' },
+        description: 'a'.repeat(351),
+      },
+    ]
+
+    // Act
+    const result = addRepositoriesRequestSchema.safeParse(request)
+
+    // Assert
+    expect(result.success).toBe(false)
+  })
+
+  test('accepts a description of exactly 350 characters', () => {
+    // Arrange
+    const request = [
+      {
+        id: 1,
+        name: 'gitbox',
+        owner: { login: 'laststance' },
+        description: 'a'.repeat(350),
+      },
+    ]
+
+    // Act
+    const result = addRepositoriesRequestSchema.safeParse(request)
+
+    // Assert
+    expect(result.success).toBe(true)
+  })
+
+  test('rejects more than 20 topics', () => {
+    // Arrange
+    const request = [
+      {
+        id: 1,
+        name: 'gitbox',
+        owner: { login: 'laststance' },
+        topics: Array.from({ length: 21 }, (_, index) => `topic-${index}`),
+      },
+    ]
+
+    // Act
+    const result = addRepositoriesRequestSchema.safeParse(request)
+
+    // Assert
+    expect(result.success).toBe(false)
+  })
+
+  test('rejects a negative star count', () => {
+    // Arrange
+    const request = [
+      {
+        id: 1,
+        name: 'gitbox',
+        owner: { login: 'laststance' },
+        stargazers_count: -1,
+      },
+    ]
+
+    // Act
+    const result = addRepositoriesRequestSchema.safeParse(request)
+
+    // Assert
+    expect(result.success).toBe(false)
+  })
+
+  test('rejects a visibility the catalog does not use', () => {
+    // Arrange
+    const request = [
+      {
+        id: 1,
+        name: 'gitbox',
+        owner: { login: 'laststance' },
+        visibility: 'secret',
+      },
+    ]
+
+    // Act
+    const result = addRepositoriesRequestSchema.safeParse(request)
+
+    // Assert
+    expect(result.success).toBe(false)
+  })
+
   test('accepts exactly 100 repositories in one request', () => {
     // Arrange
     const request = Array.from({ length: 100 }, (_, index) => ({

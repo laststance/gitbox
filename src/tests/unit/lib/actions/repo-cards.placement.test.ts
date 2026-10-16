@@ -248,6 +248,28 @@ describe('addRepositoriesToBoard', () => {
     expect(from).not.toHaveBeenCalled()
   })
 
+  test('refuses a description that is not text before running any query', async () => {
+    // Arrange
+    const { from } = signInWithSupabaseStub({
+      repocard: { data: [], error: null },
+    })
+
+    // Act
+    const result = await addRepositoriesToBoard('board-1', 'status-1', [
+      {
+        ...makeRepository('laststance', 'gitbox'),
+        description: { text: 'not a string' } as unknown as null,
+      },
+    ])
+
+    // Assert
+    expect(result).toEqual({
+      success: false,
+      error: 'An unexpected error occurred',
+    })
+    expect(from).not.toHaveBeenCalled()
+  })
+
   // Value: protects=an oversized selection is refused with a sentence the user
   //   can act on, before any query runs;
   //   fails_when=the size check is removed or thrown as a plain Error, so the
