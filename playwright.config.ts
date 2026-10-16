@@ -22,6 +22,11 @@ const AUTH_FILE = 'e2e/.auth/user.json'
 const LOCAL_SUPABASE_URL = 'http://127.0.0.1:54321'
 const LOCAL_SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+/** Local demo service-role key. Account deletion is the one server path that uses it. */
+const LOCAL_SUPABASE_SERVICE_ROLE_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
+/** This app. A shell variable wins over the production URL in `.env.production`. */
+const LOCAL_SITE_URL = 'http://localhost:3008'
 
 /**
  * Parallel mode configuration.
@@ -258,7 +263,10 @@ export default defineConfig({
    * - APP_ENV=test enables test mode auth bypass
    *
    * CRITICAL: NEXT_PUBLIC_* vars must be set at BUILD time because Next.js
-   * inlines them during the build process.
+   * inlines them during the build process. `pnpm build` reads
+   * `.env.production` ahead of `.env`, so this env also sets an empty
+   * Sentry token (no source-map upload), the local site URL, and the local
+   * service-role key. The same env is what `pnpm start` reads.
    *
    * NOTE: reuseExistingServer is set to false to ALWAYS use a fresh server
    * with correct test environment variables.
@@ -276,7 +284,14 @@ export default defineConfig({
           NEXT_PUBLIC_ENABLE_MSW_MOCK: 'true',
           APP_ENV: 'test',
           NEXT_PUBLIC_SUPABASE_URL: LOCAL_SUPABASE_URL,
+          // Server clients prefer this over the public URL, which is inlined
+          // at build time. The parallel servers set it per shard.
+          SUPABASE_URL: LOCAL_SUPABASE_URL,
           NEXT_PUBLIC_SUPABASE_ANON_KEY: LOCAL_SUPABASE_ANON_KEY,
+          SUPABASE_SERVICE_ROLE_KEY: LOCAL_SUPABASE_SERVICE_ROLE_KEY,
+          NEXT_PUBLIC_SITE_URL: LOCAL_SITE_URL,
+          // Empty on purpose: a set variable wins over `.env.production`.
+          SENTRY_AUTH_TOKEN: '',
         },
       },
 })
