@@ -78,6 +78,11 @@ jobs:
             sleep "${SUPABASE_RETRY_DELAY_SECONDS}"
           done
 
+      # The database this job just reset, not a shard. Each matrix job has
+      # its own stack; the script reads that stack's postgres database.
+      - name: Refuse a SECURITY DEFINER function anon can execute
+        run: bash scripts/check-anon-definer-functions.sh
+
       - name: Build application
         run: pnpm build
         env:
