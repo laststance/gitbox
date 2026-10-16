@@ -17,6 +17,10 @@
 -- Existing rows already satisfy length(note) <= 20000, and the text of a
 -- document is never longer than the document, so this check accepts every
 -- row the old one did. It reads no table. Re-runnable.
+--
+-- The constraint is added NOT VALID. Checking every stored note in this
+-- transaction would hold the lock that blocks writes for the whole scan.
+-- The next migration validates it, and that scan allows reads and writes.
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION public.projectinfo_note_text_length(p_note text)
@@ -71,7 +75,7 @@ ALTER TABLE public.projectinfo
       length(note) <= 2000000
       AND public.projectinfo_note_text_length(note) <= 20000
     )
-  );
+  ) NOT VALID;
 
 COMMENT ON CONSTRAINT note_length_check ON public.projectinfo IS
   'The text of a note is at most 20,000 characters, the same count as the Note dialog. The stored editor document may be longer, up to 2,000,000 characters.';
