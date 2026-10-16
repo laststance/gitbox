@@ -1616,6 +1616,77 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     expect(onRepositoriesAdded).not.toHaveBeenCalled()
   })
 
+  // Value: protects=a repository the server skipped after Add Repo reopened
+  //   moves to "Already placed elsewhere", without the not-added notice;
+  //   fails_when=the late zero-add result returns without refreshing placements;
+  //   why_new=the opening's own fetch can finish before that result, and it
+  //   does not know the repository was placed;
+  //   seam=none
+  test('a repository skipped after Add Repo reopens moves to the held list', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    const pending = holdTheAdd()
+    mockCatalog([makeRepository(2, 'gitbox')])
+    const held = {
+      identifier: 'laststance/gitbox',
+      boardId: 'board-2',
+      boardName: 'Work Projects',
+      cardId: '00000000-0000-4000-8000-0000000000c2',
+    }
+    const answers = [
+      { placements: [], savedMemories: [] },
+      { placements: [], savedMemories: [] },
+      {
+        placements: [held],
+        savedMemories: [],
+      },
+    ]
+    vi.mocked(fetchRepoPlacements).mockImplementation(async () => ({
+      success: true as const,
+      data: answers.shift() ?? { placements: [held], savedMemories: [] },
+    }))
+    render(<ColumnReopenedPicker onRepositoriesAdded={vi.fn()} />)
+    const [onlyOption] = await findRepositoryOptions()
+    await user.click(onlyOption!)
+    await user.click(screen.getByRole('button', { name: 'Add (1)' }))
+    await screen.findByText('Adding repositories...')
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    await user.click(screen.getByRole('button', { name: 'Add Repo' }))
+
+    // Act
+    await act(async () => {
+      pending.finish({
+        success: true,
+        data: {
+          addedCount: 0,
+          cards: [],
+          skipped: [
+            {
+              fullName: 'laststance/gitbox',
+              reason: 'other-board',
+              message: 'laststance/gitbox is already on board "Work Projects"',
+              boardId: 'board-2',
+              boardName: 'Work Projects',
+            },
+          ],
+        },
+      })
+    })
+
+    // Assert
+    expect(
+      await screen.findByRole('link', {
+        name: 'On Work Projects, which holds laststance/gitbox',
+      }),
+    ).toBeVisible()
+    expect(
+      screen.queryByRole('listbox', { name: 'Repository options' }),
+    ).toBeNull()
+    expect(
+      screen.queryByRole('note', { name: 'Repositories that were not added' }),
+    ).toBeNull()
+  })
+
   // Value: protects=an error that arrives after Cancel is not waiting on the
   //   next opening;
   //   fails_when=the failed add stores its message after the picker closed;

@@ -342,7 +342,12 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       const closedWhileAdding = addAttempt.current !== attempt
 
       if (!result.success) {
-        if (closedWhileAdding) return
+        // The notice stays off a closed picker. A picker opened again still
+        // needs the placement this result just learned about.
+        if (closedWhileAdding) {
+          void refreshPlacements()
+          return
+        }
         setAddingError(result.error || 'Failed to add repositories')
         // A lost race means the server knows a placement this picker does
         // not: refetch so the raced repository moves to the held list
@@ -356,7 +361,10 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
       // the skipped repositories to the "Already placed elsewhere" list, clear
       // the selection (all of it was skipped) and say where each one lives.
       if (addedCount === 0) {
-        if (closedWhileAdding) return
+        if (closedWhileAdding) {
+          void refreshPlacements()
+          return
+        }
         void refreshPlacements()
         clearSelection()
         showSkippedMessages(skipped.map((skippedRepo) => skippedRepo.message))
