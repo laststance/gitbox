@@ -33,18 +33,6 @@ obviated). `fetchBoardInitialData` was already removed by the v0.3.1.0 embed mig
 
 From the `/autoplan` review of issue #215 (one card per user and repository). None blocks that change.
 
-### Correct the "fixture auth cannot mutate" notes
-
-**What:** Update the comments in `e2e/auth.setup.ts` and the E2E fixture section of `CLAUDE.md`.
-
-**Why:** They say server-side mutations are not exercised under fixture auth, but `move-to-another-board.spec.ts` asserts DB rows after a server action in test mode.
-
-**Context:** Test mode uses the `E2E_TEST_JWT` constant with the authenticated role (`src/lib/supabase/server.ts`). The real-account rule for local verification stays as is.
-
-**Effort:** S
-**Priority:** P4
-**Depends on:** None
-
 ### Validate the display metadata of an add request
 
 **What:** Extend `addRepositoriesRequestSchema` to the fields stored in `repocard.meta` (description, language, topics, stars, visibility, updated date) and build the insert from the parsed data.

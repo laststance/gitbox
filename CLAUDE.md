@@ -48,7 +48,7 @@ Both E2E commands empty the local database down to the seed: `pnpm e2e:parallel`
 
 This rule is about verification. It does not limit a production change the owner asked for, such as deleting a duplicate card so a migration can run.
 
-Do not use the E2E fixture session for this. Its GitHub cookie is the literal string `mock-github-provider-token-for-testing`, and the Supabase user is `testuser`, not `ryota-murakami`. With MSW on, GitHub responses are fixtures in `mocks/handlers/data.ts`. With MSW off, GitHub returns 401. Either way, `ryota-murakami`'s repositories never load. That setup exists only so Playwright can render protected routes. See [E2E fixture auth](#e2e-fixture-auth-playwright-only).
+Do not use the E2E fixture session for this. Its GitHub cookie is the literal string `mock-github-provider-token-for-testing`, and the Supabase user is `testuser`, not `ryota-murakami`. With MSW on, GitHub responses are fixtures in `mocks/handlers/data.ts`. With MSW off, GitHub returns 401. Either way, `ryota-murakami`'s repositories never load. A server action in that session writes as the seed user, which is still not this account. See [E2E fixture auth](#e2e-fixture-auth-playwright-only).
 
 ## ❌ Violations
 
@@ -486,7 +486,7 @@ pnpm e2e --headed
 
 Playwright (`pnpm e2e`, `pnpm e2e:parallel`) injects a fake session so tests can open `/boards` and `/account` without GitHub OAuth. This is not local verification and not bug investigation.
 
-What this environment can exercise is the fixture world only: page chrome, navigation, and flows asserted against `seed.sql` plus MSW repositories such as "A test repository for GitBox". It cannot show `ryota-murakami`'s repositories, org membership, private repos, or any bug that depends on a real GitHub payload. `e2e/auth.setup.ts` also records that `supabase.auth.getUser()` returns null for this token, so server-side mutations are not a faithful check.
+What this environment can exercise is the fixture world only: page chrome, navigation, and flows asserted against `seed.sql` plus MSW repositories such as "A test repository for GitBox". It cannot show `ryota-murakami`'s repositories, org membership, private repos, or any bug that depends on a real GitHub payload. Under `APP_ENV=test`, `createClient()` (`src/lib/supabase/server.ts`) uses `E2E_TEST_JWT` (`role=authenticated`, the seed user) and `getUser()` returns that user, so a server action can change rows. `e2e/logged-in/move-to-another-board.spec.ts` reads the card's board after Move. That is still the fixture user, not a check of `ryota-murakami`'s data.
 
 For 動作確認 and 不具合検証, use the `ryota-murakami` session in [Verification with the real account](#verification-with-the-real-account). Keep the steps below for debugging Playwright only.
 
