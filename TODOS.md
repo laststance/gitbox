@@ -41,25 +41,13 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Fetch the board again through a server action, not `router.refresh()`
-
-**What:** Let `useBoardServerSync` read the board's columns and cards with a server action and pass the answer through `selectMayApplyServerSnapshot`, instead of calling `router.refresh()`. Give each fetch a request id so a late answer for a board that was left and reopened is dropped, and offer a retry when the fetch fails.
-
-**Why:** When the browser reports "online" but the server cannot be reached, `router.refresh()` makes Next.js fall back to a full navigation and the app is replaced by the browser's error page; saves fail in exactly that situation, and a failed save is what asks for the fetch. A server action can fail without leaving the app.
-
-**Context:** `src/hooks/board/useBoardServerSync.ts`, `src/lib/redux/slices/boardSyncSlice.ts`. Server actions run one at a time, so the read is ordered after every write already sent. That order is also a wait: `router.refresh()` and a server action both stand in the queue of Next.js behind a write that has no answer yet, so the fetch after an overdue save (issue #213) goes out only when that save has settled, and until then "Reload page" is the way to the saved board. A read that has to get past such a write needs a way outside the queue, a route handler called with `fetch` for one. Three smaller gaps close with the same change or become harmless: column create, rename and delete, adding repositories and comment edits are not counted by `trackBoardWrite`, so a fetch can be sent while one of them is in flight; a save of board A that fails after board B was opened asks for a fetch of B; and `useStatusListDialog` builds the next column list from the list it captured before its await.
-
-**Effort:** M
-**Priority:** P2
-**Depends on:** None
-
 ### Show the fetched board name, subtitle and card display settings after a refetch
 
-**What:** Let `useBoardSettings` take the board name, the subtitle, the card display settings and the show-subtitle switch from the board that was fetched again, the way `useCommentState` does for the comments it adopted.
+**What:** Let `useBoardSettings` take the board name, the subtitle, the card display settings and the show-subtitle switch from the board that was fetched again, and let `useCommentState` adopt the comments of that same fetch.
 
-**Why:** Since `router.refresh()` keeps the page's state (Issue #218), these four keep the value this tab showed. Changed in another tab, they stay old until the page is reloaded. Before, the refetch built the page again and they were read anew as a side effect.
+**Why:** A refetch writes the columns and cards into the store and does not rebuild the page, so the name, the subtitle, the card display settings and the comments stay as this tab showed them. Changed in another tab, they stay old until the page is reloaded.
 
-**Context:** `src/hooks/board/useBoardSettings.ts`: the four are `useState` values that start from the props. `adoptedComments` in `useCommentState` (`src/hooks/board/useCommentState.ts:77`) remembers which fetched value it was set from and resets when that changes; the same applies here. Compare the settings by content, not by reference: the fetched `board.settings` is a new object on every fetch, and a copy read before a save landed must not put the old settings back.
+**Context:** `src/hooks/board/useBoardSettings.ts`: the four are `useState` values that start from the props. `adoptedComments` in `useCommentState` (`src/hooks/board/useCommentState.ts:77`) remembers which fetched value it was set from and resets when that changes; the same applies here, including the comments, which the refetch does not hand over yet. Compare the settings by content, not by reference: the fetched `board.settings` is a new object on every fetch, and a copy read before a save landed must not put the old settings back.
 
 **Effort:** S
 **Priority:** P3

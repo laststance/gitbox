@@ -247,6 +247,10 @@ describe('trackBoardWrite()', () => {
     })
     const trackedSave = trackBoardWrite(store.dispatch, lateSave)
     await vi.advanceTimersByTimeAsync(15_000)
+    expect(store.getState().boardSync.refreshBypassesActionQueue).toBe(true)
+    expect(store.getState().boardSync.refreshForBoardId).toBe(
+      toBoardId('board-1'),
+    )
     store.dispatch(boardRefreshSent())
     store.dispatch(serverSnapshotApplied(toBoardId('board-1')))
     const isRefreshWantedBeforeTheAnswer =
