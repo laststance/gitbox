@@ -10,6 +10,7 @@
 import type { Metadata } from 'next'
 
 import { requireUser } from '@/lib/auth/require-user'
+import { BOARD_OF_CARD_RELATION } from '@/lib/constants/board-bundle'
 import { toUserId, type UserId } from '@/lib/types/brands'
 import type { ISOTimestamp } from '@/lib/types/domain-primitives'
 
@@ -43,7 +44,10 @@ export default async function AccountPage() {
       .eq('user_id', user.id),
     supabase
       .from('repocard')
-      .select('id, board!inner()', { count: 'exact', head: true })
+      .select(`id, ${BOARD_OF_CARD_RELATION}!inner()`, {
+        count: 'exact',
+        head: true,
+      })
       .eq('board.user_id', user.id),
   ])
 

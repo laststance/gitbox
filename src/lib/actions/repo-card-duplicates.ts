@@ -17,6 +17,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+import { BOARD_OF_CARD_RELATION } from '@/lib/constants/board-bundle'
 import { createModuleLogger } from '@/lib/logger'
 import type { Database } from '@/lib/supabase/types'
 import type { RepoIdentifier } from '@/lib/types/domain-primitives'
@@ -127,7 +128,7 @@ export async function lookupRepoPlacements(
       supabase
         .from('repocard')
         .select(
-          'id, repo_owner, repo_name, github_repo_id, board!inner(id, user_id, name)',
+          `id, repo_owner, repo_name, github_repo_id, ${BOARD_OF_CARD_RELATION}!inner(id, user_id, name)`,
         )
         .eq('board.user_id', userId)
         .order('id', { ascending: true })
