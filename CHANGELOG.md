@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0.0] - 2026-10-16
+
+### Removed
+
+- Public board links are gone. A board opens only for the account that owns it: Board Settings no longer has a Sharing tab, and an old `/public/…` link leads to the sign-in page, or to "not found" when you are signed in.
+- Add Repositories, Move Here and Move to Another Board no longer warn about who sees a shared board, and the board list no longer marks one with a globe.
+
+### Changed
+
+- Copy Link copies the board's own address, without the part that points at a card, and says that only the account that owns the board can open it.
+- Move to Another Board opens on the board your last move from this board went to, or else on your newest board.
+- The "Board not found" page says that a board opens only for the account that owns it.
+
 ## [0.6.0.0] - 2026-10-15
 
 ### Added
