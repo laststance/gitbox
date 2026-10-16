@@ -210,7 +210,10 @@ describe('useStatusListDialog', () => {
         title: 'New Column',
         color: '#10b981',
       })
-      mockCreateStatusList.mockResolvedValueOnce(newStatus)
+      mockCreateStatusList.mockResolvedValueOnce({
+        success: true,
+        data: newStatus,
+      })
 
       const { result } = renderHook(
         () => useStatusListDialog({ boardId: toBoardId('board-1') }),
@@ -266,6 +269,34 @@ describe('useStatusListDialog', () => {
       expect(toast.error).toHaveBeenCalledWith('Failed to create column', {
         description: 'Please try again.',
       })
+    })
+
+    test('says a column cannot be created past column 999', async () => {
+      // Arrange
+      const store = createTestStore([])
+      mockCreateStatusList.mockResolvedValueOnce({
+        success: false,
+        error: 'A column cannot sit past row 999 or column 999.',
+      })
+      const { result } = renderHook(
+        () => useStatusListDialog({ boardId: toBoardId('board-1') }),
+        { wrapper: createWrapper(store) },
+      )
+      act(() => {
+        result.current.openCreate()
+      })
+
+      // Act
+      await act(async () => {
+        await result.current.save({ name: 'New Column', color: '#10b981' })
+      })
+
+      // Assert
+      expect(toast.error).toHaveBeenCalledWith('Failed to create column', {
+        description: 'A column cannot sit past row 999 or column 999.',
+      })
+      expect(Sentry.captureException).not.toHaveBeenCalled()
+      expect(store.getState().board.statusLists).toHaveLength(0)
     })
   })
 

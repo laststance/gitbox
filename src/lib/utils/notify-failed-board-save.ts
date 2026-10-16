@@ -32,6 +32,9 @@ type FailedSaveDescription =
  * @param outcome - What the rollback did (returned by {@link useBoardRollback}'s callbacks).
  * @param toastId - Sonner id to show the toast under. Pass the id of an earlier
  *   toast to replace it; defaults to one id shared by all failed saves.
+ * @param description - Second line to use instead of the one {@link toFailedSaveDescription}
+ *   picks. The grid-position refusal passes its sentence; other failures leave
+ *   this out.
  * @example
  * notifyFailedBoardSave('Failed to move card', rollbackRepoCards(cardsAfterDrag, cardsBeforeDrag))
  * // online, layout put back => toast "Failed to move card / Please try again."
@@ -40,10 +43,12 @@ export const notifyFailedBoardSave = (
   title: string,
   outcome: BoardRollbackOutcome,
   toastId: string = BOARD_SAVE_FAILED_TOAST_ID,
+  description?: string,
 ): void => {
   toast.error(title, {
     id: toastId,
-    description: toFailedSaveDescription(outcome, navigator.onLine),
+    description:
+      description ?? toFailedSaveDescription(outcome, navigator.onLine),
   })
 }
 

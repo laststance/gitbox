@@ -8,6 +8,12 @@ import { destr } from 'destr'
 import { z } from 'zod'
 
 import { PRESET_IDS } from '@/lib/constants/board-presets'
+import {
+  GRID_COLUMN_NON_NEGATIVE,
+  GRID_POSITION_MAX,
+  GRID_POSITION_REFUSED,
+  GRID_ROW_NON_NEGATIVE,
+} from '@/lib/constants/grid-position'
 import { HEX_COLOR_CODE } from '@/lib/constants/regex'
 
 import { uuidSchema } from './common'
@@ -221,15 +227,28 @@ export const statusListColorSchema = z
   .regex(HEX_COLOR_CODE, 'Color must be a valid hex color (e.g., #6B7280)')
 
 /**
- * Schema for validating grid positions (non-negative integers).
+ * Schema for validating grid positions.
+ *
+ * The upper bound is {@link GRID_POSITION_MAX}, the same one the table
+ * enforces with `statuslist_grid_position_bounds`. A column past it makes the
+ * board page build a drop zone per cell out to that column.
  *
  * @example
  * gridPositionSchema.safeParse({ gridRow: 0, gridCol: 3 }) // => { success: true }
  * gridPositionSchema.safeParse({ gridRow: -1, gridCol: 0 }) // => { success: false }
+ * gridPositionSchema.safeParse({ gridRow: 0, gridCol: 1000 }) // => { success: false }
  */
 export const gridPositionSchema = z.object({
-  gridRow: z.number().int().min(0, 'Grid row must be non-negative'),
-  gridCol: z.number().int().min(0, 'Grid column must be non-negative'),
+  gridRow: z
+    .number()
+    .int()
+    .min(0, GRID_ROW_NON_NEGATIVE)
+    .max(GRID_POSITION_MAX, GRID_POSITION_REFUSED),
+  gridCol: z
+    .number()
+    .int()
+    .min(0, GRID_COLUMN_NON_NEGATIVE)
+    .max(GRID_POSITION_MAX, GRID_POSITION_REFUSED),
 })
 
 // ========================================

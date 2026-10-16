@@ -18,6 +18,7 @@ import {
   updateStatusList,
   deleteStatusList,
 } from '@/lib/actions/board'
+import { gridPositionRefusalSentence } from '@/lib/constants/grid-position'
 import type { StatusListDomain } from '@/lib/models/domain'
 import {
   removeStatusListWithCards,
@@ -149,13 +150,18 @@ export function useStatusListDialog({
       try {
         if (mode === 'create') {
           // Create new
-          const newStatus = await createStatusList(
-            boardId,
-            data.name,
-            data.color,
-          )
+          const created = await createStatusList(boardId, data.name, data.color)
+          // The action answered. A thrown failure still lands in the catch below.
+          if (!created.success) {
+            toast.error('Failed to create column', {
+              description:
+                gridPositionRefusalSentence(created.error) ??
+                'Please try again.',
+            })
+            return
+          }
           // Update Redux
-          dispatch(setStatusLists([...statusLists, newStatus]))
+          dispatch(setStatusLists([...statusLists, created.data]))
           toast.success('Column created', {
             description: `"${data.name}" has been created.`,
           })
