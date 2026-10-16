@@ -167,6 +167,10 @@ setup() {
     psql_stop -d "$DB_NAME" -c "
       REVOKE ALL ON FUNCTION public.create_board_with_status_lists(text, jsonb) FROM PUBLIC, anon;
       GRANT EXECUTE ON FUNCTION public.create_board_with_status_lists(text, jsonb) TO authenticated, service_role;
+      REVOKE ALL ON FUNCTION public.create_first_board_if_needed(text, jsonb) FROM PUBLIC, anon;
+      GRANT EXECUTE ON FUNCTION public.create_first_board_if_needed(text, jsonb) TO authenticated, service_role;
+      REVOKE ALL ON FUNCTION public.ensure_default_status_lists(uuid, jsonb) FROM PUBLIC, anon;
+      GRANT EXECUTE ON FUNCTION public.ensure_default_status_lists(uuid, jsonb) TO authenticated, service_role;
       REVOKE ALL ON FUNCTION public.projectinfo(public.repocard) FROM PUBLIC, anon;
       GRANT EXECUTE ON FUNCTION public.projectinfo(public.repocard) TO authenticated, service_role;
       REVOKE ALL ON FUNCTION public.projectinfo_slate_text(jsonb, text) FROM PUBLIC, anon;

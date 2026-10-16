@@ -270,8 +270,9 @@ export async function getBoardBundle(
 
   const bundle = remapBoardEmbed(row)
 
-  // A board with no columns gets the default preset created on first view and
-  // renders with zero cards.
+  // A board with no columns gets the default preset on first view and renders
+  // with zero cards. The insert locks the board and skips itself when a
+  // column is already there, so two views at once do not leave ten columns.
   if (bundle.statusLists.length === 0) {
     const defaultCreateStart = performance.now()
     const defaultStatusLists = await createDefaultStatusLists(boardId)

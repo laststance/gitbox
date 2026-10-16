@@ -57,8 +57,8 @@ export const presetIdSchema = z.enum(PRESET_IDS)
  * Shape of the JSON the `create_board_with_status_lists` database function
  * returns: the new board and its columns in their order. The function builds
  * the document by hand in SQL, so nothing ties it to the TypeScript types:
- * this schema is that tie. {@link createBoardFromPreset} checks the result
- * with it before {@link createBoard} or {@link createFirstBoardIfNeeded} use it.
+ * this schema is that tie. {@link createBoardFromPreset} and
+ * {@link createFirstBoardIfNeeded} check the result with it before they use it.
  *
  * @example
  * createdBoardRowSchema.safeParse({
@@ -76,6 +76,49 @@ export const createdBoardRowSchema = z.object({
     .array(z.object({ id: z.string(), name: z.string(), color: z.string() }))
     .min(1),
 })
+
+/**
+ * Shape of one column in the JSON `ensure_default_status_lists` returns.
+ * The function builds the document by hand in SQL. A column that was already
+ * there is returned too, so `color` and the timestamps stay nullable as the
+ * table has them. {@link createDefaultStatusLists} checks the array with
+ * {@link ensuredStatusListRowsSchema} before it maps the rows.
+ */
+const ensuredStatusListRowSchema = z.object({
+  id: z.string(),
+  board_id: z.string(),
+  name: z.string(),
+  color: z.string().nullable(),
+  order: z.number(),
+  grid_row: z.number(),
+  grid_col: z.number(),
+  created_at: z.string().nullable(),
+  updated_at: z.string().nullable(),
+})
+
+/**
+ * Columns `ensure_default_status_lists` returns, in grid order. Empty is
+ * refused: the function either inserted columns or found some already there.
+ * {@link createDefaultStatusLists} is the caller that checks this.
+ *
+ * @example
+ * ensuredStatusListRowsSchema.safeParse([
+ *   {
+ *     id: 'c1',
+ *     board_id: 'b1',
+ *     name: 'Pending',
+ *     color: '#8B7355',
+ *     order: 0,
+ *     grid_row: 0,
+ *     grid_col: 0,
+ *     created_at: '2026-01-01T00:00:00+00:00',
+ *     updated_at: '2026-01-01T00:00:00+00:00',
+ *   },
+ * ]) // => { success: true, data: [...] }
+ */
+export const ensuredStatusListRowsSchema = z
+  .array(ensuredStatusListRowSchema)
+  .min(1)
 
 // ========================================
 // Board Subtitle Schema

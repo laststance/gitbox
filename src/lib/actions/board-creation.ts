@@ -17,9 +17,12 @@ import { toStatusListDomain } from '@/lib/actions/mappers'
 import { BOARD_PRESETS, type PresetId } from '@/lib/constants/board-presets'
 import type { StatusListDomain } from '@/lib/models/domain'
 import { createClient } from '@/lib/supabase/server'
-import type { Database, TablesInsert } from '@/lib/supabase/types'
+import type { Database } from '@/lib/supabase/types'
 import { didDatabaseRefuse } from '@/lib/utils/did-database-refuse'
-import { createdBoardRowSchema } from '@/lib/validations/board'
+import {
+  createdBoardRowSchema,
+  ensuredStatusListRowsSchema,
+} from '@/lib/validations/board'
 
 import type { BoardOption } from './types'
 
@@ -28,6 +31,27 @@ import type { BoardOption } from './types'
  * a user, and a board that is found without columns.
  */
 const FALLBACK_COLUMNS_PRESET_ID = 'software-release' satisfies PresetId
+
+/**
+ * Columns of a preset in preset order, the `p_columns` JSON the board
+ * functions expect. The array order is the column order on the board.
+ * Called by {@link createBoardFromPreset}, {@link createFirstBoardIfNeeded}
+ * and {@link createDefaultStatusLists}.
+ *
+ * @param presetId - Preset whose columns are sent.
+ * @returns `{ name, color }` of each column, in preset order.
+ * @example
+ * columnsOfPreset('single-column')
+ * // => [{ name: 'Repositories', color: '#6B7280' }]
+ */
+function columnsOfPreset(
+  presetId: PresetId,
+): { name: string; color: string }[] {
+  return BOARD_PRESETS[presetId].columns.map(({ name, color }) => ({
+    name,
+    color,
+  }))
+}
 
 /**
  * Result of {@link createBoardFromPreset}.
@@ -49,9 +73,11 @@ export type BoardCreationOutcome =
  * Creates a board and the columns of a preset in one database transaction,
  * through the `create_board_with_status_lists` function. Exists so no caller
  * can end up with a board that has no columns: the board and all of its
- * columns are written, or nothing is. Called by {@link createBoard} and
- * {@link createFirstBoardIfNeeded}. No failure is reported here, because the
- * two callers answer a failure in different ways. It never throws: a call
+ * columns are written, or nothing is. Called by {@link createBoard}. The
+ * first board of a new account goes through {@link createFirstBoardIfNeeded},
+ * which has its own function so the "no board yet" check and the insert
+ * share one lock. No failure is reported here, because the caller answers a
+ * failure in its own way. It never throws: a call
  * that throws all the same counts as `unconfirmed`, since the request may
  * have been sent by then.
  *
@@ -78,10 +104,7 @@ export async function createBoardFromPreset(
       {
         p_name: boardName,
         // The array order is the column order on the board
-        p_columns: BOARD_PRESETS[presetId].columns.map(({ name, color }) => ({
-          name,
-          color,
-        })),
+        p_columns: columnsOfPreset(presetId),
       },
     )
 
@@ -116,9 +139,12 @@ export async function createBoardFromPreset(
  * sign-in. Called by the OAuth callback (`src/app/auth/callback/route.ts`)
  * right after the session is established, and by nothing else.
  *
- * A failure is reported and never blocks the sign-in: the user then lands on
- * an empty board list. That holds for anything thrown in here too, because
- * the callback would answer a rejection by sending a user whose session is
+ * The "does this user have a board" check runs inside
+ * `create_first_board_if_needed`, under a lock for that user. Two sign-ins
+ * that end at the same moment cannot both see zero boards. A failure is
+ * reported and never blocks the sign-in: the user then lands on an empty
+ * board list. That holds for anything thrown in here too, because the
+ * callback would answer a rejection by sending a user whose session is
  * already set back to the login page.
  *
  * @param supabase - Client that carries the session just established. The
@@ -137,46 +163,41 @@ export async function createFirstBoardIfNeeded(
   userId: string,
 ): Promise<{ id: string; name: string } | null> {
   try {
-    // Check if user already has any boards
-    const { count, error: countError } = await supabase
-      .from('board')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-
-    if (countError) {
-      Sentry.captureException(countError, {
-        extra: { context: 'Check existing boards', userId },
-      })
-      // Don't block login on error - just skip first board creation
-      return null
-    }
-
-    // User already has boards - no action needed
-    if (count && count > 0) {
-      return null
-    }
-
-    // "First Board" and its default columns in one transaction: the board
-    // never exists without them
-    const outcome = await createBoardFromPreset(
-      supabase,
-      'First Board',
-      FALLBACK_COLUMNS_PRESET_ID,
+    // The database counts the boards under its lock and inserts only when
+    // there are none. Null, with no error, means the user already has one.
+    const { data: createdBoardJson, error } = await supabase.rpc(
+      'create_first_board_if_needed',
+      {
+        p_name: 'First Board',
+        p_columns: columnsOfPreset(FALLBACK_COLUMNS_PRESET_ID),
+      },
     )
 
-    if (outcome.status !== 'created') {
-      Sentry.captureException(outcome.error, {
+    if (error) {
+      const status = didDatabaseRefuse(error) ? 'not-created' : 'unconfirmed'
+      Sentry.captureException(error, {
+        extra: { context: 'Create first board', userId, status },
+      })
+      return null
+    }
+
+    if (createdBoardJson === null) {
+      return null
+    }
+
+    const parsedBoard = createdBoardRowSchema.safeParse(createdBoardJson)
+    if (!parsedBoard.success) {
+      Sentry.captureException(parsedBoard.error, {
         extra: {
           context: 'Create first board',
           userId,
-          status: outcome.status,
+          status: 'unreadable',
         },
       })
-      // Don't block login on error
       return null
     }
 
-    return { id: outcome.board.id, name: outcome.board.name }
+    return { id: parsedBoard.data.id, name: parsedBoard.data.name }
   } catch (error) {
     // The sign-in has succeeded by now; nothing in here may take it back
     Sentry.captureException(error, {
@@ -193,9 +214,15 @@ export async function createFirstBoardIfNeeded(
  * made before boards were created together with their columns. New boards do
  * not come this way ({@link createBoardFromPreset}).
  *
- * @param boardId - Board that has no column.
- * @returns The created columns, in column order.
- * @throws When the columns cannot be written; the failure is reported first.
+ * The write is `ensure_default_status_lists`. It locks the board row and
+ * inserts only while the board still has no column, then returns the columns
+ * that are there. Two views at once therefore leave five columns, and the
+ * later view renders the ones the earlier view wrote.
+ *
+ * @param boardId - Board that was read with no column.
+ * @returns The columns the board has after the call, in grid order.
+ * @throws When the columns cannot be written or the answer cannot be read;
+ *   the failure is reported first.
  * @example
  * await createDefaultStatusLists(boardId)
  * // Creates: Pending, Planning, Focus Development, MVP Release, Production Release
@@ -205,21 +232,10 @@ export async function createDefaultStatusLists(
 ): Promise<StatusListDomain[]> {
   const supabase = await createClient()
 
-  const statusLists: TablesInsert<'statuslist'>[] = BOARD_PRESETS[
-    FALLBACK_COLUMNS_PRESET_ID
-  ].columns.map((column, index) => ({
-    board_id: boardId,
-    name: column.name,
-    color: column.color,
-    order: index,
-    grid_row: 0,
-    grid_col: index,
-  }))
-
-  const { data, error } = await supabase
-    .from('statuslist')
-    .insert(statusLists)
-    .select()
+  const { data, error } = await supabase.rpc('ensure_default_status_lists', {
+    p_board_id: boardId,
+    p_columns: columnsOfPreset(FALLBACK_COLUMNS_PRESET_ID),
+  })
 
   if (error) {
     Sentry.captureException(error, {
@@ -228,5 +244,13 @@ export async function createDefaultStatusLists(
     throw new Error('Failed to create status lists')
   }
 
-  return (data || []).map(toStatusListDomain)
+  const parsedColumns = ensuredStatusListRowsSchema.safeParse(data)
+  if (!parsedColumns.success) {
+    Sentry.captureException(parsedColumns.error, {
+      extra: { context: 'Create default status lists', boardId },
+    })
+    throw new Error('Failed to create status lists')
+  }
+
+  return parsedColumns.data.map(toStatusListDomain)
 }
