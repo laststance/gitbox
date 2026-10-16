@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/autoplan` review and the code review of issue #213 (a repository that is set aside is a card on an ordinary board). None of the follow-ups blocks that change.
 
-### Keep `.env.production` out of the E2E builds
-
-**What:** Pass an empty `SENTRY_AUTH_TOKEN` and the local `NEXT_PUBLIC_SITE_URL` to the builds of `pnpm e2e:parallel` and `pnpm e2e`, and the local service-role key to the server of `pnpm e2e`.
-
-**Why:** `pnpm build` reads `.env.production` ahead of `.env`. On a machine that has that file, an E2E build takes `SENTRY_AUTH_TOKEN` and `NEXT_PUBLIC_SITE_URL` from it, so the source maps of a test build are uploaded to the Sentry project, and the server of `pnpm e2e` holds production's service-role key, which the local stack refuses (account deletion is the one place that uses it). Both commands pass the local Supabase URL and anon key themselves, so no test talks to production. Seen while checking #213 on a local production build.
-
-**Context:** `scripts/e2e-parallel.sh` (the build step and the `next start` step), `webServer.env` in `playwright.config.ts`. `.github/workflows/e2e.yml` sets its own values, and CI has no `.env.production`. `CLAUDE.md` lists what a manual local production build has to export.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### Two simplifications named in the last review round of #213
 
 **What:** (1) Hand the outcome of a board creation to the form of the move dialog as it is (`BoardCreationAttempt` without its `created` case) and let the form choose from it, as `CreateBoardForm` of `/boards/new` does. Today it is renamed twice on the way: `toCreationFailure` makes a `BoardCreationFailure` with a `nextStep`, and `toFormProblem` makes a `FormProblem` with a `recovery`. (2) Render a comment's menu beside the element that opens the editor, not inside it: wrap both in a `group relative` element, keep the role of a button on the text alone and make the menu its sibling.
