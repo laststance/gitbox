@@ -233,4 +233,38 @@ describe('useRepoPlacements', () => {
     ])
     expect(result.current.isLoadingPlacements).toBe(false)
   })
+
+  // Value: protects=a mark request that fails after the picker closed is not an unhandled rejection; fails_when=the rejection handler is attached only at the later await, so Vitest reports the rejection and Sentry's global handler sees it too; why_new=the marks request now outlives the placements await; seam=none; no_claim=the list staying usable (the test above)
+  test('handles a rejected mark request that settles after the picker has closed', async () => {
+    // Arrange
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
+      success: true,
+      data: { placements: [] },
+    })
+    const marks =
+      Promise.withResolvers<
+        Awaited<ReturnType<typeof fetchSavedRepositoryMemories>>
+      >()
+    vi.mocked(fetchSavedRepositoryMemories).mockReturnValue(marks.promise)
+    const { result, rerender } = renderHook(
+      ({ isOpen }) => useRepoPlacements(isOpen),
+      { initialProps: { isOpen: true } },
+    )
+    await waitFor(() => {
+      expect(result.current.isLoadingPlacements).toBe(false)
+    })
+    rerender({ isOpen: false })
+    const rejection = new Error('Failed to fetch')
+
+    // Act
+    await act(async () => {
+      marks.reject(rejection)
+    })
+
+    // Assert
+    expect(Sentry.captureException).toHaveBeenCalledWith(rejection, {
+      tags: { action: 'fetchSavedRepositoryMemories' },
+    })
+    expect(result.current.savedMemories).toBeNull()
+  })
 })

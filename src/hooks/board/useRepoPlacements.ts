@@ -76,7 +76,22 @@ export function useRepoPlacements(isOpen: boolean): UseRepoPlacementsReturn {
     const requestId = ++latestRequestId.current
     // Both start now. The list settles on the placements answer alone.
     const placementsPromise = Promise.resolve().then(fetchRepoPlacements)
-    const memoriesPromise = Promise.resolve().then(fetchSavedRepositoryMemories)
+    // The rejection handler is attached now. The picker may close, or a newer
+    // opening may start, before this is awaited, and the request can fail
+    // while placements are still in flight. Either way the rejection is
+    // handled, and the mark is simply missing.
+    const memoriesPromise = Promise.resolve()
+      .then(fetchSavedRepositoryMemories)
+      .then(
+        (result): SavedRepositoryMemory[] | null =>
+          result.success ? result.data : null,
+        (error: unknown): null => {
+          Sentry.captureException(error, {
+            tags: { action: 'fetchSavedRepositoryMemories' },
+          })
+          return null
+        },
+      )
 
     let placements: BoardPlacement[] | null = null
     try {
@@ -93,17 +108,7 @@ export function useRepoPlacements(isOpen: boolean): UseRepoPlacementsReturn {
     if (requestId !== latestRequestId.current || !isOpenRef.current) return
     setState((current) => ({ ...current, placements, isSettled: true }))
 
-    let savedMemories: SavedRepositoryMemory[] | null = null
-    try {
-      const result = await memoriesPromise
-      // A failed mark lookup leaves the list as it is and shows no marks
-      if (result.success) savedMemories = result.data
-    } catch (error) {
-      Sentry.captureException(error, {
-        tags: { action: 'fetchSavedRepositoryMemories' },
-      })
-    }
-
+    const savedMemories = await memoriesPromise
     if (requestId !== latestRequestId.current || !isOpenRef.current) return
     setState((current) => ({ ...current, savedMemories }))
   }, [])
