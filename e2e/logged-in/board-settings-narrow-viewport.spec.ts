@@ -1,9 +1,11 @@
 /**
  * Board Settings Dialog on a Phone E2E Tests
  *
- * Below 512px the dialog is as wide as the screen. On a phone its four tabs
+ * Below 512px the dialog is as wide as the screen. On a phone its three tabs
  * in one row are wider than that, and a row that is wider than the dialog
- * made the whole dialog scroll sideways. The tabs take a second row there.
+ * made the whole dialog scroll sideways. The tabs take a second row there:
+ * at 375px General and Cards stay in the first one and Danger Zone stands
+ * alone in the second (measured on 2026-10-16).
  *
  * Only a browser lays the dialog out, so these tests measure it. What the
  * tabs and their panels are named is in the unit tests, and a board name
@@ -21,9 +23,9 @@ const PHONE_VIEWPORT = { width: 375, height: 667 }
 test.describe('Board Settings dialog on a 375px phone', () => {
   test.use({ storageState: 'e2e/.auth/user.json', viewport: PHONE_VIEWPORT })
 
-  for (const tabName of ['General', 'Cards', 'Sharing', 'Danger Zone']) {
-    // Value: protects=every tab of the board settings can be read and reached on a phone without moving the dialog sideways; fails_when=something in the dialog is wider than the dialog again, as the row of the four tabs was, so it scrolls sideways and a tab lies outside it, or the dialog itself is wider than the screen; why_new=no test opened this dialog on a narrow screen, and happy-dom lays nothing out; seam=none; no_claim=other dialogs, and widths between 375px and 640px
-    test(`shows the ${tabName} tab without a sideways scroll, with all four tabs inside the dialog`, async ({
+  for (const tabName of ['General', 'Cards', 'Danger Zone']) {
+    // Value: protects=every tab of the board settings can be read and reached on a phone without moving the dialog sideways; fails_when=something in the dialog is wider than the dialog again, as the row of the tabs once was, so it scrolls sideways and a tab lies outside it, or the dialog itself is wider than the screen; why_new=no test opened this dialog on a narrow screen, and happy-dom lays nothing out; seam=none; no_claim=other dialogs, and widths between 375px and 640px
+    test(`shows the ${tabName} tab without a sideways scroll, with all three tabs inside the dialog`, async ({
       page,
     }) => {
       // Arrange: the columns are drawn once the page answers to clicks

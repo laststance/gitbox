@@ -462,10 +462,8 @@ export async function deleteRepoCard(
  * - On success: `{ success: true, data: BoardOption[] }`, every board of the
  *   user, newest first, with its columns in the order the board page shows
  *   them (grid row, then grid column). Newest first on purpose: the dialog
- *   opens on the first board that is not shared when no move was made from
- *   this board yet, and the board made last is the likeliest destination.
- *   `isPublic` says whether the board is shared through a public link, so
- *   the dialog can say that a card moved there becomes readable through it.
+ *   opens on the newest board when no move was made from this board yet,
+ *   and the board made last is the likeliest destination.
  * - On auth error: `{ success: false, error: 'Authentication required' }`
  *
  * @example
@@ -483,7 +481,7 @@ export async function getUserBoardsWithStatusLists(): Promise<
     const boards = await readEveryRow((from, to) =>
       supabase
         .from('board')
-        .select('id, name, is_public')
+        .select('id, name')
         .eq('user_id', claims.sub)
         .order('created_at', { ascending: false })
         .order('id', { ascending: true })
@@ -522,7 +520,6 @@ export async function getUserBoardsWithStatusLists(): Promise<
     return boards.map((board) => ({
       id: board.id,
       name: board.name,
-      isPublic: board.is_public,
       statusLists: statusListsByBoard.get(board.id) || [],
     }))
   })

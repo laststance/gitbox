@@ -213,12 +213,9 @@ export const PROJECT_INFO_IDS = {
   projinfo4: '00000000-0000-0000-0000-000000000404',
 } as const
 
-/** Public board share slug (matches seed.sql) */
-export const PUBLIC_BOARD_SLUG = 'a1b2c3d4e5f6'
-
 /**
  * A second seeded account (see "Second Account" in `supabase/seed.sql`).
- * It owns one PUBLIC board holding `testuser/test-repo` and
+ * It owns one board holding `testuser/test-repo` and
  * `testuser/private-project`, to prove that one user's cards never restrict
  * another user (Issue #215).
  */
@@ -872,33 +869,5 @@ export async function resetUserSettings(): Promise<void> {
 
   if (error) {
     throw new Error(`resetUserSettings: ${error.message}`)
-  }
-}
-
-/**
- * Reset board public state to seed.sql initial values.
- * Call this in afterEach for public board sharing tests.
- *
- * @example
- * test.afterEach(async () => {
- *   await resetBoardPublicState()
- * })
- */
-export async function resetBoardPublicState(): Promise<void> {
-  const supabase = createServiceRoleSupabaseClient()
-
-  const { data, error } = await supabase
-    .from('board')
-    .update({ is_public: true, share_slug: PUBLIC_BOARD_SLUG })
-    .eq('id', BOARD_IDS.testBoard)
-    .select('id')
-  if (error) {
-    throw new Error(`resetBoardPublicState: ${error.message}`)
-  }
-  if (!data || data.length === 0) {
-    throw new Error(
-      `resetBoardPublicState: UPDATE matched 0 rows for id=${BOARD_IDS.testBoard}. ` +
-        `URL=${process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'}`,
-    )
   }
 }

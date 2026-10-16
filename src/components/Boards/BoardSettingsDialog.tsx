@@ -13,7 +13,7 @@
 
 'use client'
 
-import { Check, Copy, CreditCard, Globe, Settings, Trash2 } from 'lucide-react'
+import { CreditCard, Settings, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import {
   memo,
@@ -53,7 +53,6 @@ import { Switch } from '@/components/ui/switch'
 import {
   deleteBoardAction,
   renameBoardAction,
-  toggleBoardPublic,
   toggleBoardSubtitleVisibility,
   updateBoardSettingsAction,
   updateBoardSubtitle,
@@ -68,14 +67,13 @@ import {
   DEFAULT_CARD_DISPLAY_SETTINGS,
   parseBoardSettings,
 } from '@/lib/types/board-settings'
-import { toPublicBoardUrl } from '@/lib/utils/to-public-board-url'
 import {
   BOARD_NAME_MAX_LENGTH,
   BOARD_SUBTITLE_MAX_LENGTH,
 } from '@/lib/validations/board'
 
 /** Tab navigation options */
-type SettingsTab = 'general' | 'card-display' | 'sharing' | 'danger'
+type SettingsTab = 'general' | 'card-display' | 'danger'
 
 interface BoardSettingsDialogProps {
   /** Whether the dialog is open */
@@ -88,10 +86,6 @@ interface BoardSettingsDialogProps {
   boardName: string
   /** Current board settings (from board.settings JSON column) */
   boardSettings?: unknown
-  /** Whether the board is currently public */
-  isPublic?: boolean
-  /** Current share slug (null if never shared) */
-  shareSlug?: string | null
   /** Current board subtitle text */
   boardSubtitle?: string | null
   /** Callback when subtitle text is saved (for optimistic update) */
@@ -104,8 +98,6 @@ interface BoardSettingsDialogProps {
   onRenameSuccess: (newName: string) => void
   /** Callback when card display settings change */
   onCardDisplayChange?: (settings: CardDisplaySettings) => void
-  /** Callback when public toggle changes */
-  onPublicChange?: (isPublic: boolean, shareSlug: string | null) => void
   /** Callback when delete succeeds (for navigation) */
   onDeleteSuccess: () => void
 }
@@ -181,15 +173,12 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
   boardId,
   boardName,
   boardSettings,
-  isPublic: initialIsPublic = false,
-  shareSlug: initialShareSlug = null,
   boardSubtitle: initialBoardSubtitle = null,
   onSubtitleSuccess,
   showSubtitle: initialShowSubtitle = true,
   onShowSubtitleChange,
   onRenameSuccess,
   onCardDisplayChange,
-  onPublicChange,
   onDeleteSuccess,
 }: BoardSettingsDialogProps) {
   const router = useRouter()
@@ -230,22 +219,6 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
     setLastBoardSettings(boardSettings)
     const newParsed = parseBoardSettings(boardSettings)
     setCardDisplay(newParsed.cardDisplay ?? DEFAULT_CARD_DISPLAY_SETTINGS)
-  }
-
-  // Sharing state
-  const [boardIsPublic, setBoardIsPublic] = useState(initialIsPublic)
-  const [boardShareSlug, setBoardShareSlug] = useState(initialShareSlug)
-  const [lastIsPublic, setLastIsPublic] = useState(initialIsPublic)
-  const [lastShareSlug, setLastShareSlug] = useState(initialShareSlug)
-  const [isTogglingPublic, setIsTogglingPublic] = useState(false)
-  const [copied, setCopied] = useState(false)
-
-  // Sync sharing state from props
-  if (initialIsPublic !== lastIsPublic || initialShareSlug !== lastShareSlug) {
-    setLastIsPublic(initialIsPublic)
-    setLastShareSlug(initialShareSlug)
-    setBoardIsPublic(initialIsPublic)
-    setBoardShareSlug(initialShareSlug)
   }
 
   // Subtitle form state
@@ -313,43 +286,6 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
       }
     } finally {
       setIsTogglingSubtitle(false)
-    }
-  }
-
-  /**
-   * Toggle public visibility for the board.
-   * Generates a share slug on first enable.
-   */
-  async function handleTogglePublic(checked: boolean): Promise<void> {
-    setIsTogglingPublic(true)
-    try {
-      const result = await toggleBoardPublic(boardId, checked)
-      if (result.success) {
-        setBoardIsPublic(result.data.is_public)
-        setBoardShareSlug(result.data.share_slug)
-        onPublicChange?.(result.data.is_public, result.data.share_slug)
-        toast.success(checked ? 'Board is now public' : 'Board is now private')
-      } else {
-        toast.error('Failed to update visibility', {
-          description: result.error,
-        })
-      }
-    } finally {
-      setIsTogglingPublic(false)
-    }
-  }
-
-  /** Copy share URL to clipboard */
-  async function handleCopyShareLink(): Promise<void> {
-    if (!boardShareSlug) return
-    const url = toPublicBoardUrl(window.location.origin, boardShareSlug)
-    try {
-      await navigator.clipboard.writeText(url)
-      setCopied(true)
-      toast.success('Link copied to clipboard')
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      toast.error('Failed to copy link')
     }
   }
 
@@ -483,10 +419,10 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
             </DialogDescription>
           </DialogHeader>
 
-          {/* Tab Navigation. The four tabs in one row are wider than a
-              phone, so they take a second row there: a row that does not
-              wrap made the whole dialog scroll sideways. Each tab has the id
-              its panel is labelled by. */}
+          {/* Tab Navigation. In one row the tabs are wider than a phone,
+              so they take a second row there (at 375px Danger Zone stands
+              alone in it): a row that does not wrap made the whole dialog
+              scroll sideways. Each tab has the id its panel is labelled by. */}
           <nav
             className="border-border flex flex-wrap gap-1 border-b pb-2"
             role="tablist"
@@ -515,19 +451,6 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
             >
               <CreditCard className="h-4 w-4" />
               Cards
-            </button>
-            <button
-              type="button"
-              role="tab"
-              id="tab-sharing"
-              aria-selected={activeTab === 'sharing'}
-              aria-controls="panel-sharing"
-              onClick={() => setActiveTab('sharing')}
-              className={`${TAB_BASE} ${activeTab === 'sharing' ? TAB_ACTIVE : TAB_INACTIVE}`}
-              data-testid="tab-sharing"
-            >
-              <Globe className="h-4 w-4" />
-              Sharing
             </button>
             <button
               type="button"
@@ -826,78 +749,6 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                     {isSettingsPending ? 'Saving...' : 'Save Settings'}
                   </Button>
                 </form>
-              </div>
-            )}
-
-            {/* Sharing Tab: Public Board Toggle */}
-            {activeTab === 'sharing' && (
-              <div
-                id="panel-sharing"
-                role="tabpanel"
-                aria-labelledby="tab-sharing"
-                className="space-y-6"
-              >
-                <div>
-                  <h3 className="mb-4 text-lg font-semibold">Public Sharing</h3>
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-1">
-                      <Label
-                        htmlFor="public-toggle"
-                        className="text-sm font-medium"
-                      >
-                        Make board public
-                      </Label>
-                      <p className="text-muted-foreground text-xs">
-                        Anyone with the link can view this board (read-only)
-                      </p>
-                    </div>
-                    <Switch
-                      id="public-toggle"
-                      checked={boardIsPublic}
-                      onCheckedChange={handleTogglePublic}
-                      disabled={isTogglingPublic}
-                      data-testid="public-toggle"
-                    />
-                  </div>
-                </div>
-
-                {boardIsPublic && boardShareSlug && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Share link</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        readOnly
-                        value={toPublicBoardUrl(
-                          typeof window !== 'undefined'
-                            ? window.location.origin
-                            : '',
-                          boardShareSlug,
-                        )}
-                        className="text-muted-foreground text-sm"
-                        data-testid="share-link-input"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={handleCopyShareLink}
-                        aria-label="Copy share link"
-                        data-testid="copy-share-link"
-                      >
-                        {copied ? (
-                          <Check className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                    <p className="text-muted-foreground text-xs">
-                      Visible: board name, subtitle, columns, and each
-                      repository&apos;s name, description, language, and stars.
-                      Hidden: comments, notes, and links.
-                    </p>
-                  </div>
-                )}
               </div>
             )}
 

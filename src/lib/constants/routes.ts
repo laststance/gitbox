@@ -22,10 +22,3 @@ export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES]
  * must name the same path.
  */
 export const SENTRY_TUNNEL_ROUTE = '/monitoring'
-
-/**
- * Path prefix of the shared, read-only board pages (`/public/<slug>`), which
- * need no sign-in. The proxy lets `/public/<slug>` through and nothing below
- * a slug.
- */
-export const PUBLIC_BOARD_ROUTE_PREFIX = '/public/'

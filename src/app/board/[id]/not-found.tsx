@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button'
 /**
  * Custom 404 page for a board the signed-in user cannot open here.
  * Shown when notFound() is called from the board page: the ID is malformed,
- * no such board exists, or the board belongs to another account (a public
- * board of someone else opens at /public/[slug], not here).
+ * no such board exists, or the board belongs to another account.
  */
 const BoardNotFound = memo(function BoardNotFound() {
   return (
@@ -21,7 +20,7 @@ const BoardNotFound = memo(function BoardNotFound() {
           account.
         </p>
         <p className="text-muted-foreground mt-1 text-sm">
-          To see someone else&apos;s board, ask them for its public link.
+          A board opens only for the account that owns it.
         </p>
       </div>
       <Button asChild variant="default">

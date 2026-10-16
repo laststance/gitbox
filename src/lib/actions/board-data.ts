@@ -164,7 +164,7 @@ export async function getSavedRepositoryMemories(): Promise<
  * @returns
  * - The {@link BoardBundle} when the board exists and belongs to the signed-in user.
  * - `null` when the ID is malformed, the board does not exist or it belongs
- *   to someone else, even when public (caller → notFound). A bad ID never
+ *   to someone else (caller → notFound). A bad ID never
  *   reaches Postgres, so it cannot 500.
  * - `null` when there is no session. The board page sends that visitor to the
  *   login page with {@link requireClaims} instead of showing a 404.
@@ -204,9 +204,9 @@ export async function getBoardBundle(
     .from('board')
     .select(BOARD_BUNDLE_SELECT)
     .eq('id', boardId)
-    // This page is the owner's editing view: anyone else gets a 404 here and
-    // uses /public/[slug]. Row level security hides other users' boards too;
-    // this filter keeps the page correct without depending on the policies.
+    // A board opens only for the account that owns it: anyone else gets a
+    // 404 here. Row level security hides other users' boards too; this
+    // filter keeps the page correct without depending on the policies.
     .eq('user_id', claims.sub)
     // Order embedded cards by `order` ascending. A full page is read again
     // below, past the row cap; under the cap this order is what the page gets.

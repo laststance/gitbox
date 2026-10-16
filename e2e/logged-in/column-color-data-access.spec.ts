@@ -5,11 +5,10 @@
  * through the REST API the way any signed-in browser can, without the server
  * actions in front of it.
  *
- * The color of a column is printed into a style attribute, and on a shared
- * board the server prints it into the page a visitor loads. A color such as
- * `red; position: fixed; inset: 0` would add CSS declarations of the board
- * owner's choice to that page. The app checks the color it writes; the table
- * has to refuse the rest (constraint `statuslist_color_hex`).
+ * The color of a column is printed into a style attribute of the board
+ * owner's page. A color such as `red; position: fixed; inset: 0` would add
+ * CSS declarations to that page. The app checks the color it writes; the
+ * table has to refuse the rest (constraint `statuslist_color_hex`).
  *
  * These tests talk to the database, not to a page.
  */

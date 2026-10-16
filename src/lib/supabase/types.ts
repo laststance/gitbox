@@ -39,11 +39,9 @@ export type Database = {
           created_at: string | null
           id: string
           is_favorite: boolean
-          is_public: boolean
           name: string
           position: number
           settings: Json | null
-          share_slug: string | null
           subtitle: string | null
           updated_at: string | null
           user_id: string
@@ -52,11 +50,9 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_favorite?: boolean
-          is_public?: boolean
           name: string
           position?: number
           settings?: Json | null
-          share_slug?: string | null
           subtitle?: string | null
           updated_at?: string | null
           user_id: string
@@ -65,11 +61,9 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_favorite?: boolean
-          is_public?: boolean
           name?: string
           position?: number
           settings?: Json | null
-          share_slug?: string | null
           subtitle?: string | null
           updated_at?: string | null
           user_id?: string
@@ -309,10 +303,6 @@ export type Database = {
       }
       create_board_with_status_lists: {
         Args: { p_name: string; p_columns: Json }
-        Returns: Json
-      }
-      get_public_board: {
-        Args: { p_slug: string }
         Returns: Json
       }
       move_card_to_board: {

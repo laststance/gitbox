@@ -64,7 +64,7 @@ export type BoardCreationOutcome =
  * @returns The {@link BoardCreationOutcome}.
  * @example
  * await createBoardFromPreset(supabase, 'Side Projects', 'single-column')
- * // => { status: 'created', board: { id: 'uuid', name: 'Side Projects', isPublic: false,
+ * // => { status: 'created', board: { id: 'uuid', name: 'Side Projects',
  * //      statusLists: [{ id: 'uuid', name: 'Repositories', color: '#6B7280' }] } }
  */
 export async function createBoardFromPreset(
@@ -98,10 +98,9 @@ export async function createBoardFromPreset(
     }
 
     const { id, name, status_lists: statusLists } = parsedBoard.data
-    // A board is shared from its settings, never at creation
     return {
       status: 'created',
-      board: { id, name, isPublic: false, statusLists },
+      board: { id, name, statusLists },
     }
   } catch (error) {
     // The client answers with an error and does not throw. If something

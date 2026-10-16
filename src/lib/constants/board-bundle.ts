@@ -2,8 +2,7 @@
  * The `repocard` columns the app reads, as a PostgREST select list.
  *
  * Leaves out `user_id`, which only the database uses, so it is never fetched
- * into a page. The public board page reads its cards through
- * `get_public_board`, which returns the same columns.
+ * into a page.
  *
  * @example
  * supabase.from('repocard').select(REPO_CARD_COLUMNS)

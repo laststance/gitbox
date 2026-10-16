@@ -65,8 +65,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Board 1: Test Board (main board for most tests)
 -- position=1: second in list (created_at DESC puts newer board-2 first)
--- is_public + share_slug: enables public board E2E tests
-INSERT INTO board (id, user_id, name, subtitle, settings, is_favorite, position, is_public, share_slug, created_at, updated_at)
+INSERT INTO board (id, user_id, name, subtitle, settings, is_favorite, position, created_at, updated_at)
 VALUES (
   '00000000-0000-0000-0000-000000000100'::uuid,
   '00000000-0000-0000-0000-000000000001'::uuid,
@@ -75,8 +74,6 @@ VALUES (
   '{}'::jsonb,
   false,
   1,
-  true,
-  'a1b2c3d4e5f6',
   '2024-01-01T00:00:00.000Z'::timestamptz,
   '2024-01-01T00:00:00.000Z'::timestamptz
 )
@@ -387,7 +384,7 @@ ON CONFLICT (user_id) DO NOTHING;
 -- ============================================================================
 -- Second Account (Issue #215: one repository, one card per user)
 -- ============================================================================
--- A different user who owns ONE PUBLIC board holding two repositories the
+-- A different user who owns ONE board holding two repositories the
 -- test user can also see in their GitHub catalog:
 --   testuser/test-repo       - also on the test user's Test Board. Proves the
 --                              unique index is per user: if it were global,
@@ -433,17 +430,15 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO board (id, user_id, name, subtitle, settings, is_favorite, position, is_public, share_slug, created_at, updated_at)
+INSERT INTO board (id, user_id, name, subtitle, settings, is_favorite, position, created_at, updated_at)
 VALUES (
   '00000000-0000-0000-0000-000000000110'::uuid,
   '00000000-0000-0000-0000-000000000002'::uuid,
-  'Other User Public Board',
+  'Other User Board',
   NULL,
   '{}'::jsonb,
   false,
   0,
-  true,
-  'f6e5d4c3b2a1',
   '2024-01-03T00:00:00.000Z'::timestamptz,
   '2024-01-03T00:00:00.000Z'::timestamptz
 )

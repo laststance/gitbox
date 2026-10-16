@@ -33,7 +33,6 @@ vi.mock('@/lib/actions/board', () => ({
   renameBoardAction: vi.fn(),
   updateBoardSettingsAction: vi.fn(),
   deleteBoardAction: vi.fn(),
-  toggleBoardPublic: vi.fn(),
   toggleBoardSubtitleVisibility: vi.fn(),
   updateBoardSubtitle: vi.fn(),
 }))
@@ -97,15 +96,20 @@ describe('BoardSettingsDialog', () => {
   })
 
   describe('Tab Navigation', () => {
-    test('should display all four tabs', () => {
+    test('shows the General, Cards and Danger Zone tabs and no other', () => {
+      // Arrange
       render(<BoardSettingsDialog {...defaultProps} />)
 
-      expect(screen.getByRole('tab', { name: /general/i })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: /cards/i })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: /sharing/i })).toBeInTheDocument()
-      expect(
-        screen.getByRole('tab', { name: /danger zone/i }),
-      ).toBeInTheDocument()
+      // Act
+      const tabs = screen.getAllByRole('tab')
+
+      // Assert
+      expect(tabs.map((tab) => tab.textContent)).toEqual([
+        'General',
+        'Cards',
+        'Danger Zone',
+      ])
+      for (const tab of tabs) expect(tab).toBeVisible()
     })
 
     test('should have General tab selected by default', () => {
@@ -373,8 +377,8 @@ describe('BoardSettingsDialog', () => {
       render(<BoardSettingsDialog {...defaultProps} />)
 
       const tabs = screen.getAllByRole('tab')
-      // 4 tabs: General, Cards, Sharing, Danger Zone
-      expect(tabs).toHaveLength(4)
+      // 3 tabs: General, Cards, Danger Zone
+      expect(tabs).toHaveLength(3)
     })
 
     test('should have tabpanel role for content', () => {
@@ -490,26 +494,6 @@ describe('BoardSettingsDialog', () => {
     })
   })
 
-  describe('Sharing Tab', () => {
-    // Value: protects=the owner of a shared board reads everything the public link shows, the subtitle included; fails_when=the list of what is visible loses the subtitle, which the shared page prints under the board's name; why_new=no test read the sentence; seam=none; no_claim=what the shared page shows, which public-board.test.ts and the browser test of the shared page check
-    test('names the subtitle among what a public link shows', () => {
-      // Arrange
-      render(
-        <BoardSettingsDialog {...defaultProps} isPublic shareSlug="k3x9m2q7" />,
-      )
-
-      // Act
-      fireEvent.click(screen.getByRole('tab', { name: /sharing/i }))
-
-      // Assert
-      expect(
-        screen.getByText(
-          "Visible: board name, subtitle, columns, and each repository's name, description, language, and stars. Hidden: comments, notes, and links.",
-        ),
-      ).toBeVisible()
-    })
-  })
-
   describe('Headings and panel names', () => {
     // Value: protects=a screen reader that lists the headings of the Cards tab finds its sections one level under the title of the dialog, as in the other tabs; fails_when=the sections of the Cards tab are h4 again, two levels under the h2 with no h3 between; why_new=no test read the level of a heading in this dialog; seam=none; no_claim=how large the headings are drawn, which their classes decide
     test('puts the sections of the Cards tab one heading level under the title of the dialog', () => {
@@ -529,7 +513,7 @@ describe('BoardSettingsDialog', () => {
     })
 
     // Value: protects=a screen reader that enters a panel of the dialog says which tab it belongs to; fails_when=a tab loses the id its panel is labelled by, so the panel has no name; why_new=the tests of the tabs read aria-controls, the way from a tab to its panel, and nothing read the way back; seam=none; no_claim=none
-    test.each(['General', 'Cards', 'Sharing', 'Danger Zone'])(
+    test.each(['General', 'Cards', 'Danger Zone'])(
       'names the panel of the %s tab after that tab',
       (tabName) => {
         // Arrange

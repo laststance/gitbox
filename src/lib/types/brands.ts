@@ -74,21 +74,6 @@ export type UserId = Brand<string, 'UserId'>
  */
 export type UserLinkPresetId = Brand<string, 'UserLinkPresetId'>
 
-/**
- * URL-safe public share slug for a board (`board.share_slug` when not null).
- *
- * Distinct from {@link BoardId} because it travels through the URL path
- * `/public/:slug` and is user-visible — a consumer who confuses it with the
- * board UUID would query the wrong column. Branding rules that class of bug
- * out at the type level.
- *
- * See also {@link ./domain-primitives.ts#ShareSlug}, which is the nullable
- * DB-row form (`string | null`) before slug presence has been asserted.
- *
- * @example 'my-awesome-board-a1b2c3'
- */
-export type PublicBoardSlug = Brand<string, 'PublicBoardSlug'>
-
 // ========================================
 // Factory functions (trust boundary only)
 // ========================================
@@ -133,12 +118,3 @@ export const toUserId = (id: string): UserId => id as UserId
  */
 export const toUserLinkPresetId = (id: string): UserLinkPresetId =>
   id as UserLinkPresetId
-
-/**
- * Mark a raw string as a {@link PublicBoardSlug}. Call this once where the
- * slug enters the domain — typically the `/public/:slug` route handler or
- * the `getBoardBySlug` Server Action.
- * @example const slug = toPublicBoardSlug(params.slug)
- */
-export const toPublicBoardSlug = (slug: string): PublicBoardSlug =>
-  slug as PublicBoardSlug

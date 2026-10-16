@@ -938,10 +938,11 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
   test('scrolls the whole panel on a window too short for a row of the list, so Add can still be reached', async ({
     page,
   }) => {
-    // Arrange: a window of 300px leaves the panel 276px (it starts at the
-    // top edge, 8px down), less than the search box, the filters, one row of
-    // the list, the notice of a shared board and the buttons need
-    await page.setViewportSize({ width: 1280, height: 300 })
+    // Arrange: a window of 256px leaves the panel 230px (it starts at the
+    // top edge, 8px down), less than the 248px the search box, the filters,
+    // one row of the list and the buttons need (measured on 2026-10-16).
+    // 256px is as low as this case goes: the height WCAG 1.4.10 Reflow uses
+    await page.setViewportSize({ width: 1280, height: 256 })
     await page.goto(BOARD_URL)
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
     await page.getByRole('button', { name: /add repositories/i }).click()
@@ -968,8 +969,10 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
     page,
   }) => {
     // Arrange: a header whose content begins 120px further down, as a title
-    // and a subtitle that wrap can push it, in a window of 700px
-    await page.setViewportSize({ width: 1280, height: 700 })
+    // and a subtitle that wrap can push it, in a window of 660px. The panel
+    // with every repository free is 486px high, so from 191px down it needs
+    // more than the window leaves (measured on 2026-10-16)
+    await page.setViewportSize({ width: 1280, height: 660 })
     await page.goto(BOARD_URL)
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
     await page.addStyleTag({
@@ -989,7 +992,7 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
     const panelBox = await panel.boundingBox()
     expect(Math.round(panelBox?.y ?? -1)).toBe(191)
     // ... and ends 16px above the bottom edge, with its buttons on screen
-    expect(Math.round((panelBox?.y ?? 0) + (panelBox?.height ?? 0))).toBe(684)
+    expect(Math.round((panelBox?.y ?? 0) + (panelBox?.height ?? 0))).toBe(644)
     await expect(panel.getByRole('button', { name: 'Cancel' })).toBeInViewport({
       ratio: 1,
     })
@@ -1002,8 +1005,9 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
   test('follows its button when the header gets higher while the panel is open', async ({
     page,
   }) => {
-    // Arrange: the panel is open under the header at its usual height
-    await page.setViewportSize({ width: 1280, height: 700 })
+    // Arrange: the panel is open under the header at its usual height, in a
+    // window that is too short for all of it once it starts 120px lower
+    await page.setViewportSize({ width: 1280, height: 660 })
     await page.goto(BOARD_URL)
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
     await page.getByRole('button', { name: /add repositories/i }).click()
@@ -1030,7 +1034,7 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
           bottom: Math.round((panelBox?.y ?? 0) + (panelBox?.height ?? 0)),
         }
       })
-      .toEqual({ top: 191, bottom: 684 })
+      .toEqual({ top: 191, bottom: 644 })
     await expect(panel.getByRole('button', { name: 'Cancel' })).toBeInViewport({
       ratio: 1,
     })
@@ -1039,7 +1043,7 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
     )
   })
 
-  // Value: protects=the panel keeps a usable height where its button stands low in a short window (a header that wraps, a phone held sideways); fails_when=the panel always starts below its button, however little room is left there, and squeezes what it shows into that rest; why_new=the tests above leave the panel more than 26rem below the button, or no room at all; seam=none; no_claim=the 26rem themselves (measured once by hand: 416px is what the panel needs on a shared board with both lists at their least height)
+  // Value: protects=the panel keeps a usable height where its button stands low in a short window (a header that wraps, a phone held sideways); fails_when=the panel always starts below its button, however little room is left there, and squeezes what it shows into that rest; why_new=the tests above leave the panel more than 26rem below the button, or no room at all; seam=none; no_claim=the 26rem themselves (measured once by hand, with the removed sharing notice on screen: 416px was what the panel needed with both lists at their least height)
   test('moves up over the header where less than 26rem would be left below its button', async ({
     page,
   }) => {
@@ -1082,20 +1086,21 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
     )
   })
 
-  // Value: protects=with repositories placed on another board the picker still shows its search box and Cancel / Add on a short window; fails_when=the list "Already placed elsewhere" keeps its full height, so the panel outgrows the window and scrolls as a whole; why_new=the two tests above empty every board, so that list is never on screen; seam=none; no_claim=the exact heights (they depend on how the font wraps the notice of a shared board)
+  // Value: protects=with repositories placed on another board the picker still shows its search box and Cancel / Add on a short window; fails_when=the list "Already placed elsewhere" keeps its full height, so the panel outgrows the window and scrolls as a whole; why_new=the two tests above empty every board, so that list is never on screen; seam=none; no_claim=the exact heights (they depend on the font)
   test('keeps the search box and the Cancel / Add row in view on a short window with repositories placed elsewhere: that list gives up height too', async ({
     page,
   }) => {
     // Arrange: four of the five repositories sit on Work Projects, one is
     // free. Four rows need more than the 184px the list shows at most, and a
-    // window of 560px leaves the panel 473px, about 80px less than it needs.
+    // window of 520px leaves the panel 431px, about 70px less than the 498px
+    // it needs (measured on 2026-10-16).
     await placeOnWorkProjects([
       { owner: 'testuser', name: 'test-repo' },
       { owner: 'testuser', name: 'another-repo' },
       { owner: 'testuser', name: 'private-project' },
       { owner: 'laststance', name: 'create-react-app-vite' },
     ])
-    await page.setViewportSize({ width: 1280, height: 560 })
+    await page.setViewportSize({ width: 1280, height: 520 })
     await page.goto(BOARD_URL)
     await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
 

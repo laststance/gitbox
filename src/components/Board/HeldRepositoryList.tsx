@@ -39,8 +39,6 @@ interface HeldRepositoryListProps {
   boardId: BoardId
   /** Column the picker was opened for. The move dialog starts with it. */
   defaultStatusId: StatusListId | null
-  /** A public link shows a repository moved onto this board. */
-  isBoardShared?: boolean
   /** Reloads the held list after a move the server confirmed. */
   onMoved: () => void
   /**
@@ -66,7 +64,6 @@ export const HeldRepositoryList = memo(function HeldRepositoryList({
   repositories,
   boardId,
   defaultStatusId,
-  isBoardShared = false,
   movesDisabled = false,
   onMoved,
 }: HeldRepositoryListProps) {
@@ -137,7 +134,6 @@ export const HeldRepositoryList = memo(function HeldRepositoryList({
           repository={moving}
           boardId={boardId}
           defaultStatusId={defaultStatusId}
-          isBoardShared={isBoardShared}
           onClose={() => setMoving(null)}
           onMoved={onMoved}
         />

@@ -62,7 +62,6 @@ describe('what a browser can call in src/lib/actions', () => {
         'renameBoardDirect',
         'updateBoardSubtitle',
         'toggleBoardSubtitleVisibility',
-        'toggleBoardPublic',
       ],
       'github.ts': ['getAuthenticatedRepositoryCatalog'],
       'project-info.ts': [
@@ -72,7 +71,6 @@ describe('what a browser can call in src/lib/actions', () => {
         'updateCommentColor',
         'deleteComment',
       ],
-      'public-board.ts': ['getPublicBoardBySlug'],
       'repo-cards.ts': [
         'addRepositoriesToBoard',
         'deleteRepoCard',
@@ -93,7 +91,7 @@ describe('what a browser can call in src/lib/actions', () => {
  * @returns The exported names in source order; empty for a file without the
  * `'use server'` directive, whose exports no browser can call.
  * @example
- * listEndpoints('public-board.ts') // => ['getPublicBoardBySlug']
+ * listEndpoints('user-presets.ts') // => ['getUserPresets', 'createUserPreset']
  * listEndpoints('mappers.ts') // => [] (not a Server Actions file)
  */
 function listEndpoints(fileName: string): string[] {
