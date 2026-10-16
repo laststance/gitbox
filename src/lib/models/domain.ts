@@ -150,8 +150,11 @@ export interface RepoCardMeta {
   /** Repository description from GitHub. */
   description?: string
   /**
-   * GitHub repository id as reported by the browser when the card was added.
-   * An untrusted hint: re-verify against the GitHub API before relying on it.
+   * GitHub repository id from GitHub's own response.
+   *
+   * Written when a card is added, after GitHub confirms the repository, and
+   * again when the card is refreshed. A card added before that id was stored
+   * may omit it. The browser does not choose the number.
    */
   githubId?: number
 }

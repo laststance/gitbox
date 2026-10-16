@@ -18,7 +18,7 @@
 import * as Sentry from '@sentry/nextjs'
 import { Link, Plus, RefreshCw, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState, useCallback, useMemo, memo } from 'react'
+import { useState, useCallback, useMemo, useRef, memo } from 'react'
 import { toast } from 'sonner'
 
 import { AddRepositoryCombobox } from '@/components/Board/AddRepositoryCombobox'
@@ -177,21 +177,38 @@ export const BoardPageClient = memo(function BoardPageClient({
   )
 
   const [isRefreshingBoard, setIsRefreshingBoard] = useState(false)
+  // A second click on the same card, or a click during the board refresh,
+  // would spend another unit of the shared refresh limit.
+  const refreshingCardIds = useRef(new Set<RepoCardId>())
+  const boardRefreshInFlight = useRef(false)
 
   const handleRefreshCard = useCallback(
     async (cardId: RepoCardId): Promise<void> => {
-      const result = await refreshCardMetadata(cardId)
-      if (!result.success) {
-        toast.error(result.error)
+      if (
+        boardRefreshInFlight.current ||
+        refreshingCardIds.current.has(cardId)
+      ) {
         return
       }
-      dispatch(applyRefreshedRepoCards([result.data]))
-      toast.success('Refreshed from GitHub')
+      refreshingCardIds.current.add(cardId)
+      try {
+        const result = await refreshCardMetadata(cardId)
+        if (!result.success) {
+          toast.error(result.error)
+          return
+        }
+        dispatch(applyRefreshedRepoCards([result.data]))
+        toast.success('Refreshed from GitHub')
+      } finally {
+        refreshingCardIds.current.delete(cardId)
+      }
     },
     [dispatch],
   )
 
   const handleRefreshBoard = useCallback(async (): Promise<void> => {
+    if (boardRefreshInFlight.current) return
+    boardRefreshInFlight.current = true
     setIsRefreshingBoard(true)
     try {
       const result = await refreshBoardMetadata(boardId)
@@ -214,6 +231,7 @@ export const BoardPageClient = memo(function BoardPageClient({
       }
       toast.success(sentence)
     } finally {
+      boardRefreshInFlight.current = false
       setIsRefreshingBoard(false)
     }
   }, [boardId, dispatch])
