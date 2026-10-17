@@ -35,7 +35,7 @@ const UNDO_BOARD_NAME = 'Undo coverage scratch'
 /** Platform-aware modifier: Cmd on macOS, Ctrl on Linux (CI). */
 const MOD = process.platform === 'darwin' ? 'Meta' : 'Control'
 
-/** How long a draft write is allowed to take after the 300ms persist delay. */
+/** How long to keep watching after Cancel. The persist write waits 300ms. */
 const DRAFT_SETTLE_MS = 500
 
 test.describe('Shipped TODO coverage', () => {
@@ -150,16 +150,16 @@ test.describe('Shipped TODO coverage', () => {
     await expect(
       dialog.getByRole('heading', { name: 'Project Note', exact: true }),
     ).toBeVisible()
-    const openedAt = Date.now()
     await dialog.getByRole('button', { name: 'Cancel' }).click()
     await expect(dialog).toBeHidden()
+    const cancelledAt = Date.now()
 
     // Assert: still absent after the persist delay, not only in the first instant
     await expect
       .poll(async () => {
         const notes = await readDraftNotes(page)
         const absent = notes[CARD_1_DRAFT_KEY] === undefined
-        return absent && Date.now() - openedAt >= DRAFT_SETTLE_MS
+        return absent && Date.now() - cancelledAt >= DRAFT_SETTLE_MS
       })
       .toBe(true)
 
@@ -229,11 +229,28 @@ test.describe('Shipped TODO coverage', () => {
     await page.getByRole('button', { name: 'Sign Out' }).click()
 
     // Assert
+    // toMatchObject treats {} as "any object", so a leftover draft would pass.
     await expect
-      .poll(() => readPersisted(page))
-      .toMatchObject({
-        settings: { theme: 'rust', moveDestinationByBoard: {} },
-        draft: { notes: {} },
+      .poll(async () => {
+        const state = await readPersisted(page)
+        const settings = state?.settings as
+          | {
+              theme?: string
+              moveDestinationByBoard?: Record<string, string>
+            }
+          | undefined
+        const draft = state?.draft as
+          { notes?: Record<string, unknown> } | undefined
+        return {
+          theme: settings?.theme ?? null,
+          moveDestinations: settings?.moveDestinationByBoard ?? null,
+          notes: draft?.notes ?? null,
+        }
+      })
+      .toEqual({
+        theme: 'rust',
+        moveDestinations: {},
+        notes: {},
       })
     await expect(page).toHaveURL(/\/boards$/)
   })
