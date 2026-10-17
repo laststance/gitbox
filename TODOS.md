@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Return the keyboard to the comment when its editor closes
-
-**What:** When the inline editor of a card's comment closes (Enter, Escape or the save button), put the focus on the comment, or on "Add comment" when the comment is empty.
-
-**Why:** Seen on a card of the local build on 2026-10-12: after Escape in the editor the focus is on the page (`document.body`), so a keyboard user starts again from the top of the board. Opening the editor with the keyboard works, from the comment (Enter) and from its menu (Enter on the menu button, Enter on Edit), and the editor takes the focus.
-
-**Context:** `handleCommentSave` and `handleCommentCancel` of `src/components/Board/RepoCard.tsx` set `isEditingComment` to false; `CommentSection` swaps the editor for `CommentDisplay` with `<Activity>`, so the element that had the focus is hidden. `useCardDialogFocusReturn` does the same job for the dialogs of a card. Older than this change.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### Break a name of one long word in the places that are left
 
 **What:** Break a name of one long word in two more places, as the board, the cards, the dialogs and the select lists do: (1) the badge of a selected repository in the Add Repositories picker, with `shrink-0` on its remove button; (2) the title of the column that is being dragged. Then look once more for a name that is shown beside something it can cover.

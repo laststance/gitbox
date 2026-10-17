@@ -17,7 +17,7 @@
 'use client'
 
 import { Plus } from 'lucide-react'
-import { memo, type ReactNode } from 'react'
+import { memo, type ReactNode, type Ref } from 'react'
 
 import { cn } from '@/lib/utils'
 
@@ -98,6 +98,11 @@ interface CommentDisplayProps {
   className?: string
   /** Action buttons to render (e.g., CommentActionsMenu) */
   renderActions?: ReactNode
+  /**
+   * The comment, or "Add comment" when it is empty. The editor puts the
+   * keyboard here when it closes.
+   */
+  focusRef?: Ref<HTMLDivElement>
 }
 
 /**
@@ -139,6 +144,7 @@ export const CommentDisplay = memo<CommentDisplayProps>(
     showEmptyState = true,
     className,
     renderActions,
+    focusRef,
   }) => {
     const mergedStyle = { ...DEFAULT_COMMENT_STYLE, ...style }
 
@@ -154,6 +160,7 @@ export const CommentDisplay = memo<CommentDisplayProps>(
 
       return (
         <div
+          ref={focusRef}
           onClick={onClick}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -185,6 +192,7 @@ export const CommentDisplay = memo<CommentDisplayProps>(
     return (
       <div className={cn('group relative', className)}>
         <div
+          ref={focusRef}
           onClick={onClick}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
