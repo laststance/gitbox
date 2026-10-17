@@ -214,9 +214,21 @@ function dropSpentRefreshAttempt(
  * isSentryTunnelPath('/monitoring')   // => true
  * isSentryTunnelPath('/Monitoring//') // => true
  * isSentryTunnelPath('/monitoring/x') // => false
+ * isSentryTunnelPath('/monitoringx')  // => false
  */
-const isSentryTunnelPath = (pathname: string): boolean =>
-  pathname.toLowerCase().replace(/\/+$/, '') === SENTRY_TUNNEL_ROUTE
+const isSentryTunnelPath = (pathname: string): boolean => {
+  const lower = pathname.toLowerCase()
+  if (!lower.startsWith(SENTRY_TUNNEL_ROUTE)) return false
+  const rest = lower.slice(SENTRY_TUNNEL_ROUTE.length)
+  if (rest === '') return true
+  // Only trailing slashes. A slash in the middle, or any other character,
+  // is a different path. Scanning the whole path with a replace is what a
+  // long run of slashes used to make slow.
+  for (const character of rest) {
+    if (character !== '/') return false
+  }
+  return true
+}
 
 /**
  * Forwards a browser error report to this app's own Sentry project. Exists so
@@ -226,8 +238,8 @@ const isSentryTunnelPath = (pathname: string): boolean =>
  * into the query string included. Called by {@link proxy} for every request
  * on the tunnel path.
  *
- * The Cookie header stays behind: the session cookies are not Sentry's to
- * see, and their size makes the ingest host answer 400.
+ * The rewrite carries only the headers the ingest needs. The session cookie,
+ * an authorization header, and a platform token are not among them.
  *
  * The route answers without a session, so it limits what one client can send
  * through it: a number of reports per minute, and the size a report declares.
@@ -237,7 +249,7 @@ const isSentryTunnelPath = (pathname: string): boolean =>
  *
  * @param request - A request whose path is the Sentry tunnel route.
  * @returns
- * - A rewrite to {@link SENTRY_ENVELOPE_URL}, without the Cookie header, for a `POST`
+ * - A rewrite to {@link SENTRY_ENVELOPE_URL}, with only the allowlisted headers, for a `POST`
  * - `404` for every other method
  * - `429` with `Retry-After` once the client address is over its limit for the minute
  * - `413` when `Content-Length` is above {@link SENTRY_TUNNEL_MAX_BODY_BYTES}
@@ -248,6 +260,34 @@ const isSentryTunnelPath = (pathname: string): boolean =>
  * // 121st POST of the minute from one address          => 429
  * // POST with Content-Length: 20971521                 => 413
  */
+/**
+ * Headers the Sentry ingest is given.
+ *
+ * Built from a fixed list, not from a copy of the request with names
+ * deleted, so a header the platform adds cannot ride along.
+ *
+ * @param request - The browser's report.
+ * @returns The names from the allowlist that the request actually sent.
+ */
+const SENTRY_TUNNEL_FORWARDED_HEADERS = [
+  'content-type',
+  'content-encoding',
+  'user-agent',
+  'origin',
+  'referer',
+  'x-forwarded-for',
+  'accept-encoding',
+] as const
+
+const sentryTunnelHeaders = (request: NextRequest): Headers => {
+  const forwarded = new Headers()
+  for (const name of SENTRY_TUNNEL_FORWARDED_HEADERS) {
+    const value = request.headers.get(name)
+    if (value !== null) forwarded.set(name, value)
+  }
+  return forwarded
+}
+
 const forwardSentryReport = (request: NextRequest): NextResponse => {
   // The SDK only ever posts; no other method has a reason to be forwarded
   if (request.method !== 'POST') {
@@ -273,8 +313,7 @@ const forwardSentryReport = (request: NextRequest): NextResponse => {
     return new NextResponse(null, { status: 413 })
   }
 
-  const forwardedHeaders = new Headers(request.headers)
-  forwardedHeaders.delete('cookie')
+  const forwardedHeaders = sentryTunnelHeaders(request)
   return NextResponse.rewrite(SENTRY_ENVELOPE_URL, {
     request: { headers: forwardedHeaders },
   })

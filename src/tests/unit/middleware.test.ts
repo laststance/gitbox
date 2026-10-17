@@ -95,6 +95,69 @@ describe('Middleware (middleware.ts)', () => {
       )
       expect(response.headers.get('x-middleware-request-cookie')).toBeNull()
     })
+
+    // Value: protects=a platform token and an authorization header stay off the rewrite; fails_when=copying every header and deleting only the cookie lets them through; why_new=the old test sent content-type alone, so it could not see them; seam=the proxy rewrite headers; no_claim=that a deployed function receives x-vercel-oidc-token
+    test('forwards only the headers the ingest needs', async () => {
+      // Arrange
+      const { proxy } = await import('@/proxy')
+      const tunnelRequest = new NextRequest(
+        'https://gitbox.example/monitoring?o=1245861&p=4510597804261376&r=us',
+        {
+          method: 'POST',
+          body: '{}',
+          headers: {
+            'content-type': 'text/plain;charset=UTF-8',
+            'user-agent': 'gitbox-test',
+            authorization: 'Bearer secret',
+            'x-vercel-oidc-token': 'platform-token',
+            'x-forwarded-for': '203.0.113.41',
+          },
+        },
+      )
+      tunnelRequest.cookies.set('sb-session', 'fake-session')
+
+      // Act
+      const response = await proxy(tunnelRequest)
+
+      // Assert: allowlist order, not the order the request used
+      expect(response.headers.get('x-middleware-override-headers')).toBe(
+        'content-type,user-agent,x-forwarded-for',
+      )
+      expect(
+        response.headers.get('x-middleware-request-authorization'),
+      ).toBeNull()
+      expect(
+        response.headers.get('x-middleware-request-x-vercel-oidc-token'),
+      ).toBeNull()
+      expect(response.headers.get('x-middleware-request-cookie')).toBeNull()
+    })
+
+    // Value: protects=a report without Content-Length is still forwarded; fails_when=the tunnel answers 411 and the browser stops delivering reports; why_new=refusing that case was considered and rejected; seam=the proxy status; no_claim=that the body size was measured
+    test('forwards a report that does not declare a body length', async () => {
+      // Arrange
+      const { proxy } = await import('@/proxy')
+      const tunnelRequest = new NextRequest(
+        'https://gitbox.example/monitoring',
+        {
+          method: 'POST',
+          body: '{}',
+          headers: {
+            'content-type': 'text/plain',
+            'x-forwarded-for': '203.0.113.42',
+          },
+        },
+      )
+      tunnelRequest.headers.delete('content-length')
+
+      // Act
+      const response = await proxy(tunnelRequest)
+
+      // Assert
+      expect(response.status).not.toBe(411)
+      expect(response.headers.get('x-middleware-rewrite')).toBe(
+        'https://o1245861.ingest.us.sentry.io/api/4510597804261376/envelope/?hsts=0',
+      )
+    })
   })
 
   describe('Sentry tunnel limits', () => {
@@ -286,6 +349,23 @@ describe('Middleware (middleware.ts)', () => {
         expect(response.headers.get('x-middleware-request-cookie')).toBeNull()
       })
     }
+
+    // Value: protects=a path that only begins with the tunnel route is not the tunnel; fails_when=startsWith('/monitoring') treats /monitoringx as a report; why_new=the path check no longer uses replace; seam=the proxy, signed out so the path redirects to login; no_claim=trailing slashes, which the tests above forward
+    test('does not forward /monitoringx to Sentry', async () => {
+      // Arrange
+      const { proxy } = await import('@/proxy')
+      const request = new NextRequest('https://gitbox.example/monitoringx', {
+        method: 'POST',
+        body: '{}',
+      })
+
+      // Act
+      const response = await proxy(request)
+
+      // Assert
+      expect(response.headers.get('x-middleware-rewrite')).toBeNull()
+      expect(response.status).toBe(307)
+    })
   })
 
   describe('Sentry tunnel is not a relay to other Sentry projects', () => {

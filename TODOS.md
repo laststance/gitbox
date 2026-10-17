@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Forward only the headers Sentry needs through the tunnel
-
-**What:** Build the headers of the forwarded tunnel request from a short allowlist (`content-type`, `content-encoding`, `user-agent`, `origin`, `referer`, `x-forwarded-for`, `accept-encoding`) instead of copying every header and deleting `cookie`. While there, match the tunnel path with one anchored pattern instead of `replace(/\/+$/, '')`, and decide whether a report sent without `Content-Length` should be refused.
-
-**Why:** Every header the proxy sees except `Cookie` goes to sentry.io with each report. The browser sends nothing else that is secret, but headers the platform adds for a function would go along if the proxy receives them: Vercel documents `x-vercel-oidc-token` as a request header of its functions. Whether the proxy gets it was not checked on a deployment. Before this change the whole header set, cookies included, was forwarded for signed-in users, so this is hardening, not a regression. The trailing-slash pattern is quadratic on a long run of slashes that is not at the end of the path (about 70 ms for a 14 kB path). The tunnel limits each client address to 120 reports a minute and refuses a declared length above 20 MiB, but it never reads the body, so a report sent with chunked encoding is not measured. Answering 411 to those would bound the size for real, and would drop every report if a browser or the platform stopped sending the header.
-
-**Context:** `forwardSentryReport` and `isSentryTunnelPath` in `src/proxy.ts`. `NextResponse.rewrite(..., { request: { headers } })` lists every remaining header name in `x-middleware-override-headers`, which is how `src/tests/unit/middleware.test.ts` sees what is forwarded. The limit's key is the first `X-Forwarded-For` entry. On Vercel the platform overwrites that header: on a preview deployment, a client over its limit stayed over it when it sent a made-up `X-Forwarded-For`, `X-Real-IP` or `X-Vercel-Forwarded-For`. So #182 matters only on a host that passes the client's own header through.
-
-**Effort:** S
-**Priority:** P2
-**Depends on:** None
-
 ### Count the proxy's rate limits across instances
 
 **What:** Give the Sentry tunnel limit and the `/auth/callback` limit one count for all server instances: a Vercel Firewall rate-limit rule on those paths, `checkRateLimit` from `@vercel/firewall` with such a rule, or a shared store.
