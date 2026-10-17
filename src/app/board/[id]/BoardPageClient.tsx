@@ -65,8 +65,8 @@ import {
 import { removeMovedRepoCard } from '@/lib/redux/slices/boardSyncSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { Board } from '@/lib/supabase/types'
-import { parseBoardSettings } from '@/lib/types/board-settings'
 import { toBoardId, type RepoCardId } from '@/lib/types/brands'
+import type { FetchedBoardDetails } from '@/lib/utils/adopt-fetched-board-details'
 import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 import { describeBoardRefresh } from '@/lib/utils/describe-board-refresh'
 import {
@@ -99,12 +99,30 @@ export const BoardPageClient = memo(function BoardPageClient({
   const statusLists = useAppSelector(selectStatusLists)
   const repoCards = useAppSelector(selectRepoCards)
 
+  // Name, subtitle, settings and comments of a refetch that was applied.
+  // The page props do not change on a refetch, so the hooks read these.
+  const [fetchedDetails, setFetchedDetails] =
+    useState<FetchedBoardDetails | null>(null)
+  const [fetchedDetailsBoardId, setFetchedDetailsBoardId] = useState(boardId)
+  // The page moved to another board. A fetch of the one just left stays out.
+  if (boardId !== fetchedDetailsBoardId) {
+    setFetchedDetailsBoardId(boardId)
+    setFetchedDetails(null)
+  }
+  const acceptFetchedDetails = useCallback(
+    (details: FetchedBoardDetails): void => {
+      setFetchedDetails(details)
+    },
+    [],
+  )
+
   // Phase 4: Hydrate Redux store with server-fetched data, and fetch the board
   // again when a failed save leaves the store out of step with the database
   useBoardServerSync({
     boardId,
     statusLists: initialData.statusLists,
     repoCards: initialData.repoCards,
+    onAppliedDetails: acceptFetchedDetails,
   })
   // A held-row link names its card. Scroll to it once this board is showing.
   useRevealLinkedCard(boardId)
@@ -114,10 +132,16 @@ export const BoardPageClient = memo(function BoardPageClient({
   // ========================================
 
   // Board Settings Dialog (3 states extracted)
+  const detailsForThisBoard =
+    fetchedDetails !== null && fetchedDetails.boardId === boardId
+      ? fetchedDetails
+      : null
   const boardSettings = useBoardSettings({
+    boardId,
     boardName,
     boardSubtitle: board.subtitle,
     boardSettings: board.settings,
+    fetchedDetails: detailsForThisBoard,
   })
 
   // StatusList Dialog (5 states extracted: 3 original + 2 delete confirmation)
@@ -256,6 +280,16 @@ export const BoardPageClient = memo(function BoardPageClient({
   const boardComments = useMemo(
     () => mergeRestoredComments(initialData.comments, restoredComments),
     [initialData.comments, restoredComments],
+  )
+  // The dialog compares its settings prop by identity, and parses a new object
+  // on every render of this page. Pass the hook's copy, which changes only
+  // when a fetch or a save changed what the board shows.
+  const dialogBoardSettings = useMemo(
+    () => ({
+      cardDisplay: boardSettings.cardDisplaySettings,
+      showSubtitle: boardSettings.showSubtitle,
+    }),
+    [boardSettings.cardDisplaySettings, boardSettings.showSubtitle],
   )
 
   // ========================================
@@ -458,6 +492,7 @@ export const BoardPageClient = memo(function BoardPageClient({
           <KanbanBoard
             boardId={boardId}
             initialComments={boardComments}
+            fetchedComments={detailsForThisBoard?.comments}
             cardDisplaySettings={boardSettings.cardDisplaySettings}
             onMoveToAnotherBoard={handleMoveToAnotherBoard}
             onNote={noteModal.open}
@@ -502,7 +537,7 @@ export const BoardPageClient = memo(function BoardPageClient({
         onClose={boardSettings.close}
         boardId={boardId}
         boardName={boardSettings.displayName}
-        boardSettings={parseBoardSettings(board.settings)}
+        boardSettings={dialogBoardSettings}
         boardSubtitle={boardSettings.displaySubtitle}
         onSubtitleSuccess={boardSettings.handleSubtitleChange}
         showSubtitle={boardSettings.showSubtitle}

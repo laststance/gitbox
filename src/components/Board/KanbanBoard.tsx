@@ -46,6 +46,11 @@ interface KanbanBoardProps {
    * renders unless it changed.
    */
   initialComments?: Record<string, CommentData>
+  /**
+   * Comments of a refetch that was applied. The same object until the next
+   * applied fetch. Absent until then.
+   */
+  fetchedComments?: Record<string, CommentData> | null
   /** Card display settings from board.settings JSON */
   cardDisplaySettings?: CardDisplaySettings
   /** Callback when card is moved to another board */
@@ -65,6 +70,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
   ({
     boardId: _boardId = 'default-board',
     initialComments,
+    fetchedComments = null,
     cardDisplaySettings,
     onMoveToAnotherBoard,
     onNote,
@@ -104,6 +110,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       handleCommentDelete,
     } = useCommentState({
       initialComments: initialComments ?? NO_COMMENTS,
+      fetchedComments,
     })
 
     // Failed-save rollbacks that never overwrite a board that changed meanwhile

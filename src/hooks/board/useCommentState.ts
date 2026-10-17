@@ -22,6 +22,7 @@ import {
   type CommentData,
 } from '@/lib/actions/project-info'
 import type { CommentColor } from '@/lib/supabase/types'
+import { adoptFetchedComments } from '@/lib/utils/adopt-fetched-board-details'
 
 const DEFAULT_COMMENT: CommentData = { comment: '', color: 'primary' }
 
@@ -34,6 +35,13 @@ interface UseCommentStateParams {
    * the same object until it changes (a fresh `{}` each render never settles).
    */
   initialComments: Record<string, CommentData>
+  /**
+   * Comments of a refetch that was applied. Absent until then. The same object
+   * until the next applied fetch. A comment that still matches the last copy
+   * taken from the server stays as this tab shows it, so a read from before a
+   * save does not undo the save. A comment that differs is shown.
+   */
+  fetchedComments?: Record<string, CommentData> | null
 }
 
 interface UseCommentStateReturn {
@@ -65,18 +73,45 @@ interface UseCommentStateReturn {
 export function useCommentState(
   params: UseCommentStateParams,
 ): UseCommentStateReturn {
-  const { initialComments } = params
+  const { initialComments, fetchedComments = null } = params
 
   const [comments, setComments] =
     useState<Record<string, CommentData>>(initialComments)
   const [adoptedComments, setAdoptedComments] = useState(initialComments)
+  // The last comments taken from the server. An edit on this tab moves
+  // `comments` and leaves this, so a fetch that still has it does not undo
+  // the edit.
+  const [commentBaseline, setCommentBaseline] = useState(initialComments)
+  const [seenFetchedComments, setSeenFetchedComments] = useState<Record<
+    string,
+    CommentData
+  > | null>(null)
+
+  let nextComments = comments
+  let nextBaseline = commentBaseline
 
   // The prop changed (a repository was added again): adopt the cards this
   // state has not seen, during render, as React recommends for state that
   // follows a prop. A card already here keeps what the user did to it.
   if (initialComments !== adoptedComments) {
     setAdoptedComments(initialComments)
-    setComments((previous) => addUnseenComments(previous, initialComments))
+    nextComments = addUnseenComments(comments, initialComments)
+    nextBaseline = addUnseenComments(commentBaseline, initialComments)
+    if (nextComments !== comments) setComments(nextComments)
+    if (nextBaseline !== commentBaseline) setCommentBaseline(nextBaseline)
+  }
+
+  // A refetch was applied. Take the comments that differ from the last server
+  // copy, and leave one that copy still has so an edit on this tab stays.
+  if (fetchedComments !== null && fetchedComments !== seenFetchedComments) {
+    setSeenFetchedComments(fetchedComments)
+    const adopted = adoptFetchedComments(
+      nextComments,
+      nextBaseline,
+      fetchedComments,
+    )
+    if (adopted.screen !== nextComments) setComments(adopted.screen)
+    if (adopted.baseline !== nextBaseline) setCommentBaseline(adopted.baseline)
   }
 
   const applyOptimisticUpdate = useCallback(
