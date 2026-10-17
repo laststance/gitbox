@@ -291,7 +291,9 @@ export const KanbanBoard = memo<KanbanBoardProps>(
             <DragOverlay>
               {activeDragType === COLUMN_DRAG_TYPE && activeId && (
                 <div className="bg-background/80 border-primary w-70 max-w-full rotate-2 rounded-xl border-2 p-4 opacity-90 shadow-2xl backdrop-blur-sm">
-                  <h2 className="text-foreground font-semibold">
+                  {/* wrap-anywhere: the same class as the column's own title.
+                      A name of one word ran out of this frame. */}
+                  <h2 className="text-foreground font-semibold wrap-anywhere">
                     {sortedStatuses.find((s) => s.id === activeId)?.title}
                   </h2>
                   <p className="text-muted-foreground mt-1 text-xs">
@@ -301,9 +303,11 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                 </div>
               )}
               {activeDragType !== 'column' && activeCard && (
-                <Card className="rotate-3 cursor-grabbing opacity-90 shadow-2xl">
+                <Card className="w-70 max-w-full rotate-3 cursor-grabbing opacity-90 shadow-2xl">
                   <CardContent className="p-4">
-                    <h3 className="text-foreground font-semibold">
+                    {/* wrap-anywhere: the same class as the card's own title.
+                        A repository name without a hyphen ran out of this frame. */}
+                    <h3 className="text-foreground font-semibold wrap-anywhere">
                       {activeCard.title}
                     </h3>
                   </CardContent>

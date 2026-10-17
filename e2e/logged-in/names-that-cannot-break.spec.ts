@@ -548,6 +548,79 @@ test.describe('Names without a place to break', () => {
     })
   })
 
+  // Value: protects=the picture of a column that is being dragged keeps a name of one word of 50 letters inside its frame; fails_when=the title runs out of the frame, as it did before it could break; why_new=the column's own title was measured, and the picture of the drag was not; seam=none; no_claim=where the column is dropped
+  test('keeps the title of a dragged column inside its frame when the name is one word of 50 letters', async ({
+    page,
+  }) => {
+    // Arrange
+    await writeRow('statuslist', STATUS_IDS.pending, {
+      name: FIFTY_LETTERS_WITHOUT_A_SPACE,
+    })
+    await openTestBoard(page)
+    const column = page.getByTestId(`sortable-column-${STATUS_IDS.pending}`)
+    await column.getByRole('button', { name: /^Drag to reorder/ }).focus()
+
+    // Act
+    await page.keyboard.press('Space')
+
+    // Assert
+    const title = page.locator('div.w-70').getByRole('heading', { level: 2 })
+    await expect(title).toBeVisible()
+    await expect.poll(async () => measureTextBeyondItsBox(title)).toBe(0)
+    expect((await measureTextLines(title)).lines).toBeGreaterThan(1)
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve)))
+    await page.keyboard.press('Escape')
+  })
+
+  // Value: protects=the picture of a dragged column shows an ordinary name, such as Pending, on one line; fails_when=the title breaks wherever the frame is narrower than a word that fits it; why_new=the long-name test uses a word no frame can hold; seam=none; no_claim=where the column is dropped
+  test('keeps the title of a dragged column on one line when the name is one ordinary word', async ({
+    page,
+  }) => {
+    // Arrange
+    await openTestBoard(page)
+    const column = page.getByTestId(`sortable-column-${STATUS_IDS.pending}`)
+    await column
+      .getByRole('button', { name: /^Drag to reorder Pending column/ })
+      .focus()
+
+    // Act
+    await page.keyboard.press('Space')
+
+    // Assert
+    const title = page.locator('div.w-70').getByRole('heading', { level: 2 })
+    await expect(title).toHaveText('Pending')
+    expect(await measureTextLines(title)).toMatchObject({ lines: 1 })
+    expect(await measureTextBeyondItsBox(title)).toBe(0)
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve)))
+    await page.keyboard.press('Escape')
+  })
+
+  // Value: protects=the picture of a card that is being dragged keeps a repository name without a hyphen inside its frame; fails_when=the title runs out of the frame; why_new=the card's own title was measured, and the picture of the drag was not; seam=none; no_claim=where the card is dropped
+  test('keeps the title of a dragged card inside its frame when the repository name has no hyphen', async ({
+    page,
+  }) => {
+    // Arrange
+    await writeRow('repocard', CARD_IDS.card1, {
+      repo_name: SNAKE_CASE_REPOSITORY_NAME,
+    })
+    await openTestBoard(page)
+    const card = page.getByTestId(`repo-card-${CARD_IDS.card1}`)
+    await card.locator('[tabindex="0"]').focus()
+
+    // Act
+    await page.keyboard.press('Space')
+
+    // Assert
+    const title = page
+      .locator('div.rotate-3')
+      .getByRole('heading', { level: 3 })
+    await expect(title).toBeVisible()
+    await expect.poll(async () => measureTextBeyondItsBox(title)).toBe(0)
+    expect((await measureTextLines(title)).lines).toBeGreaterThan(1)
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve)))
+    await page.keyboard.press('Escape')
+  })
+
   test.describe('in a dialog on a 375px phone', () => {
     test.use({ viewport: PHONE_VIEWPORT })
 

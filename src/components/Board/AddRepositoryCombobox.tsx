@@ -79,6 +79,52 @@ interface AddRepositoryComboboxProps {
 }
 
 /**
+ * One selected repository in the Add Repositories picker, and the button
+ * that takes it out of the selection.
+ *
+ * A repository name may be one word of 100 characters. The badge grew with
+ * that word and carried the button past the panel, where a press missed it.
+ * The name breaks inside the panel. An ordinary name still fits on one line,
+ * because the badge is only as wide as the panel when the name is longer.
+ *
+ * Rendered by {@link AddRepositoryCombobox} for each selected repository.
+ *
+ * @param fullName - `owner/name` of the repository.
+ * @param onRemove - Takes this repository out of the selection.
+ */
+export const SelectedRepositoryBadge = memo(function SelectedRepositoryBadge({
+  fullName,
+  onRemove,
+}: {
+  fullName: string
+  onRemove: () => void
+}) {
+  return (
+    // text-foreground: text-primary on this tint is below
+    // 4.5:1 in 12 of the 14 themes (2.9:1 on Sunrise)
+    <span className="bg-primary/10 text-foreground inline-flex max-w-full items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium">
+      {/* wrap-anywhere: the name has no space to break at, and the badge
+          could not get narrower than that word. min-w-0 lets it. The button
+          keeps its size (shrink-0), so a press still lands on it. */}
+      <span
+        data-testid="selected-repository-name"
+        className="min-w-0 wrap-anywhere"
+      >
+        {fullName}
+      </span>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="hover:bg-primary/20 ml-1 shrink-0 rounded-full p-0.5"
+        aria-label={`Remove ${fullName}`}
+      >
+        ×
+      </button>
+    </span>
+  )
+})
+
+/**
  * Add Repository Combobox Component
  *
  * A combobox for searching and adding GitHub repositories to a Kanban board.
@@ -591,24 +637,13 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
           {/* Selected repositories badges */}
           {selectedRepos.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex min-w-0 flex-wrap gap-2">
               {selectedRepos.map((repo) => (
-                <span
+                <SelectedRepositoryBadge
                   key={repo.id}
-                  // text-foreground: text-primary on this tint is below
-                  // 4.5:1 in 12 of the 14 themes (2.9:1 on Sunrise)
-                  className="bg-primary/10 text-foreground inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
-                >
-                  {repo.full_name}
-                  <button
-                    type="button"
-                    onClick={() => removeSelectedRepo(repo.id)}
-                    className="hover:bg-primary/20 ml-1 rounded-full p-0.5"
-                    aria-label={`Remove ${repo.full_name}`}
-                  >
-                    ×
-                  </button>
-                </span>
+                  fullName={repo.full_name}
+                  onRemove={(): void => removeSelectedRepo(repo.id)}
+                />
               ))}
             </div>
           )}
