@@ -195,21 +195,21 @@ async function getColumnDragHandleCenter(
   page: Page,
   columnSelector: string,
 ): Promise<Coordinates> {
-  const element = page.locator(columnSelector)
-  await element.waitFor({ state: 'visible', timeout: 10000 })
+  // The listeners sit on the header, on the title. A point taken from the
+  // column box can miss that header, and a column that is past the viewport
+  // never receives the press: the column stays at full opacity.
+  const heading = page.locator(columnSelector).locator('h2').first()
+  await heading.scrollIntoViewIfNeeded()
+  await heading.waitFor({ state: 'visible', timeout: 10000 })
 
-  const box = await element.boundingBox()
+  const box = await heading.boundingBox()
   if (!box) {
-    throw new Error(
-      `Column not visible or has no bounding box: ${columnSelector}`,
-    )
+    throw new Error(`Column title is not on the page: ${columnSelector}`)
   }
 
-  // The drag handle is at the top of the column (header area)
-  // Target the upper portion (first 60px) for reliable drag initiation
   return {
     x: Math.round(box.x + box.width / 2),
-    y: Math.round(box.y + 30), // 30px from top for header drag handle
+    y: Math.round(box.y + box.height / 2),
   }
 }
 
@@ -334,13 +334,9 @@ export async function cdpColumnDragAndDrop(
     const sourceCoords = await getColumnDragHandleCenter(page, sourceSelector)
     const targetCoords = await getColumnDragHandleCenter(page, targetSelector)
 
-    // Calculate overshoot position - with forgivingCollisionDetection (pointerWithin + closestCenter),
-    // we need less overshoot than before. 50px is sufficient for reliable swap detection.
-    const overshootX = targetCoords.x > sourceCoords.x ? 50 : -50
-    const overshootCoords: Coordinates = {
-      x: targetCoords.x + overshootX,
-      y: targetCoords.y,
-    }
+    // Release on the target title. A point past the column falls into the
+    // empty cell after the last column, and the column is inserted there
+    // instead of swapping.
 
     // 1. Move to source column header
     await dispatchMouseEvent(client, 'mouseMoved', sourceCoords, 'none', 0)
@@ -350,28 +346,29 @@ export async function cdpColumnDragAndDrop(
     await dispatchMouseEvent(client, 'mousePressed', sourceCoords, 'left', 1)
     await sleep(150) // @dnd-kit needs time to detect drag start
 
+    // A short move crosses the 8px the sensor asks for, while the pointer
+    // is still on this column. The lift is checked before the release.
+    const nudge: Coordinates = {
+      x: sourceCoords.x + (targetCoords.x >= sourceCoords.x ? 24 : -24),
+      y: sourceCoords.y,
+    }
+    await dispatchMouseEvent(client, 'mouseMoved', nudge, 'left', 0)
+    await sleep(100)
+    await expectColumnLifted(page, sourceColumnId)
+
     // 3. Drag through intermediate points with smooth motion
-    const points = interpolateCoordinates(sourceCoords, overshootCoords, steps)
+    const points = interpolateCoordinates(nudge, targetCoords, steps)
     for (const point of points) {
       await dispatchMouseEvent(client, 'mouseMoved', point, 'left', 0)
       await sleep(stepDelay)
     }
 
-    // 4. Hold at overshoot position (allow drop zone detection)
-    await dispatchMouseEvent(client, 'mouseMoved', overshootCoords, 'left', 0)
+    // 4. Hold on the target title (allow drop zone detection)
+    await dispatchMouseEvent(client, 'mouseMoved', targetCoords, 'left', 0)
     await sleep(dropDelay)
 
-    // The column is in the air here, or the sensor ignored the press.
-    await expectColumnLifted(page, sourceColumnId)
-
-    // 5. Release at overshoot to complete column reorder
-    await dispatchMouseEvent(
-      client,
-      'mouseReleased',
-      overshootCoords,
-      'left',
-      1,
-    )
+    // 5. Release on the target title to complete column reorder
+    await dispatchMouseEvent(client, 'mouseReleased', targetCoords, 'left', 1)
     await sleep(200) // Allow animation to complete
   } finally {
     await client.detach()
@@ -557,6 +554,8 @@ export async function cdpColumnToNewRowDragAndDrop(
     }
     await dispatchMouseEvent(client, 'mouseMoved', phase1Point, 'left', 0)
     await sleep(200)
+    // The column is in the air here, or the sensor ignored the press.
+    await expectColumnLifted(page, sourceColumnId)
 
     // 3. Calculate target position: bottom of grid container + offset
     // The drop zone appears at the bottom of the grid
@@ -604,9 +603,6 @@ export async function cdpColumnToNewRowDragAndDrop(
     }
     await dispatchMouseEvent(client, 'mouseMoved', finalCoords, 'left', 0)
     await sleep(100)
-
-    // The column is in the air here, or the sensor ignored the press.
-    await expectColumnLifted(page, sourceColumnId)
 
     // 8. Release to complete drop to new row
     await dispatchMouseEvent(client, 'mouseReleased', finalCoords, 'left', 1)
@@ -669,6 +665,8 @@ export async function cdpColumnToInsertZone(
     }
     await dispatchMouseEvent(client, 'mouseMoved', midPoint, 'left', 0)
     await sleep(150)
+    // The column is in the air here, or the sensor ignored the press.
+    await expectColumnLifted(page, sourceColumnId)
 
     // 3. Wait for ColumnInsertZone to become visible and get its coordinates
     // aria-label format: "Insert column at row X, column Y" (1-indexed for display)
@@ -732,9 +730,6 @@ export async function cdpColumnToInsertZone(
     // 5. Hold at target position (allow drop detection)
     await dispatchMouseEvent(client, 'mouseMoved', targetCoords, 'left', 0)
     await sleep(dropDelay)
-
-    // The column is in the air here, or the sensor ignored the press.
-    await expectColumnLifted(page, sourceColumnId)
 
     // 6. Release to complete insertion
     await dispatchMouseEvent(client, 'mouseReleased', targetCoords, 'left', 1)

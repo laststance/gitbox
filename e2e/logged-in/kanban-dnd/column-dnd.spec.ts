@@ -90,7 +90,14 @@ const getColumnTitles = async (
 }
 
 test.describe('10.3 Column Drag & Drop', () => {
-  test.use({ storageState: 'e2e/.auth/user.json' })
+  // Five columns are 280px each. In the default 1280px window the ones on
+  // the right are past the viewport, so a press there never starts and a
+  // release there never lands. This window holds every column and the new-row
+  // zone.
+  test.use({
+    storageState: 'e2e/.auth/user.json',
+    viewport: { width: 1920, height: 2000 },
+  })
 
   // Reset column positions before each test to ensure clean state (real DB persists mutations)
   test.beforeEach(async () => {
