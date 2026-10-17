@@ -198,6 +198,28 @@ export async function deleteStatusList(
 }
 
 /**
+ * Refuses a position write that changed no row.
+ *
+ * PostgREST reports success when the filter matches nothing: a card another
+ * tab removed, or a row the session can no longer see. The drag then leaves
+ * the card in its new column with nothing saved, because the rollback only
+ * runs for a rejected write. Called by {@link updateStatusListPosition} and
+ * {@link updateRepoCardPosition} after `.select('id')`. The batch writes
+ * raise in the database instead, and their existing error branch throws.
+ *
+ * @param rows - Ids the update returned.
+ * @param message - Thrown as-is. The auth guard may replace it for the browser.
+ * @throws {Error} When `rows` is missing or empty.
+ */
+function throwUnlessPositionRowReturned(
+  rows: { id: string }[] | null,
+  message: string,
+): void {
+  if (rows !== null && rows.length > 0) return
+  throw new Error(message)
+}
+
+/**
  * Update a single status list position.
  * Used for moving a column to a new grid cell.
  *
@@ -216,13 +238,14 @@ export async function updateStatusListPosition(
   return withAuthResultRateLimit('batchDnD', async (supabase) => {
     refuseOutOfRangeGridPosition(gridRow, gridCol)
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('statuslist')
       .update({
         grid_row: gridRow,
         grid_col: gridCol,
       })
       .eq('id', id)
+      .select('id')
 
     if (isGridPositionConstraintViolation(error)) {
       throw new ActionUserError(GRID_POSITION_REFUSED)
@@ -234,6 +257,9 @@ export async function updateStatusListPosition(
       })
       throw new Error('Failed to update column position')
     }
+
+    // No id came back: the column is gone, or this session cannot see it.
+    throwUnlessPositionRowReturned(data, 'Failed to update column position')
   })
 }
 
@@ -332,13 +358,14 @@ export async function updateRepoCardPosition(
   order: number,
 ): Promise<void> {
   return withAuthRateLimit('batchDnD', async (supabase) => {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('repocard')
       .update({
         status_id: statusId,
         order: order,
       })
       .eq('id', cardId)
+      .select('id')
 
     if (error) {
       Sentry.captureException(error, {
@@ -351,6 +378,9 @@ export async function updateRepoCardPosition(
       })
       throw new Error('Failed to update repo card position')
     }
+
+    // No id came back: the card is gone, or this session cannot see it.
+    throwUnlessPositionRowReturned(data, 'Failed to update repo card position')
   })
 }
 
