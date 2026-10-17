@@ -223,6 +223,11 @@ export const BoardGrid = memo(function BoardGrid({
   // With DnD — wrap in DndContext + SortableContext
   return (
     <DndContext
+      // The description element. Without an id, dnd-kit counts
+      // DndDescribedBy-0 on the server and DndDescribedBy-1 in the browser
+      // when another context rendered first, and the drag handle points
+      // at an element that is not there.
+      id="board-list"
       sensors={sensors}
       collisionDetection={closestCenter}
       modifiers={[restrictToWindowEdges]}

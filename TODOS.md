@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Give the drag context of the boards list a stable id
-
-**What:** Pass an `id` to the `DndContext` of `BoardGrid` (`src/components/Boards/BoardGrid.tsx`), so the server and the browser name its description element alike.
-
-**Why:** Seen on 2026-10-14 during the local check of #216 with `next dev`: hydrating `/boards` logged a mismatch of the drag handle's `aria-describedby` (`DndDescribedBy-0` on the server, `DndDescribedBy-1` in the browser). dnd-kit counts its ids per module, so the count depends on what rendered before. React does not patch attributes up, so a screen reader may be pointed at an element that does not exist.
-
-**Context:** `DndContext` takes an `id` prop for server rendering. Check the board's `DndContext` in `KanbanBoard` the same way. The hydration specs now read the server document and the console. This mismatch was seen under `next dev` on `/boards`, which those specs do not open.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### Read what is being dragged from dnd-kit, not from a copy
 
 **What:** Take "a column is being dragged" from dnd-kit's own state (`useDndContext().active`, read by a component inside `DndContext`) and drop `activeId` and `activeDragType` of `useKanbanDnD`, which `handleDragStart` sets and `handleDragEnd` and `handleDragCancel` clear.
