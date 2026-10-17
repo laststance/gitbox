@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Give a card one tab stop
-
-**What:** Make a card one stop of the Tab key. Today it is two: the element that has the drag listeners (dnd-kit gives it `tabIndex` 0 and the role of a button) and the `Card` inside it, which has a `tabIndex` of its own.
-
-**Why:** Seen on the board on 2026-10-12, while the keys that start a drag were measured: Space lifts the card from either stop. Enter lifts it from the outer stop and opens the note on the inner one, `.` opens the menu on the inner one only, and the card's own focus ring (`focus-within:ring-2` on `Card`) is drawn for the inner stop only. A keyboard user presses Tab twice for every card.
-
-**Context:** `src/components/Board/RepoCard.tsx`: the outer `div` spreads `attributes` and `listeners` of `useSortable`, and `Card` has `tabIndex={0}`, `onKeyDown` and `data-repo-card-id`, which `card-focus-target.ts` and the E2E helpers read. One stop means moving the key handler and that attribute to the outer element, or taking the outer one out of the tab order (`attributes.tabIndex`), and checking the focus return of the card dialogs afterwards. Older than this change.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### Make the column drag tests fail when no drag happens
 
 **What:** Give the tests of `e2e/logged-in/kanban-dnd/column-dnd.spec.ts` that only move the mouse an assertion about the drag itself: "should show visual feedback during column drag" asserts nothing, "should drop column to new row via NewRowDropZone" checks the new grid only inside `if (dropSucceeded)`, and "should display ColumnInsertZone at empty grid positions" computes `insertZoneVisible` and never reads it. Several swap tests compare the set of titles, which is the same after no drag.
