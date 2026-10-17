@@ -26,7 +26,7 @@ import { useBoardServerSync } from '@/hooks/board/useBoardServerSync'
 import type { BoardBundle } from '@/lib/actions/mappers'
 import type { CommentData } from '@/lib/actions/project-info-core'
 import type { RepoCardForRedux, StatusListDomain } from '@/lib/models/domain'
-import boardReducer, { setRepoCards } from '@/lib/redux/slices/boardSlice'
+import boardReducer, * as boardSliceModule from '@/lib/redux/slices/boardSlice'
 import boardSyncReducer, {
   boardRefreshRequested,
   trackBoardWrite,
@@ -329,7 +329,7 @@ describe('board data from the server', () => {
     })
     // The user drags the card to Done and the save finishes at once
     await act(async () => {
-      store.dispatch(setRepoCards([makeCard('status-done')]))
+      store.dispatch(boardSliceModule.setRepoCards([makeCard('status-done')]))
       await trackBoardWrite(store.dispatch, Promise.resolve())
     })
 
@@ -362,7 +362,7 @@ describe('board data from the server', () => {
     const { finishSave, pendingSave } = holdSaveOpen()
     let dragSave = Promise.resolve()
     act(() => {
-      store.dispatch(setRepoCards([makeCard('status-done')]))
+      store.dispatch(boardSliceModule.setRepoCards([makeCard('status-done')]))
       dragSave = trackBoardWrite(store.dispatch, pendingSave)
     })
 
@@ -406,7 +406,7 @@ describe('board data from the server', () => {
     })
     // The user drags the card to Done and the save finishes at once
     await act(async () => {
-      store.dispatch(setRepoCards([makeCard('status-done')]))
+      store.dispatch(boardSliceModule.setRepoCards([makeCard('status-done')]))
       await trackBoardWrite(store.dispatch, Promise.resolve())
     })
 
@@ -418,6 +418,153 @@ describe('board data from the server', () => {
     // Assert: the drag stays on screen and the board is fetched once more
     expect(store.getState().board.repoCards).toEqual([makeCard('status-done')])
     expect(readBoard).toHaveBeenCalledTimes(2)
+  })
+
+  test('drops a fetch that began before the columns were replaced', async () => {
+    // Arrange: a fetch is on its way
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+    const renamedColumns = makeColumns().map((column) =>
+      column.id === toStatusListId('status-done')
+        ? { ...column, title: 'Shipped' }
+        : column,
+    )
+    act(() => {
+      store.dispatch(boardSliceModule.setStatusLists(renamedColumns))
+    })
+
+    // Act: the earlier fetch answers with the old column title
+    await act(async () => {
+      answerFetch(makePageData('status-todo'))
+    })
+
+    // Assert: the rename stays, and the board is fetched once more
+    expect(store.getState().board.statusLists).toEqual(renamedColumns)
+    expect(readBoard).toHaveBeenCalledTimes(2)
+  })
+
+  test('drops a fetch that began before a card was added', async () => {
+    // Arrange: a fetch is on its way
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+    const addedCard = {
+      ...makeCard('status-todo'),
+      id: toRepoCardId('card-2'),
+      title: 'laststance/corelive',
+      repoName: 'corelive',
+    }
+    act(() => {
+      store.dispatch(boardSliceModule.addRepoCards([addedCard]))
+    })
+
+    // Act: the earlier fetch answers with only the original card
+    await act(async () => {
+      answerFetch(makePageData('status-todo'))
+    })
+
+    // Assert: the added card stays, and the board is fetched once more
+    expect(store.getState().board.repoCards).toEqual([
+      makeCard('status-todo'),
+      addedCard,
+    ])
+    expect(readBoard).toHaveBeenCalledTimes(2)
+  })
+
+  test('drops a fetch that began before a card was removed', async () => {
+    // Arrange: a fetch is on its way
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+    act(() => {
+      store.dispatch(boardSliceModule.removeRepoCard(toRepoCardId('card-1')))
+    })
+
+    // Act: the earlier fetch answers with the card still on the board
+    await act(async () => {
+      answerFetch(makePageData('status-todo'))
+    })
+
+    // Assert: the card stays gone, and the board is fetched once more
+    expect(store.getState().board.repoCards).toEqual([])
+    expect(readBoard).toHaveBeenCalledTimes(2)
+  })
+
+  test('drops a fetch that began before a card GitHub text was refreshed', async () => {
+    // Arrange: a fetch is on its way
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+    act(() => {
+      store.dispatch(
+        boardSliceModule.applyRefreshedRepoCards([
+          {
+            id: 'card-1',
+            description: 'fresh from GitHub',
+            meta: { stars: 3 },
+          },
+        ]),
+      )
+    })
+
+    // Act: the earlier fetch answers with the card before the refresh
+    await act(async () => {
+      answerFetch(makePageData('status-todo'))
+    })
+
+    // Assert: the refreshed text stays, and the board is fetched once more
+    expect(store.getState().board.repoCards[0]?.description).toBe(
+      'fresh from GitHub',
+    )
+    expect(readBoard).toHaveBeenCalledTimes(2)
+  })
+
+  test('names every board action, so a new one has to be counted or the test changes', () => {
+    // Arrange: the reducers that write the columns or the cards
+    const boardActions: string[] = []
+    for (const value of Object.values(boardSliceModule)) {
+      if (
+        typeof value === 'function' &&
+        'type' in value &&
+        typeof value.type === 'string'
+      ) {
+        boardActions.push(value.type)
+      }
+    }
+    boardActions.sort()
+
+    // Act
+    // Assert: a new reducer fails here until it is added to the revision
+    // matcher in boardSyncSlice, or named in this list as not writing the board
+    expect(boardActions).toEqual([
+      'board/addRepoCards',
+      'board/applyRefreshedRepoCards',
+      'board/removeRepoCard',
+      'board/removeStatusListWithCards',
+      'board/setRepoCards',
+      'board/setStatusLists',
+    ])
   })
 
   test('shows page data that arrives on its own while nothing is being saved', () => {
@@ -452,7 +599,7 @@ describe('board data from the server', () => {
     })
     // The user drags the card to Done and the save finishes at once
     await act(async () => {
-      store.dispatch(setRepoCards([makeCard('status-done')]))
+      store.dispatch(boardSliceModule.setRepoCards([makeCard('status-done')]))
       await trackBoardWrite(store.dispatch, Promise.resolve())
     })
 
@@ -604,7 +751,7 @@ describe('board data from the server', () => {
     const { finishSave, pendingSave } = holdSaveOpen()
     let dragSave = Promise.resolve()
     act(() => {
-      store.dispatch(setRepoCards([makeCard('status-done')]))
+      store.dispatch(boardSliceModule.setRepoCards([makeCard('status-done')]))
       dragSave = trackBoardWrite(store.dispatch, pendingSave)
     })
     unmount()
@@ -637,7 +784,7 @@ describe('board data from the server', () => {
       { wrapper, initialProps: makePageData('status-todo') },
     )
     act(() => {
-      store.dispatch(setRepoCards([makeCard('status-done')]))
+      store.dispatch(boardSliceModule.setRepoCards([makeCard('status-done')]))
       void trackBoardWrite(store.dispatch, holdSaveOpen().pendingSave)
     })
 
@@ -688,7 +835,7 @@ describe('board data from the server', () => {
     const { finishSave, pendingSave } = holdSaveOpen()
     let dragSave = Promise.resolve()
     act(() => {
-      store.dispatch(setRepoCards([makeCard('status-done')]))
+      store.dispatch(boardSliceModule.setRepoCards([makeCard('status-done')]))
       dragSave = trackBoardWrite(store.dispatch, pendingSave)
     })
 
@@ -800,7 +947,7 @@ describe('board data from the server', () => {
     })
     // The user drags the card to Done and the save finishes at once
     await act(async () => {
-      store.dispatch(setRepoCards([makeCard('status-done')]))
+      store.dispatch(boardSliceModule.setRepoCards([makeCard('status-done')]))
       await trackBoardWrite(store.dispatch, Promise.resolve())
     })
 
@@ -828,7 +975,7 @@ describe('board data from the server', () => {
       store.dispatch(boardRefreshRequested())
     })
     await act(async () => {
-      store.dispatch(setRepoCards([makeCard('status-done')]))
+      store.dispatch(boardSliceModule.setRepoCards([makeCard('status-done')]))
       await trackBoardWrite(store.dispatch, Promise.resolve())
     })
     unmount()
