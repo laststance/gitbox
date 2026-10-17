@@ -19,7 +19,7 @@ import type { CommentColor } from '@/lib/supabase/types'
 import type { CardDisplaySettings } from '@/lib/types/board-settings'
 import type { RepoCardId, StatusListId } from '@/lib/types/brands'
 
-import { RepoCard } from './RepoCard'
+import { RepoCard, RestingRepoCard } from './RepoCard'
 
 /**
  * Drag type identifiers used by DndContext to distinguish column vs. card drags.
@@ -52,6 +52,12 @@ interface StatusColumnProps {
   onEditStatus?: (status: StatusListDomain) => void
   onDeleteStatus?: (statusId: StatusListId) => void
   onAddCard?: (statusId: StatusListId) => void
+  /**
+   * The server and the first client render. Cards are not draggable yet:
+   * dnd-kit's description id is a process-wide counter, so the server's
+   * HTML would not match the browser.
+   */
+  resting?: boolean
   /** Drag attributes from SortableColumn for column reordering */
   dragAttributes?: React.HTMLAttributes<HTMLDivElement>
   /** Drag listeners from SortableColumn for column reordering */
@@ -83,6 +89,7 @@ export const StatusColumn = memo<StatusColumnProps>(
     onEditStatus,
     onDeleteStatus,
     onAddCard,
+    resting = false,
     dragAttributes,
     dragListeners,
   }) => {
@@ -170,35 +177,49 @@ export const StatusColumn = memo<StatusColumnProps>(
             className={`flex-1 space-y-3 rounded-lg p-1 transition-colors duration-200 ${isOver ? 'bg-accent/50 ring-primary/20 ring-2' : ''} `}
           >
             <AnimatePresence>
-              {cards.map((card) => (
-                <m.div
-                  key={card.id}
-                  initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={
-                    prefersReducedMotion
-                      ? { opacity: 0 }
-                      : { opacity: 0, y: -20 }
-                  }
-                  transition={{
-                    duration: prefersReducedMotion ? 0 : 0.2,
-                  }}
-                >
-                  <RepoCard
-                    card={card}
-                    commentData={comments?.[card.id]}
-                    showComment={cardDisplaySettings?.showComment}
-                    commentText={cardDisplaySettings?.commentText}
-                    onMoveToBoard={onMoveToBoard}
-                    onNote={onNote}
-                    onRefresh={onRefresh}
-                    onRemove={onRemove}
-                    onCommentChange={onCommentChange}
-                    onCommentColorChange={onCommentColorChange}
-                    onCommentDelete={onCommentDelete}
-                  />
-                </m.div>
-              ))}
+              {cards.map((card) => {
+                const cardProps = {
+                  card,
+                  commentData: comments?.[card.id],
+                  showComment: cardDisplaySettings?.showComment,
+                  commentText: cardDisplaySettings?.commentText,
+                  onMoveToBoard,
+                  onNote,
+                  onRefresh,
+                  onRemove,
+                  onCommentChange,
+                  onCommentColorChange,
+                  onCommentDelete,
+                }
+                // No enter animation here: it reads reduced motion, which the
+                // server and the browser can disagree on
+                if (resting) {
+                  return (
+                    <div key={card.id}>
+                      <RestingRepoCard {...cardProps} />
+                    </div>
+                  )
+                }
+                return (
+                  <m.div
+                    key={card.id}
+                    initial={
+                      prefersReducedMotion ? false : { opacity: 0, y: 20 }
+                    }
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={
+                      prefersReducedMotion
+                        ? { opacity: 0 }
+                        : { opacity: 0, y: -20 }
+                    }
+                    transition={{
+                      duration: prefersReducedMotion ? 0 : 0.2,
+                    }}
+                  >
+                    <RepoCard {...cardProps} />
+                  </m.div>
+                )
+              })}
             </AnimatePresence>
 
             {/* Empty column guidance */}

@@ -25,10 +25,14 @@ import {
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { CardDisplaySettings } from '@/lib/types/board-settings'
 import type { RepoCardId, StatusListId } from '@/lib/types/brands'
+import {
+  boardContentForRender,
+  selectHydratedBoardIdIfPresent,
+} from '@/lib/utils/board-content-for-render'
 
 import { ColumnInsertZone } from './ColumnInsertZone'
 import { NewRowDropZone } from './NewRowDropZone'
-import { SortableColumn } from './SortableColumn'
+import { RestingColumn, SortableColumn } from './SortableColumn'
 import { COLUMN_DRAG_TYPE } from './StatusColumn'
 
 /**
@@ -51,6 +55,16 @@ interface KanbanBoardProps {
    * applied fetch. Absent until then.
    */
   fetchedComments?: Record<string, CommentData> | null
+  /**
+   * Columns fetched by the Server Component. Shown until the store holds
+   * this board, including on the server and the first client render.
+   */
+  initialStatusLists?: StatusListDomain[]
+  /**
+   * Cards fetched by the Server Component. Shown with
+   * {@link initialStatusLists} until the store holds this board.
+   */
+  initialRepoCards?: RepoCardForRedux[]
   /** Card display settings from board.settings JSON */
   cardDisplaySettings?: CardDisplaySettings
   /** Callback when card is moved to another board */
@@ -71,6 +85,8 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     boardId: _boardId = 'default-board',
     initialComments,
     fetchedComments = null,
+    initialStatusLists,
+    initialRepoCards,
     cardDisplaySettings,
     onMoveToAnotherBoard,
     onNote,
@@ -85,8 +101,18 @@ export const KanbanBoard = memo<KanbanBoardProps>(
     // Kept for backwards compatibility and potential future use (e.g., refresh)
     // Redux state (auto-synced to LocalStorage)
     const dispatch = useAppDispatch()
-    const statuses = useAppSelector(selectStatusLists)
-    const cards = useAppSelector(selectRepoCards)
+    const storeStatuses = useAppSelector(selectStatusLists)
+    const storeCards = useAppSelector(selectRepoCards)
+    const hydratedBoardId = useAppSelector(selectHydratedBoardIdIfPresent)
+    // The store is empty on the server and on the first client render
+    const { columns: statuses, cards } = boardContentForRender({
+      boardId: _boardId,
+      hydratedBoardId,
+      storeColumns: storeStatuses,
+      storeCards,
+      pageColumns: initialStatusLists,
+      pageCards: initialRepoCards,
+    })
 
     // Hydration-safe mounting state: prevents SSR/CSR mismatch for dynamic grid styles
     const isMounted = useMounted()
@@ -149,7 +175,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       rollbackStatusLists,
     })
 
-    // Show skeleton when no data loaded yet (e.g., initial hydration)
+    // No columns from the page and none in the store for this board yet
     if (statuses.length === 0) {
       return (
         <LazyMotion features={domAnimation}>
@@ -174,6 +200,53 @@ export const KanbanBoard = memo<KanbanBoardProps>(
           gridTemplateRows: 'repeat(1, auto)',
         }
 
+    const columns = sortedStatuses.map((status) => {
+      const columnProps = {
+        status,
+        cards: cardsByStatus[status.id] ?? EMPTY_CARDS,
+        comments,
+        cardDisplaySettings,
+        onMoveToBoard: onMoveToAnotherBoard,
+        onNote,
+        onRefresh,
+        onRemove,
+        onCommentChange: handleCommentChange,
+        onCommentColorChange: handleCommentColorChange,
+        onCommentDelete: handleCommentDelete,
+        onEditStatus,
+        onDeleteStatus,
+        onAddCard,
+        gridStyle: {
+          gridRow: status.gridRow + 1, // CSS grid is 1-indexed
+          gridColumn: status.gridCol + 1,
+        },
+      }
+      // No drag ids until mount: they would not match the browser
+      return isMounted ? (
+        <SortableColumn key={status.id} {...columnProps} />
+      ) : (
+        <RestingColumn key={status.id} {...columnProps} />
+      )
+    })
+
+    // The server and the first client render stop here. DndContext prints a
+    // description id from a counter that lives for the whole server process.
+    if (!isMounted) {
+      return (
+        <LazyMotion features={domAnimation}>
+          <div className="relative w-fit min-w-full p-6">
+            <div
+              className="grid w-fit min-w-full gap-4 pb-4"
+              suppressHydrationWarning
+              style={gridStyle}
+            >
+              {columns}
+            </div>
+          </div>
+        </LazyMotion>
+      )
+    }
+
     return (
       <LazyMotion features={domAnimation}>
         <div className="relative w-fit min-w-full p-6">
@@ -192,45 +265,20 @@ export const KanbanBoard = memo<KanbanBoardProps>(
                 suppressHydrationWarning
                 style={gridStyle}
               >
-                {/* Render columns only after hydration to prevent SSR mismatch */}
-                {isMounted &&
-                  sortedStatuses.map((status) => (
-                    <SortableColumn
-                      key={status.id}
-                      status={status}
-                      cards={cardsByStatus[status.id] ?? EMPTY_CARDS}
-                      comments={comments}
-                      cardDisplaySettings={cardDisplaySettings}
-                      onMoveToBoard={onMoveToAnotherBoard}
-                      onNote={onNote}
-                      onRefresh={onRefresh}
-                      onRemove={onRemove}
-                      onCommentChange={handleCommentChange}
-                      onCommentColorChange={handleCommentColorChange}
-                      onCommentDelete={handleCommentDelete}
-                      onEditStatus={onEditStatus}
-                      onDeleteStatus={onDeleteStatus}
-                      onAddCard={onAddCard}
-                      gridStyle={{
-                        gridRow: status.gridRow + 1, // CSS grid is 1-indexed
-                        gridColumn: status.gridCol + 1,
-                      }}
-                    />
-                  ))}
+                {columns}
 
                 {/* Column Insert Zones - empty grid positions during column drag */}
-                {isMounted &&
-                  insertionZones.map((zone) => (
-                    <ColumnInsertZone
-                      key={`insert-${zone.gridRow}-${zone.gridCol}`}
-                      gridRow={zone.gridRow}
-                      gridCol={zone.gridCol}
-                      activeColumnId={activeId?.toString()}
-                    />
-                  ))}
+                {insertionZones.map((zone) => (
+                  <ColumnInsertZone
+                    key={`insert-${zone.gridRow}-${zone.gridCol}`}
+                    gridRow={zone.gridRow}
+                    gridCol={zone.gridCol}
+                    activeColumnId={activeId?.toString()}
+                  />
+                ))}
 
                 {/* New Row Drop Zone - only visible during column drag */}
-                {isMounted && isDraggingColumn && (
+                {isDraggingColumn && (
                   <NewRowDropZone
                     targetRow={gridDimensions.maxRow + 1}
                     columnCount={gridDimensions.maxCol + 2} // +1 end column, +1 0-indexed
