@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3.0] - 2026-10-17
+
+### Fixed
+
+- Letting go of a column, even in the same moment you pick it up, takes the drop places off the board. They follow the drag itself, so they no longer stay behind until the next drag.
+
 ## [0.7.2.0] - 2026-10-17
 
 ### Added
