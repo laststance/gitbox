@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Make the column drag tests fail when no drag happens
-
-**What:** Give the tests of `e2e/logged-in/kanban-dnd/column-dnd.spec.ts` that only move the mouse an assertion about the drag itself: "should show visual feedback during column drag" asserts nothing, "should drop column to new row via NewRowDropZone" checks the new grid only inside `if (dropSucceeded)`, and "should display ColumnInsertZone at empty grid positions" computes `insertZoneVisible` and never reads it. Several swap tests compare the set of titles, which is the same after no drag.
-
-**Why:** Named by an outside read of the drag sensors on 2026-10-12: these tests pass when a sensor refuses every press on a column header. What does fail in that case today: "should verify column grid position is persisted in database" in the same file, and the column tests of `what-starts-a-drag.spec.ts` (a finger and Space on the header).
-
-**Context:** The tests are older than this change and were written to tolerate a drop that does not land (`MAX_ATTEMPTS`, the early return). Assert the lift before the release (`sortable-column-<id>` has `opacity-50` while it is dragged) and the final grid without a condition; a test that then turns out flaky needs its drop fixed, not its assertion removed.
-
-**Effort:** M
-**Priority:** P3
-**Depends on:** None
-
 ### Let the browser tests see a hydration error
 
 **What:** Make the server's HTML of an E2E run hold the page, so that `e2e/unauthenticated/ssr-hydration.spec.ts`, `e2e/logged-in/ssr-hydration-board.spec.ts` and `e2e/logged-in/board-page-hydration.spec.ts` can fail. Or, if that cannot be done, rename them after what they do check.

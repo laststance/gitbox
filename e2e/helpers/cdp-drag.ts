@@ -16,7 +16,7 @@
  * @see https://chromedevtools.github.io/devtools-protocol/tot/Input/#method-dispatchMouseEvent
  */
 
-import type { Page, CDPSession } from '@playwright/test'
+import { expect, type Page, type CDPSession } from '@playwright/test'
 
 /**
  * Mouse button bitmask values for CDP Input.dispatchMouseEvent
@@ -282,6 +282,25 @@ async function cdpDragAndDrop(
 }
 
 /**
+ * Fails while the pointer is still down when the column never left the board.
+ *
+ * The column drag helpers call this after the pointer has moved and before
+ * they release it. `opacity-50` is the class {@link SortableColumn} adds
+ * only while dnd-kit reports that column as the one being dragged. A press
+ * the sensor ignores leaves the column at full opacity, and a test that
+ * only compared the set of titles afterwards used to pass.
+ *
+ * @param page - The board page the drag is happening on.
+ * @param columnId - Status list id of the column that should be in the air.
+ */
+async function expectColumnLifted(page: Page, columnId: string): Promise<void> {
+  await expect(page.getByTestId(`sortable-column-${columnId}`)).toHaveCSS(
+    'opacity',
+    '0.5',
+  )
+}
+
+/**
  * Performs a column drag and drop operation using CDP events.
  * Specifically handles @dnd-kit column reordering in KanbanBoard.
  *
@@ -341,6 +360,9 @@ export async function cdpColumnDragAndDrop(
     // 4. Hold at overshoot position (allow drop zone detection)
     await dispatchMouseEvent(client, 'mouseMoved', overshootCoords, 'left', 0)
     await sleep(dropDelay)
+
+    // The column is in the air here, or the sensor ignored the press.
+    await expectColumnLifted(page, sourceColumnId)
 
     // 5. Release at overshoot to complete column reorder
     await dispatchMouseEvent(
@@ -583,6 +605,9 @@ export async function cdpColumnToNewRowDragAndDrop(
     await dispatchMouseEvent(client, 'mouseMoved', finalCoords, 'left', 0)
     await sleep(100)
 
+    // The column is in the air here, or the sensor ignored the press.
+    await expectColumnLifted(page, sourceColumnId)
+
     // 8. Release to complete drop to new row
     await dispatchMouseEvent(client, 'mouseReleased', finalCoords, 'left', 1)
     await sleep(400) // Allow grid reflow animation
@@ -707,6 +732,9 @@ export async function cdpColumnToInsertZone(
     // 5. Hold at target position (allow drop detection)
     await dispatchMouseEvent(client, 'mouseMoved', targetCoords, 'left', 0)
     await sleep(dropDelay)
+
+    // The column is in the air here, or the sensor ignored the press.
+    await expectColumnLifted(page, sourceColumnId)
 
     // 6. Release to complete insertion
     await dispatchMouseEvent(client, 'mouseReleased', targetCoords, 'left', 1)
