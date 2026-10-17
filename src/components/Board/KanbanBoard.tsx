@@ -1,13 +1,11 @@
 'use client'
 
-import { DndContext, DragOverlay } from '@dnd-kit/core'
+import { DndContext } from '@dnd-kit/core'
 import { restrictToWindowEdges } from '@dnd-kit/modifiers'
-import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
 import { LazyMotion, domAnimation } from 'framer-motion'
 import React, { memo, useMemo } from 'react'
 
 import { KanbanSkeleton } from '@/components/Board/KanbanSkeleton'
-import { Card, CardContent } from '@/components/ui/card'
 import { useBoardRollback } from '@/hooks/board/useBoardRollback'
 import { useCommentState } from '@/hooks/board/useCommentState'
 import {
@@ -30,10 +28,8 @@ import {
   selectHydratedBoardIdIfPresent,
 } from '@/lib/utils/board-content-for-render'
 
-import { ColumnInsertZone } from './ColumnInsertZone'
-import { NewRowDropZone } from './NewRowDropZone'
+import { KanbanDragChrome } from './KanbanDragChrome'
 import { RestingColumn, SortableColumn } from './SortableColumn'
-import { COLUMN_DRAG_TYPE } from './StatusColumn'
 
 /**
  * The comments of a board rendered without any. One object for every render:
@@ -153,14 +149,9 @@ export const KanbanBoard = memo<KanbanBoardProps>(
 
     // DnD hook: sensors, handlers, grid calculations
     const {
-      activeId,
-      activeDragType,
       sensors,
       columnIds,
-      insertionZones,
-      handleDragStart,
       handleDragEnd,
-      handleDragCancel,
       gridDimensions,
       sortedStatuses,
     } = useKanbanDnD({
@@ -185,20 +176,6 @@ export const KanbanBoard = memo<KanbanBoardProps>(
         </LazyMotion>
       )
     }
-
-    const activeCard = cards.find((c) => c.id === activeId)
-    const isDraggingColumn = activeDragType === COLUMN_DRAG_TYPE
-
-    // Stable SSR styles avoid hydration mismatch; real grid dimensions apply after mount.
-    const gridStyle: React.CSSProperties = isMounted
-      ? {
-          gridTemplateColumns: `repeat(${gridDimensions.maxCol + 1 + (isDraggingColumn ? 1 : 0)}, minmax(280px, var(--column-width)))`,
-          gridTemplateRows: `repeat(${gridDimensions.maxRow + 1 + (isDraggingColumn ? 1 : 0)}, minmax(min-content, auto))`,
-        }
-      : {
-          gridTemplateColumns: 'repeat(1, minmax(280px, var(--column-width)))',
-          gridTemplateRows: 'repeat(1, auto)',
-        }
 
     const columns = sortedStatuses.map((status) => {
       const columnProps = {
@@ -239,7 +216,11 @@ export const KanbanBoard = memo<KanbanBoardProps>(
             <div
               className="grid w-fit min-w-full gap-4 pb-4"
               suppressHydrationWarning
-              style={gridStyle}
+              style={{
+                gridTemplateColumns:
+                  'repeat(1, minmax(280px, var(--column-width)))',
+                gridTemplateRows: 'repeat(1, auto)',
+              }}
             >
               {columns}
             </div>
@@ -255,67 +236,19 @@ export const KanbanBoard = memo<KanbanBoardProps>(
             id="kanban-board"
             sensors={sensors}
             collisionDetection={forgivingCollisionDetection}
-            onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
-            onDragCancel={handleDragCancel}
             modifiers={[restrictToWindowEdges]}
           >
-            {/* Column-level SortableContext for 2D grid reordering */}
-            <SortableContext items={columnIds} strategy={rectSortingStrategy}>
-              <div
-                className="grid w-fit min-w-full gap-4 pb-4"
-                suppressHydrationWarning
-                style={gridStyle}
-              >
-                {columns}
-
-                {/* Column Insert Zones - empty grid positions during column drag */}
-                {insertionZones.map((zone) => (
-                  <ColumnInsertZone
-                    key={`insert-${zone.gridRow}-${zone.gridCol}`}
-                    gridRow={zone.gridRow}
-                    gridCol={zone.gridCol}
-                    activeColumnId={activeId?.toString()}
-                  />
-                ))}
-
-                {/* New Row Drop Zone - only visible during column drag */}
-                {isDraggingColumn && (
-                  <NewRowDropZone
-                    targetRow={gridDimensions.maxRow + 1}
-                    columnCount={gridDimensions.maxCol + 2} // +1 end column, +1 0-indexed
-                  />
-                )}
-              </div>
-            </SortableContext>
-
-            {/* DragOverlay for both column and card previews */}
-            <DragOverlay>
-              {activeDragType === COLUMN_DRAG_TYPE && activeId && (
-                <div className="bg-background/80 border-primary w-70 max-w-full rotate-2 rounded-xl border-2 p-4 opacity-90 shadow-2xl backdrop-blur-sm">
-                  {/* wrap-anywhere: the same class as the column's own title.
-                      A name of one word ran out of this frame. */}
-                  <h2 className="text-foreground font-semibold wrap-anywhere">
-                    {sortedStatuses.find((s) => s.id === activeId)?.title}
-                  </h2>
-                  <p className="text-muted-foreground mt-1 text-xs">
-                    {(cardsByStatus[activeId as string] ?? EMPTY_CARDS).length}{' '}
-                    cards
-                  </p>
-                </div>
-              )}
-              {activeDragType !== 'column' && activeCard && (
-                <Card className="w-70 max-w-full rotate-3 cursor-grabbing opacity-90 shadow-2xl">
-                  <CardContent className="p-4">
-                    {/* wrap-anywhere: the same class as the card's own title.
-                        A repository name without a hyphen ran out of this frame. */}
-                    <h3 className="text-foreground font-semibold wrap-anywhere">
-                      {activeCard.title}
-                    </h3>
-                  </CardContent>
-                </Card>
-              )}
-            </DragOverlay>
+            <KanbanDragChrome
+              columnIds={columnIds}
+              statuses={sortedStatuses}
+              gridDimensions={gridDimensions}
+              cardsByStatus={cardsByStatus}
+              emptyCards={EMPTY_CARDS}
+              cards={cards}
+            >
+              {columns}
+            </KanbanDragChrome>
           </DndContext>
         </div>
       </LazyMotion>

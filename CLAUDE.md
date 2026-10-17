@@ -338,7 +338,7 @@ The board's drag sensors listen for mouse, touch and key events, not for pointer
 
 dnd-kit starts to listen for the keys of a keyboard drag in a timeout of its own. An Escape that a test sends in the same instant as the Space that lifted the card is not heard (6 of 6 runs), so `e2e/logged-in/what-starts-a-drag.spec.ts` lets one timeout of the page pass first.
 
-dnd-kit reports a drag that is cancelled (Escape, a window that is resized or hidden during the drag, a touch that the browser takes over) to `onDragCancel`, not to `onDragEnd`. `useKanbanDnD` clears what `handleDragStart` set in `handleDragEnd` and in `handleDragCancel`: while it had the first only, Escape during a column drag left the drop zones for a new row and for empty places on the board until the next drag ended. A handler that sets state in `handleDragStart` clears it in both. One gap is left: dnd-kit calls neither when a drag ends before React has drawn its start (TODOS.md).
+dnd-kit reports a drag that is cancelled (Escape, a window that is resized or hidden during the drag, a touch that the browser takes over) to `onDragCancel`, not to `onDragEnd`. The kanban board does not keep its own copy of what is being dragged: `KanbanDragChrome` reads `useDndContext().active` inside the context, so the drop zones leave when dnd-kit clears that value, including when it calls neither handler. The boards list still keeps its own copy for the board being dragged.
 
 ### GitHub OAuth Token
 
