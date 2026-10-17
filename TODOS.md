@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Cover the board-sync wiring the unit tests mock away
-
-**What:** (1) Correct the Arrange comment of "still offers and adds a repository that sits on another user's board" in `e2e/logged-in/one-repo-across-boards.spec.ts`. (2) Add tests for `setStatusLists`, `addRepoCards` and `removeRepoCard` each making a fetch in flight out of date, plus a test that lists `boardSlice`'s actions so a new reducer forces the decision.
-
-**Why:** Removing what (2) names leaves every test green. (1) The browser test stopped proving the owner filter of `lookupRepoPlacements` when the public read policies were dropped: row level security now hides other users' cards with or without the filter. The filter has a unit test of its own since #213 ("reads only the cards on boards owned by the given user" in `repo-card-duplicates.test.ts`); the comment still names the fixture as what the test relies on. (2) `addRepoCards` and `removeRepoCard` are not wrapped in `trackBoardWrite`, so the revision bump is their only protection against a stale fetch.
-
-**Context:** `e2e/logged-in/one-repo-across-boards.spec.ts`, `src/tests/unit/hooks/board/useBoardServerSync.test.tsx`, the `isAnyOf(...)` matcher in `src/lib/redux/slices/boardSyncSlice.ts`.
-
-**Effort:** M
-**Priority:** P2
-**Depends on:** None
-
 ### Let a refused undo be tried again
 
 **What:** Decide what happens to an undo step whose save was refused. Today the step is gone: the board goes back to the layout before the undo and pressing Z again undoes the step before it.

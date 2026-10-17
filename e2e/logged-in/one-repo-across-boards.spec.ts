@@ -321,8 +321,12 @@ test.describe('One repository per user - picker and dialogs', () => {
   test("still offers and adds a repository that sits on another user's board", async ({
     page,
   }) => {
-    // Arrange: the fixture this test relies on must really exist, otherwise
-    // it would pass for the wrong reason
+    // Arrange: another account holds private-project on its own board.
+    // Row level security hides that card from this session either way, so
+    // the rows below do not prove that lookupRepoPlacements filters by
+    // owner. That filter is the unit test "reads only the cards on boards
+    // owned by the given user". Here the picker must still offer the
+    // repository: one repository per user is not one repository for everyone.
     const otherUserBoard = await querySingle<{
       user_id: string
     }>('board', { id: OTHER_USER.boardId })

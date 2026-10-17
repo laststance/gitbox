@@ -17,6 +17,7 @@ import type { BoardId, RepoCardId } from '@/lib/types/brands'
 
 import {
   addRepoCards,
+  applyRefreshedRepoCards,
   removeRepoCard,
   removeStatusListWithCards,
   setRepoCards,
@@ -230,6 +231,7 @@ export const boardSyncSlice = createSlice({
         setRepoCards,
         addRepoCards,
         removeRepoCard,
+        applyRefreshedRepoCards,
         removeStatusListWithCards,
       ),
       (state) => {
