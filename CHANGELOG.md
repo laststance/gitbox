@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.8.0] - 2026-10-18
+
+### Fixed
+
+- A board fetched just before a column edit, an added card, a removed card, or a refreshed GitHub description no longer puts the older copy back on screen.
+
 ## [0.7.7.0] - 2026-10-18
 
 ### Fixed
