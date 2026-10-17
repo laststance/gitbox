@@ -5,6 +5,8 @@
 import * as Sentry from '@sentry/nextjs'
 
 import { SENTRY_DSN as dsn } from '@/lib/constants/sentry'
+import { holdBrowserRequestsUntil } from '@/lib/utils/hold-browser-requests-until-msw'
+import { isMSWEnabled } from '@/lib/utils/isMSWEnabled'
 
 /** Hostnames where Sentry should be disabled */
 const DISABLED_HOSTNAMES = ['localhost', '127.0.0.1'] as const
@@ -51,6 +53,32 @@ function isSentryEnabled(): boolean {
   // 'production'. If the variable is missing (misconfigured build, non-Vercel
   // host), we'd rather skip telemetry than leak events.
   return process.env.NEXT_PUBLIC_VERCEL_ENV === 'production'
+}
+
+// The page is in the server HTML. Hold requests, then start the worker, so
+// nothing leaves before the worker can answer it. The gate is synchronous;
+// the start is not, and Next does not wait for it.
+if (isMSWEnabled()) {
+  let openGate: () => void = () => {}
+  const workerReady = new Promise<void>((resolve) => {
+    openGate = resolve
+  })
+  holdBrowserRequestsUntil(workerReady)
+  void import('../mocks/browser')
+    .then(async ({ worker }) => {
+      await worker.start({
+        // MSW 3 names this onUnhandledFrame. The same-origin calls of the
+        // app are not GitHub, so they go out once the worker is up.
+        onUnhandledFrame: 'bypass',
+      })
+    })
+    .catch(() => {
+      // The gate opens in finally. A failed worker leaves the request
+      // unmocked, and the suite fails on the response.
+    })
+    .finally(() => {
+      openGate()
+    })
 }
 
 Sentry.init({

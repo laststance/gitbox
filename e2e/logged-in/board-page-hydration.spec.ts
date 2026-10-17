@@ -10,9 +10,18 @@
 
 import { test, expect } from '../fixtures/coverage'
 import { BOARD_IDS, STATUS_IDS } from '../helpers/db-query'
+import { expectServerDocumentHolds } from '../helpers/server-document'
 
 test.describe('Board page hydration', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
+
+  test('the server document of a board is the board', async ({ page }) => {
+    await expectServerDocumentHolds(
+      page,
+      `/board/${BOARD_IDS.testBoard}`,
+      'Pending',
+    )
+  })
 
   test('a board opens without a React hydration error in a browser that still holds a board of an earlier version', async ({
     page,
@@ -57,7 +66,20 @@ test.describe('Board page hydration', () => {
       { boardId: BOARD_IDS.testBoard, statusId: STATUS_IDS.pending },
     )
     const pageErrors: string[] = []
+    const hydrationErrors: string[] = []
     page.on('pageerror', (error) => pageErrors.push(error.message))
+    page.on('console', (message) => {
+      const text = message.text()
+      if (
+        text.includes('Hydration') ||
+        text.includes('hydration') ||
+        text.includes('mismatch') ||
+        text.includes('did not match') ||
+        text.includes('server-rendered HTML')
+      ) {
+        hydrationErrors.push(text)
+      }
+    })
 
     // Act
     await page.goto(`/board/${BOARD_IDS.testBoard}`)
@@ -66,6 +88,7 @@ test.describe('Board page hydration', () => {
 
     // Assert: the server's markup was kept, and the stored column is nowhere
     expect(pageErrors).toEqual([])
+    expect(hydrationErrors).toEqual([])
     await expect(page.getByText('Stored by an earlier version')).toHaveCount(0)
   })
 

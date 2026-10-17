@@ -15,8 +15,15 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import { expectServerDocumentHolds } from '../helpers/server-document'
 
 test.describe('SSR Hydration', () => {
+  test('the server document of the landing page is the page', async ({
+    page,
+  }) => {
+    await expectServerDocumentHolds(page, '/', 'For AI Era Developers')
+  })
+
   test('landing page should not have hydration mismatch errors', async ({
     page,
   }) => {

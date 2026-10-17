@@ -16,11 +16,16 @@
 
 import { test, expect } from '../fixtures/coverage'
 import { BOARD_IDS } from '../helpers/db-query'
+import { expectServerDocumentHolds } from '../helpers/server-document'
 
 test.describe('SSR Hydration - Board Page (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
   const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
+
+  test('the server document of a board is the board', async ({ page }) => {
+    await expectServerDocumentHolds(page, BOARD_URL, 'Add Repositories')
+  })
 
   test('board page should not have hydration mismatch errors', async ({
     page,
