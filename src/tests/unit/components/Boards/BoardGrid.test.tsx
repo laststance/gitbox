@@ -8,7 +8,11 @@
  * - useOptimistic reducer logic
  */
 
+import { DndContext } from '@dnd-kit/core'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { act } from 'react'
+import { hydrateRoot } from 'react-dom/client'
+import { renderToString } from 'react-dom/server'
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { BoardGrid } from '@/components/Boards/BoardGrid'
@@ -290,6 +294,50 @@ describe('BoardGrid', () => {
 
       const heading = screen.getByRole('heading', { name: /no boards yet/i })
       expect(heading).toBeInTheDocument()
+    })
+
+    test('keeps the drag handle pointed at the same description after another drag context', async () => {
+      // Arrange: a context that renders first takes the next counted id
+      const counted = render(
+        <DndContext>
+          <div />
+        </DndContext>,
+      )
+      counted.unmount()
+      const boards = [createMockBoard()]
+      const serverHtml = renderToString(<BoardGrid initialBoards={boards} />)
+      const container = document.createElement('div')
+      // DOMParser runs no script; its nodes become the page React takes over
+      container.append(
+        ...new DOMParser().parseFromString(serverHtml, 'text/html').body
+          .childNodes,
+      )
+      document.body.appendChild(container)
+      const hydrationErrors: unknown[] = []
+
+      // Act
+      let root: ReturnType<typeof hydrateRoot> | undefined
+      await act(async () => {
+        root = hydrateRoot(container, <BoardGrid initialBoards={boards} />, {
+          onRecoverableError: (error) => {
+            hydrationErrors.push(error)
+          },
+        })
+      })
+
+      // Assert
+      expect(serverHtml).toContain('aria-describedby="board-list"')
+      expect(serverHtml).not.toContain('DndDescribedBy-')
+      expect(
+        container
+          .querySelector('[data-testid="drag-handle-board-1"]')
+          ?.getAttribute('aria-describedby'),
+      ).toBe('board-list')
+      expect(hydrationErrors).toEqual([])
+      await act(async () => {
+        root?.unmount()
+      })
+      container.remove()
     })
 
     test('should have SVG icons with aria-hidden in empty state', () => {

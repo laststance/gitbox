@@ -229,8 +229,9 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       )
     })
 
-    // The server and the first client render stop here. DndContext prints a
-    // description id from a counter that lives for the whole server process.
+    // The server and the first client render stop here. The columns' drag
+    // ids would not match. The context below is named kanban-board, so its
+    // description does not follow dnd-kit's counter.
     if (!isMounted) {
       return (
         <LazyMotion features={domAnimation}>
@@ -251,6 +252,7 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       <LazyMotion features={domAnimation}>
         <div className="relative w-fit min-w-full p-6">
           <DndContext
+            id="kanban-board"
             sensors={sensors}
             collisionDetection={forgivingCollisionDetection}
             onDragStart={handleDragStart}
