@@ -90,6 +90,7 @@
     "@types/lodash": "^4.17.26",
     "@udecode/cn": "^52.3.4",
     "@vercel/analytics": "^2.0.1",
+    "@vercel/firewall": "^1.2.6",
     "axios": "^1.20.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
