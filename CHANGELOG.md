@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.11.0] - 2026-10-18
+
+### Fixed
+
+- After a card is dragged, the browser's Back button leaves it in the column it was dragged to.
+
 ## [0.7.10.0] - 2026-10-18
 
 ### Fixed
