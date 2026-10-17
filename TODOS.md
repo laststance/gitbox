@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Render the board on the server instead of its skeleton
-
-**What:** Render `KanbanBoard` from `initialData` on the server and on the first client render.
-
-**Why:** The server renders `KanbanSkeleton` because the Redux store is empty there. The columns and cards appear once the page has hydrated and `useBoardServerSync` has put `initialData` into the store, so a slow device shows a skeleton although the server already had the data. The hydration error this caused for returning visitors (React #418 on every board visit after the first) is fixed: the board is not kept in localStorage any more (see Completed).
-
-**Context:** `src/hooks/board/useBoardServerSync.ts` fills the store in a `useLayoutEffect`. The components below `KanbanBoard` read columns and cards from the store, so the first render needs either a store that is filled per request on the server, or props that take precedence until the store holds the same board. `e2e/logged-in/board-page-hydration.spec.ts` checks that a board page hydrates without an error when the browser holds state from an older build.
-
-**Effort:** M
-**Priority:** P3
-**Depends on:** None
-
 ### Fail a card or column move that matched no row
 
 **What:** Add `.select('id')` to the position updates in `src/lib/actions/board.ts` and throw when nothing came back.
@@ -422,7 +410,7 @@ From `/design-review` of the change for issue #213. The review found 27 issues a
 - [x] **Preserve `?query` and `#hash` on silent refresh redirect** — [#177](https://github.com/laststance/gitbox/issues/177)
       **Completed:** v0.3.3.0 (2026-10-07). The repository catalog caller now forwards the full board destination, with unit coverage and a real-account OAuth round trip confirming both values survive.
 - [x] **Fix the hydration mismatch on the board page for returning users**
-      **Completed:** 2026-10-12, with the change for issue #213 (`038a3e6`), found again by `/design-review`. The board is not kept in localStorage any more, so the first client render matches the server's. What is left is under "Render the board on the server instead of its skeleton".
+      **Completed:** 2026-10-12, with the change for issue #213 (`038a3e6`), found again by `/design-review`. The board is not kept in localStorage any more, so the first client render matches the server's. The server HTML is the board itself: until the store holds that board, the page's columns and cards are what is drawn.
 - [x] **Stabilize the "Optimistic Favorite Toggle" story test**
       **Completed:** 2026-10-12, with the change for issue #213 (`46e892b`). The mocked server action is registered with `sb.mock`, and the two stories that press the star say what the server answers. 30 runs in a row passed.
 - [x] **Fit the Add Repositories panel on a narrow screen** (the width half of "Viewport-aware layout for the Add Repositories panel")

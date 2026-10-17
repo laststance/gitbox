@@ -492,6 +492,8 @@ export const BoardPageClient = memo(function BoardPageClient({
           <KanbanBoard
             boardId={boardId}
             initialComments={boardComments}
+            initialStatusLists={initialData.statusLists}
+            initialRepoCards={initialData.repoCards}
             fetchedComments={detailsForThisBoard?.comments}
             cardDisplaySettings={boardSettings.cardDisplaySettings}
             onMoveToAnotherBoard={handleMoveToAnotherBoard}

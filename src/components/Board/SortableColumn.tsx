@@ -138,3 +138,29 @@ export const SortableColumn = memo<SortableColumnProps>(
 )
 
 SortableColumn.displayName = 'SortableColumn'
+
+/**
+ * A column before drag-and-drop is attached.
+ *
+ * The server and the first client render use this. {@link SortableColumn}
+ * takes over once the page has mounted. dnd-kit's description id is counted
+ * in the server process, so a column that is already sortable would not match
+ * the browser and hydration would throw the board away.
+ */
+export const RestingColumn = memo<SortableColumnProps>(
+  ({ status, gridStyle, ...column }) => {
+    return (
+      <div
+        style={gridStyle}
+        className="bg-background/50 border-border flex w-full flex-col rounded-xl border backdrop-blur-sm"
+        data-testid={`sortable-column-${status.id}`}
+      >
+        <div className="flex-1 p-4">
+          <StatusColumn {...column} status={status} resting />
+        </div>
+      </div>
+    )
+  },
+)
+
+RestingColumn.displayName = 'RestingColumn'
