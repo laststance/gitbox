@@ -23,6 +23,7 @@ import boardReducer, {
   removeStatusListWithCards,
   selectRepoCards,
   setRepoCards,
+  setStatusLists,
 } from '@/lib/redux/slices/boardSlice'
 import boardSyncReducer, {
   boardRefreshSent,
@@ -351,6 +352,57 @@ describe('board data fetched before a column was deleted', () => {
 
     // Assert
     expect(selectRepoCards(store.getState())).toEqual([])
+    expect(
+      selectMayApplyServerSnapshot(store.getState(), toBoardId('board-1')),
+    ).toBe(false)
+  })
+})
+
+describe('page data for a board the store already holds', () => {
+  // Value: protects=a navigation that brings a new server copy still updates the board; fails_when=page data is refused when nothing local changed; no_claim=the Back button
+  test('is allowed when nothing has changed since the last snapshot', () => {
+    // Arrange
+    const store = createStoreHoldingBoard('board-1', [
+      makeCard('card-1', 'board-1', 'gitbox'),
+    ])
+
+    // Act
+    const mayApply = selectMayApplyServerSnapshot(
+      store.getState(),
+      toBoardId('board-1'),
+    )
+
+    // Assert
+    expect(mayApply).toBe(true)
+  })
+
+  // Value: protects=a finished card drag is not replaced by the page from before it; fails_when=the selector returns true while the revision moved; no_claim=the browser history
+  test('is refused after a card moved and nothing is left in flight', () => {
+    // Arrange
+    const store = createStoreHoldingBoard('board-1', [
+      makeCard('card-1', 'board-1', 'gitbox'),
+    ])
+
+    // Act: the drag wrote a new card list, and the save has already settled
+    store.dispatch(setRepoCards([makeCard('card-1', 'board-1', 'gitbox')]))
+
+    // Assert
+    expect(
+      selectMayApplyServerSnapshot(store.getState(), toBoardId('board-1')),
+    ).toBe(false)
+    expect(store.getState().boardSync.pendingWriteCount).toBe(0)
+    expect(store.getState().boardSync.sentRefreshRevision).toBeNull()
+  })
+
+  // Value: protects=a finished column move is not replaced by the page from before it; fails_when=only card actions move the revision; no_claim=a column drag in the browser
+  test('is refused after a column list was replaced and nothing is left in flight', () => {
+    // Arrange
+    const store = createStoreHoldingBoard('board-1', [])
+
+    // Act
+    store.dispatch(setStatusLists([]))
+
+    // Assert
     expect(
       selectMayApplyServerSnapshot(store.getState(), toBoardId('board-1')),
     ).toBe(false)

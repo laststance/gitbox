@@ -78,6 +78,9 @@ interface BoardServerSnapshot {
  * - Data of a board the store does not hold yet always goes in.
  * - Data of the board already in the store is dropped while a save of that
  *   board is pending, and the board is fetched once more when it settles.
+ * - Page data is dropped when the cards or columns have changed since the
+ *   last snapshot, which is a drag the Back button would otherwise undo on
+ *   screen, and the board is fetched once more.
  * - The answer to a fetch sent from here goes in only when the board did not
  *   change while the fetch was on its way; otherwise it is dropped and the
  *   board is fetched once more.

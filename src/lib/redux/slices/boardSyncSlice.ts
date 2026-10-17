@@ -34,6 +34,13 @@ interface BoardSyncState {
   /** Goes up on every change to the cards or columns in the store. */
   contentRevision: number
   /**
+   * `contentRevision` when the last server snapshot was written into the
+   * store, or `null` before that. Page data is current only while both match,
+   * so a Back navigation that restores the page from before a drag is not
+   * written over the drag.
+   */
+  appliedContentRevision: number | null
+  /**
    * `contentRevision` when the fetch in flight was sent, or `null` when no
    * fetch is in flight. The fetched data is current only while both match.
    */
@@ -104,6 +111,7 @@ interface BoardRefreshRequest {
 const initialState: BoardSyncState = {
   pendingWriteCount: 0,
   contentRevision: 0,
+  appliedContentRevision: null,
   sentRefreshRevision: null,
   isRefreshWanted: false,
   refreshForBoardId: null,
@@ -210,6 +218,9 @@ export const boardSyncSlice = createSlice({
       state.hydratedBoardId = action.payload
       state.sentRefreshRevision = null
       state.sentRefreshRequestId = null
+      // The cards just written are the revision to beat. A later drag moves
+      // contentRevision, and the page Back restores is then too old.
+      state.appliedContentRevision = state.contentRevision
     },
     /**
      * Fetched data arrived too old to use (the board changed while it was on
@@ -412,7 +423,9 @@ export const selectIsBoardRefreshDue = (state: {
  *   may not contain that save
  * - for the answer to a fetch this app sent: `true` only when the board did
  *   not change while the fetch was on its way
- * - `true` for page data of a navigation with nothing in flight
+ * - `true` for page data only when the cards and columns have not changed
+ *   since the last snapshot. A finished drag makes this `false`, and the
+ *   page a Back button restores is not written over that drag.
  * @example
  * // A drag is still saving when the board's data arrives again
  * selectMayApplyServerSnapshot(state, boardId) // => false
@@ -424,6 +437,7 @@ export const selectMayApplyServerSnapshot = (
   const {
     pendingWriteCount,
     contentRevision,
+    appliedContentRevision,
     sentRefreshRevision,
     hydratedBoardId,
   } = state.boardSync
@@ -436,8 +450,9 @@ export const selectMayApplyServerSnapshot = (
   if (sentRefreshRevision !== null) {
     return sentRefreshRevision === contentRevision
   }
-  // Page data of a navigation, with nothing in flight
-  return true
+  // Page data. The store already holds this board. Apply it only when
+  // nothing here has changed the cards or columns since the last snapshot.
+  return appliedContentRevision === contentRevision
 }
 
 /**
