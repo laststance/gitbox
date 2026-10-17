@@ -3,9 +3,10 @@
  *
  * The server HTML holds the page, so a browser test can see a hydration
  * error. The browser worker starts from `src/instrumentation-client.ts`.
- * With the mock on, the same wrapper stays invisible until hydration: the
- * buttons are already in the HTML, and a press before hydration reached
- * nothing. The wrapper is not removed, or a mismatch leaves a second copy.
+ * With the mock on, a wrapper hides the page until hydration: the buttons
+ * are already in the HTML, and a press before hydration reached nothing.
+ * The wrapper is removed before the next paint. Leaving it made
+ * elementFromPoint miss the control.
  *
  * @see https://mswjs.io/docs/integrations/react
  */
@@ -24,8 +25,9 @@ type MSWProviderProps = Readonly<{
  * Renders the page, hidden until hydration when the mock worker is on.
  *
  * The public flag is the same on the server and in the browser, so the
- * wrapper matches. It stays hidden through hydration and is shown after,
- * which is when a test can press a button.
+ * hidden wrapper matches. {@link useMounted} cannot gate this: its client
+ * snapshot is already true while React hydrates, and the server's copy
+ * stays in the document.
  *
  * @param children - The page the server rendered.
  * @returns The page, invisible until hydration when the mock is on.
@@ -43,11 +45,10 @@ function MSWProviderComponent({ children }: MSWProviderProps): React.ReactNode {
     if (!mockOn) return
     setHydrated(true)
   }, [mockOn])
-  if (!mockOn) return children
-  // The wrapper stays a real box. display:contents makes elementFromPoint
-  // miss the control, so a press never reaches it. Removing the element
-  // instead left the server's copy behind.
-  return <div className={hydrated ? undefined : 'invisible'}>{children}</div>
+  // After hydration the page is the children alone, as it is with the
+  // mock off. A wrapper that stays makes a press miss the control.
+  if (!mockOn || hydrated) return children
+  return <div className="invisible">{children}</div>
 }
 
 export const MSWProvider = memo(
