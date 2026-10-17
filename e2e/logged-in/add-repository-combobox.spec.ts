@@ -1362,7 +1362,7 @@ test.describe('AddRepositoryCombobox - Escape', () => {
 
   const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
 
-  // Value: protects=Escape in the open list of organizations closes that list only, and the picker keeps what was typed in it; the next Escape closes the picker; fails_when=the panel takes the Escape of the list for its own and the picker is gone with the search, as it was; why_new=no browser test pressed Escape in the picker; seam=none; no_claim=where the keyboard focus goes once the picker is closed (TODOS.md)
+  // Value: protects=Escape in the open list of organizations closes that list only, and the picker keeps what was typed in it; the next Escape closes the picker; fails_when=the panel takes the Escape of the list for its own and the picker is gone with the search, as it was; why_new=no browser test pressed Escape in the picker; seam=none; no_claim=where the keyboard focus goes once this list's Escape closes the picker (shipped-todo-coverage.spec.ts covers the header button and a column's Add Repo button)
   test('Escape in the open list of organizations closes the list, and the next Escape closes the picker', async ({
     page,
   }) => {
