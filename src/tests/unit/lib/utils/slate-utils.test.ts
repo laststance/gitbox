@@ -19,6 +19,7 @@ import {
   getSlateTextLength,
   isSlateValueEmpty,
   createSlateValueFromText,
+  notesAreTheSame,
 } from '@/lib/utils/slate-utils'
 
 describe('slate-utils', () => {
@@ -656,6 +657,39 @@ describe('slate-utils', () => {
       const reparsed = parseSlateValue(serialized)
 
       expect(reparsed).toEqual(value)
+    })
+  })
+
+  describe('notesAreTheSame', () => {
+    // Value: protects=opening an empty note is not treated as a different document from the empty note the server sent; fails_when=the editor's id on the empty paragraph makes the two notes differ, so the dialog stores a draft of a note nobody typed; why_new=the editor reports its first value as a change; seam=none; no_claim=the dialog storing the draft (useNoteModalDraft.test.tsx)
+    test('treats the editor empty document as the empty note', () => {
+      // Arrange
+      const editorEmpty = JSON.stringify([
+        { id: 'n1', type: 'p', children: [{ id: 't1', text: '' }] },
+      ])
+
+      // Act
+      const same = notesAreTheSame('', editorEmpty)
+
+      // Assert
+      expect(same).toBe(true)
+    })
+
+    // Value: protects=a bold mark, which is part of the note, still counts as a change; fails_when=dropping ids also drops marks, so a formatted note looks unsaved-nothing; why_new=the comparison ignores editor ids; seam=none; no_claim=the dialog
+    test('treats a mark on the same words as a different note', () => {
+      // Arrange
+      const plain = JSON.stringify([
+        { type: 'p', children: [{ text: 'Hello' }] },
+      ])
+      const bold = JSON.stringify([
+        { type: 'p', children: [{ text: 'Hello', bold: true }] },
+      ])
+
+      // Act
+      const same = notesAreTheSame(plain, bold)
+
+      // Assert
+      expect(same).toBe(false)
     })
   })
 })

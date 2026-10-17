@@ -529,6 +529,7 @@ export const BoardPageClient = memo(function BoardPageClient({
           userId={board.user_id}
           initialNote={noteModal.initialNote}
           initialLinks={noteModal.initialLinks}
+          savedAt={noteModal.savedAt}
           cardTitle={noteModal.cardTitle}
         />
       )}

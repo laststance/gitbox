@@ -81,6 +81,50 @@ export function serializeSlateValue(value: SlateValue): string {
 }
 
 /**
+ * Whether two stored notes are the same document.
+ *
+ * The note editor reports its first value as a change, and that value is
+ * the saved note with editor ids added. Opening a note would otherwise
+ * store that report as a draft. Ids are ignored; the text and the marks
+ * are not.
+ *
+ * Called by {@link useNoteModalDraft} before it stores a draft and when it
+ * decides whether the dialog is dirty.
+ *
+ * @param left - A note as stored, plain text or Slate JSON.
+ * @param right - The other note, in either of those forms.
+ * @returns True when both parse to the same document once ids are dropped.
+ * @example
+ * notesAreTheSame('', '[{"id":"n1","type":"p","children":[{"text":""}]}]')
+ * // => true
+ */
+export function notesAreTheSame(left: string, right: string): boolean {
+  return (
+    JSON.stringify(documentWithoutIds(parseSlateValue(left))) ===
+    JSON.stringify(documentWithoutIds(parseSlateValue(right)))
+  )
+}
+
+/**
+ * Drops editor ids and sorts keys so two serializations of one document match.
+ *
+ * Plate puts an id on the node it reports. The saved note has none.
+ */
+function documentWithoutIds(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(documentWithoutIds)
+  if (typeof value === 'object' && value !== null) {
+    const sorted: Record<string, unknown> = {}
+    for (const key of Object.keys(value).sort()) {
+      // The id is the editor's, not part of the note
+      if (key === 'id') continue
+      sorted[key] = documentWithoutIds((value as Record<string, unknown>)[key])
+    }
+    return sorted
+  }
+  return value
+}
+
+/**
  * Type guard to check if a node is a text node.
  *
  * @param node - Slate node to check

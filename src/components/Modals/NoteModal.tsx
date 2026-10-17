@@ -36,6 +36,11 @@ interface NoteModalProps {
   initialNote: string
   /** Initial links value from Supabase */
   initialLinks: ProjectLink[]
+  /**
+   * When the saved note was written. Null when nothing is saved.
+   * An older draft loses to this time.
+   */
+  savedAt?: string | null
   /** Card title for display */
   cardTitle: string
 }
@@ -71,6 +76,7 @@ export const NoteModal = memo(function NoteModal({
   userId,
   initialNote,
   initialLinks,
+  savedAt = null,
   cardTitle,
 }: NoteModalProps) {
   const {
@@ -92,6 +98,7 @@ export const NoteModal = memo(function NoteModal({
     userId,
     initialNote,
     initialLinks,
+    savedAt,
     isOpen,
     onSave,
     onClose,

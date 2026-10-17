@@ -93,6 +93,7 @@ describe('useNoteModal', () => {
           note: 'Existing note content',
           comment: '',
           links: [{ url: 'https://vercel.app', type: 'vercel' }],
+          updatedAt: '2026-10-17T00:00:00.000Z',
         },
       })
 
@@ -111,6 +112,7 @@ describe('useNoteModal', () => {
       expect(result.current.initialLinks).toEqual([
         { url: 'https://vercel.app', type: 'vercel' },
       ])
+      expect(result.current.savedAt).toBe('2026-10-17T00:00:00.000Z')
       expect(mockGetProjectInfo).toHaveBeenCalledWith('card-1')
     })
 
@@ -131,6 +133,7 @@ describe('useNoteModal', () => {
       expect(result.current.isOpen).toBe(true)
       expect(result.current.initialNote).toBe('')
       expect(result.current.initialLinks).toEqual([])
+      expect(result.current.savedAt).toBeNull()
     })
 
     // Value: protects=a note that could not be read is never shown as empty, where a save would overwrite it with nothing (issue #216 review, Codex O1); fails_when=open() opens an empty editor on a failed read again, or keeps the card so a closed dialog stays mounted; why_new=the old test asserted the empty editor; seam=none; no_claim=the real read failure (mocked action)

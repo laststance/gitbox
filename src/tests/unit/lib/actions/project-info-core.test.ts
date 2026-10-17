@@ -596,6 +596,7 @@ describe('project-info-core', () => {
             note: 'CLI tool documentation',
             comment: 'v2.0 release in progress',
             links: [{ type: 'npm', url: 'https://www.npmjs.com/package/nsx' }],
+            updated_at: '2026-10-12T03:00:00.000Z',
           },
         },
         error: null,
@@ -604,12 +605,13 @@ describe('project-info-core', () => {
         note: 'CLI tool documentation',
         comment: 'v2.0 release in progress',
         links: [{ type: 'npm', url: 'https://www.npmjs.com/package/nsx' }],
+        updatedAt: '2026-10-12T03:00:00.000Z',
       },
     },
     {
       situation: 'nothing is saved for the repository of the card',
       answer: { data: { projectinfo: null }, error: null },
-      expected: { note: '', comment: '', links: [] },
+      expected: { note: '', comment: '', links: [], updatedAt: null },
     },
     {
       situation: 'the card is not found',

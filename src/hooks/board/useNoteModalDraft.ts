@@ -15,7 +15,11 @@ import {
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { RepoCardId } from '@/lib/types/brands'
 import type { RepoIdentifier } from '@/lib/types/domain-primitives'
-import { getSlateTextLength, parseSlateValue } from '@/lib/utils/slate-utils'
+import {
+  getSlateTextLength,
+  notesAreTheSame,
+  parseSlateValue,
+} from '@/lib/utils/slate-utils'
 import { isValidUrl } from '@/lib/validations'
 
 /** Maximum character limit for notes */
@@ -37,6 +41,11 @@ interface UseNoteModalDraftParams {
   initialNote: string
   /** Initial links value from Supabase */
   initialLinks: ProjectLink[]
+  /**
+   * When the saved note was written (`projectinfo.updated_at`).
+   * Null when nothing is saved. A draft older than this stays closed.
+   */
+  savedAt: string | null
   /** Whether the modal is currently open */
   isOpen: boolean
   /** Callback to save note and links to Supabase */
@@ -103,6 +112,7 @@ export function useNoteModalDraft({
   repoKey,
   initialNote,
   initialLinks,
+  savedAt,
   isOpen,
   onSave,
   onClose,
@@ -112,10 +122,12 @@ export function useNoteModalDraft({
   const draftKey = noteDraftKey(userId, repoKey)
   const draft = useAppSelector(selectDraftNote(draftKey, cardId))
 
-  // Use draft if exists, otherwise initial values
-  const [note, setNote] = useState(draft?.content ?? initialNote)
+  // A draft opens only when it is newer than the saved note and is not
+  // that note. The editor's first report of an unchanged note is not a draft.
+  const shownDraft = draftToShow(draft, initialNote, initialLinks, savedAt)
+  const [note, setNote] = useState(shownDraft?.content ?? initialNote)
   const [links, setLinks] = useState<ProjectLink[]>(
-    draft?.links ?? initialLinks,
+    shownDraft?.links ?? initialLinks,
   )
   const [isSaving, setIsSaving] = useState(false)
 
@@ -132,11 +144,26 @@ export function useNoteModalDraft({
     }
     if (didInitRef.current) return
     didInitRef.current = true
+    const opening = draftToShow(draft, initialNote, initialLinks, savedAt)
     // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-    setNote(draft?.content ?? initialNote)
+    setNote(opening?.content ?? initialNote)
     // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-    setLinks(draft?.links ?? initialLinks)
-  }, [isOpen, initialNote, initialLinks, draft?.content, draft?.links])
+    setLinks(opening?.links ?? initialLinks)
+    // The draft that lost (the empty document, or text older than the save)
+    // must not be what Save writes the next time this note opens.
+    if (draft && opening === null) {
+      dispatch(deleteDraftNote({ repoKey: draftKey, legacyCardId: cardId }))
+    }
+  }, [
+    isOpen,
+    initialNote,
+    initialLinks,
+    savedAt,
+    draft,
+    dispatch,
+    draftKey,
+    cardId,
+  ])
   /* eslint-enable react-you-might-not-need-an-effect/no-event-handler */
 
   /**
@@ -153,6 +180,35 @@ export function useNoteModalDraft({
   }, [note])
 
   /**
+   * Stores a draft of text the user changed, and drops one that is the
+   * note the server already has.
+   *
+   * The editor reports its first value as a change. That report is the
+   * saved note (an empty paragraph, with an id), so storing it would leave
+   * a draft of a note that was only opened.
+   */
+  const storeTypedDraft = useCallback(
+    (content: string, nextLinks: ProjectLink[]): void => {
+      if (
+        notesAreTheSame(content, initialNote) &&
+        JSON.stringify(nextLinks) === JSON.stringify(initialLinks)
+      ) {
+        dispatch(deleteDraftNote({ repoKey: draftKey, legacyCardId: cardId }))
+        return
+      }
+      dispatch(
+        updateDraftNote({
+          repoKey: draftKey,
+          legacyCardId: cardId,
+          content,
+          links: nextLinks,
+        }),
+      )
+    },
+    [cardId, dispatch, draftKey, initialLinks, initialNote],
+  )
+
+  /**
    * Handle note change from PlateEditor.
    * Saves to Redux draft state for persistence.
    *
@@ -166,28 +222,14 @@ export function useNoteModalDraft({
 
         if (textLength <= NOTE_MAX_LENGTH) {
           setNote(value)
-          dispatch(
-            updateDraftNote({
-              repoKey: draftKey,
-              legacyCardId: cardId,
-              content: value,
-              links,
-            }),
-          )
+          storeTypedDraft(value, links)
         }
       } catch {
         setNote(value)
-        dispatch(
-          updateDraftNote({
-            repoKey: draftKey,
-            legacyCardId: cardId,
-            content: value,
-            links,
-          }),
-        )
+        storeTypedDraft(value, links)
       }
     },
-    [cardId, dispatch, draftKey, links],
+    [links, storeTypedDraft],
   )
 
   /**
@@ -199,16 +241,9 @@ export function useNoteModalDraft({
   const handleLinksChange = useCallback(
     (newLinks: ProjectLink[]) => {
       setLinks(newLinks)
-      dispatch(
-        updateDraftNote({
-          repoKey: draftKey,
-          legacyCardId: cardId,
-          content: note,
-          links: newLinks,
-        }),
-      )
+      storeTypedDraft(note, newLinks)
     },
-    [cardId, dispatch, draftKey, note],
+    [note, storeTypedDraft],
   )
 
   /**
@@ -277,7 +312,7 @@ export function useNoteModalDraft({
   )
 
   const hasChanges =
-    note !== initialNote ||
+    !notesAreTheSame(note, initialNote) ||
     JSON.stringify(links) !== JSON.stringify(initialLinks)
 
   return {
@@ -336,4 +371,51 @@ function keptDraftMessage(error: unknown): string {
  */
 function endWithFullStop(message: string): string {
   return /[.!?]$/.test(message) ? message : `${message}.`
+}
+
+/**
+ * The draft the dialog should open, or null when the saved note wins.
+ *
+ * A draft that is the note the server sent (the editor's first report of
+ * an empty document, ids included) is not shown. A draft older than
+ * `projectinfo.updated_at` is text from before the save that another
+ * browser made; the saved note wins. With no saved time, a draft that
+ * differs from the server note is the only copy, so it is shown.
+ *
+ * Called by {@link useNoteModalDraft} when the dialog opens.
+ *
+ * @param draft - The draft stored for this account and repository.
+ * @param initialNote - The note the server sent.
+ * @param initialLinks - The links the server sent.
+ * @param savedAt - `projectinfo.updated_at`, or null when nothing is saved.
+ * @returns The draft to show, or null so the dialog shows the saved note.
+ */
+function draftToShow(
+  draft:
+    | {
+        content: string
+        links: ProjectLink[]
+        lastModified: number
+      }
+    | null
+    | undefined,
+  initialNote: string,
+  initialLinks: ProjectLink[],
+  savedAt: string | null,
+): { content: string; links: ProjectLink[] } | null {
+  if (!draft) return null
+  // The editor's copy of the saved note is not a draft
+  if (
+    notesAreTheSame(draft.content, initialNote) &&
+    JSON.stringify(draft.links) === JSON.stringify(initialLinks)
+  ) {
+    return null
+  }
+  if (savedAt === null) return draft
+  const savedTime = Date.parse(savedAt)
+  // A time that cannot be read leaves the draft, which is the only copy
+  // we can trust
+  if (Number.isNaN(savedTime)) return draft
+  if (draft.lastModified > savedTime) return draft
+  return null
 }
