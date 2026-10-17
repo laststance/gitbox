@@ -27,9 +27,15 @@ interface UseAddRepositoryComboboxReturn {
   /** Derived status ID: user selection or first available column (null when no columns) */
   statusId: StatusListId | null
   /** Open combobox for a specific column */
-  openForStatus: (statusId: StatusListId) => void
+  openForStatus: (statusId: StatusListId, opener?: HTMLElement) => void
   /** Handle open state changes (resets to default when closing) */
   handleOpenChange: (open: boolean) => void
+  /**
+   * The control that opened the picker, when that control is not the header
+   * button. `null` when the header opened it, or the page opened it again
+   * after GitHub sign-in: the header button is the place then.
+   */
+  focusReturnTarget: HTMLElement | null
 }
 
 /**
@@ -72,6 +78,11 @@ export function useAddRepositoryCombobox({
   const [userSelectedStatusId, setUserSelectedStatusId] =
     useState<StatusListId | null>(null)
   const [isOpen, setIsOpen] = useState<boolean | null>(null)
+  // The column's "Add Repo" button. Remembered at the click, because Safari
+  // does not focus a button that is clicked, and the search box takes the
+  // focus once the panel is on the page.
+  const [focusReturnTarget, setFocusReturnTarget] =
+    useState<HTMLElement | null>(null)
 
   const statusId = useMemo<StatusListId | null>(() => {
     if (userSelectedStatusId) return userSelectedStatusId
@@ -83,10 +94,14 @@ export function useAddRepositoryCombobox({
    *
    * @param targetStatusId - The status list ID where new repos will be added
    */
-  const openForStatus = useCallback((targetStatusId: StatusListId) => {
-    setUserSelectedStatusId(targetStatusId)
-    setIsOpen(true)
-  }, [])
+  const openForStatus = useCallback(
+    (targetStatusId: StatusListId, opener?: HTMLElement) => {
+      setFocusReturnTarget(opener ?? null)
+      setUserSelectedStatusId(targetStatusId)
+      setIsOpen(true)
+    },
+    [],
+  )
 
   /**
    * Handles AddRepositoryCombobox open state changes
@@ -94,6 +109,10 @@ export function useAddRepositoryCombobox({
    */
   const handleOpenChange = useCallback((open: boolean) => {
     setIsOpen(open)
+    if (open) {
+      // The header button opened it. A column button from earlier is forgotten.
+      setFocusReturnTarget(null)
+    }
     if (!open) {
       // Reset to default (null = useMemo computes first column)
       setUserSelectedStatusId(null)
@@ -116,5 +135,6 @@ export function useAddRepositoryCombobox({
     statusId,
     openForStatus,
     handleOpenChange,
+    focusReturnTarget,
   }
 }

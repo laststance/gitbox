@@ -51,7 +51,7 @@ interface StatusColumnProps {
   onCommentDelete?: (cardId: RepoCardId) => void
   onEditStatus?: (status: StatusListDomain) => void
   onDeleteStatus?: (statusId: StatusListId) => void
-  onAddCard?: (statusId: StatusListId) => void
+  onAddCard?: (statusId: StatusListId, opener?: HTMLElement) => void
   /**
    * The server and the first client render. Cards are not draggable yet:
    * dnd-kit's description id is a process-wide counter, so the server's
@@ -239,7 +239,9 @@ export const StatusColumn = memo<StatusColumnProps>(
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onAddCard(status.id)}
+            onClick={(event): void => {
+              onAddCard(status.id, event.currentTarget)
+            }}
             className="text-muted-foreground hover:text-foreground hover:bg-accent mt-3 w-full justify-start"
             data-testid="add-repo-button"
             // Read by card-focus-target.ts: takes the focus when the column empties

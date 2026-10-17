@@ -77,7 +77,7 @@ interface KanbanBoardProps {
   onRemove?: (cardId: RepoCardId) => void
   onEditStatus?: (status: StatusListDomain) => void
   onDeleteStatus?: (statusId: StatusListId) => void
-  onAddCard?: (statusId: StatusListId) => void
+  onAddCard?: (statusId: StatusListId, opener?: HTMLElement) => void
 }
 
 export const KanbanBoard = memo<KanbanBoardProps>(

@@ -1,7 +1,14 @@
 'use client'
 
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { useState, useRef, useMemo, memo, useCallback } from 'react'
+import {
+  useState,
+  useRef,
+  useMemo,
+  memo,
+  useCallback,
+  useLayoutEffect,
+} from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -76,6 +83,12 @@ interface AddRepositoryComboboxProps {
    * Called when the combobox should open or close
    */
   onOpenChange?: (open: boolean) => void
+  /**
+   * The control that opened this picker, when it is not the header button.
+   * `null` returns the keyboard to the header button: the header opened it,
+   * or the page opened it again after GitHub sign-in.
+   */
+  focusReturnTarget?: HTMLElement | null
 }
 
 /**
@@ -143,6 +156,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
   onRepositoriesAdded,
   isOpen: controlledIsOpen,
   onOpenChange,
+  focusReturnTarget = null,
 }: AddRepositoryComboboxProps) {
   // State - supports both controlled and uncontrolled modes
   const [internalIsOpen, setInternalIsOpen] = useState(false)
@@ -153,6 +167,22 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
 
   // Use controlled state if provided, otherwise use internal state
   const isOpen = controlledIsOpen ?? internalIsOpen
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const wasOpenRef = useRef(isOpen)
+
+  // Closing takes the panel off the page and the focus would fall to the
+  // page. The search box is focused while the panel is open, so the opener
+  // has to be remembered where the picker was opened.
+  useLayoutEffect(() => {
+    if (wasOpenRef.current && !isOpen) {
+      const opener =
+        focusReturnTarget !== null && focusReturnTarget.isConnected
+          ? focusReturnTarget
+          : triggerRef.current
+      opener?.focus()
+    }
+    wasOpenRef.current = isOpen
+  }, [isOpen, focusReturnTarget])
 
   /**
    * Toggle the combobox open state
@@ -505,6 +535,7 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
     <div>
       {/* Combobox trigger button */}
       <button
+        ref={triggerRef}
         type="button"
         onClick={handleToggleOpen}
         className="border-input bg-background text-foreground hover:bg-accent focus:ring-primary inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium shadow-sm focus:ring-2 focus:outline-none"
