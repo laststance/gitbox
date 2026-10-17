@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Pin the proxy matcher and Sentry's own tunnel rewrite in tests
-
-**What:** Add a unit test that compiles `config.matcher[0]` of `src/proxy.ts` and expects `/monitoring`, `/Monitoring` and `/monitoring/` to match, and one that reads the rewrites `withSentryConfig` adds and pins their `source`.
-
-**Why:** `tunnelRoute` keeps Sentry's rewrite registered. It takes the Sentry project from the query string and forwards cookies. It stays unreachable only while the proxy runs for the path and the proxy's path check is at least as wide as the rewrite's source (`/monitoring(/?)` in `@sentry/nextjs` 11.4.0). Excluding the route from the matcher, which Sentry's setup text suggests, or an SDK upgrade that widens the source would reopen it with every test green.
-
-**Context:** `src/proxy.ts`, `next.config.ts`, `node_modules/@sentry/nextjs/build/cjs/config/withSentryConfig/tunnel.js`. The alternative is to drop `tunnelRoute` and set `tunnel` in `Sentry.init`, which loses the SDK's dropping of tunnel spans.
-
-**Effort:** S
-**Priority:** P2
-**Depends on:** None
-
 ### Word every failed board save from what the rollback did
 
 **What:** (1) In `useOptimisticCardAction`, pass the rollback outcome to `notifyFailedBoardSave` on the `{ success: false }` branch too, and keep the server's message as the description when the card was put back. (2) Give a refused undo its own text: "Please try again." is wrong there because the undo step is gone. (3) Show one notice when a save fails offline, not the failed-save toast plus "You're offline", and keep the offline notice up while a save is pending. (4) Give the offline notice a close button. (5) After a save that threw, ask for a fresh copy of the board as well as putting the previous layout back.
