@@ -5,8 +5,8 @@
  * error. The browser worker starts from `src/instrumentation-client.ts`.
  * With the mock on, a wrapper hides the page until hydration: the buttons
  * are already in the HTML, and a press before hydration reached nothing.
- * The wrapper is removed before the next paint. Leaving it made
- * elementFromPoint miss the control.
+ * The wrapper generates no box, so a measurement taken while it is still
+ * there matches the page, and it is removed before the next paint.
  *
  * @see https://mswjs.io/docs/integrations/react
  */
@@ -48,7 +48,11 @@ function MSWProviderComponent({ children }: MSWProviderProps): React.ReactNode {
   // After hydration the page is the children alone, as it is with the
   // mock off. A wrapper that stays makes a press miss the control.
   if (!mockOn || hydrated) return children
-  return <div className="invisible">{children}</div>
+  // contents: the wrapper hides the page and does not move it. A box
+  // here shifted "Create Board" by 16px for a measurement that ran
+  // before hydration. The element is gone before the next paint, so a
+  // press is not aimed through display:contents.
+  return <div className="invisible contents">{children}</div>
 }
 
 export const MSWProvider = memo(
