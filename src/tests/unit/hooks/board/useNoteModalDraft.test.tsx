@@ -46,6 +46,7 @@ function renderNoteDraft(
         repoKey: 'laststance/gitbox',
         initialNote: 'x'.repeat(noteLength),
         initialLinks: [],
+        savedAt: null,
         isOpen: true,
         onSave: vi.fn(),
         onClose: vi.fn(),
@@ -108,6 +109,7 @@ describe('useNoteModalDraft', () => {
             repoKey: 'laststance/gitbox',
             initialNote: 'old note',
             initialLinks: [],
+            savedAt: null,
             isOpen: true,
             onSave,
             onClose: vi.fn(),
@@ -244,6 +246,7 @@ describe('useNoteModalDraft', () => {
             repoKey: 'laststance/gitbox',
             initialNote: '',
             initialLinks: [],
+            savedAt: null,
             isOpen: true,
             onSave: vi.fn(),
             onClose: vi.fn(),
@@ -280,6 +283,7 @@ describe('useNoteModalDraft', () => {
             repoKey: 'laststance/gitbox',
             initialNote: '',
             initialLinks: [],
+            savedAt: null,
             isOpen: true,
             onSave: vi.fn(),
             onClose: vi.fn(),
@@ -322,6 +326,151 @@ describe('useNoteModalDraft', () => {
       expect(
         store.getState().draft.notes['user-1/laststance/gitbox']?.content,
       ).toBe('typed while the save was in flight')
+    })
+
+    // Value: protects=opening a note and having the editor report that same note does not leave a draft, and returning to the saved note drops one; fails_when=the editor's first value (the saved note plus an id) is stored, so a note that was only opened comes back as a draft; why_new=the editor reports its first value as a change; seam=none; no_claim=Plate itself
+    test('does not keep a draft when the editor reports the note that is already saved', () => {
+      // Arrange
+      const { result, store } = renderNoteDialog(vi.fn(async () => undefined))
+      const echoedSavedNote = JSON.stringify([
+        { id: 'n1', type: 'p', children: [{ text: 'old note' }] },
+      ])
+      act(() => {
+        result.current.handleNoteChange('typed for a moment')
+      })
+
+      // Act: the editor reports the saved note, ids included
+      act(() => {
+        result.current.handleNoteChange(echoedSavedNote)
+      })
+
+      // Assert
+      expect(
+        store.getState().draft.notes['user-1/laststance/gitbox'],
+      ).toBeUndefined()
+      expect(result.current.hasChanges).toBe(false)
+    })
+
+    // Value: protects=an empty note that was only opened does not stay in the draft store as the empty document; fails_when=the dialog keeps the editor's empty paragraph, so the next open shows that draft instead of a note saved later; why_new=opening an empty note on 2026-10-12 left a draft of the empty document; seam=none; no_claim=localStorage (the store is the one the middleware persists)
+    test('drops a draft that is only the empty document', () => {
+      // Arrange
+      const store = configureStore({ reducer: { draft: draftReducer } })
+      store.dispatch(
+        updateDraftNote({
+          repoKey: 'user-1/laststance/gitbox',
+          content: JSON.stringify([
+            { id: 'n1', type: 'p', children: [{ text: '' }] },
+          ]),
+          links: [],
+        }),
+      )
+      const { result } = renderHook(
+        () =>
+          useNoteModalDraft({
+            cardId: toRepoCardId('card-1'),
+            userId: 'user-1',
+            repoKey: 'laststance/gitbox',
+            initialNote: '',
+            initialLinks: [],
+            savedAt: null,
+            isOpen: true,
+            onSave: vi.fn(async () => undefined),
+            onClose: vi.fn(),
+            cardTitle: 'laststance/gitbox',
+          }),
+        {
+          wrapper: ({ children }: { children: ReactNode }) => (
+            <Provider store={store}>{children}</Provider>
+          ),
+        },
+      )
+
+      // Act: the dialog opens on that draft
+      // Assert
+      expect(result.current.note).toBe('')
+      expect(
+        store.getState().draft.notes['user-1/laststance/gitbox'],
+      ).toBeUndefined()
+    })
+
+    // Value: protects=a note saved later from another browser is what this browser shows, not the draft it typed before that save; fails_when=the dialog still starts from the draft whenever one exists, and Save writes the old draft over the newer note; why_new=the dialog used draft?.content ?? initialNote; seam=none; no_claim=the other browser
+    test('opens the saved note when the draft is older than that save', () => {
+      // Arrange
+      const store = configureStore({ reducer: { draft: draftReducer } })
+      store.dispatch(
+        updateDraftNote({
+          repoKey: 'user-1/laststance/gitbox',
+          content: 'typed before the other browser saved',
+          links: [],
+        }),
+      )
+      const { result } = renderHook(
+        () =>
+          useNoteModalDraft({
+            cardId: toRepoCardId('card-1'),
+            userId: 'user-1',
+            repoKey: 'laststance/gitbox',
+            initialNote: 'saved later from the other browser',
+            initialLinks: [],
+            savedAt: '2099-01-01T00:00:00.000Z',
+            isOpen: true,
+            onSave: vi.fn(async () => undefined),
+            onClose: vi.fn(),
+            cardTitle: 'laststance/gitbox',
+          }),
+        {
+          wrapper: ({ children }: { children: ReactNode }) => (
+            <Provider store={store}>{children}</Provider>
+          ),
+        },
+      )
+
+      // Act: the dialog opens
+      // Assert
+      expect(result.current.note).toBe('saved later from the other browser')
+      expect(
+        store.getState().draft.notes['user-1/laststance/gitbox'],
+      ).toBeUndefined()
+    })
+
+    // Value: protects=text typed after the note was saved is still what the dialog opens; fails_when=any saved note wins, so a newer draft is thrown away; why_new=the dialog now compares the draft's time with the save; seam=none; no_claim=the clock of the other browser
+    test('opens a draft that was typed after the note was saved', () => {
+      // Arrange
+      const store = configureStore({ reducer: { draft: draftReducer } })
+      store.dispatch(
+        updateDraftNote({
+          repoKey: 'user-1/laststance/gitbox',
+          content: 'typed after the save',
+          links: [],
+        }),
+      )
+      const { result } = renderHook(
+        () =>
+          useNoteModalDraft({
+            cardId: toRepoCardId('card-1'),
+            userId: 'user-1',
+            repoKey: 'laststance/gitbox',
+            initialNote: 'the saved note',
+            initialLinks: [],
+            savedAt: '2020-01-01T00:00:00.000Z',
+            isOpen: true,
+            onSave: vi.fn(async () => undefined),
+            onClose: vi.fn(),
+            cardTitle: 'laststance/gitbox',
+          }),
+        {
+          wrapper: ({ children }: { children: ReactNode }) => (
+            <Provider store={store}>{children}</Provider>
+          ),
+        },
+      )
+
+      // Act: the dialog opens
+      // Assert
+      expect(result.current.note).toBe('typed after the save')
+      expect(
+        store.getState().draft.notes['user-1/laststance/gitbox']?.content,
+      ).toBe('typed after the save')
     })
   })
 })

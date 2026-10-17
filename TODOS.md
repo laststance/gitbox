@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Keep a note draft only for what was typed, and let a newer saved note win
-
-**What:** (1) Do not store a draft while the note and the links are what the server sent: the note editor reports its first value as a change, so a note that was only opened gets a draft. (2) When a draft exists, show it only if it is newer than the saved note, or ask which of the two to keep.
-
-**Why:** Seen on a card of the local build on 2026-10-12: opening an empty note and closing it without typing left a draft of 57 characters (the empty document) in localStorage. The dialog starts from the draft whenever one exists (`draft?.content ?? initialNote`), so after that the browser shows its old draft in place of a note that was saved later from another browser, and Save writes the draft over it.
-
-**Context:** `handleNoteChange` and the two `useState` initializers of `src/hooks/board/useNoteModalDraft.ts`; `updateDraftNote` stores `lastModified`, and `projectinfo.updated_at` is the time of the saved note. Older than this change.
-
-**Effort:** S
-**Priority:** P2
-**Depends on:** None
-
 ### Return the keyboard to the comment when its editor closes
 
 **What:** When the inline editor of a card's comment closes (Enter, Escape or the save button), put the focus on the comment, or on "Add comment" when the comment is empty.

@@ -298,6 +298,12 @@ export interface ProjectInfoData {
   note: string
   comment?: string
   links: ProjectLink[]
+  /**
+   * When the saved note was last written (`projectinfo.updated_at`).
+   * A read sets it, and it is null when nothing is saved for the repository.
+   * A write leaves it out.
+   */
+  updatedAt?: string | null
 }
 
 /**
@@ -577,7 +583,7 @@ export async function getProjectInfoCore(
 
   const { data: card, error } = await supabase
     .from('repocard')
-    .select('projectinfo(note, comment, links)')
+    .select('projectinfo(note, comment, links, updated_at)')
     .eq('id', repoCardId)
     .single()
 
@@ -596,6 +602,7 @@ export async function getProjectInfoCore(
     note: projectInfo?.note || '',
     comment: projectInfo?.comment || '',
     links: normalizeLinks(projectInfo?.links),
+    updatedAt: projectInfo?.updated_at ?? null,
   }
 }
 

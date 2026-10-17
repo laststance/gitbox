@@ -41,6 +41,8 @@ interface UseNoteModalReturn {
   initialNote: string
   /** Initial links from database */
   initialLinks: ProjectLink[]
+  /** When the saved note was written. Null when nothing is saved. */
+  savedAt: string | null
   /** Open modal for a specific card */
   open: (cardId: RepoCardId) => Promise<void>
   /** Close modal and reset state */
@@ -83,6 +85,7 @@ export function useNoteModal({
   const [cardTitle, setCardTitle] = useState('')
   const [initialNote, setInitialNote] = useState('')
   const [initialLinks, setInitialLinks] = useState<ProjectLink[]>([])
+  const [savedAt, setSavedAt] = useState<string | null>(null)
   // The card open() was last asked for. An answer for an earlier card is
   // dropped, so a slow read cannot open that card over the one asked for later.
   const requestedCardId = useRef<RepoCardId | null>(null)
@@ -130,6 +133,7 @@ export function useNoteModal({
       setCardTitle(card.title)
       setInitialNote(result.data?.note || '')
       setInitialLinks(result.data?.links || [])
+      setSavedAt(result.data?.updatedAt ?? null)
       setIsOpen(true)
     },
     [repoCards],
@@ -145,6 +149,7 @@ export function useNoteModal({
     setCardTitle('')
     setInitialNote('')
     setInitialLinks([])
+    setSavedAt(null)
   }, [])
 
   /**
@@ -176,6 +181,7 @@ export function useNoteModal({
     cardTitle,
     initialNote,
     initialLinks,
+    savedAt,
     open,
     close,
     save,
