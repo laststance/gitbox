@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.2.0] - 2026-10-17
+
+### Added
+
+- The browser checks now cover a board drag handle and a card pointing at a stable description, Favorite Boards leaving that description off the page, coming back to the button that opened Add Repositories, putting the cursor back on an empty comment, leaving an unedited note out of the draft, clearing drafts and the last move destination on Sign Out while keeping the theme, replacing a stale card description from GitHub, and keeping a deleted column gone when a column move is undone.
+
 ## [0.7.1.0] - 2026-10-17
 
 ### Removed

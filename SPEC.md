@@ -1350,6 +1350,7 @@ export async function cdpBoardDragAndDrop(
 | Unauth     | `board-data-access.spec.ts`                | Board database access                 |
 | Unauth     | `ssr-hydration.spec.ts`                    | SSR hydration (unauth)                |
 | Security   | `xss-smoke.spec.ts`                        | XSS injection prevention              |
+| Coverage   | `shipped-todo-coverage.spec.ts`            | Playwright for shipped TODO fixes     |
 
 ---
 
