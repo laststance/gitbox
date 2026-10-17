@@ -332,7 +332,8 @@ describe('StatusColumn', () => {
       expect(screen.queryByTestId('add-repo-button')).not.toBeInTheDocument()
     })
 
-    test('should call onAddCard with statusId when clicked', async () => {
+    test('tells the board which column to open and which button opened it', async () => {
+      // Arrange
       const user = userEvent.setup()
       render(
         <StatusColumn
@@ -341,10 +342,13 @@ describe('StatusColumn', () => {
           onAddCard={mockOnAddCard}
         />,
       )
+      const addRepo = screen.getByTestId('add-repo-button')
 
-      await user.click(screen.getByTestId('add-repo-button'))
+      // Act
+      await user.click(addRepo)
 
-      expect(mockOnAddCard).toHaveBeenCalledWith('status-1')
+      // Assert
+      expect(mockOnAddCard).toHaveBeenCalledWith('status-1', addRepo)
     })
   })
 

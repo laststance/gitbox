@@ -399,5 +399,32 @@ describe('useAddRepositoryCombobox', () => {
       expect(result.current.isOpen).toBe(false)
       expect(result.current.statusId).toBe('status-1')
     })
+
+    test('remembers the column button that opened the picker until the header opens it', () => {
+      // Arrange
+      const statusLists = [createMockStatus({ id: toStatusListId('status-1') })]
+      const opener = document.createElement('button')
+      const { result } = renderHook(() =>
+        useAddRepositoryCombobox({ statusLists }),
+      )
+
+      // Act
+      act(() => {
+        result.current.openForStatus(toStatusListId('status-1'), opener)
+      })
+
+      // Assert: closing still knows the button, so the picker can focus it
+      expect(result.current.focusReturnTarget).toBe(opener)
+      act(() => {
+        result.current.handleOpenChange(false)
+      })
+      expect(result.current.focusReturnTarget).toBe(opener)
+
+      // The header opened it: there is no column button to return to
+      act(() => {
+        result.current.handleOpenChange(true)
+      })
+      expect(result.current.focusReturnTarget).toBeNull()
+    })
   })
 })

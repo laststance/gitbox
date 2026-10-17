@@ -38,7 +38,7 @@ interface SortableColumnProps {
   onCommentDelete?: (cardId: RepoCardId) => void
   onEditStatus?: (status: StatusListDomain) => void
   onDeleteStatus?: (statusId: StatusListId) => void
-  onAddCard?: (statusId: StatusListId) => void
+  onAddCard?: (statusId: StatusListId, opener?: HTMLElement) => void
   /** CSS Grid positioning style (gridRow, gridColumn) */
   gridStyle?: React.CSSProperties
 }

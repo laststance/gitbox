@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Return the keyboard to what opened the Add Repositories picker
-
-**What:** When the picker closes (Cancel, Escape, or after repositories were added), put the focus on the control that opened it: "Add Repositories" in the header, or "Add Repo" of the column it was opened from. A picker that the page opened again after a GitHub sign-in has no such control; the header button is the place then.
-
-**Why:** Closing takes the panel off the page, and the focus falls to the page (`document.body`), so a keyboard user starts again from the top of the board. The Escape branch of the panel's key handler even calls `blur()` on the search box. Named in the last review round of #213 on 2026-10-12, read from the code. The dialogs a card opens give the focus back since #213; the picker has three ways in and was left as it is.
-
-**Context:** `handleClose` and `handleToggleOpen` of `src/components/Board/AddRepositoryCombobox.tsx`; `openForStatus` and `handleOpenChange` of `src/hooks/board/useAddRepositoryCombobox.ts`, which open it from a column and after the return from GitHub (`ADD_REPOSITORY_RETURN_PARAM`). The search box takes the focus when the panel is put on the page, before a ref of the panel is attached, so the opener has to be remembered where the picker is opened, not where it appears. Safari does not focus a button that is clicked. Older than #213.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### Give a card one tab stop
 
 **What:** Make a card one stop of the Tab key. Today it is two: the element that has the drag listeners (dnd-kit gives it `tabIndex` 0 and the role of a button) and the `Card` inside it, which has a `tabIndex` of its own.

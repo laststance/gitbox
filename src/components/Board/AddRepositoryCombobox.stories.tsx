@@ -8,6 +8,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
+import { memo, useState } from 'react'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
 import { toBoardId, toStatusListId } from '@/lib/types/brands'
@@ -248,5 +249,139 @@ export const SelectedBadgeStaysInThePanel: Story = {
         ),
       ),
     ).toBe(1)
+  },
+}
+
+const STORY_BOARD_ID = toBoardId('board-1')
+const STORY_STATUS_ID = toStatusListId('status-1')
+
+/** The picker, opened by a column's "Add Repo" button. */
+const OpenedFromAColumn = memo(function OpenedFromAColumn() {
+  const [isOpen, setIsOpen] = useState(false)
+  const [opener, setOpener] = useState<HTMLElement | null>(null)
+  return (
+    <>
+      <button
+        type="button"
+        onClick={(event): void => {
+          setOpener(event.currentTarget)
+          setIsOpen(true)
+        }}
+      >
+        Add Repo
+      </button>
+      <AddRepositoryCombobox
+        boardId={STORY_BOARD_ID}
+        statusId={STORY_STATUS_ID}
+        onRepositoriesAdded={(): void => undefined}
+        isOpen={isOpen}
+        onOpenChange={setIsOpen}
+        focusReturnTarget={opener}
+      />
+    </>
+  )
+})
+
+/** The picker as the page opens it again after GitHub sign-in. */
+const OpenedAfterGitHubSignIn = memo(function OpenedAfterGitHubSignIn() {
+  const [isOpen, setIsOpen] = useState(true)
+  return (
+    <AddRepositoryCombobox
+      boardId={STORY_BOARD_ID}
+      statusId={STORY_STATUS_ID}
+      onRepositoriesAdded={(): void => undefined}
+      isOpen={isOpen}
+      onOpenChange={setIsOpen}
+    />
+  )
+})
+
+const storyArgs = {
+  boardId: STORY_BOARD_ID,
+  statusId: STORY_STATUS_ID,
+  onRepositoriesAdded: fn(),
+}
+
+/**
+ * Escape from a picker the header opened puts the keyboard back on
+ * "Add Repositories".
+ */
+export const EscapeReturnsToAddRepositories: Story = {
+  args: storyArgs,
+  // Value: protects=closing the picker with Escape puts the keyboard back on "Add Repositories"; fails_when=the focus falls to the page and a keyboard user starts again from the top of the board; why_new=the panel's Escape blurs the search box and nothing remembered the button; seam=none; no_claim=a column's "Add Repo" button
+  play: async ({ canvasElement }) => {
+    // Arrange
+    const canvas = within(canvasElement)
+    const trigger = canvas.getByRole('button', { name: 'Add Repositories' })
+
+    // Act
+    await userEvent.click(trigger)
+    await waitFor(() => {
+      expect(
+        canvas.getByPlaceholderText('Search repositories...'),
+      ).toBeVisible()
+    })
+    await userEvent.keyboard('{Escape}')
+
+    // Assert
+    await waitFor(() => {
+      expect(trigger).toHaveFocus()
+    })
+  },
+}
+
+/**
+ * Cancel from a picker a column opened puts the keyboard back on "Add Repo".
+ */
+export const CancelReturnsToAddRepo: Story = {
+  args: storyArgs,
+  render: () => <OpenedFromAColumn />,
+  // Value: protects=Cancel puts the keyboard back on the column's "Add Repo" button that opened the picker; fails_when=the focus falls to the page; why_new=the header button and a column button are different openers; seam=none; no_claim=the header button
+  play: async ({ canvasElement }) => {
+    // Arrange
+    const canvas = within(canvasElement)
+    const addRepo = canvas.getByRole('button', { name: 'Add Repo' })
+
+    // Act
+    await userEvent.click(addRepo)
+    await waitFor(() => {
+      expect(
+        canvas.getByPlaceholderText('Search repositories...'),
+      ).toBeVisible()
+    })
+    await userEvent.click(canvas.getByRole('button', { name: 'Cancel' }))
+
+    // Assert
+    await waitFor(() => {
+      expect(addRepo).toHaveFocus()
+    })
+  },
+}
+
+/**
+ * A picker the page opened after GitHub sign-in has no column button. Cancel
+ * puts the keyboard on the header button, and opening does not take it there
+ * before the user closes.
+ */
+export const CancelAfterGitHubSignInReturnsToAddRepositories: Story = {
+  args: storyArgs,
+  render: () => <OpenedAfterGitHubSignIn />,
+  // Value: protects=a picker opened again after GitHub sign-in returns the keyboard to "Add Repositories", and does not take it there while the panel is open; fails_when=the focus falls to the page, or the header button takes the focus as soon as the page opens the picker; why_new=that opening has no click to remember; seam=none; no_claim=which column the repositories are added to
+  play: async ({ canvasElement }) => {
+    // Arrange
+    const canvas = within(canvasElement)
+    const search = canvas.getByPlaceholderText('Search repositories...')
+    const trigger = canvas.getByRole('button', { name: 'Add Repositories' })
+    await waitFor(() => {
+      expect(search).toHaveFocus()
+    })
+
+    // Act
+    await userEvent.click(canvas.getByRole('button', { name: 'Cancel' }))
+
+    // Assert
+    await waitFor(() => {
+      expect(trigger).toHaveFocus()
+    })
   },
 }
