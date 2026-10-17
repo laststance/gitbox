@@ -17,7 +17,12 @@ import {
   SENTRY_TUNNEL_MAX_BODY_BYTES,
 } from '@/lib/constants/sentry'
 import { RATE_LIMIT_CONFIG } from '@/lib/rate-limit/config'
-import { edgeRateLimit, getClientIp } from '@/lib/rate-limit/edge-memory'
+import { getClientIp } from '@/lib/rate-limit/edge-memory'
+import {
+  allowSharedEdgeRequest,
+  AUTH_CALLBACK_RATE_LIMIT_ID,
+  SENTRY_TUNNEL_RATE_LIMIT_ID,
+} from '@/lib/rate-limit/shared-edge-limit'
 import { logSecurityEvent } from '@/lib/security-events'
 import {
   isSpentRefreshLogin,
@@ -80,7 +85,14 @@ export async function proxy(request: NextRequest) {
   if (pathname === '/auth/callback') {
     const ip = getClientIp(request)
     const config = RATE_LIMIT_CONFIG['auth/callback']
-    if (!edgeRateLimit(ip, config.maxRequests, config.windowMs)) {
+    const callbackIsAllowed = await allowSharedEdgeRequest(
+      request,
+      ip,
+      config.maxRequests,
+      config.windowMs,
+      AUTH_CALLBACK_RATE_LIMIT_ID,
+    )
+    if (!callbackIsAllowed) {
       logSecurityEvent('rate_limited', { ip, path: pathname })
       return new NextResponse(
         'Too many authentication attempts. Please try again later.',
@@ -288,7 +300,9 @@ const sentryTunnelHeaders = (request: NextRequest): Headers => {
   return forwarded
 }
 
-const forwardSentryReport = (request: NextRequest): NextResponse => {
+const forwardSentryReport = async (
+  request: NextRequest,
+): Promise<NextResponse> => {
   // The SDK only ever posts; no other method has a reason to be forwarded
   if (request.method !== 'POST') {
     return new NextResponse(null, { status: 404 })
@@ -299,7 +313,14 @@ const forwardSentryReport = (request: NextRequest): NextResponse => {
   // event, which would itself be one Sentry event per refused report.
   const { maxRequests, windowMs } = RATE_LIMIT_CONFIG.sentryTunnel
   const tunnelRateLimitKey = `sentry-tunnel:${getClientIp(request)}`
-  if (!edgeRateLimit(tunnelRateLimitKey, maxRequests, windowMs)) {
+  const reportIsAllowed = await allowSharedEdgeRequest(
+    request,
+    tunnelRateLimitKey,
+    maxRequests,
+    windowMs,
+    SENTRY_TUNNEL_RATE_LIMIT_ID,
+  )
+  if (!reportIsAllowed) {
     // The SDK reads Retry-After and sends nothing for that many seconds
     return new NextResponse(null, {
       status: 429,

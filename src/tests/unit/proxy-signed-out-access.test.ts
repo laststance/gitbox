@@ -149,6 +149,34 @@ describe('proxy() for a signed-out visitor', () => {
     expect(callbackResponse.headers.get('location')).toBeNull()
   })
 
+  // Value: protects=the callback's own sentence and a separate bucket from the tunnel
+  //   fails_when=the 11th callback is not 429, or the body differs
+  //   no_claim=production has published the firewall rule (this file uses the in-process counter)
+  test('refuses the 11th sign-in callback from one address in a minute', async () => {
+    // Arrange
+    const callbackRequest = (): NextRequest =>
+      new NextRequest('https://gitbox.example/auth/callback', {
+        headers: { 'x-forwarded-for': '203.0.113.21' },
+      })
+    const allowedResponses: Response[] = []
+    for (let attempt = 1; attempt <= 10; attempt++) {
+      allowedResponses.push(await proxy(callbackRequest()))
+    }
+
+    // Act
+    const refusedResponse = await proxy(callbackRequest())
+
+    // Assert
+    expect(allowedResponses.every((response) => response.status !== 429)).toBe(
+      true,
+    )
+    expect(refusedResponse.status).toBe(429)
+    expect(await refusedResponse.text()).toBe(
+      'Too many authentication attempts. Please try again later.',
+    )
+    expect(refusedResponse.headers.get('retry-after')).toBe('60')
+  })
+
   // The browser fetches the manifest for the install prompt and crawlers fetch
   // the images for link previews. None of them carries a session cookie.
   const sessionlessMetadataPaths = [

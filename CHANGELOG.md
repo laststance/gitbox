@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.5.0] - 2026-10-17
+
+### Fixed
+
+- A burst of error reports or sign-in attempts is counted once across the servers that handle it. When that shared count does not answer, the app still limits the one server that received the request.
+
 ## [0.7.4.0] - 2026-10-17
 
 ### Fixed
