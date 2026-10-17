@@ -584,6 +584,39 @@ describe('board data from the server', () => {
     expect(readBoard).not.toHaveBeenCalled()
   })
 
+  // Value: protects=the dragged column stays and the board is read again; fails_when=the pre-drag payload is written, or no read is sent; no_claim=Playwright history
+  test('keeps a saved drag when the page from before the drag is mounted again', async () => {
+    // Arrange: the board is open and the drag has been saved
+    const { store, wrapper } = createAppStore()
+    const { unmount } = renderHook(
+      (pageData: PageData) => useBoardServerSync(pageData),
+      { wrapper, initialProps: makePageData('status-todo') },
+    )
+    await act(async () => {
+      store.dispatch(boardSliceModule.setRepoCards([makeCard('status-done')]))
+      await trackBoardWrite(store.dispatch, Promise.resolve())
+    })
+    unmount()
+
+    // Act: Back restores the page from before the drag
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+
+    // Assert: the drag stays, and the board is read once
+    expect(store.getState().board.repoCards).toEqual([makeCard('status-done')])
+    expect(readBoard).toHaveBeenCalledTimes(1)
+
+    // Act: that read returns the saved column
+    await act(async () => {
+      answerFetch(makePageData('status-done'))
+    })
+
+    // Assert
+    expect(store.getState().board.repoCards).toEqual([makeCard('status-done')])
+  })
+
   // The store outlives the page: a board that is left and opened again is
   // mounted anew, so a copy fetched earlier can reach a hook instance that
   // has never seen the board before.

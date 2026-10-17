@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Check the board after browser Back following a drag
-
-**What:** Drag a card, open `/boards`, press the browser's Back button and check where the card is. Fix it if the card shows in its old column.
-
-**Why:** Back may restore page data that Next.js cached before the drag. With nothing in flight `useBoardServerSync` treats page data as current and puts it in the store. This is a review hypothesis that was not reproduced, and if it is real it is older than the rollback guard.
-
-**Context:** `selectMayApplyServerSnapshot` in `src/lib/redux/slices/boardSyncSlice.ts`.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### Give the board-sync gates a deadline
 
 **What:** Give tracked board writes a deadline, or count pending writes per board, and release the "fetch sent" marker when a refetch delivers no data.

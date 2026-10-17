@@ -1302,10 +1302,11 @@ describe('failed saves on a board', () => {
 
 /**
  * While a save is on its way, board data that the server sends again may have
- * been read before that save landed. useBoardServerSync keeps such data out
- * of the store by asking selectMayApplyServerSnapshot, which answers "no"
- * only for writes counted by trackBoardWrite. One test per write the board
- * sends: a write that is not counted lets old data move the card back.
+ * been read before that save landed. selectMayApplyServerSnapshot answers
+ * "no" for a write counted by trackBoardWrite. A drag, an undo or a removal
+ * also changes the cards or columns, so the answer stays "no" after the save:
+ * the page a Back button restores was read before that change. One test per
+ * write the board sends.
  */
 describe('a save in flight keeps board data fetched again out of the store', () => {
   beforeEach(() => {
@@ -1343,9 +1344,10 @@ describe('a save in flight keeps board data fetched again out of the store', () 
 
     // Assert
     expect(mayApplyWhileSaving).toBe(false)
+    // The cards or columns changed, so page data stays out after the save too
     expect(
       selectMayApplyServerSnapshot(store.getState(), toBoardId('board-1')),
-    ).toBe(true)
+    ).toBe(false)
   })
 
   test('while a card reordered within its column is saving', async () => {
@@ -1377,9 +1379,10 @@ describe('a save in flight keeps board data fetched again out of the store', () 
 
     // Assert
     expect(mayApplyWhileSaving).toBe(false)
+    // The cards or columns changed, so page data stays out after the save too
     expect(
       selectMayApplyServerSnapshot(store.getState(), toBoardId('board-1')),
-    ).toBe(true)
+    ).toBe(false)
   })
 
   test('while two swapped columns are saving', async () => {
@@ -1413,9 +1416,10 @@ describe('a save in flight keeps board data fetched again out of the store', () 
 
     // Assert
     expect(mayApplyWhileSaving).toBe(false)
+    // The cards or columns changed, so page data stays out after the save too
     expect(
       selectMayApplyServerSnapshot(store.getState(), toBoardId('board-1')),
-    ).toBe(true)
+    ).toBe(false)
   })
 
   test('while a column dragged to a new row is saving', async () => {
@@ -1447,9 +1451,10 @@ describe('a save in flight keeps board data fetched again out of the store', () 
 
     // Assert
     expect(mayApplyWhileSaving).toBe(false)
+    // The cards or columns changed, so page data stays out after the save too
     expect(
       selectMayApplyServerSnapshot(store.getState(), toBoardId('board-1')),
-    ).toBe(true)
+    ).toBe(false)
   })
 
   test('while a column dropped on an empty cell is saving', async () => {
@@ -1483,9 +1488,10 @@ describe('a save in flight keeps board data fetched again out of the store', () 
 
     // Assert
     expect(mayApplyWhileSaving).toBe(false)
+    // The cards or columns changed, so page data stays out after the save too
     expect(
       selectMayApplyServerSnapshot(store.getState(), toBoardId('board-1')),
-    ).toBe(true)
+    ).toBe(false)
   })
 
   test('while the undo of a card drag is saving', async () => {
@@ -1519,9 +1525,10 @@ describe('a save in flight keeps board data fetched again out of the store', () 
 
     // Assert
     expect(mayApplyWhileSaving).toBe(false)
+    // The cards or columns changed, so page data stays out after the save too
     expect(
       selectMayApplyServerSnapshot(store.getState(), toBoardId('board-1')),
-    ).toBe(true)
+    ).toBe(false)
   })
 
   test('while the undo of a column drag is saving', async () => {
@@ -1555,9 +1562,10 @@ describe('a save in flight keeps board data fetched again out of the store', () 
 
     // Assert
     expect(mayApplyWhileSaving).toBe(false)
+    // The cards or columns changed, so page data stays out after the save too
     expect(
       selectMayApplyServerSnapshot(store.getState(), toBoardId('board-1')),
-    ).toBe(true)
+    ).toBe(false)
   })
 
   test('while a card removed from the board is saving', async () => {
@@ -1595,9 +1603,10 @@ describe('a save in flight keeps board data fetched again out of the store', () 
 
     // Assert
     expect(mayApplyWhileSaving).toBe(false)
+    // The cards or columns changed, so page data stays out after the save too
     expect(
       selectMayApplyServerSnapshot(store.getState(), toBoardId('board-1')),
-    ).toBe(true)
+    ).toBe(false)
   })
 })
 
