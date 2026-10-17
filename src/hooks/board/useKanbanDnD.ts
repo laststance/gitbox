@@ -45,7 +45,7 @@ import { setStatusLists, setRepoCards } from '@/lib/redux/slices/boardSlice'
 import { trackBoardWrite } from '@/lib/redux/slices/boardSyncSlice'
 import type { AppDispatch } from '@/lib/redux/store'
 import type { StatusListId } from '@/lib/types/brands'
-import { notifyFailedBoardSave } from '@/lib/utils/notify-failed-board-save'
+import { reportThrownBoardSave } from '@/lib/utils/notify-failed-board-save'
 import {
   OwnElementKeyboardSensor,
   OwnElementMouseSensor,
@@ -218,7 +218,8 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
         Sentry.captureException(error, {
           tags: { action: 'moveColumnToNewRow' },
         })
-        notifyFailedBoardSave(
+        reportThrownBoardSave(
+          dispatch,
           COLUMN_MOVE_FAILED_TOAST_TITLE,
           rollbackStatusLists(updatedStatuses, statuses),
         )
@@ -289,7 +290,8 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
         )
       } catch (error) {
         Sentry.captureException(error, { tags: { action: 'insertColumn' } })
-        notifyFailedBoardSave(
+        reportThrownBoardSave(
+          dispatch,
           COLUMN_MOVE_FAILED_TOAST_TITLE,
           rollbackStatusLists(updatedStatuses, statuses),
         )
@@ -332,7 +334,8 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
         Sentry.captureException(error, {
           tags: { action: 'swapColumnPositions' },
         })
-        notifyFailedBoardSave(
+        reportThrownBoardSave(
+          dispatch,
           COLUMN_MOVE_FAILED_TOAST_TITLE,
           rollbackStatusLists(updatedStatuses, statuses),
         )
@@ -442,7 +445,8 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
             Sentry.captureException(error, {
               tags: { action: 'syncCardOrder' },
             })
-            notifyFailedBoardSave(
+            reportThrownBoardSave(
+              dispatch,
               CARD_MOVE_FAILED_TOAST_TITLE,
               rollbackRepoCards(reorderedCards, cards),
             )
@@ -472,7 +476,8 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
           Sentry.captureException(error, {
             tags: { action: 'syncCardPosition' },
           })
-          notifyFailedBoardSave(
+          reportThrownBoardSave(
+            dispatch,
             CARD_MOVE_FAILED_TOAST_TITLE,
             rollbackRepoCards(updatedCards, cards),
           )

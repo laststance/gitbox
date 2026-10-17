@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Word every failed board save from what the rollback did
-
-**What:** (1) In `useOptimisticCardAction`, pass the rollback outcome to `notifyFailedBoardSave` on the `{ success: false }` branch too, and keep the server's message as the description when the card was put back. (2) Give a refused undo its own text: "Please try again." is wrong there because the undo step is gone. (3) Show one notice when a save fails offline, not the failed-save toast plus "You're offline", and keep the offline notice up while a save is pending. (4) Give the offline notice a close button. (5) After a save that threw, ask for a fresh copy of the board as well as putting the previous layout back.
-
-**Why:** (1) Remove from Board is refused through `{ success: false }`. When the board changed in the meantime the card is not put back and the board reloads without saying so, and a burst of refusals stacks toasts. (2) to (4) The two notices disagree, the offline one disappears whenever a save starts, and it stays up with no button to close it. (5) A request can be committed before the connection drops; the screen then shows the old layout while the database holds the new one until the next reload. Do (5) after "Fetch the board again through a server action, not `router.refresh()`": a refetch sent while the server cannot be reached replaces the app with the browser's error page today.
-
-**Context:** `src/hooks/board/useOptimisticCardAction.ts`, `src/hooks/board/useKanbanUndo.ts`, `src/hooks/board/useBoardServerSync.ts`, `src/hooks/board/useBoardRollback.ts`, `src/lib/utils/notify-failed-board-save.ts`. See also "Let a refused undo be tried again".
-
-**Effort:** M
-**Priority:** P2
-**Depends on:** None
-
 ### Cover the board-sync wiring the unit tests mock away
 
 **What:** (1) Correct the Arrange comment of "still offers and adds a repository that sits on another user's board" in `e2e/logged-in/one-repo-across-boards.spec.ts`. (2) Add tests for `setStatusLists`, `addRepoCards` and `removeRepoCard` each making a fetch in flight out of date, plus a test that lists `boardSlice`'s actions so a new reducer forces the decision.

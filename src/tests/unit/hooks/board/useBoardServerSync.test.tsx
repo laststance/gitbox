@@ -550,6 +550,7 @@ describe('board data from the server', () => {
       id: 'board-refresh-offline',
       description: 'The board reloads when the connection is back.',
       duration: Infinity,
+      closeButton: true,
     })
     expect(toast.dismiss).not.toHaveBeenCalled()
 
@@ -561,6 +562,35 @@ describe('board data from the server', () => {
     // Assert: the notice is taken down and the board is fetched
     expect(toast.dismiss).toHaveBeenCalledWith('board-refresh-offline')
     expect(readBoard).toHaveBeenCalledTimes(1)
+  })
+
+  test('keeps the offline notice up while a save is still pending', async () => {
+    // Arrange: the board cannot reload, and the notice is up
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    let finishSave = (): void => undefined
+    const pendingSave = new Promise<void>((resolve) => {
+      finishSave = resolve
+    })
+    act(() => {
+      setBrowserOnline(false)
+      store.dispatch(boardRefreshRequested())
+    })
+    vi.mocked(toast.dismiss).mockClear()
+
+    // Act: a save starts, so the fetch has to wait
+    await act(async () => {
+      const saving = trackBoardWrite(store.dispatch, pendingSave)
+      finishSave()
+      await saving
+    })
+
+    // Assert: the notice was not taken down for the save
+    expect(toast.dismiss).not.toHaveBeenCalled()
+    expect(readBoard).not.toHaveBeenCalled()
   })
 
   test('keeps a card dragged just before leaving the board when the board is opened again mid-save', async () => {

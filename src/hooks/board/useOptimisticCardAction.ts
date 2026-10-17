@@ -16,7 +16,10 @@ import { setRepoCards, selectRepoCards } from '@/lib/redux/slices/boardSlice'
 import { trackBoardWrite } from '@/lib/redux/slices/boardSyncSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { RepoCardId } from '@/lib/types/brands'
-import { notifyFailedBoardSave } from '@/lib/utils/notify-failed-board-save'
+import {
+  notifyFailedBoardSave,
+  reportThrownBoardSave,
+} from '@/lib/utils/notify-failed-board-save'
 import { reportUnconfirmedBoardSave } from '@/lib/utils/report-unconfirmed-board-save'
 
 import { useBoardRollback } from './useBoardRollback'
@@ -89,25 +92,35 @@ export function useOptimisticCardAction() {
           () => reportUnconfirmedBoardSave(options.actionName),
         )
         if (!result.success) {
-          rollbackRepoCards(cardsWithoutCard, previousCards)
+          const rollbackOutcome = rollbackRepoCards(
+            cardsWithoutCard,
+            previousCards,
+          )
           Sentry.captureMessage(`${options.actionName} failed`, {
             level: 'error',
             tags: { action: options.actionName },
             extra: { error: result.error },
           })
-          toast.error(options.errorMessage, { description: result.error })
+          // The server answered, so the removal was not saved. Its sentence
+          // is the second line only when the card is back on the board.
+          notifyFailedBoardSave(
+            options.errorMessage,
+            rollbackOutcome,
+            undefined,
+            rollbackOutcome === 'restored' ? result.error : undefined,
+          )
         } else if (options.successMessage) {
           toast.success(options.successMessage)
         }
       } catch (error) {
-        const rollbackOutcome = rollbackRepoCards(
-          cardsWithoutCard,
-          previousCards,
-        )
         Sentry.captureException(error, {
           tags: { action: options.actionName },
         })
-        notifyFailedBoardSave(options.errorMessage, rollbackOutcome)
+        reportThrownBoardSave(
+          dispatch,
+          options.errorMessage,
+          rollbackRepoCards(cardsWithoutCard, previousCards),
+        )
       }
     },
     [repoCards, dispatch, rollbackRepoCards],
