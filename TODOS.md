@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Skip the localStorage save after actions that change nothing persisted
-
-**What:** Make `@laststance/redux-storage-middleware` schedule its debounced save only when a persisted slice changed.
-
-**Why:** It schedules a save after every action. The `board` and `boardSync` slices are not persisted and dispatch several actions per drag, each of which serializes the persisted state again 300 ms later. That state is the settings and the drafts only since 2026-10-12, so a save is small; there are still more of them than needed.
-
-**Context:** The middleware lives in its own package; the fix belongs there, not in the app.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### Check the board after browser Back following a drag
 
 **What:** Drag a card, open `/boards`, press the browser's Back button and check where the card is. Fix it if the card shows in its old column.

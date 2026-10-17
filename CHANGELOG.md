@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.10.0] - 2026-10-18
+
+### Fixed
+
+- Dragging a card no longer rewrites the saved settings. Changing the theme still saves it.
+
 ## [0.7.9.0] - 2026-10-18
 
 ### Fixed
