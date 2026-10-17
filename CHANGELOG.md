@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.9.0] - 2026-10-18
+
+### Fixed
+
+- After Z fails to save an undo, the next Z tries that same undo again. A second failure of that step gets out of the way, so an older undo can still run.
+
 ## [0.7.8.0] - 2026-10-18
 
 ### Fixed

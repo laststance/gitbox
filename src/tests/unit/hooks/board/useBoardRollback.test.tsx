@@ -706,6 +706,141 @@ describe('failed saves on a board', () => {
     expect(readBoard).toHaveBeenCalledTimes(1)
   })
 
+  test('the next Z retries an undo whose save was refused', async () => {
+    // Arrange: card-1 was dragged from To Do to Done and that drag was saved
+    const { failSave, pendingSave } = holdSaveOpen()
+    vi.mocked(batchUpdateRepoCardOrders).mockReturnValueOnce(pendingSave)
+    const { store, wrapper } = createBoardStore(
+      [makeCard('card-1', 'gitbox', 'status-todo', 0)],
+      [
+        makeColumn('status-todo', 'To Do', 0),
+        makeColumn('status-done', 'Done', 1),
+      ],
+    )
+    const { result } = renderHook(() => useBoardDragAndUndo(), { wrapper })
+    await act(async () => {
+      await result.current.handleDragEnd(
+        dropCardOnColumn('card-1', 'status-done'),
+      )
+    })
+    pressUndoKey()
+    await act(async () => {
+      failSave()
+      await pendingSave.catch(() => undefined)
+    })
+
+    // Act: Z again, and this save is kept
+    pressUndoKey()
+    await act(async () => undefined)
+
+    // Assert: the refused undo ran again, so the card is back in To Do
+    expect(store.getState().board.repoCards).toEqual([
+      makeCard('card-1', 'gitbox', 'status-todo', 0),
+    ])
+    expect(vi.mocked(batchUpdateRepoCardOrders)).toHaveBeenCalledTimes(2)
+    expect(vi.mocked(batchUpdateRepoCardOrders)).toHaveBeenLastCalledWith([
+      {
+        id: toRepoCardId('card-1'),
+        statusId: toStatusListId('status-todo'),
+        order: 0,
+      },
+    ])
+  })
+
+  test('a second refusal of the same undo leaves the older step', async () => {
+    // Arrange: card-1 then card-2 were dragged onto Done
+    const firstRefusal = holdSaveOpen()
+    const secondRefusal = holdSaveOpen()
+    vi.mocked(batchUpdateRepoCardOrders)
+      .mockReturnValueOnce(firstRefusal.pendingSave)
+      .mockReturnValueOnce(secondRefusal.pendingSave)
+    const { store, wrapper } = createBoardStore(
+      [
+        makeCard('card-1', 'gitbox', 'status-todo', 0),
+        makeCard('card-2', 'corelive', 'status-todo', 1),
+      ],
+      [
+        makeColumn('status-todo', 'To Do', 0),
+        makeColumn('status-done', 'Done', 1),
+      ],
+    )
+    const { result } = renderHook(() => useBoardDragAndUndo(), { wrapper })
+    await act(async () => {
+      await result.current.handleDragEnd(
+        dropCardOnColumn('card-1', 'status-done'),
+      )
+    })
+    await act(async () => {
+      await result.current.handleDragEnd(
+        dropCardOnColumn('card-2', 'status-done'),
+      )
+    })
+    pressUndoKey()
+    await act(async () => {
+      firstRefusal.failSave()
+      await firstRefusal.pendingSave.catch(() => undefined)
+    })
+    pressUndoKey()
+    await act(async () => {
+      secondRefusal.failSave()
+      await secondRefusal.pendingSave.catch(() => undefined)
+    })
+
+    // Act: Z reaches the drag of card-1, under the step that failed twice
+    pressUndoKey()
+    await act(async () => undefined)
+
+    // Assert: both cards are back in To Do. The refused step did not stay on top.
+    expect(store.getState().board.repoCards).toEqual([
+      makeCard('card-1', 'gitbox', 'status-todo', 0),
+      makeCard('card-2', 'corelive', 'status-todo', 1),
+    ])
+    expect(vi.mocked(batchUpdateRepoCardOrders)).toHaveBeenCalledTimes(3)
+  })
+
+  test('an undo whose board moved on is not tried again', async () => {
+    // Arrange: the undo is still saving when another card appears
+    const { failSave, pendingSave } = holdSaveOpen()
+    vi.mocked(batchUpdateRepoCardOrders).mockReturnValueOnce(pendingSave)
+    const { store, wrapper } = createBoardStore(
+      [makeCard('card-1', 'gitbox', 'status-todo', 0)],
+      [
+        makeColumn('status-todo', 'To Do', 0),
+        makeColumn('status-done', 'Done', 1),
+      ],
+    )
+    const { result } = renderHook(() => useBoardDragAndUndo(), { wrapper })
+    await act(async () => {
+      await result.current.handleDragEnd(
+        dropCardOnColumn('card-1', 'status-done'),
+      )
+    })
+    pressUndoKey()
+    act(() => {
+      store.dispatch(
+        setRepoCards([
+          makeCard('card-1', 'gitbox', 'status-done', 0),
+          makeCard('card-2', 'corelive', 'status-todo', 0),
+        ]),
+      )
+    })
+    await act(async () => {
+      failSave()
+      await pendingSave.catch(() => undefined)
+    })
+
+    // Act
+    pressUndoKey()
+    await act(async () => undefined)
+
+    // Assert: the step was not put back, so Z does not write card positions again
+    expect(vi.mocked(batchUpdateRepoCardOrders)).toHaveBeenCalledTimes(1)
+    expect(store.getState().board.repoCards).toEqual([
+      makeCard('card-1', 'gitbox', 'status-done', 0),
+      makeCard('card-2', 'corelive', 'status-todo', 0),
+    ])
+  })
+
   test('a refused column undo shows the columns the database still holds', async () => {
     // Arrange: To Do and Done were swapped and that swap was saved
     const { failSave, pendingSave } = holdSaveOpen()
@@ -744,6 +879,82 @@ describe('failed saves on a board', () => {
       },
     )
     expect(readBoard).toHaveBeenCalledTimes(1)
+  })
+
+  test('the next Z retries a column undo whose save was refused', async () => {
+    // Arrange: To Do and Done were swapped and that swap was saved
+    const { failSave, pendingSave } = holdSaveOpen()
+    vi.mocked(batchUpdateStatusListPositions).mockReturnValueOnce(pendingSave)
+    const { store, wrapper } = createBoardStore(
+      [],
+      [
+        makeColumn('status-todo', 'To Do', 0),
+        makeColumn('status-done', 'Done', 1),
+      ],
+    )
+    const { result } = renderHook(() => useBoardDragAndUndo(), { wrapper })
+    await act(async () => {
+      await result.current.handleDragEnd(
+        dropColumnOnColumn('status-todo', 'status-done'),
+      )
+    })
+    pressUndoKey()
+    await act(async () => {
+      failSave()
+      await pendingSave.catch(() => undefined)
+    })
+
+    // Act: Z again, and this save is kept
+    pressUndoKey()
+    await act(async () => undefined)
+
+    // Assert: the swap is undone
+    expect(store.getState().board.statusLists).toEqual([
+      makeColumn('status-todo', 'To Do', 0),
+      makeColumn('status-done', 'Done', 1),
+    ])
+    expect(vi.mocked(batchUpdateStatusListPositions)).toHaveBeenCalledTimes(2)
+  })
+
+  test('a second refusal of the same column undo is not tried again', async () => {
+    // Arrange: the grid bound will not go away, so a third Z must not send it
+    vi.mocked(batchUpdateStatusListPositions)
+      .mockResolvedValueOnce({
+        success: false,
+        error: 'A column cannot sit past row 999 or column 999.',
+      })
+      .mockResolvedValueOnce({
+        success: false,
+        error: 'A column cannot sit past row 999 or column 999.',
+      })
+    const { store, wrapper } = createBoardStore(
+      [],
+      [
+        makeColumn('status-todo', 'To Do', 0),
+        makeColumn('status-done', 'Done', 1),
+      ],
+    )
+    const { result } = renderHook(() => useBoardDragAndUndo(), { wrapper })
+    await act(async () => {
+      await result.current.handleDragEnd(
+        dropColumnOnColumn('status-todo', 'status-done'),
+      )
+    })
+    pressUndoKey()
+    await act(async () => undefined)
+    pressUndoKey()
+    await act(async () => undefined)
+
+    // Act
+    pressUndoKey()
+    await act(async () => undefined)
+
+    // Assert: two tries, then the step is gone and the swapped layout stays
+    expect(vi.mocked(batchUpdateStatusListPositions)).toHaveBeenCalledTimes(2)
+    expect(store.getState().board.statusLists).toEqual([
+      makeColumn('status-todo', 'To Do', 1),
+      makeColumn('status-done', 'Done', 0),
+    ])
   })
 
   test('a column undo past the grid bound puts the columns back and the refusal is the toast', async () => {

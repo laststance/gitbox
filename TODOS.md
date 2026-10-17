@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Let a refused undo be tried again
-
-**What:** Decide what happens to an undo step whose save was refused. Today the step is gone: the board goes back to the layout before the undo and pressing Z again undoes the step before it.
-
-**Why:** After a network blip the user has to drag the card back by hand. Putting the step back on the stack is not enough on its own: a refusal that will not go away (the old column was deleted) would then block every older step behind it, because the top of the stack is always tried first.
-
-**Context:** `handleUndo` in `src/hooks/board/useKanbanUndo.ts`. The rollback returns `'restored'` or `'reload-requested'`, which says whether the board on screen is still the one the step belongs to.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### Skip the localStorage save after actions that change nothing persisted
 
 **What:** Make `@laststance/redux-storage-middleware` schedule its debounced save only when a persisted slice changed.

@@ -18,8 +18,10 @@ import {
  *   when the failure is not the grid bound.
  * @param toastId - Sonner id to show the toast under. Omit it to use the id
  *   shared by failed saves.
+ * @returns `saved` when the write was kept, otherwise what {@link rollback} did.
+ *   {@link useKanbanUndo} puts a restored step back once so Z can try it again.
  * @example
- * await rollbackIfPositionWriteFailed(
+ * const outcome = await rollbackIfPositionWriteFailed(
  *   updateStatusListPosition(id, row, col),
  *   'Failed to move column',
  *   () => rollbackStatusLists(columnsAfter, columnsBefore),
@@ -30,13 +32,15 @@ export async function rollbackIfPositionWriteFailed(
   title: string,
   rollback: () => BoardRollbackOutcome,
   toastId?: string,
-): Promise<void> {
+): Promise<'saved' | BoardRollbackOutcome> {
   const message = failedActionMessage(await write)
-  if (message === null) return
+  if (message === null) return 'saved'
+  const outcome = rollback()
   notifyFailedBoardSave(
     title,
-    rollback(),
+    outcome,
     toastId,
     gridPositionRefusalSentence(message) ?? undefined,
   )
+  return outcome
 }
