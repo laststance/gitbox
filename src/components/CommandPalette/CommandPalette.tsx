@@ -32,6 +32,8 @@ import { signOut } from '@/lib/actions/auth'
 import { getUserRepoPlacements } from '@/lib/actions/board-data'
 import type { BoardPlacement } from '@/lib/actions/repo-card-duplicates'
 import { TOAST_WITH_LONG_TEXT_DURATION_MS } from '@/lib/constants/toast'
+import { forgetAccountOnThisBrowser } from '@/lib/redux/forget-account-on-this-browser'
+import { store } from '@/lib/redux/store'
 import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 import { linkedCardHref } from '@/lib/utils/linked-card'
 
@@ -148,6 +150,8 @@ export const CommandPalette = memo(function CommandPalette() {
         label: 'Sign Out',
         icon: <LogOut className="h-4 w-4" />,
         action: async (): Promise<void> => {
+          // The write lands before the redirect, which would cancel a save still waiting
+          await forgetAccountOnThisBrowser(store)
           await signOut()
           router.push('/login')
         },

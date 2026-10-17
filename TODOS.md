@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Clear the persisted drafts on sign-out
-
-**What:** On sign-out and account deletion, clear the `draft` slice stored under `gitbox-state` in localStorage and the `moveDestinationByBoard` map of the settings slice (keep the theme and display settings), or store the owner's user id with them and drop them when it differs from the signed-in user.
-
-**Why:** On a shared browser the previous account's note drafts and the last move destination stay in localStorage after sign-out. A note draft is stored under `userId/owner/name`, so the next account does not open it; the entry is still the previous account's text. The columns and cards (private repository names included) are not stored any more since 2026-10-12, and a `board` slice that an older build stored is dropped the first time the app saves its state.
-
-**Context:** `PERSISTED_SLICE_NAMES` in `src/lib/redux/persisted-slices.ts`; `noteDraftKey` in `src/lib/redux/slices/draftSlice.ts`; `signOut` in `src/lib/actions/auth.ts` redirects without touching client state. `moveDestinationByBoard` is a map of board ids to board ids (no names); another account never reads an entry, because its boards have other ids, but the map should be emptied with the rest.
-
-**Effort:** S
-**Priority:** P2
-**Depends on:** None
-
 ### Keep a note draft only for what was typed, and let a newer saved note win
 
 **What:** (1) Do not store a draft while the note and the links are what the server sent: the note editor reports its first value as a change, so a note that was only opened gets a draft. (2) When a draft exists, show it only if it is newer than the saved note, or ask which of the two to keep.

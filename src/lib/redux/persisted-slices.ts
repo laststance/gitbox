@@ -16,6 +16,18 @@
  * server had rendered that page without columns, and React threw the server's
  * markup away (error #418) on every visit after the first.
  */
+/** localStorage key of {@link PERSISTED_SLICE_NAMES}. The theme script in the root layout reads the same key. */
+export const PERSISTED_STATE_KEY = 'gitbox-state'
+
+/**
+ * How long a change waits before the storage middleware writes it.
+ *
+ * The same number is passed to the middleware and waited on by
+ * {@link forgetAccountOnThisBrowser}. Sign-out redirects as soon as the
+ * server answers, and a write still waiting at that moment is dropped.
+ */
+export const PERSISTED_STATE_SAVE_DELAY_MS = 300
+
 export const PERSISTED_SLICE_NAMES = ['settings', 'draft'] as const
 
 type PersistedSliceName = (typeof PERSISTED_SLICE_NAMES)[number]

@@ -11,7 +11,7 @@
  */
 
 import { configureStore } from '@reduxjs/toolkit'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Provider } from 'react-redux'
 import { describe, test, expect, vi, beforeEach } from 'vitest'
@@ -399,7 +399,10 @@ describe('Sidebar', () => {
       const signOutButton = screen.getByRole('button', { name: /sign out/i })
       fireEvent.click(signOutButton)
 
-      expect(signOut).toHaveBeenCalled()
+      // Sign-out waits for the unsaved note to be written, then calls the action
+      await waitFor(() => {
+        expect(signOut).toHaveBeenCalled()
+      })
     })
   })
 

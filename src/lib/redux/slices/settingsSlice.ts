@@ -99,6 +99,16 @@ export const settingsSlice = createSlice({
         [action.payload.sourceBoardId]: action.payload.destinationBoardId,
       }
     },
+    /**
+     * Forgets where the last move from each board went.
+     *
+     * Called by {@link forgetAccountOnThisBrowser} on sign-out and account
+     * deletion. The theme and the other display settings stay: they are this
+     * browser's choices, not the account's notes.
+     */
+    clearMoveDestinations: (state) => {
+      state.moveDestinationByBoard = {}
+    },
   },
 })
 
@@ -110,6 +120,7 @@ export const {
   setSidebarCollapsed,
   toggleSidebarCollapsed,
   setMoveDestination,
+  clearMoveDestinations,
 } = settingsSlice.actions
 
 export default settingsSlice.reducer
