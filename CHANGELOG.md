@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.4.0] - 2026-10-17
+
+### Fixed
+
+- Error reports sent to Sentry no longer carry every header the browser or the host attached. The tunnel forwards only the few the ingest needs.
+
 ## [0.7.3.0] - 2026-10-17
 
 ### Fixed
