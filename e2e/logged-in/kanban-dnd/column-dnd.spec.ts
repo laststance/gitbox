@@ -90,7 +90,14 @@ const getColumnTitles = async (
 }
 
 test.describe('10.3 Column Drag & Drop', () => {
-  test.use({ storageState: 'e2e/.auth/user.json' })
+  // Five columns are 280px each. In the default 1280px window the ones on
+  // the right are past the viewport, so a press there never starts and a
+  // release there never lands. This window holds every column and the new-row
+  // zone.
+  test.use({
+    storageState: 'e2e/.auth/user.json',
+    viewport: { width: 1920, height: 2000 },
+  })
 
   // Reset column positions before each test to ensure clean state (real DB persists mutations)
   test.beforeEach(async () => {
@@ -217,6 +224,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       }
 
       const initialOrder = await getColumnOrder()
+      const before = await getGridPositions(page)
 
       // Verify initial state: Pending should be first
       expect(initialOrder[0]?.title).toBe('Pending')
@@ -237,20 +245,12 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(500)
 
       const newOrder = await getColumnOrder()
+      const after = await getGridPositions(page)
 
       // Verify drag completed successfully (no errors, same number of columns)
       expect(newOrder.length).toBe(5)
-
-      // All original columns should still exist
-      const originalTitles = [
-        'Pending',
-        'Planning',
-        'Focus Development',
-        'MVP Release',
-        'Production Release',
-      ]
-      const newTitles = newOrder.map((c) => c.title)
-      expect(newTitles.sort()).toEqual(originalTitles.sort())
+      // A refused press leaves every column where it started.
+      expect(after[STATUS_IDS.pending]).not.toEqual(before[STATUS_IDS.pending])
     })
 
     /**
@@ -266,6 +266,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(800)
 
       const initialTitles = await getColumnTitles(page)
+      const before = await getGridPositions(page)
 
       expect(initialTitles.length).toBe(5)
       // Verify Pending column exists (position may vary due to prior test mutations + RSC cache)
@@ -286,19 +287,12 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(600)
 
       const newTitles = await getColumnTitles(page)
+      const after = await getGridPositions(page)
 
       // Verify operation completed (all columns still present)
       expect(newTitles.length).toBe(5)
-
-      // All original titles should still exist
-      const originalTitles = [
-        'Pending',
-        'Planning',
-        'Focus Development',
-        'MVP Release',
-        'Production Release',
-      ]
-      expect(newTitles.sort()).toEqual(originalTitles.sort())
+      // A refused press leaves Pending where it started.
+      expect(after[STATUS_IDS.pending]).not.toEqual(before[STATUS_IDS.pending])
     })
 
     /**
@@ -359,6 +353,9 @@ test.describe('10.3 Column Drag & Drop', () => {
 
         await page.waitForTimeout(200)
 
+        // opacity-50 is on the column only while it is the one being dragged.
+        await expect(columnElement).toHaveCSS('opacity', '0.5')
+
         // Release the drag
         await client.send('Input.dispatchMouseEvent', {
           type: 'mouseReleased',
@@ -382,6 +379,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(800)
 
       const initial = await getColumnTitles(page)
+      const before = await getGridPositions(page)
 
       // First drag: Move Pending to Planning position
       await cdpColumnDragAndDrop(
@@ -397,6 +395,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(400)
 
       const afterFirstDrag = await getColumnTitles(page)
+      const afterFirst = await getGridPositions(page)
 
       // Second drag: Move MVP Release to Production Release position
       await cdpColumnDragAndDrop(
@@ -412,10 +411,17 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(400)
 
       const afterSecondDrag = await getColumnTitles(page)
+      const afterSecond = await getGridPositions(page)
 
       // Verify both drags resulted in changes
       expect(afterFirstDrag.length).toBe(initial.length)
       expect(afterSecondDrag.length).toBe(initial.length)
+      expect(afterFirst[STATUS_IDS.pending]).not.toEqual(
+        before[STATUS_IDS.pending],
+      )
+      expect(afterSecond[STATUS_IDS.mvpRelease]).not.toEqual(
+        afterFirst[STATUS_IDS.mvpRelease],
+      )
     })
   })
 
@@ -496,6 +502,8 @@ test.describe('10.3 Column Drag & Drop', () => {
         })
 
         await page.waitForTimeout(300)
+
+        await expect(columnElement).toHaveCSS('opacity', '0.5')
 
         // Check for NewRowDropZone text
         const dropZoneText = await page.evaluate(() => {
@@ -579,19 +587,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       // Verify all 5 columns exist
       expect(Object.keys(initialPositions).length).toBe(5)
 
-      // Record Focus Development's initial row for comparison after drag
-      const focusDevInitialRow =
-        initialPositions[STATUS_IDS.focusDevelopment]?.gridRow
-
-      // Attempt drop with retry logic for @dnd-kit reliability
+      // A missed drop gets one more try. The grid below is not optional.
       const MAX_ATTEMPTS = 2
-      let dropSucceeded = false
+      let newPositions = initialPositions
 
-      for (
-        let attempt = 1;
-        attempt <= MAX_ATTEMPTS && !dropSucceeded;
-        attempt++
-      ) {
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
         // Drag Focus Development to NewRowDropZone
         await cdpColumnToNewRowDragAndDrop(
           page,
@@ -606,18 +606,10 @@ test.describe('10.3 Column Drag & Drop', () => {
 
         await page.waitForTimeout(600)
 
-        const newPositions = await getGridPositions(page)
+        newPositions = await getGridPositions(page)
 
-        // Check if column moved to row 2
-        if (newPositions[STATUS_IDS.focusDevelopment]?.gridRow === 2) {
-          dropSucceeded = true
-
-          // Verify grid integrity
-          expect(newPositions[STATUS_IDS.pending]?.gridRow).toBe(1)
-          expect(newPositions[STATUS_IDS.planning]?.gridRow).toBe(1)
-          expect(newPositions[STATUS_IDS.focusDevelopment]?.gridRow).toBe(2)
-          expect(newPositions[STATUS_IDS.focusDevelopment]?.gridCol).toBe(1) // First column in new row
-        } else if (attempt < MAX_ATTEMPTS) {
+        if (newPositions[STATUS_IDS.focusDevelopment]?.gridRow === 2) break
+        if (attempt < MAX_ATTEMPTS) {
           // Reset by refreshing page for next attempt
           await page.reload()
           await page.waitForLoadState('networkidle')
@@ -625,7 +617,11 @@ test.describe('10.3 Column Drag & Drop', () => {
         }
       }
 
-      // Verify all 5 columns still exist regardless of drop detection
+      expect(newPositions[STATUS_IDS.pending]?.gridRow).toBe(1)
+      expect(newPositions[STATUS_IDS.planning]?.gridRow).toBe(1)
+      expect(newPositions[STATUS_IDS.focusDevelopment]?.gridRow).toBe(2)
+      expect(newPositions[STATUS_IDS.focusDevelopment]?.gridCol).toBe(1) // First column in new row
+
       const titles = await getColumnTitles(page)
       expect(titles.length).toBe(5)
     })
@@ -644,18 +640,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       await gotoFreshBoard(page)
       await page.waitForTimeout(800)
 
-      const initialPositions = await getGridPositions(page)
-
-      // Record original grid column positions
-      const originalCols = {
-        [STATUS_IDS.pending]: initialPositions[STATUS_IDS.pending]?.gridCol,
-        [STATUS_IDS.planning]: initialPositions[STATUS_IDS.planning]?.gridCol,
-        [STATUS_IDS.mvpRelease]:
-          initialPositions[STATUS_IDS.mvpRelease]?.gridCol,
-        [STATUS_IDS.productionRelease]:
-          initialPositions[STATUS_IDS.productionRelease]?.gridCol,
-      }
-
       // Move Focus Development to new row
       await cdpColumnToNewRowDragAndDrop(page, STATUS_IDS.focusDevelopment, 1, {
         steps: 28,
@@ -666,13 +650,11 @@ test.describe('10.3 Column Drag & Drop', () => {
 
       const newPositions = await getGridPositions(page)
 
-      // Verify remaining columns are still in row 1
-      if (newPositions[STATUS_IDS.focusDevelopment]?.gridRow === 2) {
-        expect(newPositions[STATUS_IDS.pending]?.gridRow).toBe(1)
-        expect(newPositions[STATUS_IDS.planning]?.gridRow).toBe(1)
-        expect(newPositions[STATUS_IDS.mvpRelease]?.gridRow).toBe(1)
-        expect(newPositions[STATUS_IDS.productionRelease]?.gridRow).toBe(1)
-      }
+      expect(newPositions[STATUS_IDS.focusDevelopment]?.gridRow).toBe(2)
+      expect(newPositions[STATUS_IDS.pending]?.gridRow).toBe(1)
+      expect(newPositions[STATUS_IDS.planning]?.gridRow).toBe(1)
+      expect(newPositions[STATUS_IDS.mvpRelease]?.gridRow).toBe(1)
+      expect(newPositions[STATUS_IDS.productionRelease]?.gridRow).toBe(1)
 
       // All columns should exist
       expect(Object.keys(newPositions).length).toBe(5)
@@ -730,8 +712,10 @@ test.describe('10.3 Column Drag & Drop', () => {
         }
       })
 
-      // Verify grid structure is valid
       expect(newGridInfo).not.toBeNull()
+      expect(newGridInfo?.templateRows).not.toBe(initialGridInfo?.templateRows)
+      const positions = await getGridPositions(page)
+      expect(positions[STATUS_IDS.planning]?.gridRow).toBe(2)
     })
 
     /**
@@ -804,6 +788,8 @@ test.describe('10.3 Column Drag & Drop', () => {
 
         await page.waitForTimeout(400)
 
+        await expect(columnElement).toHaveCSS('opacity', '0.5')
+
         // Check for hover state visual feedback
         const hoverFeedback = await page.evaluate(() => {
           const dropZones = Array.from(
@@ -857,8 +843,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       await gotoFreshBoard(page)
       await page.waitForTimeout(800)
 
-      const initialPositions = await getGridPositions(page)
-
       // Move MVP Release to new row
       await cdpColumnToNewRowDragAndDrop(page, STATUS_IDS.mvpRelease, 1, {
         steps: 30,
@@ -869,10 +853,8 @@ test.describe('10.3 Column Drag & Drop', () => {
 
       const newPositions = await getGridPositions(page)
 
-      // Verify MVP Release moved to row 2 if drop was detected
-      if (newPositions[STATUS_IDS.mvpRelease]?.gridRow === 2) {
-        expect(newPositions[STATUS_IDS.mvpRelease]?.gridCol).toBe(1)
-      }
+      expect(newPositions[STATUS_IDS.mvpRelease]?.gridRow).toBe(2)
+      expect(newPositions[STATUS_IDS.mvpRelease]?.gridCol).toBe(1)
 
       // All columns should exist
       const titles = await getColumnTitles(page)
@@ -937,72 +919,70 @@ test.describe('10.3 Column Drag & Drop', () => {
       })
       await page.waitForTimeout(700)
 
-      // Verify Focus Development moved to row 2
       const positionsAfterMove = await getGridPositions(page)
+      expect(positionsAfterMove[STATUS_IDS.focusDevelopment]?.gridRow).toBe(2)
 
-      const status3Moved =
-        positionsAfterMove[STATUS_IDS.focusDevelopment]?.gridRow === 2
+      // Now verify ColumnInsertZone appears during column drag
+      const client = await page.context().newCDPSession(page)
 
-      if (status3Moved) {
-        // Now verify ColumnInsertZone appears during column drag
-        const client = await page.context().newCDPSession(page)
+      try {
+        const columnElement = page.locator(
+          `[data-testid="sortable-column-${STATUS_IDS.pending}"]`,
+        )
+        await columnElement.waitFor({ state: 'visible' })
+        const box = await columnElement.boundingBox()
+        if (!box) throw new Error('Column not visible')
 
-        try {
-          const columnElement = page.locator(
-            `[data-testid="sortable-column-${STATUS_IDS.pending}"]`,
+        const sourceX = Math.round(box.x + box.width / 2)
+        const sourceY = Math.round(box.y + 30)
+
+        // Initiate drag
+        await client.send('Input.dispatchMouseEvent', {
+          type: 'mouseMoved',
+          x: sourceX,
+          y: sourceY,
+          button: 'none',
+          buttons: 0,
+        })
+        await client.send('Input.dispatchMouseEvent', {
+          type: 'mousePressed',
+          x: sourceX,
+          y: sourceY,
+          button: 'left',
+          clickCount: 1,
+          buttons: 1,
+        })
+        await client.send('Input.dispatchMouseEvent', {
+          type: 'mouseMoved',
+          x: sourceX + 100,
+          y: sourceY,
+          button: 'left',
+          buttons: 1,
+        })
+        await page.waitForTimeout(300)
+
+        await expect(columnElement).toHaveCSS('opacity', '0.5')
+
+        // Check for ColumnInsertZone with aria-label
+        const insertZoneVisible = await page.evaluate(() => {
+          const zones = document.querySelectorAll(
+            '[aria-label*="Insert column"]',
           )
-          await columnElement.waitFor({ state: 'visible' })
-          const box = await columnElement.boundingBox()
-          if (!box) throw new Error('Column not visible')
+          return zones.length > 0
+        })
+        expect(insertZoneVisible).toBe(true)
 
-          const sourceX = Math.round(box.x + box.width / 2)
-          const sourceY = Math.round(box.y + 30)
-
-          // Initiate drag
-          await client.send('Input.dispatchMouseEvent', {
-            type: 'mouseMoved',
-            x: sourceX,
-            y: sourceY,
-            button: 'none',
-            buttons: 0,
-          })
-          await client.send('Input.dispatchMouseEvent', {
-            type: 'mousePressed',
-            x: sourceX,
-            y: sourceY,
-            button: 'left',
-            clickCount: 1,
-            buttons: 1,
-          })
-          await client.send('Input.dispatchMouseEvent', {
-            type: 'mouseMoved',
-            x: sourceX + 100,
-            y: sourceY,
-            button: 'left',
-            buttons: 1,
-          })
-          await page.waitForTimeout(300)
-
-          // Check for ColumnInsertZone with aria-label
-          const insertZoneVisible = await page.evaluate(() => {
-            const zones = document.querySelectorAll(
-              '[aria-label*="Insert column"]',
-            )
-            return zones.length > 0
-          })
-
-          // Release drag
-          await client.send('Input.dispatchMouseEvent', {
-            type: 'mouseReleased',
-            x: sourceX + 100,
-            y: sourceY,
-            button: 'left',
-            clickCount: 1,
-            buttons: 0,
-          })
-        } finally {
-          await client.detach()
-        }
+        // Release drag
+        await client.send('Input.dispatchMouseEvent', {
+          type: 'mouseReleased',
+          x: sourceX + 100,
+          y: sourceY,
+          button: 'left',
+          clickCount: 1,
+          buttons: 0,
+        })
+      } finally {
+        await client.detach()
       }
 
       // Verify all columns still exist
@@ -1027,8 +1007,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(800)
 
       // Step 1: Create empty slot by moving Focus Development to row 1
-      const initialPositions = await getGridPositions(page)
-
       await cdpColumnToNewRowDragAndDrop(page, STATUS_IDS.focusDevelopment, 1, {
         steps: 25,
         stepDelay: 35,
@@ -1037,19 +1015,9 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(700)
 
       const positionsAfterNewRow = await getGridPositions(page)
+      expect(positionsAfterNewRow[STATUS_IDS.focusDevelopment]?.gridRow).toBe(2)
 
-      const emptySlotCreated =
-        positionsAfterNewRow[STATUS_IDS.focusDevelopment]?.gridRow === 2
-      if (!emptySlotCreated) {
-        const titles = await getColumnTitles(page)
-        expect(titles.length).toBe(5)
-        return
-      }
-
-      const status1OriginalCol =
-        positionsAfterNewRow[STATUS_IDS.pending]?.gridCol
-
-      // Step 2: Insert Pending into the empty slot
+      // Step 2: Insert Pending into the empty slot at row 0, column 2
       await cdpColumnToInsertZone(page, STATUS_IDS.pending, 0, 2, {
         steps: 20,
         stepDelay: 45,
@@ -1058,8 +1026,8 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(700)
 
       const positionsAfterInsert = await getGridPositions(page)
-
-      const status1NewCol = positionsAfterInsert[STATUS_IDS.pending]?.gridCol
+      expect(positionsAfterInsert[STATUS_IDS.pending]?.gridRow).toBe(1)
+      expect(positionsAfterInsert[STATUS_IDS.pending]?.gridCol).toBe(3)
 
       // All columns should still exist
       const titles = await getColumnTitles(page)
@@ -1101,6 +1069,8 @@ test.describe('10.3 Column Drag & Drop', () => {
       expect(initialGrid?.hasGridTemplateColumns).toBe(true)
       expect(initialGrid?.hasGridTemplateRows).toBe(true)
 
+      const before = await getGridPositions(page)
+
       // Perform column drag to test grid stability
       await cdpColumnDragAndDrop(
         page,
@@ -1132,6 +1102,8 @@ test.describe('10.3 Column Drag & Drop', () => {
 
       expect(postDragGrid?.columnCount).toBe(5)
       expect(postDragGrid?.allHaveGridPosition).toBe(true)
+      const after = await getGridPositions(page)
+      expect(after[STATUS_IDS.pending]).not.toEqual(before[STATUS_IDS.pending])
     })
 
     /**
@@ -1152,12 +1124,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(700)
 
       const positions = await getGridPositions(page)
-      const emptySlotCreated =
-        positions[STATUS_IDS.focusDevelopment]?.gridRow === 2
-
-      if (!emptySlotCreated) {
-        return
-      }
+      expect(positions[STATUS_IDS.focusDevelopment]?.gridRow).toBe(2)
 
       const client = await page.context().newCDPSession(page)
 
@@ -1217,6 +1184,10 @@ test.describe('10.3 Column Drag & Drop', () => {
           }
         })
 
+        await expect(columnElement).toHaveCSS('opacity', '0.5')
+        expect(insertZoneInfo).not.toBeNull()
+        expect(insertZoneInfo?.hasZone).toBe(true)
+
         // Release drag
         await client.send('Input.dispatchMouseEvent', {
           type: 'mouseReleased',
@@ -1271,9 +1242,13 @@ test.describe('10.3 Column Drag & Drop', () => {
         (pos) => pos.gridRow >= 1 && pos.gridCol >= 1,
       )
       expect(allPositionsValid).toBe(true)
-
-      const columnCount = Object.keys(positionsAfterDrag).length
-      expect(columnCount).toBe(5)
+      expect(Object.keys(positionsAfterDrag).length).toBe(5)
+      expect(positionsAfterDrag[STATUS_IDS.productionRelease]).toEqual(
+        initialPositions[STATUS_IDS.planning],
+      )
+      expect(positionsAfterDrag[STATUS_IDS.planning]).toEqual(
+        initialPositions[STATUS_IDS.productionRelease],
+      )
     })
   })
 
@@ -1329,14 +1304,9 @@ test.describe('10.3 Column Drag & Drop', () => {
 
       const newPositions = await getGridPositions(page)
 
-      // All 5 columns should still exist
       expect(Object.keys(newPositions).length).toBe(5)
-
-      // All positions should be valid
-      Object.values(newPositions).forEach((pos) => {
-        expect(pos.gridRow).toBeGreaterThanOrEqual(1)
-        expect(pos.gridCol).toBeGreaterThanOrEqual(1)
-      })
+      expect(newPositions[STATUS_IDS.planning]).toEqual(mvpBefore)
+      expect(newPositions[STATUS_IDS.mvpRelease]).toEqual(planningBefore)
     })
 
     /**
@@ -1367,12 +1337,11 @@ test.describe('10.3 Column Drag & Drop', () => {
 
       const positions = await getGridPositions(page)
 
-      // All 5 columns should still exist with valid positions
       expect(Object.keys(positions).length).toBe(5)
-      Object.values(positions).forEach((pos) => {
-        expect(pos.gridRow).toBeGreaterThanOrEqual(1)
-        expect(pos.gridCol).toBeGreaterThanOrEqual(1)
-      })
+      expect(positions[STATUS_IDS.pending]?.gridRow).toBe(pendingRowBefore)
+      expect(positions[STATUS_IDS.pending]?.gridCol).not.toBe(
+        initialPositions[STATUS_IDS.pending]?.gridCol,
+      )
     })
   })
 
@@ -1425,19 +1394,9 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(700)
 
       const positionsAfterNewRow = await getGridPositions(page)
-
-      // Check if multi-row layout was created
-      const multiRowCreated =
-        positionsAfterNewRow[STATUS_IDS.focusDevelopment]?.gridRow === 2
-
-      if (!multiRowCreated) {
-        // Verify columns still exist
-        expect(await getColumnTitles(page)).toContain('Focus Development')
-        return
-      }
+      expect(positionsAfterNewRow[STATUS_IDS.focusDevelopment]?.gridRow).toBe(2)
 
       // Step 2: Perform vertical swap - drag Pending (Row 1) to Focus Development (Row 2)
-      // Record positions before swap
       const status1BeforeSwap = positionsAfterNewRow[STATUS_IDS.pending]
       const status3BeforeSwap =
         positionsAfterNewRow[STATUS_IDS.focusDevelopment]
@@ -1461,18 +1420,9 @@ test.describe('10.3 Column Drag & Drop', () => {
       const status1AfterSwap = positionsAfterSwap[STATUS_IDS.pending]
       const status3AfterSwap = positionsAfterSwap[STATUS_IDS.focusDevelopment]
 
-      // Verify all columns still exist
       expect(Object.keys(positionsAfterSwap).length).toBe(5)
-
-      // If swap was detected by @dnd-kit, verify positions are swapped
-      if (
-        status1AfterSwap?.gridRow !== status1BeforeSwap?.gridRow ||
-        status3AfterSwap?.gridRow !== status3BeforeSwap?.gridRow
-      ) {
-        // Swap occurred - verify correct exchange
-        expect(status1AfterSwap?.gridRow).toBe(status3BeforeSwap?.gridRow)
-        expect(status3AfterSwap?.gridRow).toBe(status1BeforeSwap?.gridRow)
-      }
+      expect(status1AfterSwap).toEqual(status3BeforeSwap)
+      expect(status3AfterSwap).toEqual(status1BeforeSwap)
     })
 
     /**
@@ -1494,12 +1444,9 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(700)
 
       const positionsAfterNewRow = await getGridPositions(page)
-      const multiRowCreated =
-        positionsAfterNewRow[STATUS_IDS.planning]?.gridRow === 2
-
-      if (!multiRowCreated) {
-        return
-      }
+      expect(positionsAfterNewRow[STATUS_IDS.planning]?.gridRow).toBe(2)
+      const pendingBefore = positionsAfterNewRow[STATUS_IDS.pending]
+      const planningBefore = positionsAfterNewRow[STATUS_IDS.planning]
 
       // Attempt vertical swap
       await cdpColumnDragAndDrop(
@@ -1516,14 +1463,9 @@ test.describe('10.3 Column Drag & Drop', () => {
 
       const finalPositions = await getGridPositions(page)
 
-      // Verify all columns have valid positions
-      Object.entries(finalPositions).forEach(([id, pos]) => {
-        expect(pos.gridRow).toBeGreaterThanOrEqual(1)
-        expect(pos.gridCol).toBeGreaterThanOrEqual(1)
-      })
-
-      // Verify all 5 columns exist
       expect(Object.keys(finalPositions).length).toBe(5)
+      expect(finalPositions[STATUS_IDS.pending]).toEqual(planningBefore)
+      expect(finalPositions[STATUS_IDS.planning]).toEqual(pendingBefore)
     })
   })
 
@@ -1562,9 +1504,6 @@ test.describe('10.3 Column Drag & Drop', () => {
       await gotoFreshBoard(page)
       await page.waitForTimeout(800)
 
-      // Step 1: Create multi-row layout by moving MVP Release to Row 1
-      const initialPositions = await getGridPositions(page)
-
       // Move MVP Release to Row 1 (CSS row 2)
       await cdpColumnToNewRowDragAndDrop(page, STATUS_IDS.mvpRelease, 1, {
         steps: 25,
@@ -1574,15 +1513,7 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(700)
 
       const positionsAfterNewRow = await getGridPositions(page)
-
-      // Check if multi-row layout was created
-      const multiRowCreated =
-        positionsAfterNewRow[STATUS_IDS.mvpRelease]?.gridRow === 2
-
-      if (!multiRowCreated) {
-        expect(await getColumnTitles(page)).toContain('MVP Release')
-        return
-      }
+      expect(positionsAfterNewRow[STATUS_IDS.mvpRelease]?.gridRow).toBe(2)
 
       // Step 2: Perform diagonal swap
       // Pending is at (Row 1, Col 1)
@@ -1611,26 +1542,9 @@ test.describe('10.3 Column Drag & Drop', () => {
       const status1After = positionsAfterSwap[STATUS_IDS.pending]
       const status4After = positionsAfterSwap[STATUS_IDS.mvpRelease]
 
-      // Verify all columns exist
       expect(Object.keys(positionsAfterSwap).length).toBe(5)
-
-      // Check if diagonal swap occurred
-      const rowSwapped =
-        status1After?.gridRow !== status1Before?.gridRow ||
-        status4After?.gridRow !== status4Before?.gridRow
-      const colSwapped =
-        status1After?.gridCol !== status1Before?.gridCol ||
-        status4After?.gridCol !== status4Before?.gridCol
-
-      if (rowSwapped || colSwapped) {
-        // If swap occurred, verify positions are exchanged
-        if (rowSwapped && colSwapped) {
-          expect(status1After?.gridRow).toBe(status4Before?.gridRow)
-          expect(status1After?.gridCol).toBe(status4Before?.gridCol)
-          expect(status4After?.gridRow).toBe(status1Before?.gridRow)
-          expect(status4After?.gridCol).toBe(status1Before?.gridCol)
-        }
-      }
+      expect(status1After).toEqual(status4Before)
+      expect(status4After).toEqual(status1Before)
     })
 
     /**
@@ -1658,6 +1572,11 @@ test.describe('10.3 Column Drag & Drop', () => {
       )
       await page.waitForTimeout(700)
 
+      const positionsAfterNewRow = await getGridPositions(page)
+      expect(positionsAfterNewRow[STATUS_IDS.productionRelease]?.gridRow).toBe(
+        2,
+      )
+
       // Attempt diagonal swap
       await cdpColumnDragAndDrop(
         page,
@@ -1672,12 +1591,17 @@ test.describe('10.3 Column Drag & Drop', () => {
       await page.waitForTimeout(600)
 
       const titlesAfterSwap = await getColumnTitles(page)
+      const positionsAfterSwap = await getGridPositions(page)
 
-      // Verify all original titles still exist (order may differ)
+      // Titles stay. Their places do not: a refused drag keeps both.
       expect(titlesAfterSwap.sort()).toEqual(originalTitles.sort())
-
-      // Verify column count
       expect(titlesAfterSwap.length).toBe(5)
+      expect(positionsAfterSwap[STATUS_IDS.planning]).toEqual(
+        positionsAfterNewRow[STATUS_IDS.productionRelease],
+      )
+      expect(positionsAfterSwap[STATUS_IDS.productionRelease]).toEqual(
+        positionsAfterNewRow[STATUS_IDS.planning],
+      )
     })
 
     /**
@@ -1698,6 +1622,9 @@ test.describe('10.3 Column Drag & Drop', () => {
       })
       await page.waitForTimeout(700)
 
+      const positionsAfterNewRow = await getGridPositions(page)
+      expect(positionsAfterNewRow[STATUS_IDS.focusDevelopment]?.gridRow).toBe(2)
+
       // Attempt diagonal swap between Planning and Focus Development
       await cdpColumnDragAndDrop(
         page,
@@ -1713,16 +1640,13 @@ test.describe('10.3 Column Drag & Drop', () => {
 
       const finalPositions = await getGridPositions(page)
 
-      // Verify all columns have valid grid positions
-      Object.values(finalPositions).forEach((pos) => {
-        expect(pos.gridRow).toBeGreaterThanOrEqual(1)
-        expect(pos.gridCol).toBeGreaterThanOrEqual(1)
-        // Grid positions can grow larger than expected due to prior test mutations
-        // Only verify they are positive integers
-      })
-
-      // Verify all 5 columns exist
       expect(Object.keys(finalPositions).length).toBe(5)
+      expect(finalPositions[STATUS_IDS.planning]).toEqual(
+        positionsAfterNewRow[STATUS_IDS.focusDevelopment],
+      )
+      expect(finalPositions[STATUS_IDS.focusDevelopment]).toEqual(
+        positionsAfterNewRow[STATUS_IDS.planning],
+      )
     })
   })
 
