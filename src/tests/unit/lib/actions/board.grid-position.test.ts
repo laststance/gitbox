@@ -145,7 +145,11 @@ describe('column positions past 999', () => {
 
   test('answers with the same sentence when the table refuses the move', async () => {
     // Arrange
-    const eq = vi.fn(async () => ({ error: GRID_CONSTRAINT_ERROR }))
+    const select = vi.fn(async () => ({
+      data: null,
+      error: GRID_CONSTRAINT_ERROR,
+    }))
+    const eq = vi.fn(() => ({ select }))
     from.mockReturnValue({
       update: () => ({ eq }),
     })
@@ -156,6 +160,7 @@ describe('column positions past 999', () => {
     // Assert
     expect(result).toEqual({ success: false, error: GRID_REFUSAL })
     expect(eq).toHaveBeenCalledWith('id', 'status-1')
+    expect(select).toHaveBeenCalledWith('id')
     expect(Sentry.captureException).not.toHaveBeenCalled()
   })
 

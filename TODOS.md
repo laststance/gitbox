@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Fail a card or column move that matched no row
-
-**What:** Add `.select('id')` to the position updates in `src/lib/actions/board.ts` and throw when nothing came back.
-
-**Why:** A move of a card that another tab removed, or that row level security hides because the tab's session changed, resolves as a success. Nothing is rolled back and nothing is fetched again, so the card stays in its new column on screen with nothing saved. The rollback and refetch added for failed saves only react to rejected writes.
-
-**Context:** `updateRepoCardPosition` and its batch and column siblings check `error` only. Older than the rollback guard.
-
-**Effort:** S
-**Priority:** P2
-**Depends on:** None
-
 ### Clear the persisted drafts on sign-out
 
 **What:** On sign-out and account deletion, clear the `draft` slice stored under `gitbox-state` in localStorage and the `moveDestinationByBoard` map of the settings slice (keep the theme and display settings), or store the owner's user id with them and drop them when it differs from the signed-in user.
@@ -297,9 +285,9 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 **What:** When a column is deleted, remove it from the entries of `columnHistory`, or skip entries that hold a column the board no longer has.
 
-**Why:** Delete a column, then press Z while an earlier column move is on the stack: the whole earlier column list is put back, the deleted column included. The position update for its id matches no row and reports success, so nothing is rolled back and the column stays on screen until reload.
+**Why:** Delete a column, then press Z while an earlier column move is on the stack: the earlier snapshot is still there. The undo leaves a deleted column out of the write, and a position write that matches no row now fails, so the deleted column is not brought back. Z still moves the columns that remain to the positions from that snapshot.
 
-**Context:** `handleUndo` in `src/hooks/board/useKanbanUndo.ts` (the card path filters against the current cards, the column path does not), `confirmDelete` in `src/hooks/board/useStatusListDialog.ts`. Older than this change. Related: "Drop late picker notices" (whose other half, the cards of a deleted column left in the store, #216 fixed) and "Fail a card or column move that matched no row".
+**Context:** `handleUndo` in `src/hooks/board/useKanbanUndo.ts` (the card path filters against the current cards, the column path does not), `confirmDelete` in `src/hooks/board/useStatusListDialog.ts`. Older than this change. Related: "Drop late picker notices" (whose other half, the cards of a deleted column left in the store, #216 fixed).
 
 **Effort:** S
 **Priority:** P3
