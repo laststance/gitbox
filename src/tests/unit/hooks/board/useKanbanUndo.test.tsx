@@ -23,9 +23,12 @@ import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { useKanbanUndo } from '@/hooks/board/useKanbanUndo'
-import { batchUpdateRepoCardOrders } from '@/lib/actions/board'
-import type { RepoCardForRedux } from '@/lib/models/domain'
-import { setRepoCards } from '@/lib/redux/slices/boardSlice'
+import {
+  batchUpdateRepoCardOrders,
+  batchUpdateStatusListPositions,
+} from '@/lib/actions/board'
+import type { RepoCardForRedux, StatusListDomain } from '@/lib/models/domain'
+import { setRepoCards, setStatusLists } from '@/lib/redux/slices/boardSlice'
 import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
 
 vi.mock('@/lib/actions/board', () => ({
@@ -62,6 +65,26 @@ function makeCard(
   }
 }
 
+/** A column of board-1 at the given grid position. */
+function makeColumn(
+  id: string,
+  title: string,
+  gridRow: number,
+  gridCol: number,
+  color = '#6B7280',
+): StatusListDomain {
+  return {
+    id: toStatusListId(id),
+    title,
+    color,
+    gridRow,
+    gridCol,
+    boardId: toBoardId('board-1'),
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+  }
+}
+
 /** Press the bare Z key the way a user does outside any input. */
 function pressUndoKey(): void {
   act(() => {
@@ -72,6 +95,60 @@ function pressUndoKey(): void {
 describe('useKanbanUndo', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  // Value: protects=Z after a column drag keeps a rename, omits a deleted column and keeps one added since, and the deleted id is not sent (TODOS.md column undo); fails_when=the three old columns are shown and all three ids are written; why_new=column undo replayed the snapshot; seam=none; no_claim=the database function
+  test('undoing a column drag keeps the new name, leaves out a deleted column and keeps a column added since', () => {
+    // Arrange: snapshot of three columns, taken before Building was dragged
+    const dispatch = vi.fn()
+    const snapshotBeforeDrag = [
+      makeColumn('col-a', 'Ideas', 0, 0),
+      makeColumn('col-b', 'Building', 0, 1),
+      makeColumn('col-c', 'Shipped', 0, 2),
+    ]
+    const { result, rerender } = renderHook(
+      ({ statuses }) =>
+        useKanbanUndo({
+          dispatch,
+          cards: [],
+          statuses,
+          rollbackRepoCards: vi.fn(),
+          rollbackStatusLists: vi.fn(),
+        }),
+      { initialProps: { statuses: snapshotBeforeDrag } },
+    )
+    act(() => {
+      result.current.pushColumnHistory(snapshotBeforeDrag)
+    })
+    // Building was renamed and moved, Shipped was deleted, Later was added
+    rerender({
+      statuses: [
+        makeColumn('col-a', 'Ideas', 0, 2),
+        makeColumn('col-b', 'In progress', 0, 0, '#111111'),
+        makeColumn('col-d', 'Later', 1, 0),
+      ],
+    })
+
+    // Act
+    pressUndoKey()
+
+    // Assert: positions from before the drag, names from now, Shipped stays gone
+    expect(dispatch).toHaveBeenCalledWith(
+      setStatusLists([
+        makeColumn('col-a', 'Ideas', 0, 0),
+        makeColumn('col-b', 'In progress', 0, 1, '#111111'),
+        makeColumn('col-d', 'Later', 1, 0),
+      ]),
+    )
+    expect(batchUpdateStatusListPositions).toHaveBeenCalledTimes(1)
+    expect(batchUpdateStatusListPositions).toHaveBeenCalledWith([
+      { id: 'col-a', gridRow: 0, gridCol: 0 },
+      { id: 'col-b', gridRow: 0, gridCol: 1 },
+      { id: 'col-d', gridRow: 1, gridCol: 0 },
+    ])
+    expect(toast.success).toHaveBeenCalledWith('Column order restored', {
+      id: 'board-undo',
+    })
   })
 
   test('undoing a drag leaves a card that was since moved to another board alone', () => {
