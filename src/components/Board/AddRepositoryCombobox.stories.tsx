@@ -8,11 +8,14 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
-import { expect, userEvent, waitFor, fn } from 'storybook/test'
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
 import { toBoardId, toStatusListId } from '@/lib/types/brands'
 
-import { AddRepositoryCombobox } from './AddRepositoryCombobox'
+import {
+  AddRepositoryCombobox,
+  SelectedRepositoryBadge,
+} from './AddRepositoryCombobox'
 
 const meta = {
   title: 'Board/AddRepositoryCombobox',
@@ -169,5 +172,81 @@ export const CancelButton: Story = {
     if (cancelButton) {
       await userEvent.click(cancelButton)
     }
+  },
+}
+
+/** How many lines the text of an element is drawn on. */
+function textLines(node: HTMLElement): number {
+  const lineTops = new Set<number>()
+  const textNodes = document.createTreeWalker(node, NodeFilter.SHOW_TEXT)
+  while (textNodes.nextNode()) {
+    const range = document.createRange()
+    range.selectNodeContents(textNodes.currentNode)
+    for (const rect of range.getClientRects()) {
+      lineTops.add(Math.round(rect.top))
+    }
+  }
+  return lineTops.size
+}
+
+const ONE_HUNDRED_LETTERS = 'w'.repeat(100)
+
+/**
+ * A selected repository of one long word, and one ordinary name, in a panel
+ * narrower than the picker. The remove button stays inside, and the ordinary
+ * name stays on one line.
+ */
+export const SelectedBadgeStaysInThePanel: Story = {
+  args: {
+    boardId: toBoardId('board-1'),
+    statusId: toStatusListId('status-1'),
+    onRepositoriesAdded: fn(),
+  },
+  render: () => (
+    <div className="w-[280px] space-y-3">
+      <div data-testid="long-badge" className="border p-2">
+        <SelectedRepositoryBadge
+          fullName={ONE_HUNDRED_LETTERS}
+          onRemove={(): void => {}}
+        />
+      </div>
+      <div data-testid="ordinary-badge" className="border p-2">
+        <SelectedRepositoryBadge
+          fullName="laststance/gitbox"
+          onRemove={(): void => {}}
+        />
+      </div>
+    </div>
+  ),
+  // Value: protects=the button that takes a selected repository out of the picker stays inside the panel when the name is one word of 100 letters, and an ordinary name stays on one line; fails_when=the badge grows with the word and the button leaves the panel, or the name breaks as soon as the panel is narrower than a long word would be; why_new=the repositories of the browser tests have short names; seam=none; no_claim=the list of repositories, which already cuts a long name
+  play: async ({ canvasElement }) => {
+    // Arrange
+    const canvas = within(canvasElement)
+    const longPanel = canvas.getByTestId('long-badge')
+    const remove = within(longPanel).getByRole('button', { name: /^Remove / })
+
+    // Act: the badge is already on the page
+    const panelRect = longPanel.getBoundingClientRect()
+    const buttonRect = remove.getBoundingClientRect()
+    const hit = document.elementFromPoint(
+      buttonRect.left + buttonRect.width / 2,
+      buttonRect.top + buttonRect.height / 2,
+    )
+
+    // Assert
+    expect(Math.round(buttonRect.right)).toBeLessThanOrEqual(
+      Math.round(panelRect.right) + 1,
+    )
+    expect(remove.contains(hit)).toBe(true)
+    expect(
+      textLines(within(longPanel).getByTestId('selected-repository-name')),
+    ).toBeGreaterThan(1)
+    expect(
+      textLines(
+        within(canvas.getByTestId('ordinary-badge')).getByTestId(
+          'selected-repository-name',
+        ),
+      ),
+    ).toBe(1)
   },
 }

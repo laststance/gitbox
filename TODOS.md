@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Break a name of one long word in the places that are left
-
-**What:** Break a name of one long word in two more places, as the board, the cards, the dialogs and the select lists do: (1) the badge of a selected repository in the Add Repositories picker, with `shrink-0` on its remove button; (2) the title of the column that is being dragged. Then look once more for a name that is shown beside something it can cover.
-
-**Why:** #213 fixed the places where a name without a space or a hyphen pushed a control out of reach (the menu of a card, "Column options", the buttons of a board's header, "Create Board"), made a dialog scroll sideways or made a list wider than a phone. These were read from the code on 2026-10-13 and not measured. (1) A repository name near the 100 characters GitHub allows makes the badge wider than the panel and takes its remove button along; the repository can still be taken out of the selection by its row in the list. (2) puts nothing out of reach: the picture of a dragged column lets a title of one long word run out of its frame.
-
-**Context:** The badge in `src/components/Board/AddRepositoryCombobox.tsx` (the repositories of the browser tests have short names, so a test needs a story or a fixture with a long one), the `h2` of the `DragOverlay` in `src/components/Board/KanbanBoard.tsx`. `e2e/logged-in/names-that-cannot-break.spec.ts` has the measuring helpers; the rule is in `CLAUDE.md` under "Names that cannot break", with the two classes and what each does to an ordinary word.
-
-**Effort:** S
-**Priority:** P4
-**Depends on:** None
-
 ### Return the keyboard to what opened the Add Repositories picker
 
 **What:** When the picker closes (Cancel, Escape, or after repositories were added), put the focus on the control that opened it: "Add Repositories" in the header, or "Add Repo" of the column it was opened from. A picker that the page opened again after a GitHub sign-in has no such control; the header button is the place then.
