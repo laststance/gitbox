@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.6.0] - 2026-10-18
+
+### Added
+
+- The test suite fails if the proxy stops running for the error-report path, including a capital M or a trailing slash, or if Sentry's own tunnel rewrite is no longer `/monitoring(/?)`.
+
 ## [0.7.5.0] - 2026-10-17
 
 ### Fixed
