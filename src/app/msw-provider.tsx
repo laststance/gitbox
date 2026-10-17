@@ -24,8 +24,8 @@ type MSWProviderProps = Readonly<{
  * Renders the page, hidden until hydration when the mock worker is on.
  *
  * The public flag is the same on the server and in the browser, so the
- * wrapper matches. It stays hidden through hydration and drops the box
- * after, which is when a test can press a button.
+ * wrapper matches. It stays hidden through hydration and is shown after,
+ * which is when a test can press a button.
  *
  * @param children - The page the server rendered.
  * @returns The page, invisible until hydration when the mock is on.
@@ -44,9 +44,10 @@ function MSWProviderComponent({ children }: MSWProviderProps): React.ReactNode {
     setHydrated(true)
   }, [mockOn])
   if (!mockOn) return children
-  // contents drops the box, so the page lays out as it does without the
-  // wrapper. Removing the element instead left the server's copy behind.
-  return <div className={hydrated ? 'contents' : 'invisible'}>{children}</div>
+  // The wrapper stays a real box. display:contents makes elementFromPoint
+  // miss the control, so a press never reaches it. Removing the element
+  // instead left the server's copy behind.
+  return <div className={hydrated ? undefined : 'invisible'}>{children}</div>
 }
 
 export const MSWProvider = memo(
