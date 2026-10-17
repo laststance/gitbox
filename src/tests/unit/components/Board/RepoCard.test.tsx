@@ -409,6 +409,20 @@ describe('RepoCard', () => {
       expect(card).toBeInTheDocument()
     })
 
+    test('is one stop of the Tab key: the drag handle is skipped and the card is the stop', () => {
+      // Arrange
+      render(<RepoCard card={defaultCard} />)
+      const handle = screen.getByTestId('repo-card-card-1')
+
+      // Act: the handle is what dnd-kit would put at tabIndex 0
+      const card = handle.querySelector('[data-repo-card-id]')
+
+      // Assert
+      expect(handle).toHaveAttribute('tabindex', '-1')
+      expect(card).toHaveAttribute('tabindex', '0')
+      expect(card).toHaveAttribute('data-repo-card-id', 'card-1')
+    })
+
     test('should have accessible Note button', () => {
       render(<RepoCard card={defaultCard} onNote={mockOnNote} />)
 

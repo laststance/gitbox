@@ -215,6 +215,12 @@ const RepoCardView = memo(function RepoCardView({
       data-testid={`repo-card-${card.id}`}
       {...sortable?.attributes}
       {...sortable?.listeners}
+      // dnd-kit puts this handle in the tab order (tabIndex 0, role button).
+      // The card inside is already a stop: Enter opens the note, "." opens
+      // the menu, and the focus ring is drawn there. A second stop made Tab
+      // land twice on every card. Space still lifts the card, because that
+      // key bubbles from the card to these listeners.
+      tabIndex={sortable ? -1 : undefined}
       className={sortable ? 'cursor-grab active:cursor-grabbing' : undefined}
     >
       <Card

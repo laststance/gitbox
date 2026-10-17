@@ -13,7 +13,7 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
-import { BOARD_IDS } from '../helpers/db-query'
+import { BOARD_IDS, CARD_IDS } from '../helpers/db-query'
 
 test.describe('Keyboard Shortcuts (Authenticated)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
@@ -126,6 +126,26 @@ test.describe('Keyboard Shortcuts (Authenticated)', () => {
     // Verify overflow menu (dropdown with role="menu") appears
     const menu = page.getByRole('menu')
     await expect(menu).toBeVisible({ timeout: 5000 })
+  })
+
+  // Value: protects=Tab reaches a card once, on the element that opens the note; fails_when=the drag handle is its own stop, so Tab lands on the card twice; why_new=the shortcut tests focus the card directly and never press Tab; seam=none; no_claim=where Shift+Tab lands before the card
+  test('reaches a card in one Tab and not on its drag handle', async ({
+    page,
+  }) => {
+    // Arrange
+    const card = page.locator(`[data-repo-card-id="${CARD_IDS.card1}"]`)
+    const handle = page.getByTestId(`repo-card-${CARD_IDS.card1}`)
+    await card.focus()
+    await expect(card).toBeFocused()
+
+    // Act
+    await page.keyboard.press('Shift+Tab')
+
+    // Assert: the handle is not the stop before the card
+    await expect(handle).not.toBeFocused()
+    await expect(handle).toHaveAttribute('tabindex', '-1')
+    await page.keyboard.press('Tab')
+    await expect(card).toBeFocused()
   })
 
   test('should open NoteModal with Enter key on focused card', async ({
