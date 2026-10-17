@@ -177,6 +177,49 @@ async function openTestBoard(page: Page): Promise<void> {
   ).toBeVisible({ timeout: 15000 })
 }
 
+/**
+ * Reads "Create Board" and the boards title in one frame.
+ *
+ * The title is in the server HTML. Three bounding boxes read one after
+ * another straddled hydration, and the button was 16px below the texts
+ * on that frame and level on the next.
+ * @param page - The boards page.
+ * @returns Where the button ends, and how far its middle sits below the middle of the texts.
+ */
+async function measureCreateBoardOnTheBoardsHeader(page: Page): Promise<{
+  buttonRightEdgePx: number
+  buttonMiddleBelowTheMiddleOfTheTextsPx: number
+}> {
+  return page.evaluate(() => {
+    const title = document.querySelector('[data-testid="boards-page-title"]')
+    const subtitle = document.querySelector(
+      '[data-testid="boards-page-subtitle"]',
+    )
+    const button = document.querySelector('a[href="/boards/new"]')
+    if (
+      !(title instanceof HTMLElement) ||
+      !(subtitle instanceof HTMLElement) ||
+      !(button instanceof HTMLElement)
+    ) {
+      return {
+        buttonRightEdgePx: 0,
+        buttonMiddleBelowTheMiddleOfTheTextsPx: -1,
+      }
+    }
+    const titleBox = title.getBoundingClientRect()
+    const subtitleBox = subtitle.getBoundingClientRect()
+    const buttonBox = button.getBoundingClientRect()
+    return {
+      buttonRightEdgePx: Math.round(buttonBox.x + buttonBox.width),
+      buttonMiddleBelowTheMiddleOfTheTextsPx: Math.round(
+        buttonBox.y +
+          buttonBox.height / 2 -
+          (titleBox.y + subtitleBox.y + subtitleBox.height) / 2,
+      ),
+    }
+  })
+}
+
 test.describe('Names without a place to break', () => {
   test.use({ storageState: 'e2e/.auth/user.json' })
 
@@ -447,30 +490,20 @@ test.describe('Names without a place to break', () => {
 
     // Assert
     const title = page.getByTestId('boards-page-title')
+    await expect(title).toBeVisible()
     await expect(title).toHaveText('My Boards')
-    const titleBox = await title.boundingBox()
-    const subtitleBox = await page
-      .getByTestId('boards-page-subtitle')
-      .boundingBox()
-    const buttonBox = await page
-      .getByRole('link', { name: 'Create Board' })
-      .boundingBox()
-    const textsTopPx = titleBox?.y ?? 0
-    const textsBottomPx = (subtitleBox?.y ?? 0) + (subtitleBox?.height ?? 0)
-    expect({
-      // The page has 16px of padding on a 640px screen
-      buttonRightEdgePx: Math.round(
-        (buttonBox?.x ?? 0) + (buttonBox?.width ?? 0),
-      ),
-      buttonMiddleBelowTheMiddleOfTheTextsPx: Math.round(
-        (buttonBox?.y ?? 0) +
-          (buttonBox?.height ?? 0) / 2 -
-          (textsTopPx + textsBottomPx) / 2,
-      ),
-    }).toEqual({
-      buttonRightEdgePx: 624,
-      buttonMiddleBelowTheMiddleOfTheTextsPx: 0,
+    // The title is already in the server HTML. Wait until hydration has
+    // shown the page and the font has settled, then read one frame.
+    await page.evaluate(async () => {
+      await document.fonts.ready
     })
+    // The page has 16px of padding on a 640px screen
+    await expect
+      .poll(() => measureCreateBoardOnTheBoardsHeader(page))
+      .toEqual({
+        buttonRightEdgePx: 624,
+        buttonMiddleBelowTheMiddleOfTheTextsPx: 0,
+      })
   })
 
   // Value: protects=the repository name in the command palette stays readable when the board that holds it is one long word; fails_when=the board name refuses to shrink, so the repository name is squeezed to nothing; why_new=the palette lists a repository beside its board, and the unit test cannot lay that row out; seam=none; no_claim=a board name of several words, which stays as it is
