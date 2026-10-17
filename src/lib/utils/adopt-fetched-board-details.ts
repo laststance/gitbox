@@ -169,8 +169,10 @@ export function adoptFetchedBoardDetails(
  * Called by {@link useCommentState} during render. A comment equal to the
  * baseline stays as the screen has it, so an edit saved on this tab is not
  * replaced by a read that started before that save. A comment that differs,
- * and a card the screen has not seen, is shown. A card the fetch no longer
- * has drops off when this tab has not edited it.
+ * and a card the screen has not seen, is shown. A comment this tab wrote on a
+ * card the last server copy does not have stays, even when the fetch does not
+ * have that card. A comment the server copy had, and this tab has not edited,
+ * drops off with the card.
  *
  * @param screen - Comments the board shows now.
  * @param baseline - The last comments taken from the server.
@@ -208,11 +210,12 @@ export function adoptFetchedComments(
     const base = nextBaseline[cardId]
     const current = nextScreen[cardId]
     if (current === undefined) continue
-    // Edited here since the last server copy: keep it
-    if (base !== undefined && !sameComment(base, current)) continue
+    // Created or edited here since the last server copy: keep it. A comment
+    // with no baseline was written on this tab, so a fetch that started
+    // before that save must not take it off the card.
+    if (base === undefined || !sameComment(base, current)) continue
     if (nextScreen === screen) nextScreen = { ...screen }
     delete nextScreen[cardId]
-    if (base === undefined) continue
     if (nextBaseline === baseline) nextBaseline = { ...baseline }
     delete nextBaseline[cardId]
   }

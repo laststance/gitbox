@@ -132,4 +132,37 @@ describe('useCommentState', () => {
       'card-1': { comment: 'edited here', color: 'primary' },
     })
   })
+
+  // Value: protects=a comment written here on a card the page never sent stays when a refetch does not have that card (CodeRabbit on #279); fails_when=the fetch deletes a comment that has no server baseline; why_new=the omit path kept a comment only when a baseline existed and differed; seam=none; no_claim=the comment save reaching the database
+  test('keeps a comment written here on a card the fetch does not have', async () => {
+    // Arrange
+    const firstComments: Record<string, CommentData> = {
+      'card-1': { comment: 'from the page', color: 'primary' },
+    }
+    const initialProps: CommentProps = {
+      initialComments: firstComments,
+      fetchedComments: null,
+    }
+    const { result, rerender } = renderHook(
+      (props: CommentProps) => useCommentState(props),
+      { initialProps },
+    )
+    await act(async () => {
+      await result.current.handleCommentChange('card-9', 'written here')
+    })
+
+    // Act: the read does not have the card this comment was written on
+    rerender({
+      initialComments: firstComments,
+      fetchedComments: {
+        'card-1': { comment: 'from the page', color: 'primary' },
+      },
+    })
+
+    // Assert
+    expect(result.current.comments).toEqual({
+      'card-1': { comment: 'from the page', color: 'primary' },
+      'card-9': { comment: 'written here', color: 'primary' },
+    })
+  })
 })
