@@ -15,7 +15,12 @@ import { combineReducers, configureStore } from '@reduxjs/toolkit'
 import type { TypedUseSelectorHook } from 'react-redux'
 import { useDispatch, useSelector, useStore } from 'react-redux'
 
-import { PERSISTED_SLICE_NAMES, mergePersistedSlices } from './persisted-slices'
+import {
+  PERSISTED_SLICE_NAMES,
+  PERSISTED_STATE_KEY,
+  PERSISTED_STATE_SAVE_DELAY_MS,
+  mergePersistedSlices,
+} from './persisted-slices'
 import boardReducer from './slices/boardSlice'
 import boardSyncReducer from './slices/boardSyncSlice'
 import draftReducer from './slices/draftSlice'
@@ -37,8 +42,10 @@ const {
   api: storageApi,
 } = createStorageMiddleware({
   rootReducer, // Required: pass root reducer
-  key: 'gitbox-state',
+  key: PERSISTED_STATE_KEY,
   slices: [...PERSISTED_SLICE_NAMES], // Persist these slices to localStorage
+  // Sign-out waits this long so the write is in place before the redirect
+  performance: { debounceMs: PERSISTED_STATE_SAVE_DELAY_MS },
   // Reads back those slices only: a browser that used the app before still
   // holds a `board` slice, which must not reach the store
   merge: mergePersistedSlices,

@@ -26,6 +26,8 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { signOut } from '@/lib/actions/auth'
+import { forgetAccountOnThisBrowser } from '@/lib/redux/forget-account-on-this-browser'
+import { store } from '@/lib/redux/store'
 import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 
 import type { AccountData, UserProfile } from './page'
@@ -44,6 +46,8 @@ export const AccountClient = memo(function AccountClient({
 
   const handleSignOut = useCallback(() => {
     startSignOutTransition(async () => {
+      // The write lands before the redirect, which would cancel a save still waiting
+      await forgetAccountOnThisBrowser(store)
       await signOut()
     })
   }, [])

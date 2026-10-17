@@ -25,6 +25,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { deleteAccount } from '@/lib/actions/auth'
+import { forgetAccountOnThisBrowser } from '@/lib/redux/forget-account-on-this-browser'
+import { store } from '@/lib/redux/store'
 
 /** Confirmation text required to enable delete button */
 const CONFIRMATION_TEXT = 'DELETE'
@@ -55,6 +57,8 @@ export const DeleteAccountDialog = memo(function DeleteAccountDialog({
 
     startTransition(async () => {
       try {
+        // The write lands before the redirect, which would cancel a save still waiting
+        await forgetAccountOnThisBrowser(store)
         await deleteAccount()
         // Note: deleteAccount redirects to '/', so this won't be reached on success
       } catch (error) {

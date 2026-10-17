@@ -149,10 +149,22 @@ export const draftSlice = createSlice({
       drop(repoKey)
       drop(legacyCardId)
     },
+
+    /**
+     * Drops every unsaved note on this browser.
+     *
+     * The slice is one localStorage entry shared by every account. Called by
+     * {@link forgetAccountOnThisBrowser} on sign-out and account deletion, so
+     * the next account does not keep the previous account's text.
+     */
+    clearDraftNotes: (state) => {
+      state.notes = {}
+    },
   },
 })
 
-export const { updateDraftNote, deleteDraftNote } = draftSlice.actions
+export const { updateDraftNote, deleteDraftNote, clearDraftNotes } =
+  draftSlice.actions
 
 export default draftSlice.reducer
 

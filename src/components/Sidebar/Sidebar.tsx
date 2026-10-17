@@ -29,6 +29,8 @@ import {
 import { useSidebar } from '@/hooks/use-sidebar'
 import { signOut } from '@/lib/actions/auth'
 import { openShortcutsHelp } from '@/lib/events'
+import { forgetAccountOnThisBrowser } from '@/lib/redux/forget-account-on-this-browser'
+import { store } from '@/lib/redux/store'
 import { cn } from '@/lib/utils'
 
 const ICON_LAYOUT_DASHBOARD = <LayoutDashboard className="h-4 w-4" />
@@ -263,6 +265,8 @@ export const Sidebar = memo(function Sidebar({
   }, [isOverPage, closeOverPage])
 
   const handleSignOut = async (): Promise<void> => {
+    // The write lands before the redirect, which would cancel a save still waiting
+    await forgetAccountOnThisBrowser(store)
     await signOut()
   }
 
