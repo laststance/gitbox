@@ -55,9 +55,10 @@ function isSentryEnabled(): boolean {
   return process.env.NEXT_PUBLIC_VERCEL_ENV === 'production'
 }
 
-// The page is in the server HTML. Hold requests, then start the worker, so
-// nothing leaves before the worker can answer it. The gate is synchronous;
-// the start is not, and Next does not wait for it.
+// The page is in the server HTML. Hold GitHub requests, then start the
+// worker. Same-origin calls are not held: they are answered by the server,
+// and waiting on them left the page on screen before it could be used.
+// The gate is synchronous; the start is not, and Next does not wait for it.
 if (isMSWEnabled()) {
   let openGate: () => void = () => {}
   const workerReady = new Promise<void>((resolve) => {

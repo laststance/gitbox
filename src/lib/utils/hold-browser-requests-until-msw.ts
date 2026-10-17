@@ -6,11 +6,11 @@
  * hydrated that placeholder, so a browser test could not see a hydration
  * error. The page is rendered on both sides now. This gate is installed
  * synchronously from `src/instrumentation-client.ts` before hydration, and
- * it lets the requests through when `worker.start()` settles.
+ * it lets a GitHub request through when `worker.start()` settles.
  *
- * A Next.js chunk (`/_next/`) and the worker script are not held: the
- * dynamic import of the worker waits on a chunk, and holding that chunk
- * would wait on the worker.
+ * Only `api.github.com` and `github.com` wait. The browser worker mocks
+ * those. A same-origin call is answered by the server's own worker, and
+ * holding it left the page on screen before a press could reach a button.
  *
  * @param workerReady - Resolves when the worker is answering, or when
  *   starting it failed and requests may leave. The caller settles it either
@@ -36,10 +36,11 @@ export function holdBrowserRequestsUntil(workerReady: Promise<void>): void {
   const queuedSends: Array<() => void> = []
   let released = false
 
-  // A request that loads the worker itself has to leave, or the worker
-  // never starts and every other request waits.
-  const shouldHold = (url: string): boolean =>
-    !url.includes('/_next/') && !url.includes('mockServiceWorker')
+  // Same-origin calls, including the worker's own chunk, are not GitHub.
+  const shouldHold = (url: string): boolean => {
+    const host = requestHost(url)
+    return host === 'api.github.com' || host === 'github.com'
+  }
 
   const release = (): void => {
     if (released) return
@@ -100,4 +101,13 @@ function requestUrl(input: RequestInfo | URL): string {
   if (typeof input === 'string') return input
   if (input instanceof URL) return input.href
   return input.url
+}
+
+/** The host a request is going to, against this page when the URL is relative. */
+function requestHost(url: string): string {
+  try {
+    return new URL(url, window.location.href).hostname
+  } catch {
+    return ''
+  }
 }

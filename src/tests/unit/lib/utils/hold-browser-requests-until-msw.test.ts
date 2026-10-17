@@ -1,9 +1,9 @@
 /**
  * Unit tests: browser requests wait until the mock worker can answer them.
  *
- * The page is in the server HTML, so a fetch or an XMLHttpRequest that a
- * component sends while the worker is still starting has to wait. A Next.js
- * chunk must not wait, or the worker's own script never arrives.
+ * The page is in the server HTML, so a GitHub call that a component sends
+ * while the worker is still starting has to wait. A same-origin call must
+ * not wait, or the page is on screen before a press can reach a button.
  */
 
 import { afterEach, describe, expect, test } from 'vitest'
@@ -21,7 +21,7 @@ afterEach(() => {
 })
 
 describe('requests wait for the mock worker', () => {
-  test('a page request waits until the worker can answer it', async () => {
+  test('a GitHub request waits until the worker can answer it', async () => {
     // Arrange
     const calls: string[] = []
     window.fetch = async (input) => {
@@ -35,17 +35,17 @@ describe('requests wait for the mock worker', () => {
     holdBrowserRequestsUntil(workerReady)
 
     // Act
-    const pending = window.fetch('/api/boards')
+    const pending = window.fetch('https://api.github.com/user')
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     // Assert
     expect(calls).toEqual([])
     openGate()
     await pending
-    expect(calls).toEqual(['/api/boards'])
+    expect(calls).toEqual(['https://api.github.com/user'])
   })
 
-  test('a Next.js chunk loads while the worker is still starting', async () => {
+  test('a same-origin request leaves while the worker is still starting', async () => {
     // Arrange
     const calls: string[] = []
     window.fetch = async (input) => {
@@ -59,10 +59,10 @@ describe('requests wait for the mock worker', () => {
     holdBrowserRequestsUntil(workerReady)
 
     // Act
-    await window.fetch('/_next/static/chunks/app.js')
+    await window.fetch('/api/boards')
 
     // Assert
-    expect(calls).toEqual(['/_next/static/chunks/app.js'])
+    expect(calls).toEqual(['/api/boards'])
     openGate()
   })
 
@@ -78,7 +78,7 @@ describe('requests wait for the mock worker', () => {
     })
     holdBrowserRequestsUntil(workerReady)
     const request = new XMLHttpRequest()
-    request.open('GET', '/api/boards')
+    request.open('GET', 'https://api.github.com/user')
 
     // Act
     request.send()
@@ -102,7 +102,7 @@ describe('requests wait for the mock worker', () => {
     })
     holdBrowserRequestsUntil(workerReady)
     const request = new XMLHttpRequest()
-    request.open('GET', '/api/boards', false)
+    request.open('GET', 'https://api.github.com/user', false)
 
     // Act
     request.send()
