@@ -27,6 +27,7 @@ import { trackBoardWrite } from '@/lib/redux/slices/boardSyncSlice'
 import type { AppDispatch } from '@/lib/redux/store'
 import { isOverlayOpen } from '@/lib/utils/is-overlay-open'
 import { notifyFailedBoardSave } from '@/lib/utils/notify-failed-board-save'
+import { reconcileColumnUndo } from '@/lib/utils/reconcile-column-undo'
 import { reconcileUndoSnapshot } from '@/lib/utils/reconcile-undo-snapshot'
 import { reportUnconfirmedBoardSave } from '@/lib/utils/report-unconfirmed-board-save'
 import { rollbackIfPositionWriteFailed } from '@/lib/utils/rollback-if-position-write-failed'
@@ -106,10 +107,16 @@ export function useKanbanUndo(
     if (columnHistory.length > 0) {
       // Non-null: `length > 0` guarantees the last entry exists, and
       // `columnHistory` only holds `StatusListDomain[]` snapshots pushed by
-      // `pushColumnHistory`. A copy, because the next drag pushes the store's
-      // array back onto the history: a second undo would dispatch the very
-      // same array, and the failed-save rollback tells writes apart by it.
-      const columnsAfterUndo = [...columnHistory[columnHistory.length - 1]!]
+      // `pushColumnHistory`. The result is a new array: the next drag pushes
+      // the store's array back onto the history, and a second undo would
+      // otherwise dispatch that same array. The failed-save rollback tells
+      // writes apart by it. Positions come from the snapshot. A column renamed
+      // or recolored since keeps what it is now, a deleted column stays gone,
+      // and a column added since stays on the board.
+      const columnsAfterUndo = reconcileColumnUndo(
+        columnHistory[columnHistory.length - 1]!,
+        statuses,
+      )
       dispatch(setStatusLists(columnsAfterUndo))
       setColumnHistory((prev) => prev.slice(0, -1))
       toast.success('Column order restored', { id: UNDO_TOAST_ID })
