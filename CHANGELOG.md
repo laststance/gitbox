@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.7.0] - 2026-10-18
+
+### Fixed
+
+- A board change that fails to save says what the screen did. A removal the server refused keeps that sentence when the card comes back. A save that never got an answer puts the old layout back and reloads the board, because the change may already be stored. Offline, that is one notice, it stays up while a save is still going out, and it can be closed.
+
 ## [0.7.6.0] - 2026-10-18
 
 ### Added

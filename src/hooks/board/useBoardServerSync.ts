@@ -111,6 +111,9 @@ export function useBoardServerSync(serverSnapshot: BoardServerSnapshot): void {
   const store = useAppStore()
   const dispatch = useAppDispatch()
   const isRefreshDue = useAppSelector(selectIsBoardRefreshDue)
+  const isRefreshWanted = useAppSelector(
+    (state) => state.boardSync.isRefreshWanted,
+  )
   const refreshForBoardId = useAppSelector(
     (state) => state.boardSync.refreshForBoardId,
   )
@@ -194,22 +197,26 @@ export function useBoardServerSync(serverSnapshot: BoardServerSnapshot): void {
   ])
 
   // Say why the board is not reloading for as long as that is the case: the
-  // notice stays up while offline and goes away with the connection back or
-  // on leaving the board. A fetch wanted for another board is not this one.
+  // notice stays up while offline, including while a save is still pending,
+  // and goes away with the connection back or on leaving the board. A fetch
+  // wanted for another board is not this one. A save that starts must not
+  // take the notice down: the fetch waits for that save, and the user is
+  // still offline.
   useEffect(() => {
     const isThisBoardWanted =
       refreshForBoardId === null || refreshForBoardId === boardId
-    if (!isRefreshDue || isOnline || !isThisBoardWanted) return
+    if (!isRefreshWanted || isOnline || !isThisBoardWanted) return
 
     toast.warning("You're offline", {
       id: OFFLINE_REFRESH_TOAST_ID,
       description: 'The board reloads when the connection is back.',
       duration: Infinity,
+      closeButton: true,
     })
     return (): void => {
       toast.dismiss(OFFLINE_REFRESH_TOAST_ID)
     }
-  }, [isRefreshDue, isOnline, refreshForBoardId, boardId])
+  }, [isRefreshWanted, isOnline, refreshForBoardId, boardId])
 }
 
 /**

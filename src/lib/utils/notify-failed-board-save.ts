@@ -1,5 +1,8 @@
 import { toast } from 'sonner'
 
+import { boardRefreshRequested } from '@/lib/redux/slices/boardSyncSlice'
+import type { AppDispatch } from '@/lib/redux/store'
+
 /**
  * What a failed-save rollback did to the board on screen:
  * - `'restored'`: the layout from before the failed change is back
@@ -67,6 +70,37 @@ export const notifyFailedBoardSave = (
  * toFailedSaveDescription('reload-requested', true) // => 'Reloading the board to show what was saved.'
  * toFailedSaveDescription('restored', false)        // => "You're offline. Try again when the connection is back."
  */
+/**
+ * Reports a board save that threw, after the caller rolled the screen back.
+ *
+ * A throw has no answer, so the database may already hold the change. The
+ * previous layout goes back when it still can, and a fresh copy is asked for
+ * either way. Offline, the one notice is the offline one: a second toast
+ * would say the same thing. Called from the catch of a drag, an undo and
+ * Remove from Board.
+ *
+ * @param dispatch - Store dispatch. A restored layout still needs a fetch.
+ * @param title - First line of the toast when the browser is online.
+ * @param outcome - What the rollback did before this was called.
+ * @param toastId - Sonner id. Undo replaces its success toast with this.
+ * @example
+ * reportThrownBoardSave(dispatch, 'Failed to move card', rollbackRepoCards(after, before))
+ */
+export const reportThrownBoardSave = (
+  dispatch: AppDispatch,
+  title: string,
+  outcome: BoardRollbackOutcome,
+  toastId?: string,
+): void => {
+  // The snapshot was put back. The database may disagree, so read it again.
+  if (outcome === 'restored') {
+    dispatch(boardRefreshRequested())
+  }
+  // The offline notice is already the sentence for this. A second toast stacks.
+  if (navigator.onLine === false) return
+  notifyFailedBoardSave(title, 'reload-requested', toastId)
+}
+
 const toFailedSaveDescription = (
   outcome: BoardRollbackOutcome,
   isOnline: boolean,

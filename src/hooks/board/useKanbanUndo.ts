@@ -26,7 +26,7 @@ import { setStatusLists, setRepoCards } from '@/lib/redux/slices/boardSlice'
 import { trackBoardWrite } from '@/lib/redux/slices/boardSyncSlice'
 import type { AppDispatch } from '@/lib/redux/store'
 import { isOverlayOpen } from '@/lib/utils/is-overlay-open'
-import { notifyFailedBoardSave } from '@/lib/utils/notify-failed-board-save'
+import { reportThrownBoardSave } from '@/lib/utils/notify-failed-board-save'
 import { reconcileColumnUndo } from '@/lib/utils/reconcile-column-undo'
 import { reconcileUndoSnapshot } from '@/lib/utils/reconcile-undo-snapshot'
 import { reportUnconfirmedBoardSave } from '@/lib/utils/report-unconfirmed-board-save'
@@ -137,11 +137,12 @@ export function useKanbanUndo(
         Sentry.captureException(error, {
           tags: { action: 'undoColumnPositions' },
         })
-        // The write was refused: go back to the columns the database still holds
-        const rollbackOutcome = rollbackStatusLists(columnsAfterUndo, statuses)
-        notifyFailedBoardSave(
+        // The write threw. The step is already gone, so the screen goes back
+        // and the board is read again. "Please try again" would be wrong.
+        reportThrownBoardSave(
+          dispatch,
           UNDO_FAILED_TOAST_TITLE,
-          rollbackOutcome,
+          rollbackStatusLists(columnsAfterUndo, statuses),
           UNDO_TOAST_ID,
         )
       })
@@ -189,10 +190,10 @@ export function useKanbanUndo(
       })
       // The write was refused (e.g. the old column was deleted since): go
       // back to the layout the database still holds
-      const rollbackOutcome = rollbackRepoCards(cardsAfterUndo, cards)
-      notifyFailedBoardSave(
+      reportThrownBoardSave(
+        dispatch,
         UNDO_FAILED_TOAST_TITLE,
-        rollbackOutcome,
+        rollbackRepoCards(cardsAfterUndo, cards),
         UNDO_TOAST_ID,
       )
     })
