@@ -251,6 +251,9 @@ test.describe('10.3 Column Drag & Drop', () => {
       expect(newOrder.length).toBe(5)
       // A refused press leaves every column where it started.
       expect(after[STATUS_IDS.pending]).not.toEqual(before[STATUS_IDS.pending])
+      await expect(
+        page.getByText('Drop column here to create new row'),
+      ).toHaveCount(0)
     })
 
     /**

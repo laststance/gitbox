@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Read what is being dragged from dnd-kit, not from a copy
-
-**What:** Take "a column is being dragged" from dnd-kit's own state (`useDndContext().active`, read by a component inside `DndContext`) and drop `activeId` and `activeDragType` of `useKanbanDnD`, which `handleDragStart` sets and `handleDragEnd` and `handleDragCancel` clear.
-
-**Why:** dnd-kit calls `onDragStart` at once and calls neither `onDragEnd` nor `onDragCancel` when the drag ends before React has drawn its start (`createHandler` in `@dnd-kit/core` 6.3.1 builds no event while `sensorContext.current.active` is unset). A mouse that is released within a frame of the lift then leaves the copy at "column", and the drop zones for a new row and for empty places stay on the board until the next drag ends. Not seen in a browser; read from the code on 2026-10-12, when the handler for a cancelled drag was added.
-
-**Context:** `src/hooks/board/useKanbanDnD.ts` (`insertionZones`, the two state values), `src/components/Board/KanbanBoard.tsx` (`isDraggingColumn`, the grid tracks, `NewRowDropZone`, the `DragOverlay`). The hook runs outside `DndContext`, which it gives its sensors to, so the reading has to move into a child of the context.
-
-**Effort:** M
-**Priority:** P3
-**Depends on:** None
-
 ### Forward only the headers Sentry needs through the tunnel
 
 **What:** Build the headers of the forwarded tunnel request from a short allowlist (`content-type`, `content-encoding`, `user-agent`, `origin`, `referer`, `x-forwarded-for`, `accept-encoding`) instead of copying every header and deleting `cookie`. While there, match the tunnel path with one anchored pattern instead of `replace(/\/+$/, '')`, and decide whether a report sent without `Content-Length` should be refused.

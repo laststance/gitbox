@@ -4,25 +4,22 @@
  * Extracts all drag-and-drop logic from KanbanBoard:
  * - Sensor configuration (Mouse, Touch, Keyboard)
  * - Custom collision detection (forgivingCollisionDetection)
- * - Drag start/end/cancel handlers with column sub-handlers
- * - Grid dimension calculations and insertion zone detection
- * - Active drag state (activeId, activeDragType)
+ * - Drag end handler with column sub-handlers
+ * - Grid dimension calculations
+ *
+ * What is being dragged is read from dnd-kit by {@link KanbanDragChrome},
+ * inside the context. This hook runs outside that context, so it does not
+ * keep a copy.
  *
  * @example
  * const dnd = useKanbanDnD({ statuses, cards, cardsByStatus, EMPTY_CARDS, dispatch, pushCardHistory, pushColumnHistory, rollbackRepoCards, rollbackStatusLists })
  * <DndContext sensors={dnd.sensors} collisionDetection={forgivingCollisionDetection}
- *   onDragStart={dnd.handleDragStart} onDragEnd={dnd.handleDragEnd}
- *   onDragCancel={dnd.handleDragCancel}>
+ *   onDragEnd={dnd.handleDragEnd}>
  *   <SortableContext items={dnd.columnIds}>...</SortableContext>
  * </DndContext>
  */
 
-import type {
-  CollisionDetection,
-  DragEndEvent,
-  DragStartEvent,
-  UniqueIdentifier,
-} from '@dnd-kit/core'
+import type { CollisionDetection, DragEndEvent } from '@dnd-kit/core'
 import {
   closestCenter,
   pointerWithin,
@@ -31,7 +28,7 @@ import {
 } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import * as Sentry from '@sentry/nextjs'
-import { useState, useCallback, useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 
 import { COLUMN_INSERT_DROP_TYPE } from '@/components/Board/ColumnInsertZone'
 import { NEW_ROW_DROP_TYPE } from '@/components/Board/NewRowDropZone'
@@ -77,9 +74,6 @@ export const forgivingCollisionDetection: CollisionDetection = (args) => {
   return closestCenter(args)
 }
 
-/** Drag type identifier for active drag detection */
-type DragType = 'column' | 'card' | null
-
 /** First line of the toast shown when a card drag was not saved. */
 const CARD_MOVE_FAILED_TOAST_TITLE = 'Failed to move card'
 
@@ -108,22 +102,12 @@ interface UseKanbanDnDParams {
 }
 
 interface UseKanbanDnDReturn {
-  /** ID of the currently dragged item */
-  activeId: UniqueIdentifier | null
-  /** Type of the currently dragged item */
-  activeDragType: DragType
   /** Configured sensors for Mouse, Touch, and Keyboard */
   sensors: ReturnType<typeof useSensors>
   /** Sorted column IDs for SortableContext */
   columnIds: string[]
-  /** Empty grid positions available during column drag */
-  insertionZones: Array<{ gridRow: number; gridCol: number }>
-  /** Handle drag start — detects column vs card drag */
-  handleDragStart: (event: DragStartEvent) => void
   /** Handle drag end — dispatches to column/card sub-handlers */
   handleDragEnd: (event: DragEndEvent) => Promise<void>
-  /** Handle a cancelled drag: forgets the dragged item, nothing is saved */
-  handleDragCancel: () => void
   /** Grid dimensions for CSS grid template */
   gridDimensions: { maxRow: number; maxCol: number }
   /** Statuses sorted by gridRow then gridCol for rendering */
@@ -137,7 +121,7 @@ interface UseKanbanDnDReturn {
  * @returns DnD state and handlers for DndContext
  *
  * @example
- * const { sensors, handleDragStart, handleDragEnd, columnIds } = useKanbanDnD({
+ * const { sensors, handleDragEnd, columnIds } = useKanbanDnD({
  *   statuses, cards, cardsByStatus, EMPTY_CARDS, dispatch,
  *   pushCardHistory, pushColumnHistory, rollbackRepoCards, rollbackStatusLists,
  * })
@@ -154,10 +138,6 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
     rollbackRepoCards,
     rollbackStatusLists,
   } = params
-
-  // Active drag state
-  const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null)
-  const [activeDragType, setActiveDragType] = useState<DragType>(null)
 
   // Sorted statuses for consistent rendering (by gridRow, then gridCol)
   const sortedStatuses = useMemo(
@@ -176,31 +156,6 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
     const maxCol = Math.max(...statuses.map((s) => s.gridCol))
     return { maxRow, maxCol }
   }, [statuses])
-
-  // Insertion zones: empty grid positions during column drag
-  const insertionZones = useMemo(() => {
-    if (activeDragType !== 'column') return []
-
-    const zones: Array<{ gridRow: number; gridCol: number }> = []
-    const { maxRow, maxCol } = gridDimensions
-    const occupiedPositions = new Set(
-      statuses
-        .filter((s) => s.id !== activeId)
-        .map((s) => `${s.gridRow}-${s.gridCol}`),
-    )
-
-    // One zone per cell. statuslist_grid_position_bounds keeps the furthest cell at 999.
-    for (let row = 0; row <= maxRow; row++) {
-      for (let col = 0; col <= maxCol + 1; col++) {
-        const posKey = `${row}-${col}`
-        if (!occupiedPositions.has(posKey)) {
-          zones.push({ gridRow: row, gridCol: col })
-        }
-      }
-    }
-
-    return zones
-  }, [activeDragType, gridDimensions, statuses, activeId])
 
   // Column IDs for SortableContext
   const columnIds = useMemo(
@@ -386,32 +341,10 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
     [statuses, dispatch, recordColumnHistory, rollbackStatusLists],
   )
 
-  /** Handle drag start — detects column vs card drag */
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    const { active } = event
-    setActiveId(active.id)
-    setActiveDragType(
-      active.data.current?.type === COLUMN_DRAG_TYPE ? 'column' : 'card',
-    )
-  }, [])
-
-  /**
-   * Handle a cancelled drag: Escape, a window that is resized or hidden
-   * during the drag, or a touch that the browser takes over. dnd-kit reports
-   * those here and not to handleDragEnd, so the drop zones of a column drag
-   * stayed on the board until the next drag ended.
-   */
-  const handleDragCancel = useCallback(() => {
-    setActiveId(null)
-    setActiveDragType(null)
-  }, [])
-
   /** Handle drag end — dispatches to column/card sub-handlers */
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       const { active, over } = event
-      setActiveId(null)
-      setActiveDragType(null)
 
       if (!over) return
 
@@ -561,14 +494,9 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
   )
 
   return {
-    activeId,
-    activeDragType,
     sensors,
     columnIds,
-    insertionZones,
-    handleDragStart,
     handleDragEnd,
-    handleDragCancel,
     gridDimensions,
     sortedStatuses,
   }
