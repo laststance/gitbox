@@ -605,7 +605,8 @@ test.describe('Names without a place to break', () => {
     })
     await openTestBoard(page)
     const card = page.getByTestId(`repo-card-${CARD_IDS.card1}`)
-    await card.locator('[tabindex="0"]').focus()
+    // The empty comment is also tabindex 0, inside the card.
+    await card.focus()
 
     // Act
     await page.keyboard.press('Space')
