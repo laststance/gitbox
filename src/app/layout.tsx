@@ -6,7 +6,7 @@
  * - Redux Provider
  * - Global keyboard shortcuts (ShortcutsHelp)
  * - Toasts in the palette of the chosen theme (ThemedToaster)
- * - MSW initialization (server-side for SSR, client-side via MSWProvider)
+ * - MSW initialization (server-side for SSR, browser worker in instrumentation-client)
  *
  * Note: Theme is applied in authenticated route layouts only.
  * Landing page uses default shadcn/ui light theme.

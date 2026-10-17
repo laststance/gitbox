@@ -41,25 +41,13 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Let the browser tests see a hydration error
-
-**What:** Make the server's HTML of an E2E run hold the page, so that `e2e/unauthenticated/ssr-hydration.spec.ts`, `e2e/logged-in/ssr-hydration-board.spec.ts` and `e2e/logged-in/board-page-hydration.spec.ts` can fail. Or, if that cannot be done, rename them after what they do check.
-
-**Why:** With MSW on, `MSWProvider` (`src/app/msw-provider.tsx`) renders "Initializing MSW..." until the worker runs in the browser, on the server too, so React never hydrates a page in a browser test. Found on 2026-10-14: the time-zone mismatch of `/boards` (React #418 on production) passed a Playwright test with the browser in Los Angeles. Its regression test is a unit test (`src/tests/unit/components/LocalDate.test.tsx`).
-
-**Context:** The provider waits so that no request leaves the browser before the worker can answer it. A provider that renders its children at once has to hold those requests back another way, for example by starting the worker in an inline script before React loads, and the whole E2E suite is the check that nothing then goes out unmocked.
-
-**Effort:** M
-**Priority:** P3
-**Depends on:** None
-
 ### Give the drag context of the boards list a stable id
 
 **What:** Pass an `id` to the `DndContext` of `BoardGrid` (`src/components/Boards/BoardGrid.tsx`), so the server and the browser name its description element alike.
 
 **Why:** Seen on 2026-10-14 during the local check of #216 with `next dev`: hydrating `/boards` logged a mismatch of the drag handle's `aria-describedby` (`DndDescribedBy-0` on the server, `DndDescribedBy-1` in the browser). dnd-kit counts its ids per module, so the count depends on what rendered before. React does not patch attributes up, so a screen reader may be pointed at an element that does not exist.
 
-**Context:** `DndContext` takes an `id` prop for server rendering. Check the board's `DndContext` in `KanbanBoard` the same way. A browser test cannot see this yet (see the item above).
+**Context:** `DndContext` takes an `id` prop for server rendering. Check the board's `DndContext` in `KanbanBoard` the same way. The hydration specs now read the server document and the console. This mismatch was seen under `next dev` on `/boards`, which those specs do not open.
 
 **Effort:** S
 **Priority:** P3

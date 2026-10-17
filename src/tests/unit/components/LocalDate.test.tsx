@@ -8,9 +8,9 @@
  * production for a board made at 22:59 UTC (10/4 on the server, 10/5 in
  * Tokyo).
  *
- * The browser tests cannot see this: with MSW on, `MSWProvider` renders the
- * page only once the worker runs in the browser, so the server's HTML holds
- * none of it. Here the HTML comes from `renderToString` with `TZ=UTC`, and
+ * The browser tests hydrate the page the server sent. They run in one time
+ * zone, so they cannot put the server in UTC and the browser in Los Angeles
+ * at once. Here the HTML comes from `renderToString` with `TZ=UTC`, and
  * `hydrateRoot` takes it over with `TZ=America/Los_Angeles`, where
  * 2024-01-01T00:00:00Z is still the last day of 2023.
  */

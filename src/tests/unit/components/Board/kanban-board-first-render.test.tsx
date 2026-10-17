@@ -1,9 +1,9 @@
 /**
  * Unit Tests: a board is in the server HTML, and hydration keeps it
  *
- * The browser tests cannot see a hydration error. With MSW on, the server's
- * HTML of a page holds "Initializing MSW..." and nothing of the board. Here
- * the HTML comes from `renderToString` and `hydrateRoot` takes it over.
+ * The browser tests hydrate the board the server sent. Here the HTML comes
+ * from `renderToString` and `hydrateRoot` takes it over, so the check does
+ * not need a running app.
  *
  * @see src/components/Board/KanbanBoard.tsx
  */

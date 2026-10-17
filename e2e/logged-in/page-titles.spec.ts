@@ -85,8 +85,7 @@ test.describe('Page Titles (Authenticated)', () => {
       await page.goto(path)
       // Wait for the title rather than reading it once, as the test of the
       // public pages does. Read once right after DOMContentLoaded on a busy
-      // machine, the title was still empty and the count 0, while the page
-      // showed the placeholder of the mock worker ("Initializing MSW...").
+      // machine, the title was still empty and the count 0.
       await expect
         .poll(
           async () => ((await page.title()).match(/GitBox/gi) ?? []).length,
