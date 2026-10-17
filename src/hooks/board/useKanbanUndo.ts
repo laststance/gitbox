@@ -14,7 +14,7 @@
  */
 
 import * as Sentry from '@sentry/nextjs'
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -26,7 +26,10 @@ import { setStatusLists, setRepoCards } from '@/lib/redux/slices/boardSlice'
 import { trackBoardWrite } from '@/lib/redux/slices/boardSyncSlice'
 import type { AppDispatch } from '@/lib/redux/store'
 import { isOverlayOpen } from '@/lib/utils/is-overlay-open'
-import { reportThrownBoardSave } from '@/lib/utils/notify-failed-board-save'
+import {
+  reportThrownBoardSave,
+  type BoardRollbackOutcome,
+} from '@/lib/utils/notify-failed-board-save'
 import { reconcileColumnUndo } from '@/lib/utils/reconcile-column-undo'
 import { reconcileUndoSnapshot } from '@/lib/utils/reconcile-undo-snapshot'
 import { reportUnconfirmedBoardSave } from '@/lib/utils/report-unconfirmed-board-save'
@@ -89,6 +92,11 @@ export function useKanbanUndo(
   // History stacks (max 10 entries each)
   const [history, setHistory] = useState<RepoCardForRedux[][]>([])
   const [columnHistory, setColumnHistory] = useState<StatusListDomain[][]>([])
+  // The snapshot last put back after a refusal. A second refusal of that
+  // same array is dropped, so a failure that will not go away cannot sit
+  // in front of every older step.
+  const retriedCardSnapshot = useRef<RepoCardForRedux[] | null>(null)
+  const retriedColumnSnapshot = useRef<StatusListDomain[] | null>(null)
 
   const pushCardHistory = useCallback((snapshot: RepoCardForRedux[]) => {
     setHistory((prev) => [...prev, snapshot].slice(-10))
@@ -113,10 +121,9 @@ export function useKanbanUndo(
       // writes apart by it. Positions come from the snapshot. A column renamed
       // or recolored since keeps what it is now, a deleted column stays gone,
       // and a column added since stays on the board.
-      const columnsAfterUndo = reconcileColumnUndo(
-        columnHistory[columnHistory.length - 1]!,
-        statuses,
-      )
+      const snapshot = columnHistory[columnHistory.length - 1]!
+      const indexAfterPop = columnHistory.length - 1
+      const columnsAfterUndo = reconcileColumnUndo(snapshot, statuses)
       dispatch(setStatusLists(columnsAfterUndo))
       setColumnHistory((prev) => prev.slice(0, -1))
       toast.success('Column order restored', { id: UNDO_TOAST_ID })
@@ -126,6 +133,15 @@ export function useKanbanUndo(
         gridRow: s.gridRow,
         gridCol: s.gridCol,
       }))
+      const rememberColumnStep = (outcome: BoardRollbackOutcome): void => {
+        rememberRefusedUndoStep(
+          outcome,
+          snapshot,
+          retriedColumnSnapshot,
+          indexAfterPop,
+          setColumnHistory,
+        )
+      }
       rollbackIfPositionWriteFailed(
         trackBoardWrite(dispatch, batchUpdateStatusListPositions(updates), () =>
           reportUnconfirmedBoardSave('undoColumnPositions'),
@@ -133,19 +149,32 @@ export function useKanbanUndo(
         UNDO_FAILED_TOAST_TITLE,
         () => rollbackStatusLists(columnsAfterUndo, statuses),
         UNDO_TOAST_ID,
-      ).catch((error) => {
-        Sentry.captureException(error, {
-          tags: { action: 'undoColumnPositions' },
+      )
+        .then((outcome) => {
+          // Kept: this snapshot is no longer the one Z should retry.
+          if (outcome === 'saved') {
+            if (retriedColumnSnapshot.current === snapshot) {
+              retriedColumnSnapshot.current = null
+            }
+            return
+          }
+          rememberColumnStep(outcome)
         })
-        // The write threw. The step is already gone, so the screen goes back
-        // and the board is read again. "Please try again" would be wrong.
-        reportThrownBoardSave(
-          dispatch,
-          UNDO_FAILED_TOAST_TITLE,
-          rollbackStatusLists(columnsAfterUndo, statuses),
-          UNDO_TOAST_ID,
-        )
-      })
+        .catch((error: unknown) => {
+          Sentry.captureException(error, {
+            tags: { action: 'undoColumnPositions' },
+          })
+          // The write threw. The screen goes back when it still can, and the
+          // step returns to the stack only while that screen is its own.
+          const outcome = rollbackStatusLists(columnsAfterUndo, statuses)
+          reportThrownBoardSave(
+            dispatch,
+            UNDO_FAILED_TOAST_TITLE,
+            outcome,
+            UNDO_TOAST_ID,
+          )
+          rememberColumnStep(outcome)
+        })
       return
     }
 
@@ -157,6 +186,7 @@ export function useKanbanUndo(
     let remaining = history
     let cardsAfterUndo = cards
     let positionsAfterUndo = currentPositions
+    let appliedSnapshot: RepoCardForRedux[] | null = null
     while (remaining.length > 0) {
       const previousState = remaining[remaining.length - 1]!
       remaining = remaining.slice(0, -1)
@@ -164,39 +194,66 @@ export function useKanbanUndo(
       // board, removed, added): only cards still here go back to their old place
       cardsAfterUndo = reconcileUndoSnapshot(previousState, cards)
       positionsAfterUndo = toColumnPositions(cardsAfterUndo)
-      if (!hasSameLayout(currentPositions, positionsAfterUndo)) break
+      if (!hasSameLayout(currentPositions, positionsAfterUndo)) {
+        appliedSnapshot = previousState
+        break
+      }
     }
 
+    const indexAfterPop = remaining.length
     setHistory(remaining)
 
-    // Every remembered drag left the board as it is
-    if (hasSameLayout(currentPositions, positionsAfterUndo)) {
+    // Every remembered drag left the board as it is. A layout that changed
+    // always has the snapshot that changed it: the loop records that entry.
+    if (
+      hasSameLayout(currentPositions, positionsAfterUndo) ||
+      appliedSnapshot === null
+    ) {
       toast.info('Nothing to undo on this board')
       return
     }
 
+    const snapshot = appliedSnapshot
     dispatch(setRepoCards(cardsAfterUndo))
     toast.success('Card operation undone', { id: UNDO_TOAST_ID })
 
     // Positions come from the restored layout, not from each card's `order`
     // field, which drags never update
+
     trackBoardWrite(
       dispatch,
       batchUpdateRepoCardOrders(positionsAfterUndo),
       () => reportUnconfirmedBoardSave('undoCardPositions'),
-    ).catch((error) => {
-      Sentry.captureException(error, {
-        tags: { action: 'undoCardPositions' },
-      })
-      // The write was refused (e.g. the old column was deleted since): go
-      // back to the layout the database still holds
-      reportThrownBoardSave(
-        dispatch,
-        UNDO_FAILED_TOAST_TITLE,
-        rollbackRepoCards(cardsAfterUndo, cards),
-        UNDO_TOAST_ID,
-      )
-    })
+    ).then(
+      () => {
+        // Kept: this snapshot is no longer the one Z should retry.
+        if (retriedCardSnapshot.current === snapshot) {
+          retriedCardSnapshot.current = null
+        }
+      },
+      (error: unknown) => {
+        Sentry.captureException(error, {
+          tags: { action: 'undoCardPositions' },
+        })
+        // The write threw. Go back to the layout the database still holds
+        // when the screen is still this undo, and leave the step on the
+        // stack once so the next Z tries it again.
+        const outcome = rollbackRepoCards(cardsAfterUndo, cards)
+        reportThrownBoardSave(
+          dispatch,
+          UNDO_FAILED_TOAST_TITLE,
+          outcome,
+          UNDO_TOAST_ID,
+        )
+        rememberRefusedUndoStep(
+          outcome,
+          snapshot,
+          retriedCardSnapshot,
+          indexAfterPop,
+          setHistory,
+        )
+      },
+    )
   }, [
     history,
     columnHistory,
@@ -248,6 +305,64 @@ export function useKanbanUndo(
     pushCardHistory,
     pushColumnHistory,
   }
+}
+
+/**
+ * Puts a refused undo step back, or leaves it off the stack.
+ *
+ * Called from {@link useKanbanUndo} after the save of an undo fails. A step
+ * whose screen is still the layout it undoes (`restored`) goes back once, so
+ * the next Z tries it again after a blip. The same snapshot refused a second
+ * time, and a step whose screen has moved on (`reload-requested`), stays off
+ * the stack: the top of the stack is always tried first, and a refusal that
+ * will not go away would otherwise hide every older step.
+ *
+ * @param outcome - What the rollback did to the board on screen.
+ * @param snapshot - The history entry that was popped for this undo.
+ * @param alreadyRetried - The snapshot put back after the previous refusal.
+ * @param indexAfterPop - Where the popped entry sat. Entries pushed while the
+ *   save was in flight stay above it.
+ * @param setStack - The history setter for this kind of undo.
+ */
+function rememberRefusedUndoStep<T extends object>(
+  outcome: BoardRollbackOutcome,
+  snapshot: T,
+  alreadyRetried: { current: T | null },
+  indexAfterPop: number,
+  setStack: (update: (stack: T[]) => T[]) => void,
+): void {
+  // The board moved on, or this exact step was already refused once.
+  if (outcome !== 'restored' || alreadyRetried.current === snapshot) {
+    if (alreadyRetried.current === snapshot) alreadyRetried.current = null
+    return
+  }
+  alreadyRetried.current = snapshot
+  setStack((stack) => putUndoStepBack(stack, snapshot, indexAfterPop))
+}
+
+/**
+ * Inserts a popped undo snapshot under anything pushed while its save was
+ * still in flight.
+ *
+ * Called by {@link rememberRefusedUndoStep}. A second call with the same
+ * snapshot at the same index returns the stack unchanged, so a strict-mode
+ * updater does not insert it twice.
+ *
+ * @param stack - History after the pop, plus any later pushes.
+ * @param snapshot - The entry to put back.
+ * @param indexAfterPop - Index the entry had when it was popped.
+ * @returns The stack with that entry back, capped at 10.
+ */
+function putUndoStepBack<T>(
+  stack: T[],
+  snapshot: T,
+  indexAfterPop: number,
+): T[] {
+  // Already put back: a second updater pass must not insert it again.
+  if (stack[indexAfterPop] === snapshot) return stack
+  const older = stack.slice(0, indexAfterPop)
+  const newer = stack.slice(indexAfterPop)
+  return [...older, snapshot, ...newer].slice(-10)
 }
 
 /**
