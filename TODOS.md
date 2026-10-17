@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Count the proxy's rate limits across instances
-
-**What:** Give the Sentry tunnel limit and the `/auth/callback` limit one count for all server instances: a Vercel Firewall rate-limit rule on those paths, `checkRateLimit` from `@vercel/firewall` with such a rule, or a shared store.
-
-**Why:** `edgeRateLimit` counts in the memory of one instance. On production one browser sent 1,800 tunnel reports in 14 seconds and about 1,300 were forwarded before the first 429; 123 sent one after another got no 429 at all. A preview deployment refused the 121st, as a single instance does. The more requests arrive, the more instances run, so the limit loosens under exactly the load it is for. The same holds for the 10 a minute on `/auth/callback`.
-
-**Context:** `src/lib/rate-limit/edge-memory.ts`, `src/proxy.ts`, `RATE_LIMIT_CONFIG`. A firewall rule needs no code but lives in the Vercel project settings. The Server Action limiter (`src/lib/rate-limit/memory.ts`) is in-memory too.
-
-**Effort:** S
-**Priority:** P2
-**Depends on:** None
-
 ### Pin the proxy matcher and Sentry's own tunnel rewrite in tests
 
 **What:** Add a unit test that compiles `config.matcher[0]` of `src/proxy.ts` and expects `/monitoring`, `/Monitoring` and `/monitoring/` to match, and one that reads the rewrites `withSentryConfig` adds and pins their `source`.
