@@ -1,6 +1,6 @@
 'use client'
 
-import React, { Activity, memo } from 'react'
+import { Activity, memo, useLayoutEffect, useRef } from 'react'
 
 import type { CommentColor } from '@/lib/supabase/types'
 
@@ -63,6 +63,17 @@ export const CommentSection = memo<CommentSectionProps>(
       borderColor: color,
       ...style,
     }
+    const commentRef = useRef<HTMLDivElement>(null)
+    // The editor is open on the previous render. Closing it hides the
+    // element that had the keyboard, and the comment takes it back.
+    const wasEditingRef = useRef(isEditing)
+
+    useLayoutEffect(() => {
+      if (wasEditingRef.current && !isEditing) {
+        commentRef.current?.focus()
+      }
+      wasEditingRef.current = isEditing
+    }, [isEditing])
 
     return (
       <div>
@@ -80,6 +91,7 @@ export const CommentSection = memo<CommentSectionProps>(
             onClick={onStartEdit}
             style={mergedStyle}
             showEmptyState={true}
+            focusRef={commentRef}
             renderActions={
               comment ? (
                 <CommentActionsMenu
