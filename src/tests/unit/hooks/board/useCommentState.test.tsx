@@ -27,6 +27,11 @@ vi.mock('sonner', () => ({
 }))
 
 describe('useCommentState', () => {
+  interface CommentProps {
+    initialComments: Record<string, CommentData>
+    fetchedComments: Record<string, CommentData> | null
+  }
+
   // Value: protects=a card added again shows its kept comment without a reload, and an edit made on another card is not undone by it (eng review R1); fails_when=the hook keeps its first state only, or replaces local edits with the prop; why_new=the hook had no test; seam=none; no_claim=the server answer of the add (repo-cards.placement.test.ts, repository-memory.spec.ts)
   test('shows the comment of a card added later and keeps the comment the user just edited', async () => {
     // Arrange
@@ -57,6 +62,107 @@ describe('useCommentState', () => {
     expect(result.current.comments).toEqual({
       'card-1': { comment: 'edited here', color: 'primary' },
       'card-2': { comment: 'v2.0リリース準備中', color: 'blue' },
+    })
+  })
+
+  // Value: protects=a comment changed in another tab shows up after a refetch, and an edit on this tab stays when that read still has the previous text (TODOS.md board settings refetch); fails_when=the hook keeps every comment from the first paint, or a stale read puts the previous text back; why_new=a refetch did not reach this hook; seam=none; no_claim=the fetch itself (useBoardServerSync.test.tsx)
+  test('shows a comment changed in another tab and keeps a comment edited here when the fetch still has its previous text', async () => {
+    // Arrange
+    const firstComments: Record<string, CommentData> = {
+      'card-1': { comment: 'from the page', color: 'primary' },
+      'card-2': { comment: 'also from the page', color: 'primary' },
+    }
+    const initialProps: CommentProps = {
+      initialComments: firstComments,
+      fetchedComments: null,
+    }
+    const { result, rerender } = renderHook(
+      (props: CommentProps) => useCommentState(props),
+      { initialProps },
+    )
+    await act(async () => {
+      await result.current.handleCommentChange('card-1', 'edited here')
+    })
+
+    // Act
+    rerender({
+      initialComments: firstComments,
+      fetchedComments: {
+        'card-1': { comment: 'from the page', color: 'primary' },
+        'card-2': { comment: 'changed elsewhere', color: 'blue' },
+        'card-3': { comment: 'added elsewhere', color: 'green' },
+      },
+    })
+
+    // Assert
+    expect(result.current.comments).toEqual({
+      'card-1': { comment: 'edited here', color: 'primary' },
+      'card-2': { comment: 'changed elsewhere', color: 'blue' },
+      'card-3': { comment: 'added elsewhere', color: 'green' },
+    })
+  })
+
+  // Value: protects=a comment removed in another tab leaves the card, while an edit on this tab stays when that read no longer has the card; fails_when=a removed comment stays, or an edit is dropped with the card; why_new=the refetch can omit a card; seam=none; no_claim=deleting the card
+  test('drops a comment the fetch no longer has and keeps one edited here', async () => {
+    // Arrange
+    const firstComments: Record<string, CommentData> = {
+      'card-1': { comment: 'from the page', color: 'primary' },
+      'card-2': { comment: 'also from the page', color: 'primary' },
+    }
+    const initialProps: CommentProps = {
+      initialComments: firstComments,
+      fetchedComments: null,
+    }
+    const { result, rerender } = renderHook(
+      (props: CommentProps) => useCommentState(props),
+      { initialProps },
+    )
+    await act(async () => {
+      await result.current.handleCommentChange('card-1', 'edited here')
+    })
+
+    // Act: the other tab's board no longer has either card
+    rerender({
+      initialComments: firstComments,
+      fetchedComments: {},
+    })
+
+    // Assert
+    expect(result.current.comments).toEqual({
+      'card-1': { comment: 'edited here', color: 'primary' },
+    })
+  })
+
+  // Value: protects=a comment written here on a card the page never sent stays when a refetch does not have that card (CodeRabbit on #279); fails_when=the fetch deletes a comment that has no server baseline; why_new=the omit path kept a comment only when a baseline existed and differed; seam=none; no_claim=the comment save reaching the database
+  test('keeps a comment written here on a card the fetch does not have', async () => {
+    // Arrange
+    const firstComments: Record<string, CommentData> = {
+      'card-1': { comment: 'from the page', color: 'primary' },
+    }
+    const initialProps: CommentProps = {
+      initialComments: firstComments,
+      fetchedComments: null,
+    }
+    const { result, rerender } = renderHook(
+      (props: CommentProps) => useCommentState(props),
+      { initialProps },
+    )
+    await act(async () => {
+      await result.current.handleCommentChange('card-9', 'written here')
+    })
+
+    // Act: the read does not have the card this comment was written on
+    rerender({
+      initialComments: firstComments,
+      fetchedComments: {
+        'card-1': { comment: 'from the page', color: 'primary' },
+      },
+    })
+
+    // Assert
+    expect(result.current.comments).toEqual({
+      'card-1': { comment: 'from the page', color: 'primary' },
+      'card-9': { comment: 'written here', color: 'primary' },
     })
   })
 })

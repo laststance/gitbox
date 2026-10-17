@@ -24,6 +24,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { useBoardServerSync } from '@/hooks/board/useBoardServerSync'
 import type { BoardBundle } from '@/lib/actions/mappers'
+import type { CommentData } from '@/lib/actions/project-info-core'
 import type { RepoCardForRedux, StatusListDomain } from '@/lib/models/domain'
 import boardReducer, { setRepoCards } from '@/lib/redux/slices/boardSlice'
 import boardSyncReducer, {
@@ -36,6 +37,7 @@ import {
   toStatusListId,
   type BoardId,
 } from '@/lib/types/brands'
+import type { FetchedBoardDetails } from '@/lib/utils/adopt-fetched-board-details'
 
 const { readBoard, readBoardOutsideTheQueue } = vi.hoisted(() => ({
   readBoard: vi.fn(),
@@ -91,15 +93,21 @@ async function holdFetch(): Promise<BoardBundle | null> {
  * Answers the oldest refetch that is still waiting.
  *
  * @param page - Columns and cards the answer carries.
+ * @param details - Name, subtitle, settings and comments the answer carries.
  */
-function answerFetch(page: PageData): void {
+function answerFetch(page: PageData, details?: FetchDetails): void {
   const held = heldFetches.shift()
   if (held === undefined) throw new Error('No board fetch is waiting')
   held.resolve({
-    board: { id: page.boardId },
+    board: {
+      id: page.boardId,
+      name: details?.name ?? 'Test Board',
+      subtitle: details?.subtitle ?? null,
+      settings: details?.settings ?? null,
+    },
     statusLists: page.statusLists,
     repoCards: page.repoCards,
-    comments: {},
+    comments: details?.comments ?? {},
   } as unknown as BoardBundle)
 }
 
@@ -128,6 +136,16 @@ interface PageData {
   boardId: BoardId
   statusLists: StatusListDomain[]
   repoCards: RepoCardForRedux[]
+  /** Receives the name and the comments when a refetch is applied. */
+  onAppliedDetails?: (details: FetchedBoardDetails) => void
+}
+
+/** Name, subtitle, settings and comments carried by one answered refetch. */
+interface FetchDetails {
+  name: string
+  subtitle: string | null
+  settings: unknown
+  comments: Record<string, CommentData>
 }
 
 /** A card for `laststance/gitbox` in the given column of the given board. */
@@ -256,6 +274,77 @@ describe('board data from the server', () => {
 
     // Assert
     expect(readBoard).toHaveBeenCalledTimes(1)
+    expect(store.getState().board.repoCards).toEqual([makeCard('status-done')])
+  })
+
+  // Value: protects=a refetch shows the name, subtitle, settings and comments it read (TODOS.md board settings refetch); fails_when=the page is told only about the columns and cards; why_new=those four used to be dropped; seam=none; no_claim=the header rendering (useBoardSettings.test.ts)
+  test('hands the fetched name, subtitle, settings and comments to the page', async () => {
+    // Arrange
+    const onAppliedDetails = vi.fn()
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: { ...makePageData('status-todo'), onAppliedDetails },
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+
+    // Act
+    await act(async () => {
+      answerFetch(makePageData('status-done'), {
+        name: 'Renamed elsewhere',
+        subtitle: 'from the other tab',
+        settings: { showSubtitle: false },
+        comments: {
+          'card-1': { comment: 'shipped', color: 'blue' },
+        },
+      })
+    })
+
+    // Assert
+    expect(onAppliedDetails).toHaveBeenCalledTimes(1)
+    expect(onAppliedDetails).toHaveBeenCalledWith({
+      boardId: toBoardId('board-1'),
+      name: 'Renamed elsewhere',
+      subtitle: 'from the other tab',
+      settings: { showSubtitle: false },
+      comments: {
+        'card-1': { comment: 'shipped', color: 'blue' },
+      },
+    })
+  })
+
+  // Value: protects=a name read before a drag was saved is not shown over the board (TODOS.md board settings refetch); fails_when=the dropped fetch still hands its name to the page; why_new=the name rides along with the cards, which this fetch must not replace; seam=none; no_claim=the header (useBoardSettings.test.ts)
+  test('does not hand over a name read before a drag was saved', async () => {
+    // Arrange: a fetch is on its way
+    const onAppliedDetails = vi.fn()
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: { ...makePageData('status-todo'), onAppliedDetails },
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+    // The user drags the card to Done and the save finishes at once
+    await act(async () => {
+      store.dispatch(setRepoCards([makeCard('status-done')]))
+      await trackBoardWrite(store.dispatch, Promise.resolve())
+    })
+
+    // Act: the earlier fetch answers with a name from before the drag
+    await act(async () => {
+      answerFetch(makePageData('status-todo'), {
+        name: 'Read too early',
+        subtitle: null,
+        settings: null,
+        comments: {},
+      })
+    })
+
+    // Assert
+    expect(onAppliedDetails).not.toHaveBeenCalled()
     expect(store.getState().board.repoCards).toEqual([makeCard('status-done')])
   })
 

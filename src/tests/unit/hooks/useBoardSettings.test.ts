@@ -15,6 +15,7 @@ import {
   DEFAULT_CARD_DISPLAY_SETTINGS,
   type CardDisplaySettings,
 } from '@/lib/types/board-settings'
+import type { FetchedBoardDetails } from '@/lib/utils/adopt-fetched-board-details'
 
 describe('useBoardSettings', () => {
   const defaultBoardSettings = {
@@ -250,6 +251,129 @@ describe('useBoardSettings', () => {
         fontSize: 'sm',
         fontWeight: 'normal',
       })
+    })
+  })
+
+  describe('a refetch', () => {
+    const page: {
+      boardId: string
+      boardName: string
+      boardSubtitle: string | null
+      boardSettings: typeof defaultBoardSettings
+      fetchedDetails: FetchedBoardDetails | null
+    } = {
+      boardId: 'board-1',
+      boardName: 'Alpha',
+      boardSubtitle: 'first',
+      boardSettings: defaultBoardSettings,
+      fetchedDetails: null,
+    }
+
+    // Value: protects=a rename stays when a refetch was read before it was saved, and a subtitle saved in another tab shows up (TODOS.md board settings refetch); fails_when=the fetch puts the previous name back, or the header keeps the subtitle this tab had; why_new=the hook used to keep its first props; seam=none; no_claim=the fetch itself (useBoardServerSync.test.tsx)
+    test('shows a subtitle saved in another tab and keeps a rename the fetch still has as the previous name', () => {
+      // Arrange
+      const { result, rerender } = renderHook(
+        (props: typeof page) => useBoardSettings(props),
+        { initialProps: page },
+      )
+      act(() => {
+        result.current.open()
+        result.current.handleRenameSuccess('Beta')
+      })
+      const cardDisplay = result.current.cardDisplaySettings
+
+      // Act: the read still has the name and the settings this tab started with
+      rerender({
+        ...page,
+        fetchedDetails: {
+          boardId: 'board-1',
+          name: 'Alpha',
+          subtitle: 'first',
+          settings: {
+            cardDisplay: {
+              showGitHubDescription: true,
+              showComment: true,
+              commentText: { fontSize: 'sm', fontWeight: 'normal' },
+            },
+          },
+          comments: {},
+        },
+      })
+
+      // Assert
+      expect(result.current.displayName).toBe('Beta')
+      expect(result.current.displaySubtitle).toBe('first')
+      expect(result.current.cardDisplaySettings).toBe(cardDisplay)
+      expect(result.current.isOpen).toBe(true)
+
+      // Act: another tab saved a subtitle and hid the comment on cards
+      rerender({
+        ...page,
+        fetchedDetails: {
+          boardId: 'board-1',
+          name: 'Alpha',
+          subtitle: 'from the other tab',
+          settings: {
+            showSubtitle: false,
+            cardDisplay: {
+              showGitHubDescription: true,
+              showComment: false,
+              commentText: { fontSize: 'sm', fontWeight: 'normal' },
+            },
+          },
+          comments: {},
+        },
+      })
+
+      // Assert: the rename stays, because this read still has the previous name
+      expect(result.current.displayName).toBe('Beta')
+      expect(result.current.displaySubtitle).toBe('from the other tab')
+      expect(result.current.showSubtitle).toBe(false)
+      expect(result.current.cardDisplaySettings).toEqual({
+        showGitHubDescription: true,
+        showComment: false,
+        commentText: { fontSize: 'sm', fontWeight: 'normal' },
+      })
+      expect(result.current.isOpen).toBe(true)
+    })
+
+    // Value: protects=opening another board shows that board, not a fetch of the one just left; fails_when=the previous board's name stays on screen; why_new=the fetched copy lives in state that survives a new board id; seam=none; no_claim=navigation
+    test('shows the board the page moved to, not a fetch of the board just left', () => {
+      // Arrange
+      const { result, rerender } = renderHook(
+        (props: typeof page) => useBoardSettings(props),
+        { initialProps: page },
+      )
+      rerender({
+        ...page,
+        fetchedDetails: {
+          boardId: 'board-1',
+          name: 'Renamed elsewhere',
+          subtitle: 'from the other tab',
+          settings: defaultBoardSettings,
+          comments: {},
+        },
+      })
+      expect(result.current.displayName).toBe('Renamed elsewhere')
+
+      // Act
+      rerender({
+        ...page,
+        boardId: 'board-2',
+        boardName: 'Other',
+        boardSubtitle: null,
+        fetchedDetails: {
+          boardId: 'board-1',
+          name: 'Renamed elsewhere',
+          subtitle: 'from the other tab',
+          settings: defaultBoardSettings,
+          comments: {},
+        },
+      })
+
+      // Assert
+      expect(result.current.displayName).toBe('Other')
+      expect(result.current.displaySubtitle).toBe('')
     })
   })
 })

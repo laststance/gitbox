@@ -43,6 +43,7 @@ import {
   type RootState,
 } from '@/lib/redux/store'
 import type { BoardId } from '@/lib/types/brands'
+import type { FetchedBoardDetails } from '@/lib/utils/adopt-fetched-board-details'
 import { isStalePageAction } from '@/lib/utils/is-stale-page-action'
 import { reloadPage } from '@/lib/utils/reload-page'
 
@@ -60,6 +61,12 @@ interface BoardServerSnapshot {
   statusLists: StatusListDomain[]
   /** Cards from the page data. */
   repoCards: RepoCardForRedux[]
+  /**
+   * Called when a refetch is applied, with that read's name, subtitle,
+   * settings and comments. A fetch that is dropped is not reported. The page
+   * props are not reported here: the hooks already start from them.
+   */
+  onAppliedDetails?: (details: FetchedBoardDetails) => void
 }
 
 /**
@@ -81,12 +88,15 @@ interface BoardServerSnapshot {
  * - A fetch that fails on the way offers "Try again". A page whose build no
  *   longer has the action, or a read that finds no board, offers "Reload
  *   page": the same read would answer the same way.
+ * - A fetch that is applied also reports the board name, the subtitle, the
+ *   card display settings and the comments through `onAppliedDetails`. A
+ *   fetch that is dropped does not, so a read from before a save is not
+ *   handed to the page.
  *
  * The store outlives this component: a board that is left and opened again
  * is mounted anew while the store still holds its cards. So nothing here may
  * depend on whether the component has rendered before: every decision reads
- * the store. The name, the subtitle and the card display settings stay as
- * this tab showed them; those follow a later change.
+ * the store.
  *
  * @param serverSnapshot - Board id plus the columns and cards of the page data.
  * @example
@@ -97,7 +107,7 @@ interface BoardServerSnapshot {
  * })
  */
 export function useBoardServerSync(serverSnapshot: BoardServerSnapshot): void {
-  const { boardId, statusLists, repoCards } = serverSnapshot
+  const { boardId, statusLists, repoCards, onAppliedDetails } = serverSnapshot
   const store = useAppStore()
   const dispatch = useAppDispatch()
   const isRefreshDue = useAppSelector(selectIsBoardRefreshDue)
@@ -171,6 +181,7 @@ export function useBoardServerSync(serverSnapshot: BoardServerSnapshot): void {
       isStillMounted: () => isMountedRef.current,
       dispatch,
       getState: store.getState,
+      onAppliedDetails,
     })
   }, [
     isRefreshDue,
@@ -179,6 +190,7 @@ export function useBoardServerSync(serverSnapshot: BoardServerSnapshot): void {
     hydratedBoardId,
     dispatch,
     store,
+    onAppliedDetails,
   ])
 
   // Say why the board is not reloading for as long as that is the case: the
@@ -215,6 +227,7 @@ export function useBoardServerSync(serverSnapshot: BoardServerSnapshot): void {
  * @param request.isStillMounted - Whether the instance that sent the fetch is still on the page.
  * @param request.dispatch - Dispatch of the store that holds the board.
  * @param request.getState - Reads that store.
+ * @param request.onAppliedDetails - Receives the name, subtitle, settings and comments when the fetch is applied.
  */
 async function applyFetchedBoard(request: {
   boardId: BoardId
@@ -223,6 +236,7 @@ async function applyFetchedBoard(request: {
   isStillMounted: () => boolean
   dispatch: AppDispatch
   getState: () => RootState
+  onAppliedDetails?: (details: FetchedBoardDetails) => void
 }): Promise<void> {
   const {
     boardId,
@@ -231,6 +245,7 @@ async function applyFetchedBoard(request: {
     isStillMounted,
     dispatch,
     getState,
+    onAppliedDetails,
   } = request
   try {
     const bundle = bypassesActionQueue
@@ -254,6 +269,15 @@ async function applyFetchedBoard(request: {
     dispatch(setStatusLists(bundle.statusLists))
     dispatch(setRepoCards(bundle.repoCards))
     dispatch(serverSnapshotApplied(boardId))
+    // The columns and cards are in the store. The name, the settings and the
+    // comments stay in the hooks, which compare them to the last server copy.
+    onAppliedDetails?.({
+      boardId,
+      name: bundle.board.name,
+      subtitle: bundle.board.subtitle,
+      settings: bundle.board.settings,
+      comments: bundle.comments,
+    })
   } catch (error) {
     if (!isCurrentFetch(isStillMounted, getState, requestId)) return
     dispatch(boardRefreshFailed(requestId))

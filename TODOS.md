@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Show the fetched board name, subtitle and card display settings after a refetch
-
-**What:** Let `useBoardSettings` take the board name, the subtitle, the card display settings and the show-subtitle switch from the board that was fetched again, and let `useCommentState` adopt the comments of that same fetch.
-
-**Why:** A refetch writes the columns and cards into the store and does not rebuild the page, so the name, the subtitle, the card display settings and the comments stay as this tab showed them. Changed in another tab, they stay old until the page is reloaded.
-
-**Context:** `src/hooks/board/useBoardSettings.ts`: the four are `useState` values that start from the props. `adoptedComments` in `useCommentState` (`src/hooks/board/useCommentState.ts:77`) remembers which fetched value it was set from and resets when that changes; the same applies here, including the comments, which the refetch does not hand over yet. Compare the settings by content, not by reference: the fetched `board.settings` is a new object on every fetch, and a copy read before a save landed must not put the old settings back.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### Fit a column undo to the columns that are on the board now
 
 **What:** Make a column undo (Z after a column drag) put back positions only: keep each column's current name, leave out a column that was deleted since the drag, and keep a column that was added since.
