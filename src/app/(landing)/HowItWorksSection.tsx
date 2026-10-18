@@ -39,7 +39,7 @@ export const HowItWorksSection = memo(function HowItWorksSection() {
     <section id="how-it-works" className="relative px-6 py-24">
       <div className="mx-auto max-w-5xl">
         <div className="mb-16 text-center">
-          <h2 className="from-foreground to-muted-foreground mb-4 bg-linear-to-b bg-clip-text text-3xl font-bold text-transparent md:text-4xl lg:text-5xl">
+          <h2 className="text-foreground mb-4 font-[family-name:var(--font-landing-display)] text-3xl font-bold md:text-4xl lg:text-5xl">
             How It Works
           </h2>
           <p className="text-muted-foreground mx-auto max-w-2xl text-lg">
@@ -51,9 +51,9 @@ export const HowItWorksSection = memo(function HowItWorksSection() {
           {steps.map((item) => (
             <div
               key={item.title}
-              className="group border-border/50 bg-background/30 hover:bg-background/60 hover:border-primary/20 relative flex gap-4 rounded-xl border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+              className="border-border/50 bg-background/30 hover:bg-background/60 hover:border-primary/20 relative flex gap-4 rounded-xl border p-6 transition-colors duration-300"
             >
-              <div className="bg-primary/10 text-primary flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-bold transition-transform duration-300 group-hover:scale-110">
+              <div className="bg-primary/10 text-primary flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-bold">
                 {item.step}
               </div>
               <div>

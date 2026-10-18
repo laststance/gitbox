@@ -45,18 +45,6 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 From `/design-review` of the change for issue #213. The review found 27 issues and fixed 21; these are what is left. All of them are in the app as it was before that change. The full report with screenshots is in `~/.gstack/projects/laststance-gitbox/designs/design-audit-20261012/`.
 
-### Give the landing page a direction of its own
-
-**What:** (1) Choose a display typeface for the headings; they use the system font stack. (2) Drop the gray gradient that every section heading has. (3) Replace "For AI Era Developers" with a headline that says what GitBox does. (4) Give the four feature cards different weights, or use something other than four equal cards. (5) Show the content without waiting for the entrance animation, and take the hover lift off cards that do nothing.
-
-**Why:** High impact, AI slop (FINDING-021). The landing page reads as generated while the app reads as made by someone who uses it. Both outside reviewers and the audit agree; the pattern detector counts `gradient-text` on all four headings.
-
-**Context:** `src/app/(landing)/` (`HeroSection`, `FeaturesSection`, `HowItWorksSection`, `CTASection`, `KanbanPreview`). Typeface, headline and layout are the owner's call, so none of it was changed.
-
-**Effort:** M
-**Priority:** P3
-**Depends on:** None
-
 ### Choose one height for controls and a floor for small triggers
 
 **What:** Decide on the control heights (buttons are 32, 36 and 40px: `sm`, `default`, `lg` in `src/components/ui/button.tsx`), make the 24px triggers larger (a card's menu and a comment's menu are a 16px icon with 4px of padding), and enlarge touch targets one way.

@@ -4,9 +4,9 @@
  * Verifies that Server-Side Rendering (SSR) and client hydration
  * work correctly without hydration mismatch errors.
  *
- * Tests for Phase 1 refactoring:
+ * Tests for landing SSR:
  * - useMounted hook with useSyncExternalStore
- * - FeaturesSection random subtitle
+ * - Features heading and static subtitle in the server document
  *
  * @remarks
  * Hydration mismatches occur when the server-rendered HTML differs
@@ -21,7 +21,11 @@ test.describe('SSR Hydration', () => {
   test('the server document of the landing page is the page', async ({
     page,
   }) => {
-    await expectServerDocumentHolds(page, '/', 'For AI Era Developers')
+    await expectServerDocumentHolds(
+      page,
+      '/',
+      'A Kanban board for your GitHub repositories',
+    )
   })
 
   test('landing page should not have hydration mismatch errors', async ({
@@ -64,28 +68,16 @@ test.describe('SSR Hydration', () => {
     const featuresSection = page.locator('#features')
     await expect(featuresSection).toBeVisible()
 
-    // "For AI Era Developers" heading should be visible
     const heading = page.getByRole('heading', {
-      name: /for ai era developers/i,
+      name: 'A Kanban board for your GitHub repositories',
     })
     await expect(heading).toBeVisible()
 
-    // Subtitle should be one of the FEATURE_SUBTITLES
-    const expectedSubtitles = [
-      'Tame the repo chaos from AI-powered development',
-      'Your repos multiply faster than ever. We help you stay organized.',
-      'Ship fast with AI. Stay organized with GitBox.',
-      'In the age of vibe coding, chaos needs a home.',
-      'Build more than ever. Lose track of nothing.',
-    ]
-
-    // Get subtitle text
     const subtitle = featuresSection.locator('p.text-lg').first()
     await expect(subtitle).toBeVisible()
-    const subtitleText = await subtitle.textContent()
-
-    // Should match one of the expected subtitles
-    expect(expectedSubtitles).toContain(subtitleText?.trim())
+    await expect(subtitle).toHaveText(
+      'Add repositories, drag them between columns, and keep a note with each one.',
+    )
   })
 
   test('landing page should display all feature cards', async ({ page }) => {

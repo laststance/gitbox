@@ -22,7 +22,7 @@ export const CTASection = memo(function CTASection() {
       <Glow variant="center" className="opacity-30" />
 
       <div className="relative z-10 mx-auto max-w-4xl space-y-8 text-center">
-        <h2 className="from-foreground to-muted-foreground bg-linear-to-b bg-clip-text text-3xl font-bold text-transparent md:text-4xl lg:text-5xl">
+        <h2 className="text-foreground font-[family-name:var(--font-landing-display)] text-3xl font-bold md:text-4xl lg:text-5xl">
           Ready to Organize Your Repos?
         </h2>
         <p className="text-muted-foreground mx-auto max-w-2xl text-lg md:text-xl">
