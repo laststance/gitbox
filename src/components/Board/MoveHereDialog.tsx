@@ -239,7 +239,7 @@ export const MoveHereDialog = memo(function MoveHereDialog({
               (failure !== null && !failure.isOutcomeKnown)
             }
           >
-            {isBusy ? 'Moving...' : 'Move Here'}
+            {isBusy ? 'Moving…' : 'Move Here'}
           </Button>
         </DialogFooter>
       </DialogContent>

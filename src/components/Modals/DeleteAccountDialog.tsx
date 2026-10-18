@@ -136,7 +136,7 @@ export const DeleteAccountDialog = memo(function DeleteAccountDialog({
             disabled={!isConfirmed || isPending}
             data-testid="confirm-delete-button"
           >
-            {isPending ? 'Deleting...' : 'Delete Account'}
+            {isPending ? 'Deleting…' : 'Delete Account'}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

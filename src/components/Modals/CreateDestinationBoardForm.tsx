@@ -3,7 +3,7 @@
  *
  * The form inside {@link MoveToAnotherBoardDialog} that makes a new board to
  * move a card to: one field for the name and a "Create Board" button. It is
- * shown when the user has no other board, and when they press "New Board..."
+ * shown when the user has no other board, and when they press "New Board…"
  * although they have some.
  */
 
@@ -194,7 +194,7 @@ export const CreateDestinationBoardForm = memo(
               {isCreating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
+                  Creating…
                 </>
               ) : (
                 'Create Board'

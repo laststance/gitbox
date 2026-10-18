@@ -394,7 +394,7 @@ test.describe('Move to Another Board Feature', () => {
     const dialog = await openMoveDialog(page, cardId)
 
     // Act: create the destination without leaving the dialog ...
-    await dialog.getByRole('button', { name: 'New Board...' }).click()
+    await dialog.getByRole('button', { name: 'New Board…' }).click()
     await dialog.getByLabel('Board Name').fill(BOARD_CREATED_IN_DIALOG)
     await dialog.getByRole('button', { name: 'Create Board' }).click()
 

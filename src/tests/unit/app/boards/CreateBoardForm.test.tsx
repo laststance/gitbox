@@ -151,7 +151,7 @@ describe('CreateBoardForm', () => {
     })
     vi.useFakeTimers()
     fireEvent.click(screen.getByRole('button', { name: 'Create Board' }))
-    expect(screen.getByRole('button', { name: 'Creating...' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Creating…' })).toBeDisabled()
 
     // Act
     await act(async () => {

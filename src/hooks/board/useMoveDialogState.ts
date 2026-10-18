@@ -93,7 +93,7 @@ interface UseMoveDialogStateReturn {
   pickBoard: (boardId: string) => void
   /** The user picked a column of the board that is selected. */
   pickColumn: (boardId: string, statusId: string) => void
-  /** Shows the create form in place of the selects ("New Board..."). */
+  /** Shows the create form in place of the selects ("New Board…"). */
   openCreateForm: () => void
   /** Shows the selects again; what was selected before is still selected. */
   closeCreateForm: () => void
@@ -225,7 +225,7 @@ export function useMoveDialogState({
  * columns arrive in the order the board shows them.
  *
  * @param destinations - What {@link useMoveDestinations} loaded.
- * @param isCreateFormRequested - The user pressed "New Board...".
+ * @param isCreateFormRequested - The user pressed "New Board…".
  * @param selection - Board and column picked by hand, or `null`.
  * @param rememberedBoardId - Destination of the last move from this board.
  * @returns The {@link MoveDialogView} to render.

@@ -157,7 +157,7 @@ export const RenameBoardDialog = memo(function RenameBoardDialog({
               disabled={isPending || name.trim() === ''}
               aria-label={`Rename board to ${name}`}
             >
-              {isPending ? 'Renaming...' : 'Rename'}
+              {isPending ? 'Renaming…' : 'Rename'}
             </Button>
           </DialogFooter>
         </form>

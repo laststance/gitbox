@@ -279,11 +279,11 @@ export const SuccessfulSubmission: Story = {
     await userEvent.click(submitButton)
 
     // Form should attempt to submit (async transition)
-    // The button text may change to "Creating..."
+    // The button text may change to "Creating…"
     await waitFor(() => {
-      // Either button shows "Creating..." or onOpenChange was called
+      // Either button shows "Creating…" or onOpenChange was called
       const buttonText = submitButton?.textContent
-      expect(buttonText === 'Creating...' || buttonText === 'Create').toBe(true)
+      expect(buttonText === 'Creating…' || buttonText === 'Create').toBe(true)
     })
   },
 }

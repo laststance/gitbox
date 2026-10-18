@@ -116,7 +116,7 @@ async function openPicker(page: Page): Promise<void> {
     await trigger.click()
   }
   await expect(searchInput).toBeVisible({ timeout: 10000 })
-  await expect(page.getByText('Loading repositories...')).toBeHidden({
+  await expect(page.getByText('Loading repositories…')).toBeHidden({
     timeout: 15000,
   })
 }

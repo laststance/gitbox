@@ -209,7 +209,7 @@ export function useEditableUrl({
     }
 
     setIsSaving(true)
-    setAnnouncement('Saving...')
+    setAnnouncement('Saving…')
 
     try {
       onUrlChange(trimmedValue)

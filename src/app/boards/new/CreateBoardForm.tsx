@@ -246,7 +246,7 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
           </Button>
         ) : (
           <Button type="submit" disabled={isPending} className="flex-1">
-            {isPending ? 'Creating...' : 'Create Board'}
+            {isPending ? 'Creating…' : 'Create Board'}
           </Button>
         )}
       </div>

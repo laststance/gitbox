@@ -361,7 +361,7 @@ describe('MoveToAnotherBoardDialog', () => {
       renderOpenDialog()
 
       // Assert
-      const loadingNotice = (await screen.findByText('Loading boards...'))
+      const loadingNotice = (await screen.findByText('Loading boards…'))
         .parentElement
       expect(loadingNotice).toBeVisible()
       expect(loadingNotice).toHaveAttribute('role', 'status')
@@ -451,7 +451,7 @@ describe('MoveToAnotherBoardDialog', () => {
       renderOpenDialog()
       await user.click(await screen.findByRole('button', { name: 'Move' }))
       expect(
-        await screen.findByRole('button', { name: 'Moving...' }),
+        await screen.findByRole('button', { name: 'Moving…' }),
       ).toBeDisabled()
       // A browser takes the focus off a control that becomes disabled.
       // happy-dom leaves it there, so the test moves it as the browser does
@@ -594,7 +594,7 @@ describe('MoveToAnotherBoardDialog', () => {
       const { onClose, onMoved } = renderOpenDialog()
       await user.click(await screen.findByRole('button', { name: 'Move' }))
       expect(
-        await screen.findByRole('button', { name: 'Moving...' }),
+        await screen.findByRole('button', { name: 'Moving…' }),
       ).toBeDisabled()
 
       // Act
@@ -745,7 +745,7 @@ describe('MoveToAnotherBoardDialog', () => {
       })
       renderOpenDialog()
       await user.click(
-        await screen.findByRole('button', { name: 'New Board...' }),
+        await screen.findByRole('button', { name: 'New Board…' }),
       )
       expect(screen.getByRole('status')).toBeEmptyDOMElement()
 
@@ -841,7 +841,7 @@ describe('MoveToAnotherBoardDialog', () => {
       })
       renderOpenDialog()
       await user.click(
-        await screen.findByRole('button', { name: 'New Board...' }),
+        await screen.findByRole('button', { name: 'New Board…' }),
       )
       await user.type(screen.getByLabelText('Board Name'), 'Archive')
       await user.click(screen.getByRole('button', { name: 'Create Board' }))
@@ -860,7 +860,7 @@ describe('MoveToAnotherBoardDialog', () => {
       ])
     })
 
-    test('"New Board..." swaps the selects for the form, with Move disabled, and "Choose an existing board" brings them back', async () => {
+    test('"New Board…" swaps the selects for the form, with Move disabled, and "Choose an existing board" brings them back', async () => {
       // Arrange
       const user = userEvent.setup()
       mockBoards()
@@ -868,7 +868,7 @@ describe('MoveToAnotherBoardDialog', () => {
 
       // Act: ask for a new board although others exist
       await user.click(
-        await screen.findByRole('button', { name: 'New Board...' }),
+        await screen.findByRole('button', { name: 'New Board…' }),
       )
 
       // Assert: the form has the keyboard and no destination is selected
@@ -904,12 +904,12 @@ describe('MoveToAnotherBoardDialog', () => {
       )
       const { onClose } = renderOpenDialog()
       await user.click(
-        await screen.findByRole('button', { name: 'New Board...' }),
+        await screen.findByRole('button', { name: 'New Board…' }),
       )
       await user.type(screen.getByLabelText('Board Name'), 'Archive')
       await user.click(screen.getByRole('button', { name: 'Create Board' }))
       expect(
-        await screen.findByRole('button', { name: 'Creating...' }),
+        await screen.findByRole('button', { name: 'Creating…' }),
       ).toBeDisabled()
 
       // Act
@@ -982,9 +982,7 @@ describe('MoveToAnotherBoardDialog', () => {
       expect(screen.getByRole('combobox', { name: 'Column' })).toBeDisabled()
       // The dialog cannot be closed now, so its close button says so
       expect(screen.getByRole('button', { name: 'Close' })).toBeDisabled()
-      expect(
-        screen.getByRole('button', { name: 'New Board...' }),
-      ).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'New Board…' })).toBeDisabled()
     })
   })
 
@@ -1130,7 +1128,7 @@ describe('MoveToAnotherBoardDialog', () => {
       const moveButton = await screen.findByRole('button', { name: 'Move' })
       vi.useFakeTimers()
       fireEvent.click(moveButton)
-      expect(screen.getByRole('button', { name: 'Moving...' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Moving…' })).toBeDisabled()
 
       // Act
       await act(async () => {
@@ -1433,7 +1431,7 @@ describe('MoveToAnotherBoardDialog', () => {
       })
       renderOpenDialog()
       await user.click(
-        await screen.findByRole('button', { name: 'New Board...' }),
+        await screen.findByRole('button', { name: 'New Board…' }),
       )
 
       // Act
@@ -1453,7 +1451,7 @@ describe('MoveToAnotherBoardDialog', () => {
       expect(Sentry.captureException).not.toHaveBeenCalled()
     })
 
-    // Value: protects=after a creation that got no answer in time the dialog offers a way out that works; fails_when=it offers "Reload boards", a Server Action that waits behind the creation that is still running, so "Loading boards..." would stay until that request ends; why_new=the test before this change expected "Reload boards" here; seam=none; no_claim=that Next.js queues Server Actions (its documented behavior, not exercised in happy-dom)
+    // Value: protects=after a creation that got no answer in time the dialog offers a way out that works; fails_when=it offers "Reload boards", a Server Action that waits behind the creation that is still running, so "Loading boards…" would stay until that request ends; why_new=the test before this change expected "Reload boards" here; seam=none; no_claim=that Next.js queues Server Actions (its documented behavior, not exercised in happy-dom)
     test('stops waiting after 15 seconds without an answer and offers to reload the page, because loading the boards would wait behind the creation that is still running', async () => {
       // Arrange: a creation the server never answers
       const user = userEvent.setup()
@@ -1463,7 +1461,7 @@ describe('MoveToAnotherBoardDialog', () => {
       await user.type(await screen.findByLabelText('Board Name'), 'Archive')
       vi.useFakeTimers()
       fireEvent.click(screen.getByRole('button', { name: 'Create Board' }))
-      expect(screen.getByRole('button', { name: 'Creating...' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Creating…' })).toBeDisabled()
 
       // Act
       await act(async () => {

@@ -45,18 +45,6 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 From `/design-review` of the change for issue #213. The review found 27 issues and fixed 21; these are what is left. All of them are in the app as it was before that change. The full report with screenshots is in `~/.gstack/projects/laststance-gitbox/designs/design-audit-20261012/`.
 
-### Use the ellipsis character in loading labels
-
-**What:** Write "…" instead of three dots in the labels that say something is in progress ("Loading repositories...", "Signing out...", "Creating..."), about 27 strings in `src`.
-
-**Why:** Polish, content (FINDING-017). The casing of button labels has a rule in `CLAUDE.md` since this review; the dots are the other half of the same inconsistency.
-
-**Context:** Unit and E2E tests quote many of these strings, and "New Board..." in the move dialog is an option label that means "opens a form", not progress: it keeps its dots or gets the same character by decision.
-
-**Effort:** S
-**Priority:** P4
-**Depends on:** None
-
 ### Add theme tokens for warning and favorite
 
 **What:** Add `--warning` and `--favorite` (with foregrounds) to the 14 themes and use them where the app now reaches for `orange-*` and `amber-*`.

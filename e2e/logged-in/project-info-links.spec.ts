@@ -86,7 +86,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     await expect(comboboxTrigger).toBeVisible()
   })
 
-  test('should show "Add custom type..." at the top of combobox (always visible)', async ({
+  test('should show "Add custom type…" at the top of combobox (always visible)', async ({
     page,
   }) => {
     const dialog = await openNoteModal(page)
@@ -101,7 +101,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     )
     await comboboxTrigger.click()
 
-    // "Add custom type..." should be IMMEDIATELY visible at the top
+    // "Add custom type…" should be IMMEDIATELY visible at the top
     // without scrolling or searching
     const addCustomOption = page.locator('[data-testid="add-custom-link-type"]')
     await expect(addCustomOption).toBeVisible({ timeout: 3000 })
@@ -110,8 +110,8 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     const hostingHeading = page.getByText('Hosting', { exact: true })
     await expect(hostingHeading).toBeVisible()
 
-    // Verify "Add custom type..." contains expected text
-    await expect(addCustomOption).toContainText('Add custom type')
+    // Verify "Add custom type…" uses the ellipsis character
+    await expect(addCustomOption).toContainText('Add custom type…')
   })
 
   test('should show 55 presets in 12 categories when opening combobox', async ({
@@ -331,7 +331,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     await expect(dialog.locator('[data-testid="url-link-1"]')).not.toBeVisible()
   })
 
-  test('should open CreateLinkTypeDialog from "Add custom type..." option', async ({
+  test('should open CreateLinkTypeDialog from "Add custom type…" option', async ({
     page,
   }) => {
     const dialog = await openNoteModal(page)
@@ -346,7 +346,7 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     )
     await comboboxTrigger.click()
 
-    // Click on "Add custom type..." option
+    // Click on "Add custom type…" option
     const addCustomOption = page.locator('[data-testid="add-custom-link-type"]')
     await expect(addCustomOption).toBeVisible()
     await addCustomOption.click()

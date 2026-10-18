@@ -556,7 +556,7 @@ agent-browser --session local-auth open http://localhost:3008/boards
 
 ### Button labels
 
-A command that names a thing of the app is in Title Case: Create Board, Add Column, New Board..., Move to Another Board. So is a command of the app itself: Sign Out. A phrase that recovers or leads somewhere is in sentence case: Try again, Reload page, Reload boards, Open your boards, Choose an existing board.
+A command that names a thing of the app is in Title Case: Create Board, Add Column, New Board…, Move to Another Board. So is a command of the app itself: Sign Out. A phrase that recovers or leads somewhere is in sentence case: Try again, Reload page, Reload boards, Open your boards, Choose an existing board.
 
 ### Names that cannot break
 
