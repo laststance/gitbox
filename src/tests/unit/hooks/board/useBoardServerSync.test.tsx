@@ -16,6 +16,7 @@
  */
 
 import { configureStore } from '@reduxjs/toolkit'
+import * as Sentry from '@sentry/nextjs'
 import { act, renderHook } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { Provider } from 'react-redux'
@@ -237,6 +238,7 @@ describe('board data from the server', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.restoreAllMocks()
   })
 
@@ -1075,6 +1077,8 @@ describe('board data from the server', () => {
       'The board could not be reloaded',
       expect.objectContaining({
         id: 'board-refresh-failed',
+        duration: 8_000,
+        closeButton: true,
         action: expect.objectContaining({ label: 'Try again' }) as object,
       }),
     )
@@ -1115,6 +1119,540 @@ describe('board data from the server', () => {
     // Assert: the retry does not stand behind the write that has no answer
     expect(readBoardOutsideTheQueue).toHaveBeenCalledTimes(2)
     expect(readBoard).not.toHaveBeenCalled()
+  })
+
+  // Value: protects=a read that never answers stops blocking the next read, and Try again does not wait behind it; fails_when=sentRefreshRevision is still set after 15 seconds, the cards change, or Try again calls getBoardBundle again; why_new=the throw test answers at once, so its action has left the queue; seam=none; no_claim=a real network hang and the owner's GitHub account
+  test('clears the refetch mark when the read brings no answer in 15 seconds', async () => {
+    // Arrange: a read is in flight and the cards are still in To Do
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+
+    // Act: 15 seconds pass and the read is still waiting
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000)
+    })
+
+    // Assert: the mark is clear, the cards did not move, and Try again sends one more read
+    expect(store.getState().boardSync.sentRefreshRevision).toBeNull()
+    expect(store.getState().board.repoCards).toEqual([makeCard('status-todo')])
+    expect(toast.error).toHaveBeenCalledWith(
+      'The board could not be reloaded',
+      expect.objectContaining({
+        duration: 8_000,
+        closeButton: true,
+        action: expect.objectContaining({ label: 'Try again' }),
+      }),
+    )
+    const notice = vi.mocked(toast.error).mock.calls[0]?.[1] as
+      { action?: { onClick: () => void } } | undefined
+    await act(async () => {
+      notice?.action?.onClick()
+    })
+    // The first read is still in the Server Action queue, so Try again uses the route
+    expect(readBoard).toHaveBeenCalledTimes(1)
+    expect(readBoardOutsideTheQueue).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
+  })
+
+  test('clears the refetch mark when a route read brings no answer in 15 seconds', async () => {
+    // Arrange: the read that must not wait behind a write is still in flight
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested({ bypassActionQueue: true }))
+    })
+
+    // Act: 15 seconds pass
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000)
+    })
+
+    // Assert: the mark is clear, and Try again stays on the route
+    expect(store.getState().boardSync.sentRefreshRevision).toBeNull()
+    expect(store.getState().board.repoCards).toEqual([makeCard('status-todo')])
+    const notice = vi.mocked(toast.error).mock.calls[0]?.[1] as
+      { action?: { onClick: () => void } } | undefined
+    await act(async () => {
+      notice?.action?.onClick()
+    })
+    expect(readBoardOutsideTheQueue).toHaveBeenCalledTimes(2)
+    expect(readBoard).not.toHaveBeenCalled()
+    vi.useRealTimers()
+  })
+
+  // Value: protects=a route refetch asked for during a read still goes out when that read brings no answer; fails_when=Try again is shown or the route read is not sent; why_new=the overdue test starts with no second ask; seam=none; no_claim=a real write that is still in Next's queue
+  test('sends the route read already asked for when the board read brings no answer', async () => {
+    // Arrange: a read is in flight, and a write that got no answer has already asked for the route
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested({ bypassActionQueue: true }))
+    })
+
+    // Act
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000)
+    })
+
+    // Assert: the ask is not replaced by Try again, and the route read goes out
+    expect(toast.error).not.toHaveBeenCalled()
+    expect(readBoard).toHaveBeenCalledTimes(1)
+    expect(readBoardOutsideTheQueue).toHaveBeenCalledTimes(1)
+    expect(store.getState().boardSync.refreshBypassesActionQueue).toBe(false)
+    vi.useRealTimers()
+  })
+
+  // Value: protects=an ordinary refresh does not cancel a route read that has not been sent; fails_when=refreshBypassesActionQueue is false before that route read goes out; why_new=the route-read test never asks for an ordinary refresh in between; seam=none; no_claim=the move dialog's own button
+  test('keeps the route when an ordinary refresh is asked for the same board', async () => {
+    // Arrange: a read is in flight and a route read is waiting behind it
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested({ bypassActionQueue: true }))
+    })
+
+    // Act: the same board asks again without naming the route
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+
+    // Assert: the route read is still the one that will be sent
+    expect(store.getState().boardSync.refreshBypassesActionQueue).toBe(true)
+    expect(readBoardOutsideTheQueue).not.toHaveBeenCalled()
+  })
+
+  // Value: protects=a read that brings no answer sends the waiting refresh through the route; fails_when=Try again is shown or a second getBoardBundle is sent; why_new=the queued-route test already asked for the route; seam=none; no_claim=a Server Action that is still running in the browser
+  test('sends the route when an ordinary refresh was waiting and the read brings no answer', async () => {
+    // Arrange: a read is in flight and an ordinary refresh is waiting
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+
+    // Act
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000)
+    })
+
+    // Assert
+    expect(toast.error).not.toHaveBeenCalled()
+    expect(readBoard).toHaveBeenCalledTimes(1)
+    expect(readBoardOutsideTheQueue).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
+  })
+
+  // Value: protects=leaving the board does not leave the route-read flag set; fails_when=refreshBypassesActionQueue is still true; why_new=the unmount test does not ask for a route read first; seam=none; no_claim=the next board's own save
+  test('clears the route-read flag when the board is left during a read', async () => {
+    // Arrange: a read is in flight and a route read is waiting for it
+    const { store, wrapper } = createAppStore()
+    const { unmount } = renderHook(
+      (pageData: PageData) => useBoardServerSync(pageData),
+      { wrapper, initialProps: makePageData('status-todo') },
+    )
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested({ bypassActionQueue: true }))
+    })
+
+    // Act
+    unmount()
+    await act(async () => {
+      answerFetch(makePageData('status-done'))
+    })
+
+    // Assert
+    expect(store.getState().boardSync.refreshBypassesActionQueue).toBe(false)
+    expect(store.getState().boardSync.isRefreshWanted).toBe(false)
+    expect(toast.error).not.toHaveBeenCalled()
+  })
+
+  // Value: protects=Try again after the board has changed does not mark the open board for a route read; fails_when=refreshBypassesActionQueue becomes true; why_new=the other Try again tests stay on the same board; seam=none; no_claim=the toast still being on screen in a browser
+  test('does nothing when Try again is clicked after another board is open', async () => {
+    // Arrange: the read of board-1 brought no answer
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const { store, wrapper } = createAppStore()
+    const { rerender } = renderHook(
+      (pageData: PageData) => useBoardServerSync(pageData),
+      { wrapper, initialProps: makePageData('status-todo') },
+    )
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000)
+    })
+
+    // Act: board-2 is open, then Try again for board-1 is clicked
+    rerender({
+      boardId: toBoardId('board-2'),
+      statusLists: makeColumns('board-2'),
+      repoCards: [makeCard('status-done', 'board-2')],
+    })
+    const notice = vi.mocked(toast.error).mock.calls[0]?.[1] as
+      { action?: { onClick: () => void } } | undefined
+    act(() => {
+      notice?.action?.onClick()
+    })
+
+    // Assert
+    expect(store.getState().boardSync.hydratedBoardId).toBe(
+      toBoardId('board-2'),
+    )
+    expect(store.getState().boardSync.refreshBypassesActionQueue).toBe(false)
+    expect(readBoardOutsideTheQueue).not.toHaveBeenCalled()
+    vi.useRealTimers()
+  })
+
+  // Value: protects=opening another board does not leave the route-read flag set for the next refresh; fails_when=the next refresh calls fetchBoardBundle; why_new=the unmount test never opens a second board; seam=none; no_claim=a column edit still sitting in the Server Action queue
+  test('reads through a Server Action after another board is opened while a route read was waiting', async () => {
+    // Arrange: board-1's read is in flight and a route read is waiting behind it
+    const { store, wrapper } = createAppStore()
+    const { rerender } = renderHook(
+      (pageData: PageData) => useBoardServerSync(pageData),
+      { wrapper, initialProps: makePageData('status-todo') },
+    )
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested({ bypassActionQueue: true }))
+    })
+
+    // Act: board-2 opens, the first read answers, then board-2 asks for an ordinary refresh
+    rerender({
+      boardId: toBoardId('board-2'),
+      statusLists: makeColumns('board-2'),
+      repoCards: [makeCard('status-done', 'board-2')],
+    })
+    await act(async () => {
+      answerFetch(makePageData('status-todo'))
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+
+    // Assert
+    expect(readBoard).toHaveBeenCalledTimes(2)
+    expect(readBoardOutsideTheQueue).not.toHaveBeenCalled()
+    expect(store.getState().board.repoCards).toEqual([
+      makeCard('status-done', 'board-2'),
+    ])
+  })
+
+  // Value: protects=coming back to a board still uses the route read that was waiting; fails_when=the return read calls getBoardBundle; why_new=the switch test asks for an ordinary refresh and would hide a cleared flag; seam=none; no_claim=the write that is still unanswered on the server
+  test('uses the route when the board with a waiting route read is opened again', async () => {
+    // Arrange: board-1's read is in flight and a route read is waiting
+    const { store, wrapper } = createAppStore()
+    const { rerender } = renderHook(
+      (pageData: PageData) => useBoardServerSync(pageData),
+      { wrapper, initialProps: makePageData('status-todo') },
+    )
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested({ bypassActionQueue: true }))
+    })
+
+    // Act: open board-2, then come back to board-1
+    rerender({
+      boardId: toBoardId('board-2'),
+      statusLists: makeColumns('board-2'),
+      repoCards: [makeCard('status-done', 'board-2')],
+    })
+    rerender(makePageData('status-todo'))
+
+    // Assert: the waiting read is still the route, and board-1's cards stay
+    expect(readBoardOutsideTheQueue).toHaveBeenCalledTimes(1)
+    expect(readBoard).toHaveBeenCalledTimes(1)
+    expect(store.getState().board.repoCards).toEqual([makeCard('status-todo')])
+  })
+
+  // Value: protects=a read that throws does not drop a route refresh already asked for; fails_when=Try again is shown or the route read is not sent; why_new=the overdue test is the only one that keeps that ask; seam=none; no_claim=the thrown error reaching Sentry from a real action
+  test('sends the route read already asked for when the board read throws', async () => {
+    // Arrange
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested({ bypassActionQueue: true }))
+    })
+
+    // Act
+    await act(async () => {
+      failFetch(new Error('The server could not be reached'))
+    })
+
+    // Assert
+    expect(toast.error).not.toHaveBeenCalled()
+    expect(readBoard).toHaveBeenCalledTimes(1)
+    expect(readBoardOutsideTheQueue).toHaveBeenCalledTimes(1)
+  })
+
+  // Value: protects=a refresh already asked for another board is not dropped when this board's read brings no answer; fails_when=isRefreshWanted is false or Try again is missing; why_new=the queued-route test asks for this same board; seam=none; no_claim=the other board's page
+  test('keeps a refresh for another board when this board read brings no answer', async () => {
+    // Arrange: board-1's read is in flight, and board-2 already asked for a refresh
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested({ boardId: toBoardId('board-2') }))
+    })
+
+    // Act
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000)
+    })
+
+    // Assert: board-1 can be tried again, and board-2's ask is still there
+    expect(toast.error).toHaveBeenCalled()
+    expect(store.getState().boardSync.isRefreshWanted).toBe(true)
+    expect(store.getState().boardSync.refreshForBoardId).toBe(
+      toBoardId('board-2'),
+    )
+    expect(readBoardOutsideTheQueue).not.toHaveBeenCalled()
+    vi.useRealTimers()
+  })
+
+  // Value: protects=the answer that arrives after the limit is not written; fails_when=that answer's column replaces the cards; why_new=the overdue test never lets the late answer arrive; seam=none; no_claim=the browser Back button
+  test('ignores a board read that answers after the 15 second limit', async () => {
+    // Arrange: the read has already been given up
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000)
+    })
+
+    // Act: the late answer says the card is in Done
+    await act(async () => {
+      answerFetch(makePageData('status-done'))
+    })
+
+    // Assert: the screen keeps To Do, and the late answer did not start another read
+    expect(store.getState().board.repoCards).toEqual([makeCard('status-todo')])
+    expect(readBoard).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
+  })
+
+  // Value: protects=leaving the board releases the in-flight mark without an error toast; fails_when=the mark is still set or toast.error ran; why_new=the reopen test sends a new read before the old one answers; seam=none; no_claim=a second board's own save
+  test('clears the refetch mark without a notice when the board is left before the read answers', async () => {
+    // Arrange: a read is in flight
+    const { store, wrapper } = createAppStore()
+    const { unmount } = renderHook(
+      (pageData: PageData) => useBoardServerSync(pageData),
+      { wrapper, initialProps: makePageData('status-todo') },
+    )
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+
+    // Act: the page is gone, then the read answers with the card in Done
+    unmount()
+    await act(async () => {
+      answerFetch(makePageData('status-done'))
+    })
+
+    // Assert: the mark is clear, the cards stay, and leaving is not shown as a failure
+    expect(store.getState().boardSync.sentRefreshRevision).toBeNull()
+    expect(store.getState().board.repoCards).toEqual([makeCard('status-todo')])
+    expect(toast.error).not.toHaveBeenCalled()
+  })
+
+  // Generated by /ship coverage audit
+  // Value: protects=a read that answers before 15 seconds replaces the cards and shows no error;
+  //   fails_when=the deadline given to the read is shorter than 15 seconds, so that answer is dropped and Try again is shown;
+  //   why_new=the overdue tests only move the clock to 15 seconds, and an immediate answer beats a zero timer;
+  //   seam=none;
+  //   no_claim=wall-clock delay (fake timers; the read is a held promise)
+  test('shows the server copy when the read answers just before 15 seconds', async () => {
+    // Arrange: a read is in flight and the cards are still in To Do
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+
+    // Act: one millisecond before the limit, the read is still waiting
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(14_999)
+    })
+
+    // Assert: the board was not given up
+    expect(toast.error).not.toHaveBeenCalled()
+    expect(store.getState().board.repoCards).toEqual([makeCard('status-todo')])
+    expect(store.getState().boardSync.sentRefreshRevision).not.toBeNull()
+
+    // Act: the answer arrives with the card in Done
+    await act(async () => {
+      answerFetch(makePageData('status-done'))
+    })
+
+    // Assert: that answer is shown, and Try again was not
+    expect(store.getState().board.repoCards).toEqual([makeCard('status-done')])
+    expect(toast.error).not.toHaveBeenCalled()
+    expect(readBoard).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
+  })
+
+  // Generated by /ship coverage audit
+  // Value: protects=leaving during a read that never answers clears the in-flight mark and shows no toast;
+  //   fails_when=the overdue notice runs after the page is gone, or the mark stays set;
+  //   why_new=the leave test answers the read, and the 15 second tests stay mounted;
+  //   seam=none;
+  //   no_claim=the next visit (the hook is unmounted and no new page is opened)
+  test('clears the refetch mark without a notice when the read is still waiting 15 seconds after the board is left', async () => {
+    // Arrange: a read is in flight
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const { store, wrapper } = createAppStore()
+    const { unmount } = renderHook(
+      (pageData: PageData) => useBoardServerSync(pageData),
+      { wrapper, initialProps: makePageData('status-todo') },
+    )
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+
+    // Act: the page is gone, and 15 seconds pass with no answer
+    unmount()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000)
+    })
+
+    // Assert: the mark is clear, the cards stay, and leaving is not a failure
+    expect(store.getState().boardSync.sentRefreshRevision).toBeNull()
+    expect(store.getState().board.repoCards).toEqual([makeCard('status-todo')])
+    expect(toast.error).not.toHaveBeenCalled()
+    expect(readBoard).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
+  })
+
+  // Generated by /ship coverage audit
+  // Value: protects=an unrecognized Server Action on refetch offers Reload page and is not sent to Sentry;
+  //   fails_when=the stale-page check is removed or reads the wrong error, so Try again is offered;
+  //   why_new=the throw test uses a plain Error, and the missing-board test resolves null;
+  //   seam=none;
+  //   no_claim=deploy detection (setup treats the error name as unrecognized; the read is mocked)
+  test('offers Reload page when the read is rejected because this page is out of date', async () => {
+    // Arrange
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+    const stalePage = new Error(
+      'Server Action "abc" was not found on the server.',
+    )
+    stalePage.name = 'UnrecognizedActionError'
+
+    // Act
+    await act(async () => {
+      failFetch(stalePage)
+    })
+
+    // Assert: trying the same read again fails the same way
+    expect(toast.error).toHaveBeenCalledWith(
+      'This page is out of date. Reload the page and try again.',
+      expect.objectContaining({
+        id: 'board-refresh-failed',
+        action: expect.objectContaining({ label: 'Reload page' }) as object,
+      }),
+    )
+    expect(Sentry.captureException).not.toHaveBeenCalled()
+    expect(readBoard).toHaveBeenCalledTimes(1)
+    expect(store.getState().board.repoCards).toEqual([makeCard('status-todo')])
+    expect(store.getState().boardSync.sentRefreshRevision).toBeNull()
+  })
+
+  // Generated by /ship coverage audit
+  // Value: protects=a read that answers after a newer read took the in-flight mark does not replace the cards;
+  //   fails_when=the current-read check is removed, so the older answer is applied;
+  //   why_new=leaving the board returns before that check, so the reopen test no longer reaches it;
+  //   seam=none;
+  //   no_claim=the write that invalidates a read (the test dispatches that request directly)
+  test('drops a read that answers after its place was taken by a newer read', async () => {
+    // Arrange: a read is in flight, then a newer read takes the in-flight mark
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const { store, wrapper } = createAppStore()
+    renderHook((pageData: PageData) => useBoardServerSync(pageData), {
+      wrapper,
+      initialProps: makePageData('status-todo'),
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested())
+    })
+    act(() => {
+      store.dispatch(boardRefreshRequested({ invalidateInFlight: true }))
+    })
+
+    // Act: the older read answers with the card in Done
+    await act(async () => {
+      answerFetch(makePageData('status-done'))
+    })
+
+    // Assert: the screen keeps To Do, and that answer did not start a third read
+    expect(store.getState().board.repoCards).toEqual([makeCard('status-todo')])
+    expect(toast.error).not.toHaveBeenCalled()
+    expect(readBoard).toHaveBeenCalledTimes(2)
+    vi.useRealTimers()
   })
 
   test('reads through the route when the fetch must not wait behind a write', () => {

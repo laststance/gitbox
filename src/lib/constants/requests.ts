@@ -6,7 +6,9 @@
  * How long the app waits for the server's answer to a write, in milliseconds.
  * After that the outcome counts as unknown: {@link MoveToAnotherBoardDialog}
  * unlocks itself and says so, and {@link trackBoardWrite} stops holding back
- * fetches of the board. An answer normally takes well under a second.
+ * fetches of the board. {@link useBoardServerSync} waits the same length for
+ * a board read, on purpose, so one budget covers both. An answer normally
+ * takes well under a second.
  *
  * Both use this one value on purpose. The dialog asks for a fresh copy of the
  * board when it stops waiting, and that fetch goes out only once the move is
