@@ -324,12 +324,11 @@ test.describe('Comment Inline Edit on RepoCard (Authenticated)', () => {
     const longText = 'A'.repeat(1900) // 1900 characters (above 90% threshold)
     await textarea.fill(longText)
 
-    // Character counter should show warning state (orange color class)
+    // Character counter should show warning state (theme warning token)
     const counter = inlineEdit.locator('[data-testid="character-counter"]')
     await expect(counter).toContainText('1900/2000')
 
-    // Should have warning styling (text-amber or text-orange)
-    await expect(counter).toHaveClass(/text-amber|text-orange/)
+    await expect(counter).toHaveClass(/text-warning/)
   })
 
   test('should disable Save button when over character limit', async ({
