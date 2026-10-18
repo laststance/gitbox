@@ -286,7 +286,72 @@ test.describe('Shipped TODO coverage', () => {
     test.beforeEach(removeUndoBoards)
     test.afterEach(removeUndoBoards)
 
-    // Value: protects=Z after a column drag keeps a column deleted in between off the board and shows Column order restored; fails_when=Beta comes back, or no toast appears; why_new=reconcileColumnUndo is not driven from a browser, and a cancelled drag does not push history; seam=a scratch board and a CDP drag; no_claim=card undo, and the positions of seed columns
+    // Value: protects=Z after a column drag, with no column deleted, puts Alpha back to the left of Beta and shows Column order restored; fails_when=Alpha stays where the drag left it, or the toast is missing; why_new=the column walk must still apply a snapshot whose columns are all still here; seam=a scratch board and a CDP drag; no_claim=a deleted column
+    test('puts a dragged column back when every column is still on the board', async ({
+      page,
+    }) => {
+      // Arrange: two columns, Alpha to the left of Beta
+      const created = await createTestUserSupabaseClient().rpc(
+        'create_board_with_status_lists',
+        {
+          p_name: UNDO_BOARD_NAME,
+          p_columns: [
+            { name: 'Alpha', color: '#111111' },
+            { name: 'Beta', color: '#222222' },
+          ],
+        },
+      )
+      expect(created.error).toBeNull()
+      const boardId: string = created.data.id
+      const lists = created.data.status_lists as { id: string; name: string }[]
+      const alpha = lists.find((column) => column.name === 'Alpha')
+      const beta = lists.find((column) => column.name === 'Beta')
+      if (alpha === undefined || beta === undefined) {
+        throw new Error('the scratch board did not return Alpha and Beta')
+      }
+      await page.goto(`/board/${boardId}`)
+      await page.waitForLoadState('networkidle')
+      const alphaColumn = page.getByTestId(`sortable-column-${alpha.id}`)
+      const betaColumn = page.getByTestId(`sortable-column-${beta.id}`)
+      const alphaHeading = alphaColumn.getByRole('heading', {
+        name: 'Alpha',
+        exact: true,
+      })
+      const betaHeading = betaColumn.getByRole('heading', {
+        name: 'Beta',
+        exact: true,
+      })
+      await expect(alphaHeading).toBeVisible()
+      await expect(betaHeading).toBeVisible()
+      const alphaBefore = await alphaHeading.boundingBox()
+      const betaBefore = await betaHeading.boundingBox()
+      if (alphaBefore === null || betaBefore === null) {
+        throw new Error('Alpha or Beta has no box')
+      }
+      expect(alphaBefore.x).toBeLessThan(betaBefore.x)
+
+      // Act
+      await cdpColumnDragAndDrop(page, alpha.id, beta.id)
+      await expect
+        .poll(async () => {
+          const box = await alphaHeading.boundingBox()
+          return box !== null && box.x > alphaBefore.x + 40
+        })
+        .toBe(true)
+      await page.keyboard.press('z')
+
+      // Assert: Alpha is back to the left of Beta
+      await expect(page.getByText('Column order restored')).toBeVisible()
+      await expect
+        .poll(async () => {
+          const alphaBox = await alphaHeading.boundingBox()
+          const betaBox = await betaHeading.boundingBox()
+          return alphaBox !== null && betaBox !== null && alphaBox.x < betaBox.x
+        })
+        .toBe(true)
+    })
+
+    // Value: protects=Z after deleting a column leaves the dragged column where the drag put it, keeps the deleted column gone, and does not show Column order restored; fails_when=Alpha moves back, Beta returns, or that toast is shown; why_new=a column undo used to move the survivors to the snapshot that still named the deleted column; seam=a scratch board and a CDP drag; no_claim=card undo, and the positions of seed columns
     test('keeps a deleted column gone when the column drag is undone', async ({
       page,
     }) => {
@@ -356,10 +421,19 @@ test.describe('Shipped TODO coverage', () => {
       await expect(betaHeading).toHaveCount(0)
       await page.keyboard.press('z')
 
-      // Assert
-      await expect(page.getByText('Column order restored')).toBeVisible()
+      // Assert: Alpha stays where the drag put it, and the restore toast
+      // does not appear. The info toast is how we know Z was heard.
+      await expect(
+        page.getByText('Nothing to undo on this board'),
+      ).toBeVisible()
+      await expect(page.getByText('Column order restored')).toHaveCount(0)
       await expect(betaHeading).toHaveCount(0)
-      await expect(alphaHeading).toBeVisible()
+      await expect
+        .poll(async () => {
+          const box = await alphaHeading.boundingBox()
+          return box !== null && box.x > alphaBefore.x + 40
+        })
+        .toBe(true)
     })
   })
 })
