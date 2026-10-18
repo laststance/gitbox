@@ -30,7 +30,11 @@
 
    --warning and --favorite start as Tailwind orange-800 / amber-700 on
    light themes and orange-300 / amber-400 on dark ones. Contrast is in
-   warning-color-contrast.test.ts and board-card-star-contrast.test.ts. */
+   warning-color-contrast.test.ts and board-card-star-contrast.test.ts.
+
+   --link is that theme's --primary hue, with L set so text is 4.5:1 on
+   the page, a card, muted, and the 10% / 20% primary tint.
+   src/tests/unit/styles/link-color-contrast.test.ts computes it. */
 
 /* Default - Warm neutral with subtle cream tint */
 html[data-theme='default'] {
@@ -54,6 +58,7 @@ html[data-theme='default'] {
   --warning-foreground: oklch(0.985 0 0);
   --favorite: oklch(0.555 0.163 48.998);
   --favorite-foreground: oklch(0.985 0 0);
+  --link: oklch(0.25 0.02 70);
   --border: oklch(0.86 0.018 80);
   --input: oklch(0.88 0.015 80);
   --ring: oklch(0.6 0.02 75);
@@ -85,6 +90,7 @@ html[data-theme='sunrise'] {
   --warning-foreground: oklch(0.985 0 0);
   --favorite: oklch(0.555 0.163 48.998);
   --favorite-foreground: oklch(0.985 0 0);
+  --link: oklch(0.48 0.18 60);
   --border: oklch(0.84 0.045 70);
   --input: oklch(0.86 0.04 72);
   --ring: oklch(0.62 0.18 60);
@@ -113,6 +119,7 @@ html[data-theme='sandstone'] {
   --warning-foreground: oklch(0.985 0 0);
   --favorite: oklch(0.555 0.163 48.998);
   --favorite-foreground: oklch(0.985 0 0);
+  --link: oklch(0.46 0.06 50);
   --border: oklch(0.84 0.035 50);
   --input: oklch(0.86 0.032 52);
   --ring: oklch(0.5 0.06 50);
@@ -141,6 +148,7 @@ html[data-theme='mint'] {
   --warning-foreground: oklch(0.985 0 0);
   --favorite: oklch(0.555 0.163 48.998);
   --favorite-foreground: oklch(0.985 0 0);
+  --link: oklch(0.44 0.15 158);
   --border: oklch(0.84 0.045 150);
   --input: oklch(0.86 0.04 152);
   --ring: oklch(0.58 0.15 158);
@@ -169,6 +177,7 @@ html[data-theme='sky'] {
   --warning-foreground: oklch(0.985 0 0);
   --favorite: oklch(0.555 0.163 48.998);
   --favorite-foreground: oklch(0.985 0 0);
+  --link: oklch(0.43 0.16 220);
   --border: oklch(0.84 0.04 218);
   --input: oklch(0.86 0.035 218);
   --ring: oklch(0.55 0.16 220);
@@ -197,6 +206,7 @@ html[data-theme='lavender'] {
   --warning-foreground: oklch(0.985 0 0);
   --favorite: oklch(0.555 0.163 48.998);
   --favorite-foreground: oklch(0.985 0 0);
+  --link: oklch(0.48 0.18 285);
   --border: oklch(0.84 0.045 285);
   --input: oklch(0.86 0.04 288);
   --ring: oklch(0.58 0.18 285);
@@ -225,6 +235,7 @@ html[data-theme='rose'] {
   --warning-foreground: oklch(0.985 0 0);
   --favorite: oklch(0.555 0.163 48.998);
   --favorite-foreground: oklch(0.985 0 0);
+  --link: oklch(0.47 0.2 5);
   --border: oklch(0.84 0.045 0);
   --input: oklch(0.86 0.04 2);
   --ring: oklch(0.55 0.2 5);
@@ -265,6 +276,7 @@ html[data-theme='dark'] {
   --warning-foreground: oklch(0 0 0);
   --favorite: oklch(0.828 0.189 84.429);
   --favorite-foreground: oklch(0 0 0);
+  --link: oklch(0.922 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
@@ -293,6 +305,7 @@ html[data-theme='midnight'] {
   --warning-foreground: oklch(0 0 0);
   --favorite: oklch(0.828 0.189 84.429);
   --favorite-foreground: oklch(0 0 0);
+  --link: oklch(0.62 0.2 260);
   --border: oklch(0.25 0.03 258);
   --input: oklch(0.22 0.028 258);
   --ring: oklch(0.55 0.2 260);
@@ -321,6 +334,7 @@ html[data-theme='graphite'] {
   --warning-foreground: oklch(0 0 0);
   --favorite: oklch(0.828 0.189 84.429);
   --favorite-foreground: oklch(0 0 0);
+  --link: oklch(0.62 0.02 240);
   --border: oklch(0.28 0 0);
   --input: oklch(0.24 0 0);
   --ring: oklch(0.55 0.02 240);
@@ -349,6 +363,7 @@ html[data-theme='forest'] {
   --warning-foreground: oklch(0 0 0);
   --favorite: oklch(0.828 0.189 84.429);
   --favorite-foreground: oklch(0 0 0);
+  --link: oklch(0.59 0.14 145);
   --border: oklch(0.25 0.03 143);
   --input: oklch(0.22 0.028 143);
   --ring: oklch(0.5 0.14 145);
@@ -377,6 +392,7 @@ html[data-theme='ocean'] {
   --warning-foreground: oklch(0 0 0);
   --favorite: oklch(0.828 0.189 84.429);
   --favorite-foreground: oklch(0 0 0);
+  --link: oklch(0.59 0.12 200);
   --border: oklch(0.25 0.03 198);
   --input: oklch(0.22 0.028 198);
   --ring: oklch(0.52 0.12 200);
@@ -405,6 +421,7 @@ html[data-theme='plum'] {
   --warning-foreground: oklch(0 0 0);
   --favorite: oklch(0.828 0.189 84.429);
   --favorite-foreground: oklch(0 0 0);
+  --link: oklch(0.63 0.22 300);
   --border: oklch(0.25 0.04 298);
   --input: oklch(0.22 0.038 298);
   --ring: oklch(0.52 0.22 300);
@@ -433,6 +450,7 @@ html[data-theme='rust'] {
   --warning-foreground: oklch(0 0 0);
   --favorite: oklch(0.828 0.189 84.429);
   --favorite-foreground: oklch(0 0 0);
+  --link: oklch(0.62 0.16 40);
   --border: oklch(0.25 0.03 38);
   --input: oklch(0.22 0.028 38);
   --ring: oklch(0.52 0.16 40);

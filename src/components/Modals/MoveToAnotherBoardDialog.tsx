@@ -60,6 +60,7 @@ import { useCardDialogFocusReturn } from '@/hooks/board/useCardDialogFocusReturn
 import { useMoveDestinations } from '@/hooks/board/useMoveDestinations'
 import { useMoveDialogState } from '@/hooks/board/useMoveDialogState'
 import { moveCardToBoard } from '@/lib/actions/repo-cards'
+import { LINK_TEXT_CLASS } from '@/lib/constants/link-text'
 import { OUTCOME_UNKNOWN_TEXT_CLASS } from '@/lib/constants/outcome-unknown'
 import { SERVER_ANSWER_TIME_LIMIT_MS } from '@/lib/constants/requests'
 import { TOAST_WITH_ACTION_DURATION_MS } from '@/lib/constants/toast'
@@ -364,7 +365,7 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <ArrowRightLeft className="text-primary h-5 w-5" />
+            <ArrowRightLeft className={`${LINK_TEXT_CLASS} h-5 w-5`} />
             Move to Another Board
           </DialogTitle>
           <DialogDescription>
@@ -468,9 +469,8 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
                       ))}
                     </SelectContent>
                   </Select>
-                  {/* An outline button: the link variant is text-primary
-                        without an underline, which is below AA contrast in
-                        most themes. pointer-coarse: a 44px target for a
+                  {/* An outline button: New Board… is a command, not a
+                        text link. pointer-coarse: a 44px target for a
                         thumb, right under the select. */}
                   <Button
                     type="button"

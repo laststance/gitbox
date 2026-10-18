@@ -81,6 +81,20 @@ describe('CommentInlineEdit', () => {
       expect(screen.getByTestId('comment-save-btn')).toBeInTheDocument()
     })
 
+    test('Save uses the page text color so it stays readable on a comment tint', () => {
+      // Arrange
+      render(<CommentInlineEdit {...defaultProps} />)
+
+      // Act
+      const save = screen.getByTestId('comment-save-btn')
+
+      // Assert
+      expect(save).toBeVisible()
+      expect(save).toHaveClass('text-foreground')
+      expect(save).not.toHaveClass('text-primary')
+      expect(save).not.toHaveClass('text-link')
+    })
+
     test('should auto-focus textarea by default', () => {
       render(<CommentInlineEdit {...defaultProps} />)
 

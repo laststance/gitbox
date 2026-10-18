@@ -8,6 +8,7 @@
 import type { Page } from '@playwright/test'
 
 import { test, expect } from '../fixtures/coverage'
+import { rgbaOfPaintedAndCssColor, sameRgba } from '../helpers/canvas-color'
 import { cdpColumnDragAndDrop } from '../helpers/cdp-drag'
 import {
   BOARD_IDS,
@@ -510,52 +511,69 @@ test.describe('Shipped TODO coverage', () => {
     await expect(star).toHaveClass(/(?:^|\s)text-favorite(?:\s|$)/)
     await expect
       .poll(async () => {
-        const colors = await colorsOfStarAndToken(page, star)
-        return colors.painted === colors.token
+        const colors = await rgbaOfPaintedAndCssColor(star, 'var(--favorite)')
+        return sameRgba(colors.painted, colors.token)
       })
       .toBe(true)
 
     await star.hover()
     await expect
       .poll(async () => {
-        const colors = await colorsOfStarAndToken(page, star)
-        return colors.painted === colors.token
+        const colors = await rgbaOfPaintedAndCssColor(star, 'var(--favorite)')
+        return sameRgba(colors.painted, colors.token)
       })
       .toBe(true)
   })
-})
 
-/**
- * Painted star color and `color: var(--favorite)` on a probe, both as hex.
- *
- * The token is `oklch(...)` in CSS. Chromium may report the button as
- * `oklab(...)` and the probe as `lab(...)`. A 2d canvas turns both into
- * the same `#rrggbb`, so the compare does not parse the token.
- */
-async function colorsOfStarAndToken(
-  page: Page,
-  star: ReturnType<Page['locator']>,
-): Promise<{ painted: string; token: string }> {
-  return star.evaluate((button) => {
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
-    if (ctx === null) {
-      throw new Error('2d canvas is missing')
-    }
-    const toHex = (color: string): string => {
-      ctx.fillStyle = '#000000'
-      ctx.fillStyle = color
-      return ctx.fillStyle
-    }
-    const probe = document.createElement('span')
-    probe.style.color = 'var(--favorite)'
-    document.body.appendChild(probe)
-    const painted = toHex(getComputedStyle(button).color)
-    const token = toHex(getComputedStyle(probe).color)
-    probe.remove()
-    return { painted, token }
+  // Value: protects=a hovered board name uses --link, not --primary; fails_when=the heading stays foreground or paints primary; why_new=group-hover is now text-link; seam=the fixture boards page; no_claim=every named theme
+  test('paints a hovered board name with the link token', async ({ page }) => {
+    // Arrange
+    await page.goto('/boards')
+    await page.waitForLoadState('networkidle')
+    const heading = page.getByRole('heading', {
+      level: 2,
+      name: 'Test Board',
+    })
+    await expect(heading).toBeVisible()
+
+    // Act
+    await heading.hover()
+
+    // Assert: the heading transitions color, so poll until it matches.
+    await expect(heading).toHaveClass(/(?:^|\s)group-hover:text-link(?:\s|$)/)
+    await expect
+      .poll(async () => {
+        const colors = await rgbaOfPaintedAndCssColor(heading, 'var(--link)')
+        return sameRgba(colors.painted, colors.token)
+      })
+      .toBe(true)
   })
-}
+
+  // Value: protects=comment Save stays foreground on a comment tint; fails_when=Save is text-primary or text-link; why_new=--link fails ~2.9:1 on Graphite/Forest/Rust tints; seam=the fixture board; no_claim=a save that reaches the server
+  test('keeps comment Save on the page text color and leaves it on Escape', async ({
+    page,
+  }) => {
+    // Arrange
+    await resetProjectInfoComments()
+    await page.goto(`/board/${BOARD_IDS.testBoard}`)
+    await page.waitForLoadState('networkidle')
+    const card = page.getByTestId(`repo-card-${CARD_IDS.card1}`)
+    await expect(card).toBeVisible()
+
+    // Act
+    await card.getByTestId('comment-display').click()
+    const save = card.getByTestId('comment-save-btn')
+
+    // Assert
+    await expect(save).toBeVisible()
+    await expect(save).toHaveClass(/(?:^|\s)text-foreground(?:\s|$)/)
+    await expect(save).not.toHaveClass(/(?:^|\s)text-primary(?:\s|$)/)
+    await expect(save).not.toHaveClass(/(?:^|\s)text-link(?:\s|$)/)
+
+    await page.keyboard.press('Escape')
+    await expect(save).toBeHidden()
+  })
+})
 
 /**
  * Notes currently stored for this browser.

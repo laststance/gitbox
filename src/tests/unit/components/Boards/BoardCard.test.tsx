@@ -404,9 +404,13 @@ describe('BoardCard', () => {
       )
 
       // Assert
-      expect(
-        screen.getByRole('heading', { level: 2, name: 'Side Projects' }),
-      ).toBeVisible()
+      const heading = screen.getByRole('heading', {
+        level: 2,
+        name: 'Side Projects',
+      })
+      expect(heading).toBeVisible()
+      expect(heading).toHaveClass('group-hover:text-link')
+      expect(heading).not.toHaveClass('group-hover:text-primary')
     })
   })
 })

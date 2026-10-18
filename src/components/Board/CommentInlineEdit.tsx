@@ -293,7 +293,7 @@ export const CommentInlineEdit = memo<CommentInlineEditProps>(
             onClick={async () => handleSave(true)}
             disabled={isSaving || isOverLimit}
             data-testid="comment-save-btn"
-            className="text-primary hover:text-primary hover:bg-primary/10 h-7 px-2"
+            className="text-foreground hover:text-foreground h-7 px-2"
             aria-label="Save comment"
           >
             <Check className="h-4 w-4" />

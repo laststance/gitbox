@@ -7,6 +7,7 @@ import type { PlateElementProps } from 'platejs/react'
 import { PlateElement } from 'platejs/react'
 import * as React from 'react'
 
+import { LINK_TEXT_CLASS } from '@/lib/constants/link-text'
 import { cn } from '@/lib/utils'
 
 export function LinkElement(props: PlateElementProps<TLinkElement>) {
@@ -18,7 +19,7 @@ export function LinkElement(props: PlateElementProps<TLinkElement>) {
       {...props}
       as="a"
       className={cn(
-        'text-primary decoration-primary font-medium underline underline-offset-4',
+        `${LINK_TEXT_CLASS} decoration-link font-medium underline underline-offset-4`,
         suggestionData?.type === 'remove' && 'bg-red-100 text-red-700',
         suggestionData?.type === 'insert' && 'bg-emerald-100 text-emerald-700',
       )}

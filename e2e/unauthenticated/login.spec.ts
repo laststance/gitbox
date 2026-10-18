@@ -5,6 +5,7 @@
  */
 
 import { test, expect } from '../fixtures/coverage'
+import { rgbaOfPaintedAndCssColor, sameRgba } from '../helpers/canvas-color'
 
 test.describe('Login Page', () => {
   test('should display the login page', async ({ page }) => {
@@ -66,5 +67,33 @@ test.describe('Login Page', () => {
     const hasError = await errorIndicator.isVisible().catch(() => false)
     // If no visible error, just verify the page loaded (some apps handle errors silently)
     expect(hasError || (await githubButton.isVisible())).toBeTruthy()
+  })
+
+  // Value: protects=login Terms and Privacy use --link; fails_when=they stay text-primary or paint a different color; why_new=the two links were the unread theme-color case on a signed-out page; seam=the login page; no_claim=every named theme
+  test('paints Terms of Use and Privacy Policy with the link token', async ({
+    page,
+  }) => {
+    // Arrange
+    await page.goto('/login')
+    const terms = page.getByRole('link', { name: 'Terms of Use' })
+    const privacy = page.getByRole('link', { name: 'Privacy Policy' })
+
+    // Assert
+    await expect(terms).toBeVisible()
+    await expect(privacy).toBeVisible()
+    await expect(terms).toHaveClass(/(?:^|\s)text-link(?:\s|$)/)
+    await expect(privacy).toHaveClass(/(?:^|\s)text-link(?:\s|$)/)
+    await expect
+      .poll(async () => {
+        const colors = await rgbaOfPaintedAndCssColor(terms, 'var(--link)')
+        return sameRgba(colors.painted, colors.token)
+      })
+      .toBe(true)
+    await expect
+      .poll(async () => {
+        const colors = await rgbaOfPaintedAndCssColor(privacy, 'var(--link)')
+        return sameRgba(colors.painted, colors.token)
+      })
+      .toBe(true)
   })
 })
