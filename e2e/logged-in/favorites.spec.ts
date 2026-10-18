@@ -54,13 +54,11 @@ test.describe('Board Favorites Feature', () => {
 
       // Verify visual state change (color is on button, not SVG)
       if (isInitiallyFavorited) {
-        // Should be gray when unfavorited (hover:text-amber-700 does not count)
         await expect(starButton).not.toHaveClass(
-          /(?:^|\s)text-amber-700(?:\s|$)/,
+          /(?:^|\s)text-favorite(?:\s|$)/,
         )
       } else {
-        // Should be amber when favorited
-        await expect(starButton).toHaveClass(/(?:^|\s)text-amber-700(?:\s|$)/)
+        await expect(starButton).toHaveClass(/(?:^|\s)text-favorite(?:\s|$)/)
       }
     })
 

@@ -76,8 +76,8 @@ export default async function FavoritesPage() {
 function FavoritesEmptyState() {
   return (
     <div className="border-border bg-muted flex flex-col items-center justify-center rounded-lg border-2 border-dashed py-16">
-      <div className="rounded-full bg-amber-100 p-4 dark:bg-amber-900/30">
-        <Star className="h-10 w-10 text-amber-500 dark:text-amber-400" />
+      <div className="bg-favorite/15 rounded-full p-4">
+        <Star className="text-favorite h-10 w-10" />
       </div>
       <h2 className="text-foreground mt-6 text-xl font-medium">
         No favorite boards yet

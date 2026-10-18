@@ -127,7 +127,7 @@ const FONT_WEIGHT_LABELS: Record<keyof typeof COMMENT_FONT_WEIGHTS, string> = {
   semibold: 'Bold',
 }
 
-/** CSS class for character counter; turns orange near the limit. */
+/** CSS class for character counter; uses {@link NEAR_LIMIT_COUNTER_TEXT_CLASS} near the limit. */
 function charCountClass(count: number, max: number): string {
   return count >= max - 10
     ? `text-sm ${NEAR_LIMIT_COUNTER_TEXT_CLASS}`

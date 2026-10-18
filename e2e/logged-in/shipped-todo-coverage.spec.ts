@@ -466,7 +466,96 @@ test.describe('Shipped TODO coverage', () => {
         .toBe(true)
     })
   })
+
+  // Value: protects=a board name near its limit uses the warning token; fails_when=the counter stays muted or names orange-800; why_new=NEAR_LIMIT_COUNTER_TEXT_CLASS is now text-warning; seam=the fixture board settings dialog; no_claim=every theme in this browser
+  test('paints the near-limit board name counter with the warning token', async ({
+    page,
+  }) => {
+    // Arrange
+    await page.goto(`/board/${BOARD_IDS.testBoard}`)
+    await page.waitForLoadState('networkidle')
+    await page.getByRole('button', { name: /board settings/i }).click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+    const nameField = dialog.getByRole('textbox').first()
+
+    // Act: 40 characters is max-10 for a 50-character name
+    await nameField.fill('a'.repeat(40))
+    const counter = dialog.getByText('40/50')
+
+    // Assert
+    await expect(counter).toBeVisible()
+    await expect(counter).toHaveClass(/text-warning/)
+
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeHidden()
+  })
+
+  // Value: protects=a favorited star uses --favorite, not amber-700; fails_when=the class or the painted color misses the token, or hover paints accent-foreground; why_new=the star is text-favorite; seam=the fixture boards page; no_claim=every named theme
+  test('paints a favorited star with the favorite token', async ({ page }) => {
+    // Arrange
+    await page.goto('/boards')
+    await page.waitForLoadState('networkidle')
+    const card = page.getByTestId(`sortable-board-card-${BOARD_IDS.testBoard}`)
+    await expect(card).toBeVisible()
+    const star = card.locator('button[aria-label*="favorite"]')
+    const label = await star.getAttribute('aria-label')
+    if (label?.includes('Add')) {
+      await star.click()
+      await expect(star).toHaveAttribute('aria-label', /Remove/)
+    }
+
+    // Assert: a click or hover can leave the ghost Button mid-transition
+    // (`transition-colors`). Poll until the painted color is the token.
+    await expect(star).toHaveClass(/(?:^|\s)text-favorite(?:\s|$)/)
+    await expect
+      .poll(async () => {
+        const colors = await colorsOfStarAndToken(page, star)
+        return colors.painted === colors.token
+      })
+      .toBe(true)
+
+    await star.hover()
+    await expect
+      .poll(async () => {
+        const colors = await colorsOfStarAndToken(page, star)
+        return colors.painted === colors.token
+      })
+      .toBe(true)
+  })
 })
+
+/**
+ * Painted star color and `color: var(--favorite)` on a probe, both as hex.
+ *
+ * The token is `oklch(...)` in CSS. Chromium may report the button as
+ * `oklab(...)` and the probe as `lab(...)`. A 2d canvas turns both into
+ * the same `#rrggbb`, so the compare does not parse the token.
+ */
+async function colorsOfStarAndToken(
+  page: Page,
+  star: ReturnType<Page['locator']>,
+): Promise<{ painted: string; token: string }> {
+  return star.evaluate((button) => {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    if (ctx === null) {
+      throw new Error('2d canvas is missing')
+    }
+    const toHex = (color: string): string => {
+      ctx.fillStyle = '#000000'
+      ctx.fillStyle = color
+      return ctx.fillStyle
+    }
+    const probe = document.createElement('span')
+    probe.style.color = 'var(--favorite)'
+    document.body.appendChild(probe)
+    const painted = toHex(getComputedStyle(button).color)
+    const token = toHex(getComputedStyle(probe).color)
+    probe.remove()
+    return { painted, token }
+  })
+}
 
 /**
  * Notes currently stored for this browser.

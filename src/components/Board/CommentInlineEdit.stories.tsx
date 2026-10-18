@@ -492,8 +492,7 @@ export const TestWarningThreshold: Story = {
     await step('Verify counter shows warning style', async () => {
       const counter = canvas.getByTestId('character-counter')
       expect(counter).toHaveTextContent('270/300')
-      // Warning class should be applied (text-orange-800 on light themes)
-      expect(counter).toHaveClass('text-orange-800')
+      expect(counter).toHaveClass('text-warning')
     })
   },
 }

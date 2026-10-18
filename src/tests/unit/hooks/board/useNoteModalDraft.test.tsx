@@ -69,12 +69,10 @@ describe('useNoteModalDraft', () => {
 
     // Assert
     expect(noteDraft.charCount).toBe(18000)
-    expect(noteDraft.charCountClass).toBe(
-      'text-sm text-right text-orange-800 dark:text-orange-300',
-    )
+    expect(noteDraft.charCountClass).toBe('text-sm text-right text-warning')
   })
 
-  // Value: protects=the orange of the counter is a sign that the limit is near, not its usual color; fails_when=the warning starts below 18,000 characters or the counter is never muted; why_new=the hook had no test; seam=none; no_claim=none
+  // Value: protects=the warning token of the counter is a sign that the limit is near, not its usual color; fails_when=the warning starts below 18,000 characters or the counter is never muted; why_new=the hook had no test; seam=none; no_claim=none
   test('leaves the counter of a shorter note muted', () => {
     // Arrange & Act: one character below the warning
     const noteDraft = renderNoteDraft(17999)
