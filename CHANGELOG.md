@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.12.0] - 2026-10-18
+
+### Fixed
+
+- When a board takes longer than 15 seconds to reload, the page stops waiting and offers Try again. That retry does not line up behind the request that never answered.
+
 ## [0.7.11.0] - 2026-10-18
 
 ### Fixed
