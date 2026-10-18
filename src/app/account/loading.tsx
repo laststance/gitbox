@@ -1,6 +1,5 @@
 import { memo } from 'react'
 
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
 /**
@@ -21,66 +20,56 @@ const Loading = memo(function Loading() {
         <Skeleton className="mt-2 h-6 w-72 max-w-full" />
       </div>
 
-      <div className="space-y-6">
-        {/* Profile: card header, avatar row, "Linked since" row */}
-        <Card>
-          <CardHeader>
+      <div className="space-y-8">
+        <section className="space-y-4">
+          <div className="space-y-1.5">
             <Skeleton className="h-6 w-28" />
             <Skeleton className="h-5 w-56 max-w-full" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-4">
-              <Skeleton className="size-16 shrink-0 rounded-full" />
-              {/* min-w-0 flex-1 + max-w-full: beside the avatar a phone
-                  leaves less than the 160px these lines ask for */}
-              <div className="min-w-0 flex-1 space-y-1">
-                <Skeleton className="h-6 w-40 max-w-full" />
-                <Skeleton className="h-5 w-32 max-w-full" />
-              </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <Skeleton className="size-16 shrink-0 rounded-full" />
+            {/* min-w-0 flex-1 + max-w-full: beside the avatar a phone
+                leaves less than the 160px these lines ask for */}
+            <div className="min-w-0 flex-1 space-y-1">
+              <Skeleton className="h-6 w-40 max-w-full" />
+              <Skeleton className="h-5 w-32 max-w-full" />
             </div>
-            <div className="border-t pt-4">
-              <Skeleton className="h-5 w-48 max-w-full" />
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="border-t pt-4">
+            <Skeleton className="h-5 w-48 max-w-full" />
+          </div>
+        </section>
 
-        {/* Account Data: card header and two tiles (Boards, Repository Cards) */}
-        <Card>
-          <CardHeader>
+        <section className="space-y-4">
+          <div className="space-y-1.5">
             <Skeleton className="h-6 w-36" />
             <Skeleton className="h-5 w-48 max-w-full" />
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              {Array.from({ length: 2 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex flex-col items-center rounded-lg border p-4"
-                >
-                  <Skeleton className="mb-2 size-6" />
-                  <Skeleton className="h-8 w-10" />
-                  <Skeleton className="mt-1 h-4 w-20 max-w-full" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="flex flex-col items-start gap-1">
+                <Skeleton className="size-6" />
+                <Skeleton className="h-8 w-10" />
+                <div className="min-h-[2lh] text-sm leading-5">
+                  <Skeleton className="h-4 w-20 max-w-full" />
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+            ))}
+          </div>
+        </section>
 
-        {/* Danger Zone: card header, the notice box, the button */}
-        <Card className="border-destructive">
-          <CardHeader>
+        <section className="border-destructive space-y-4 border-t pt-6">
+          <div className="space-y-1.5">
             <Skeleton className="h-6 w-32" />
             <Skeleton className="h-5 w-64 max-w-full" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="border-destructive/20 space-y-1 rounded-lg border p-4">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-2/3" />
-              <Skeleton className="mt-4 h-4 w-64 max-w-full" />
-            </div>
-            <Skeleton className="h-9 w-36" />
-          </CardContent>
-        </Card>
+          </div>
+          <div className="border-destructive/20 space-y-1 rounded-lg border p-4">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="mt-4 h-4 w-64 max-w-full" />
+          </div>
+          <Skeleton className="h-9 w-36" />
+        </section>
 
         {/* Actions: Back to Boards, Sign Out */}
         <div className="flex justify-between pt-4">

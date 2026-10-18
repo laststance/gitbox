@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.17.0] - 2026-10-18
+
+### Changed
+
+- Account now shows Profile, Account Data, and Danger Zone as sections of one page. The two counts sit in a row without a tile around each.
+
 ## [0.7.16.0] - 2026-10-18
 
 ### Changed

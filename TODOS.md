@@ -45,18 +45,6 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 From `/design-review` of the change for issue #213. The review found 27 issues and fixed 21; these are what is left. All of them are in the app as it was before that change. The full report with screenshots is in `~/.gstack/projects/laststance-gitbox/designs/design-audit-20261012/`.
 
-### Lay out the account page as sections, not stacked cards
-
-**What:** Show Profile, Account Data and Danger Zone as sections of one page, and the two numbers of Account Data without a bordered tile each.
-
-**Why:** Medium impact, AI slop (FINDING-022). Three cards under each other with tiles inside one is the layout a generator produces; the page has nothing to compare side by side that would need cards.
-
-**Context:** `src/app/account/AccountClient.tsx` and its skeleton `src/app/account/loading.tsx`, which mirrors the layout block by block and has to change with it. One difference is left between the two: below about 434px the label "Repository Cards" takes two lines and the skeleton shows one, so the two tiles grow by a line when the data arrives.
-
-**Effort:** S
-**Priority:** P4
-**Depends on:** None
-
 ### Use the ellipsis character in loading labels
 
 **What:** Write "…" instead of three dots in the labels that say something is in progress ("Loading repositories...", "Signing out...", "Creating..."), about 27 strings in `src`.

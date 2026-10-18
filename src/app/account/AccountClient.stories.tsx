@@ -53,8 +53,23 @@ export const Default: Story = {
       { timeout: 3000 },
     )
 
-    expect(canvas.getByText('Boards')).toBeInTheDocument()
-    expect(canvas.getByText('2', { exact: true })).toBeInTheDocument()
+    expect(
+      canvas.getByRole('heading', { name: 'Profile', level: 2 }),
+    ).toBeVisible()
+    expect(
+      canvas.getByRole('heading', { name: 'Account Data', level: 2 }),
+    ).toBeVisible()
+    expect(
+      canvas.getByRole('heading', { name: 'Danger Zone', level: 2 }),
+    ).toBeVisible()
+    expect(canvas.getByText('Boards')).toBeVisible()
+    expect(canvas.getByText('2', { exact: true })).toBeVisible()
+    expect(canvas.getByTestId('account-stat-boards').className).not.toMatch(
+      /(?:^|\s)border(?:-|\s|$)/,
+    )
+    expect(canvas.getByTestId('account-stat-cards').className).not.toMatch(
+      /(?:^|\s)border(?:-|\s|$)/,
+    )
   },
 }
 

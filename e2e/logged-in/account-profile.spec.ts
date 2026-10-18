@@ -58,29 +58,69 @@ test.describe('Account Profile Page (Authenticated)', () => {
     }
   })
 
-  test('shows the Boards and Repository Cards tiles side by side, equally wide', async ({
+  test('shows Profile, Account Data and Danger Zone as page sections', async ({
     page,
   }) => {
     // Arrange
     const main = page.getByRole('main')
-    const boardsTile = main.getByText('Boards', { exact: true }).locator('..')
-    const repositoryCardsTile = main.getByText('Repository Cards').locator('..')
-    await expect(boardsTile).toBeVisible({ timeout: 10000 })
+    await expect(
+      page.getByRole('heading', { name: 'Account', level: 1 }),
+    ).toBeVisible({ timeout: 10000 })
+
+    // Assert
+    await expect(main.locator('section')).toHaveCount(3)
+    await expect(
+      main.getByRole('heading', { name: 'Profile', level: 2 }),
+    ).toBeVisible()
+    await expect(
+      main.getByRole('heading', { name: 'Account Data', level: 2 }),
+    ).toBeVisible()
+    await expect(
+      main.getByRole('heading', { name: 'Danger Zone', level: 2 }),
+    ).toBeVisible()
+  })
+
+  test('shows the Boards and Repository Cards numbers in one row without a tile border', async ({
+    page,
+  }) => {
+    // Arrange
+    const boardsCell = page.getByTestId('account-stat-boards')
+    const cardsCell = page.getByTestId('account-stat-cards')
+    await expect(boardsCell).toBeVisible({ timeout: 10000 })
+    await expect(cardsCell).toBeVisible()
 
     // Act
-    const boardsBox = await boardsTile.boundingBox()
-    const repositoryCardsBox = await repositoryCardsTile.boundingBox()
+    const boardsBox = await boardsCell.boundingBox()
+    const cardsBox = await cardsCell.boundingBox()
 
-    // Assert: one row, the second tile to the right of the first
+    // Assert: one row, the second cell to the right of the first, no tile border
     expect(boardsBox).not.toBeNull()
-    expect(repositoryCardsBox).not.toBeNull()
-    expect(repositoryCardsBox!.y).toBe(boardsBox!.y)
-    expect(repositoryCardsBox!.x).toBeGreaterThanOrEqual(
-      boardsBox!.x + boardsBox!.width,
+    expect(cardsBox).not.toBeNull()
+    expect(cardsBox!.y).toBe(boardsBox!.y)
+    expect(cardsBox!.x).toBeGreaterThanOrEqual(boardsBox!.x + boardsBox!.width)
+    expect(Math.round(cardsBox!.width)).toBe(Math.round(boardsBox!.width))
+    expect(await boardsCell.getAttribute('class')).not.toMatch(
+      /(?:^|\s)border(?:-|\s|$)/,
     )
-    expect(Math.round(repositoryCardsBox!.width)).toBe(
-      Math.round(boardsBox!.width),
+    expect(await cardsCell.getAttribute('class')).not.toMatch(
+      /(?:^|\s)border(?:-|\s|$)/,
     )
+  })
+
+  test('keeps both Account Data labels visible on a 375-wide screen', async ({
+    page,
+  }) => {
+    // Arrange
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto('/account')
+    const boardsLabel = page.getByRole('main').getByText('Boards', {
+      exact: true,
+    })
+    const cardsLabel = page.getByRole('main').getByText('Repository Cards')
+
+    // Assert
+    await expect(boardsLabel).toBeVisible({ timeout: 10000 })
+    await expect(cardsLabel).toBeVisible()
   })
 
   test('should open delete confirmation dialog', async ({ page }) => {
