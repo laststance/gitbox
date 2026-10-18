@@ -535,9 +535,13 @@ test.describe('Shipped TODO coverage', () => {
       name: 'Test Board',
     })
     await expect(heading).toBeVisible()
+    // The open-board link covers the card (`absolute inset-0`). Hovering
+    // the heading waits on that overlay and times out. The link is the
+    // `group` descendant a pointer actually rests on.
+    const openBoard = page.getByRole('link', { name: 'Open board Test Board' })
 
     // Act
-    await heading.hover()
+    await openBoard.hover()
 
     // Assert: the heading transitions color, so poll until it matches.
     await expect(heading).toHaveClass(/(?:^|\s)group-hover:text-link(?:\s|$)/)
