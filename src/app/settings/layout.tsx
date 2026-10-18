@@ -1,27 +1,27 @@
 /**
  * Settings Layout
  *
- * Layout for /settings route
- * - Theme application for authenticated users
- * - Auth gate via JWT claims (~5ms WebCrypto verify) instead of the ~50ms
- *   `auth.getUser()` round-trip. Claims body is unused here; the call exists
- *   for its redirect side effect when the JWT is missing or expired.
+ * Same sidebar chrome as `/account` and `/boards`. The sidebar and the
+ * page are siblings so a sidebar that lies over the page can set `inert`
+ * on `main`.
  */
 
-import { ThemeApplicator } from '@/components/ThemeApplicator'
 import { requireClaims } from '@/lib/auth/require-claims'
+import { getClaimsDisplayInfo } from '@/lib/utils/get-claims-display-info'
+
+import { SettingsLayoutClient } from './SettingsLayoutClient'
 
 export default async function SettingsLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  await requireClaims()
+  const { claims } = await requireClaims()
+  const { userName, userAvatar } = getClaimsDisplayInfo(claims)
 
   return (
-    <>
-      <ThemeApplicator />
+    <SettingsLayoutClient userName={userName} userAvatar={userAvatar}>
       {children}
-    </>
+    </SettingsLayoutClient>
   )
 }

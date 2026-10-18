@@ -47,6 +47,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { FormError } from '@/components/ui/form-error'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -67,6 +68,7 @@ import {
   DEFAULT_CARD_DISPLAY_SETTINGS,
   parseBoardSettings,
 } from '@/lib/types/board-settings'
+import { pendingButtonLabel } from '@/lib/utils/pending-button-label'
 import {
   BOARD_NAME_MAX_LENGTH,
   BOARD_SUBTITLE_MAX_LENGTH,
@@ -104,7 +106,7 @@ interface BoardSettingsDialogProps {
 
 /** Tab button styles */
 const TAB_BASE =
-  'flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all rounded-md'
+  'flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors rounded-md'
 const TAB_ACTIVE = 'bg-primary text-primary-foreground shadow-sm'
 const TAB_INACTIVE =
   'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -144,7 +146,7 @@ function charCountClass(count: number, max: number): string {
  */
 function toggleButtonClass(isSelected: boolean): string {
   const base =
-    'rounded-md border-2 px-3 py-1.5 text-xs font-medium transition-all'
+    'rounded-md border-2 px-3 py-1.5 text-xs font-medium transition-colors'
   return isSelected
     ? `${base} border-primary bg-primary/10 text-foreground`
     : `${base} border-border hover:border-primary/50`
@@ -499,13 +501,10 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
 
                     <div className="flex items-center justify-between">
                       {hasRenameError ? (
-                        <p
+                        <FormError
                           id="name-error"
-                          className="text-destructive text-sm"
-                          role="alert"
-                        >
-                          {renameState.errors?.name?.[0]}
-                        </p>
+                          message={renameState.errors?.name?.[0]}
+                        />
                       ) : (
                         <span />
                       )}
@@ -526,7 +525,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                     disabled={isRenamePending || name.trim() === ''}
                     aria-label={`Rename board to ${name}`}
                   >
-                    {isRenamePending ? 'Renaming…' : 'Rename'}
+                    {pendingButtonLabel(isRenamePending, 'Rename', 'Renaming…')}
                   </Button>
                 </form>
 
@@ -823,7 +822,11 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                 disabled={isDeletePending}
                 aria-label={`Delete board ${boardName}`}
               >
-                {isDeletePending ? 'Deleting…' : 'Delete Board'}
+                {pendingButtonLabel(
+                  isDeletePending,
+                  'Delete Board',
+                  'Deleting…',
+                )}
               </Button>
             </form>
           </AlertDialogFooter>

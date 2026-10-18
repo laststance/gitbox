@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.21.0] - 2026-10-18
+
+### Changed
+
+- Settings now has the same sidebar as the other signed-in pages.
+- Closing a project note puts the keyboard back on that card.
+- The Add Repositories visibility filter is a list like the organization filter, and star counts use the same star icon as the rest of the app.
+
 ## [0.7.20.0] - 2026-10-18
 
 ### Changed

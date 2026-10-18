@@ -67,7 +67,7 @@ export const SortableBoardCard = memo(function SortableBoardCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`group/sortable relative ${isDragging ? 'z-50 scale-[1.02] opacity-50 shadow-2xl' : ''} ${isOver && !isDragging ? 'ring-primary ring-2 ring-offset-2' : ''} transition-all duration-200`}
+      className={`group/sortable relative ${isDragging ? 'z-50 scale-[1.02] opacity-50 shadow-2xl' : ''} ${isOver && !isDragging ? 'ring-primary ring-2 ring-offset-2' : ''} transition-[transform,opacity,box-shadow] duration-200`}
       data-testid={`sortable-board-card-${board.id}`}
     >
       {/* Drag handle — visible on hover, positioned at left edge */}

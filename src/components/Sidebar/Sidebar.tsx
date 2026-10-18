@@ -326,7 +326,7 @@ export const Sidebar = memo(function Sidebar({
             // browser bars, and the account link and Sign Out were below it.
             'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:h-auto',
             isOverPage ? 'max-md:z-50 max-md:shadow-xl' : 'max-md:z-30',
-            'transition-[width] duration-300 ease-out',
+            'transition-[width] duration-300 ease-out md:transition-none',
             sidebarWidth,
           )}
         >

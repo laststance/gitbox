@@ -58,6 +58,27 @@ test.describe('NoteModal (Authenticated)', () => {
     await expect(title).toBeVisible()
   })
 
+  // Value: protects=Escape on the note hands the keyboard back to the card;
+  //   fails_when=the dialog closes onto the page itself; why_new=NoteModal now
+  //   uses useCardDialogFocusReturn; seam=none
+  test('Escape on the note returns focus to the fixture card', async ({
+    page,
+  }) => {
+    // Arrange
+    const card = page.locator(`[data-repo-card-id="${CARD_IDS.card1}"]`)
+    await expect(card).toBeVisible({ timeout: 10000 })
+    await card.getByRole('button', { name: 'Open note' }).click()
+    const dialog = page.getByTestId('note-modal')
+    await expect(dialog).toBeVisible({ timeout: 5000 })
+
+    // Act
+    await page.keyboard.press('Escape')
+
+    // Assert
+    await expect(dialog).toBeHidden()
+    await expect(card).toBeFocused()
+  })
+
   test('should display Plate Editor in the modal', async ({ page }) => {
     // Open NoteModal via Note button
     const card = page.locator('[data-testid^="repo-card-"]').first()

@@ -45,20 +45,10 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 From `/design-review` of the change for issue #213. The review found 27 issues and fixed 21; these are what is left. All of them are in the app as it was before that change. The full report with screenshots is in `~/.gstack/projects/laststance-gitbox/designs/design-audit-20261012/`.
 
-### Smaller design gaps left from the 2026-10-12 review
-
-**What:** (1) Replace `transition-all` (18 places) with the properties that change, and stop animating the sidebar's `width`, which from 768px moves the whole page on every frame (below, the sidebar lies over the page). (2) Return the focus to the card after every dialog that a card opens: `useCardDialogFocusReturn` is used by Move to Another Board and Remove from Board only. (3) Use one component for inline error messages and one pattern for a pending button; they are built by hand in each form. (4) `/settings` renders without the sidebar every other signed-in page has. (5) A card's menu has separators and a column's menu has none. (6) The picker has a native `<select>` next to a Radix select. (7) Star counts use an emoji where the rest of the app uses icons.
-
-**Why:** Polish (FINDING-013, FINDING-023 and the consistency review). None of them stops anyone; together they are why the app feels slightly different from page to page.
-
-**Context:** `src/components/Sidebar/Sidebar.tsx`, `src/hooks/board/useCardDialogFocusReturn.ts`, `src/app/settings/`, `src/components/Board/OverflowMenu.tsx`, `src/components/Board/StatusColumn.tsx`, `src/components/Board/AddRepositoryCombobox.tsx`.
-
-**Effort:** M
-**Priority:** P4
-**Depends on:** None
-
 ## Completed
 
+- [x] **Smaller design gaps left from the 2026-10-12 review**
+      **Completed:** v0.7.21.0 (2026-10-18). Settings has the sidebar, a closed note returns focus to the card, forms share one error and pending label, transitions name the properties that change, the column menu has a separator, and the picker uses a Radix visibility list and a lucide star.
 - [x] **Preserve `?query` and `#hash` on silent refresh redirect** — [#177](https://github.com/laststance/gitbox/issues/177)
       **Completed:** v0.3.3.0 (2026-10-07). The repository catalog caller now forwards the full board destination, with unit coverage and a real-account OAuth round trip confirming both values survive.
 - [x] **Fix the hydration mismatch on the board page for returning users**

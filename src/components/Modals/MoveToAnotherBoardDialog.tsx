@@ -48,6 +48,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { FormError } from '@/components/ui/form-error'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -76,6 +77,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { RepoCardId } from '@/lib/types/brands'
 import { toMoveFailure } from '@/lib/utils/move-failure'
+import { pendingButtonLabel } from '@/lib/utils/pending-button-label'
 import { reloadPage } from '@/lib/utils/reload-page'
 import {
   requestBoardCreation,
@@ -392,13 +394,7 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
           ))
           .with({ kind: 'load-failed' }, ({ message }) => (
             <div className="space-y-3 py-8 text-center">
-              <p
-                id={LOAD_FAILURE_TEXT_ID}
-                className="text-destructive text-sm"
-                role="alert"
-              >
-                {message}
-              </p>
+              <FormError id={LOAD_FAILURE_TEXT_ID} message={message} />
               <Button
                 ref={focusWhenAtRest}
                 type="button"
@@ -608,13 +604,9 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
             }
           >
             {pendingRequest === 'move' ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Moving…
-              </>
-            ) : (
-              'Move'
-            )}
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : null}
+            {pendingButtonLabel(pendingRequest === 'move', 'Move', 'Moving…')}
           </Button>
         </DialogFooter>
       </DialogContent>

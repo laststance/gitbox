@@ -16,6 +16,7 @@ import type { Locator } from '@playwright/test'
 import { test, expect } from '../fixtures/coverage'
 import {
   BOARD_IDS,
+  CARD_IDS,
   TEST_USER_ID,
   WORK_PROJECTS_STATUS_IDS,
   createServiceRoleSupabaseClient,
@@ -1399,7 +1400,134 @@ test.describe('AddRepositoryCombobox - Escape', () => {
     // Assert
     await expect(searchBox).toBeHidden()
   })
+
+  // Value: protects=Escape in the open Visibility list closes that list only;
+  //   fails_when=the panel takes the Escape of the list and the picker is gone;
+  //   why_new=Visibility is now a Radix select like Organization; seam=none
+  test('Escape in the open Visibility list closes the list, and the picker stays', async ({
+    page,
+  }) => {
+    // Arrange
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await page.getByRole('button', { name: /add repositories/i }).click()
+    const searchBox = page.getByRole('textbox', {
+      name: 'Search repositories',
+    })
+    await expect(searchBox).toBeVisible()
+    const visibilityFilter = page.getByRole('combobox', {
+      name: 'Visibility filter',
+    })
+    await visibilityFilter.click()
+    const publicOption = page.getByRole('option', {
+      name: 'Public',
+      exact: true,
+    })
+    await expect(publicOption).toBeVisible()
+
+    // Act
+    await page.keyboard.press('Escape')
+
+    // Assert
+    await expect(publicOption).toBeHidden()
+    await expect(searchBox).toBeVisible()
+  })
 })
+
+test.describe('AddRepositoryCombobox - Visibility and stars', () => {
+  test.use({ storageState: 'e2e/.auth/user.json' })
+
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
+
+  test.beforeEach(async () => {
+    // Seed card 4 is laststance/nsx. Every other public catalog fixture is
+    // already on this board, so the picker has no public row until this card
+    // is gone.
+    await freeNsxOnTestBoard()
+  })
+
+  test.afterEach(async () => {
+    await resetRepoCards()
+  })
+
+  // Value: protects=Public hides the private fixture repo and Private shows it;
+  //   fails_when=the filter is ignored or a native select cannot be driven;
+  //   why_new=Visibility is now a Radix select; seam=none
+  test('Public hides the private fixture repository and Private shows it', async ({
+    page,
+  }) => {
+    // Arrange
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await page.getByRole('button', { name: /add repositories/i }).click()
+    const visibilityFilter = page.getByRole('combobox', {
+      name: 'Visibility filter',
+    })
+    const privateRepo = page.getByRole('option', {
+      name: /testuser\/private-project/,
+    })
+    const publicRepo = page.getByRole('option', { name: /laststance\/nsx/ })
+    await expect(privateRepo).toBeVisible({ timeout: 10000 })
+    await expect(publicRepo).toBeVisible()
+
+    // Act
+    await visibilityFilter.click()
+    await page.getByRole('option', { name: 'Public', exact: true }).click()
+
+    // Assert
+    await expect(privateRepo).toBeHidden()
+    await expect(publicRepo).toBeVisible()
+
+    // Act
+    await visibilityFilter.click()
+    await page.getByRole('option', { name: 'Private', exact: true }).click()
+
+    // Assert
+    await expect(privateRepo).toBeVisible()
+    await expect(publicRepo).toBeHidden()
+  })
+
+  // Value: protects=an available fixture row shows a lucide star, not ⭐;
+  //   fails_when=the emoji comes back; why_new=the leftover used ⭐; seam=none
+  test('shows a lucide star next to the fixture star count', async ({
+    page,
+  }) => {
+    // Arrange: laststance/nsx is free to add and has 85 stars
+    await page.goto(BOARD_URL)
+    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await page.getByRole('button', { name: /add repositories/i }).click()
+    const nsx = page.getByRole('option', { name: /laststance\/nsx/ })
+    await expect(nsx).toBeVisible({ timeout: 10000 })
+
+    // Act
+    const starCount = nsx.getByTestId('repo-star-count')
+
+    // Assert
+    await expect(starCount).toBeVisible()
+    await expect(starCount).toHaveText('85')
+    await expect(starCount.locator('svg')).toBeVisible()
+    await expect(starCount).not.toContainText('⭐')
+  })
+})
+
+/**
+ * Takes laststance/nsx off the Test Board so the picker can offer it.
+ *
+ * Seed card 4 is that repository. The Visibility and stars tests need a
+ * public catalog row that is not already placed; every other public fixture
+ * already sits on the board.
+ *
+ * @throws When the service-role delete fails.
+ */
+async function freeNsxOnTestBoard(): Promise<void> {
+  const { error } = await createServiceRoleSupabaseClient()
+    .from('repocard')
+    .delete()
+    .eq('id', CARD_IDS.card4)
+  if (error) {
+    throw new Error(`freeNsxOnTestBoard failed: ${error.message}`)
+  }
+}
 
 /**
  * Places repositories on the Work Projects board, bypassing the app, so the

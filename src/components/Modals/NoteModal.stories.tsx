@@ -9,7 +9,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
-import { memo, useEffect } from 'react'
+import { memo, useEffect, useState, type ComponentProps } from 'react'
 import { expect, userEvent, waitFor, fn } from 'storybook/test'
 
 import { updateDraftNote } from '@/lib/redux/slices/draftSlice'
@@ -258,6 +258,138 @@ export const CharacterCountDisplays: Story = {
     // Check for character count display (uses toLocaleString: 20,000)
     await waitFor(() => {
       expect(document.body).toHaveTextContent('/ 20,000')
+    })
+  },
+}
+
+/**
+ * Card the note was opened from, plus a note that can actually close.
+ * Story args keep `isOpen` true; without this wrapper Cancel, the overlay
+ * and Save never unmount the dialog, so focus never returns.
+ */
+const ClosableNoteOnPage = memo(function ClosableNoteOnPage(
+  props: ComponentProps<typeof NoteModal>,
+) {
+  const [open, setOpen] = useState(props.isOpen)
+  return (
+    <>
+      <div role="button" tabIndex={0} data-repo-card-id={props.cardId}>
+        Fixture card
+      </div>
+      <NoteModal
+        {...props}
+        isOpen={open}
+        onClose={() => {
+          setOpen(false)
+          props.onClose()
+        }}
+      />
+    </>
+  )
+})
+
+/**
+ * Cancel hands the keyboard back to the card, not the page.
+ */
+export const CancelReturnsFocusToTheCard: Story = {
+  args: {
+    isOpen: true,
+    onClose: fn(),
+    onSave: fn(),
+    cardId: toRepoCardId('card-test'),
+    initialNote: 'Test note',
+    initialLinks: [],
+    cardTitle: 'test/repo',
+  },
+  render: (args) => <ClosableNoteOnPage {...args} />,
+  play: async () => {
+    await waitFor(() => {
+      expect(document.querySelector('[role="dialog"]')).toBeTruthy()
+    })
+
+    await userEvent.click(
+      document.querySelector('[data-testid="cancel-button"]') as HTMLElement,
+    )
+
+    await waitFor(() => {
+      expect(document.querySelector('[role="dialog"]')).toBeNull()
+    })
+    await waitFor(() => {
+      expect(document.activeElement).toHaveAttribute(
+        'data-repo-card-id',
+        'card-test',
+      )
+    })
+  },
+}
+
+/**
+ * A click on the overlay closes the note and focuses the card.
+ */
+export const OverlayReturnsFocusToTheCard: Story = {
+  args: {
+    isOpen: true,
+    onClose: fn(),
+    onSave: fn(),
+    cardId: toRepoCardId('card-test'),
+    initialNote: 'Test note',
+    initialLinks: [],
+    cardTitle: 'test/repo',
+  },
+  render: (args) => <ClosableNoteOnPage {...args} />,
+  play: async () => {
+    await waitFor(() => {
+      expect(document.querySelector('[role="dialog"]')).toBeTruthy()
+    })
+
+    const overlay = document.querySelector(
+      '[data-state="open"].fixed.inset-0',
+    ) as HTMLElement
+    await userEvent.click(overlay)
+
+    await waitFor(() => {
+      expect(document.querySelector('[role="dialog"]')).toBeNull()
+    })
+    await waitFor(() => {
+      expect(document.activeElement).toHaveAttribute(
+        'data-repo-card-id',
+        'card-test',
+      )
+    })
+  },
+}
+
+/**
+ * Save closes the note and focuses the card.
+ */
+export const SaveReturnsFocusToTheCard: Story = {
+  args: {
+    isOpen: true,
+    onClose: fn(),
+    onSave: fn().mockResolvedValue(undefined),
+    cardId: toRepoCardId('card-test'),
+    initialNote: 'Test note',
+    initialLinks: [],
+    cardTitle: 'test/repo',
+  },
+  render: (args) => <ClosableNoteOnPage {...args} />,
+  play: async () => {
+    await waitFor(() => {
+      expect(document.querySelector('[role="dialog"]')).toBeTruthy()
+    })
+
+    await userEvent.click(
+      document.querySelector('[data-testid="save-button"]') as HTMLElement,
+    )
+
+    await waitFor(() => {
+      expect(document.querySelector('[role="dialog"]')).toBeNull()
+    })
+    await waitFor(() => {
+      expect(document.activeElement).toHaveAttribute(
+        'data-repo-card-id',
+        'card-test',
+      )
     })
   },
 }

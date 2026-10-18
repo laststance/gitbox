@@ -20,6 +20,7 @@ test.describe('Settings Page (Authenticated)', () => {
     // Should have settings heading
     const heading = page.getByRole('heading', { name: /settings/i })
     await expect(heading).toBeVisible()
+    await expect(page.getByTestId('sidebar-place')).toBeVisible()
   })
 
   test('should display display settings', async ({ page }) => {

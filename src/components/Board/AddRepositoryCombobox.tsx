@@ -1,6 +1,7 @@
 'use client'
 
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { Star } from 'lucide-react'
 import {
   useState,
   useRef,
@@ -650,20 +651,25 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
             )}
 
             {/* Visibility filter */}
-            <select
+            <Select
               value={visibilityFilter}
-              onChange={(e) =>
-                setVisibilityFilter(
-                  e.target.value as 'all' | 'public' | 'private',
-                )
+              onValueChange={(value) =>
+                setVisibilityFilter(value as 'all' | 'public' | 'private')
               }
-              className="border-input bg-background text-foreground focus:ring-primary rounded-md border px-3 py-1.5 text-sm focus:ring-1 focus:outline-none"
-              aria-label="Visibility filter"
             >
-              <option value="all">All</option>
-              <option value="public">Public</option>
-              <option value="private">Private</option>
-            </select>
+              <SelectTrigger
+                className="h-9 text-sm"
+                aria-label="Visibility filter"
+                data-testid="visibility-filter"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="public">Public</SelectItem>
+                <SelectItem value="private">Private</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Selected repositories badges */}
@@ -816,7 +822,13 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                             </p>
                           )}
                           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                            <span>⭐ {repo.stargazers_count}</span>
+                            <span
+                              className="inline-flex items-center gap-1"
+                              data-testid="repo-star-count"
+                            >
+                              <Star className="h-3 w-3" aria-hidden="true" />
+                              {repo.stargazers_count}
+                            </span>
                             {repo.language && (
                               <span className="bg-muted rounded px-1.5 py-0.5">
                                 {repo.language}
@@ -869,7 +881,13 @@ export const AddRepositoryCombobox = memo(function AddRepositoryCombobox({
                           </p>
                         )}
                         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                          <span>⭐ {repo.stargazers_count}</span>
+                          <span
+                            className="inline-flex items-center gap-1"
+                            data-testid="repo-star-count"
+                          >
+                            <Star className="h-3 w-3" aria-hidden="true" />
+                            {repo.stargazers_count}
+                          </span>
                           {repo.language && (
                             <span className="bg-muted rounded px-1.5 py-0.5">
                               {repo.language}

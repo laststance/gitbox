@@ -51,7 +51,7 @@ export const NewRowDropZone = memo<NewRowDropZoneProps>(
           'h-20 rounded-xl border-2 border-dashed',
           'flex items-center justify-center',
           'text-muted-foreground text-sm font-medium',
-          'transition-all duration-200',
+          'transition-[color,background-color,border-color,transform] duration-200',
           isOver
             ? 'border-primary bg-primary/10 text-link scale-[1.02]'
             : 'border-border/50 bg-background/30',

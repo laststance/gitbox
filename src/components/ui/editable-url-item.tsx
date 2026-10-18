@@ -22,6 +22,7 @@ import { Check, Loader2, Pencil, X } from 'lucide-react'
 import { memo } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { FormError } from '@/components/ui/form-error'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -254,15 +255,7 @@ export const EditableUrlItem = memo(function EditableUrlItem({
         </div>
       )}
 
-      {error && (
-        <p
-          id={`url-error-${index}`}
-          className="text-destructive text-sm"
-          role="alert"
-        >
-          {error}
-        </p>
-      )}
+      <FormError id={`url-error-${index}`} message={error} />
     </div>
   )
 })

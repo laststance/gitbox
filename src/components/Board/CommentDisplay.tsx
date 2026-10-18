@@ -174,7 +174,7 @@ export const CommentDisplay = memo<CommentDisplayProps>(
           className={cn(
             'border-muted-foreground/30 rounded-md border-2 border-dashed p-3',
             'hover:border-muted-foreground/50 hover:bg-muted/10',
-            'cursor-pointer transition-all duration-200',
+            'cursor-pointer transition-colors duration-200',
             'focus:ring-ring focus:ring-2 focus:ring-offset-2 focus:outline-none',
             className,
           )}
@@ -205,7 +205,7 @@ export const CommentDisplay = memo<CommentDisplayProps>(
           data-testid="comment-display"
           className={cn(
             // Base styles - full rounded card with background fill
-            'cursor-pointer rounded-md p-3 transition-all duration-200',
+            'cursor-pointer rounded-md p-3 transition-colors duration-200',
             // Combined card color (bg + border from COMMENT_CARD_COLORS)
             cardColorClass,
             // Focus styles

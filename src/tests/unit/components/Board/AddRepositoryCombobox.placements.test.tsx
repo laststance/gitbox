@@ -1319,10 +1319,10 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     await findRepositoryOptions()
 
     // Act
-    await user.selectOptions(
+    await user.click(
       screen.getByRole('combobox', { name: 'Visibility filter' }),
-      'Private',
     )
+    await user.click(screen.getByRole('option', { name: 'Private' }))
 
     // Assert
     expect(
@@ -1332,6 +1332,35 @@ describe('AddRepositoryCombobox with repositories placed elsewhere', () => {
     expect(
       screen.queryByRole('listbox', { name: 'Repository options' }),
     ).toBeNull()
+  })
+
+  // Value: protects=star counts use a lucide icon and Visibility is a Radix
+  //   select; fails_when=the row paints ⭐ or the filter is a native <select>
+  //   again; why_new=the 2026-10-12 leftovers used an emoji and a native
+  //   control next to the organization Radix select; seam=none
+  test('shows star counts with a lucide icon and a Radix visibility filter', async () => {
+    // Arrange
+    mockCatalog([{ ...makeRepository(1, 'free-repo'), stargazers_count: 42 }])
+    vi.mocked(fetchRepoPlacements).mockResolvedValue({
+      success: true,
+      data: { placements: [] },
+    })
+    renderOpenPicker()
+    await findRepositoryOptions()
+
+    // Act
+    const starCount = screen.getByTestId('repo-star-count')
+    const visibility = screen.getByRole('combobox', {
+      name: 'Visibility filter',
+    })
+
+    // Assert
+    expect(starCount).toBeVisible()
+    expect(starCount).toHaveTextContent('42')
+    expect(starCount.querySelector('svg')).not.toBeNull()
+    expect(starCount.textContent).not.toContain('⭐')
+    expect(visibility.tagName).not.toBe('SELECT')
+    expect(document.querySelector('select')).toBeNull()
   })
 
   // Value: protects=Enter on the focused Cancel button cancels;
