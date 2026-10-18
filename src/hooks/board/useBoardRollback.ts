@@ -52,11 +52,21 @@ export interface BoardRollback {
  * ({@link boardRefreshRequested}, carried out by {@link useBoardServerSync}).
  *
  * @returns Stable `rollbackRepoCards` and `rollbackStatusLists` callbacks.
+ *
+ * The optimistic array must be the array dispatched for that write. The
+ * rollback compares it with `===`, so a second array with the same cards
+ * does not match. The server action is counted as pending only when it is
+ * passed to {@link trackBoardWrite}. A write started beside that call is not.
  * @example
  * const { rollbackRepoCards } = useBoardRollback()
+ * const cardsAfterDrag = reorder(cardsBeforeDrag)
  * dispatch(setRepoCards(cardsAfterDrag))
  * try {
- *   await updateRepoCardPosition(cardId, statusId, order)
+ *   await trackBoardWrite(
+ *     dispatch,
+ *     updateRepoCardPosition(cardId, statusId, order),
+ *     () => reportUnconfirmedBoardSave('syncCardPosition'),
+ *   )
  * } catch {
  *   const outcome = rollbackRepoCards(cardsAfterDrag, cardsBeforeDrag)
  *   notifyFailedBoardSave('Failed to move card', outcome)

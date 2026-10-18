@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Correct the board-sync docstrings
-
-**What:** (1) Wrap the server action in `trackBoardWrite` in the `@example` of `useBoardRollback`, and state that the optimistic array must be created for that write. (2) In the JSDoc of `useBoardServerSync`, say that only saves tracked with `trackBoardWrite` are protected and that pending saves are counted for the whole app. (3) Add a note above `reducers` in `boardSlice.ts` that points at the stale-fetch matcher.
-
-**Why:** A write copied from the example is not counted as pending. The JSDoc promises more than the code does.
-
-**Context:** `src/hooks/board/useBoardRollback.ts`, `src/hooks/board/useBoardServerSync.ts`, `src/lib/redux/slices/boardSlice.ts`.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### Drop a deleted column from the column undo history
 
 **What:** When a column is deleted, remove it from the entries of `columnHistory`, or skip entries that hold a column the board no longer has.
