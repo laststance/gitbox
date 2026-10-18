@@ -202,7 +202,7 @@ describe('BoardSettingsDialog', () => {
       fireEvent.change(input, { target: { value: longName } })
 
       const charCount = screen.getByText('42/50')
-      expect(charCount).toHaveClass('text-orange-800')
+      expect(charCount).toHaveClass('text-warning')
     })
 
     test('should disable Rename button when name is empty', () => {

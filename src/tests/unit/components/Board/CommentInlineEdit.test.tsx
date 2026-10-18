@@ -120,11 +120,7 @@ describe('CommentInlineEdit', () => {
       // 4.5:1 on every comment tint (comment-counter-contrast.test.ts)
       const counter = screen.getByTestId('character-counter')
       expect(counter).toHaveTextContent('270/300')
-      expect(counter).toHaveClass(
-        'bg-background',
-        'text-orange-800',
-        'dark:text-orange-300',
-      )
+      expect(counter).toHaveClass('bg-background', 'text-warning')
     })
 
     test('should show error color when over limit (300+)', () => {

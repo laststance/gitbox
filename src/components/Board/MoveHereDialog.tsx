@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/select'
 import type { MoveFailure } from '@/hooks/board/useMoveDialogState'
 import { moveCardToBoard } from '@/lib/actions/repo-cards'
+import { OUTCOME_UNKNOWN_TEXT_CLASS } from '@/lib/constants/outcome-unknown'
 import { SERVER_ANSWER_TIME_LIMIT_MS } from '@/lib/constants/requests'
 import type { StatusListDomain } from '@/lib/models/domain'
 import { selectStatusLists } from '@/lib/redux/slices/boardSlice'
@@ -201,7 +202,14 @@ export const MoveHereDialog = memo(function MoveHereDialog({
             </p>
           )}
           {failure && (
-            <p className="text-destructive text-sm" role="alert">
+            <p
+              className={`${
+                !failure.isOutcomeKnown && !failure.isPageOutOfDate
+                  ? OUTCOME_UNKNOWN_TEXT_CLASS
+                  : 'text-destructive'
+              } text-sm`}
+              role="alert"
+            >
               {failure.message}
             </p>
           )}

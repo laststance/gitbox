@@ -60,6 +60,7 @@ import { useCardDialogFocusReturn } from '@/hooks/board/useCardDialogFocusReturn
 import { useMoveDestinations } from '@/hooks/board/useMoveDestinations'
 import { useMoveDialogState } from '@/hooks/board/useMoveDialogState'
 import { moveCardToBoard } from '@/lib/actions/repo-cards'
+import { OUTCOME_UNKNOWN_TEXT_CLASS } from '@/lib/constants/outcome-unknown'
 import { SERVER_ANSWER_TIME_LIMIT_MS } from '@/lib/constants/requests'
 import { TOAST_WITH_ACTION_DURATION_MS } from '@/lib/constants/toast'
 import { COARSE_HIT_TARGET_CLASS } from '@/lib/constants/touch-target'
@@ -547,7 +548,12 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
                   <div className="space-y-2">
                     <p
                       id={MOVE_FAILURE_TEXT_ID}
-                      className="text-destructive text-sm"
+                      className={`${
+                        !moveFailure.isOutcomeKnown &&
+                        !moveFailure.isPageOutOfDate
+                          ? OUTCOME_UNKNOWN_TEXT_CLASS
+                          : 'text-destructive'
+                      } text-sm`}
                       role="alert"
                     >
                       {moveFailure.message}

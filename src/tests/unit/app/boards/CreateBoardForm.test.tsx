@@ -106,6 +106,7 @@ describe('CreateBoardForm', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Could not confirm that the board was created. Check your boards before trying again.',
     )
+    expect(screen.getByRole('alert')).toHaveClass('text-warning')
     // Said once, in the form: no toast lands on the way to the boards
     expect(showErrorToast).not.toHaveBeenCalled()
     expect(
@@ -189,6 +190,7 @@ describe('CreateBoardForm', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'The board was not created. Try again.',
     )
+    expect(screen.getByRole('alert')).toHaveClass('text-destructive')
     // Said once, in the form: no toast lands on the Create Board button
     expect(showErrorToast).not.toHaveBeenCalled()
     expect(screen.queryByRole('link', { name: 'Open your boards' })).toBeNull()

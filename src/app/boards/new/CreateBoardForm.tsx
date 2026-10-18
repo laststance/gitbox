@@ -35,6 +35,10 @@ import {
   DEFAULT_PRESET_ID,
   type SelectablePresetId,
 } from '@/lib/constants/board-presets'
+import {
+  OUTCOME_UNKNOWN_BOX_CLASS,
+  OUTCOME_UNKNOWN_TEXT_CLASS,
+} from '@/lib/constants/outcome-unknown'
 import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
 import { reloadPage } from '@/lib/utils/reload-page'
 import { requestBoardCreation } from '@/lib/utils/request-board-creation'
@@ -195,11 +199,21 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
 
       {/* Error Message */}
       {problem && problem.kind !== 'invalid-name' && (
-        <div className="bg-destructive/10 border-destructive/20 rounded-lg border p-3">
+        <div
+          className={`rounded-lg border p-3 ${
+            problem.kind === 'unconfirmed'
+              ? OUTCOME_UNKNOWN_BOX_CLASS
+              : 'bg-destructive/10 border-destructive/20'
+          }`}
+        >
           <p
             id={PROBLEM_TEXT_ID}
             role="alert"
-            className="text-destructive text-sm"
+            className={`text-sm ${
+              problem.kind === 'unconfirmed'
+                ? OUTCOME_UNKNOWN_TEXT_CLASS
+                : 'text-destructive'
+            }`}
           >
             {problem.message}
           </p>

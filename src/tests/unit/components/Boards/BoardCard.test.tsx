@@ -337,6 +337,31 @@ describe('BoardCard', () => {
       expect(star).not.toHaveClass('opacity-70')
     })
 
+    test('the star of a favorite uses the favorite token', () => {
+      // Arrange
+      const board = createMockBoard({
+        name: 'Side Projects',
+        is_favorite: true,
+      })
+
+      // Act
+      render(
+        <BoardCard
+          board={board}
+          onRename={mockOnRename}
+          onDelete={mockOnDelete}
+          onToggleFavorite={mockOnToggleFavorite}
+        />,
+      )
+
+      // Assert
+      const star = screen.getByRole('button', {
+        name: 'Remove Side Projects from favorites',
+      })
+      expect(star).toHaveClass('text-favorite')
+      expect(star).toHaveClass('hover:text-favorite')
+    })
+
     test('still hides that star until the card is hovered where there is a mouse and a wide screen', () => {
       // Arrange
       const board = createMockBoard({ name: 'Side Projects' })

@@ -8,10 +8,10 @@
  * contrast of what the editor writes there, in every theme:
  * - the character counter in its plain state, 70% of the foreground
  * - the text being typed, which keeps its color over the limit
- * - the counter near the limit, orange on a chip of the page background.
- *   The orange is NEAR_LIMIT_COUNTER_TEXT_CLASS, which the counters of a
- *   card's note and of a board's name and subtitle have too, on a dialog of
- *   the same background
+ * - the counter near the limit, warning on a chip of the page background.
+ *   The color is NEAR_LIMIT_COUNTER_TEXT_CLASS (`text-warning`), which the
+ *   counters of a card's note and of a board's name and subtitle have too,
+ *   on a dialog of the same background
  * - the counter over the limit, on a destructive fill
  *
  * CommentInlineEdit.test.tsx checks that the counter carries these classes.
@@ -29,7 +29,6 @@ import { NEAR_LIMIT_COUNTER_TEXT_CLASS } from '@/lib/constants/character-counter
 import {
   AA_TEXT_CONTRAST,
   contrastRatio,
-  DARK_THEME_SELECTORS,
   paintOver,
   readTailwindColor,
   readThemeColor,
@@ -63,18 +62,6 @@ const COMMENT_TINTS: CommentTint[] = Object.values(COMMENT_CARD_COLORS).flatMap(
     })),
 )
 
-/**
- * The two colors of a counter near its limit, as
- * NEAR_LIMIT_COUNTER_TEXT_CLASS writes them: the one of the light themes and
- * the one behind `dark:`.
- */
-const NEAR_LIMIT_COLOR_NAMES = {
-  light:
-    /(?<![\w:-])text-([a-z]+-\d+)/.exec(NEAR_LIMIT_COUNTER_TEXT_CLASS)?.[1] ??
-    '',
-  dark: /dark:text-([a-z]+-\d+)/.exec(NEAR_LIMIT_COUNTER_TEXT_CLASS)?.[1] ?? '',
-}
-
 describe('the tints these tests read from the comment colors', () => {
   test('finds the resting and the hovered tint of all eight comment colors', () => {
     // Act
@@ -103,13 +90,10 @@ describe('the tints these tests read from the comment colors', () => {
     ])
   })
 
-  // Value: protects=the contrast test below computes the two colors the counters really have; fails_when=the class of the counters changes its shape and the pattern reads nothing or another color from it; why_new=the colors were typed into the test by hand while four components typed them into their classes, and one of the four had another color; seam=none; no_claim=none
-  test('finds the color of a counter near its limit, for the light and for the dark themes', () => {
-    // Act & Assert: a pattern that finds nothing would compute no contrast
-    expect(NEAR_LIMIT_COLOR_NAMES).toEqual({
-      light: 'orange-800',
-      dark: 'orange-300',
-    })
+  // Value: protects=the four counters share the warning token; fails_when=NEAR_LIMIT_COUNTER_TEXT_CLASS is no longer text-warning; why_new=the class used to name Tailwind oranges; seam=none; no_claim=contrast of that token
+  test('the counter near the limit uses the warning token', () => {
+    // Arrange / Act / Assert
+    expect(NEAR_LIMIT_COUNTER_TEXT_CLASS).toBe('text-warning')
   })
 })
 
@@ -156,11 +140,7 @@ describe('the comment editor on its tinted box', () => {
       // Arrange: NEAR_LIMIT_COUNTER_TEXT_CLASS on `bg-background`, the chip
       // of the comment counter and the dialog of the three other counters
       const chip = readThemeColor(themeSelector, 'background')
-      const warningText = readTailwindColor(
-        DARK_THEME_SELECTORS.includes(themeSelector)
-          ? NEAR_LIMIT_COLOR_NAMES.dark
-          : NEAR_LIMIT_COLOR_NAMES.light,
-      )
+      const warningText = readThemeColor(themeSelector, 'warning')
 
       // Act
       const contrast = contrastRatio(warningText, chip)

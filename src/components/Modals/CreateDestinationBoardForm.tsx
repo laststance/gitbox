@@ -17,6 +17,7 @@ import { match } from 'ts-pattern'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { OUTCOME_UNKNOWN_TEXT_CLASS } from '@/lib/constants/outcome-unknown'
 import { reloadPage } from '@/lib/utils/reload-page'
 import type { BoardCreationAttempt } from '@/lib/utils/request-board-creation'
 import { BOARD_NAME_MAX_LENGTH, boardNameSchema } from '@/lib/validations/board'
@@ -180,7 +181,11 @@ export const CreateDestinationBoardForm = memo(
           {problem && (
             <p
               id={NAME_ERROR_ID}
-              className="text-destructive text-sm"
+              className={`${
+                problem.status === 'unconfirmed'
+                  ? OUTCOME_UNKNOWN_TEXT_CLASS
+                  : 'text-destructive'
+              } text-sm`}
               role="alert"
             >
               {problem.message}

@@ -45,18 +45,6 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 From `/design-review` of the change for issue #213. The review found 27 issues and fixed 21; these are what is left. All of them are in the app as it was before that change. The full report with screenshots is in `~/.gstack/projects/laststance-gitbox/designs/design-audit-20261012/`.
 
-### Add theme tokens for warning and favorite
-
-**What:** Add `--warning` and `--favorite` (with foregrounds) to the 14 themes and use them where the app now reaches for `orange-*` and `amber-*`.
-
-**Why:** Each theme picks its own red, green and primary, but orange and amber are the same fixed shades on all of them. This review fixed the two places where that cost contrast (the character counters and the favorite star) with fixed shades that were measured on every theme; a token would let a theme choose, and would give "outcome unknown" messages a color of their own instead of red. The counter of a card's comment stands on a tinted box, where no single orange passes on every tint; it paints a chip of the page background under its orange, and a warning token needs a surface like that too.
-
-**Context:** `src/styles/globals.css` (theme definitions), `src/components/Boards/BoardCard.tsx`, `src/app/boards/favorites/page.tsx`, and `NEAR_LIMIT_COUNTER_TEXT_CLASS` in `src/lib/constants/character-counter.ts`, the one orange of the four counters (a card's note and comment, a board's name and subtitle). The toast colors come from sonner's palette, not from the themes (`src/components/ThemedToaster.tsx`).
-
-**Effort:** M
-**Priority:** P4
-**Depends on:** None
-
 ### Stop using the theme color and the muted color where they cannot be read
 
 **What:** (1) Replace `text-primary` where it colors text on the page background, or give the themes a second token for text in the theme color: the two links of the login page, the `link` variant of `Button`, the link of the note editor (`link-node.tsx`), the URL of a project link (`editable-url-item.tsx`), "Save" of the comment editor, the labels of the two drop zones while a card is dragged over them, and the hovered title of a board card. (2) Darken `--muted-foreground` of `:root`, the block of the System theme on a light screen: on `bg-muted` and on `bg-accent` it is 4.34:1 there, for example in the language chip of the Add Repositories picker.
