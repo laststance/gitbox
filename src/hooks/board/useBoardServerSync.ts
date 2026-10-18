@@ -77,8 +77,9 @@ interface BoardServerSnapshot {
 /**
  * Puts the board's server data into the store and fetches the board again
  * when asked to, without ever replacing something the user just did. Called
- * once by {@link BoardPageClient}; {@link useBoardRollback} asks for a fetch
- * by dispatching {@link boardRefreshRequested}.
+ * once by {@link BoardPageClient}; {@link rollbackRepoCards} and
+ * {@link rollbackStatusLists} ask for a fetch by dispatching
+ * {@link boardRefreshRequested}.
  *
  * - Data of a board the store does not hold yet always goes in.
  * - Only a save passed to {@link trackBoardWrite} is counted as pending.

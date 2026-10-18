@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.14.0] - 2026-10-18
+
+### Changed
+
+- A failed drag, undo, or remove still puts cards and columns back only when the screen still shows that same attempt. If the board has moved on, the page asks for a fresh copy instead of overwriting it.
+
 ## [0.7.13.0] - 2026-10-18
 
 ### Fixed

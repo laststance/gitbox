@@ -13,6 +13,7 @@ import type { Dispatch, PayloadAction } from '@reduxjs/toolkit'
 import { createSlice, isAnyOf } from '@reduxjs/toolkit'
 
 import { SERVER_ANSWER_TIME_LIMIT_MS } from '@/lib/constants/requests'
+import type { RepoCardForRedux, StatusListDomain } from '@/lib/models/domain'
 import type { BoardId, RepoCardId } from '@/lib/types/brands'
 
 import {
@@ -400,6 +401,126 @@ export const removeMovedRepoCard =
     if (getState().boardSync.hydratedBoardId !== sourceBoardId) return
     dispatch(removeRepoCard(cardId))
   }
+
+/**
+ * Puts the previous cards back only while the store still holds the array
+ * the failed write dispatched. Called by {@link useKanbanDnD},
+ * {@link useKanbanUndo} and {@link useOptimisticCardAction} after a refused
+ * or thrown save. Lives next to {@link trackBoardWrite} so the rollback does
+ * not need a React hook.
+ *
+ * Any other array means the board changed in the meantime or another board
+ * is open; {@link boardRefreshRequested} then asks {@link useBoardServerSync}
+ * for a fresh copy of the board that was written.
+ *
+ * @param optimisticCards - The exact array the failed write dispatched.
+ * @param previousCards - The array the store held before that write.
+ * @returns `'restored'` when `previousCards` is back in the store;
+ *   `'reload-requested'` when the snapshot was stale and a fetch was asked for.
+ * @example
+ * dispatch(setRepoCards(cardsAfterDrag))
+ * try {
+ *   await trackBoardWrite(dispatch, updateRepoCardPosition(cardId, statusId, order))
+ * } catch {
+ *   reportThrownBoardSave(
+ *     dispatch,
+ *     'Failed to move card',
+ *     dispatch(rollbackRepoCards(cardsAfterDrag, cardsBeforeDrag)),
+ *   )
+ * }
+ */
+export const rollbackRepoCards =
+  (optimisticCards: RepoCardForRedux[], previousCards: RepoCardForRedux[]) =>
+  (
+    dispatch: Dispatch,
+    getState: () => { board: { repoCards: RepoCardForRedux[] } },
+  ): 'restored' | 'reload-requested' => {
+    // Still the cards the failed write put on screen: put the old ones back
+    if (getState().board.repoCards === optimisticCards) {
+      dispatch(setRepoCards(previousCards))
+      return 'restored'
+    }
+    // The board moved on: the snapshot is stale, so ask the server.
+    // The board id is the one that was written, which may no longer be on screen.
+    dispatch(
+      boardRefreshRequested(boardOfCards(optimisticCards, previousCards)),
+    )
+    return 'reload-requested'
+  }
+
+/**
+ * Puts the previous columns back only while the store still holds the array
+ * the failed write dispatched. Called by {@link useKanbanDnD} and
+ * {@link useKanbanUndo} after a refused or thrown column save.
+ *
+ * @param optimisticStatusLists - The exact array the failed write dispatched.
+ * @param previousStatusLists - The array the store held before that write.
+ * @returns `'restored'` when `previousStatusLists` is back in the store;
+ *   `'reload-requested'` when the snapshot was stale and a fetch was asked for.
+ * @example
+ * dispatch(
+ *   rollbackStatusLists(columnsAfterDrag, columnsBeforeDrag),
+ * )
+ */
+export const rollbackStatusLists =
+  (
+    optimisticStatusLists: StatusListDomain[],
+    previousStatusLists: StatusListDomain[],
+  ) =>
+  (
+    dispatch: Dispatch,
+    getState: () => { board: { statusLists: StatusListDomain[] } },
+  ): 'restored' | 'reload-requested' => {
+    // Still the columns the failed write put on screen: put the old ones back
+    if (getState().board.statusLists === optimisticStatusLists) {
+      dispatch(setStatusLists(previousStatusLists))
+      return 'restored'
+    }
+    // The board moved on: the snapshot is stale, so ask the server
+    dispatch(
+      boardRefreshRequested(
+        boardOfColumns(optimisticStatusLists, previousStatusLists),
+      ),
+    )
+    return 'reload-requested'
+  }
+
+/**
+ * Board a failed card write belongs to.
+ *
+ * Called by {@link rollbackRepoCards} when the cards on screen are no longer
+ * the ones that write put there. An empty list has no board, and the fetch
+ * is then of the board on screen.
+ *
+ * @param optimisticCards - Cards the failed write put on screen.
+ * @param previousCards - Cards the store held before that write.
+ * @returns The request for that board, or nothing when neither list has a card.
+ */
+function boardOfCards(
+  optimisticCards: RepoCardForRedux[],
+  previousCards: RepoCardForRedux[],
+): { boardId: RepoCardForRedux['boardId'] } | undefined {
+  const boardId = optimisticCards[0]?.boardId ?? previousCards[0]?.boardId
+  return boardId !== undefined ? { boardId } : undefined
+}
+
+/**
+ * Board a failed column write belongs to.
+ *
+ * Called by {@link rollbackStatusLists} when the columns on screen are no
+ * longer the ones that write put there.
+ *
+ * @param optimisticColumns - Columns the failed write put on screen.
+ * @param previousColumns - Columns the store held before that write.
+ * @returns The request for that board, or nothing when neither list has a column.
+ */
+function boardOfColumns(
+  optimisticColumns: StatusListDomain[],
+  previousColumns: StatusListDomain[],
+): { boardId: StatusListDomain['boardId'] } | undefined {
+  const boardId = optimisticColumns[0]?.boardId ?? previousColumns[0]?.boardId
+  return boardId !== undefined ? { boardId } : undefined
+}
 
 // Selectors
 

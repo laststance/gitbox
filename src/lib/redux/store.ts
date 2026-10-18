@@ -80,7 +80,7 @@ export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector
  * Gives a callback access to the live store. Exists because a callback that
  * resumes after an `await` holds the selector values of the render that
  * created it, and some decisions need the state as it is now. Called by
- * {@link useBoardRollback} and {@link useBoardServerSync}. Components keep using {@link useAppSelector} for
+ * {@link useBoardServerSync}. Components keep using {@link useAppSelector} for
  * anything they render: `getState()` does not subscribe.
  *
  * @returns The Redux store of the surrounding provider.

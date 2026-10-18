@@ -83,8 +83,6 @@ function renderBoardDrag() {
       dispatch: vi.fn(),
       pushCardHistory: vi.fn(),
       pushColumnHistory: vi.fn(),
-      rollbackRepoCards: vi.fn(),
-      rollbackStatusLists: vi.fn(),
     }),
   )
 }
@@ -173,8 +171,6 @@ describe('useKanbanDnD, a card dropped where it already was', () => {
         dispatch: vi.fn(),
         pushCardHistory,
         pushColumnHistory: vi.fn(),
-        rollbackRepoCards: vi.fn(),
-        rollbackStatusLists: vi.fn(),
       }),
     )
 
@@ -205,8 +201,6 @@ describe('useKanbanDnD, a card dropped where it already was', () => {
         dispatch: vi.fn(),
         pushCardHistory,
         pushColumnHistory: vi.fn(),
-        rollbackRepoCards: vi.fn(),
-        rollbackStatusLists: vi.fn(),
       }),
     )
 
