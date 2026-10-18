@@ -30,6 +30,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useCardDialogFocusReturn } from '@/hooks/board/useCardDialogFocusReturn'
+import { ICON_TRIGGER_CLASS } from '@/lib/constants/touch-target'
 import type { RepoCardId } from '@/lib/types/brands'
 
 interface OverflowMenuProps {
@@ -153,7 +154,7 @@ export const OverflowMenu = memo(function OverflowMenu({
     >
       <DropdownMenu open={open} onOpenChange={onOpenChange}>
         <DropdownMenuTrigger
-          className="hover:bg-accent hover:text-accent-foreground focus:ring-ring rounded-md p-1 focus:ring-2 focus:ring-offset-2 focus:outline-none"
+          className={`hover:bg-accent hover:text-accent-foreground focus:ring-ring rounded-md focus:ring-2 focus:ring-offset-2 focus:outline-none ${ICON_TRIGGER_CLASS}`}
           data-testid={`overflow-menu-trigger-${cardId}`}
         >
           <MoreHorizontal className="h-4 w-4" />

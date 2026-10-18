@@ -62,6 +62,7 @@ import { useMoveDialogState } from '@/hooks/board/useMoveDialogState'
 import { moveCardToBoard } from '@/lib/actions/repo-cards'
 import { SERVER_ANSWER_TIME_LIMIT_MS } from '@/lib/constants/requests'
 import { TOAST_WITH_ACTION_DURATION_MS } from '@/lib/constants/toast'
+import { COARSE_HIT_TARGET_CLASS } from '@/lib/constants/touch-target'
 import {
   boardRefreshRequested,
   trackBoardWrite,
@@ -474,7 +475,7 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="pointer-coarse:min-h-11"
+                    className={COARSE_HIT_TARGET_CLASS}
                     disabled={isBusy}
                     onClick={openCreateForm}
                   >
@@ -561,7 +562,7 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="pointer-coarse:min-h-11"
+                        className={COARSE_HIT_TARGET_CLASS}
                         aria-describedby={MOVE_FAILURE_TEXT_ID}
                         onClick={reloadPage}
                       >

@@ -35,6 +35,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useEditableUrl } from '@/hooks/ui/useEditableUrl'
+import { COARSE_HIT_TARGET_CLASS } from '@/lib/constants/touch-target'
 import { cn } from '@/lib/utils'
 
 export interface ProjectLink {
@@ -154,7 +155,7 @@ export const EditableUrlItem = memo(function EditableUrlItem({
           <Button
             variant="ghost"
             size="icon"
-            className="min-h-11 min-w-11 shrink-0"
+            className={`${COARSE_HIT_TARGET_CLASS} shrink-0`}
             onClick={handleSave}
             onPointerDown={handleSavePointerDown}
             disabled={!!error || isSaving}
@@ -173,7 +174,7 @@ export const EditableUrlItem = memo(function EditableUrlItem({
           <Button
             variant="ghost"
             size="icon"
-            className="min-h-11 min-w-11 shrink-0"
+            className={`${COARSE_HIT_TARGET_CLASS} shrink-0`}
             onClick={handleDelete}
             onPointerDown={(e) => e.stopPropagation()}
             disabled={disabled || isSaving}
@@ -227,7 +228,7 @@ export const EditableUrlItem = memo(function EditableUrlItem({
             ref={penButtonRef}
             variant="ghost"
             size="icon"
-            className="min-h-11 min-w-11 shrink-0"
+            className={`${COARSE_HIT_TARGET_CLASS} shrink-0`}
             onClick={handleEditStart}
             onPointerDown={(e) => e.stopPropagation()}
             disabled={disabled}
@@ -240,7 +241,7 @@ export const EditableUrlItem = memo(function EditableUrlItem({
           <Button
             variant="ghost"
             size="icon"
-            className="min-h-11 min-w-11 shrink-0"
+            className={`${COARSE_HIT_TARGET_CLASS} shrink-0`}
             onClick={handleDelete}
             onPointerDown={(e) => e.stopPropagation()}
             disabled={disabled}

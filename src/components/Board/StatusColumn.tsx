@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { CommentData } from '@/lib/actions/project-info'
+import { ICON_TRIGGER_CLASS } from '@/lib/constants/touch-target'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import type { CommentColor } from '@/lib/supabase/types'
 import type { CardDisplaySettings } from '@/lib/types/board-settings'
@@ -143,9 +144,10 @@ export const StatusColumn = memo<StatusColumnProps>(
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  size="sm"
-                  className="hover:bg-accent relative h-6 w-6 p-0 after:absolute after:-inset-[9px] after:content-['']"
+                  size="icon"
+                  className={`hover:bg-accent ${ICON_TRIGGER_CLASS}`}
                   aria-label="Column options"
+                  data-testid="column-options-trigger"
                 >
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
