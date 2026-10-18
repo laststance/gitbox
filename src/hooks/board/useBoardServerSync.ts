@@ -14,6 +14,8 @@
  * an id, so an answer that arrives after the board was left and opened again
  * is dropped. A fetch that follows a write with no answer is
  * {@link fetchBoardBundle}: a Server Action would wait behind that write.
+ * Try again after a read that is still waiting uses that route too, because
+ * the first read has not left the queue.
  */
 
 import * as Sentry from '@sentry/nextjs'
@@ -22,7 +24,9 @@ import { toast } from 'sonner'
 
 import { useOnlineStatus } from '@/hooks/use-online-status'
 import { getBoardBundle } from '@/lib/actions/board-data'
+import { SERVER_ANSWER_TIME_LIMIT_MS } from '@/lib/constants/requests'
 import { PAGE_OUT_OF_DATE_MESSAGE } from '@/lib/constants/stale-page'
+import { TOAST_WITH_ACTION_DURATION_MS } from '@/lib/constants/toast'
 import { fetchBoardBundle } from '@/lib/fetch-board-bundle'
 import type { RepoCardForRedux, StatusListDomain } from '@/lib/models/domain'
 import { setRepoCards, setStatusLists } from '@/lib/redux/slices/boardSlice'
@@ -46,6 +50,7 @@ import type { BoardId } from '@/lib/types/brands'
 import type { FetchedBoardDetails } from '@/lib/utils/adopt-fetched-board-details'
 import { isStalePageAction } from '@/lib/utils/is-stale-page-action'
 import { reloadPage } from '@/lib/utils/reload-page'
+import { settleWithin } from '@/lib/utils/settle-within'
 
 /** Sonner id of the offline notice, so it can be taken down again. */
 const OFFLINE_REFRESH_TOAST_ID = 'board-refresh-offline'
@@ -88,9 +93,11 @@ interface BoardServerSnapshot {
  *   That is a fetch of a board that was left and opened again.
  * - A wanted fetch waits for pending writes to settle and for the browser to
  *   be online. While it waits for the connection, a notice says so.
- * - A fetch that fails on the way offers "Try again". A page whose build no
- *   longer has the action, or a read that finds no board, offers "Reload
- *   page": the same read would answer the same way.
+ * - A fetch that fails on the way, or that is still waiting after 15 seconds,
+ *   offers "Try again" and clears the in-flight mark, so a later read can be
+ *   sent. A page whose build no longer has the action, or a read that finds
+ *   no board, offers "Reload page": the same read would answer the same way.
+ *   Leaving the board clears the mark without a notice.
  * - A fetch that is applied also reports the board name, the subtitle, the
  *   card display settings and the comments through `onAppliedDetails`. A
  *   fetch that is dropped does not, so a read from before a save is not
@@ -229,7 +236,9 @@ export function useBoardServerSync(serverSnapshot: BoardServerSnapshot): void {
  * Called by {@link useBoardServerSync} after it has marked the fetch sent.
  * A Server Action stays behind writes that were already sent, which is what
  * a column edit or an added repository needs. The fetch after a write that
- * got no answer uses the route, which does not wait behind that write.
+ * got no answer uses the route, which does not wait behind that write. The
+ * read is given 15 seconds. When it brings no answer, or the page that sent
+ * it is gone, the in-flight mark is cleared. A late answer is then dropped.
  *
  * @param request.boardId - Board to read.
  * @param request.requestId - Id this fetch was given. An answer for another id is dropped.
@@ -257,66 +266,150 @@ async function applyFetchedBoard(request: {
     getState,
     onAppliedDetails,
   } = request
-  try {
-    const bundle = bypassesActionQueue
-      ? await fetchBoardBundle(boardId)
-      : await getBoardBundle(boardId)
-    if (!isCurrentFetch(isStillMounted, getState, requestId)) return
-    if (!bundle) {
-      // No session, or the board is gone. Reading it again answers the same way.
+  const outcome = await settleWithin(
+    bypassesActionQueue ? fetchBoardBundle(boardId) : getBoardBundle(boardId),
+    SERVER_ANSWER_TIME_LIMIT_MS,
+  )
+  // The page that sent this read is gone. Clear its mark and do not toast:
+  // leaving is not a failure. A newer read already has a different id.
+  if (!isStillMounted()) {
+    if (getState().boardSync.sentRefreshRequestId === requestId) {
       dispatch(boardRefreshFailed(requestId))
-      toast.error('The board could not be reloaded', {
-        id: FAILED_REFRESH_TOAST_ID,
-        action: { label: 'Reload page', onClick: () => reloadPage() },
-      })
-      return
     }
-    // The board changed while this was on its way: keep the screen and fetch once more
-    if (!selectMayApplyServerSnapshot(getState(), boardId)) {
-      dispatch(serverSnapshotSkipped())
-      return
-    }
-    dispatch(setStatusLists(bundle.statusLists))
-    dispatch(setRepoCards(bundle.repoCards))
-    dispatch(serverSnapshotApplied(boardId))
-    // The columns and cards are in the store. The name, the settings and the
-    // comments stay in the hooks, which compare them to the last server copy.
-    onAppliedDetails?.({
-      boardId,
-      name: bundle.board.name,
-      subtitle: bundle.board.subtitle,
-      settings: bundle.board.settings,
-      comments: bundle.comments,
-    })
-  } catch (error) {
-    if (!isCurrentFetch(isStillMounted, getState, requestId)) return
+    return
+  }
+  if (!isCurrentFetch(isStillMounted, getState, requestId)) return
+  if (outcome.status === 'overdue') {
+    // A refresh asked for while this read was in flight must still go out.
+    // boardRefreshFailed would drop that ask.
+    if (anotherReadIsAlreadyWaiting(dispatch, getState, boardId, true)) return
+    dispatch(boardRefreshFailed(requestId))
+    // A Server Action read is still in that queue, so the retry must not be
+    // one. A route read that already left the queue must not re-enter it.
+    offerAnotherBoardRead(dispatch, getState, boardId, true)
+    return
+  }
+  if (outcome.status === 'failed') {
+    if (anotherReadIsAlreadyWaiting(dispatch, getState, boardId, false)) return
     dispatch(boardRefreshFailed(requestId))
     // This page's build no longer has the action. Trying it again fails the same way.
-    if (isStalePageAction(error)) {
+    if (isStalePageAction(outcome.error)) {
       toast.error(PAGE_OUT_OF_DATE_MESSAGE, {
         id: FAILED_REFRESH_TOAST_ID,
         action: { label: 'Reload page', onClick: () => reloadPage() },
       })
       return
     }
-    Sentry.captureException(error, { tags: { action: 'getBoardBundle' } })
+    Sentry.captureException(outcome.error, {
+      tags: { action: 'getBoardBundle' },
+    })
+    offerAnotherBoardRead(dispatch, getState, boardId, bypassesActionQueue)
+    return
+  }
+  const bundle = outcome.answer
+  if (!bundle) {
+    // No session, or the board is gone. Reading it again answers the same way.
+    dispatch(boardRefreshFailed(requestId))
     toast.error('The board could not be reloaded', {
       id: FAILED_REFRESH_TOAST_ID,
-      action: {
-        label: 'Try again',
-        onClick: () => {
-          // A route read timed out while a write still has no answer. Trying
-          // again through a Server Action would wait behind that write.
-          dispatch(
-            boardRefreshRequested({
-              boardId,
-              ...(bypassesActionQueue ? { bypassActionQueue: true } : {}),
-            }),
-          )
-        },
-      },
+      action: { label: 'Reload page', onClick: () => reloadPage() },
     })
+    return
   }
+  // The board changed while this was on its way: keep the screen and fetch once more
+  if (!selectMayApplyServerSnapshot(getState(), boardId)) {
+    dispatch(serverSnapshotSkipped())
+    return
+  }
+  dispatch(setStatusLists(bundle.statusLists))
+  dispatch(setRepoCards(bundle.repoCards))
+  dispatch(serverSnapshotApplied(boardId))
+  // The columns and cards are in the store. The name, the settings and the
+  // comments stay in the hooks, which compare them to the last server copy.
+  onAppliedDetails?.({
+    boardId,
+    name: bundle.board.name,
+    subtitle: bundle.board.subtitle,
+    settings: bundle.board.settings,
+    comments: bundle.comments,
+  })
+}
+
+/**
+ * Shows the failure a user can retry, for a read that threw or brought no
+ * answer in time. One function so those two endings cannot grow different
+ * notices.
+ *
+ * @param dispatch - Dispatch of the store that holds the board.
+ * @param getState - Reads that store, so Try again does nothing once another
+ *   board is on screen.
+ * @param boardId - Board the failed read was for.
+ * @param bypassesActionQueue - The retry uses the route. An overdue Server
+ *   Action passes true, because that action is still in the queue. A thrown
+ *   action passes the flag it was sent with, because it has finished.
+ */
+function offerAnotherBoardRead(
+  dispatch: AppDispatch,
+  getState: () => RootState,
+  boardId: BoardId,
+  bypassesActionQueue: boolean,
+): void {
+  toast.error('The board could not be reloaded', {
+    id: FAILED_REFRESH_TOAST_ID,
+    // Four seconds is too short to reach Try again after a 15 second wait.
+    duration: TOAST_WITH_ACTION_DURATION_MS,
+    closeButton: true,
+    action: {
+      label: 'Try again',
+      onClick: () => {
+        // The toast outlives the board it belongs to. A click then would
+        // leave the route-read flag set for whichever board is open.
+        if (getState().boardSync.hydratedBoardId !== boardId) return
+        // A route read timed out while a write still has no answer. Trying
+        // again through a Server Action would wait behind that write.
+        dispatch(
+          boardRefreshRequested({
+            boardId,
+            ...(bypassesActionQueue ? { bypassActionQueue: true } : {}),
+          }),
+        )
+      },
+    },
+  })
+}
+
+/**
+ * Lets a refresh that was asked for during this read go out.
+ *
+ * {@link boardRefreshFailed} clears that ask. Used when the read is given
+ * up while the page is still open and something already asked for the board.
+ *
+ * @param dispatch - Dispatch of the store that holds the board.
+ * @param getState - Reads that store.
+ * @param boardId - Board this read was for. A refresh for another board is
+ *   not this read's retry.
+ * @param forceRoute - The waiting refresh for this board must use the route.
+ *   A read that is still in the Server Action queue passes true.
+ * @returns Whether a refresh for this board was already waiting.
+ */
+function anotherReadIsAlreadyWaiting(
+  dispatch: AppDispatch,
+  getState: () => RootState,
+  boardId: BoardId,
+  forceRoute: boolean,
+): boolean {
+  const sync = getState().boardSync
+  if (!sync.isRefreshWanted) return false
+  const forThisBoard =
+    sync.refreshForBoardId === null || sync.refreshForBoardId === boardId
+  // The next read must not line up behind the one that just ran out of time.
+  if (forThisBoard && forceRoute) {
+    dispatch(boardRefreshRequested({ boardId, bypassActionQueue: true }))
+  }
+  // Releasing the mark must not drop a refresh that is for another board.
+  // boardRefreshFailed would, and the id no longer matches after this.
+  dispatch(serverSnapshotSkipped())
+  return forThisBoard
 }
 
 /**

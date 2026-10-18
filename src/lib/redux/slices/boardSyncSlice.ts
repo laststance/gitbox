@@ -148,17 +148,26 @@ export const boardSyncSlice = createSlice({
      */
     boardRefreshRequested: {
       reducer(state, action: PayloadAction<BoardRefreshRequest>) {
-        state.isRefreshWanted = true
-        state.refreshForBoardId =
+        const nextBoardId =
           action.payload.boardId !== undefined
             ? action.payload.boardId
             : state.hydratedBoardId
+        const targetChanged =
+          state.refreshForBoardId !== null &&
+          nextBoardId !== state.refreshForBoardId
+        state.isRefreshWanted = true
+        state.refreshForBoardId = nextBoardId
         if (action.payload.invalidateInFlight) {
           state.sentRefreshRevision = null
           state.sentRefreshRequestId = null
         }
-        if (action.payload.bypassActionQueue) {
+        // A route read that has not been sent stays on the route when a later
+        // ask for the same board does not name it. A different board does not
+        // inherit that flag. The effect reads the flag once, when it sends.
+        if (action.payload.bypassActionQueue === true) {
           state.refreshBypassesActionQueue = true
+        } else if (targetChanged) {
+          state.refreshBypassesActionQueue = false
         }
       },
       prepare(request?: BoardRefreshRequest) {
@@ -176,7 +185,8 @@ export const boardSyncSlice = createSlice({
     /**
      * The fetch failed, so it is no longer in flight. A retry asks for the
      * board again. An answer for a fetch that was already given up on is
-     * ignored.
+     * ignored. The route-read flag is cleared with the mark: a later refresh
+     * uses the route only when it asks to.
      *
      * @param action.payload - Id of the fetch that failed.
      */
@@ -185,6 +195,7 @@ export const boardSyncSlice = createSlice({
       state.sentRefreshRequestId = null
       state.sentRefreshRevision = null
       state.isRefreshWanted = false
+      state.refreshBypassesActionQueue = false
     },
     /**
      * Server data of this board went into the store, so no fetch is in flight
@@ -206,7 +217,10 @@ export const boardSyncSlice = createSlice({
     serverSnapshotApplied: (state, action: PayloadAction<BoardId>) => {
       if (state.hydratedBoardId !== action.payload) {
         if (state.pendingWriteCount > 0) {
-          // This page may have been read before the save landed
+          // This page may have been read before the save landed. The route
+          // flag belonged to the board just left, and this refresh is now
+          // for the board being opened.
+          state.refreshBypassesActionQueue = false
           state.isRefreshWanted = true
           state.refreshForBoardId = action.payload
         } else if (state.refreshForBoardId === action.payload) {

@@ -2,8 +2,9 @@
  * Client fetch for one board's columns and cards.
  *
  * Server Actions share one queue, so a read sent while a write has no answer
- * waits behind that write. This GET does not. Called by {@link useBoardServerSync}
- * only for the fetch that follows such a write. Every other refetch calls
+ * waits behind that write. This GET does not. {@link useBoardServerSync} calls
+ * it after such a write, and again when Try again follows a read that is still
+ * waiting: that read is still in the queue. Every other refetch calls
  * {@link getBoardBundle}, which stays in the queue and so runs after the
  * writes already sent.
  */
@@ -45,7 +46,8 @@ export async function fetchBoardBundle(
 ): Promise<BoardBundle | null> {
   const response = await axios.get<unknown>(boardBundlePath(boardId), {
     headers: { accept: 'application/json' },
-    // A hung read must reject. Until it does, no other fetch is sent.
+    // A hung read must reject. The page stops waiting at the same limit and
+    // may send the next fetch before this rejection arrives.
     timeout: SERVER_ANSWER_TIME_LIMIT_MS,
     // 404 still carries `{ bundle: null }`. A 500 does not, and throws.
     validateStatus: (status) => status === 200 || status === 404,
