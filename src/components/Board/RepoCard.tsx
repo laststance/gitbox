@@ -224,7 +224,7 @@ const RepoCardView = memo(function RepoCardView({
       className={sortable ? 'cursor-grab active:cursor-grabbing' : undefined}
     >
       <Card
-        className="bg-card focus-within:ring-ring border transition-all duration-200 focus-within:ring-2 focus-within:ring-offset-2 hover:shadow-md dark:hover:shadow-lg"
+        className="bg-card focus-within:ring-ring border transition-shadow duration-200 focus-within:ring-2 focus-within:ring-offset-2 hover:shadow-md dark:hover:shadow-lg"
         tabIndex={0}
         onKeyDown={handleKeyDown}
         // Read by card-focus-target.ts: where the focus goes around this card

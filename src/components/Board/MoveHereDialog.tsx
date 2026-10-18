@@ -37,6 +37,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { BoardId, StatusListId } from '@/lib/types/brands'
 import { toMoveFailure } from '@/lib/utils/move-failure'
+import { pendingButtonLabel } from '@/lib/utils/pending-button-label'
 import { reloadPage } from '@/lib/utils/reload-page'
 import { settleWithin } from '@/lib/utils/settle-within'
 
@@ -247,7 +248,7 @@ export const MoveHereDialog = memo(function MoveHereDialog({
               (failure !== null && !failure.isOutcomeKnown)
             }
           >
-            {isBusy ? 'Moving…' : 'Move Here'}
+            {pendingButtonLabel(isBusy, 'Move Here', 'Moving…')}
           </Button>
         </DialogFooter>
       </DialogContent>

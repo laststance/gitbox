@@ -470,6 +470,7 @@ describe('Sidebar', () => {
 
       const sidebar = screen.getByRole('complementary')
       expect(sidebar).toHaveClass('transition-[width]')
+      expect(sidebar).toHaveClass('md:transition-none')
       expect(sidebar).toHaveClass('duration-300')
       expect(sidebar).toHaveClass('ease-out')
     })

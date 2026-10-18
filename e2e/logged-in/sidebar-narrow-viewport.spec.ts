@@ -103,15 +103,16 @@ test.describe('Sidebar below 768px', () => {
     expect(pageWidthPx).toBe(375)
   })
 
-  // Value: protects=a key typed while the sidebar lies over a board or over the account page cannot reach that page, so Z does not undo a drag behind the sidebar; fails_when=one of these layouts wraps the sidebar in an element of its own, which leaves it no sibling to set aside; why_new=the tests above open the sidebar on the boards list only, and the unit tests render a page of their own beside it; seam=none; no_claim=that Z does nothing on an inert page, which useKanbanUndo.test.tsx checks
+  // Value: protects=a key typed while the sidebar lies over a board, the account page, or settings cannot reach that page, so Z does not undo a drag behind the sidebar; fails_when=one of these layouts wraps the sidebar in an element of its own, which leaves it no sibling to set aside; why_new=the tests above open the sidebar on the boards list only, and the unit tests render a page of their own beside it; seam=none; no_claim=that Z does nothing on an inert page, which useKanbanUndo.test.tsx checks
   for (const { pageName, url } of [
     { pageName: 'a board', url: `/board/${BOARD_IDS.testBoard}` },
     { pageName: 'the account page', url: '/account' },
+    { pageName: 'the settings page', url: '/settings' },
   ]) {
     test(`opened over ${pageName}, it sets the page aside as on the boards list`, async ({
       page,
     }) => {
-      // Arrange: one of the two other layouts of the app that hold a sidebar
+      // Arrange: one of the other layouts of the app that hold a sidebar
       await page.goto(url)
       const content = page.locator('main')
       const expandButton = page.getByRole('button', { name: 'Expand sidebar' })

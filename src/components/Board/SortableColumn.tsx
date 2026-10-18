@@ -108,7 +108,7 @@ export const SortableColumn = memo<SortableColumnProps>(
       <div
         ref={setNodeRef}
         style={style}
-        className={`bg-background/50 border-border flex w-full flex-col rounded-xl border backdrop-blur-sm transition-all duration-200 ${isDragging ? 'z-50 scale-[1.02] opacity-50 shadow-2xl' : ''} ${isOver && !isDragging ? 'ring-primary ring-2 ring-offset-2' : ''} `}
+        className={`bg-background/50 border-border flex w-full flex-col rounded-xl border backdrop-blur-sm transition-[transform,opacity,box-shadow] duration-200 ${isDragging ? 'z-50 scale-[1.02] opacity-50 shadow-2xl' : ''} ${isOver && !isDragging ? 'ring-primary ring-2 ring-offset-2' : ''} `}
         data-testid={`sortable-column-${status.id}`}
       >
         {/* StatusColumn renders the column content with draggable header */}

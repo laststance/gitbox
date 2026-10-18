@@ -19,9 +19,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { FormError } from '@/components/ui/form-error'
 import { Input } from '@/components/ui/input'
 import { renameBoardAction, type RenameBoardState } from '@/lib/actions/board'
 import { NEAR_LIMIT_COUNTER_TEXT_CLASS } from '@/lib/constants/character-counter'
+import { pendingButtonLabel } from '@/lib/utils/pending-button-label'
 import { BOARD_NAME_MAX_LENGTH } from '@/lib/validations/board'
 
 interface RenameBoardDialogProps {
@@ -127,13 +129,7 @@ export const RenameBoardDialog = memo(function RenameBoardDialog({
 
             <div className="flex items-center justify-between">
               {hasError ? (
-                <p
-                  id="name-error"
-                  className="text-destructive text-sm"
-                  role="alert"
-                >
-                  {state.errors?.name?.[0]}
-                </p>
+                <FormError id="name-error" message={state.errors?.name?.[0]} />
               ) : (
                 <span />
               )}
@@ -157,7 +153,7 @@ export const RenameBoardDialog = memo(function RenameBoardDialog({
               disabled={isPending || name.trim() === ''}
               aria-label={`Rename board to ${name}`}
             >
-              {isPending ? 'Renaming…' : 'Rename'}
+              {pendingButtonLabel(isPending, 'Rename', 'Renaming…')}
             </Button>
           </DialogFooter>
         </form>

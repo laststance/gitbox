@@ -11,6 +11,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog'
+import { FormError } from '@/components/ui/form-error'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { StatusListDomain } from '@/lib/models/domain'
@@ -136,7 +137,7 @@ const StatusListForm = memo(function StatusListForm({
                 type="button"
                 onClick={() => setColor(preset.value)}
                 data-color={preset.value}
-                className={`h-8 w-8 rounded-full border-2 transition-all ${color === preset.value ? 'border-foreground scale-110' : 'border-transparent'} `}
+                className={`h-8 w-8 rounded-full border-2 transition-[border-color,transform] ${color === preset.value ? 'border-foreground scale-110' : 'border-transparent'} `}
                 style={{ backgroundColor: preset.value }}
                 title={preset.name}
                 aria-label={preset.name}
@@ -164,7 +165,7 @@ const StatusListForm = memo(function StatusListForm({
         </div>
 
         {/* Error */}
-        {error && <p className="text-destructive text-sm">{error}</p>}
+        <FormError message={error} />
 
         <DialogFooter>
           <Button

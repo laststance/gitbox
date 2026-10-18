@@ -15,9 +15,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { type ProjectLink } from '@/components/ui/editable-url-item'
+import { useCardDialogFocusReturn } from '@/hooks/board/useCardDialogFocusReturn'
 import { useNoteModalDraft } from '@/hooks/board/useNoteModalDraft'
 import type { RepoCardId } from '@/lib/types/brands'
 import type { RepoIdentifier } from '@/lib/types/domain-primitives'
+import { pendingButtonLabel } from '@/lib/utils/pending-button-label'
 
 interface NoteModalProps {
   /** Whether the modal is open */
@@ -104,12 +106,14 @@ export const NoteModal = memo(function NoteModal({
     onClose,
     cardTitle,
   })
+  const { handleCloseAutoFocus } = useCardDialogFocusReturn(cardId)
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent
         className="max-h-[90vh] max-w-7xl overflow-y-auto"
         data-testid="note-modal"
+        onCloseAutoFocus={handleCloseAutoFocus}
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -155,7 +159,7 @@ export const NoteModal = memo(function NoteModal({
               disabled={isSaving || !isFormValid}
               data-testid="save-button"
             >
-              {isSaving ? 'Saving…' : 'Save'}
+              {pendingButtonLabel(isSaving, 'Save', 'Saving…')}
             </Button>
           </div>
         </DialogFooter>

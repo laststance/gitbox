@@ -138,7 +138,7 @@ export const BoardCard = memo(function BoardCard({
     <>
       <div
         data-testid={`board-card-${board.id}`}
-        className="group border-border bg-card hover:border-primary relative block rounded-lg border p-6 shadow-sm transition-all hover:shadow-md"
+        className="group border-border bg-card hover:border-primary relative block rounded-lg border p-6 shadow-sm transition-[border-color,box-shadow] hover:shadow-md"
       >
         {/* Board link - covers the card but not the menu */}
         <Link
@@ -158,7 +158,7 @@ export const BoardCard = memo(function BoardCard({
           <Button
             variant="ghost"
             size="icon"
-            className={`h-8 w-8 transition-all ${
+            className={`h-8 w-8 transition-[opacity,color] ${
               localIsFavorite
                 ? 'text-favorite hover:text-favorite opacity-100'
                 : 'text-muted-foreground hover:text-favorite focus-visible:opacity-100 md:pointer-fine:opacity-0 md:pointer-fine:group-hover:opacity-100'

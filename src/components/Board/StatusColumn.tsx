@@ -11,6 +11,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { CommentData } from '@/lib/actions/project-info'
@@ -159,6 +160,7 @@ export const StatusColumn = memo<StatusColumnProps>(
                     Edit Column
                   </DropdownMenuItem>
                 )}
+                {onEditStatus && onDeleteStatus && <DropdownMenuSeparator />}
                 {onDeleteStatus && (
                   <DropdownMenuItem
                     onClick={() => onDeleteStatus(status.id)}

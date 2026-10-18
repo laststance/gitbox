@@ -293,6 +293,33 @@ describe('StatusColumn', () => {
       expect(mockOnDeleteStatus).toHaveBeenCalledWith('status-1')
     })
 
+    test('puts a separator between Edit Column and Delete Column', async () => {
+      // Arrange
+      const user = userEvent.setup()
+      render(
+        <StatusColumn
+          status={defaultStatus}
+          cards={[]}
+          onEditStatus={mockOnEditStatus}
+          onDeleteStatus={mockOnDeleteStatus}
+        />,
+      )
+
+      // Act
+      await user.click(screen.getByLabelText('Column options'))
+
+      // Assert: the separator sits after Edit and before Delete
+      const edit = screen.getByRole('menuitem', { name: 'Edit Column' })
+      const separator = screen.getByRole('separator')
+      const del = screen.getByRole('menuitem', { name: 'Delete Column' })
+      expect(edit.compareDocumentPosition(separator)).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      )
+      expect(separator.compareDocumentPosition(del)).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      )
+    })
+
     test('should have destructive styling on Delete Column option', async () => {
       const user = userEvent.setup()
       render(

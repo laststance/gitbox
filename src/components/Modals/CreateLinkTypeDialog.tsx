@@ -21,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { FormError } from '@/components/ui/form-error'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -31,6 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { createUserPreset, type UserPreset } from '@/lib/actions/user-presets'
+import { pendingButtonLabel } from '@/lib/utils/pending-button-label'
 
 /** Common icon options for link types */
 const ICON_OPTIONS = [
@@ -181,16 +183,11 @@ export const CreateLinkTypeDialog = memo(function CreateLinkTypeDialog({
             </div>
 
             {/* Error Message */}
-            {error && (
-              <p
-                id="link-type-error"
-                className="text-destructive text-sm"
-                role="alert"
-                data-testid="link-type-error"
-              >
-                {error}
-              </p>
-            )}
+            <FormError
+              id="link-type-error"
+              testId="link-type-error"
+              message={error}
+            />
           </div>
 
           <DialogFooter>
@@ -208,7 +205,7 @@ export const CreateLinkTypeDialog = memo(function CreateLinkTypeDialog({
               disabled={isPending || !label.trim()}
               data-testid="submit-create-link-type"
             >
-              {isPending ? 'Creating…' : 'Create'}
+              {pendingButtonLabel(isPending, 'Create', 'Creating…')}
             </Button>
           </DialogFooter>
         </form>

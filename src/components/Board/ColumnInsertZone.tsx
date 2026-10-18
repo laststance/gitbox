@@ -55,7 +55,7 @@ export const ColumnInsertZone = memo<ColumnInsertZoneProps>(
       <div
         ref={setNodeRef}
         className={cn(
-          'min-h-[200px] rounded-xl transition-all duration-200',
+          'min-h-[200px] rounded-xl transition-[color,background-color,border-color,transform] duration-200',
           'border-2 border-dashed',
           isOver
             ? 'border-primary bg-primary/20 scale-105'
@@ -71,7 +71,7 @@ export const ColumnInsertZone = memo<ColumnInsertZoneProps>(
         <div className="flex h-full items-center justify-center">
           <div
             className={cn(
-              'rounded-lg p-4 text-center transition-all duration-200',
+              'rounded-lg p-4 text-center transition-colors duration-200',
               isOver ? 'text-link font-medium' : 'text-muted-foreground/50',
             )}
           >

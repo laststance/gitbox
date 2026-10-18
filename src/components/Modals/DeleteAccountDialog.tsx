@@ -27,6 +27,7 @@ import { Label } from '@/components/ui/label'
 import { deleteAccount } from '@/lib/actions/auth'
 import { forgetAccountOnThisBrowser } from '@/lib/redux/forget-account-on-this-browser'
 import { store } from '@/lib/redux/store'
+import { pendingButtonLabel } from '@/lib/utils/pending-button-label'
 
 /** Confirmation text required to enable delete button */
 const CONFIRMATION_TEXT = 'DELETE'
@@ -136,7 +137,7 @@ export const DeleteAccountDialog = memo(function DeleteAccountDialog({
             disabled={!isConfirmed || isPending}
             data-testid="confirm-delete-button"
           >
-            {isPending ? 'Deleting…' : 'Delete Account'}
+            {pendingButtonLabel(isPending, 'Delete Account', 'Deleting…')}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

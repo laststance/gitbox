@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { OUTCOME_UNKNOWN_TEXT_CLASS } from '@/lib/constants/outcome-unknown'
+import { pendingButtonLabel } from '@/lib/utils/pending-button-label'
 import { reloadPage } from '@/lib/utils/reload-page'
 import type { BoardCreationAttempt } from '@/lib/utils/request-board-creation'
 import { BOARD_NAME_MAX_LENGTH, boardNameSchema } from '@/lib/validations/board'
@@ -197,13 +198,9 @@ export const CreateDestinationBoardForm = memo(
           {recovery === 'create' ? (
             <Button type="submit" disabled={isCreating}>
               {isCreating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating…
-                </>
-              ) : (
-                'Create Board'
-              )}
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              {pendingButtonLabel(isCreating, 'Create Board', 'Creating…')}
             </Button>
           ) : (
             <Button

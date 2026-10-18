@@ -410,7 +410,7 @@ export const KanbanPreview = memo(function KanbanPreview() {
                 }
               }}
               className={cn(
-                'rounded-lg border p-3 transition-all duration-200',
+                'rounded-lg border p-3 transition-colors duration-200',
                 // Empty placeholder column styling
                 column.id.startsWith('empty-')
                   ? 'border-border/30 border-dashed bg-transparent'
@@ -471,7 +471,7 @@ export const KanbanPreview = memo(function KanbanPreview() {
                       }}
                       onDragEnd={handleCardDragEnd}
                       className={cn(
-                        'rounded-lg border p-3 transition-all duration-200',
+                        'rounded-lg border p-3 transition-colors duration-200',
                         'cursor-grab hover:scale-[1.02] hover:shadow-md active:cursor-grabbing',
                         card.color,
                         draggedCard?.id === card.id && 'opacity-50',

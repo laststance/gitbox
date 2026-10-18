@@ -40,6 +40,7 @@ import {
   OUTCOME_UNKNOWN_TEXT_CLASS,
 } from '@/lib/constants/outcome-unknown'
 import { areServerRenderedPropsEqual } from '@/lib/utils/are-server-rendered-props-equal'
+import { pendingButtonLabel } from '@/lib/utils/pending-button-label'
 import { reloadPage } from '@/lib/utils/reload-page'
 import { requestBoardCreation } from '@/lib/utils/request-board-creation'
 import { BOARD_NAME_MAX_LENGTH, boardNameSchema } from '@/lib/validations/board'
@@ -260,7 +261,7 @@ export const CreateBoardForm = memo(function CreateBoardForm() {
           </Button>
         ) : (
           <Button type="submit" disabled={isPending} className="flex-1">
-            {isPending ? 'Creating…' : 'Create Board'}
+            {pendingButtonLabel(isPending, 'Create Board', 'Creating…')}
           </Button>
         )}
       </div>

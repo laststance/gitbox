@@ -18,8 +18,8 @@ import {
 /**
  * Keeps a keyboard user's place on the board when a card dialog closes: on the
  * card when it stays, on its neighbor when it was moved away or removed.
- * Called by {@link MoveToAnotherBoardDialog} and by {@link OverflowMenu} for
- * the Remove from Board confirmation.
+ * Called by {@link MoveToAnotherBoardDialog}, {@link NoteModal}, and by
+ * {@link OverflowMenu} for the Remove from Board confirmation.
  *
  * @param cardId - Card the dialog was opened for.
  * @returns

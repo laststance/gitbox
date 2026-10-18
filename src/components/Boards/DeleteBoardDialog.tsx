@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { deleteBoardAction, type DeleteBoardState } from '@/lib/actions/board'
+import { pendingButtonLabel } from '@/lib/utils/pending-button-label'
 
 interface DeleteBoardDialogProps {
   /** Whether the dialog is open */
@@ -101,7 +102,7 @@ export const DeleteBoardDialog = memo(function DeleteBoardDialog({
               disabled={isPending}
               aria-label={`Delete board ${boardName}`}
             >
-              {isPending ? 'Deleting…' : 'Delete Board'}
+              {pendingButtonLabel(isPending, 'Delete Board', 'Deleting…')}
             </Button>
           </form>
         </AlertDialogFooter>
