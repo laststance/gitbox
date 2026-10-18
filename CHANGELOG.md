@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.13.0] - 2026-10-18
+
+### Fixed
+
+- Pressing Z after a column was deleted no longer moves the columns that remain. An older layout is restored only when every column in it is still on the board and two columns would not land on the same cell.
+- A card is not sent back to a column that was deleted. It keeps its place in its current column, and the other cards in that undo still go back.
+
 ## [0.7.12.1] - 2026-10-18
 
 ### Changed
