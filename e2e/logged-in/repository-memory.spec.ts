@@ -132,7 +132,7 @@ async function openPicker(page: Page): Promise<void> {
   await expect(page.getByPlaceholder(/search repositories/i)).toBeVisible({
     timeout: 10000,
   })
-  await expect(page.getByText('Loading repositories...')).toBeHidden({
+  await expect(page.getByText('Loading repositories…')).toBeHidden({
     timeout: 15000,
   })
 }

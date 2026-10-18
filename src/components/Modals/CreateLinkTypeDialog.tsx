@@ -208,7 +208,7 @@ export const CreateLinkTypeDialog = memo(function CreateLinkTypeDialog({
               disabled={isPending || !label.trim()}
               data-testid="submit-create-link-type"
             >
-              {isPending ? 'Creating...' : 'Create'}
+              {isPending ? 'Creating…' : 'Create'}
             </Button>
           </DialogFooter>
         </form>

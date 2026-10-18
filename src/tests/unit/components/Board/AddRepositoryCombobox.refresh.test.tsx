@@ -88,7 +88,7 @@ describe('AddRepositoryCombobox authentication recovery', () => {
       expect(organizationFilter).toHaveTextContent(pendingLabel)
       expect(organizationFilter).toBeDisabled()
       expect(screen.getByRole('status')).toHaveTextContent(
-        'Loading repositories...',
+        'Loading repositories…',
       )
 
       // Act
@@ -156,7 +156,7 @@ describe('AddRepositoryCombobox authentication recovery', () => {
     })
     expect(screen.getByRole('status')).toBeVisible()
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Loading repositories...',
+      'Loading repositories…',
     )
     expect(screen.queryByRole('alert')).toBeNull()
     expect(

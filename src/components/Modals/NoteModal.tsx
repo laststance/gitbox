@@ -155,7 +155,7 @@ export const NoteModal = memo(function NoteModal({
               disabled={isSaving || !isFormValid}
               data-testid="save-button"
             >
-              {isSaving ? 'Saving...' : 'Save'}
+              {isSaving ? 'Saving…' : 'Save'}
             </Button>
           </div>
         </DialogFooter>

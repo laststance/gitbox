@@ -182,7 +182,7 @@ export const AccountClient = memo(function AccountClient({
             className="gap-2"
           >
             <LogOut className="h-4 w-4" />
-            {isSigningOut ? 'Signing out...' : 'Sign Out'}
+            {isSigningOut ? 'Signing out…' : 'Sign Out'}
           </Button>
         </div>
       </div>

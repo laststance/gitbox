@@ -261,7 +261,7 @@ test.describe('Board Settings Card Display (Authenticated)', () => {
     await saveButton.click()
 
     // Verify form action completes successfully.
-    // MSW Limitation: Server actions may complete instantly, skipping "Saving..." state.
+    // MSW Limitation: Server actions may complete instantly, skipping "Saving…" state.
     // We verify either: button remains visible (success), or dialog closes (success).
     // The click itself confirms the form action was triggered.
     await expect(saveButton).toBeVisible({ timeout: 5000 })

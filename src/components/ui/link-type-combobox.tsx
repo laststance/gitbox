@@ -217,7 +217,7 @@ export const LinkTypeCombobox = memo(function LinkTypeCombobox({
               data-testid="add-custom-link-type"
             >
               <Plus className="h-4 w-4" />
-              <span>Add custom type...</span>
+              <span>Add custom type…</span>
             </button>
           )}
 

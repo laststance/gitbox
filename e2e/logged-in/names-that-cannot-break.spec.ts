@@ -172,8 +172,10 @@ async function measureTextLines(
  */
 async function openTestBoard(page: Page): Promise<void> {
   await page.goto(`/board/${BOARD_IDS.testBoard}`)
+  // A cancelled keyboard drag leaves its overlay outside main, with the
+  // same column id. The live column is the one in main.
   await expect(
-    page.locator(`[data-status-column-id="${STATUS_IDS.pending}"]`),
+    page.getByRole('main').getByTestId(`status-column-${STATUS_IDS.pending}`),
   ).toBeVisible({ timeout: 15000 })
 }
 
@@ -269,9 +271,9 @@ test.describe('Names without a place to break', () => {
     await openTestBoard(page)
 
     // Assert
-    const column = page.locator(
-      `[data-status-column-id="${STATUS_IDS.pending}"]`,
-    )
+    const column = page
+      .getByRole('main')
+      .getByTestId(`status-column-${STATUS_IDS.pending}`)
     await expect(column.getByRole('heading', { level: 2 })).toHaveText(
       'WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW',
     )

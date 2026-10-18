@@ -101,7 +101,7 @@ export const DeleteBoardDialog = memo(function DeleteBoardDialog({
               disabled={isPending}
               aria-label={`Delete board ${boardName}`}
             >
-              {isPending ? 'Deleting...' : 'Delete Board'}
+              {isPending ? 'Deleting…' : 'Delete Board'}
             </Button>
           </form>
         </AlertDialogFooter>

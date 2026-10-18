@@ -526,7 +526,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                     disabled={isRenamePending || name.trim() === ''}
                     aria-label={`Rename board to ${name}`}
                   >
-                    {isRenamePending ? 'Renaming...' : 'Rename'}
+                    {isRenamePending ? 'Renaming…' : 'Rename'}
                   </Button>
                 </form>
 
@@ -566,7 +566,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                       onClick={handleSaveSubtitle}
                       data-testid="save-subtitle"
                     >
-                      {isSavingSubtitle ? 'Saving...' : 'Save Subtitle'}
+                      {isSavingSubtitle ? 'Saving…' : 'Save Subtitle'}
                     </Button>
                   </div>
                 </div>
@@ -746,7 +746,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                     disabled={isSettingsPending}
                     data-testid="save-card-display-settings"
                   >
-                    {isSettingsPending ? 'Saving...' : 'Save Settings'}
+                    {isSettingsPending ? 'Saving…' : 'Save Settings'}
                   </Button>
                 </form>
               </div>
@@ -823,7 +823,7 @@ export const BoardSettingsDialog = memo(function BoardSettingsDialog({
                 disabled={isDeletePending}
                 aria-label={`Delete board ${boardName}`}
               >
-                {isDeletePending ? 'Deleting...' : 'Delete Board'}
+                {isDeletePending ? 'Deleting…' : 'Delete Board'}
               </Button>
             </form>
           </AlertDialogFooter>

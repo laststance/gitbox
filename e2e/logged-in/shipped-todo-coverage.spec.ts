@@ -108,6 +108,36 @@ test.describe('Shipped TODO coverage', () => {
     await expect(addRepo).toBeFocused()
   })
 
+  // Value: protects=busy picker copy and New Board use …, and the search placeholder stays ASCII; fails_when=Loading repositories... or New Board... returns; why_new=FINDING-017; seam=the seed board and MSW catalog; no_claim=the flash of Loading repositories… before MSW answers
+  test('uses the ellipsis character on picker load and on New Board', async ({
+    page,
+  }) => {
+    // Arrange
+    await page.goto(`/board/${BOARD_IDS.testBoard}`)
+    await page.waitForLoadState('networkidle')
+
+    // Act: open the picker
+    await page.getByRole('button', { name: 'Add Repositories' }).click()
+
+    // Assert: placeholder stays three ASCII dots; the ASCII busy label is gone
+    await expect(page.getByPlaceholder('Search repositories...')).toBeVisible()
+    await expect(page.getByText('Loading repositories...')).toHaveCount(0)
+    await expect(page.getByText('Loading repositories…')).toHaveCount(0)
+
+    await page.keyboard.press('Escape')
+
+    // Act: open Move to Another Board on a seed card
+    await page.getByTestId(`overflow-menu-trigger-${CARD_IDS.card1}`).click()
+    await page.getByTestId(`move-to-another-board-${CARD_IDS.card1}`).click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+
+    // Assert
+    await expect(
+      dialog.getByRole('button', { name: 'New Board…' }),
+    ).toBeVisible()
+  })
+
   // Value: protects=Escape from an empty comment editor focuses the empty comment; fails_when=focus falls on the page; why_new=unit tests and stories cover it and no Playwright test asserts the focused element; seam=card 3, whose seed comment is empty; no_claim=focus after Save of a typed comment
   test('focuses the empty comment after Escape', async ({ page }) => {
     // Arrange: card 1's seed comment is not empty. Card 3's is.

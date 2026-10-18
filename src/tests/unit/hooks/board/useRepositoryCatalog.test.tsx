@@ -110,7 +110,7 @@ describe('useRepositoryCatalog', () => {
       const { isLoadingCatalog } = useRepositoryCatalog(true)
       return (
         <div role="status">
-          {isLoadingCatalog ? 'Loading repositories...' : ''}
+          {isLoadingCatalog ? 'Loading repositories…' : ''}
         </div>
       )
     })
@@ -119,7 +119,7 @@ describe('useRepositoryCatalog', () => {
     const html = renderToString(<RestoredPicker />)
 
     // Assert
-    expect(html).toBe('<div role="status">Loading repositories...</div>')
+    expect(html).toBe('<div role="status">Loading repositories…</div>')
   })
 
   test('requests the aggregate catalog exactly once when the picker opens', async () => {

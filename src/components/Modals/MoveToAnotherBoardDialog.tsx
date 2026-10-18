@@ -384,7 +384,7 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
             >
               <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
               <span className="text-muted-foreground ml-2 text-sm">
-                Loading boards...
+                Loading boards…
               </span>
             </div>
           ))
@@ -480,7 +480,7 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
                     onClick={openCreateForm}
                   >
                     <Plus aria-hidden="true" />
-                    New Board...
+                    New Board…
                   </Button>
                 </div>
 
@@ -604,7 +604,7 @@ export const MoveToAnotherBoardDialog = memo(function MoveToAnotherBoardDialog({
             {pendingRequest === 'move' ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Moving...
+                Moving…
               </>
             ) : (
               'Move'
