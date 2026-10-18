@@ -57,6 +57,10 @@ export interface BoardRollback {
  * rollback compares it with `===`, so a second array with the same cards
  * does not match. The server action is counted as pending only when it is
  * passed to {@link trackBoardWrite}. A write started beside that call is not.
+ * A thrown save may already be in the database. The catch asks for a fresh
+ * copy through {@link reportThrownBoardSave}. A refusal that comes back as a
+ * result, not a throw, uses {@link notifyFailedBoardSave} and does not fetch
+ * when the old cards were put back.
  * @example
  * const { rollbackRepoCards } = useBoardRollback()
  * const cardsAfterDrag = reorder(cardsBeforeDrag)
@@ -68,8 +72,11 @@ export interface BoardRollback {
  *     () => reportUnconfirmedBoardSave('syncCardPosition'),
  *   )
  * } catch {
- *   const outcome = rollbackRepoCards(cardsAfterDrag, cardsBeforeDrag)
- *   notifyFailedBoardSave('Failed to move card', outcome)
+ *   reportThrownBoardSave(
+ *     dispatch,
+ *     'Failed to move card',
+ *     rollbackRepoCards(cardsAfterDrag, cardsBeforeDrag),
+ *   )
  * }
  */
 export function useBoardRollback(): BoardRollback {
