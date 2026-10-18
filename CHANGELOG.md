@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.20.0] - 2026-10-18
+
+### Changed
+
+- Theme-colored text on the page now uses a readable link color, including the login Terms and Privacy links and a board name under the pointer. Comment Save stays the page text color so it can be read on a tinted comment.
+
 ## [0.7.19.0] - 2026-10-18
 
 ### Changed
