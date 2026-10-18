@@ -13,7 +13,10 @@ import { useCallback } from 'react'
 import { toast } from 'sonner'
 
 import { setRepoCards, selectRepoCards } from '@/lib/redux/slices/boardSlice'
-import { trackBoardWrite } from '@/lib/redux/slices/boardSyncSlice'
+import {
+  rollbackRepoCards,
+  trackBoardWrite,
+} from '@/lib/redux/slices/boardSyncSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
 import type { RepoCardId } from '@/lib/types/brands'
 import {
@@ -21,8 +24,6 @@ import {
   reportThrownBoardSave,
 } from '@/lib/utils/notify-failed-board-save'
 import { reportUnconfirmedBoardSave } from '@/lib/utils/report-unconfirmed-board-save'
-
-import { useBoardRollback } from './useBoardRollback'
 
 /**
  * Server action result shape (matches deleteRepoCard)
@@ -66,7 +67,6 @@ interface CardActionOptions {
 export function useOptimisticCardAction() {
   const dispatch = useAppDispatch()
   const repoCards = useAppSelector(selectRepoCards)
-  const { rollbackRepoCards } = useBoardRollback()
 
   const executeCardAction = useCallback(
     async (
@@ -92,9 +92,8 @@ export function useOptimisticCardAction() {
           () => reportUnconfirmedBoardSave(options.actionName),
         )
         if (!result.success) {
-          const rollbackOutcome = rollbackRepoCards(
-            cardsWithoutCard,
-            previousCards,
+          const rollbackOutcome = dispatch(
+            rollbackRepoCards(cardsWithoutCard, previousCards),
           )
           Sentry.captureMessage(`${options.actionName} failed`, {
             level: 'error',
@@ -119,11 +118,11 @@ export function useOptimisticCardAction() {
         reportThrownBoardSave(
           dispatch,
           options.errorMessage,
-          rollbackRepoCards(cardsWithoutCard, previousCards),
+          dispatch(rollbackRepoCards(cardsWithoutCard, previousCards)),
         )
       }
     },
-    [repoCards, dispatch, rollbackRepoCards],
+    [repoCards, dispatch],
   )
 
   return executeCardAction

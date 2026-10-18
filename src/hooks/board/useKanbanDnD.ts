@@ -12,7 +12,7 @@
  * keep a copy.
  *
  * @example
- * const dnd = useKanbanDnD({ statuses, cards, cardsByStatus, EMPTY_CARDS, dispatch, pushCardHistory, pushColumnHistory, rollbackRepoCards, rollbackStatusLists })
+ * const dnd = useKanbanDnD({ statuses, cards, cardsByStatus, EMPTY_CARDS, dispatch, pushCardHistory, pushColumnHistory })
  * <DndContext sensors={dnd.sensors} collisionDetection={forgivingCollisionDetection}
  *   onDragEnd={dnd.handleDragEnd}>
  *   <SortableContext items={dnd.columnIds}>...</SortableContext>
@@ -42,7 +42,11 @@ import {
 } from '@/lib/actions/board'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import { setStatusLists, setRepoCards } from '@/lib/redux/slices/boardSlice'
-import { trackBoardWrite } from '@/lib/redux/slices/boardSyncSlice'
+import {
+  rollbackRepoCards,
+  rollbackStatusLists,
+  trackBoardWrite,
+} from '@/lib/redux/slices/boardSyncSlice'
 import type { AppDispatch } from '@/lib/redux/store'
 import type { StatusListId } from '@/lib/types/brands'
 import { reportThrownBoardSave } from '@/lib/utils/notify-failed-board-save'
@@ -53,8 +57,6 @@ import {
 } from '@/lib/utils/own-element-sensors'
 import { reportUnconfirmedBoardSave } from '@/lib/utils/report-unconfirmed-board-save'
 import { rollbackIfPositionWriteFailed } from '@/lib/utils/rollback-if-position-write-failed'
-
-import type { BoardRollback } from './useBoardRollback'
 
 /**
  * Custom collision detection algorithm for more forgiving column swap.
@@ -95,10 +97,6 @@ interface UseKanbanDnDParams {
   pushCardHistory: (snapshot: RepoCardForRedux[]) => void
   /** Push a column snapshot to the undo history stack */
   pushColumnHistory: (snapshot: StatusListDomain[]) => void
-  /** Puts the cards back when a card drag fails to save (from {@link useBoardRollback}) */
-  rollbackRepoCards: BoardRollback['rollbackRepoCards']
-  /** Puts the columns back when a column drag fails to save (from {@link useBoardRollback}) */
-  rollbackStatusLists: BoardRollback['rollbackStatusLists']
 }
 
 interface UseKanbanDnDReturn {
@@ -123,7 +121,7 @@ interface UseKanbanDnDReturn {
  * @example
  * const { sensors, handleDragEnd, columnIds } = useKanbanDnD({
  *   statuses, cards, cardsByStatus, EMPTY_CARDS, dispatch,
- *   pushCardHistory, pushColumnHistory, rollbackRepoCards, rollbackStatusLists,
+ *   pushCardHistory, pushColumnHistory,
  * })
  */
 export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
@@ -135,8 +133,6 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
     dispatch,
     pushCardHistory,
     pushColumnHistory,
-    rollbackRepoCards,
-    rollbackStatusLists,
   } = params
 
   // Sorted statuses for consistent rendering (by gridRow, then gridCol)
@@ -212,7 +208,7 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
             () => reportUnconfirmedBoardSave('moveColumnToNewRow'),
           ),
           COLUMN_MOVE_FAILED_TOAST_TITLE,
-          () => rollbackStatusLists(updatedStatuses, statuses),
+          () => dispatch(rollbackStatusLists(updatedStatuses, statuses)),
         )
       } catch (error) {
         Sentry.captureException(error, {
@@ -221,11 +217,11 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
         reportThrownBoardSave(
           dispatch,
           COLUMN_MOVE_FAILED_TOAST_TITLE,
-          rollbackStatusLists(updatedStatuses, statuses),
+          dispatch(rollbackStatusLists(updatedStatuses, statuses)),
         )
       }
     },
-    [statuses, dispatch, recordColumnHistory, rollbackStatusLists],
+    [statuses, dispatch, recordColumnHistory],
   )
 
   /** Handle column dropped on ColumnInsertZone (empty grid position) */
@@ -286,18 +282,18 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
             () => reportUnconfirmedBoardSave('insertColumn'),
           ),
           COLUMN_MOVE_FAILED_TOAST_TITLE,
-          () => rollbackStatusLists(updatedStatuses, statuses),
+          () => dispatch(rollbackStatusLists(updatedStatuses, statuses)),
         )
       } catch (error) {
         Sentry.captureException(error, { tags: { action: 'insertColumn' } })
         reportThrownBoardSave(
           dispatch,
           COLUMN_MOVE_FAILED_TOAST_TITLE,
-          rollbackStatusLists(updatedStatuses, statuses),
+          dispatch(rollbackStatusLists(updatedStatuses, statuses)),
         )
       }
     },
-    [statuses, dispatch, recordColumnHistory, rollbackStatusLists],
+    [statuses, dispatch, recordColumnHistory],
   )
 
   /** Handle column swap (drop on another column) */
@@ -337,11 +333,11 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
         reportThrownBoardSave(
           dispatch,
           COLUMN_MOVE_FAILED_TOAST_TITLE,
-          rollbackStatusLists(updatedStatuses, statuses),
+          dispatch(rollbackStatusLists(updatedStatuses, statuses)),
         )
       }
     },
-    [statuses, dispatch, recordColumnHistory, rollbackStatusLists],
+    [statuses, dispatch, recordColumnHistory],
   )
 
   /** Handle drag end — dispatches to column/card sub-handlers */
@@ -448,7 +444,7 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
             reportThrownBoardSave(
               dispatch,
               CARD_MOVE_FAILED_TOAST_TITLE,
-              rollbackRepoCards(reorderedCards, cards),
+              dispatch(rollbackRepoCards(reorderedCards, cards)),
             )
           }
         }
@@ -479,7 +475,7 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
           reportThrownBoardSave(
             dispatch,
             CARD_MOVE_FAILED_TOAST_TITLE,
-            rollbackRepoCards(updatedCards, cards),
+            dispatch(rollbackRepoCards(updatedCards, cards)),
           )
         }
       }
@@ -491,7 +487,6 @@ export function useKanbanDnD(params: UseKanbanDnDParams): UseKanbanDnDReturn {
       EMPTY_CARDS,
       dispatch,
       pushCardHistory,
-      rollbackRepoCards,
       handleNewRowDrop,
       handleColumnInsertDrop,
       handleColumnSwap,

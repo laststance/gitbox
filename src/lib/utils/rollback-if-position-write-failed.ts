@@ -24,7 +24,7 @@ import {
  * const outcome = await rollbackIfPositionWriteFailed(
  *   updateStatusListPosition(id, row, col),
  *   'Failed to move column',
- *   () => rollbackStatusLists(columnsAfter, columnsBefore),
+ *   () => dispatch(rollbackStatusLists(columnsAfter, columnsBefore)),
  * )
  */
 export async function rollbackIfPositionWriteFailed(

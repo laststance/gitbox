@@ -15,7 +15,7 @@
  * would wait behind that save) and what the user did stays on screen until
  * that copy arrives. A refused save asks for {@link getBoardBundle}.
  *
- * @see src/hooks/board/useBoardRollback.ts
+ * @see src/lib/redux/slices/boardSyncSlice.ts
  */
 
 import type { DragEndEvent } from '@dnd-kit/core'
@@ -30,7 +30,6 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { COLUMN_INSERT_DROP_TYPE } from '@/components/Board/ColumnInsertZone'
 import { NEW_ROW_DROP_TYPE } from '@/components/Board/NewRowDropZone'
 import { COLUMN_DRAG_TYPE } from '@/components/Board/SortableColumn'
-import { useBoardRollback } from '@/hooks/board/useBoardRollback'
 import { useBoardServerSync } from '@/hooks/board/useBoardServerSync'
 import { useKanbanDnD } from '@/hooks/board/useKanbanDnD'
 import { useKanbanUndo } from '@/hooks/board/useKanbanUndo'
@@ -52,6 +51,8 @@ import boardReducer, {
   setStatusLists,
 } from '@/lib/redux/slices/boardSlice'
 import boardSyncReducer, {
+  rollbackRepoCards,
+  rollbackStatusLists,
   selectMayApplyServerSnapshot,
 } from '@/lib/redux/slices/boardSyncSlice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store'
@@ -224,13 +225,10 @@ function useBoardDragAndUndo() {
   const dispatch = useAppDispatch()
   const statuses = useAppSelector(selectStatusLists)
   const cards = useAppSelector(selectRepoCards)
-  const { rollbackRepoCards, rollbackStatusLists } = useBoardRollback()
   const { pushCardHistory, pushColumnHistory } = useKanbanUndo({
     dispatch,
     cards,
     statuses,
-    rollbackRepoCards,
-    rollbackStatusLists,
   })
   const cardsByStatus: Record<string, RepoCardForRedux[]> = {}
   for (const card of cards) {
@@ -244,8 +242,6 @@ function useBoardDragAndUndo() {
     dispatch,
     pushCardHistory,
     pushColumnHistory,
-    rollbackRepoCards,
-    rollbackStatusLists,
   })
 }
 
@@ -313,6 +309,78 @@ function pressUndoKey(): void {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z' }))
   })
 }
+
+describe('rollback thunks', () => {
+  // Value: protects=a failed card write whose optimistic array is still in the store puts the previous cards back; fails_when=the previous cards are not in the store or the thunk returns reload-requested; no_claim=a real server refusal
+  test('puts the previous cards back when the store still holds the optimistic array', () => {
+    // Arrange
+    const previous = [makeCard('card-1', 'gitbox', 'status-1', 0)]
+    const optimistic = [makeCard('card-2', 'corelive', 'status-1', 0)]
+    const { store } = createBoardStore(optimistic, [])
+
+    // Act
+    const outcome = store.dispatch(rollbackRepoCards(optimistic, previous))
+
+    // Assert
+    expect(outcome).toBe('restored')
+    expect(store.getState().board.repoCards).toBe(previous)
+  })
+
+  // Value: protects=a failed card write whose optimistic array is no longer in the store asks for a refresh of that board and leaves the current cards alone; fails_when=previous cards overwrite the different array, the refresh payload board id is missing/wrong, or the thunk returns restored; no_claim=the fetch that follows
+  test('asks for a refresh and leaves the current cards when the optimistic array is gone', () => {
+    // Arrange
+    const previous = [makeCard('card-1', 'gitbox', 'status-1', 0)]
+    const optimistic = [makeCard('card-2', 'corelive', 'status-1', 0)]
+    const current = [makeCard('card-3', 'nsx', 'status-1', 0)]
+    const { store } = createBoardStore(current, [])
+
+    // Act
+    const outcome = store.dispatch(rollbackRepoCards(optimistic, previous))
+
+    // Assert
+    expect(outcome).toBe('reload-requested')
+    expect(store.getState().board.repoCards).toBe(current)
+    expect(store.getState().boardSync.isRefreshWanted).toBe(true)
+    expect(store.getState().boardSync.refreshForBoardId).toBe(
+      toBoardId('board-1'),
+    )
+  })
+
+  // Value: protects=a failed column write whose optimistic array is still in the store puts the previous columns back; fails_when=the previous columns are not in the store or the thunk returns reload-requested; no_claim=a real server refusal
+  test('puts the previous columns back when the store still holds the optimistic array', () => {
+    // Arrange
+    const previous = [makeColumn('col-a', 'Ideas', 0)]
+    const optimistic = [makeColumn('col-b', 'Building', 1)]
+    const { store } = createBoardStore([], optimistic)
+
+    // Act
+    const outcome = store.dispatch(rollbackStatusLists(optimistic, previous))
+
+    // Assert
+    expect(outcome).toBe('restored')
+    expect(store.getState().board.statusLists).toBe(previous)
+  })
+
+  // Value: protects=a failed column write whose optimistic array is no longer in the store asks for a refresh of that board and leaves the current columns alone; fails_when=previous columns overwrite the different array, the refresh payload board id is missing/wrong, or the thunk returns restored; no_claim=the fetch that follows
+  test('asks for a refresh and leaves the current columns when the optimistic array is gone', () => {
+    // Arrange
+    const previous = [makeColumn('col-a', 'Ideas', 0)]
+    const optimistic = [makeColumn('col-b', 'Building', 1)]
+    const current = [makeColumn('col-c', 'Shipped', 2)]
+    const { store } = createBoardStore([], current)
+
+    // Act
+    const outcome = store.dispatch(rollbackStatusLists(optimistic, previous))
+
+    // Assert
+    expect(outcome).toBe('reload-requested')
+    expect(store.getState().board.statusLists).toBe(current)
+    expect(store.getState().boardSync.isRefreshWanted).toBe(true)
+    expect(store.getState().boardSync.refreshForBoardId).toBe(
+      toBoardId('board-1'),
+    )
+  })
+})
 
 describe('failed saves on a board', () => {
   beforeEach(() => {

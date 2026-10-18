@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Simplification left from the board-sync review
-
-**What:** Consider turning `useBoardRollback` into two thunks next to `trackBoardWrite`, which removes the hook, its types and four threaded parameters (about 70 lines).
-
-**Why:** A structure gap. It changes nothing that is saved.
-
-**Context:** `src/hooks/board/useBoardRollback.ts`.
-
-**Effort:** M
-**Priority:** P4
-**Depends on:** None
-
 ## Design review of 2026-10-12: deferred design debt
 
 From `/design-review` of the change for issue #213. The review found 27 issues and fixed 21; these are what is left. All of them are in the app as it was before that change. The full report with screenshots is in `~/.gstack/projects/laststance-gitbox/designs/design-audit-20261012/`.

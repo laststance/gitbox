@@ -18,6 +18,7 @@
  * @see src/hooks/board/useKanbanUndo.ts
  */
 
+import { configureStore } from '@reduxjs/toolkit'
 import { act, renderHook } from '@testing-library/react'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
@@ -28,7 +29,11 @@ import {
   batchUpdateStatusListPositions,
 } from '@/lib/actions/board'
 import type { RepoCardForRedux, StatusListDomain } from '@/lib/models/domain'
-import { setRepoCards, setStatusLists } from '@/lib/redux/slices/boardSlice'
+import boardReducer, {
+  setRepoCards,
+  setStatusLists,
+} from '@/lib/redux/slices/boardSlice'
+import boardSyncReducer from '@/lib/redux/slices/boardSyncSlice'
 import { toBoardId, toRepoCardId, toStatusListId } from '@/lib/types/brands'
 
 vi.mock('@/lib/actions/board', () => ({
@@ -117,8 +122,6 @@ describe('useKanbanUndo', () => {
           dispatch,
           cards: [],
           statuses,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { statuses: snapshotBeforeDrag } },
     )
@@ -170,8 +173,6 @@ describe('useKanbanUndo', () => {
           dispatch,
           cards: [],
           statuses,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { statuses: snapshotBeforeDrag } },
     )
@@ -219,8 +220,6 @@ describe('useKanbanUndo', () => {
           dispatch,
           cards: [],
           statuses,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { statuses: olderSnapshot } },
     )
@@ -280,8 +279,6 @@ describe('useKanbanUndo', () => {
           dispatch,
           cards: [],
           statuses,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { statuses: olderSnapshot } },
     )
@@ -333,8 +330,6 @@ describe('useKanbanUndo', () => {
           dispatch,
           cards: [],
           statuses,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { statuses: olderSnapshot } },
     )
@@ -383,8 +378,6 @@ describe('useKanbanUndo', () => {
           dispatch,
           cards,
           statuses,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { statuses: columnSnapshot, cards: cardSnapshot } },
     )
@@ -427,8 +420,6 @@ describe('useKanbanUndo', () => {
           dispatch,
           cards,
           statuses,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { statuses: columnSnapshot, cards: cardSnapshot } },
     )
@@ -471,8 +462,6 @@ describe('useKanbanUndo', () => {
           dispatch,
           cards,
           statuses,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { statuses: columnsNow, cards: cardSnapshot } },
     )
@@ -516,8 +505,6 @@ describe('useKanbanUndo', () => {
           dispatch,
           cards,
           statuses,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { statuses: columnsNow, cards: cardSnapshot } },
     )
@@ -563,8 +550,6 @@ describe('useKanbanUndo', () => {
           dispatch,
           cards,
           statuses,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { statuses: columnsNow, cards: cardSnapshot } },
     )
@@ -609,8 +594,6 @@ describe('useKanbanUndo', () => {
           dispatch,
           cards,
           statuses,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { statuses: columnsNow, cards: cardSnapshot } },
     )
@@ -634,7 +617,6 @@ describe('useKanbanUndo', () => {
   // Value: protects=a refused position write puts only the applied column snapshot back, so the next Z retries that layout and never writes the deleted column; fails_when=the next Z does nothing, or a write includes the deleted id; why_new=skipping used to leave the refused step's index pointing at a snapshot that named a missing column; seam=a resolved refusal, not the database; no_claim=the database function
   test('a refused column undo retries the snapshot it applied and leaves the skipped one off the stack', async () => {
     // Arrange: newer snapshot names Shipped, which is gone; the older one does not
-    const dispatch = vi.fn()
     const olderSnapshot = [
       makeColumn('col-a', 'Ideas', 0, 0),
       makeColumn('col-b', 'Building', 0, 1),
@@ -647,19 +629,22 @@ describe('useKanbanUndo', () => {
       makeColumn('col-b', 'Building', 0, 0),
       makeColumn('col-a', 'Ideas', 0, 1),
     ]
+    const store = configureStore({
+      reducer: { board: boardReducer, boardSync: boardSyncReducer },
+      preloadedState: {
+        board: { statusLists: columnsNow, repoCards: [] },
+      },
+    })
     vi.mocked(batchUpdateStatusListPositions).mockResolvedValueOnce({
       success: false,
       error: 'The column update matched no row.',
     })
-    const rollbackStatusLists = vi.fn(() => 'restored' as const)
     const { result, rerender } = renderHook(
       ({ statuses }) =>
         useKanbanUndo({
-          dispatch,
+          dispatch: store.dispatch,
           cards: [],
           statuses,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists,
         }),
       { initialProps: { statuses: olderSnapshot } },
     )
@@ -673,7 +658,7 @@ describe('useKanbanUndo', () => {
     pressUndoKey()
     await act(async () => {
       await vi.waitFor(() => {
-        expect(rollbackStatusLists).toHaveBeenCalled()
+        expect(toast.error).toHaveBeenCalled()
       })
     })
     pressUndoKey()
@@ -712,8 +697,6 @@ describe('useKanbanUndo', () => {
           dispatch,
           cards,
           statuses: CARD_COLUMNS,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { cards: snapshotBeforeDrag } },
     )
@@ -751,8 +734,6 @@ describe('useKanbanUndo', () => {
           dispatch,
           cards,
           statuses: CARD_COLUMNS,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { cards: snapshotBeforeDrag } },
     )
@@ -796,8 +777,6 @@ describe('useKanbanUndo', () => {
           dispatch,
           cards,
           statuses: CARD_COLUMNS,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { cards: snapshotBeforeSecondDrag } },
     )
@@ -835,8 +814,6 @@ describe('useKanbanUndo', () => {
           dispatch,
           cards,
           statuses: CARD_COLUMNS,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { cards: snapshotBeforeDrag } },
     )
@@ -876,8 +853,6 @@ describe('useKanbanUndo', () => {
         dispatch,
         cards: afterTheMove,
         statuses: CARD_COLUMNS,
-        rollbackRepoCards: vi.fn(),
-        rollbackStatusLists: vi.fn(),
       }),
     )
     act(() => {
@@ -927,8 +902,6 @@ describe('useKanbanUndo', () => {
           dispatch,
           cards: [],
           statuses,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { statuses: olderSnapshot } },
     )
@@ -983,8 +956,6 @@ describe('useKanbanUndo', () => {
           dispatch,
           cards: [],
           statuses,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { statuses: snapshotBeforeDrag } },
     )
@@ -1030,8 +1001,6 @@ describe('useKanbanUndo', () => {
           dispatch,
           cards: [],
           statuses,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { statuses: snapshotBeforeDrag } },
     )
@@ -1065,8 +1034,6 @@ describe('useKanbanUndo', () => {
         dispatch,
         cards: [],
         statuses: [makeColumn('col-a', 'Ideas', 0, 0)],
-        rollbackRepoCards: vi.fn(),
-        rollbackStatusLists: vi.fn(),
       }),
     )
 
@@ -1109,8 +1076,6 @@ describe('useKanbanUndo: Z while something lies on top of the board', () => {
           dispatch,
           cards,
           statuses: CARD_COLUMNS,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { cards: snapshotBeforeDrag } },
     )
@@ -1144,8 +1109,6 @@ describe('useKanbanUndo: Z while something lies on top of the board', () => {
           dispatch,
           cards,
           statuses: CARD_COLUMNS,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { cards: snapshotBeforeDrag } },
     )
@@ -1178,8 +1141,6 @@ describe('useKanbanUndo: Z while something lies on top of the board', () => {
           dispatch,
           cards,
           statuses: CARD_COLUMNS,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { cards: snapshotBeforeDrag } },
     )
@@ -1210,8 +1171,6 @@ describe('useKanbanUndo: Z while something lies on top of the board', () => {
           dispatch,
           cards,
           statuses: CARD_COLUMNS,
-          rollbackRepoCards: vi.fn(),
-          rollbackStatusLists: vi.fn(),
         }),
       { initialProps: { cards: snapshotBeforeDrag } },
     )

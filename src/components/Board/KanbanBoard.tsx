@@ -6,7 +6,6 @@ import { LazyMotion, domAnimation } from 'framer-motion'
 import React, { memo, useMemo } from 'react'
 
 import { KanbanSkeleton } from '@/components/Board/KanbanSkeleton'
-import { useBoardRollback } from '@/hooks/board/useBoardRollback'
 import { useCommentState } from '@/hooks/board/useCommentState'
 import {
   forgivingCollisionDetection,
@@ -135,16 +134,11 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       fetchedComments,
     })
 
-    // Failed-save rollbacks that never overwrite a board that changed meanwhile
-    const { rollbackRepoCards, rollbackStatusLists } = useBoardRollback()
-
     // Undo hook: history stacks + Z-key shortcut (self-contained)
     const { pushCardHistory, pushColumnHistory } = useKanbanUndo({
       dispatch,
       cards,
       statuses,
-      rollbackRepoCards,
-      rollbackStatusLists,
     })
 
     // DnD hook: sensors, handlers, grid calculations
@@ -162,8 +156,6 @@ export const KanbanBoard = memo<KanbanBoardProps>(
       dispatch,
       pushCardHistory,
       pushColumnHistory,
-      rollbackRepoCards,
-      rollbackStatusLists,
     })
 
     // No columns from the page and none in the store for this board yet

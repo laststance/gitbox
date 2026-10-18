@@ -32,14 +32,14 @@ type FailedSaveDescription =
  * {@link useOptimisticCardAction} after their rollback.
  *
  * @param title - First line of the toast, e.g. `'Failed to move card'`.
- * @param outcome - What the rollback did (returned by {@link useBoardRollback}'s callbacks).
+ * @param outcome - What the rollback did (returned by {@link rollbackRepoCards} or {@link rollbackStatusLists}).
  * @param toastId - Sonner id to show the toast under. Pass the id of an earlier
  *   toast to replace it; defaults to one id shared by all failed saves.
  * @param description - Second line to use instead of the one {@link toFailedSaveDescription}
  *   picks. The grid-position refusal passes its sentence; other failures leave
  *   this out.
  * @example
- * notifyFailedBoardSave('Failed to move card', rollbackRepoCards(cardsAfterDrag, cardsBeforeDrag))
+ * notifyFailedBoardSave('Failed to move card', dispatch(rollbackRepoCards(cardsAfterDrag, cardsBeforeDrag)))
  * // online, layout put back => toast "Failed to move card / Please try again."
  */
 export const notifyFailedBoardSave = (
@@ -84,7 +84,7 @@ export const notifyFailedBoardSave = (
  * @param outcome - What the rollback did before this was called.
  * @param toastId - Sonner id. Undo replaces its success toast with this.
  * @example
- * reportThrownBoardSave(dispatch, 'Failed to move card', rollbackRepoCards(after, before))
+ * reportThrownBoardSave(dispatch, 'Failed to move card', dispatch(rollbackRepoCards(after, before)))
  */
 export const reportThrownBoardSave = (
   dispatch: AppDispatch,

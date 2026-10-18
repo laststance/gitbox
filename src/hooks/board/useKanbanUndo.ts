@@ -13,7 +13,7 @@
  * that snapshot still go back.
  *
  * @example
- * const { pushCardHistory, pushColumnHistory } = useKanbanUndo({ dispatch, cards, statuses, rollbackRepoCards, rollbackStatusLists })
+ * const { pushCardHistory, pushColumnHistory } = useKanbanUndo({ dispatch, cards, statuses })
  * // Pass to useKanbanDnD:
  * useKanbanDnD({ ...params, pushCardHistory, pushColumnHistory })
  */
@@ -28,7 +28,11 @@ import {
 } from '@/lib/actions/board'
 import type { StatusListDomain, RepoCardForRedux } from '@/lib/models/domain'
 import { setStatusLists, setRepoCards } from '@/lib/redux/slices/boardSlice'
-import { trackBoardWrite } from '@/lib/redux/slices/boardSyncSlice'
+import {
+  rollbackRepoCards,
+  rollbackStatusLists,
+  trackBoardWrite,
+} from '@/lib/redux/slices/boardSyncSlice'
 import type { AppDispatch } from '@/lib/redux/store'
 import { isOverlayOpen } from '@/lib/utils/is-overlay-open'
 import {
@@ -43,8 +47,6 @@ import {
   toColumnPositions,
   type CardColumnPosition,
 } from '@/lib/utils/to-column-positions'
-
-import type { BoardRollback } from './useBoardRollback'
 
 /**
  * Sonner id shared by an undo's "restored" toast and its "failed" toast, so a
@@ -62,10 +64,6 @@ interface UseKanbanUndoParams {
   cards: RepoCardForRedux[]
   /** Columns on the board right now; a refused column undo goes back to them */
   statuses: StatusListDomain[]
-  /** Puts the cards back when the undo fails to save (from {@link useBoardRollback}) */
-  rollbackRepoCards: BoardRollback['rollbackRepoCards']
-  /** Puts the columns back when the undo fails to save (from {@link useBoardRollback}) */
-  rollbackStatusLists: BoardRollback['rollbackStatusLists']
 }
 
 interface UseKanbanUndoReturn {
@@ -81,18 +79,17 @@ interface UseKanbanUndoReturn {
  * Manages card and column history stacks, handles undo operations with
  * DB sync, and registers the Z-key keyboard shortcut internally.
  *
- * @param params - Redux dispatch, the board's current cards and columns, and the failed-save rollbacks
+ * @param params - Redux dispatch and the board's current cards and columns
  * @returns Push callbacks for DnD handlers to record history
  *
  * @example
- * const { pushCardHistory, pushColumnHistory } = useKanbanUndo({ dispatch, cards, statuses, rollbackRepoCards, rollbackStatusLists })
+ * const { pushCardHistory, pushColumnHistory } = useKanbanUndo({ dispatch, cards, statuses })
  * // DnD handlers call pushCardHistory(cards) before mutations
  */
 export function useKanbanUndo(
   params: UseKanbanUndoParams,
 ): UseKanbanUndoReturn {
-  const { dispatch, cards, statuses, rollbackRepoCards, rollbackStatusLists } =
-    params
+  const { dispatch, cards, statuses } = params
 
   // History stacks (max 10 entries each)
   const [history, setHistory] = useState<RepoCardForRedux[][]>([])
@@ -187,7 +184,7 @@ export function useKanbanUndo(
           reportUnconfirmedBoardSave('undoColumnPositions'),
         ),
         UNDO_FAILED_TOAST_TITLE,
-        () => rollbackStatusLists(restoredColumns, statuses),
+        () => dispatch(rollbackStatusLists(restoredColumns, statuses)),
         UNDO_TOAST_ID,
       )
         .then((outcome) => {
@@ -206,7 +203,9 @@ export function useKanbanUndo(
           })
           // The write threw. The screen goes back when it still can, and the
           // step returns to the stack only while that screen is its own.
-          const outcome = rollbackStatusLists(restoredColumns, statuses)
+          const outcome = dispatch(
+            rollbackStatusLists(restoredColumns, statuses),
+          )
           reportThrownBoardSave(
             dispatch,
             UNDO_FAILED_TOAST_TITLE,
@@ -296,7 +295,7 @@ export function useKanbanUndo(
         // The write threw. Go back to the layout the database still holds
         // when the screen is still this undo, and leave the step on the
         // stack once so the next Z tries it again.
-        const outcome = rollbackRepoCards(cardsAfterUndo, cards)
+        const outcome = dispatch(rollbackRepoCards(cardsAfterUndo, cards))
         reportThrownBoardSave(
           dispatch,
           UNDO_FAILED_TOAST_TITLE,
@@ -312,15 +311,7 @@ export function useKanbanUndo(
         )
       },
     )
-  }, [
-    history,
-    columnHistory,
-    dispatch,
-    cards,
-    statuses,
-    rollbackRepoCards,
-    rollbackStatusLists,
-  ])
+  }, [history, columnHistory, dispatch, cards, statuses])
 
   // Keyboard shortcut: Z key to execute undo
   useEffect(() => {
