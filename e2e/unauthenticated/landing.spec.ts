@@ -118,6 +118,13 @@ test.describe('Landing Page', () => {
       page.getByTestId('feature-card-set-work-aside'),
     ]
 
+    // MSW hides the page with visibility:hidden until hydration.
+    // boundingBox() is null then; wait until the featured card is painted.
+    await expect(featured).toBeVisible()
+    for (const sibling of siblings) {
+      await expect(sibling).toBeVisible()
+    }
+
     const featuredBox = await featured.boundingBox()
     expect(featuredBox).not.toBeNull()
 
