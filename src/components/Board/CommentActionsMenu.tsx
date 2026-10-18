@@ -14,6 +14,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ICON_TRIGGER_CLASS } from '@/lib/constants/touch-target'
 import type { CommentColor } from '@/lib/supabase/types'
 
 /**
@@ -112,9 +113,9 @@ export const CommentActionsMenu = memo<CommentActionsMenuProps>(
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             // pointer-coarse: a touch screen never hovers, so the button stays visible there
-            className="h-6 w-6 p-0 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 pointer-coarse:opacity-100"
+            className={`${ICON_TRIGGER_CLASS} opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 pointer-coarse:opacity-100`}
             disabled={disabled}
             aria-label="Comment actions"
             data-testid="comment-actions-trigger"

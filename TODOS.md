@@ -45,18 +45,6 @@ From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None
 
 From `/design-review` of the change for issue #213. The review found 27 issues and fixed 21; these are what is left. All of them are in the app as it was before that change. The full report with screenshots is in `~/.gstack/projects/laststance-gitbox/designs/design-audit-20261012/`.
 
-### Choose one height for controls and a floor for small triggers
-
-**What:** Decide on the control heights (buttons are 32, 36 and 40px: `sm`, `default`, `lg` in `src/components/ui/button.tsx`), make the 24px triggers larger (a card's menu and a comment's menu are a 16px icon with 4px of padding), and enlarge touch targets one way.
-
-**Why:** Medium impact, interaction states (FINDING-016). A 24px target is the minimum WCAG 2.2 allows and half of what a finger needs. Four different ways to enlarge a target are in use: `min-h-11 min-w-11`, `pointer-coarse:min-h-11`, `pointer-coarse:size-11` and a `pointer-coarse:after:` overlay.
-
-**Context:** `src/components/Board/OverflowMenu.tsx`, `src/components/Board/CommentActionsMenu.tsx`, `src/components/ui/dialog.tsx` (the close button got `pointer-coarse:size-11` in this review), `src/components/ui/editable-url-item.tsx`, `src/components/Board/HeldRepositoryList.tsx`, `src/components/Modals/MoveToAnotherBoardDialog.tsx`. Larger triggers change the card layout, which the drag tests measure.
-
-**Effort:** M
-**Priority:** P3
-**Depends on:** None
-
 ### Lay out the account page as sections, not stacked cards
 
 **What:** Show Profile, Account Data and Danger Zone as sections of one page, and the two numbers of Account Data without a bordered tile each.

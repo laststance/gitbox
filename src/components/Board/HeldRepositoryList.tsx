@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { memo, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { COARSE_HIT_TARGET_CLASS } from '@/lib/constants/touch-target'
 import { selectStatusLists } from '@/lib/redux/slices/boardSlice'
 import { useAppSelector } from '@/lib/redux/store'
 import type { BoardId, StatusListId } from '@/lib/types/brands'
@@ -108,7 +109,7 @@ export const HeldRepositoryList = memo(function HeldRepositoryList({
                   // text-foreground + underline: text-primary is below AA contrast
                   // in most themes. relative: the coarse-pointer stretch covers
                   // the link, not the Move Here button beside it.
-                  className="text-foreground focus-visible:ring-primary relative inline-flex min-w-0 items-center gap-1 rounded-sm text-sm underline underline-offset-4 hover:decoration-2 focus-visible:ring-2 focus-visible:outline-none pointer-coarse:min-h-11 pointer-coarse:after:absolute pointer-coarse:after:inset-0"
+                  className={`text-foreground focus-visible:ring-primary inline-flex min-w-0 items-center gap-1 rounded-sm text-sm underline underline-offset-4 hover:decoration-2 focus-visible:ring-2 focus-visible:outline-none ${COARSE_HIT_TARGET_CLASS}`}
                 >
                   <span className="truncate">{destination.label}</span>
                   <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -117,7 +118,7 @@ export const HeldRepositoryList = memo(function HeldRepositoryList({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="relative z-10 h-7 shrink-0 px-2 pointer-coarse:min-h-11"
+                  className={`z-10 h-7 shrink-0 px-2 ${COARSE_HIT_TARGET_CLASS}`}
                   disabled={columns.length === 0 || movesDisabled}
                   aria-label={`Move Here, ${repository.fullName}`}
                   onClick={() => setMoving(repository)}

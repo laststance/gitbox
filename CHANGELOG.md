@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.16.0] - 2026-10-18
+
+### Changed
+
+- Card, comment, and column menus are 36px tall. On a touch screen their tap target is 44px, as is Close on a dialog and the held-repository row actions.
+
 ## [0.7.15.0] - 2026-10-18
 
 ### Changed
