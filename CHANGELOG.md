@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.19.0] - 2026-10-18
+
+### Changed
+
+- Near-limit character counters, unconfirmed save messages, and the favorite star now use theme colors, so they stay readable when you switch themes.
+
 ## [0.7.18.0] - 2026-10-18
 
 ### Changed
