@@ -41,18 +41,6 @@ From the `/plan-eng-review` of issue #216 (a repository keeps its note, links an
 
 From the `/ship` review of `fix/owner-filter-rollback-guard-sentry-tunnel`. None of them blocks that change.
 
-### Drop a deleted column from the column undo history
-
-**What:** When a column is deleted, remove it from the entries of `columnHistory`, or skip entries that hold a column the board no longer has.
-
-**Why:** Delete a column, then press Z while an earlier column move is on the stack: the earlier snapshot is still there. The undo leaves a deleted column out of the write, and a position write that matches no row now fails, so the deleted column is not brought back. Z still moves the columns that remain to the positions from that snapshot.
-
-**Context:** `handleUndo` in `src/hooks/board/useKanbanUndo.ts` (the card path filters against the current cards, the column path does not), `confirmDelete` in `src/hooks/board/useStatusListDialog.ts`. Older than this change. Related: "Drop late picker notices" (whose other half, the cards of a deleted column left in the store, #216 fixed).
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
 ### Simplification left from the board-sync review
 
 **What:** Consider turning `useBoardRollback` into two thunks next to `trackBoardWrite`, which removes the hook, its types and four threaded parameters (about 70 lines).
