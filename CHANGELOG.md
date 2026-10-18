@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.18.0] - 2026-10-18
+
+### Changed
+
+- Busy labels such as Creating, Saving, and Loading repositories now end with an ellipsis character, as do New Board and Add custom type. Search placeholders still use three dots.
+
 ## [0.7.17.0] - 2026-10-18
 
 ### Changed
