@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.15.0] - 2026-10-18
+
+### Changed
+
+- The signed-out landing page now names what GitBox does, uses a display face on its headings, and shows the page without a fade-in. The Kanban Board card is the featured one.
+
 ## [0.7.14.0] - 2026-10-18
 
 ### Changed
