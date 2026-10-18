@@ -81,8 +81,13 @@ interface BoardServerSnapshot {
  * by dispatching {@link boardRefreshRequested}.
  *
  * - Data of a board the store does not hold yet always goes in.
- * - Data of the board already in the store is dropped while a save of that
- *   board is pending, and the board is fetched once more when it settles.
+ * - Only a save passed to {@link trackBoardWrite} is counted as pending.
+ *   `pendingWriteCount` is one number for the whole app, not one per board.
+ *   While it is above zero and the store holds this board, arriving data for
+ *   this board is dropped. The drop asks for another fetch. That fetch is
+ *   sent when the count is zero and the refresh is for this board. A refresh
+ *   left aimed at another board is not sent from here. Data for a different
+ *   board is still applied.
  * - Page data is dropped when the cards or columns have changed since the
  *   last snapshot, which is a drag the Back button would otherwise undo on
  *   screen, and the board is fetched once more.

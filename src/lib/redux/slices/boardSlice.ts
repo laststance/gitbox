@@ -37,6 +37,9 @@ const initialState: BoardState = {
 export const boardSlice = createSlice({
   name: 'board',
   initialState,
+  // A reducer here that writes statusLists or repoCards must also be named
+  // in the extraReducers matcher of {@link boardSyncSlice}. That matcher is
+  // what makes a fetch in flight stale.
   reducers: {
     setStatusLists: (state, action: PayloadAction<StatusListDomain[]>) => {
       state.statusLists = action.payload

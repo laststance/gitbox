@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.12.1] - 2026-10-18
+
+### Changed
+
+- The note on a failed card move now counts that save, and a save that throws asks for a fresh copy of the board.
+
 ## [0.7.12.0] - 2026-10-18
 
 ### Fixed
