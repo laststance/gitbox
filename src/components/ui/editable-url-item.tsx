@@ -35,6 +35,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useEditableUrl } from '@/hooks/ui/useEditableUrl'
+import { LINK_TEXT_CLASS } from '@/lib/constants/link-text'
 import { COARSE_HIT_TARGET_CLASS } from '@/lib/constants/touch-target'
 import { cn } from '@/lib/utils'
 
@@ -203,7 +204,7 @@ export const EditableUrlItem = memo(function EditableUrlItem({
                     target="_blank"
                     rel="noopener noreferrer"
                     className={cn(
-                      'text-primary min-w-0 flex-1 truncate text-base hover:underline',
+                      `${LINK_TEXT_CLASS} min-w-0 flex-1 truncate text-base hover:underline`,
                       'max-w-75 sm:max-w-100 lg:max-w-none',
                       showSaveSuccess && 'text-success animate-pulse',
                     )}

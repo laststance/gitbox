@@ -9,6 +9,7 @@ import {
   type Ref,
 } from 'react'
 
+import { LINK_TEXT_CLASS } from '@/lib/constants/link-text'
 import { cn } from '@/lib/utils'
 
 const RadioGroup = memo(function RadioGroup({
@@ -38,7 +39,7 @@ const RadioGroupItem = memo(function RadioGroupItem({
     <RadioGroupPrimitive.Item
       ref={ref}
       className={cn(
-        'border-primary text-primary focus-visible:ring-ring aspect-square h-4 w-4 rounded-full border shadow focus:outline-none focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50',
+        `border-primary ${LINK_TEXT_CLASS} focus-visible:ring-ring aspect-square h-4 w-4 rounded-full border shadow focus:outline-none focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50`,
         className,
       )}
       {...props}

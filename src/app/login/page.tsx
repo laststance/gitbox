@@ -13,6 +13,7 @@ import Link from 'next/link'
 import { ClearFailedRefreshAttempts } from '@/app/login/ClearFailedRefreshAttempts'
 import { GithubIcon } from '@/components/icons/GithubIcon'
 import { signInWithGitHub } from '@/lib/actions/auth'
+import { LINK_TEXT_CLASS } from '@/lib/constants/link-text'
 
 export const metadata: Metadata = {
   title: 'Login',
@@ -49,14 +50,14 @@ export default function LoginPage() {
             By signing in, you agree to our{' '}
             <Link
               href="/terms"
-              className="text-primary hover:text-primary/80 hover:underline"
+              className={`${LINK_TEXT_CLASS} hover:text-link hover:underline`}
             >
               Terms of Use
             </Link>{' '}
             and{' '}
             <Link
               href="/privacy"
-              className="text-primary hover:text-primary/80 hover:underline"
+              className={`${LINK_TEXT_CLASS} hover:text-link hover:underline`}
             >
               Privacy Policy
             </Link>

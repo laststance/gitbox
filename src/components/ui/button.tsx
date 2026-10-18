@@ -2,6 +2,7 @@ import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { memo, type Ref, type ButtonHTMLAttributes } from 'react'
 
+import { LINK_TEXT_CLASS } from '@/lib/constants/link-text'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
@@ -18,7 +19,7 @@ const buttonVariants = cva(
         secondary:
           'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80',
         ghost: 'hover:bg-accent hover:text-accent-foreground',
-        link: 'text-primary underline-offset-4 hover:underline',
+        link: `${LINK_TEXT_CLASS} underline-offset-4 hover:underline`,
         github:
           'bg-[#24292f] text-white hover:bg-[#24292f]/90 shadow-lg dark:bg-white dark:text-[#24292f] dark:hover:bg-white/90',
       },

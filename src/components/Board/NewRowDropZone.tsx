@@ -53,7 +53,7 @@ export const NewRowDropZone = memo<NewRowDropZoneProps>(
           'text-muted-foreground text-sm font-medium',
           'transition-all duration-200',
           isOver
-            ? 'border-primary bg-primary/10 text-primary scale-[1.02]'
+            ? 'border-primary bg-primary/10 text-link scale-[1.02]'
             : 'border-border/50 bg-background/30',
         )}
         style={{

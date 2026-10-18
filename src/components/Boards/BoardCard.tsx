@@ -217,7 +217,7 @@ export const BoardCard = memo(function BoardCard({
             is wider than that breaks (min-w-0 and wrap-break-word). Without
             the limit a name of one long word ran out of the card, across
             the next one. */}
-        <h2 className="text-foreground group-hover:text-primary flex pr-16 text-xl font-semibold transition-colors">
+        <h2 className="text-foreground group-hover:text-link flex pr-16 text-xl font-semibold transition-colors">
           <span className="flex max-w-[calc(100%+4rem)] items-center gap-2">
             <span className="min-w-0 wrap-break-word">{board.name}</span>
           </span>

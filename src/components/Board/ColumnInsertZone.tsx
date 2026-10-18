@@ -72,7 +72,7 @@ export const ColumnInsertZone = memo<ColumnInsertZoneProps>(
           <div
             className={cn(
               'rounded-lg p-4 text-center transition-all duration-200',
-              isOver ? 'text-primary font-medium' : 'text-muted-foreground/50',
+              isOver ? 'text-link font-medium' : 'text-muted-foreground/50',
             )}
           >
             {isOver ? (
