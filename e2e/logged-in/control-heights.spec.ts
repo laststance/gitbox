@@ -43,7 +43,10 @@ test.describe('Control heights', () => {
   }) => {
     // Arrange
     const overflow = page.getByTestId(`overflow-menu-trigger-${CARD_IDS.card1}`)
-    const comment = page.getByTestId('comment-actions-trigger')
+    // Seed comments sit on more than one card; measure the trigger on card1 only.
+    const comment = page
+      .getByTestId(`repo-card-${CARD_IDS.card1}`)
+      .getByTestId('comment-actions-trigger')
     const column = page.getByTestId('column-options-trigger').first()
 
     // Act
