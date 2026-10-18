@@ -2,12 +2,15 @@
  * Unit Tests: the Account Data summary of the account page
  *
  * The summary counts what the user keeps in GitBox. A repository lives on a
- * board as a card, so it has two tiles: Boards and Repository Cards. That
+ * board as a card, so it has two cells: Boards and Repository Cards. That
  * they stand side by side is checked in a browser
  * (e2e/logged-in/account-profile.spec.ts); happy-dom does no layout.
  *
  * @see src/app/account/AccountClient.tsx
  */
+
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 import { render, screen } from '@testing-library/react'
 import { describe, expect, test, vi } from 'vitest'
@@ -38,16 +41,15 @@ describe('AccountClient data summary', () => {
     )
 
     // Assert
-    const boardsTile = screen.getByText('Boards').parentElement
-    const repositoryCardsTile =
-      screen.getByText('Repository Cards').parentElement
-    expect(boardsTile).toBeVisible()
-    expect(boardsTile).toHaveTextContent('5Boards')
-    expect(repositoryCardsTile).toBeVisible()
-    expect(repositoryCardsTile).toHaveTextContent('27Repository Cards')
+    const boardsCell = screen.getByTestId('account-stat-boards')
+    const repositoryCardsCell = screen.getByTestId('account-stat-cards')
+    expect(boardsCell).toBeVisible()
+    expect(boardsCell).toHaveTextContent('5Boards')
+    expect(repositoryCardsCell).toBeVisible()
+    expect(repositoryCardsCell).toHaveTextContent('27Repository Cards')
   })
 
-  test('shows the Boards tile first, the Repository Cards tile second and no third one', () => {
+  test('shows the Boards cell first, the Repository Cards cell second and no third one', () => {
     // Arrange
     const accountData = { boardsCount: 0, cardsCount: 0 }
 
@@ -57,10 +59,10 @@ describe('AccountClient data summary', () => {
     )
 
     // Assert
-    const tileGrid = screen.getByText('Boards').parentElement?.parentElement
-    expect(tileGrid?.children).toHaveLength(2)
-    expect(tileGrid?.children[0]).toHaveTextContent('Boards')
-    expect(tileGrid?.children[1]).toHaveTextContent('Repository Cards')
+    const cellGrid = screen.getByTestId('account-stat-boards').parentElement
+    expect(cellGrid?.children).toHaveLength(2)
+    expect(cellGrid?.children[0]).toHaveTextContent('Boards')
+    expect(cellGrid?.children[1]).toHaveTextContent('Repository Cards')
   })
 
   test('says deleting the account deletes the notes, links and comments too', () => {
@@ -97,5 +99,21 @@ describe('AccountClient data summary', () => {
     expect(page.firstElementChild?.className).toBe(
       'container mx-auto max-w-2xl px-4 py-8',
     )
+  })
+
+  test('AccountClient and its skeleton do not import Card', () => {
+    // Arrange
+    const client = readFileSync(
+      join(process.cwd(), 'src/app/account/AccountClient.tsx'),
+      'utf8',
+    )
+    const loading = readFileSync(
+      join(process.cwd(), 'src/app/account/loading.tsx'),
+      'utf8',
+    )
+
+    // Assert
+    expect(client).not.toContain('@/components/ui/card')
+    expect(loading).not.toContain('@/components/ui/card')
   })
 })

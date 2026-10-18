@@ -2,7 +2,7 @@
  * Unit Tests: the loading state of the account page
  *
  * The skeleton stands in for the page while its data loads, so its Account
- * Data summary has the same two tiles in the same grid as the loaded page:
+ * Data summary has the same two cells in the same grid as the loaded page:
  * Boards and Repository Cards. The page does not jump when the data arrives.
  *
  * @see src/app/account/loading.tsx
@@ -14,7 +14,7 @@ import { describe, expect, test } from 'vitest'
 import AccountLoading from '@/app/account/loading'
 
 describe('account page loading state', () => {
-  test('shows two skeleton tiles in the two-column grid of the Account Data summary', () => {
+  test('shows two skeleton cells in the two-column grid of the Account Data summary', () => {
     // Arrange / Act
     const { container } = render(<AccountLoading />)
 

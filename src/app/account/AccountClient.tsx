@@ -18,13 +18,6 @@ import { GithubIcon } from '@/components/icons/GithubIcon'
 import { LocalDate } from '@/components/LocalDate'
 import { DeleteAccountDialog } from '@/components/Modals/DeleteAccountDialog'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import { signOut } from '@/lib/actions/auth'
 import { forgetAccountOnThisBrowser } from '@/lib/redux/forget-account-on-this-browser'
 import { store } from '@/lib/redux/store'
@@ -70,103 +63,110 @@ export const AccountClient = memo(function AccountClient({
         </p>
       </div>
 
-      <div className="space-y-6">
-        {/* Profile Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+      <div className="space-y-8">
+        <section className="space-y-4">
+          <div className="space-y-1.5">
+            <h2 className="flex items-center gap-2 text-2xl leading-none font-semibold tracking-tight">
               <GithubIcon className="h-5 w-5" />
               Profile
-            </CardTitle>
-            <CardDescription>Your GitHub account information</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-4">
-              {userProfile.userAvatar ? (
-                <Image
-                  src={userProfile.userAvatar}
-                  alt={userProfile.userName}
-                  width={64}
-                  height={64}
-                  className="h-16 w-16 rounded-full"
-                />
-              ) : (
-                <div className="bg-muted flex h-16 w-16 items-center justify-center rounded-full">
-                  <GithubIcon className="text-muted-foreground h-8 w-8" />
-                </div>
-              )}
-              <div>
-                <p className="text-lg font-semibold">@{userProfile.userName}</p>
-                <p className="text-muted-foreground text-sm">
-                  Connected via GitHub
-                </p>
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              Your GitHub account information
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            {userProfile.userAvatar ? (
+              <Image
+                src={userProfile.userAvatar}
+                alt={userProfile.userName}
+                width={64}
+                height={64}
+                className="h-16 w-16 rounded-full"
+              />
+            ) : (
+              <div className="bg-muted flex h-16 w-16 items-center justify-center rounded-full">
+                <GithubIcon className="text-muted-foreground h-8 w-8" />
               </div>
-            </div>
-            <div className="border-t pt-4">
+            )}
+            <div>
+              <p className="text-lg font-semibold">@{userProfile.userName}</p>
               <p className="text-muted-foreground text-sm">
-                Linked since{' '}
-                <LocalDate isoDate={userProfile.linkedSince} dateStyle="long" />
+                Connected via GitHub
               </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="border-t pt-4">
+            <p className="text-muted-foreground text-sm">
+              Linked since{' '}
+              <LocalDate isoDate={userProfile.linkedSince} dateStyle="long" />
+            </p>
+          </div>
+        </section>
 
-        {/* Account Data Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Account Data</CardTitle>
-            <CardDescription>Summary of your GitBox data</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col items-center rounded-lg border p-4">
-                <LayoutDashboard className="text-muted-foreground mb-2 h-6 w-6" />
-                <span className="text-2xl font-bold">
-                  {accountData.boardsCount}
-                </span>
-                <span className="text-muted-foreground text-sm">Boards</span>
-              </div>
-              <div className="flex flex-col items-center rounded-lg border p-4">
-                <FileText className="text-muted-foreground mb-2 h-6 w-6" />
-                <span className="text-2xl font-bold">
-                  {accountData.cardsCount}
-                </span>
-                <span className="text-muted-foreground text-sm">
-                  Repository Cards
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Danger Zone Section */}
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="text-destructive">Danger Zone</CardTitle>
-            <CardDescription>
-              Irreversible actions that affect your account
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="border-destructive/20 bg-destructive/5 rounded-lg border p-4">
-              <p className="text-muted-foreground text-sm">
-                Deleting your account will permanently remove all your boards,
-                cards, notes, links, comments, and settings. This action cannot
-                be undone.
-              </p>
-              <p className="text-foreground mt-2 text-sm font-medium">
-                Your GitHub repositories will NOT be affected.
-              </p>
-            </div>
-            <Button
-              variant="destructive"
-              onClick={handleOpenDeleteDialog}
-              data-testid="delete-account-button"
+        <section className="space-y-4">
+          <div className="space-y-1.5">
+            <h2 className="text-2xl leading-none font-semibold tracking-tight">
+              Account Data
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              Summary of your GitBox data
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div
+              className="flex flex-col items-start gap-1"
+              data-testid="account-stat-boards"
             >
-              Delete Account
-            </Button>
-          </CardContent>
-        </Card>
+              <LayoutDashboard className="text-muted-foreground h-6 w-6" />
+              <span className="text-2xl font-bold">
+                {accountData.boardsCount}
+              </span>
+              <span className="text-muted-foreground min-h-[2lh] text-sm leading-5">
+                Boards
+              </span>
+            </div>
+            <div
+              className="flex flex-col items-start gap-1"
+              data-testid="account-stat-cards"
+            >
+              <FileText className="text-muted-foreground h-6 w-6" />
+              <span className="text-2xl font-bold">
+                {accountData.cardsCount}
+              </span>
+              <span className="text-muted-foreground min-h-[2lh] text-sm leading-5">
+                Repository Cards
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-destructive space-y-4 border-t pt-6">
+          <div className="space-y-1.5">
+            <h2 className="text-destructive text-2xl leading-none font-semibold tracking-tight">
+              Danger Zone
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              Irreversible actions that affect your account
+            </p>
+          </div>
+          <div className="border-destructive/20 bg-destructive/5 rounded-lg border p-4">
+            <p className="text-muted-foreground text-sm">
+              Deleting your account will permanently remove all your boards,
+              cards, notes, links, comments, and settings. This action cannot be
+              undone.
+            </p>
+            <p className="text-foreground mt-2 text-sm font-medium">
+              Your GitHub repositories will NOT be affected.
+            </p>
+          </div>
+          <Button
+            variant="destructive"
+            onClick={handleOpenDeleteDialog}
+            data-testid="delete-account-button"
+          >
+            Delete Account
+          </Button>
+        </section>
 
         {/* Actions */}
         <div className="flex justify-between pt-4">
