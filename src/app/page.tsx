@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 import { CTASection } from './(landing)/CTASection'
 import { FeaturesSection } from './(landing)/FeaturesSection'
+import { landingDisplay } from './(landing)/fonts'
 import { Footer } from './(landing)/Footer'
 import { HeroSection } from './(landing)/HeroSection'
 import { HowItWorksSection } from './(landing)/HowItWorksSection'
@@ -17,11 +18,14 @@ export const metadata: Metadata = {
  * GitBox Landing Page
  *
  * Thin composition of section components.
- * Each section is in src/app/(landing)/ with 'use client' directive.
+ * Sections live in src/app/(landing)/. {@link landingDisplay} is applied
+ * here so signed-in layouts do not download Source Serif 4.
  */
 function GitBoxLandingPage() {
   return (
-    <div className="bg-background text-foreground min-h-screen">
+    <div
+      className={`${landingDisplay.variable} bg-background text-foreground min-h-screen`}
+    >
       <Navigation />
       <HeroSection />
       <FeaturesSection />
