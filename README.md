@@ -104,6 +104,21 @@ Follow the steps in this order. `pnpm db:start` reads `supabase/.env`, so the OA
    pnpm dev
    ```
 
+### Local production credentials with 1Password
+
+`pnpm build` and `pnpm start` load `.env.production.1password` through
+`scripts/with-production-secrets.mjs`. Keep this ignored file reference-only:
+use `KEY="op://vault/item/field"` for each of `GITHUB_CLIENT_ID`,
+`GITHUB_CLIENT_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+`SUPABASE_SERVICE_ROLE_KEY`, `SENTRY_AUTH_TOKEN`, and `NEXT_PUBLIC_SITE_URL`.
+Install 1Password CLI and enable its desktop integration before local production builds.
+
+Explicit environment variables take precedence, including `SENTRY_AUTH_TOKEN=""`
+to disable uploads. CI, Vercel, and `APP_ENV=test` use their supplied environment
+without opening the local vault. Development (`pnpm dev`) continues to use local
+Supabase and its development OAuth configuration; production credentials are never
+injected into development or local E2E commands. Keep production secrets out of `.env.production`.
+
 ### Environment Variables
 
 | Variable                        | Required | Description                                            |

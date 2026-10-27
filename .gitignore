@@ -93,3 +93,5 @@ logs/
 claudedocs/
 .gstack/
 .serena/
+# Local 1Password references remain private developer configuration.
+.env.*.1password
