@@ -33,3 +33,6 @@ allowBuilds:
   unrs-resolver: true
 patchedDependencies:
   '@storybook/nextjs-vite@10.6.2': patches/@storybook__nextjs-vite@10.6.2.patch
+
+overrides:
+  'follow-redirects@<1.16.2': '1.16.2'
