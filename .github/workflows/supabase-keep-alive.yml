@@ -1,0 +1,38 @@
+name: Supabase Keep Alive
+
+# Production runs on the Supabase Free plan, which pauses a project after about
+# a week of low activity. One REST read a day keeps it active. A run that does
+# not get 200 (a paused or unreachable project) fails, and GitHub mails the
+# failure to whoever last changed the schedule below.
+on:
+  schedule:
+    - cron: '23 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-keep-alive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    name: Read production through the REST API
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_PROJECT_REF: zfcwvzazzzsefbkztsyp
+    steps:
+      - name: Query the board table
+        env:
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_PRODUCTION_ANON_KEY }}
+        run: |
+          status=$(curl --silent --show-error --output /dev/null \
+            --write-out '%{http_code}' \
+            --retry 3 --retry-all-errors --retry-delay 10 --max-time 30 \
+            --header "apikey: ${SUPABASE_ANON_KEY}" \
+            --header "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "https://${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/board?select=id&limit=1")
+          echo "HTTP ${status}"
+          test "${status}" = 200

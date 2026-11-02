@@ -42,8 +42,8 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-      # Note: Database backups are handled by Supabase Pro Plan's
-      # automatic daily backups and Point-in-Time Recovery feature.
+      # Production is on the Free plan, which keeps no backups. Dump it first
+      # when a migration deletes data ("Backup Strategy" in CLAUDE.md).
       - name: Apply Migrations
         run: supabase db push --linked
         env:

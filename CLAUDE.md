@@ -116,6 +116,8 @@ Do not use the E2E fixture session for this. Its GitHub cookie is the literal st
 **Region:** Production Supabase is `ap-northeast-1` (Tokyo) and Vercel Functions run in `hnd1` (Tokyo).
 Keep them co-located — moving only one side turns local DB calls into cross-region round trips.
 
+**Plan:** Production is `gitbox-prod-tokyo` in the Supabase organization `Laststance`, on the Free plan since 2026-11-02 (it was Pro before). The project keeps its ref, URL and keys; the compute is Nano. Free has no backups (see [Backup Strategy](#production-migration-procedure)), keeps logs for one day, and pauses a project after about a week of low activity. `.github/workflows/supabase-keep-alive.yml` reads the `board` table through the REST API once a day with the anon key (repository secret `SUPABASE_PRODUCTION_ANON_KEY`), and a run that does not get 200 fails, which mails whoever last changed its schedule. GitHub disables the scheduled workflows of a public repository after 60 days without activity, so after a long quiet spell check that the workflow still runs. A paused project comes back with **Resume project** in the dashboard, for up to a year. The organization `Ryota Murakami's projects` is managed by the Vercel Marketplace (billing and roles on the Vercel side): do not move production there.
+
 **🔴 CRITICAL:** Use lowercase table names in Server Actions:
 
 ```typescript
@@ -206,7 +208,7 @@ A migration that takes `EXECUTE` on a function away from a role needs the same `
 
 **🔴 CRITICAL:** Never use Supabase Dashboard for production schema changes. Always use migrations.
 
-**Backup Strategy:** Database backups are handled automatically by Supabase Pro Plan (daily backups + Point-in-Time Recovery). No manual backup artifacts are created in CI/CD.
+**Backup Strategy:** The Free plan keeps no backups, and the Pro plan's daily backups were deleted by the downgrade (PITR was never on). The owner's Mac dumps production once a day: the launchd job `io.laststance.gitbox.db-backup` (`~/Library/LaunchAgents/`) runs `scripts/backup-production-db.sh` at 12:30 local time, which writes `schema.sql.gz`, `data.sql.gz` (the `auth` schema included) and `roles.sql.gz` into `~/gitbox-backups/supabase-prod/daily/<date>/`, keeps the newest 30 and logs to `~/gitbox-backups/supabase-prod/backup.log`. The CLI runs `pg_dump` in a container, so the script starts OrbStack when no Docker engine answers; a failed run shows a macOS notification. The dumps hold user data and auth tokens: keep them out of the repository, out of synced folders and out of CI artifacts (this repository is public). Dump production by hand before any change that deletes data. Run the script once (`bash scripts/backup-production-db.sh`) to take a dump now.
 
 #### CI/CD Workflow
 
