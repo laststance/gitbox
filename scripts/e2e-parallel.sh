@@ -6,6 +6,9 @@
 # and its own PostgREST + PostgreSQL database for true E2E isolation.
 #
 # MSW mocks GitHub API only. All Supabase/PostgREST calls hit real databases.
+# The shard proxies answer /auth/v1 with fixtures, so specs tagged @real-auth
+# (REAL_AUTH in e2e/helpers/db-query.ts) skip the shards and run once against
+# the main stack after them.
 #
 # Usage:
 #   pnpm e2e:parallel              # Run 12 shards (default)
@@ -22,6 +25,7 @@ POSTGREST_BASE_PORT=54400
 SKIP_BUILD=false
 GREP_PATTERN=""
 EXTRA_PW_ARGS=()
+REAL_AUTH_TAG="@real-auth"
 
 # Local Supabase credentials (matches supabase start output)
 LOCAL_SUPABASE_URL="http://127.0.0.1:54321"
@@ -204,6 +208,7 @@ for i in $(seq 1 "$SHARD_COUNT"); do
   SUPABASE_SERVICE_ROLE_KEY="${LOCAL_SUPABASE_SERVICE_ROLE_KEY}" \
     pnpm exec playwright test \
       --shard="${i}/${SHARD_COUNT}" \
+      --grep-invert "$REAL_AUTH_TAG" \
       ${PW_COMMON_ARGS[@]+"${PW_COMMON_ARGS[@]}"} \
       > "/tmp/e2e-shard-${i}.log" 2>&1 &
   SHARD_PIDS+=($!)
@@ -227,6 +232,31 @@ for i in $(seq 1 "$SHARD_COUNT"); do
     FAILED_LIST="${FAILED_LIST:+$FAILED_LIST, }$i"
   fi
 done
+
+# ─── Step 9b: Specs that need the real Supabase Auth ─────────
+# They run against the main stack, which the shards were cloned from and never
+# write to. These specs talk to the database only, so no server is needed.
+REAL_AUTH_RESULT="skipped"
+if [ -z "$GREP_PATTERN" ]; then
+  echo "🔑 Running ${REAL_AUTH_TAG} specs against the main stack..."
+  if E2E_PARALLEL_MODE=1 \
+    E2E_SHARD_PORT="$BASE_PORT" \
+    SHARD_INDEX=real-auth \
+    APP_ENV=test \
+    NEXT_PUBLIC_ENABLE_MSW_MOCK=true \
+    NEXT_PUBLIC_SUPABASE_URL="${LOCAL_SUPABASE_URL}" \
+    NEXT_PUBLIC_SUPABASE_ANON_KEY="${LOCAL_SUPABASE_ANON_KEY}" \
+    SUPABASE_SERVICE_ROLE_KEY="${LOCAL_SUPABASE_SERVICE_ROLE_KEY}" \
+    pnpm exec playwright test \
+      --grep "$REAL_AUTH_TAG" \
+      --no-deps \
+      ${EXTRA_PW_ARGS[@]+"${EXTRA_PW_ARGS[@]}"} \
+      > /tmp/e2e-real-auth.log 2>&1; then
+    REAL_AUTH_RESULT="pass"
+  else
+    REAL_AUTH_RESULT="fail"
+  fi
+fi
 
 END_TIME=$(date +%s)
 DURATION=$((END_TIME - START_TIME))
@@ -266,6 +296,22 @@ for i in $(seq 1 "$SHARD_COUNT"); do
   fi
 done
 
+case "$REAL_AUTH_RESULT" in
+  pass) echo "  ✅ ${REAL_AUTH_TAG} on the main stack" ;;
+  fail)
+    echo "  ❌ ${REAL_AUTH_TAG} on the main stack — see /tmp/e2e-real-auth.log"
+    # PostgREST v14.17 now and then refuses a token GoTrue has just issued
+    # (PostgREST#5196, fixed in v14.18). `supabase link` pins the linked
+    # project's version in supabase/.temp/rest-version; CI is not linked and
+    # runs the CLI's default, so it does not see this.
+    if grep -q 'JWT issued at future' /tmp/e2e-real-auth.log; then
+      echo "     PGRST303 \"JWT issued at future\" is PostgREST#5196 (fixed in v14.18)."
+      echo "     This stack runs PostgREST $(cat supabase/.temp/rest-version 2>/dev/null || echo '(CLI default)'), set by supabase/.temp/rest-version."
+    fi
+    ;;
+  *) echo "  ⏭️  ${REAL_AUTH_TAG} skipped (--grep run)" ;;
+esac
+
 echo ""
 echo "  Passed: ${PASSED_COUNT}/${SHARD_COUNT}"
 if [ "$FAILED_COUNT" -gt 0 ]; then
@@ -273,7 +319,7 @@ if [ "$FAILED_COUNT" -gt 0 ]; then
 fi
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Exit with failure if any shard failed
-if [ "$FAILED_COUNT" -gt 0 ]; then
+# Exit with failure if any shard or the real-auth run failed
+if [ "$FAILED_COUNT" -gt 0 ] || [ "$REAL_AUTH_RESULT" = "fail" ]; then
   exit 1
 fi

@@ -23,6 +23,7 @@ import {
   BOARD_IDS,
   CARD_IDS,
   OTHER_USER,
+  REAL_AUTH,
   TEST_USER_ID,
   WORK_PROJECTS_STATUS_IDS,
   createAnonSupabaseClient,
@@ -630,48 +631,52 @@ test.describe('Project info data access', () => {
     ])
   })
 
-  test('deleting an account deletes the project info of that account', async () => {
-    // Arrange: a throwaway user, never one of the seed
-    const admin = createServiceRoleSupabaseClient()
-    const created = await admin.auth.admin.createUser({
-      email: `projectinfo-cascade-${crypto.randomUUID()}@gitbox.dev`,
-      password: 'throwaway-password-1',
-      email_confirm: true,
-    })
-    expect(created.error).toBeNull()
-    const userId = created.data.user?.id
-    if (typeof userId !== 'string') {
-      throw new Error('createUser returned no id')
-    }
+  test(
+    'deleting an account deletes the project info of that account',
+    REAL_AUTH,
+    async () => {
+      // Arrange: a throwaway user, never one of the seed
+      const admin = createServiceRoleSupabaseClient()
+      const created = await admin.auth.admin.createUser({
+        email: `projectinfo-cascade-${crypto.randomUUID()}@gitbox.dev`,
+        password: 'throwaway-password-1',
+        email_confirm: true,
+      })
+      expect(created.error).toBeNull()
+      const userId = created.data.user?.id
+      if (typeof userId !== 'string') {
+        throw new Error('createUser returned no id')
+      }
 
-    try {
-      const noted = await admin
-        .from('projectinfo')
-        .insert({
-          user_id: userId,
-          repo_owner: 'laststance',
-          repo_name: 'cascade-probe',
-          note: 'goes with the account',
-        })
-        .select('id')
-      expect(noted.error).toBeNull()
-      expect(noted.data).toHaveLength(1)
+      try {
+        const noted = await admin
+          .from('projectinfo')
+          .insert({
+            user_id: userId,
+            repo_owner: 'laststance',
+            repo_name: 'cascade-probe',
+            note: 'goes with the account',
+          })
+          .select('id')
+        expect(noted.error).toBeNull()
+        expect(noted.data).toHaveLength(1)
 
-      // Act
-      const deleted = await admin.auth.admin.deleteUser(userId)
+        // Act
+        const deleted = await admin.auth.admin.deleteUser(userId)
 
-      // Assert
-      expect(deleted.error).toBeNull()
-      const left = await admin
-        .from('projectinfo')
-        .select('id')
-        .eq('user_id', userId)
-      expect(left.error).toBeNull()
-      expect(left.data).toEqual([])
-    } finally {
-      await admin.auth.admin.deleteUser(userId)
-    }
-  })
+        // Assert
+        expect(deleted.error).toBeNull()
+        const left = await admin
+          .from('projectinfo')
+          .select('id')
+          .eq('user_id', userId)
+        expect(left.error).toBeNull()
+        expect(left.data).toEqual([])
+      } finally {
+        await admin.auth.admin.deleteUser(userId)
+      }
+    },
+  )
 
   test('a visitor without an account cannot call /rpc/projectinfo', async () => {
     // Arrange

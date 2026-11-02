@@ -17,6 +17,7 @@ import {
   createServiceRoleSupabaseClient,
   createTestUserSupabaseClient,
   OTHER_USER,
+  REAL_AUTH,
   TEST_USER_ID,
 } from '../helpers/db-query'
 
@@ -366,60 +367,68 @@ test.describe('Default columns once, and one first board', () => {
     expect(await countBoardsOf(TEST_USER_ID)).toBe(boardsBefore)
   })
 
-  test('eight first sign-ins of a new account at once leave one First Board', async () => {
-    // Arrange
-    const { userId, client } = await signInUserWithNoBoard()
-    const admin = createServiceRoleSupabaseClient()
+  test(
+    'eight first sign-ins of a new account at once leave one First Board',
+    REAL_AUTH,
+    async () => {
+      // Arrange
+      const { userId, client } = await signInUserWithNoBoard()
+      const admin = createServiceRoleSupabaseClient()
 
-    try {
-      // Act
-      const calls = await Promise.all(
-        Array.from({ length: OVERLAPPING_CALLS }, async () =>
-          client.rpc('create_first_board_if_needed', {
-            p_name: 'First Board',
-            p_columns: SOFTWARE_RELEASE_COLUMNS,
-          }),
-        ),
-      )
+      try {
+        // Act
+        const calls = await Promise.all(
+          Array.from({ length: OVERLAPPING_CALLS }, async () =>
+            client.rpc('create_first_board_if_needed', {
+              p_name: 'First Board',
+              p_columns: SOFTWARE_RELEASE_COLUMNS,
+            }),
+          ),
+        )
 
-      // Assert: one call created the board, the rest found it
-      for (const call of calls) {
-        expect(call.error).toBeNull()
+        // Assert: one call created the board, the rest found it
+        for (const call of calls) {
+          expect(call.error).toBeNull()
+        }
+        const created = calls.filter((call) => call.data !== null)
+        expect(created).toHaveLength(1)
+        expect(created[0]?.data.name).toBe('First Board')
+        expect(await countBoardsOf(userId)).toBe(1)
+        const boardId: string = created[0]?.data.id
+        expect(await countColumns(boardId)).toBe(5)
+      } finally {
+        await admin.auth.admin.deleteUser(userId)
       }
-      const created = calls.filter((call) => call.data !== null)
-      expect(created).toHaveLength(1)
-      expect(created[0]?.data.name).toBe('First Board')
-      expect(await countBoardsOf(userId)).toBe(1)
-      const boardId: string = created[0]?.data.id
-      expect(await countColumns(boardId)).toBe(5)
-    } finally {
-      await admin.auth.admin.deleteUser(userId)
-    }
-  })
+    },
+  )
 
-  test('a new account is refused a first board whose name is too long, and gets no board', async () => {
-    // Arrange
-    const { userId, client } = await signInUserWithNoBoard()
-    const admin = createServiceRoleSupabaseClient()
+  test(
+    'a new account is refused a first board whose name is too long, and gets no board',
+    REAL_AUTH,
+    async () => {
+      // Arrange
+      const { userId, client } = await signInUserWithNoBoard()
+      const admin = createServiceRoleSupabaseClient()
 
-    try {
-      // Act
-      const firstBoard = await client.rpc('create_first_board_if_needed', {
-        p_name: 'x'.repeat(51),
-        p_columns: SOFTWARE_RELEASE_COLUMNS,
-      })
+      try {
+        // Act
+        const firstBoard = await client.rpc('create_first_board_if_needed', {
+          p_name: 'x'.repeat(51),
+          p_columns: SOFTWARE_RELEASE_COLUMNS,
+        })
 
-      // Assert: the called function's own check, and the lock did not insert
-      expect(firstBoard.data).toBeNull()
-      expect(firstBoard.error?.code).toBe('23514')
-      expect(firstBoard.error?.message).toBe(
-        'create_board_with_status_lists: the board name must have 1 to 50 characters',
-      )
-      expect(await countBoardsOf(userId)).toBe(0)
-    } finally {
-      await admin.auth.admin.deleteUser(userId)
-    }
-  })
+        // Assert: the called function's own check, and the lock did not insert
+        expect(firstBoard.data).toBeNull()
+        expect(firstBoard.error?.code).toBe('23514')
+        expect(firstBoard.error?.message).toBe(
+          'create_board_with_status_lists: the board name must have 1 to 50 characters',
+        )
+        expect(await countBoardsOf(userId)).toBe(0)
+      } finally {
+        await admin.auth.admin.deleteUser(userId)
+      }
+    },
+  )
 
   test('a visitor without an account cannot ask for a first board', async () => {
     // Arrange

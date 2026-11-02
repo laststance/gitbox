@@ -33,6 +33,22 @@ const LOCAL_SUPABASE_SERVICE_ROLE_KEY =
 const LOCAL_SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
 
+/**
+ * Test details for a spec that needs the real Supabase Auth service.
+ *
+ * The shard proxies of `pnpm e2e:parallel` answer `/auth/v1` with fixtures,
+ * so a spec that creates or deletes users through the admin API, or signs a
+ * user in with a password, passes this as the second argument of `test()`.
+ * `scripts/e2e-parallel.sh` leaves `@real-auth` out of the shards and runs it
+ * once against the main local stack; `pnpm e2e` and CI run it like any spec.
+ *
+ * @example
+ * test('a new account gets one First Board', REAL_AUTH, async () => {
+ *   const created = await createServiceRoleSupabaseClient().auth.admin.createUser({ ... })
+ * })
+ */
+export const REAL_AUTH = { tag: '@real-auth' }
+
 // The JWT the app itself uses in E2E test mode (see `src/lib/supabase/server.ts`):
 // role=authenticated, sub=TEST_USER_ID. Requests carrying it are subject to RLS.
 const E2E_TEST_USER_JWT =

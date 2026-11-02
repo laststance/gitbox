@@ -91,6 +91,12 @@ http {
       default_type application/json;
       return 200 '{"id":"00000000-0000-0000-0000-000000000001","email":"test@gitbox.dev"}';
     }
+    # The admin API needs the real Supabase Auth, which only the main stack has.
+    # A spec that reaches it here is missing REAL_AUTH (e2e/helpers/db-query.ts).
+    location /auth/v1/admin/ {
+      default_type application/json;
+      return 501 '{"msg":"No admin auth API in an e2e:parallel shard. Pass REAL_AUTH from e2e/helpers/db-query.ts to test() so the spec runs against the main stack."}';
+    }
     location /auth/v1/ {
       default_type application/json;
       return 200 '{}';
@@ -185,13 +191,15 @@ setup() {
       GRANT SELECT ON TABLE public.saved_repository_mark TO authenticated;
     " > /dev/null
 
-    # Start PostgREST container (internal only, no port mapping)
+    # Start PostgREST container (internal only, no port mapping). Its row cap
+    # is max_rows of supabase/config.toml, as on the main stack.
     docker run -d --name "e2e-postgrest-${i}" \
       --network "$DOCKER_NETWORK" \
       -e PGRST_DB_URI="postgres://${PG_USER}:${PG_PASS}@${DB_CONTAINER}:5432/${DB_NAME}" \
       -e PGRST_DB_SCHEMAS="public" \
       -e PGRST_DB_ANON_ROLE="anon" \
       -e PGRST_JWT_SECRET="${JWT_SECRET}" \
+      -e PGRST_DB_MAX_ROWS=1000 \
       "$POSTGREST_IMAGE" > /dev/null
 
     # Generate nginx config and start proxy container
