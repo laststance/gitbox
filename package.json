@@ -14,7 +14,9 @@
     "*": "prettier --ignore-unknown --write",
     "*.{js,ts,jsx,tsx,cjs,mjs}": [
       "eslint -c eslint.config.mjs --fix --concurrency=auto --max-warnings 0 --no-warn-ignored"
-    ]
+    ],
+    ".github/workflows/*.{yml,yaml}": "actionlint",
+    "*.sh": "shellcheck"
   },
   "scripts": {
     "dev": "next dev -p 3008",
@@ -25,6 +27,7 @@
     "lint": "eslint . --concurrency=auto --max-warnings 0",
     "lint:fix": "eslint . --fix --concurrency=auto --max-warnings 0",
     "lint:actions": "actionlint",
+    "lint:shell": "shellcheck scripts/*.sh",
     "test": "vitest",
     "e2e": "playwright test",
     "e2e:parallel": "bash scripts/e2e-parallel.sh",
