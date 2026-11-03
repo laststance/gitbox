@@ -12,6 +12,11 @@
 # The dumps hold user data and auth tokens, so they stay outside the repository
 # and outside synced folders, readable by the owner only.
 #
+# On the Free plan the project's direct database host has an IPv6 address only,
+# and a Mac on a network without IPv6 cannot reach it (the run of 2026-11-03
+# timed out). The script links its own working directory to the project once:
+# a linked CLI connects through the session pooler, which answers on IPv4.
+#
 # Usage:
 #   bash scripts/backup-production-db.sh
 #   GITBOX_BACKUP_DIR=/path GITBOX_BACKUP_KEEP=14 bash scripts/backup-production-db.sh
@@ -22,11 +27,20 @@ PROJECT_REF=zfcwvzazzzsefbkztsyp
 BACKUP_ROOT="${GITBOX_BACKUP_DIR:-$HOME/gitbox-backups/supabase-prod}"
 KEEP="${GITBOX_BACKUP_KEEP:-30}"
 
-# Shows a macOS notification, so a failed run is noticed without reading the log.
-notify_failure() {
-  osascript -e 'display notification "Production DB backup failed. See backup.log." with title "GitBox backup"' >/dev/null 2>&1 || true
+partial=""
+
+# On a failed run: drops the unfinished dump, so no empty .partial directory is
+# left behind, and shows a macOS notification, so the failure is noticed
+# without reading the log.
+on_exit() {
+  local status=$?
+  if [ "$status" -ne 0 ]; then
+    if [ -n "$partial" ]; then rm -rf "$partial"; fi
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) backup failed (exit $status)"
+    osascript -e 'display notification "Production DB backup failed. See backup.log." with title "GitBox backup"' >/dev/null 2>&1 || true
+  fi
 }
-trap notify_failure ERR
+trap on_exit EXIT
 
 umask 077
 echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) backup started"
@@ -46,11 +60,16 @@ partial="$target.partial"
 rm -rf "$partial"
 mkdir -p "$partial"
 
-# The CLI writes a supabase/ folder into the working directory.
+# The CLI keeps its link in supabase/.temp/ of the working directory. The pooler
+# address arrives with the link; without it the CLI dials the IPv6-only host.
 cd "$BACKUP_ROOT/.cli"
-supabase db dump --project-ref "$PROJECT_REF" -f "$partial/schema.sql"
-supabase db dump --project-ref "$PROJECT_REF" --data-only --use-copy -f "$partial/data.sql"
-supabase db dump --project-ref "$PROJECT_REF" --role-only -f "$partial/roles.sql"
+mkdir -p supabase
+if [ ! -s supabase/.temp/pooler-url ] || [ "$(cat supabase/.temp/project-ref 2>/dev/null)" != "$PROJECT_REF" ]; then
+  supabase link --project-ref "$PROJECT_REF"
+fi
+supabase db dump --linked -f "$partial/schema.sql"
+supabase db dump --linked --data-only --use-copy -f "$partial/data.sql"
+supabase db dump --linked --role-only -f "$partial/roles.sql"
 
 # A dump without the app's tables failed, whatever the CLI's exit code said.
 grep -q '^COPY "public"."board"' "$partial/data.sql"
