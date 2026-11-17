@@ -312,17 +312,21 @@ test.describe('NoteModal (Authenticated)', () => {
     const editorContent = dialog.locator('[data-slate-editor="true"]')
     await editorContent.click()
 
-    // Clear existing content and wait for Slate to process
+    // Arrange: wait for the cleared editor instead of assuming a fixed render delay.
     await page.keyboard.press(`${MOD}+a`)
     await page.keyboard.press('Backspace')
-    // eslint-disable-next-line playwright/no-wait-for-timeout
-    await page.waitForTimeout(300)
+    await expect(
+      editorContent.locator('[data-slate-placeholder="true"]'),
+    ).toBeVisible()
 
     // Type some text
     await page.keyboard.type('Bold text')
+    await expect(editorContent).toHaveText('Bold text')
 
-    // Select all text
+    // Act: the floating toolbar proves Slate has processed the selected text.
     await page.keyboard.press(`${MOD}+a`)
+    await expect(dialog.getByRole('toolbar')).toHaveCount(2)
+    await expect(dialog.getByRole('toolbar').last()).toBeVisible()
 
     // Apply bold with Cmd+B
     await page.keyboard.press(`${MOD}+b`)
@@ -330,7 +334,7 @@ test.describe('NoteModal (Authenticated)', () => {
     // Click somewhere to deselect and make formatting visible
     await page.keyboard.press('End')
 
-    // Verify bold mark is applied (check for <strong> element)
+    // Assert: the selected text receives the bold mark from the keyboard shortcut.
     // Plate renders bold text as semantic <strong> HTML elements
     const boldText = editorContent.locator('strong')
     await expect(boldText).toHaveCount(1, { timeout: 15000 })
@@ -605,17 +609,21 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
     const editorContent = dialog.locator('[data-slate-editor="true"]')
     await editorContent.click()
 
-    // Clear existing content and wait for Slate to process
+    // Arrange: wait for the cleared editor instead of assuming a fixed render delay.
     await page.keyboard.press(`${MOD}+a`)
     await page.keyboard.press('Backspace')
-    // eslint-disable-next-line playwright/no-wait-for-timeout
-    await page.waitForTimeout(300)
+    await expect(
+      editorContent.locator('[data-slate-placeholder="true"]'),
+    ).toBeVisible()
 
     // Type some text
     await page.keyboard.type('Italic text')
+    await expect(editorContent).toHaveText('Italic text')
 
-    // Select all text
+    // Act: the floating toolbar proves Slate has processed the selected text.
     await page.keyboard.press(`${MOD}+a`)
+    await expect(dialog.getByRole('toolbar')).toHaveCount(2)
+    await expect(dialog.getByRole('toolbar').last()).toBeVisible()
 
     // Apply italic with Cmd+I
     await page.keyboard.press(`${MOD}+i`)
@@ -623,7 +631,7 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
     // Click somewhere to deselect and make formatting visible
     await page.keyboard.press('End')
 
-    // Verify italic mark is applied (check for <em> element)
+    // Assert: the selected text receives the italic mark from the keyboard shortcut.
     // Plate renders italic text as semantic <em> HTML elements
     const italicText = editorContent.locator('em')
     await expect(italicText).toHaveCount(1, { timeout: 15000 })
