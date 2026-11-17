@@ -355,8 +355,13 @@ test.describe('Names without a place to break', () => {
     await page.goto('/boards')
 
     // Assert
-    const title = page.getByTestId('boards-page-title')
-    const subtitle = page.getByTestId('boards-page-subtitle')
+    // Only the visible header participates in the layout being measured.
+    const title = page
+      .getByTestId('boards-page-title')
+      .filter({ visible: true })
+    const subtitle = page
+      .getByTestId('boards-page-subtitle')
+      .filter({ visible: true })
     await expect(title).toHaveText(
       'WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW',
     )
