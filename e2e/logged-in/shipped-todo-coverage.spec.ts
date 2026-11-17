@@ -215,8 +215,8 @@ test.describe('Shipped TODO coverage', () => {
       .toContain('draft-only-when-typed')
   })
 
-  // Value: protects=Sign Out clears draft notes and move destinations and keeps the theme; fails_when=the draft or the destination remains, or the theme is reset; why_new=forgetAccountOnThisBrowser has no browser test; seam=localStorage of the fixture browser; no_claim=the redirect to /, because the fixture session is not a GoTrue session and sign-out throws, and account deletion, which this test does not run
-  test('clears drafts and move destinations on Sign Out and keeps the theme', async ({
+  // Value: protects=Sign Out clears draft notes and move destinations and keeps the theme; fails_when=the draft or the destination remains, or the theme is reset; why_new=forgetAccountOnThisBrowser has no browser test; seam=localStorage of the fixture browser; no_claim=account deletion, which this test does not run
+  test('clears drafts and move destinations before Sign Out finishes and keeps the theme', async ({
     page,
   }) => {
     // Arrange
@@ -255,35 +255,58 @@ test.describe('Shipped TODO coverage', () => {
       .poll(() => readDraftNotes(page))
       .toHaveProperty(CARD_1_DRAFT_KEY)
 
-    // Act: the client clears storage before the server action. The fixture
-    // token is not a GoTrue session, so the action throws and the page stays.
-    await page.getByRole('button', { name: 'Sign Out' }).click()
+    // Hold the server action: this fixture has no real GoTrue session, so its redirect differs between Supabase and the local shard proxy.
+    const signOut = Promise.withResolvers<void>()
+    const signOutStarted = Promise.withResolvers<void>()
+    const signOutResponse = page.waitForResponse((response) =>
+      Boolean(response.request().headers()['next-action']),
+    )
+    await page.context().route('**/boards', async (route) => {
+      if (
+        route.request().method() === 'POST' &&
+        route.request().headers()['next-action']
+      ) {
+        signOutStarted.resolve()
+        await signOut.promise
+      }
+      await route.continue()
+    })
 
-    // Assert
-    // toMatchObject treats {} as "any object", so a leftover draft would pass.
-    await expect
-      .poll(async () => {
-        const state = await readPersisted(page)
-        const settings = state?.settings as
-          | {
-              theme?: string
-              moveDestinationByBoard?: Record<string, string>
-            }
-          | undefined
-        const draft = state?.draft as
-          { notes?: Record<string, unknown> } | undefined
-        return {
-          theme: settings?.theme ?? null,
-          moveDestinations: settings?.moveDestinationByBoard ?? null,
-          notes: draft?.notes ?? null,
-        }
-      })
-      .toEqual({
-        theme: 'rust',
-        moveDestinations: {},
-        notes: {},
-      })
-    await expect(page).toHaveURL(/\/boards$/)
+    try {
+      // Act: browser state must clear even while the server has not answered.
+      await page.getByRole('button', { name: 'Sign Out' }).click()
+      await signOutStarted.promise
+
+      // Assert
+      // toMatchObject treats {} as "any object", so a leftover draft would pass.
+      await expect
+        .poll(async () => {
+          const state = await readPersisted(page)
+          const settings = state?.settings as
+            | {
+                theme?: string
+                moveDestinationByBoard?: Record<string, string>
+              }
+            | undefined
+          const draft = state?.draft as
+            { notes?: Record<string, unknown> } | undefined
+          return {
+            theme: settings?.theme ?? null,
+            moveDestinations: settings?.moveDestinationByBoard ?? null,
+            notes: draft?.notes ?? null,
+          }
+        })
+        .toEqual({
+          theme: 'rust',
+          moveDestinations: {},
+          notes: {},
+        })
+      await expect(page).toHaveURL(/\/boards$/)
+    } finally {
+      // Release the real request even when an assertion fails; the fixture cannot establish an OAuth sign-out outcome.
+      signOut.resolve()
+      await signOutResponse
+    }
   })
 
   test.describe('Refresh from GitHub', () => {

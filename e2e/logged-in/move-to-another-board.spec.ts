@@ -72,9 +72,10 @@ async function placeWorkProjectsColumns(gridColumns: {
  * @returns The open dialog.
  */
 async function openMoveDialog(page: Page, cardId: string) {
-  const overflowMenuTrigger = page.locator(
-    `[data-testid="overflow-menu-trigger-${cardId}"]`,
-  )
+  // Streaming HTML may still contain a hidden pre-hydration copy outside the main landmark.
+  const overflowMenuTrigger = page
+    .getByRole('main')
+    .locator(`[data-testid="overflow-menu-trigger-${cardId}"]`)
   await expect(overflowMenuTrigger).toBeVisible({ timeout: 15000 })
   await overflowMenuTrigger.click()
   await page.locator(`[data-testid="move-to-another-board-${cardId}"]`).click()
@@ -208,9 +209,10 @@ test.describe('Move to Another Board Feature', () => {
     await page.waitForLoadState('networkidle')
 
     // Open overflow menu on card5
-    const overflowMenuTrigger = page.locator(
-      `[data-testid="overflow-menu-trigger-${cardId}"]`,
-    )
+    // Streaming HTML may still contain a hidden pre-hydration copy outside the main landmark.
+    const overflowMenuTrigger = page
+      .getByRole('main')
+      .locator(`[data-testid="overflow-menu-trigger-${cardId}"]`)
     await expect(overflowMenuTrigger).toBeVisible({ timeout: 10000 })
     await overflowMenuTrigger.click()
 
@@ -265,9 +267,10 @@ test.describe('Move to Another Board Feature', () => {
     await page.waitForLoadState('networkidle')
 
     // Open overflow menu on card1
-    const overflowMenuTrigger = page.locator(
-      `[data-testid="overflow-menu-trigger-${cardId}"]`,
-    )
+    // Streaming HTML may still contain a hidden pre-hydration copy outside the main landmark.
+    const overflowMenuTrigger = page
+      .getByRole('main')
+      .locator(`[data-testid="overflow-menu-trigger-${cardId}"]`)
     await expect(overflowMenuTrigger).toBeVisible({ timeout: 10000 })
     await overflowMenuTrigger.click()
 

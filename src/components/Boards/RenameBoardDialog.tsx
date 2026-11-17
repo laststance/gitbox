@@ -7,7 +7,7 @@
 
 'use client'
 
-import { memo, useActionState, useEffect, useState } from 'react'
+import { memo, useActionState, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -64,7 +64,18 @@ export const RenameBoardDialog = memo(function RenameBoardDialog({
   currentName,
 }: RenameBoardDialogProps) {
   const [state, formAction, isPending] = useActionState(
-    renameBoardAction,
+    async (previousState: RenameBoardState, formData: FormData) => {
+      const result = await renameBoardAction(previousState, formData)
+      // Notify the parent from the completed user action, once per successful submission.
+      if (result.success && result.newName) {
+        toast.success('Board renamed', {
+          description: `Board renamed to "${result.newName}".`,
+        })
+        onRenameSuccess(result.newName)
+        onClose()
+      }
+      return result
+    },
     initialState,
   )
 
@@ -79,17 +90,6 @@ export const RenameBoardDialog = memo(function RenameBoardDialog({
     setLastCurrentName(currentName)
     setName(currentName)
   }
-
-  // Handle success/error after action completes
-  useEffect(() => {
-    if (state.success && state.newName) {
-      toast.success('Board renamed', {
-        description: `Board renamed to "${state.newName}".`,
-      })
-      onRenameSuccess(state.newName)
-      onClose()
-    }
-  }, [state.success, state.newName, onRenameSuccess, onClose])
 
   const charCount = name.length
   const isNearLimit = charCount >= BOARD_NAME_MAX_LENGTH - 10

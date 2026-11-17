@@ -55,7 +55,9 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
 
     // Wait for Kanban board to load (column names indicate data is ready)
     // This ensures Redux store has repoCards populated before we open the combobox
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
 
     // Open AddRepositoryCombobox
     const addRepoButton = page.getByRole('button', {
@@ -102,7 +104,9 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
     await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load (column names indicate data is ready)
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
 
     // Open AddRepositoryCombobox
     const addRepoButton = page.getByRole('button', {
@@ -145,7 +149,9 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
     await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load (column names indicate data is ready)
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
 
     // Open AddRepositoryCombobox
     const addRepoButton = page.getByRole('button', {
@@ -188,7 +194,9 @@ test.describe('AddRepositoryCombobox - Existing Repo Filtering', () => {
     await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load (column names indicate data is ready)
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
 
     // Open AddRepositoryCombobox
     const addRepoButton = page.getByRole('button', {
@@ -447,7 +455,9 @@ test.describe('AddRepositoryCombobox - Optimistic Update', () => {
     await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
 
     // Count existing cards before adding
     const cardsBefore = await page.locator('[data-testid="repo-card"]').count()
@@ -517,7 +527,9 @@ test.describe('AddRepositoryCombobox - Optimistic Update', () => {
     await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
 
     // Open AddRepositoryCombobox
     const addRepoButton = page.getByRole('button', {
@@ -564,7 +576,9 @@ test.describe('AddRepositoryCombobox - Optimistic Update', () => {
     await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
 
     // Open AddRepositoryCombobox
     const addRepoButton = page.getByRole('button', {
@@ -635,7 +649,9 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
     await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
 
     // Find the Add Repo button in the Pending column (using data-testid)
     // Each column has an "Add Repo" button at the bottom
@@ -667,7 +683,9 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
     await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
 
     // Get all Add Repo buttons in columns
     const addRepoButtons = page.getByTestId('add-repo-button')
@@ -721,7 +739,9 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
     await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
 
     // Find and click Add Repo button in column
     const addRepoButtonInColumn = page.getByTestId('add-repo-button').first()
@@ -757,7 +777,9 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
     await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
 
     // Test 1: Open from header button
     const headerAddRepoButton = page.getByRole('button', {
@@ -802,7 +824,9 @@ test.describe('AddRepositoryCombobox - Column Add Repo Button', () => {
     await page.waitForLoadState('networkidle')
 
     // Wait for Kanban board to load
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
 
     // Count cards before adding
     const cardsBefore = await page.locator('[data-testid="repo-card"]').count()
@@ -904,7 +928,9 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
     // 26rem high)
     await page.setViewportSize({ width: 1280, height: 500 })
     await page.goto(BOARD_URL)
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
 
     // Act
     await page.getByRole('button', { name: /add repositories/i }).click()
@@ -945,7 +971,9 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
     // 256px is as low as this case goes: the height WCAG 1.4.10 Reflow uses
     await page.setViewportSize({ width: 1280, height: 256 })
     await page.goto(BOARD_URL)
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
     await page.getByRole('button', { name: /add repositories/i }).click()
     const panel = page.getByRole('combobox', { expanded: true })
     await expect(
@@ -975,7 +1003,9 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
     // more than the window leaves (measured on 2026-10-16)
     await page.setViewportSize({ width: 1280, height: 660 })
     await page.goto(BOARD_URL)
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
     await page.addStyleTag({
       content: 'header { padding-top: 136px !important; }',
     })
@@ -1010,7 +1040,9 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
     // window that is too short for all of it once it starts 120px lower
     await page.setViewportSize({ width: 1280, height: 660 })
     await page.goto(BOARD_URL)
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
     await page.getByRole('button', { name: /add repositories/i }).click()
     const panel = page.getByRole('combobox', { expanded: true })
     await expect(
@@ -1052,7 +1084,9 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
     // leave the panel 393px below it
     await page.setViewportSize({ width: 1280, height: 600 })
     await page.goto(BOARD_URL)
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
     await page.addStyleTag({
       content: 'header { padding-top: 136px !important; }',
     })
@@ -1103,7 +1137,9 @@ test.describe('AddRepositoryCombobox - Short Viewport', () => {
     ])
     await page.setViewportSize({ width: 1280, height: 520 })
     await page.goto(BOARD_URL)
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
 
     // Act
     await page.getByRole('button', { name: /add repositories/i }).click()
@@ -1179,7 +1215,9 @@ test.describe('AddRepositoryCombobox - Panel Position', () => {
       // Arrange
       await page.setViewportSize({ width: widthPx, height: heightPx })
       await page.goto(BOARD_URL)
-      await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+      await expect(
+        page.getByRole('heading', { name: 'Pending', exact: true }),
+      ).toBeVisible({ timeout: 15000 })
       const addRepositoriesButton = page.getByRole('button', {
         name: /add repositories/i,
       })
@@ -1213,7 +1251,9 @@ test.describe('AddRepositoryCombobox - Panel Position', () => {
     // Arrange
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto(BOARD_URL)
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
 
     // Act
     await page.getByRole('button', { name: /add repositories/i }).click()
@@ -1241,7 +1281,9 @@ test.describe('AddRepositoryCombobox - Panel Position', () => {
     // rail, so the rail's toggle is still in reach
     await page.setViewportSize({ width: 700, height: 900 })
     await page.goto(BOARD_URL)
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
     await page.getByRole('button', { name: /add repositories/i }).click()
     // Found by its attributes: the opened sidebar sets the page aside, and a
     // locator by role does not see what is set aside
@@ -1304,7 +1346,9 @@ test.describe('AddRepositoryCombobox - Option Row Colors', () => {
   }) => {
     // Arrange: the picker is open in Plum
     await page.goto(BOARD_URL)
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
     await page.getByRole('button', { name: /add repositories/i }).click()
     // Of the list of repositories: the visibility filter has options too
     const options = page
@@ -1369,7 +1413,9 @@ test.describe('AddRepositoryCombobox - Escape', () => {
   }) => {
     // Arrange: the picker holds a search, and its list of organizations is open
     await page.goto(BOARD_URL)
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
     await page.getByRole('button', { name: /add repositories/i }).click()
     const searchBox = page.getByRole('textbox', {
       name: 'Search repositories',
@@ -1409,7 +1455,9 @@ test.describe('AddRepositoryCombobox - Escape', () => {
   }) => {
     // Arrange
     await page.goto(BOARD_URL)
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
     await page.getByRole('button', { name: /add repositories/i }).click()
     const searchBox = page.getByRole('textbox', {
       name: 'Search repositories',
@@ -1458,7 +1506,9 @@ test.describe('AddRepositoryCombobox - Visibility and stars', () => {
   }) => {
     // Arrange
     await page.goto(BOARD_URL)
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
     await page.getByRole('button', { name: /add repositories/i }).click()
     const visibilityFilter = page.getByRole('combobox', {
       name: 'Visibility filter',
@@ -1494,7 +1544,9 @@ test.describe('AddRepositoryCombobox - Visibility and stars', () => {
   }) => {
     // Arrange: laststance/nsx is free to add and has 85 stars
     await page.goto(BOARD_URL)
-    await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole('heading', { name: 'Pending', exact: true }),
+    ).toBeVisible({ timeout: 15000 })
     await page.getByRole('button', { name: /add repositories/i }).click()
     const nsx = page.getByRole('option', { name: /laststance\/nsx/ })
     await expect(nsx).toBeVisible({ timeout: 10000 })

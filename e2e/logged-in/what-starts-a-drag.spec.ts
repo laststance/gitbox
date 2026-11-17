@@ -357,7 +357,9 @@ test.describe('What starts a drag on the board', () => {
       page,
     }) => {
       // Arrange
-      const column = page.getByTestId(`sortable-column-${STATUS_IDS.pending}`)
+      const column = page
+        .getByRole('main')
+        .getByTestId(`sortable-column-${STATUS_IDS.pending}`)
       const columnOptions = column.getByRole('button', {
         name: 'Column options',
       })
@@ -377,7 +379,9 @@ test.describe('What starts a drag on the board', () => {
     // Value: protects=a finger that rests on the title of a column still picks the column up; fails_when=the sensors refuse the presses of the header itself along with those of its button; why_new=no test dragged a column with a finger; seam=the board page in a browser with touch events; no_claim=where the column can be dropped, see kanban-dnd/column-dnd.spec.ts
     test('still picks up the column the finger rests on', async ({ page }) => {
       // Arrange
-      const column = page.getByTestId(`sortable-column-${STATUS_IDS.pending}`)
+      const column = page
+        .getByRole('main')
+        .getByTestId(`sortable-column-${STATUS_IDS.pending}`)
       await expect(column).toHaveCSS('opacity', '1')
 
       // Act and assert: the column is lifted while the finger rests, and put back when it lifts
@@ -396,7 +400,9 @@ test.describe('What starts a drag on the board', () => {
       page,
     }) => {
       // Arrange
-      const column = page.getByTestId(`sortable-column-${STATUS_IDS.pending}`)
+      const column = page
+        .getByRole('main')
+        .getByTestId(`sortable-column-${STATUS_IDS.pending}`)
       const newRowZone = page.getByText('Drop column here to create new row')
       await column
         .getByRole('button', { name: /^Drag to reorder Pending column/ })
