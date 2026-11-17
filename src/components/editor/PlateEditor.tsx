@@ -21,7 +21,7 @@
 'use client'
 
 import { Plate, usePlateEditor } from 'platejs/react'
-import { memo, useCallback, useEffect, useMemo } from 'react'
+import { memo, useCallback, useMemo } from 'react'
 
 import { Editor, EditorContainer } from '@/components/ui/editor'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -116,18 +116,15 @@ export const PlateEditor = memo(function PlateEditor({
     value: initialEditorValue,
   })
 
-  /**
-   * Auto-focus the editor when mounted if autoFocus is true.
-   * Uses setTimeout(0) to ensure DOM is ready after React render cycle.
-   */
-  useEffect(() => {
-    if (autoFocus) {
-      const timer = setTimeout(() => {
-        editor.tf.focus({ edge: 'end' })
-      }, 0)
+  // Attach focus to the editor DOM lifecycle; cleanup cancels pending focus when it unmounts.
+  const focusEditor = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (!element || !autoFocus) return
+      const timer = setTimeout(() => editor.tf.focus({ edge: 'end' }), 0)
       return (): void => clearTimeout(timer)
-    }
-  }, [autoFocus, editor])
+    },
+    [autoFocus, editor],
+  )
 
   /**
    * Handle editor content changes.
@@ -152,6 +149,7 @@ export const PlateEditor = memo(function PlateEditor({
       >
         <Plate editor={editor} onChange={handleChange}>
           <EditorContainer
+            ref={focusEditor}
             className={cn(
               'border-input bg-background rounded-lg border shadow-sm',
               disabled && 'cursor-not-allowed opacity-50',

@@ -20,7 +20,10 @@ test.describe('Account Deletion Dialog', () => {
   }) => {
     await page.goto('/account')
 
-    const deleteButton = page.getByTestId('delete-account-button')
+    const deleteButton = page.getByRole('button', {
+      name: 'Delete Account',
+      exact: true,
+    })
     await expect(deleteButton).toBeVisible()
     await expect(deleteButton).toHaveText('Delete Account')
   })
@@ -29,7 +32,9 @@ test.describe('Account Deletion Dialog', () => {
     await page.goto('/account')
 
     // Open the delete account dialog
-    await page.getByTestId('delete-account-button').click()
+    await page
+      .getByRole('button', { name: 'Delete Account', exact: true })
+      .click()
 
     // Dialog should appear
     const dialog = page.getByTestId('delete-account-dialog')
@@ -47,7 +52,9 @@ test.describe('Account Deletion Dialog', () => {
   test('should enable confirm button after typing DELETE', async ({ page }) => {
     await page.goto('/account')
 
-    await page.getByTestId('delete-account-button').click()
+    await page
+      .getByRole('button', { name: 'Delete Account', exact: true })
+      .click()
     await expect(page.getByTestId('delete-account-dialog')).toBeVisible()
 
     // Type "DELETE" in the confirmation input
@@ -64,7 +71,9 @@ test.describe('Account Deletion Dialog', () => {
   }) => {
     await page.goto('/account')
 
-    await page.getByTestId('delete-account-button').click()
+    await page
+      .getByRole('button', { name: 'Delete Account', exact: true })
+      .click()
     await expect(page.getByTestId('delete-account-dialog')).toBeVisible()
 
     // Type partial text
@@ -79,7 +88,9 @@ test.describe('Account Deletion Dialog', () => {
   test('should close dialog when cancel is clicked', async ({ page }) => {
     await page.goto('/account')
 
-    await page.getByTestId('delete-account-button').click()
+    await page
+      .getByRole('button', { name: 'Delete Account', exact: true })
+      .click()
     const dialog = page.getByTestId('delete-account-dialog')
     await expect(dialog).toBeVisible()
 

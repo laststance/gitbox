@@ -30,7 +30,9 @@ test.describe('Board Settings dialog on a 375px phone', () => {
     }) => {
       // Arrange: the columns are drawn once the page answers to clicks
       await page.goto(`/board/${BOARD_IDS.testBoard}`)
-      await expect(page.getByText('Pending')).toBeVisible({ timeout: 15000 })
+      await expect(
+        page.getByRole('heading', { name: 'Pending', exact: true }),
+      ).toBeVisible({ timeout: 15000 })
       await page.getByRole('button', { name: /board settings/i }).click()
       const dialog = page.getByRole('dialog')
       await expect(dialog).toBeVisible()

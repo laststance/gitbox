@@ -215,7 +215,7 @@ test.describe('Shipped TODO coverage', () => {
       .toContain('draft-only-when-typed')
   })
 
-  // Value: protects=Sign Out clears draft notes and move destinations and keeps the theme; fails_when=the draft or the destination remains, or the theme is reset; why_new=forgetAccountOnThisBrowser has no browser test; seam=localStorage of the fixture browser; no_claim=the redirect to /, because the fixture session is not a GoTrue session and sign-out throws, and account deletion, which this test does not run
+  // Value: protects=Sign Out clears draft notes and move destinations and keeps the theme; fails_when=the draft or the destination remains, or the theme is reset; why_new=forgetAccountOnThisBrowser has no browser test; seam=localStorage of the fixture browser; no_claim=account deletion, which this test does not run
   test('clears drafts and move destinations on Sign Out and keeps the theme', async ({
     page,
   }) => {
@@ -255,8 +255,7 @@ test.describe('Shipped TODO coverage', () => {
       .poll(() => readDraftNotes(page))
       .toHaveProperty(CARD_1_DRAFT_KEY)
 
-    // Act: the client clears storage before the server action. The fixture
-    // token is not a GoTrue session, so the action throws and the page stays.
+    // Act: the client clears storage before the server action signs out and returns to the landing page.
     await page.getByRole('button', { name: 'Sign Out' }).click()
 
     // Assert
@@ -283,7 +282,7 @@ test.describe('Shipped TODO coverage', () => {
         moveDestinations: {},
         notes: {},
       })
-    await expect(page).toHaveURL(/\/boards$/)
+    await expect(page).toHaveURL(/\/$/)
   })
 
   test.describe('Refresh from GitHub', () => {
