@@ -87,14 +87,6 @@ export const OverflowMenu = memo(function OverflowMenu({
     repoOwner && repoName ? `${repoOwner}/${repoName}` : repoName
 
   /**
-   * Opens a URL in a new tab securely.
-   * @param url - The URL to open
-   */
-  const handleOpenUrl = (url: string): void => {
-    window.open(url, '_blank', 'noopener,noreferrer')
-  }
-
-  /**
    * Handles the remove confirmation action.
    * Calls onRemove callback and closes the dialog.
    */
@@ -170,47 +162,46 @@ export const OverflowMenu = memo(function OverflowMenu({
           className="w-56"
           data-testid="overflow-menu"
         >
-          {/* Open on GitHub */}
+          {/* Open on GitHub — a real link, not window.open: popup-blocker
+                scriptlets (AdGuard's prevent-window-open and friends) neuter
+                window.open and the item did nothing. Anchor navigation is
+                out of their reach and gives middle-click for free. */}
           {githubUrl && (
-            <DropdownMenuItem
-              onClick={() => handleOpenUrl(githubUrl)}
-              data-testid={`open-github-${cardId}`}
-            >
-              <GithubIcon className="mr-2 h-4 w-4" />
-              Open on GitHub
+            <DropdownMenuItem asChild data-testid={`open-github-${cardId}`}>
+              <a href={githubUrl} target="_blank" rel="noopener noreferrer">
+                <GithubIcon className="mr-2 h-4 w-4" />
+                Open on GitHub
+              </a>
             </DropdownMenuItem>
           )}
 
           {/* Open Production URL */}
           {productionUrl && (
-            <DropdownMenuItem
-              onClick={() => handleOpenUrl(productionUrl)}
-              data-testid={`open-production-${cardId}`}
-            >
-              <ExternalLink className="mr-2 h-4 w-4" />
-              Open Production URL
+            <DropdownMenuItem asChild data-testid={`open-production-${cardId}`}>
+              <a href={productionUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Open Production URL
+              </a>
             </DropdownMenuItem>
           )}
 
           {/* Open Tracking dashboard */}
           {trackingUrl && (
-            <DropdownMenuItem
-              onClick={() => handleOpenUrl(trackingUrl)}
-              data-testid={`open-tracking-${cardId}`}
-            >
-              <BarChart2 className="mr-2 h-4 w-4" />
-              Open Tracking dashboard
+            <DropdownMenuItem asChild data-testid={`open-tracking-${cardId}`}>
+              <a href={trackingUrl} target="_blank" rel="noopener noreferrer">
+                <BarChart2 className="mr-2 h-4 w-4" />
+                Open Tracking dashboard
+              </a>
             </DropdownMenuItem>
           )}
 
           {/* Open Supabase dashboard */}
           {supabaseUrl && (
-            <DropdownMenuItem
-              onClick={() => handleOpenUrl(supabaseUrl)}
-              data-testid={`open-supabase-${cardId}`}
-            >
-              <Database className="mr-2 h-4 w-4" />
-              Open Supabase dashboard
+            <DropdownMenuItem asChild data-testid={`open-supabase-${cardId}`}>
+              <a href={supabaseUrl} target="_blank" rel="noopener noreferrer">
+                <Database className="mr-2 h-4 w-4" />
+                Open Supabase dashboard
+              </a>
             </DropdownMenuItem>
           )}
 
