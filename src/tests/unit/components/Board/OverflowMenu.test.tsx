@@ -247,21 +247,26 @@ describe('OverflowMenu', () => {
   })
 
   describe('URL Opening', () => {
-    test('should open GitHub URL when clicking Open on GitHub', async () => {
-      const user = userEvent.setup()
+    test('links Open on GitHub to the repository page in a new tab', () => {
+      // Arrange
       render(<OverflowMenu {...defaultProps} open={true} />)
 
-      await user.click(screen.getByText('Open on GitHub'))
+      // Act
+      const item = screen.getByRole('menuitem', { name: 'Open on GitHub' })
 
-      expect(mockWindowOpen).toHaveBeenCalledWith(
+      // Assert: the menuitem itself is the link — popup blockers neuter
+      // window.open, never an anchor's own navigation
+      expect(item.tagName).toBe('A')
+      expect(item).toHaveAttribute(
+        'href',
         'https://github.com/laststance/gitbox',
-        '_blank',
-        'noopener,noreferrer',
       )
+      expect(item).toHaveAttribute('target', '_blank')
+      expect(item).toHaveAttribute('rel', 'noopener noreferrer')
     })
 
-    test('should open production URL when clicking', async () => {
-      const user = userEvent.setup()
+    test('links Open Production URL to its URL in a new tab', () => {
+      // Arrange
       render(
         <OverflowMenu
           {...defaultProps}
@@ -270,13 +275,29 @@ describe('OverflowMenu', () => {
         />,
       )
 
-      await user.click(screen.getByText('Open Production URL'))
+      // Act
+      const item = screen.getByRole('menuitem', {
+        name: 'Open Production URL',
+      })
 
-      expect(mockWindowOpen).toHaveBeenCalledWith(
-        'https://prod.example.com',
-        '_blank',
-        'noopener,noreferrer',
-      )
+      // Assert
+      expect(item.tagName).toBe('A')
+      expect(item).toHaveAttribute('href', 'https://prod.example.com')
+      expect(item).toHaveAttribute('target', '_blank')
+      expect(item).toHaveAttribute('rel', 'noopener noreferrer')
+    })
+
+    test('opens URLs through their links, never through window.open, which popup blockers swallow', async () => {
+      // Arrange
+      const user = userEvent.setup()
+      render(<OverflowMenu {...defaultProps} open={true} />)
+
+      // Act
+      await user.click(screen.getByRole('menuitem', { name: 'Open on GitHub' }))
+
+      // Assert: AdGuard's prevent-window-open scriptlet returns null for
+      // window.open — a menu built on it can open nothing
+      expect(mockWindowOpen).not.toHaveBeenCalled()
     })
   })
 
