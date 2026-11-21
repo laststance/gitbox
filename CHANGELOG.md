@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.7.22.0] - 2026-11-21
+
+### Added
+
+- Project notes that are empty now open collapsed, freeing the dialog space for links; a switch next to the Note label opens the editor when you want to write.
+- The show/hide switch is remembered per repository, and a character count appears beside it when a hidden note still has content.
+- The note editor's bottom edge is a drag handle — pull it to resize, or focus it and use the arrow keys. The height is remembered across sessions.
 
 ## [0.7.21.0] - 2026-10-18
 
