@@ -36,6 +36,7 @@ function renderToasterWithTheme(theme: ThemeType): void {
         showCardMetadata: true,
         organizationFilter: 'all',
         sidebarCollapsed: false,
+        noteEditorHeight: 400,
       },
     },
   })

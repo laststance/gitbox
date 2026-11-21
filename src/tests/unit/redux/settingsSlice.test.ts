@@ -14,6 +14,7 @@
 
 import { describe, test, expect } from 'vitest'
 
+import { NOTE_EDITOR_HEIGHT_DEFAULT_PX } from '@/lib/constants/note-editor'
 import type { ThemeType } from '@/lib/constants/themes'
 import settingsSlice, {
   setTheme,
@@ -23,12 +24,17 @@ import settingsSlice, {
   setSidebarCollapsed,
   toggleSidebarCollapsed,
   setMoveDestination,
+  setNoteEditorHeight,
+  setNoteEditorOpen,
+  clearNoteEditorOpenByRepo,
   selectTheme,
   selectCompactMode,
   selectShowCardMetadata,
   selectOrganizationFilter,
   selectSidebarCollapsed,
   selectMoveDestination,
+  selectNoteEditorHeight,
+  selectNoteEditorOpen,
 } from '@/lib/redux/slices/settingsSlice'
 
 describe('settingsSlice', () => {
@@ -39,6 +45,7 @@ describe('settingsSlice', () => {
     showCardMetadata: boolean
     organizationFilter: string
     sidebarCollapsed: boolean
+    noteEditorHeight: number
   }
 
   const initialState: SettingsState = {
@@ -47,6 +54,7 @@ describe('settingsSlice', () => {
     showCardMetadata: true,
     organizationFilter: 'all',
     sidebarCollapsed: false,
+    noteEditorHeight: NOTE_EDITOR_HEIGHT_DEFAULT_PX,
   }
 
   describe('setTheme action', () => {
@@ -393,6 +401,76 @@ describe('settingsSlice', () => {
         expect(destinationBoardId).toBeUndefined()
       })
     })
+    describe('selectNoteEditorHeight', () => {
+      test('returns the height the note editor was resized to', () => {
+        // Arrange
+        const rootState = {
+          settings: { ...initialState, noteEditorHeight: 620 },
+        }
+
+        // Act
+        const result = selectNoteEditorHeight(rootState)
+
+        // Assert
+        expect(result).toBe(620)
+      })
+
+      test('returns the default height during hydration', () => {
+        // Arrange
+        const rootState = { settings: undefined }
+
+        // Act
+        const result = selectNoteEditorHeight(rootState)
+
+        // Assert
+        expect(result).toBe(NOTE_EDITOR_HEIGHT_DEFAULT_PX)
+      })
+    })
+
+    describe('selectNoteEditorOpen', () => {
+      test('returns the visibility remembered for that repository', () => {
+        // Arrange
+        const rootState = {
+          settings: {
+            ...initialState,
+            noteEditorOpenByRepo: { 'laststance/gitbox': false },
+          },
+        }
+
+        // Act
+        const result = selectNoteEditorOpen(rootState, 'laststance/gitbox')
+
+        // Assert
+        expect(result).toBe(false)
+      })
+
+      test('returns nothing for a repository whose switch was never toggled', () => {
+        // Arrange
+        const rootState = {
+          settings: {
+            ...initialState,
+            noteEditorOpenByRepo: { 'laststance/gitbox': false },
+          },
+        }
+
+        // Act
+        const result = selectNoteEditorOpen(rootState, 'vercel/next.js')
+
+        // Assert
+        expect(result).toBeUndefined()
+      })
+
+      test('returns nothing while the settings are still hydrating', () => {
+        // Arrange
+        const rootState = { settings: undefined }
+
+        // Act
+        const result = selectNoteEditorOpen(rootState, 'laststance/gitbox')
+
+        // Assert
+        expect(result).toBeUndefined()
+      })
+    })
   })
 
   describe('setMoveDestination action', () => {
@@ -458,6 +536,114 @@ describe('settingsSlice', () => {
       expect(nextState.moveDestinationByBoard).toEqual({
         'board-work': 'board-archive',
       })
+    })
+  })
+
+  describe('setNoteEditorHeight action', () => {
+    test('stores the height the note editor was resized to', () => {
+      // Arrange
+      const action = setNoteEditorHeight(620)
+
+      // Act
+      const nextState = settingsSlice(initialState, action)
+
+      // Assert
+      expect(nextState.noteEditorHeight).toBe(620)
+    })
+  })
+
+  describe('setNoteEditorOpen action', () => {
+    test('remembers the editor visibility for one repository', () => {
+      // Arrange
+      const action = setNoteEditorOpen({
+        repoKey: 'laststance/gitbox',
+        open: false,
+      })
+
+      // Act
+      const nextState = settingsSlice(initialState, action)
+
+      // Assert
+      expect(nextState.noteEditorOpenByRepo).toEqual({
+        'laststance/gitbox': false,
+      })
+    })
+
+    test('remembers each repository separately', () => {
+      // Arrange
+      const stateWithOneChoice = {
+        ...initialState,
+        noteEditorOpenByRepo: { 'laststance/gitbox': false },
+      }
+
+      // Act
+      const nextState = settingsSlice(
+        stateWithOneChoice,
+        setNoteEditorOpen({ repoKey: 'vercel/next.js', open: true }),
+      )
+
+      // Assert
+      expect(nextState.noteEditorOpenByRepo).toEqual({
+        'laststance/gitbox': false,
+        'vercel/next.js': true,
+      })
+    })
+
+    test('replaces the remembered visibility when the same repository is toggled again', () => {
+      // Arrange
+      const stateWithOneChoice = {
+        ...initialState,
+        noteEditorOpenByRepo: { 'laststance/gitbox': false },
+      }
+
+      // Act
+      const nextState = settingsSlice(
+        stateWithOneChoice,
+        setNoteEditorOpen({ repoKey: 'laststance/gitbox', open: true }),
+      )
+
+      // Assert
+      expect(nextState.noteEditorOpenByRepo).toEqual({
+        'laststance/gitbox': true,
+      })
+    })
+
+    test('remembers a visibility in settings saved before editor visibility was remembered', () => {
+      // Arrange: persisted state of an older version has no such key
+      const stateSavedByAnOlderVersion = initialState
+
+      // Act
+      const nextState = settingsSlice(
+        stateSavedByAnOlderVersion,
+        setNoteEditorOpen({ repoKey: 'laststance/gitbox', open: true }),
+      )
+
+      // Assert
+      expect(nextState.noteEditorOpenByRepo).toEqual({
+        'laststance/gitbox': true,
+      })
+    })
+  })
+
+  describe('clearNoteEditorOpenByRepo action', () => {
+    test('forgets every remembered editor visibility', () => {
+      // Arrange
+      const stateWithChoices = {
+        ...initialState,
+        noteEditorOpenByRepo: {
+          'laststance/gitbox': false,
+          'vercel/next.js': true,
+        },
+      }
+
+      // Act
+      const nextState = settingsSlice(
+        stateWithChoices,
+        clearNoteEditorOpenByRepo(),
+      )
+
+      // Assert
+      expect(nextState.noteEditorOpenByRepo).toEqual({})
     })
   })
 })

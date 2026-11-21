@@ -627,6 +627,7 @@ Remove from Board       // Destructive, confirmation dialog; deletes the card, k
 │ Add notes about owner/repo-name. Use toolbar for         │
 │ formatting.                                               │
 │-----------------------------------------------------------│
+│ Note                              1,234 / 20,000  [switch]│ ← Show/hide toggle
 │ ┌───────────────────────────────────────────────────────┐ │
 │ │ [B] [I] [U] [S] [~] [<>] | [H▾] | [•] [1.] | [🔗] [📊] │ │ ← Fixed Toolbar
 │ └───────────────────────────────────────────────────────┘ │
@@ -653,7 +654,8 @@ Remove from Board       // Destructive, confirmation dialog; deletes the card, k
 │ │                                                       │ │
 │ │  Type / for commands...                               │ │ ← Placeholder
 │ │                                                       │ │
-│ └───────────────────────────────────────────────────────┘ │
+│ │                              ───                      │ │ ← Resize handle
+│ └───────────────────────────────────────────────────────┘ │   (drag bottom edge)
 │                                                           │
 │                                    1,234 / 20,000         │ ← Character Count
 │                                    Draft saved 10:30 AM   │ ← Auto-save Status
@@ -661,6 +663,12 @@ Remove from Board       // Destructive, confirmation dialog; deletes the card, k
 │                              [ Cancel ]  [ Save ]         │
 └───────────────────────────────────────────────────────────┘
 ````
+
+**Editor visibility & height**:
+
+- The editor is **hidden when the note is empty and shown when it has content** (saved note or a newer draft), until the switch next to the `Note` label is toggled.
+- The switch position is **remembered per repository** (`settings.noteEditorOpenByRepo`, localStorage) — a remembered OFF hides even a note with content; a small character count next to the switch keeps hidden text discoverable.
+- Dragging the editor's **bottom-edge handle** (or ArrowUp/ArrowDown on it) resizes between 160px and 70vh; the height is persisted globally (`settings.noteEditorHeight`, default 400px).
 
 #### Toolbar Buttons
 

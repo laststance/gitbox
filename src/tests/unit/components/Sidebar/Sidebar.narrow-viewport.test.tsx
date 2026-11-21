@@ -136,6 +136,7 @@ function renderOpenSidebar() {
         showCardMetadata: true,
         organizationFilter: 'all',
         sidebarCollapsed: false,
+        noteEditorHeight: 400,
       },
     },
   })

@@ -37,6 +37,7 @@ const createTestStore = (sidebarCollapsed = false) => {
         showCardMetadata: true,
         organizationFilter: 'all',
         sidebarCollapsed,
+        noteEditorHeight: 400,
       },
     },
   })

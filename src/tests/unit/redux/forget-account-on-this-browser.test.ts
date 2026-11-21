@@ -1,9 +1,10 @@
 /**
  * Unit Tests: leaving an account drops what it left in this browser
  *
- * Sign-out and account deletion empty the unsaved notes and the remembered
- * move destinations. The theme stays, and localStorage is written before the
- * server action redirects.
+ * Sign-out and account deletion empty the unsaved notes, the remembered
+ * move destinations and the per-repository note editor visibility. The
+ * theme stays, and localStorage is written before the server action
+ * redirects.
  */
 
 import { createStorageMiddleware } from '@laststance/redux-storage-middleware'
@@ -18,11 +19,12 @@ import {
 import draftReducer, { updateDraftNote } from '@/lib/redux/slices/draftSlice'
 import settingsReducer, {
   setMoveDestination,
+  setNoteEditorOpen,
   setTheme,
 } from '@/lib/redux/slices/settingsSlice'
 
 describe('forgetAccountOnThisBrowser', () => {
-  test('drops the unsaved note and the last move, and keeps the theme in localStorage', async () => {
+  test('drops the unsaved note, the last move and the note editor visibility, and keeps the theme in localStorage', async () => {
     // Arrange: the middleware writes only after it has read localStorage
     localStorage.clear()
     const rootReducer = combineReducers({
@@ -56,6 +58,9 @@ describe('forgetAccountOnThisBrowser', () => {
         destinationBoardId: 'board-archive',
       }),
     )
+    store.dispatch(
+      setNoteEditorOpen({ repoKey: 'laststance/gitbox', open: false }),
+    )
 
     // Act
     await forgetAccountOnThisBrowser(store)
@@ -64,17 +69,20 @@ describe('forgetAccountOnThisBrowser', () => {
     expect(store.getState().draft.notes).toEqual({})
     expect(store.getState().settings.theme).toBe('rust')
     expect(store.getState().settings.moveDestinationByBoard).toEqual({})
+    expect(store.getState().settings.noteEditorOpenByRepo).toEqual({})
     const stored = JSON.parse(localStorage.getItem('gitbox-state') ?? '{}') as {
       state: {
         draft: { notes: Record<string, unknown> }
         settings: {
           theme: string
           moveDestinationByBoard: Record<string, string>
+          noteEditorOpenByRepo: Record<string, boolean>
         }
       }
     }
     expect(stored.state.draft.notes).toEqual({})
     expect(stored.state.settings.theme).toBe('rust')
     expect(stored.state.settings.moveDestinationByBoard).toEqual({})
+    expect(stored.state.settings.noteEditorOpenByRepo).toEqual({})
   })
 })
