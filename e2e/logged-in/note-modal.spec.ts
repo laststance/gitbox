@@ -41,7 +41,8 @@ test.describe('NoteModal (Authenticated)', () => {
 
   test('should open NoteModal from repo card Note button', async ({ page }) => {
     // Wait for cards to load (testid pattern: repo-card-{id})
-    const card = page.locator('[data-testid^="repo-card-"]').first()
+    // card1's seed note has content, so the editor opens visible
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card).toBeVisible({ timeout: 10000 })
 
     // Click on the Note button (has aria-label="Open note")
@@ -81,7 +82,8 @@ test.describe('NoteModal (Authenticated)', () => {
 
   test('should display Plate Editor in the modal', async ({ page }) => {
     // Open NoteModal via Note button
-    const card = page.locator('[data-testid^="repo-card-"]').first()
+    // card1's seed note has content, so the editor opens visible
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card).toBeVisible({ timeout: 10000 })
     const noteButton = card.getByRole('button', { name: 'Open note' })
     await noteButton.click()
@@ -100,7 +102,8 @@ test.describe('NoteModal (Authenticated)', () => {
 
   test('should allow typing in the editor', async ({ page }) => {
     // Open NoteModal
-    const card = page.locator('[data-testid^="repo-card-"]').first()
+    // card1's seed note has content, so the editor opens visible
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card).toBeVisible({ timeout: 10000 })
     const noteButton = card.getByRole('button', { name: 'Open note' })
     await noteButton.click()
@@ -121,7 +124,8 @@ test.describe('NoteModal (Authenticated)', () => {
 
   test('should show and update character count', async ({ page }) => {
     // Open NoteModal
-    const card = page.locator('[data-testid^="repo-card-"]').first()
+    // card1's seed note has content, so the editor opens visible
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card).toBeVisible({ timeout: 10000 })
     const noteButton = card.getByRole('button', { name: 'Open note' })
     await noteButton.click()
@@ -148,7 +152,8 @@ test.describe('NoteModal (Authenticated)', () => {
 
   test('should close modal on Cancel button', async ({ page }) => {
     // Open NoteModal
-    const card = page.locator('[data-testid^="repo-card-"]').first()
+    // card1's seed note has content, so the editor opens visible
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card).toBeVisible({ timeout: 10000 })
     const noteButton = card.getByRole('button', { name: 'Open note' })
     await noteButton.click()
@@ -166,7 +171,8 @@ test.describe('NoteModal (Authenticated)', () => {
 
   test('should close modal on Save button click', async ({ page }) => {
     // Open NoteModal
-    const card = page.locator('[data-testid^="repo-card-"]').first()
+    // card1's seed note has content, so the editor opens visible
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card).toBeVisible({ timeout: 10000 })
     const noteButton = card.getByRole('button', { name: 'Open note' })
     await noteButton.click()
@@ -250,7 +256,8 @@ test.describe('NoteModal (Authenticated)', () => {
     test.slow()
 
     // Open NoteModal
-    const card = page.locator('[data-testid^="repo-card-"]').first()
+    // card1's seed note has content, so the editor opens visible
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card).toBeVisible({ timeout: 10000 })
     const noteButton = card.getByRole('button', { name: 'Open note' })
     await noteButton.click()
@@ -300,7 +307,8 @@ test.describe('NoteModal (Authenticated)', () => {
     test.slow()
 
     // Open NoteModal
-    const card = page.locator('[data-testid^="repo-card-"]').first()
+    // card1's seed note has content, so the editor opens visible
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card).toBeVisible({ timeout: 10000 })
     const noteButton = card.getByRole('button', { name: 'Open note' })
     await noteButton.click()
@@ -350,7 +358,8 @@ test.describe('NoteModal (Authenticated)', () => {
     // Fix: KanbanBoard only shows skeleton when loading=true AND statuses.length===0
 
     // Wait for board content to load
-    const card = page.locator('[data-testid^="repo-card-"]').first()
+    // card1's seed note has content, so the editor opens visible
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card).toBeVisible({ timeout: 10000 })
 
     // Open NoteModal
@@ -415,7 +424,8 @@ test.describe('NoteModal Editor Height & Scroll (Authenticated)', () => {
     // Typing 20 lines into Slate editor is slow on CI
     test.slow()
     // Open NoteModal
-    const card = page.locator('[data-testid^="repo-card-"]').first()
+    // card1's seed note has content, so the editor opens visible
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card).toBeVisible({ timeout: 10000 })
     const noteButton = card.getByRole('button', { name: 'Open note' })
     await noteButton.click()
@@ -481,7 +491,8 @@ test.describe('NoteModal Editor Height & Scroll (Authenticated)', () => {
     // Typing 25+ lines into Slate editor is slow on CI
     test.slow()
     // Open NoteModal
-    const card = page.locator('[data-testid^="repo-card-"]').first()
+    // card1's seed note has content, so the editor opens visible
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card).toBeVisible({ timeout: 10000 })
     const noteButton = card.getByRole('button', { name: 'Open note' })
     await noteButton.click()
@@ -550,7 +561,8 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
     await page.waitForLoadState('networkidle')
 
     // Open NoteModal
-    const card = page.locator('[data-testid^="repo-card-"]').first()
+    // card1's seed note has content, so the editor opens visible
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card).toBeVisible({ timeout: 10000 })
     const noteButton = card.getByRole('button', { name: 'Open note' })
     await noteButton.click()
@@ -597,7 +609,8 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
     await page.waitForLoadState('networkidle')
 
     // Open NoteModal
-    const card = page.locator('[data-testid^="repo-card-"]').first()
+    // card1's seed note has content, so the editor opens visible
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card).toBeVisible({ timeout: 10000 })
     const noteButton = card.getByRole('button', { name: 'Open note' })
     await noteButton.click()
@@ -635,5 +648,184 @@ test.describe('NoteModal Formatting (Authenticated)', () => {
     // Plate renders italic text as semantic <em> HTML elements
     const italicText = editorContent.locator('em')
     await expect(italicText).toHaveCount(1, { timeout: 15000 })
+  })
+})
+
+test.describe('NoteModal Editor Visibility & Resize (Authenticated)', () => {
+  test.use({ storageState: 'e2e/.auth/user.json' })
+
+  const BOARD_URL = `/board/${BOARD_IDS.testBoard}`
+
+  test.beforeEach(async ({ page }) => {
+    await resetProjectInfoNotes()
+    await page.goto(BOARD_URL)
+    // Use networkidle to wait for all data fetches to complete
+    // This prevents flakiness caused by cards not being rendered yet
+    await page.waitForLoadState('networkidle')
+  })
+
+  // Value: protects=empty notes open with the editor tucked away so the links
+  //   stay in reach; fails_when=an empty note opens with the editor shown or
+  //   the switch does not reveal it; seam=none
+  test('hides the editor on an empty note until the switch shows it', async ({
+    page,
+  }) => {
+    // Arrange: card3's seed note (projinfo3) is empty
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card3}"]`)
+    await expect(card).toBeVisible({ timeout: 10000 })
+    await card.getByRole('button', { name: 'Open note' }).click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible({ timeout: 5000 })
+
+    // Assert: empty note → the editor is hidden and the switch is off
+    await expect(dialog.locator('[data-testid="note-editor"]')).toHaveCount(0)
+    const toggle = dialog.getByTestId('note-editor-toggle')
+    await expect(toggle).toHaveAttribute('data-state', 'unchecked')
+
+    // Act: flip the switch on
+    await toggle.click()
+
+    // Assert
+    await expect(toggle).toHaveAttribute('data-state', 'checked')
+    await expect(dialog.locator('[data-testid="note-editor"]')).toBeVisible()
+    await expect(dialog.locator('[data-slate-editor="true"]')).toBeVisible()
+  })
+
+  // Value: protects=a toggled position is remembered per repository so the
+  //   dialog reopens the way the card was left; fails_when=a reopen derives
+  //   visibility from content again or shares the choice across repositories;
+  //   seam=localStorage of the fixture browser
+  test('remembers the switch position per repository across a reload', async ({
+    page,
+  }) => {
+    // Arrange: card1's note has content — open and hide the editor
+    const cardWithNote = page.locator(
+      `[data-testid="repo-card-${CARD_IDS.card1}"]`,
+    )
+    await expect(cardWithNote).toBeVisible({ timeout: 10000 })
+    await cardWithNote.getByRole('button', { name: 'Open note' }).click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible({ timeout: 5000 })
+    await expect(dialog.locator('[data-testid="note-editor"]')).toBeVisible()
+
+    // Act: hide a note that has content
+    await dialog.getByTestId('note-editor-toggle').click()
+    await expect(dialog.locator('[data-testid="note-editor"]')).toHaveCount(0)
+    // The hidden-but-written note keeps a character count hint
+    await expect(dialog.getByTestId('note-char-count-collapsed')).toBeVisible()
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+    await expect(dialog).toBeHidden()
+
+    // Wait until the storage middleware's debounced write has landed,
+    // or the reload drops the toggled position
+    await page.waitForFunction(() => {
+      const raw = localStorage.getItem('gitbox-state')
+      if (!raw) return false
+      const map = JSON.parse(raw).state?.settings?.noteEditorOpenByRepo
+      return map && Object.keys(map).length > 0
+    })
+
+    // Act: reload the board and reopen the same note
+    await page.reload()
+    await page.waitForLoadState('networkidle')
+    await cardWithNote.getByRole('button', { name: 'Open note' }).click()
+    await expect(dialog).toBeVisible({ timeout: 5000 })
+
+    // Assert: the remembered OFF wins over the note's content
+    await expect(dialog.locator('[data-testid="note-editor"]')).toHaveCount(0)
+    await expect(dialog.getByTestId('note-char-count-collapsed')).toBeVisible()
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+    await expect(dialog).toBeHidden()
+
+    // Assert: card3's choice was never toggled — it still derives hidden
+    const emptyCard = page.locator(
+      `[data-testid="repo-card-${CARD_IDS.card3}"]`,
+    )
+    await emptyCard.getByRole('button', { name: 'Open note' }).click()
+    await expect(dialog).toBeVisible({ timeout: 5000 })
+    await expect(dialog.locator('[data-testid="note-editor"]')).toHaveCount(0)
+    await expect(dialog.getByTestId('note-char-count-collapsed')).toHaveCount(0)
+  })
+
+  // Value: protects=the editor's bottom edge drags to a new height that the
+  //   next visit keeps; fails_when=the handle does not move the box or the
+  //   height resets; seam=pointer events on the handle
+  test('resizes the editor by dragging its bottom edge and keeps the height', async ({
+    page,
+  }) => {
+    // Arrange: card1's note has content — the editor opens visible
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
+    await expect(card).toBeVisible({ timeout: 10000 })
+    await card.getByRole('button', { name: 'Open note' }).click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible({ timeout: 5000 })
+    const editorContainer = dialog.locator(
+      '[data-testid="note-editor"] .overflow-y-auto',
+    )
+    await expect(editorContainer).toBeVisible()
+    const heightOf = (): Promise<number> =>
+      editorContainer.evaluate((el) => el.getBoundingClientRect().height)
+    // Wait out the dialog's entrance animation at the default 400px,
+    // or the handle's box and the drag delta are measured mid-scale
+    await expect.poll(heightOf).toBe(400)
+
+    // Act: drag the bottom-edge handle 80px downward
+    const handle = dialog.getByTestId('note-editor-resize-handle')
+    const box = await handle.boundingBox()
+    if (!box) throw new Error('resize handle has no bounding box')
+    const startX = box.x + box.width / 2
+    const startY = box.y + box.height / 2
+    await page.mouse.move(startX, startY)
+    await page.mouse.down()
+    await page.mouse.move(startX, startY + 80, { steps: 5 })
+    await page.mouse.up()
+
+    // Assert: the editor box settles at 480px
+    const draggedHeight = 480
+    await expect.poll(heightOf).toBe(draggedHeight)
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+    await expect(dialog).toBeHidden()
+
+    // Wait until the storage middleware's debounced write has landed,
+    // or the reload drops the dragged height
+    await page.waitForFunction((expected) => {
+      const raw = localStorage.getItem('gitbox-state')
+      if (!raw) return false
+      const height = JSON.parse(raw).state?.settings?.noteEditorHeight
+      return typeof height === 'number' && Math.abs(height - expected) < 5
+    }, draggedHeight)
+
+    // Act: reload and reopen — the dragged height is remembered
+    await page.reload()
+    await page.waitForLoadState('networkidle')
+    await card.getByRole('button', { name: 'Open note' }).click()
+    await expect(dialog).toBeVisible({ timeout: 5000 })
+    await expect.poll(heightOf).toBe(draggedHeight)
+  })
+
+  // Value: protects=keyboard resizing for users who cannot drag;
+  //   fails_when=arrow keys on the focused handle do nothing; seam=none
+  test('resizes the editor with arrow keys on the handle', async ({ page }) => {
+    // Arrange: card1's note has content — the editor opens visible
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
+    await expect(card).toBeVisible({ timeout: 10000 })
+    await card.getByRole('button', { name: 'Open note' }).click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible({ timeout: 5000 })
+    const editorContainer = dialog.locator(
+      '[data-testid="note-editor"] .overflow-y-auto',
+    )
+    const heightOf = (): Promise<number> =>
+      editorContainer.evaluate((el) => el.getBoundingClientRect().height)
+    // Wait out the dialog's entrance animation at the default 400px
+    await expect.poll(heightOf).toBe(400)
+
+    // Act: focus the separator and press ArrowDown once (16px step)
+    const handle = dialog.getByTestId('note-editor-resize-handle')
+    await handle.focus()
+    await page.keyboard.press('ArrowDown')
+
+    // Assert
+    await expect.poll(heightOf).toBe(416)
   })
 })

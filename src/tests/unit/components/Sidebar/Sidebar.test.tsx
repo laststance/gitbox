@@ -51,6 +51,7 @@ function createTestStore(isCollapsed = false) {
         showCardMetadata: true,
         organizationFilter: 'all',
         sidebarCollapsed: isCollapsed,
+        noteEditorHeight: 400,
       },
     },
   })

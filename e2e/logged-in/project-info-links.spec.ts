@@ -18,6 +18,7 @@ import {
   querySingle,
   PROJECT_INFO_IDS,
   BOARD_IDS,
+  CARD_IDS,
   resetProjectInfoLinks,
 } from '../helpers/db-query'
 
@@ -33,8 +34,9 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
   async function openNoteModal(
     page: import('@playwright/test').Page,
   ): Promise<import('@playwright/test').Locator> {
-    // Wait for cards to load
-    const card = page.locator('[data-testid^="repo-card-"]').first()
+    // Wait for cards to load — card1's seed note has content,
+    // so the editor opens visible
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card).toBeVisible({ timeout: 10000 })
 
     // Click on the Note button (has aria-label="Open note")
@@ -408,9 +410,9 @@ test.describe('ProjectInfo Links (Authenticated)', () => {
     test('should verify links are persisted in database after save', async ({
       page,
     }) => {
-      // openNoteModal opens the first card on the page (card-3: laststance/create-react-app-vite)
-      // which maps to projinfo3 in seed data
-      const projectInfoId = PROJECT_INFO_IDS.projinfo3
+      // openNoteModal opens card-1 (testuser/test-repo), which maps to
+      // projinfo1 in seed data
+      const projectInfoId = PROJECT_INFO_IDS.projinfo1
 
       const dialog = await openNoteModal(page)
 
@@ -532,7 +534,8 @@ test.describe('ProjectInfo Links - Edge Cases (Authenticated)', () => {
   async function openNoteModal(
     page: import('@playwright/test').Page,
   ): Promise<import('@playwright/test').Locator> {
-    const card = page.locator('[data-testid^="repo-card-"]').first()
+    // card1's seed note has content, so the editor opens visible
+    const card = page.locator(`[data-testid="repo-card-${CARD_IDS.card1}"]`)
     await expect(card).toBeVisible({ timeout: 10000 })
 
     // Click on the Note button (has aria-label="Open note")

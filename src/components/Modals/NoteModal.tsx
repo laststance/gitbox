@@ -133,6 +133,7 @@ export const NoteModal = memo(function NoteModal({
             charCount={charCount}
             charCountClass={charCountClass}
             draft={draft}
+            repoKey={repoKey}
           />
 
           <LinkManager links={links} onLinksChange={handleLinksChange} />
