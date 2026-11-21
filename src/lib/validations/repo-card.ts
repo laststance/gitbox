@@ -41,11 +41,14 @@ const githubNameSegmentSchema = z.string().regex(GITHUB_NAME_SEGMENT)
  * query. Fields the card does not store (`full_name`,
  * `avatar_url`, ...) are accepted and dropped. Description and language may
  * be null, topics may be missing, and visibility may be `internal`: that is
- * what GitHub sends.
+ * what GitHub sends. `id` is optional: the add flow discards it before the
+ * GitHub confirmation, and the MCP tool sends only `owner` and `name`.
  *
  * @example
  * addRepositoriesRequestSchema.safeParse([{ id: 1, name: 'gitbox', owner: { login: 'laststance' }, description: null, visibility: 'internal' }])
  * // => { success: true }
+ * addRepositoriesRequestSchema.safeParse([{ name: 'gitbox', owner: { login: 'laststance' } }])
+ * // => { success: true } (id optional — GitHub's confirmation supplies it)
  * addRepositoriesRequestSchema.safeParse([{ id: 1, name: '<script>', owner: { login: 'x' } }])
  * // => { success: false }
  * addRepositoriesRequestSchema.safeParse([{ id: 1, name: 'gitbox', owner: { login: 'x' }, description: { text: 'no' } }])
@@ -54,7 +57,9 @@ const githubNameSegmentSchema = z.string().regex(GITHUB_NAME_SEGMENT)
 export const addRepositoriesRequestSchema = z
   .array(
     z.object({
-      id: z.number().int().positive(),
+      // Optional: discarded before the GitHub confirmation anyway, and the
+      // MCP tool sends only owner and name — GitHub's answer supplies the id.
+      id: z.number().int().positive().optional(),
       name: githubNameSegmentSchema,
       owner: z.object({ login: githubNameSegmentSchema }),
       description: z
@@ -78,3 +83,10 @@ export const addRepositoriesRequestSchema = z
   )
   .min(1)
   .max(MAX_REPOSITORIES_PER_ADD, TOO_MANY_REPOSITORIES_MESSAGE)
+
+/**
+ * What a caller may hand to {@link addRepositoriesRequestSchema}: the picker's
+ * `GitHubRepository[]` fits it, and so does the MCP tool's
+ * `[{ name, owner: { login } }]`.
+ */
+export type AddRepositoriesInput = z.input<typeof addRepositoriesRequestSchema>

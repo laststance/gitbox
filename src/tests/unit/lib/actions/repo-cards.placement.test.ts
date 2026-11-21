@@ -61,6 +61,15 @@ const { confirmedRepository } = vi.hoisted(() => {
             : 2000 + name.toLowerCase().charCodeAt(0)),
         owner,
         name,
+        // The card's `meta` comes from this answer now, not from what the
+        // caller claimed — the mock mirrors the same values `makeRepository`
+        // sends so the stored snapshot stays the expected one.
+        stargazers_count: 0,
+        language: null,
+        topics: [],
+        description: null,
+        visibility: 'public' as const,
+        updated_at: '2026-01-01T00:00:00Z',
       },
     }
   }

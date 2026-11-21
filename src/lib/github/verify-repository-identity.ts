@@ -15,6 +15,7 @@ import { isAxiosError } from 'axios'
 import { createGitHubAxios, getGitHubToken } from '@/lib/axios-github'
 import { BOARD_OF_CARD_RELATION } from '@/lib/constants/board-bundle'
 import type { Database } from '@/lib/supabase/types'
+import type { Visibility } from '@/lib/types/domain-primitives'
 import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
 
 /** How many unconfirmed cards one picker opening confirms. The next opening continues. */
@@ -43,12 +44,72 @@ export interface VerifiedRepository {
   owner: string
   /** Repository name GitHub returned. */
   name: string
+  /** Star count GitHub reported on the same response (display snapshot). */
+  stargazers_count?: number
+  /** Primary language GitHub detected, when any. */
+  language?: string | null
+  /** Topics GitHub lists on the repository. */
+  topics?: string[]
+  /** Description GitHub returns, when set. */
+  description?: string | null
+  /** Repository visibility GitHub reports. */
+  visibility?: Visibility
+  /** `updated_at` GitHub returned (ISO-8601). */
+  updated_at?: string
 }
 
 interface GitHubRepositoryResponse {
   id: number
   name: string
   owner: { login: string }
+  description?: string | null
+  language?: string | null
+  topics?: string[]
+  stargazers_count?: number
+  visibility?: Visibility
+  updated_at?: string
+}
+
+/**
+ * Maps a `GET /repos/{owner}/{name}` (or `/repositories/{id}`) payload onto
+ * the {@link VerifiedRepository} callers may store.
+ *
+ * Identity (`id`, `owner`, `name`) and the display fields (`meta` of a card)
+ * come off the same response, so a card never has to ask GitHub twice.
+ *
+ * @param data - The parsed repository response.
+ * @returns What GitHub says this repository is.
+ */
+function toVerifiedRepository(
+  data: GitHubRepositoryResponse,
+): VerifiedRepository {
+  return {
+    id: data.id,
+    owner: data.owner.login,
+    name: data.name,
+    stargazers_count: data.stargazers_count,
+    language: data.language,
+    topics: data.topics,
+    description: data.description,
+    visibility: data.visibility,
+    updated_at: data.updated_at,
+  }
+}
+
+/**
+ * Reads the bearer the caller pinned, else the signed-in user's cookie token.
+ *
+ * The MCP endpoint has no cookie store, so it hands in
+ * `GITBOX_MCP_GITHUB_TOKEN`; the UI path keeps reading `gh_token_*` through
+ * {@link getGitHubToken} (which also serves the E2E mock token).
+ *
+ * @param githubToken - Token the caller already holds, when it has one.
+ * @returns The token to send to GitHub, or `null` when neither source has one.
+ */
+async function resolveGitHubToken(
+  githubToken?: string,
+): Promise<string | null> {
+  return githubToken ? githubToken : await getGitHubToken()
 }
 
 /**
@@ -73,6 +134,8 @@ export type RepositoryConfirmation =
  *
  * @param owner - Owner login to look up.
  * @param name - Repository name to look up.
+ * @param githubToken - Bearer to send instead of the cookie token (the MCP
+ *   route has no cookies). Falls back to {@link getGitHubToken}.
  * @returns Whether GitHub confirmed the repository, said it is gone, or did not answer.
  * @example
  * const verified = await verifyRepositoryIdentity('laststance', 'gitbox')
@@ -81,8 +144,9 @@ export type RepositoryConfirmation =
 export async function verifyRepositoryIdentity(
   owner: string,
   name: string,
+  githubToken?: string,
 ): Promise<RepositoryConfirmation> {
-  const token = await getGitHubToken()
+  const token = await resolveGitHubToken(githubToken)
   if (!token) return { outcome: 'unavailable' }
 
   const api = createGitHubAxios({
@@ -99,7 +163,7 @@ export async function verifyRepositoryIdentity(
     if (!data.owner?.login || !data.name) return { outcome: 'unavailable' }
     return {
       outcome: 'confirmed',
-      repository: { id: data.id, owner: data.owner.login, name: data.name },
+      repository: toVerifiedRepository(data),
     }
   } catch (error) {
     // 404 and 451 are the only answers that mean the repository is gone
@@ -119,14 +183,17 @@ export async function verifyRepositoryIdentity(
  * owner and name, so the name can move with it.
  *
  * @param githubRepoId - The id already stored on the card.
+ * @param githubToken - Bearer to send instead of the cookie token (the MCP
+ *   route has no cookies). Falls back to {@link getGitHubToken}.
  * @returns The repository GitHub returns for that id, or why it did not.
  * @example
  * const current = await lookupRepositoryByGitHubId(42)
  */
 export async function lookupRepositoryByGitHubId(
   githubRepoId: number,
+  githubToken?: string,
 ): Promise<RepositoryConfirmation> {
-  const token = await getGitHubToken()
+  const token = await resolveGitHubToken(githubToken)
   if (!token) return { outcome: 'unavailable' }
 
   const api = createGitHubAxios({
@@ -143,7 +210,7 @@ export async function lookupRepositoryByGitHubId(
     if (!data.owner?.login || !data.name) return { outcome: 'unavailable' }
     return {
       outcome: 'confirmed',
-      repository: { id: data.id, owner: data.owner.login, name: data.name },
+      repository: toVerifiedRepository(data),
     }
   } catch (error) {
     const status = isAxiosError(error) ? error.response?.status : undefined
@@ -162,6 +229,8 @@ export async function lookupRepositoryByGitHubId(
  * the backfill.
  *
  * @param repositories - Owner and name of each repository, in request order.
+ * @param githubToken - Bearer to send instead of the cookie token (the MCP
+ *   route has no cookies). Falls back to {@link getGitHubToken}.
  * @returns One confirmation per repository, in that same order.
  * @example
  * const [first] = await verifyRepositoryIdentities([
@@ -170,6 +239,7 @@ export async function lookupRepositoryByGitHubId(
  */
 export async function verifyRepositoryIdentities(
   repositories: readonly { owner: string; name: string }[],
+  githubToken?: string,
 ): Promise<RepositoryConfirmation[]> {
   const results: RepositoryConfirmation[] = repositories.map(() => ({
     outcome: 'unavailable',
@@ -181,6 +251,7 @@ export async function verifyRepositoryIdentities(
       const confirmation = await verifyRepositoryIdentity(
         repository.owner,
         repository.name,
+        githubToken,
       )
       const slot = results[index]
       if (slot) results[index] = confirmation
@@ -206,6 +277,8 @@ export async function verifyRepositoryIdentities(
  *
  * @param supabase - Authenticated client. Row level security applies.
  * @param userId - The signed-in user (`claims.sub`).
+ * @param githubToken - Bearer to send instead of the cookie token (the MCP
+ *   route has no cookies). Falls back to {@link getGitHubToken}.
  * @returns Nothing. Cards that GitHub did not confirm stay null.
  * @example
  * await backfillVerifiedRepositoryIds(supabase, claims.sub)
@@ -213,6 +286,7 @@ export async function verifyRepositoryIdentities(
 export async function backfillVerifiedRepositoryIds(
   supabase: SupabaseClient<Database>,
   userId: string,
+  githubToken?: string,
 ): Promise<void> {
   const retryBefore = new Date(Date.now() - BACKFILL_RETRY_MS).toISOString()
   const { data, error } = await supabase
@@ -238,6 +312,7 @@ export async function backfillVerifiedRepositoryIds(
     const confirmation = await verifyRepositoryIdentity(
       card.repo_owner,
       card.repo_name,
+      githubToken,
     )
     // GitHub did not answer. Leave the row so the next opening tries it again.
     if (confirmation.outcome === 'unavailable') return

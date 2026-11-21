@@ -29,6 +29,16 @@ const LOCAL_SUPABASE_SERVICE_ROLE_KEY =
 const LOCAL_SITE_URL = 'http://localhost:3008'
 
 /**
+ * Test-only credentials for the GitBox MCP endpoint (`/api/mcp`).
+ * The web server env and the MCP E2E spec share these constants; they are
+ * not real secrets. Owner id is the seeded E2E user.
+ */
+const E2E_MCP_TOKEN =
+  '9f8e7d6c5b4a39281706f5e4d3c2b1a09f8e7d6c5b4a39281706f5e4d3c2b1a'
+const E2E_MCP_OWNER_ID = '00000000-0000-0000-0000-000000000001'
+const E2E_MCP_GITHUB_TOKEN = 'mock-github-provider-token-for-testing'
+
+/**
  * Parallel mode configuration.
  * When E2E_PARALLEL_MODE is set, the orchestrator script (scripts/e2e-parallel.sh)
  * manages server lifecycle and DB reset externally. Each shard gets its own
@@ -292,6 +302,10 @@ export default defineConfig({
           NEXT_PUBLIC_SITE_URL: LOCAL_SITE_URL,
           // Empty on purpose: a set variable wins over `.env.production`.
           SENTRY_AUTH_TOKEN: '',
+          // The MCP E2E spec authenticates with this bearer.
+          GITBOX_MCP_TOKEN: E2E_MCP_TOKEN,
+          GITBOX_MCP_OWNER_ID: E2E_MCP_OWNER_ID,
+          GITBOX_MCP_GITHUB_TOKEN: E2E_MCP_GITHUB_TOKEN,
         },
       },
 })

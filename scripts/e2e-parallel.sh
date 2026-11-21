@@ -34,6 +34,13 @@ LOCAL_SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOi
 # This app on the first shard. A shell variable wins over .env.production.
 LOCAL_SITE_URL="http://localhost:3008"
 
+# Test-only credentials for the GitBox MCP endpoint (/api/mcp). The shard
+# servers authorize with the token, the specs send it; the owner id is the
+# seeded E2E user.
+E2E_MCP_TOKEN="9f8e7d6c5b4a39281706f5e4d3c2b1a09f8e7d6c5b4a39281706f5e4d3c2b1a"
+E2E_MCP_OWNER_ID="00000000-0000-0000-0000-000000000001"
+E2E_MCP_GITHUB_TOKEN="mock-github-provider-token-for-testing"
+
 # ─── Parse arguments ───────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -155,6 +162,9 @@ for i in $(seq 0 $((SHARD_COUNT - 1))); do
   NEXT_PUBLIC_SUPABASE_ANON_KEY="${LOCAL_SUPABASE_ANON_KEY}" \
   SUPABASE_SERVICE_ROLE_KEY="${LOCAL_SUPABASE_SERVICE_ROLE_KEY}" \
   NEXT_PUBLIC_SITE_URL="${LOCAL_SITE_URL}" \
+  GITBOX_MCP_TOKEN="${E2E_MCP_TOKEN}" \
+  GITBOX_MCP_OWNER_ID="${E2E_MCP_OWNER_ID}" \
+  GITBOX_MCP_GITHUB_TOKEN="${E2E_MCP_GITHUB_TOKEN}" \
   SENTRY_AUTH_TOKEN="" \
     pnpm exec next start -p "$port" > "/tmp/e2e-server-${port}.log" 2>&1 &
   SERVER_PIDS+=($!)
@@ -206,6 +216,7 @@ for i in $(seq 1 "$SHARD_COUNT"); do
   NEXT_PUBLIC_SUPABASE_URL="http://127.0.0.1:${postgrest_port}" \
   NEXT_PUBLIC_SUPABASE_ANON_KEY="${LOCAL_SUPABASE_ANON_KEY}" \
   SUPABASE_SERVICE_ROLE_KEY="${LOCAL_SUPABASE_SERVICE_ROLE_KEY}" \
+  GITBOX_MCP_TOKEN="${E2E_MCP_TOKEN}" \
     pnpm exec playwright test \
       --shard="${i}/${SHARD_COUNT}" \
       --grep-invert "$REAL_AUTH_TAG" \

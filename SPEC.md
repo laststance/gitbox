@@ -469,6 +469,43 @@ type ActionErrorCode =
 | `withAuthResultRateLimit()` | Yes  | Yes        | `ActionResult<T>` (recommended) |
 | `withAuthRateLimit()`       | Yes  | Yes        | Throws on failure               |
 
+### 3.13 MCP Server (Agent API)
+
+`/api/mcp` exposes the board and project memory as an MCP (Model Context Protocol) server, so an AI agent can run first-party operations — "add the drinkgo repository to the Laststance board", "add the Supabase/Resend/Vercel dashboard URLs to its project note" — through the same invariants as the UI, not raw SQL.
+
+#### Transport & Authentication
+
+- **Endpoint**: `POST /api/mcp` — streamable-HTTP JSON-RPC (`tools/call`, `tools/list`, `initialize`). Stateless: every POST opens a fresh transport. GET/DELETE answer 405, matching the canonical stateless serving.
+- **Auth**: `Authorization: Bearer $GITBOX_MCP_TOKEN`, compared via SHA-256 + `timingSafeEqual` before MCP initialization. 401 on a missing/wrong bearer, 503 when `GITBOX_MCP_TOKEN` is unset. Responses carry `Cache-Control: no-store`.
+- **Client**: every call sends `Accept: application/json, text/event-stream`; the response frames the JSON-RPC result as SSE `data:`.
+- **Identity**: all operations run as `GITBOX_MCP_OWNER_ID` on the service-role client — RLS does not apply, so every query re-applies the owner filter in code (`src/lib/mcp/tools.ts`). GitHub verification uses `GITBOX_MCP_GITHUB_TOKEN` (a PAT), never the cookie token.
+- **Rate limiting**: the write tools reuse the action limiters (`addReposToBoard`, `projectInfo`); a hit answers `RATE_LIMITED`.
+- **Audit**: every tool call logs a `mcp_tool_call` security event (`tool`, `ok`).
+
+#### Tools
+
+| Tool                      | Purpose                                                                       |
+| ------------------------- | ----------------------------------------------------------------------------- |
+| `list_boards`             | Every board of the owner, in display order.                                   |
+| `list_columns`            | Status columns of one board (`board` = name or id).                           |
+| `list_repo_placements`    | Which board holds each repository card.                                       |
+| `list_link_presets`       | Built-in link types + user-defined presets.                                   |
+| `add_repository_to_board` | Verify via GitHub, then insert through `addRepositoriesToBoardCore`.          |
+| `add_project_links`       | Merge `{type,url}` links into project memory (dedupe by url, note preserved). |
+| `get_project_info`        | Read note, comment, links, card/board of a repository.                        |
+
+#### Error Envelope
+
+Tool failures answer `{ ok: false, code, error, hints? }` with `isError` set, so an agent self-corrects: `BOARD_NOT_FOUND` (with `availableBoards`), `AMBIGUOUS_BOARD` (with `matches`), `CARD_NOT_FOUND`, `INVALID_REPO`, `INVALID_LINK_TYPE`, `INVALID_LINK_URL`, `RATE_LIMITED`, `OPERATION_FAILED`, `INTERNAL`.
+
+#### Environment Variables
+
+| Variable                  | Purpose                                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------------------- |
+| `GITBOX_MCP_TOKEN`        | Bearer the agent presents (`openssl rand -hex 32`).                                         |
+| `GITBOX_MCP_OWNER_ID`     | `auth.users.id` every operation runs as.                                                    |
+| `GITBOX_MCP_GITHUB_TOKEN` | Fine-grained PAT for repository verification (Contents: Read on the relevant repositories). |
+
 ---
 
 ## 4) Interactions

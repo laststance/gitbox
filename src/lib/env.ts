@@ -44,6 +44,18 @@ export const env = createEnv({
       .optional()
       .default('false')
       .transform((val) => val === 'true'),
+    // Bearer token that authorizes the GitBox MCP endpoint (`/api/mcp`).
+    // Optional: unset means the endpoint answers 503. Generate with
+    // `openssl rand -hex 32`.
+    GITBOX_MCP_TOKEN: z.string().min(1).optional(),
+    // The user id (`board.user_id`) the MCP endpoint operates as. Not
+    // z.uuid(): the seeded E2E user is 00000000-…-0001, a nil-variant id
+    // RFC 4122 rejects.
+    GITBOX_MCP_OWNER_ID: z.string().min(1).optional(),
+    // GitHub PAT the MCP endpoint verifies repositories with (no cookie
+    // store exists on that route). Classic `repo` scope, or a fine-grained
+    // token with read access to the repositories it may add.
+    GITBOX_MCP_GITHUB_TOKEN: z.string().min(1).optional(),
   },
 
   /**
@@ -73,6 +85,9 @@ export const env = createEnv({
     SUPABASE_URL: process.env.SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     BOARD_TIMING_LOG: process.env.BOARD_TIMING_LOG,
+    GITBOX_MCP_TOKEN: process.env.GITBOX_MCP_TOKEN,
+    GITBOX_MCP_OWNER_ID: process.env.GITBOX_MCP_OWNER_ID,
+    GITBOX_MCP_GITHUB_TOKEN: process.env.GITBOX_MCP_GITHUB_TOKEN,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,

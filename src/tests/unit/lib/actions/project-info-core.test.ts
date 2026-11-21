@@ -281,6 +281,7 @@ describe('project-info-core', () => {
       payload: {
         repo_owner: 'laststance',
         repo_name: 'nsx',
+        user_id: 'user-1',
         comment: 'ship it',
       },
     },
@@ -291,6 +292,7 @@ describe('project-info-core', () => {
       payload: {
         repo_owner: 'laststance',
         repo_name: 'nsx',
+        user_id: 'user-1',
         comment: 'ship it',
         comment_color: 'blue',
       },
@@ -301,6 +303,7 @@ describe('project-info-core', () => {
       payload: {
         repo_owner: 'laststance',
         repo_name: 'nsx',
+        user_id: 'user-1',
         comment_color: 'green',
       },
     },
@@ -314,6 +317,7 @@ describe('project-info-core', () => {
       payload: {
         repo_owner: 'laststance',
         repo_name: 'nsx',
+        user_id: 'user-1',
         note: 'CLI tool documentation',
         links: [{ type: 'npm', url: 'https://www.npmjs.com/package/nsx' }],
       },
@@ -393,6 +397,7 @@ describe('project-info-core', () => {
       {
         repo_owner: 'laststance',
         repo_name: 'nsx',
+        user_id: 'user-1',
         github_repo_id: 42,
         comment: 'ship it',
       },
@@ -466,6 +471,7 @@ describe('project-info-core', () => {
       {
         repo_owner: 'laststance',
         repo_name: 'gitbox',
+        user_id: 'user-1',
         github_repo_id: 42,
         note: 'the new repository',
         links: [],
