@@ -117,17 +117,8 @@ async function releaseNamesHeldByAnotherRepository(
       )
     }
 
-    const { error: cardError } = await supabase
-      .from('repocard')
-      .update({
-        repo_owner: current.repository.owner,
-        repo_name: current.repository.name,
-      })
-      .eq('id', held.cardId)
-    if (cardError) {
-      throw new Error('Failed to update the repository name')
-    }
-
+    // The memory row moves first: a failed memory update leaves the card
+    // name old, so a retry still finds the name held and can complete both.
     const { error: memoryError } = await supabase
       .from('projectinfo')
       .update({
@@ -137,6 +128,17 @@ async function releaseNamesHeldByAnotherRepository(
       .eq('user_id', userId)
       .eq('github_repo_id', held.githubRepoId)
     if (memoryError && memoryError.code !== '23505') {
+      throw new Error('Failed to update the repository name')
+    }
+
+    const { error: cardError } = await supabase
+      .from('repocard')
+      .update({
+        repo_owner: current.repository.owner,
+        repo_name: current.repository.name,
+      })
+      .eq('id', held.cardId)
+    if (cardError) {
       throw new Error('Failed to update the repository name')
     }
   }
@@ -213,14 +215,15 @@ export interface CreatedRepoCard {
  * @param supabase - Authenticated client.
  * @param boardId - Board whose first column is wanted.
  * @returns The column id.
- * @throws {@link ActionUserError} "This board has no column" — a board
- *   without columns cannot hold a card.
+ * @throws `Error` when the column read itself fails;
+ *   {@link ActionUserError} "This board has no column" — a board without
+ *   columns cannot hold a card.
  */
 async function readFirstColumnOfBoard(
   supabase: SupabaseClient<Database>,
   boardId: string,
 ): Promise<string> {
-  const { data: column } = await supabase
+  const { data: column, error } = await supabase
     .from('statuslist')
     .select('id')
     .eq('board_id', boardId)
@@ -229,6 +232,11 @@ async function readFirstColumnOfBoard(
     .limit(1)
     .maybeSingle()
 
+  // A failed read is not an empty board — throwing here keeps the
+  // "no column" sentence for a successful read that found nothing.
+  if (error) {
+    throw new Error('Failed to read the board columns')
+  }
   if (!column) {
     throw new ActionUserError('This board has no column')
   }
@@ -257,6 +265,10 @@ async function readFirstColumnOfBoard(
  * @param params.repos - Repositories to add; Zod-validated again inside.
  * @param params.statusId - Target column. Defaults to the board's first
  *   column by (grid_row, grid_col), mirroring the picker.
+ * @param params.maxBackfillMs - Optional budget for the unconfirmed-id
+ *   backfill: past it, no new GitHub fetch is dispatched (the skipped cards
+ *   sort first next call). Unset means unbounded — the UI path; the MCP
+ *   route passes ~20s so the call fits its `maxDuration`.
  * @returns `{ addedCount, cards, skipped }` — repositories already placed are
  *   not an error; each comes back in `skipped` with its sentence.
  * @throws {@link ActionUserError} for refusals the caller may show (GitHub
@@ -274,6 +286,7 @@ export async function addRepositoriesToBoardCore(params: {
   boardId: string
   repos: AddRepositoriesInput
   statusId?: string
+  maxBackfillMs?: number
 }): Promise<{
   addedCount: number
   cards: CreatedRepoCard[]
@@ -314,7 +327,12 @@ export async function addRepositoriesToBoardCore(params: {
     .single()
   const placementsQuery = (async (): Promise<BoardPlacement[]> => {
     try {
-      await backfillVerifiedRepositoryIds(supabase, userId, githubToken)
+      await backfillVerifiedRepositoryIds(
+        supabase,
+        userId,
+        githubToken,
+        params.maxBackfillMs,
+      )
     } catch (error) {
       Sentry.captureException(error, {
         tags: { action: 'backfillVerifiedRepositoryIds' },
@@ -412,14 +430,18 @@ export async function addRepositoriesToBoardCore(params: {
 
   // Read after confirmation, not with the board: an earlier maximum would
   // be shared by two adds that both pass GitHub before either inserts.
-  // An empty column makes `.single()` fail; the first card is order 0.
-  const { data: maxOrderData } = await supabase
+  // `.maybeSingle()`: an empty column is no error — the first card is
+  // order 0. A failed read must not silently restart the orders at 0.
+  const { data: maxOrderData, error: maxOrderError } = await supabase
     .from('repocard')
     .select('order')
     .eq('status_id', statusId)
     .order('order', { ascending: false })
     .limit(1)
-    .single()
+    .maybeSingle()
+  if (maxOrderError) {
+    throw new Error('Failed to read the column order')
+  }
   let nextOrder = (maxOrderData?.order ?? -1) + 1
 
   // Add new cards

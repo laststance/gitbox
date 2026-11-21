@@ -303,7 +303,7 @@ export default defineConfig({
           // Empty on purpose: a set variable wins over `.env.production`.
           SENTRY_AUTH_TOKEN: '',
           // The MCP E2E spec authenticates with this bearer.
-          GITBOX_MCP_TOKEN: E2E_MCP_TOKEN,
+          GITBOX_MCP_TOKEN: process.env.GITBOX_MCP_TOKEN ?? E2E_MCP_TOKEN,
           GITBOX_MCP_OWNER_ID: E2E_MCP_OWNER_ID,
           GITBOX_MCP_GITHUB_TOKEN: E2E_MCP_GITHUB_TOKEN,
         },

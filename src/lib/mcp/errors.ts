@@ -16,6 +16,7 @@ export type McpErrorCode =
   | 'BOARD_NOT_FOUND'
   | 'AMBIGUOUS_BOARD'
   | 'CARD_NOT_FOUND'
+  | 'CONFLICT'
   | 'INVALID_LINK_TYPE'
   | 'INVALID_LINK_URL'
   | 'INVALID_REPO'

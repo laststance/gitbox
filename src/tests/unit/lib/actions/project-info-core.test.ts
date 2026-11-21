@@ -26,6 +26,7 @@ import {
   updateCommentColorCore,
   updateCommentCore,
   upsertProjectInfoCore,
+  writeRepositoryMemory,
 } from '@/lib/actions/project-info-core'
 import { ActionUserError } from '@/lib/actions/types'
 import { lookupRepositoryByGitHubId } from '@/lib/github/verify-repository-identity'
@@ -373,6 +374,33 @@ describe('project-info-core', () => {
     })
     expect(filterUpdatedRows).toHaveBeenCalledWith('id', 'memory-1')
     expect(filterUpdatedRows).toHaveBeenCalledWith('user_id', 'user-1')
+  })
+
+  // Value: protects=a save from a caller whose repository id is not confirmed keeps a confirmed id already on the row; fails_when=the upsert sends github_repo_id: null and nulls the id on the conflict row; why_new=the MCP route reaches writeRepositoryMemory with github_repo_id present-but-null (the action cores omit the key instead); seam=none; no_claim=PostgREST upsert semantics (e2e)
+  test('leaves github_repo_id off the upsert when the repository id is not confirmed', async () => {
+    // Arrange
+    const upsert = vi.fn(async () => ({ error: null }))
+    const supabase = { from: vi.fn(() => ({ upsert })) }
+
+    // Act
+    await writeRepositoryMemory(
+      supabase as never,
+      'user-1',
+      { repo_owner: 'laststance', repo_name: 'nsx', github_repo_id: null },
+      { comment: 'ship it' },
+    )
+
+    // Assert: no `github_repo_id` key — an explicit null would overwrite
+    // a confirmed id on the conflict row
+    expect(upsert).toHaveBeenCalledWith(
+      {
+        repo_owner: 'laststance',
+        repo_name: 'nsx',
+        user_id: 'user-1',
+        comment: 'ship it',
+      },
+      { onConflict: 'user_id,repo_key' },
+    )
   })
 
   // Value: protects=the first save of a confirmed repository still creates the row by name; fails_when=a missing memory is updated instead of inserted, or the confirmed id is left off the insert; why_new=the id lookup returns no row on a first save; seam=none; no_claim=the database default for user_id

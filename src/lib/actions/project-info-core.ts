@@ -278,9 +278,19 @@ export async function writeRepositoryMemory(
   }
 
   const { error } = await supabase.from('projectinfo').upsert(
-    // `user_id` explicitly: the service-role client has no `auth.uid()`
-    // to fill the column default, and a null `user_id` fails the upsert.
-    { ...repository, user_id: ownerId, ...fields },
+    {
+      repo_owner: repository.repo_owner,
+      repo_name: repository.repo_name,
+      // A null or missing id must not overwrite a confirmed one on the
+      // conflict row — leave the column out so the upsert keeps it.
+      ...(typeof repository.github_repo_id === 'number'
+        ? { github_repo_id: repository.github_repo_id }
+        : {}),
+      // `user_id` explicitly: the service-role client has no `auth.uid()`
+      // to fill the column default, and a null `user_id` fails the upsert.
+      user_id: ownerId,
+      ...fields,
+    },
     { onConflict: PROJECT_INFO_CONFLICT_TARGET },
   )
   return { error }

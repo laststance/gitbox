@@ -116,8 +116,8 @@ export async function resolveBoard(
  * Merge new links into existing ones, deduplicated by `url`.
  *
  * First occurrence wins: a link already saved keeps its `type`, and the new
- * list dedupes against itself. The note-merge of `add_project_links` exists
- * because an omitted note would erase the user's note — same spirit for
+ * list dedupes against itself. `add_project_links` never sends the note on
+ * an existing row so a concurrent note edit survives — same spirit for
  * links.
  *
  * @param existing - Links already on the repository's memory.
@@ -199,6 +199,8 @@ async function readCardProjectInfo(
         repo_name: string
         github_repo_id?: number | null
       }
+      /** The memory row's id — `null` while nothing is saved. */
+      memoryId: string | null
       note: string
       comment: string
       links: ProjectLink[]
@@ -212,7 +214,7 @@ async function readCardProjectInfo(
   const { data: card, error } = await ctx.supabase
     .from('repocard')
     .select(
-      'repo_owner, repo_name, github_repo_id, projectinfo(note, comment, links, updated_at)',
+      'repo_owner, repo_name, github_repo_id, projectinfo(id, note, comment, links, updated_at)',
     )
     .eq('id', cardId)
     .single()
@@ -222,6 +224,7 @@ async function readCardProjectInfo(
   }
 
   const projectInfo = card.projectinfo as {
+    id?: string | null
     note?: string | null
     comment?: string | null
     links?: unknown
@@ -234,6 +237,7 @@ async function readCardProjectInfo(
       repo_name: card.repo_name,
       github_repo_id: card.github_repo_id,
     },
+    memoryId: projectInfo?.id ?? null,
     note: projectInfo?.note || '',
     comment: projectInfo?.comment || '',
     links: normalizeLinks(projectInfo?.links),
@@ -432,6 +436,10 @@ export async function addRepositoryToBoard(
       userId: ctx.ownerId,
       githubToken: ctx.githubToken,
       boardId: resolved.board.id,
+      // The route's maxDuration is 30s — stop dispatching backfill GitHub
+      // calls past this budget (in-flight ones finish; the rest sort first
+      // on the next call).
+      maxBackfillMs: 20_000,
       ...(args.statusId ? { statusId: args.statusId } : {}),
       // Only owner and name are sent: the schema's `id` is optional and the
       // core fills it (and the `meta` snapshot) from GitHub's own answer.
@@ -463,13 +471,67 @@ export async function addRepositoryToBoard(
   }
 }
 
+/** How many read-merge-write rounds `add_project_links` runs before CONFLICT. */
+const LINK_MERGE_MAX_ATTEMPTS = 3
+
+/** The version a `links` merge of `add_project_links` writes against. */
+interface MemoryLinkSnapshot {
+  id: string
+  links: ProjectLink[]
+  /** `projectinfo.updated_at` — bumped by a trigger on every write. */
+  updatedAt: string | null
+}
+
+/**
+ * Re-read a memory row for another merge round of `add_project_links`.
+ *
+ * Called when the version-checked update matched nothing — a write landed
+ * between the snapshot and the update — so the merge needs fresh links and
+ * a fresh version.
+ *
+ * @param ctx - Per-request MCP context.
+ * @param memoryId - The `projectinfo.id` of the row.
+ * @returns The row's id, links and `updated_at`, or the refusal envelope.
+ */
+async function readMemoryLinkSnapshot(
+  ctx: McpToolContext,
+  memoryId: string,
+): Promise<MemoryLinkSnapshot | McpErrorEnvelope> {
+  const { data, error } = await ctx.supabase
+    .from('projectinfo')
+    .select('id, links, updated_at')
+    .eq('id', memoryId)
+    .eq('user_id', ctx.ownerId)
+    .maybeSingle()
+
+  if (error) return mcpError('INTERNAL', 'Failed to read project info')
+  // The row vanished mid-merge — same answer the retry limit gives
+  if (!data) {
+    return mcpError(
+      'CONFLICT',
+      'The project info changed while the links were merged — run the call again',
+    )
+  }
+  return {
+    id: data.id,
+    links: normalizeLinks(data.links),
+    updatedAt: data.updated_at,
+  }
+}
+
 /**
  * `add_project_links` — merge links into a repository's memory.
  *
- * Server-side read-modify-write: the existing note is read back and written
- * along unchanged, because writing only `links` with an empty/omitted note
- * would erase the user's note. Links dedupe by `url` (first occurrence wins).
- * `type` accepts any non-empty string — custom user presets are legitimate.
+ * Server-side read-modify-write, version-checked: an existing row is
+ * updated through `links` only — the note is never sent, so a note saved
+ * between the read and the write survives (a restored copy could not).
+ * The update carries the `updated_at` it read as the version guard (a
+ * trigger bumps it on every write): a concurrent write leaves the update
+ * unmatched, and the merge re-reads and retries, `CONFLICT` after three
+ * lost rounds. A repository with no row gets one — `note: ''` plus the
+ * links, a creation that cannot clobber a note. Links dedupe by `url`
+ * (first occurrence wins). `type` accepts any non-empty string — custom
+ * user presets are legitimate.
  *
  * @param ctx - Per-request MCP context.
  * @param args.repo - `owner/name`.
@@ -515,31 +577,80 @@ export async function addProjectLinks(
   const info = await readCardProjectInfo(ctx, found.placement.cardId)
   if ('ok' in info) return info
 
-  const merged = mergeLinksByUrl(info.links, args.links)
-  const written = await writeRepositoryMemory(
-    ctx.supabase,
-    ctx.ownerId,
-    info.repository,
-    {
-      // The note outlives the card — send it back unchanged so this write
-      // can never erase it.
-      user_id: ctx.ownerId,
-      note: info.note,
-      // Plain literals so `links` satisfies the `Json` column type
-      links: merged.map((link) => ({ type: link.type, url: link.url })),
-    },
-    ctx.githubToken,
-  )
-  if (written.error) {
-    return mcpError('OPERATION_FAILED', written.error.message)
+  // No memory row yet: create it. `note: ''` plus the links cannot clobber
+  // a note — there is none to lose.
+  if (info.memoryId === null) {
+    const merged = mergeLinksByUrl(info.links, args.links)
+    const written = await writeRepositoryMemory(
+      ctx.supabase,
+      ctx.ownerId,
+      info.repository,
+      {
+        user_id: ctx.ownerId,
+        note: '',
+        // Plain literals so `links` satisfies the `Json` column type
+        links: merged.map((link) => ({ type: link.type, url: link.url })),
+      },
+      ctx.githubToken,
+    )
+    if (written.error) {
+      return mcpError('OPERATION_FAILED', written.error.message)
+    }
+    return {
+      ok: true,
+      repo: args.repo,
+      cardId: found.placement.cardId,
+      links: merged,
+    }
   }
 
-  return {
-    ok: true,
-    repo: args.repo,
-    cardId: found.placement.cardId,
-    links: merged,
+  let snapshot: MemoryLinkSnapshot = {
+    id: info.memoryId,
+    links: info.links,
+    updatedAt: info.updatedAt,
   }
+
+  for (let attempt = 0; attempt < LINK_MERGE_MAX_ATTEMPTS; attempt++) {
+    const merged = mergeLinksByUrl(snapshot.links, args.links)
+    const update = ctx.supabase
+      .from('projectinfo')
+      // Plain literals so `links` satisfies the `Json` column type
+      .update({
+        links: merged.map((link) => ({ type: link.type, url: link.url })),
+      })
+      .eq('id', snapshot.id)
+      .eq('user_id', ctx.ownerId)
+    // `eq` cannot filter on null — `is` is the null-safe version check.
+    // `updated_at` is bumped by a trigger on every write, so a concurrent
+    // write leaves this update unmatched.
+    const { data: writtenRows, error } = await (
+      snapshot.updatedAt === null
+        ? update.is('updated_at', null)
+        : update.eq('updated_at', snapshot.updatedAt)
+    ).select('id')
+
+    if (error) {
+      return mcpError('OPERATION_FAILED', 'Failed to write project links')
+    }
+    if (writtenRows && writtenRows.length > 0) {
+      return {
+        ok: true,
+        repo: args.repo,
+        cardId: found.placement.cardId,
+        links: merged,
+      }
+    }
+
+    // A write landed between the read and this update: re-read and merge again
+    const reread = await readMemoryLinkSnapshot(ctx, snapshot.id)
+    if ('ok' in reread) return reread
+    snapshot = reread
+  }
+
+  return mcpError(
+    'CONFLICT',
+    'The project info changed while the links were merged — run the call again',
+  )
 }
 
 // ========================================

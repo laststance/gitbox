@@ -73,29 +73,47 @@ function makeQuery(result: QueryResult) {
 }
 
 /**
- * A `from` table map plus the `upsert` spy `projectinfo` writes go through.
+ * A `from` table map plus the spies `projectinfo` writes go through.
+ *
+ * `update().eq()…select()` answers `projectinfoUpdate` (first entry per
+ * call while several are queued, the last one repeats); the merge re-read
+ * `select().eq().eq().maybeSingle()` answers `projectinfoRead`.
  */
 function supabaseStub(tables: {
   boards: QueryResult
   repocard: QueryResult
   projectinfoUpsertError?: { message: string } | null
+  projectinfoUpdate?: QueryResult[]
+  projectinfoRead?: QueryResult
 }) {
   const upsert = vi.fn(async () => ({
     error: tables.projectinfoUpsertError ?? null,
   }))
+  const updateAnswers = [
+    ...(tables.projectinfoUpdate ?? [
+      { data: [{ id: 'memory-1' }], error: null },
+    ]),
+  ]
+  const selectAfterUpdate = vi.fn(async () =>
+    updateAnswers.length > 1 ? updateAnswers.shift() : updateAnswers[0],
+  )
+  const filter = {
+    eq: vi.fn(() => filter),
+    is: vi.fn(() => filter),
+    select: selectAfterUpdate,
+    maybeSingle: async () =>
+      tables.projectinfoRead ?? { data: null, error: null },
+  }
+  const update = vi.fn(() => filter)
   const from = vi.fn((table: string) => {
     if (table === 'board') return makeQuery(tables.boards)
     if (table === 'repocard') return makeQuery(tables.repocard)
     if (table === 'projectinfo') {
-      return {
-        select: () => makeQuery(tables.repocard),
-        upsert,
-        update: () => ({ eq: () => ({ eq: async () => ({ error: null }) }) }),
-      }
+      return { select: () => filter, upsert, update }
     }
     throw new Error(`Unexpected table: ${table}`)
   })
-  return { from, upsert }
+  return { from, upsert, update, filter }
 }
 
 function ctxWith(from: ReturnType<typeof vi.fn>): McpToolContext {
@@ -122,6 +140,7 @@ const GITBOX_CARD: QueryResult = {
     repo_name: 'gitbox',
     github_repo_id: null,
     projectinfo: {
+      id: 'memory-1',
       note: 'the note that must survive',
       comment: '',
       links: [{ type: 'vercel', url: 'https://a.example.com' }],
@@ -334,10 +353,10 @@ describe('add_project_links', () => {
     vi.mocked(lookupRepoPlacements).mockResolvedValue([GITBOX_PLACEMENT])
   })
 
-  // Value: protects=adding links keeps the note and merges by url (an omitted note would erase the user's note); fails_when=the write drops note, duplicates a url, or drops user_id (the service role has no auth.uid()); why_new=the read-modify-write is new; seam=none; no_claim=the database default for repo_key
-  test('merges links by url and writes the existing note back unchanged', async () => {
+  // Value: protects=adding links to an existing memory merges by url and never sends the note (a concurrent note edit survives); fails_when=the write carries the note back, duplicates a url, or skips the version guard; why_new=the version-checked merge replaced the note-restore write; seam=none; no_claim=the database trigger that bumps updated_at
+  test('merges links by url into an existing row without ever sending the note', async () => {
     // Arrange: the card's memory keeps a note and one vercel link
-    const { from, upsert } = supabaseStub({
+    const { from, upsert, update, filter } = supabaseStub({
       boards: { data: [], error: null },
       repocard: GITBOX_CARD,
     })
@@ -363,20 +382,133 @@ describe('add_project_links', () => {
         { type: 'resend', url: 'https://b.example.com' },
       ],
     })
+    // Links only — the note is never written back
+    expect(update).toHaveBeenCalledWith({
+      links: [
+        { type: 'vercel', url: 'https://a.example.com' },
+        { type: 'resend', url: 'https://b.example.com' },
+      ],
+    })
+    expect(upsert).not.toHaveBeenCalled()
+    // The version guard: the row id and the `updated_at` the read returned
+    expect(filter.eq).toHaveBeenCalledWith('id', 'memory-1')
+    expect(filter.eq).toHaveBeenCalledWith('user_id', 'user-1')
+    expect(filter.eq).toHaveBeenCalledWith('updated_at', '2026-11-01T00:00:00Z')
+  })
+
+  // Value: protects=a repository with nothing saved still gets its links, on a fresh row whose note starts empty (a creation cannot clobber a note); fails_when=the write takes the update path with no row id, or sends github_repo_id: null over a confirmed id on the conflict row; why_new=the create branch is new; seam=none; no_claim=the database default for repo_key
+  test('creates the memory row with an empty note when nothing is saved yet', async () => {
+    // Arrange: the card resolves but embeds no memory row
+    const { from, upsert, update } = supabaseStub({
+      boards: { data: [], error: null },
+      repocard: {
+        data: {
+          repo_owner: 'laststance',
+          repo_name: 'gitbox',
+          github_repo_id: null,
+          projectinfo: null,
+        },
+        error: null,
+      },
+    })
+
+    // Act
+    const result = await addProjectLinks(ctxWith(from), {
+      repo: 'laststance/gitbox',
+      links: [{ type: 'resend', url: 'https://b.example.com' }],
+    })
+
+    // Assert: `github_repo_id` stays off the payload so a confirmed id on
+    // the conflict row is not nulled
+    expect(result).toEqual({
+      ok: true,
+      repo: 'laststance/gitbox',
+      cardId: 'card-1',
+      links: [{ type: 'resend', url: 'https://b.example.com' }],
+    })
+    expect(update).not.toHaveBeenCalled()
     expect(upsert).toHaveBeenCalledWith(
       {
         repo_owner: 'laststance',
         repo_name: 'gitbox',
-        github_repo_id: null,
         user_id: 'user-1',
-        note: 'the note that must survive',
-        links: [
-          { type: 'vercel', url: 'https://a.example.com' },
-          { type: 'resend', url: 'https://b.example.com' },
-        ],
+        note: '',
+        links: [{ type: 'resend', url: 'https://b.example.com' }],
       },
       { onConflict: 'user_id,repo_key' },
     )
+  })
+
+  // Value: protects=a link added while another write lands still ends up merged, on top of that write's links; fails_when=the merge gives up on the first lost race or re-merges against the stale snapshot; why_new=the retry round is new; seam=none; no_claim=the trigger that bumps updated_at
+  test('re-reads and merges again when a write lands between the read and the update', async () => {
+    // Arrange: the first version-checked update matches no row; the re-read
+    // shows a newer version that already carries a slack link
+    const { from, update } = supabaseStub({
+      boards: { data: [], error: null },
+      repocard: GITBOX_CARD,
+      projectinfoUpdate: [
+        { data: [], error: null },
+        { data: [{ id: 'memory-1' }], error: null },
+      ],
+      projectinfoRead: {
+        data: {
+          id: 'memory-1',
+          links: [
+            { type: 'vercel', url: 'https://a.example.com' },
+            { type: 'slack', url: 'https://c.example.com' },
+          ],
+          updated_at: '2026-11-01T00:01:00Z',
+        },
+        error: null,
+      },
+    })
+
+    // Act
+    const result = await addProjectLinks(ctxWith(from), {
+      repo: 'laststance/gitbox',
+      links: [{ type: 'resend', url: 'https://b.example.com' }],
+    })
+
+    // Assert: the second round merges on top of the concurrent link
+    expect(result).toEqual({
+      ok: true,
+      repo: 'laststance/gitbox',
+      cardId: 'card-1',
+      links: [
+        { type: 'vercel', url: 'https://a.example.com' },
+        { type: 'slack', url: 'https://c.example.com' },
+        { type: 'resend', url: 'https://b.example.com' },
+      ],
+    })
+    expect(update).toHaveBeenCalledTimes(2)
+  })
+
+  // Value: protects=a merge that keeps losing the race is reported instead of looping forever; fails_when=the retry never stops or reports ok:true for a write that never landed; why_new=the retry limit is new; seam=none; no_claim=which write the caller retries against
+  test('answers CONFLICT when the memory keeps changing under the merge', async () => {
+    // Arrange: every version-checked update matches no row
+    const { from, update } = supabaseStub({
+      boards: { data: [], error: null },
+      repocard: GITBOX_CARD,
+      projectinfoUpdate: [{ data: [], error: null }],
+      projectinfoRead: {
+        data: {
+          id: 'memory-1',
+          links: [{ type: 'vercel', url: 'https://a.example.com' }],
+          updated_at: '2026-11-01T00:01:00Z',
+        },
+        error: null,
+      },
+    })
+
+    // Act
+    const result = await addProjectLinks(ctxWith(from), {
+      repo: 'laststance/gitbox',
+      links: [{ type: 'resend', url: 'https://b.example.com' }],
+    })
+
+    // Assert
+    expect(result).toMatchObject({ ok: false, code: 'CONFLICT' })
+    expect(update).toHaveBeenCalledTimes(3)
   })
 
   // Value: protects=a repository on no board never gets a memory row written under it; fails_when=the write runs without a card; why_new=mirrors the projectinfo WITH-CHECK gate in code; seam=none; no_claim=hint rendering

@@ -281,7 +281,7 @@ describe('addRepositoriesToBoard', () => {
       order: () => repocard,
       limit: () => repocard,
       range: async () => answerWhenTheReadHasStarted({ data: [], error: null }),
-      single: async () =>
+      maybeSingle: async () =>
         answerWhenTheReadHasStarted({ data: { order: 2 }, error: null }),
       insert,
     }
@@ -504,7 +504,7 @@ describe('addRepositoriesToBoard', () => {
         error: null,
       },
       // Highest order in the target column
-      repocardSingle: { data: { order: 4 }, error: null },
+      repocardMaybeSingle: { data: { order: 4 }, error: null },
       insert: {
         data: [
           {
@@ -584,13 +584,27 @@ describe('addRepositoriesToBoard', () => {
   })
 
   test('stores the id GitHub confirmed, not the id the browser sent', async () => {
-    // Arrange
+    // Arrange: GitHub answers display fields that differ from the request
+    // fixture (makeRepository sends 0 stars, no description, public)
     vi.mocked(verifyRepositoryIdentities).mockResolvedValue([
-      confirmedRepository('laststance', 'free-repo', 4242),
+      {
+        outcome: 'confirmed' as const,
+        repository: {
+          id: 4242,
+          owner: 'laststance',
+          name: 'free-repo',
+          stargazers_count: 4321,
+          language: 'TypeScript',
+          topics: ['kanban', 'react'],
+          description: 'the GitHub answer',
+          visibility: 'private' as const,
+          updated_at: '2026-06-06T00:00:00Z',
+        },
+      },
     ])
     const { insert } = signInWithSupabaseStub({
       repocard: { data: [], error: null },
-      repocardSingle: { data: { order: 0 }, error: null },
+      repocardMaybeSingle: { data: { order: 0 }, error: null },
       insert: { data: [], error: null },
     })
 
@@ -599,7 +613,9 @@ describe('addRepositoriesToBoard', () => {
       makeRepository('laststance', 'free-repo'),
     ])
 
-    // Assert
+    // Assert: the card stores the id and the display fields GitHub answered
+    // with — the request fixture claims different ones (0 stars, no
+    // description), so an insert of caller-sent values fails this check.
     expect(insert).toHaveBeenCalledWith([
       {
         board_id: 'board-1',
@@ -609,12 +625,12 @@ describe('addRepositoriesToBoard', () => {
         github_repo_id: 4242,
         order: 1,
         meta: {
-          stars: 0,
-          language: null,
-          topics: [],
-          visibility: 'public',
-          description: null,
-          updatedAt: '2026-01-01T00:00:00Z',
+          stars: 4321,
+          language: 'TypeScript',
+          topics: ['kanban', 'react'],
+          visibility: 'private',
+          description: 'the GitHub answer',
+          updatedAt: '2026-06-06T00:00:00Z',
           githubId: 4242,
         },
       },
@@ -636,7 +652,7 @@ describe('addRepositoriesToBoard', () => {
         ],
         error: null,
       },
-      repocardSingle: { data: { order: 0 }, error: null },
+      repocardMaybeSingle: { data: { order: 0 }, error: null },
       insert: { data: [], error: null },
     })
 
@@ -687,7 +703,7 @@ describe('addRepositoriesToBoard', () => {
     // Arrange
     signInWithSupabaseStub({
       repocard: { data: [], error: null },
-      repocardSingle: { data: null, error: null },
+      repocardMaybeSingle: { data: null, error: null },
       insert: {
         data: [
           {

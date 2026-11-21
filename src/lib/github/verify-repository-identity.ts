@@ -279,6 +279,10 @@ export async function verifyRepositoryIdentities(
  * @param userId - The signed-in user (`claims.sub`).
  * @param githubToken - Bearer to send instead of the cookie token (the MCP
  *   route has no cookies). Falls back to {@link getGitHubToken}.
+ * @param maxBackfillMs - Optional budget: once it runs out the workers stop
+ *   dispatching new GitHub fetches (in-flight ones finish). The skipped
+ *   cards keep a null `github_identity_checked_at`, so they sort first on
+ *   the next call. Unset means unbounded — the UI path.
  * @returns Nothing. Cards that GitHub did not confirm stay null.
  * @example
  * await backfillVerifiedRepositoryIds(supabase, claims.sub)
@@ -287,7 +291,10 @@ export async function backfillVerifiedRepositoryIds(
   supabase: SupabaseClient<Database>,
   userId: string,
   githubToken?: string,
+  maxBackfillMs?: number,
 ): Promise<void> {
+  const deadlineMs =
+    maxBackfillMs === undefined ? undefined : Date.now() + maxBackfillMs
   const retryBefore = new Date(Date.now() - BACKFILL_RETRY_MS).toISOString()
   const { data, error } = await supabase
     .from('repocard')
@@ -309,6 +316,9 @@ export async function backfillVerifiedRepositoryIds(
   if (!data || data.length === 0) return
 
   await mapWithConcurrency(data, BACKFILL_CONCURRENCY, async (card) => {
+    // Past the deadline no new GitHub fetch is dispatched. The row keeps a
+    // null `github_identity_checked_at`, so it sorts first next call.
+    if (deadlineMs !== undefined && Date.now() >= deadlineMs) return
     const confirmation = await verifyRepositoryIdentity(
       card.repo_owner,
       card.repo_name,
