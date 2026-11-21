@@ -2,6 +2,7 @@
 
 import { memo, useRef } from 'react'
 
+import { useViewportHeight } from '@/hooks/use-viewport-height'
 import {
   clampNoteEditorHeight,
   maxNoteEditorHeightPx,
@@ -40,6 +41,7 @@ export const NoteEditorResizeHandle = memo(function NoteEditorResizeHandle({
   height,
 }: NoteEditorResizeHandleProps) {
   const dispatch = useAppDispatch()
+  const viewportPx = useViewportHeight()
   // The gesture's origin: the new height is start + how far the pointer moved
   const drag = useRef<{ startY: number; startHeight: number } | null>(null)
 
@@ -63,7 +65,7 @@ export const NoteEditorResizeHandle = memo(function NoteEditorResizeHandle({
       setNoteEditorHeight(
         clampNoteEditorHeight(
           drag.current.startHeight + (event.clientY - drag.current.startY),
-          window.innerHeight,
+          viewportPx,
         ),
       ),
     )
@@ -80,9 +82,7 @@ export const NoteEditorResizeHandle = memo(function NoteEditorResizeHandle({
     const delta =
       event.key === 'ArrowDown' ? KEYBOARD_STEP_PX : -KEYBOARD_STEP_PX
     dispatch(
-      setNoteEditorHeight(
-        clampNoteEditorHeight(height + delta, window.innerHeight),
-      ),
+      setNoteEditorHeight(clampNoteEditorHeight(height + delta, viewportPx)),
     )
   }
 
@@ -93,7 +93,7 @@ export const NoteEditorResizeHandle = memo(function NoteEditorResizeHandle({
       aria-label="Resize note editor"
       aria-valuenow={height}
       aria-valuemin={NOTE_EDITOR_HEIGHT_MIN_PX}
-      aria-valuemax={maxNoteEditorHeightPx(window.innerHeight)}
+      aria-valuemax={maxNoteEditorHeightPx(viewportPx)}
       tabIndex={0}
       className="group absolute inset-x-0 -bottom-1.5 z-10 flex h-3 cursor-row-resize touch-none items-center justify-center outline-none"
       onPointerDown={handlePointerDown}

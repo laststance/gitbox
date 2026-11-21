@@ -7,6 +7,7 @@ import { NoteEditorResizeHandle } from '@/components/Modals/NoteEditorResizeHand
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { NOTE_MAX_LENGTH } from '@/hooks/board/useNoteModalDraft'
+import { useViewportHeight } from '@/hooks/use-viewport-height'
 import { clampNoteEditorHeight } from '@/lib/constants/note-editor'
 import {
   selectNoteEditorHeight,
@@ -71,9 +72,10 @@ export const NoteSection = memo(function NoteSection({
   // The remembered position wins; before the first toggle the content decides
   const editorOpen = rememberedOpen ?? openedWithContent
 
+  const viewportPx = useViewportHeight()
   // A height dragged on a taller window is clamped to this one at render,
   // though the stored value itself is left untouched
-  const heightPx = clampNoteEditorHeight(storedHeight, window.innerHeight)
+  const heightPx = clampNoteEditorHeight(storedHeight, viewportPx)
 
   const handleEditorOpenChange = useCallback(
     (open: boolean) => {
