@@ -11,7 +11,6 @@
 'use server'
 
 import * as Sentry from '@sentry/nextjs'
-import type { SupabaseClient } from '@supabase/supabase-js'
 
 import {
   withAuthResult,
@@ -20,179 +19,23 @@ import {
 import type { GitHubRepository } from '@/lib/actions/github'
 import { BOARD_OF_CARD_RELATION } from '@/lib/constants/board-bundle'
 import { MOVE_UNCONFIRMED_MESSAGE } from '@/lib/constants/card-move'
-import {
-  backfillVerifiedRepositoryIds,
-  lookupRepositoryByGitHubId,
-  verifyRepositoryIdentities,
-} from '@/lib/github/verify-repository-identity'
 import { createModuleLogger } from '@/lib/logger'
-import type { Database } from '@/lib/supabase/types'
-import {
-  toBoardId,
-  toRepoCardId,
-  toStatusListId,
-  type BoardId,
-  type RepoCardId,
-  type StatusListId,
-} from '@/lib/types/brands'
-import type { ISOTimestamp, Visibility } from '@/lib/types/domain-primitives'
 import { didDatabaseRefuse } from '@/lib/utils/did-database-refuse'
 import { readEveryRow } from '@/lib/utils/read-every-row'
-import { toRepoIdentifier } from '@/lib/utils/to-repo-identifier'
-import { addRepositoriesRequestSchema } from '@/lib/validations/repo-card'
 
+import type { SkippedRepository } from './repo-card-duplicates'
 import {
-  PROJECT_COMMENT_EMBED,
-  REPO_CARD_COLUMNS,
-  toCommentData,
-} from './mappers'
-import type { CommentData } from './project-info-core'
-import {
-  ADD_RACE_MESSAGE,
-  isUniqueViolation,
-  lookupRepoPlacements,
-  splitRequestedRepos,
-  toUniqueViolationError,
-  type BoardPlacement,
-  type SkippedRepository,
-} from './repo-card-duplicates'
+  addRepositoriesToBoardCore,
+  type CreatedRepoCard,
+} from './repo-cards-core'
 import { ActionUserError, type ActionResult, type BoardOption } from './types'
 
+// The picker's `onRepositoriesAdded` types its cards with this; it lives in
+// `repo-cards-core.ts` so the MCP route can name it too (types are not
+// browser-callable endpoints — see browser-callable-actions.test.ts).
+export type { CreatedRepoCard } from './repo-cards-core'
+
 const log = createModuleLogger('repo-cards')
-
-/**
- * Moves a card off a name that now belongs to a different repository.
- *
- * The card was confirmed under its own GitHub id and still spells the old
- * name. Called by {@link addRepositoriesToBoard} before the insert, so the
- * unique owner/name index does not reject the repository that has the name now.
- *
- * @param supabase - Authenticated client.
- * @param userId - The signed-in user.
- * @param repositories - Repositories GitHub just confirmed and the board does not hold.
- * @param placements - Every card the user already has.
- * @example
- * await releaseNamesHeldByAnotherRepository(supabase, claims.sub, newRepos, placements)
- */
-async function releaseNamesHeldByAnotherRepository(
-  supabase: SupabaseClient<Database>,
-  userId: string,
-  repositories: Array<{
-    id: number
-    name: string
-    owner: { login: string }
-  }>,
-  placements: BoardPlacement[],
-): Promise<void> {
-  for (const repository of repositories) {
-    const identifier = toRepoIdentifier(repository.owner.login, repository.name)
-    const held = placements.find(
-      (placement) =>
-        placement.identifier === identifier &&
-        typeof placement.githubRepoId === 'number' &&
-        placement.githubRepoId !== repository.id,
-    )
-    if (!held || typeof held.githubRepoId !== 'number') continue
-
-    const current = await lookupRepositoryByGitHubId(held.githubRepoId)
-    if (current.outcome !== 'confirmed') {
-      throw new ActionUserError(
-        'Could not confirm the repository with GitHub. Try again.',
-      )
-    }
-    const currentIdentifier = toRepoIdentifier(
-      current.repository.owner,
-      current.repository.name,
-    )
-    // GitHub still gives this name to the card's id, so it is not free
-    if (currentIdentifier === identifier) {
-      throw new ActionUserError(
-        'Could not confirm the repository with GitHub. Try again.',
-      )
-    }
-
-    const { error: cardError } = await supabase
-      .from('repocard')
-      .update({
-        repo_owner: current.repository.owner,
-        repo_name: current.repository.name,
-      })
-      .eq('id', held.cardId)
-    if (cardError) {
-      throw new Error('Failed to update the repository name')
-    }
-
-    const { error: memoryError } = await supabase
-      .from('projectinfo')
-      .update({
-        repo_owner: current.repository.owner,
-        repo_name: current.repository.name,
-      })
-      .eq('user_id', userId)
-      .eq('github_repo_id', held.githubRepoId)
-    if (memoryError && memoryError.code !== '23505') {
-      throw new Error('Failed to update the repository name')
-    }
-  }
-}
-
-/**
- * Server-authored card data returned from {@link addRepositoriesToBoard}.
- * Shaped for direct consumption by Redux optimistic updates (see
- * `BoardPageClient`'s `onRepositoriesAdded`), which maps these into
- * `RepoCardForRedux` items.
- *
- * @example
- * {
- *   id: 'uuid' as RepoCardId,
- *   boardId: 'uuid' as BoardId,
- *   statusId: 'uuid' as StatusListId,
- *   repoOwner: 'laststance',
- *   repoName: 'gitbox',
- *   order: 0,
- *   meta: { stars: 42, language: 'TypeScript', visibility: 'public' },
- *   createdAt: '2026-04-21T12:00:00Z',
- *   updatedAt: '2026-04-21T12:00:00Z',
- *   comment: { comment: 'v2 soon', color: 'blue' },
- * }
- * // `comment` is not a field of the card in Redux. The board page puts it
- * // in the comment map and leaves it off the card:
- * // `({ comment: _comment, ...card })`, then `setRestoredComments`.
- */
-export interface CreatedRepoCard {
-  /** Newly-inserted {@link RepoCardId}. */
-  id: RepoCardId
-  /** Parent {@link BoardId}. */
-  boardId: BoardId
-  /** Initial column (`statuslist.id`) the card lives in. */
-  statusId: StatusListId
-  /** GitHub repository owner login. */
-  repoOwner: string
-  /** GitHub repository name. */
-  repoName: string
-  /** Display order within the column (0-indexed). */
-  order: number
-  /** Snapshot of GitHub metadata (subset of `RepoCardMeta`). */
-  meta: {
-    stars?: number
-    language?: string | null
-    topics?: string[]
-    visibility?: Visibility
-    description?: string | null
-    updatedAt?: ISOTimestamp
-    githubId?: number
-  }
-  /** Creation timestamp (ISO-8601 UTC). */
-  createdAt: ISOTimestamp
-  /** Last update timestamp (ISO-8601 UTC). */
-  updatedAt: ISOTimestamp
-  /**
-   * Comment the repository kept from an earlier card (issue #216): the board
-   * shows it on the new card right away. Empty text and the default color
-   * when nothing is saved.
-   */
-  comment: CommentData
-}
 
 /**
  * Add multiple repositories to board
@@ -231,204 +74,17 @@ export async function addRepositoriesToBoard(
     skipped: SkippedRepository[]
   }>
 > {
-  return withAuthResultRateLimit(
-    'addReposToBoard',
-    async (supabase, claims) => {
-      // Reject a malformed identity or display payload before any query.
-      // Owner and name are echoed in messages. Description, stars, topics
-      // and the rest of `meta` are rendered as text, so the insert below
-      // copies the parsed value, never the object the browser sent.
-      const parsedRequest = addRepositoriesRequestSchema.safeParse(repositories)
-      if (!parsedRequest.success) {
-        // The picker has no selection cap, so an oversized batch is a user
-        // mistake worth explaining (the schema carries the sentence);
-        // anything else is a malformed request
-        const tooManyRepositoriesIssue = parsedRequest.error.issues.find(
-          (issue) => issue.code === 'too_big' && issue.path.length === 0,
-        )
-        throw tooManyRepositoriesIssue
-          ? new ActionUserError(tooManyRepositoriesIssue.message)
-          : new Error('Invalid repositories payload')
-      }
-      const requested = parsedRequest.data
-
-      // The board and the cards this user already has do not need each
-      // other's answers, so they go out together. The placement read waits
-      // for the backfill: a rename confirmed in this request has to be
-      // visible to the split below. A backfill failure only leaves those ids
-      // null; the insert still refuses an id GitHub did not just confirm.
-      // The column's last order is read later, after GitHub confirmation, so
-      // two adds do not share a maximum taken before either of them inserts.
-      const boardQuery = supabase
-        .from('board')
-        .select('id, user_id')
-        .eq('id', boardId)
-        .eq('user_id', claims.sub)
-        .single()
-      const placementsQuery = (async (): Promise<BoardPlacement[]> => {
-        try {
-          await backfillVerifiedRepositoryIds(supabase, claims.sub)
-        } catch (error) {
-          Sentry.captureException(error, {
-            tags: { action: 'backfillVerifiedRepositoryIds' },
-          })
-        }
-        // Throws on lookup failure: never insert without it.
-        return lookupRepoPlacements(supabase, claims.sub)
-      })()
-
-      const [boardResult, placements] = await Promise.all([
-        boardQuery,
-        placementsQuery,
-      ])
-      const { data: board, error: boardError } = boardResult
-      if (boardError || !board) {
-        throw new Error('Board not found')
-      }
-
-      // The id on the request is whatever the browser sent, so the first
-      // split uses the name only. A card that already has a confirmed id is
-      // left out of that split: the name may have been taken by another
-      // repository, and only GitHub can tell. Cards with no id yet still
-      // match by name, and are not sent to GitHub.
-      const { addable: namedAddable, skipped: namedSkipped } =
-        splitRequestedRepos(
-          requested.map((repository) => ({ ...repository, id: undefined })),
-          placements.filter(
-            (placement) => typeof placement.githubRepoId !== 'number',
-          ),
-          boardId,
-        )
-
-      if (namedAddable.length === 0) {
-        return { addedCount: 0, cards: [], skipped: namedSkipped }
-      }
-
-      // Ask GitHub, five at a time, and compare and store only that answer.
-      const confirmations = await verifyRepositoryIdentities(
-        namedAddable.map((repository) => ({
-          owner: repository.owner.login,
-          name: repository.name,
-        })),
-      )
-      const confirmed: typeof requested = []
-      for (const [index, repository] of namedAddable.entries()) {
-        const confirmation = confirmations[index]
-        if (!confirmation || confirmation.outcome !== 'confirmed') {
-          throw new ActionUserError(
-            'Could not confirm the repository with GitHub. Try again.',
-          )
-        }
-        const verified = confirmation.repository
-        // Identity comes from GitHub. Display fields stay the parsed ones.
-        confirmed.push({
-          ...repository,
-          id: verified.id,
-          name: verified.name,
-          owner: { login: verified.owner },
-        })
-      }
-
-      const { addable: newRepos, skipped: confirmedSkipped } =
-        splitRequestedRepos(confirmed, placements, boardId)
-      const skipped = [...namedSkipped, ...confirmedSkipped]
-
-      // Everything is already placed: not an error, the picker explains why
-      if (newRepos.length === 0) {
-        return { addedCount: 0, cards: [], skipped }
-      }
-
-      // A confirmed card may still spell this name. Move it to the name
-      // GitHub gives its id, then the insert can take the name.
-      await releaseNamesHeldByAnotherRepository(
-        supabase,
-        claims.sub,
-        newRepos,
-        placements,
-      )
-
-      // Read after confirmation, not with the board: an earlier maximum would
-      // be shared by two adds that both pass GitHub before either inserts.
-      // An empty column makes `.single()` fail; the first card is order 0.
-      const { data: maxOrderData } = await supabase
-        .from('repocard')
-        .select('order')
-        .eq('status_id', statusId)
-        .order('order', { ascending: false })
-        .limit(1)
-        .single()
-      let nextOrder = (maxOrderData?.order ?? -1) + 1
-
-      // Add new cards
-      const cardsToInsert = newRepos.map((repo) => ({
-        board_id: boardId,
-        status_id: statusId,
-        repo_owner: repo.owner.login,
-        repo_name: repo.name,
-        github_repo_id: repo.id,
-        order: nextOrder++,
-        meta: {
-          stars: repo.stargazers_count,
-          language: repo.language,
-          topics: repo.topics ?? [],
-          visibility: repo.visibility,
-          description: repo.description,
-          updatedAt: repo.updated_at,
-          // The id GitHub just confirmed for this owner and name, not the
-          // number the browser sent
-          githubId: repo.id,
-        },
-      }))
-
-      // The note, links and comment of a repository outlive its cards
-      // (issue #216): the insert's own response carries the comment the
-      // repository kept, read through the computed relationship
-      const { data: insertedCards, error: insertError } = await supabase
-        .from('repocard')
-        .insert(cardsToInsert)
-        .select(`${REPO_CARD_COLUMNS}, ${PROJECT_COMMENT_EMBED}`)
-
-      if (insertError) {
-        // Another tab placed one of these repositories after the lookup. The
-        // batch insert is atomic, so nothing was added.
-        if (isUniqueViolation(insertError)) {
-          throw toUniqueViolationError({
-            error: insertError,
-            raceMessage: ADD_RACE_MESSAGE,
-            action: 'addRepositoriesToBoard',
-            userId: claims.sub,
-          })
-        }
-
-        log.error({ error: insertError }, 'RepoCard insert error')
-        Sentry.captureException(insertError, {
-          extra: { context: 'RepoCard insert', boardId },
-        })
-        throw new Error('Failed to add cards: ' + insertError.message)
-      }
-
-      // Transform database response to CreatedRepoCard format
-      const createdCards: CreatedRepoCard[] = (insertedCards || []).map(
-        (card) => ({
-          id: toRepoCardId(card.id),
-          boardId: toBoardId(card.board_id),
-          statusId: toStatusListId(card.status_id),
-          repoOwner: card.repo_owner,
-          repoName: card.repo_name,
-          order: card.order,
-          meta: card.meta as CreatedRepoCard['meta'],
-          createdAt: card.created_at ?? new Date().toISOString(),
-          updatedAt: card.updated_at ?? new Date().toISOString(),
-          comment: toCommentData(card.projectinfo),
-        }),
-      )
-
-      return {
-        addedCount: createdCards.length,
-        cards: createdCards,
-        skipped,
-      }
-    },
+  // The work itself lives in `repo-cards-core.ts`, which the MCP route calls
+  // too; this endpoint only adds the auth guard, the rate limit and the
+  // cookie-bound context.
+  return withAuthResultRateLimit('addReposToBoard', async (supabase, claims) =>
+    addRepositoriesToBoardCore({
+      supabase,
+      userId: claims.sub,
+      boardId,
+      statusId,
+      repos: repositories,
+    }),
   )
 }
 

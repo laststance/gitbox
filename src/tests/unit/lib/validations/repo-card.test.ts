@@ -68,6 +68,17 @@ describe('addRepositoriesRequestSchema', () => {
     expect(result.success).toBe(false)
   })
 
+  test('accepts a repository without an id — the MCP tool sends only owner and name', () => {
+    // Arrange: the GitHub confirmation supplies the id, so the caller need not
+    const request = [{ name: 'gitbox', owner: { login: 'laststance' } }]
+
+    // Act
+    const result = addRepositoriesRequestSchema.safeParse(request)
+
+    // Assert
+    expect(result.success).toBe(true)
+  })
+
   test('rejects a repository with an empty name', () => {
     // Arrange
     const request = [{ id: 1, name: '', owner: { login: 'laststance' } }]

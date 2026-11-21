@@ -36,8 +36,8 @@ type ProjectInfoInsert = TablesInsert<'projectinfo'>
 
 /**
  * Column PostgREST upserts a memory on when no row has the GitHub id yet.
- * `user_id` is filled by its default (`auth.uid()`), `repo_key` by the
- * database from `repo_owner` and `repo_name`.
+ * `user_id` is sent explicitly (the service role has no `auth.uid()` default),
+ * `repo_key` by the database from `repo_owner` and `repo_name`.
  */
 const PROJECT_INFO_CONFLICT_TARGET = 'user_id,repo_key'
 
@@ -134,38 +134,53 @@ function memoryBelongsToAnotherRepository(
 }
 
 /**
- * Moves a memory off a name when no card still holds its GitHub id.
+ * Moves a memory off a name when no card of the user still holds its GitHub id.
  *
  * The note outlives the card. After the card is deleted the memory keeps the
  * old name, and a new repository that takes that name cannot save. Called by
  * {@link writeRepositoryMemory} before it would refuse the save. A card that
  * still has the id keeps the memory where it is.
  *
+ * The card check filters on the owner itself through the board join — the
+ * same filter {@link lookupRepoPlacements} applies — so a card of another
+ * user holding the same GitHub id cannot keep this user's memory in place
+ * when the caller's client is not scoped by row level security (the
+ * service-role client of the MCP route).
+ *
  * @param supabase - Server client of the signed-in user.
  * @param ownerId - The user whose memory the write may touch.
  * @param githubRepoId - The id on the memory that currently has this name.
  * @param repository - The name the new repository needs.
- * @returns `moved` when the name is free. `moved: false` when a card still
- *   holds the id, or GitHub still gives that id this name.
+ * @param githubToken - Bearer for the GitHub lookup instead of the cookie
+ *   token (the MCP route has no cookies).
+ * @returns `moved` when the name is free. `moved: false` when a card of the
+ *   user still holds the id, or GitHub still gives that id this name.
  * @example
  * await relocateOrphanMemory(supabase, 'user-1', 99, repository)
  */
-async function relocateOrphanMemory(
+export async function relocateOrphanMemory(
   supabase: SupabaseClient<Database>,
   ownerId: string,
   githubRepoId: number,
   repository: Pick<ProjectInfoInsert, 'repo_owner' | 'repo_name'>,
+  githubToken?: string,
 ): Promise<{ moved: boolean; error: { message: string } | null }> {
   const { data: heldByCard, error: heldError } = await supabase
     .from('repocard')
-    .select('id')
+    .select(`id, ${BOARD_OF_CARD_RELATION}!inner()`)
     .eq('github_repo_id', githubRepoId)
+    .eq('board.user_id', ownerId)
     .limit(1)
     .maybeSingle()
   if (heldError) return { moved: false, error: heldError }
   if (heldByCard) return { moved: false, error: null }
 
-  const current = await lookupRepositoryByGitHubId(githubRepoId)
+  // The cookie path keeps the historic one-argument call: an explicit
+  // trailing `undefined` does not match `toHaveBeenCalledWith(99)` in
+  // the unit tests.
+  const current = githubToken
+    ? await lookupRepositoryByGitHubId(githubRepoId, githubToken)
+    : await lookupRepositoryByGitHubId(githubRepoId)
   if (current.outcome !== 'confirmed') {
     return {
       moved: false,
@@ -207,11 +222,13 @@ async function relocateOrphanMemory(
  * @param ownerId - The user whose memory the write may touch.
  * @param repository - The card's owner, name and confirmed id.
  * @param fields - The note, comment or color this save changes.
+ * @param githubToken - Bearer for the orphan-memory GitHub lookup instead of
+ *   the cookie token (the MCP route has no cookies).
  * @returns The database error, or `null` when the write was accepted.
  * @example
  * await writeRepositoryMemory(supabase, 'user-1', repository, { note: 'a' })
  */
-async function writeRepositoryMemory(
+export async function writeRepositoryMemory(
   supabase: SupabaseClient<Database>,
   ownerId: string,
   repository: CardRepository['repository'],
@@ -219,6 +236,7 @@ async function writeRepositoryMemory(
     ProjectInfoInsert,
     'repo_owner' | 'repo_name' | 'github_repo_id'
   >,
+  githubToken?: string,
 ): Promise<{ error: { message: string } | null }> {
   const githubRepoId = repository.github_repo_id
   // A confirmed id is the row. Updating it by name would insert a duplicate.
@@ -257,6 +275,7 @@ async function writeRepositoryMemory(
         ownerId,
         byName.githubRepoId,
         repository,
+        githubToken,
       )
       if (relocated.error) return relocated
       if (!relocated.moved) {
@@ -265,12 +284,22 @@ async function writeRepositoryMemory(
     }
   }
 
-  const { error } = await supabase
-    .from('projectinfo')
-    .upsert(
-      { ...repository, ...fields },
-      { onConflict: PROJECT_INFO_CONFLICT_TARGET },
-    )
+  const { error } = await supabase.from('projectinfo').upsert(
+    {
+      repo_owner: repository.repo_owner,
+      repo_name: repository.repo_name,
+      // A null or missing id must not overwrite a confirmed one on the
+      // conflict row — leave the column out so the upsert keeps it.
+      ...(typeof repository.github_repo_id === 'number'
+        ? { github_repo_id: repository.github_repo_id }
+        : {}),
+      // `user_id` explicitly: the service-role client has no `auth.uid()`
+      // to fill the column default, and a null `user_id` fails the upsert.
+      user_id: ownerId,
+      ...fields,
+    },
+    { onConflict: PROJECT_INFO_CONFLICT_TARGET },
+  )
   return { error }
 }
 
@@ -526,7 +555,7 @@ interface CardRepository {
  * await readCardRepository(supabase, 'card-1')
  * // => { repository: { repo_owner: 'laststance', repo_name: 'gitbox' }, ownerId: 'user-1' }
  */
-async function readCardRepository(
+export async function readCardRepository(
   supabase: SupabaseClient<Database>,
   repoCardId: string,
 ): Promise<CardRepository> {

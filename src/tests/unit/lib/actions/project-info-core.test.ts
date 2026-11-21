@@ -26,6 +26,7 @@ import {
   updateCommentColorCore,
   updateCommentCore,
   upsertProjectInfoCore,
+  writeRepositoryMemory,
 } from '@/lib/actions/project-info-core'
 import { ActionUserError } from '@/lib/actions/types'
 import { lookupRepositoryByGitHubId } from '@/lib/github/verify-repository-identity'
@@ -281,6 +282,7 @@ describe('project-info-core', () => {
       payload: {
         repo_owner: 'laststance',
         repo_name: 'nsx',
+        user_id: 'user-1',
         comment: 'ship it',
       },
     },
@@ -291,6 +293,7 @@ describe('project-info-core', () => {
       payload: {
         repo_owner: 'laststance',
         repo_name: 'nsx',
+        user_id: 'user-1',
         comment: 'ship it',
         comment_color: 'blue',
       },
@@ -301,6 +304,7 @@ describe('project-info-core', () => {
       payload: {
         repo_owner: 'laststance',
         repo_name: 'nsx',
+        user_id: 'user-1',
         comment_color: 'green',
       },
     },
@@ -314,6 +318,7 @@ describe('project-info-core', () => {
       payload: {
         repo_owner: 'laststance',
         repo_name: 'nsx',
+        user_id: 'user-1',
         note: 'CLI tool documentation',
         links: [{ type: 'npm', url: 'https://www.npmjs.com/package/nsx' }],
       },
@@ -371,6 +376,33 @@ describe('project-info-core', () => {
     expect(filterUpdatedRows).toHaveBeenCalledWith('user_id', 'user-1')
   })
 
+  // Value: protects=a save from a caller whose repository id is not confirmed keeps a confirmed id already on the row; fails_when=the upsert sends github_repo_id: null and nulls the id on the conflict row; why_new=the MCP route reaches writeRepositoryMemory with github_repo_id present-but-null (the action cores omit the key instead); seam=none; no_claim=PostgREST upsert semantics (e2e)
+  test('leaves github_repo_id off the upsert when the repository id is not confirmed', async () => {
+    // Arrange
+    const upsert = vi.fn(async () => ({ error: null }))
+    const supabase = { from: vi.fn(() => ({ upsert })) }
+
+    // Act
+    await writeRepositoryMemory(
+      supabase as never,
+      'user-1',
+      { repo_owner: 'laststance', repo_name: 'nsx', github_repo_id: null },
+      { comment: 'ship it' },
+    )
+
+    // Assert: no `github_repo_id` key — an explicit null would overwrite
+    // a confirmed id on the conflict row
+    expect(upsert).toHaveBeenCalledWith(
+      {
+        repo_owner: 'laststance',
+        repo_name: 'nsx',
+        user_id: 'user-1',
+        comment: 'ship it',
+      },
+      { onConflict: 'user_id,repo_key' },
+    )
+  })
+
   // Value: protects=the first save of a confirmed repository still creates the row by name; fails_when=a missing memory is updated instead of inserted, or the confirmed id is left off the insert; why_new=the id lookup returns no row on a first save; seam=none; no_claim=the database default for user_id
   test("inserts a memory on the repository name when no row has the card's GitHub id yet", async () => {
     // Arrange
@@ -393,6 +425,7 @@ describe('project-info-core', () => {
       {
         repo_owner: 'laststance',
         repo_name: 'nsx',
+        user_id: 'user-1',
         github_repo_id: 42,
         comment: 'ship it',
       },
@@ -466,6 +499,115 @@ describe('project-info-core', () => {
       {
         repo_owner: 'laststance',
         repo_name: 'gitbox',
+        user_id: 'user-1',
+        github_repo_id: 42,
+        note: 'the new repository',
+        links: [],
+      },
+      { onConflict: 'user_id,repo_key' },
+    )
+  })
+
+  // Value: protects=a card of another user holding the same GitHub id does
+  //   not keep this user's memory in place — where the caller's client is
+  //   not scoped by row level security (the service-role client of the MCP
+  //   route) the existence check has to filter on the card's owner itself;
+  //   fails_when=the `board.user_id` filter is dropped: the repocard stub
+  //   answers by the filters the query applied, so an owner-less lookup
+  //   finds the foreign card and the memory never moves;
+  //   why_new=the owner filter is new; seam=none;
+  //   no_claim=which client reaches the function today — the cookie path is
+  //   already scoped by row level security
+  test('moves an orphaned memory even when a card of another user holds the same GitHub id', async () => {
+    // Arrange: repository 99's memory still spells gitbox and no card of
+    // user-1 holds it — but a card of user-2 carries the same id
+    const foreignCard = {
+      id: 'card-foreign',
+      github_repo_id: 99,
+      'board.user_id': 'user-2',
+    }
+    const upsert = vi.fn(async () => ({ error: null }))
+    const filteredUpdate = {
+      eq: vi.fn(() => filteredUpdate),
+      then: (resolve: (answer: { error: null }) => void): void =>
+        resolve({ error: null }),
+    }
+    const update = vi.fn(() => filteredUpdate)
+    const memoryQuery = {
+      columns: 'id',
+      eq: vi.fn(() => memoryQuery),
+      maybeSingle: async () =>
+        memoryQuery.columns === 'github_repo_id'
+          ? { data: { github_repo_id: 99 }, error: null }
+          : { data: null, error: null },
+    }
+    const from = vi.fn((table: string) => {
+      if (table === 'repocard') {
+        // Fresh filters per query — the card read and the held-card check
+        // are two lookups on the same table.
+        const filters: Array<[string, unknown]> = []
+        const repocardQuery = {
+          select: () => repocardQuery,
+          eq: (column: string, value: unknown) => {
+            filters.push([column, value])
+            return repocardQuery
+          },
+          limit: () => repocardQuery,
+          maybeSingle: async () => ({
+            data:
+              [foreignCard].find((row) =>
+                filters.every(
+                  ([column, value]) =>
+                    row[column as keyof typeof foreignCard] === value,
+                ),
+              ) ?? null,
+            error: null,
+          }),
+          single: async () => ({
+            data: {
+              repo_owner: 'laststance',
+              repo_name: 'gitbox',
+              github_repo_id: 42,
+              board: { user_id: 'user-1' },
+            },
+            error: null,
+          }),
+        }
+        return repocardQuery
+      }
+      if (table === 'projectinfo') {
+        return {
+          upsert,
+          update,
+          select: (columns: string) => {
+            memoryQuery.columns = columns
+            return memoryQuery
+          },
+        }
+      }
+      throw new Error(`Unexpected table: ${table}`)
+    })
+    createClient.mockResolvedValue({ from })
+
+    // Act
+    await upsertProjectInfoCore('card-1', {
+      note: 'the new repository',
+      links: [],
+    })
+
+    // Assert: the foreign card does not keep the memory in place — the
+    // memory moves to the name GitHub gives repository 99, and the note is
+    // saved under the freed name
+    expect(lookupRepositoryByGitHubId).toHaveBeenCalledWith(99)
+    expect(update).toHaveBeenCalledWith({
+      repo_owner: 'laststance',
+      repo_name: 'moved-99',
+    })
+    expect(upsert).toHaveBeenCalledWith(
+      {
+        repo_owner: 'laststance',
+        repo_name: 'gitbox',
+        user_id: 'user-1',
         github_repo_id: 42,
         note: 'the new repository',
         links: [],

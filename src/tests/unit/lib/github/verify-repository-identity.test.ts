@@ -194,9 +194,14 @@ describe('backfillVerifiedRepositoryIds', () => {
     expect(memoryUpdate).not.toHaveBeenCalled()
   })
 
-  test('remembers a repository GitHub says is gone, and does not store an id', async () => {
+  // Value: protects=a 404 the MCP token gets for a repository it cannot see
+  //   does not stamp github_identity_checked_at, so the next picker opening
+  //   retries the card instead of deferring the rename repair by the retry
+  //   window; fails_when=the gone branch writes checked_at again;
+  //   why_new=the stamp was just removed; seam=none
+  test('leaves a card unchecked when GitHub answers 404, so the next opening retries it', async () => {
     // Arrange
-    const cardUpdate = vi.fn().mockReturnValue(updateResult(null))
+    const cardUpdate = vi.fn()
     const memoryUpdate = vi.fn()
     const supabase = supabaseFor(
       [{ id: 'card-1', repo_owner: 'laststance', repo_name: 'gone' }],
@@ -220,9 +225,7 @@ describe('backfillVerifiedRepositoryIds', () => {
     await backfillVerifiedRepositoryIds(supabase as never, 'user-1')
 
     // Assert
-    expect(cardUpdate).toHaveBeenCalledWith({
-      github_identity_checked_at: '2026-10-16T00:00:00.000Z',
-    })
+    expect(cardUpdate).not.toHaveBeenCalled()
     expect(memoryUpdate).not.toHaveBeenCalled()
   })
 
@@ -254,6 +257,52 @@ describe('backfillVerifiedRepositoryIds', () => {
     // Assert
     expect(cardUpdate).not.toHaveBeenCalled()
     expect(memoryUpdate).not.toHaveBeenCalled()
+  })
+
+  // Value: protects=an MCP add cannot spend its whole request budget on the
+  //   backfill — once the budget is out no new GitHub fetch is dispatched;
+  //   fails_when=the workers keep fetching past the deadline and the route
+  //   hits maxDuration; why_new=the budget is new; seam=none
+  test('stops dispatching GitHub fetches once the backfill budget runs out', async () => {
+    // Arrange: six cards — one more than the five in-flight slots — and the
+    // clock moves past the deadline while the first fetches are out
+    const cardUpdate = vi.fn().mockReturnValue(updateResult(null))
+    const memoryUpdate = vi.fn().mockReturnValue({
+      eq: () => ({
+        eq: () => ({
+          is: async () => Promise.resolve({ error: null }),
+        }),
+      }),
+    })
+    const supabase = supabaseFor(
+      [1, 2, 3, 4, 5, 6].map((n) => ({
+        id: `card-${n}`,
+        repo_owner: 'laststance',
+        repo_name: `repo-${n}`,
+      })),
+      cardUpdate,
+      memoryUpdate,
+    )
+    const get = vi.fn().mockImplementation(async () => {
+      vi.setSystemTime(new Date('2026-10-16T00:01:00.000Z'))
+      return {
+        data: { id: 42, name: 'renamed', owner: { login: 'laststance' } },
+      }
+    })
+    vi.mocked(getGitHubToken).mockResolvedValue('gho_token')
+    vi.mocked(createGitHubAxios).mockReturnValue({ get } as never)
+
+    // Act — the deadline is 1s after the fixed start time
+    await backfillVerifiedRepositoryIds(
+      supabase as never,
+      'user-1',
+      undefined,
+      1000,
+    )
+
+    // Assert: only the first five went out; the sixth was left unchecked
+    expect(get).toHaveBeenCalledTimes(5)
+    expect(cardUpdate).toHaveBeenCalledTimes(5)
   })
 
   test('remembers a card whose confirmed id is already on another card', async () => {

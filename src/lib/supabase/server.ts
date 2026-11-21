@@ -308,7 +308,10 @@ const MOCK_USER_FOR_E2E = {
  * Create Supabase Admin Client with Service Role Key
  *
  * This client bypasses Row Level Security (RLS) and should only be used
- * for administrative operations like user deletion.
+ * for administrative operations like user deletion. The GitBox MCP
+ * endpoint (`src/app/api/mcp/route.ts`) is the other sanctioned use: it
+ * authenticates the caller itself with `GITBOX_MCP_TOKEN` and re-applies
+ * the owner filter (`GITBOX_MCP_OWNER_ID`) that RLS would have applied.
  *
  * @warning NEVER use this client for regular operations - only for admin tasks
  * @returns Supabase client with admin privileges

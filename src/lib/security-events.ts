@@ -21,6 +21,7 @@ import * as Sentry from '@sentry/nextjs'
  * - account_deleted: User account permanently deleted
  * - unauthorized_access: Unauthenticated access to protected route
  * - rate_limited: Request blocked by rate limiter
+ * - mcp_tool_call: A tool of the GitBox MCP endpoint ran (per-invocation audit)
  */
 type SecurityEventType =
   | 'login_success'
@@ -29,6 +30,7 @@ type SecurityEventType =
   | 'account_deleted'
   | 'unauthorized_access'
   | 'rate_limited'
+  | 'mcp_tool_call'
 
 /**
  * Context data for security events.
@@ -45,6 +47,10 @@ interface SecurityEventContext {
   ip?: string
   /** The silent restart was already used, so this failure is final. */
   retried?: boolean
+  /** MCP tool name, for `mcp_tool_call` events */
+  tool?: string
+  /** Whether the tool answered `ok`, for `mcp_tool_call` events */
+  ok?: boolean
 }
 
 /**
