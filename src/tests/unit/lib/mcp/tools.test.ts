@@ -19,6 +19,7 @@ import { ActionUserError } from '@/lib/actions/types'
 import {
   addProjectLinks,
   addRepositoryToBoard,
+  addRepositoryToBoardInputSchema,
   getProjectInfo,
   resolveBoard,
   type McpToolContext,
@@ -386,6 +387,32 @@ describe('add_repository_to_board board resolution', () => {
     // Assert
     expect(result.ok).toBe(false)
     expect(result).toMatchObject({ code: 'INVALID_REPO' })
+  })
+})
+
+describe('add_repository_to_board input schema', () => {
+  // Value: protects=statusId '' is refused by argument validation instead of
+  //   slipping past z.string() and silently landing the card in the first
+  //   column; fails_when=the min(1) is dropped from the schema, so the
+  //   handler's `args.statusId ? … : {}` spread reads '' as "no column";
+  //   why_new=the empty-string rejection is new; seam=none;
+  //   no_claim=which error the MCP SDK answers for a failed parse
+  //   (InvalidParams) — only that the arguments are refused
+  test('rejects an empty statusId while an omitted one stays valid', () => {
+    // Act
+    const emptyStatusId = addRepositoryToBoardInputSchema.safeParse({
+      repo: 'laststance/gitbox',
+      board: 'Work',
+      statusId: '',
+    })
+    const omittedStatusId = addRepositoryToBoardInputSchema.safeParse({
+      repo: 'laststance/gitbox',
+      board: 'Work',
+    })
+
+    // Assert
+    expect(emptyStatusId.success).toBe(false)
+    expect(omittedStatusId.success).toBe(true)
   })
 })
 

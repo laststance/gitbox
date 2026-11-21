@@ -141,6 +141,8 @@ function signInWithSupabaseStub(tables: {
   repocard: QueryResult
   repocardSingle?: QueryResult
   repocardMaybeSingle?: QueryResult
+  projectinfo?: QueryResult
+  projectinfoMaybeSingle?: QueryResult
   insert?: QueryResult
   rpc?: QueryResult
 }) {
@@ -178,7 +180,11 @@ function signInWithSupabaseStub(tables: {
       return query
     }
     if (table === 'projectinfo') {
-      return makeQuery({ data: null, error: null })
+      // `then` answers the update of the rename release; `maybeSingle`
+      // answers the destination-row read it makes on a 23505.
+      return makeQuery(tables.projectinfo ?? { data: null, error: null }, {
+        maybeSingle: tables.projectinfoMaybeSingle,
+      })
     }
     throw new Error(`Unexpected table read: ${table}`)
   })
@@ -679,6 +685,120 @@ describe('addRepositoriesToBoard', () => {
 
     // Assert
     expect(lookupRepositoryByGitHubId).toHaveBeenCalledWith(99)
+    expect(cardUpdate).toHaveBeenCalledWith({
+      repo_owner: 'laststance',
+      repo_name: 'moved-99',
+    })
+    expect(insert).toHaveBeenCalledWith([
+      expect.objectContaining({
+        repo_owner: 'laststance',
+        repo_name: 'free-repo',
+        github_repo_id: 1001,
+      }),
+    ])
+  })
+
+  // Value: protects=a memory row another repository already has under the
+  //   destination name stops the rename — the card is not pointed at memory
+  //   that is not its own, and the refusal reaches the user;
+  //   fails_when=a 23505 on the memory update is tolerated unconditionally,
+  //   so the card move runs while the memory keeps the old repository;
+  //   why_new=the conflict refusal is new (23505 was always tolerated
+  //   before); seam=none;
+  //   no_claim=which side wins once the conflict clears
+  test('refuses to move the card when the destination memory belongs to another repository', async () => {
+    // Arrange: the card for repository 99 still spells free-repo; GitHub
+    // says repository 99 is now moved-99, but a different repository's
+    // memory (github_repo_id 7) already holds the moved-99 name
+    const { insert, cardUpdate } = signInWithSupabaseStub({
+      repocard: {
+        data: [
+          {
+            id: '00000000-0000-4000-8000-0000000000c2',
+            repo_owner: 'laststance',
+            repo_name: 'free-repo',
+            github_repo_id: 99,
+            board: { id: 'board-2', user_id: 'user-1', name: 'Work Projects' },
+          },
+        ],
+        error: null,
+      },
+      projectinfo: {
+        data: null,
+        error: {
+          code: '23505',
+          message:
+            'duplicate key value violates unique constraint "projectinfo_unique_repo_per_user"',
+        },
+      },
+      projectinfoMaybeSingle: {
+        data: { github_repo_id: 7 },
+        error: null,
+      },
+    })
+
+    // Act
+    const result = await addRepositoriesToBoard('board-1', 'status-1', [
+      makeRepository('laststance', 'free-repo'),
+    ])
+
+    // Assert: the card keeps its name and nothing is inserted
+    expect(result).toEqual({
+      success: false,
+      error: 'Another repository already saved that name',
+    })
+    expect(cardUpdate).not.toHaveBeenCalled()
+    expect(insert).not.toHaveBeenCalled()
+  })
+
+  // Value: protects=a retry whose earlier attempt already renamed the
+  //   memory still completes — the card follows and the new repository is
+  //   placed;
+  //   fails_when=the 23505 tolerance loses its same-repository carve-out,
+  //   so a repeated call keeps refusing against its own earlier write;
+  //   why_new=the destination-row ownership check is new; seam=none;
+  //   no_claim=that the database ever produces this state on its own — the
+  //   stub answers 23505 and the same id unconditionally
+  test('moves the card when the conflicting memory already belongs to the same repository', async () => {
+    // Arrange: same held card; the memory update conflicts, but the row
+    // holding moved-99 carries repository 99's own id — a previous attempt
+    // did the rename before dying, so the card can follow
+    const { insert, cardUpdate } = signInWithSupabaseStub({
+      repocard: {
+        data: [
+          {
+            id: '00000000-0000-4000-8000-0000000000c2',
+            repo_owner: 'laststance',
+            repo_name: 'free-repo',
+            github_repo_id: 99,
+            board: { id: 'board-2', user_id: 'user-1', name: 'Work Projects' },
+          },
+        ],
+        error: null,
+      },
+      repocardMaybeSingle: { data: { order: 0 }, error: null },
+      projectinfo: {
+        data: null,
+        error: {
+          code: '23505',
+          message:
+            'duplicate key value violates unique constraint "projectinfo_unique_repo_per_user"',
+        },
+      },
+      projectinfoMaybeSingle: {
+        data: { github_repo_id: 99 },
+        error: null,
+      },
+      insert: { data: [], error: null },
+    })
+
+    // Act
+    const result = await addRepositoriesToBoard('board-1', 'status-1', [
+      makeRepository('laststance', 'free-repo'),
+    ])
+
+    // Assert: the card follows the memory and the add completes
+    expect(result.success).toBe(true)
     expect(cardUpdate).toHaveBeenCalledWith({
       repo_owner: 'laststance',
       repo_name: 'moved-99',

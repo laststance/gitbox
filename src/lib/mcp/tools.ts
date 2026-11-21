@@ -465,12 +465,10 @@ export async function addRepositoryToBoard(
       boardId: resolved.board.id,
       // The route's maxDuration is 30s — stop dispatching backfill GitHub
       // calls past this budget (in-flight ones finish; the rest sort first
-      // on the next call). Worst case: the budget runs out as the last
-      // in-flight fetch starts, and one GitHub fetch can take the full 10s
-      // axios timeout → 12s + 10s ≈ 22s, which leaves ~8s for the
-      // placement lookup, the GitHub confirm and the insert that still
-      // have to run inside maxDuration.
-      maxBackfillMs: 12_000,
+      // on the next call): 5s dispatching + up to 10s for one in-flight
+      // fetch + up to 10s for the GitHub confirm + ~2s of placement reads
+      // and the insert ≈ 27s.
+      maxBackfillMs: 5_000,
       ...(args.statusId ? { statusId: args.statusId } : {}),
       // Only owner and name are sent: the schema's `id` is optional and the
       // core fills it (and the `meta` snapshot) from GitHub's own answer.
@@ -733,6 +731,20 @@ const repoInput = z
   .string()
   .describe('GitHub repository as "owner/name", e.g. "laststance/gitbox"')
 
+/**
+ * The `add_repository_to_board` arguments.
+ *
+ * `statusId` must be non-empty when sent: an empty string would slip through
+ * a plain `z.string()` and the tool's `args.statusId ? … : {}` spread would
+ * read it as "no column given", silently landing the card in the first
+ * column instead of refusing the call.
+ */
+export const addRepositoryToBoardInputSchema = z.object({
+  repo: repoInput,
+  board: z.string().describe('Board name (any case) or id — see list_boards'),
+  statusId: z.string().min(1).optional(),
+})
+
 /** Audit every invocation, then shape the CallToolResult. */
 async function runTool(
   ctx: McpToolContext,
@@ -846,13 +858,7 @@ export function registerGitboxTools(
       title: 'Add repository to board',
       description:
         'Add a GitHub repository to a GitBox board. repo is "owner/name"; board is a board name (any case) or id. The card lands in the first column unless statusId names another. The repository is verified against GitHub before inserting.',
-      inputSchema: z.object({
-        repo: repoInput,
-        board: z
-          .string()
-          .describe('Board name (any case) or id — see list_boards'),
-        statusId: z.string().optional(),
-      }),
+      inputSchema: addRepositoryToBoardInputSchema,
     },
     async (args) =>
       runTool(ctx, 'add_repository_to_board', async () =>

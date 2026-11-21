@@ -63,6 +63,13 @@ const log = createModuleLogger('repo-cards-core')
  * name. Called by {@link addRepositoriesToBoardCore} before the insert, so the
  * unique owner/name index does not reject the repository that has the name now.
  *
+ * The memory rename runs before the card rename, so a failed attempt can be
+ * retried. When the destination name already has a memory row the card is
+ * only moved if that row is this repository's own (a retry finishing what a
+ * previous attempt renamed); a row of another repository throws
+ * {@link ActionUserError} instead of pointing the card at memory that is not
+ * its own.
+ *
  * @param supabase - Authenticated client.
  * @param userId - The signed-in user.
  * @param repositories - Repositories GitHub just confirmed and the board does not hold.
@@ -127,8 +134,33 @@ async function releaseNamesHeldByAnotherRepository(
       })
       .eq('user_id', userId)
       .eq('github_repo_id', held.githubRepoId)
-    if (memoryError && memoryError.code !== '23505') {
-      throw new Error('Failed to update the repository name')
+    if (memoryError) {
+      if (!isUniqueViolation(memoryError)) {
+        throw new Error('Failed to update the repository name')
+      }
+      // 23505: a row already holds the destination name. Tolerable only when
+      // that row is this repository's own memory — a previous attempt
+      // renamed it before the call died, so the rename is done and the card
+      // can follow. Any other owner (a different confirmed id, an
+      // unconfirmed row, or a read that comes back empty) means moving the
+      // card would point it at memory that is not its own: the card stays
+      // put and the retry that can succeed once the conflict clears runs
+      // this same path.
+      const { data: destination, error: destinationError } = await supabase
+        .from('projectinfo')
+        .select('github_repo_id')
+        .eq('user_id', userId)
+        .eq(
+          'repo_key',
+          toRepoIdentifier(current.repository.owner, current.repository.name),
+        )
+        .maybeSingle()
+      if (destinationError) {
+        throw new Error('Failed to update the repository name')
+      }
+      if (destination?.github_repo_id !== held.githubRepoId) {
+        throw new ActionUserError('Another repository already saved that name')
+      }
     }
 
     const { error: cardError } = await supabase
@@ -312,7 +344,7 @@ async function readColumnOnBoard(
  * @param params.maxBackfillMs - Optional budget for the unconfirmed-id
  *   backfill: past it, no new GitHub fetch is dispatched (the skipped cards
  *   sort first next call). Unset means unbounded — the UI path; the MCP
- *   route passes ~20s so the call fits its `maxDuration`.
+ *   route passes 5s so the call fits its `maxDuration`.
  * @returns `{ addedCount, cards, skipped }` — repositories already placed are
  *   not an error; each comes back in `skipped` with its sentence.
  * @throws {@link ActionUserError} for refusals the caller may show (GitHub

@@ -181,7 +181,22 @@ test.describe('MCP endpoint', () => {
     const cardId = (added['cards'] as { id: string }[])[0]!.id
     expect(cardId).toBeTruthy()
 
-    // Act 2 — merge two dashboard links into the repository's memory
+    // Arrange 2 — the repository already has memory: a note and one link
+    // saved earlier, which the merge must not drop. `github_repo_id: 3` is
+    // the id the MSW GitHub mock confirms for testuser/private-project.
+    const service = createServiceRoleSupabaseClient()
+    const { error: seedError } = await service.from('projectinfo').insert({
+      user_id: TEST_USER_ID,
+      repo_owner: REPO_OWNER,
+      repo_name: REPO_NAME,
+      github_repo_id: 3,
+      note: 'deployment notes saved earlier',
+      comment: '',
+      links: [{ type: 'docs', url: 'https://docs.private-project.dev' }],
+    })
+    expect(seedError).toBeNull()
+
+    // Act 2 — merge two dashboard links into the existing memory
     const linked = await callMcpTool(request, 'add_project_links', {
       repo: 'testuser/private-project',
       links: [
@@ -190,12 +205,31 @@ test.describe('MCP endpoint', () => {
       ],
     })
 
-    // Assert 2 — both links land, deduplicated list is echoed back
+    // Assert 2 — the seeded link is kept and the new links land after it
     expect(linked).toEqual({
       ok: true,
       repo: 'testuser/private-project',
       cardId,
       links: [
+        { type: 'docs', url: 'https://docs.private-project.dev' },
+        { type: 'vercel', url: 'https://private-project.vercel.app' },
+        { type: 'supabase', url: 'https://supabase.com/dashboard/project/abc' },
+      ],
+    })
+
+    // Assert 2b — the stored row kept the seeded note and link: the merge
+    // wrote links only
+    const { data: memoryRow, error: memoryError } = await service
+      .from('projectinfo')
+      .select('note, links')
+      .eq('user_id', TEST_USER_ID)
+      .eq('repo_key', 'testuser/private-project')
+      .single()
+    expect(memoryError).toBeNull()
+    expect(memoryRow).toEqual({
+      note: 'deployment notes saved earlier',
+      links: [
+        { type: 'docs', url: 'https://docs.private-project.dev' },
         { type: 'vercel', url: 'https://private-project.vercel.app' },
         { type: 'supabase', url: 'https://supabase.com/dashboard/project/abc' },
       ],
@@ -206,14 +240,15 @@ test.describe('MCP endpoint', () => {
       repo: 'testuser/private-project',
     })
 
-    // Assert 3 — the links round-trip through projectinfo
+    // Assert 3 — note, seeded link and new links round-trip through projectinfo
     expect(info).toMatchObject({
       ok: true,
       repo: 'testuser/private-project',
       cardId,
       boardName: BOARD_NAME,
-      note: '',
+      note: 'deployment notes saved earlier',
       links: [
+        { type: 'docs', url: 'https://docs.private-project.dev' },
         { type: 'vercel', url: 'https://private-project.vercel.app' },
         { type: 'supabase', url: 'https://supabase.com/dashboard/project/abc' },
       ],
