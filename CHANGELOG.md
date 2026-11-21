@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.23.0] - 2026-11-22
+
+### Added
+
+- AI agents can now operate GitBox boards through a first-party MCP endpoint at `/api/mcp`: list boards and columns, check where a repository is placed, add a repository to a board, read a repository's project memory, and merge dashboard links (Supabase, Vercel, Resend, and custom types) into it — all with the same ownership, GitHub-verification and rate-limit rules as the UI. Secured with a dedicated bearer token; disabled unless configured.
+
+### Changed
+
+- Local Supabase config uses the renamed `local_smtp` section (the `inbucket` name is no longer read by current CLI releases).
+
 ## [0.7.22.0] - 2026-11-21
 
 ### Added
