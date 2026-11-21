@@ -77,7 +77,8 @@ async function callMcpTool(
 }
 
 /**
- * Drop the card and memory this spec leaves behind, so reruns start clean.
+ * Drop the card and memory a test leaves behind, so each write test starts
+ * clean.
  *
  * Both deletes are attempted before any throw — teardown must not skip the
  * second cleanup because the first one failed.
@@ -115,11 +116,13 @@ async function removeRepositoryArtifacts(): Promise<void> {
 }
 
 test.describe('MCP endpoint', () => {
-  test.beforeAll(async () => {
+  // Each write test owns the repository's state: a card the previous test
+  // placed would turn this test's first add into a skip (addedCount 0).
+  test.beforeEach(async () => {
     await removeRepositoryArtifacts()
   })
 
-  test.afterAll(async () => {
+  test.afterEach(async () => {
     await removeRepositoryArtifacts()
   })
 

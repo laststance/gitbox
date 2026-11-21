@@ -244,6 +244,49 @@ async function readFirstColumnOfBoard(
 }
 
 /**
+ * Confirms a caller-chosen column belongs to the board, then returns it.
+ *
+ * Called by {@link addRepositoriesToBoardCore} only when `statusId` was
+ * sent: the MCP `add_repository_to_board` tool takes any column id, and an
+ * id of another board's column would land the card out of sight — the
+ * `status_id` foreign key accepts it. Checked right where the default would
+ * be read, so the mismatch is refused before the rename release, the column
+ * order read or the insert.
+ *
+ * @param supabase - Authenticated client.
+ * @param boardId - Board the column must belong to.
+ * @param statusId - The caller-chosen column id.
+ * @returns The column id.
+ * @throws `Error` when the column read itself fails;
+ *   {@link ActionUserError} "That column is not on this board" — a column
+ *   of another board, or no column with that id at all.
+ * @example
+ * const statusId = await readColumnOnBoard(supabase, boardId, params.statusId)
+ */
+async function readColumnOnBoard(
+  supabase: SupabaseClient<Database>,
+  boardId: string,
+  statusId: string,
+): Promise<string> {
+  const { data: column, error } = await supabase
+    .from('statuslist')
+    .select('id')
+    .eq('id', statusId)
+    .eq('board_id', boardId)
+    .maybeSingle()
+
+  // A failed read is not a mismatch — the "not on this board" sentence is
+  // for a successful read that found nothing.
+  if (error) {
+    throw new Error('Failed to read the board columns')
+  }
+  if (!column) {
+    throw new ActionUserError('That column is not on this board')
+  }
+  return column.id
+}
+
+/**
  * Add repositories to a board, with the client, user and GitHub token injected.
  *
  * {@link addRepositoriesToBoard} wraps this in the auth guard + rate limit and
@@ -264,7 +307,8 @@ async function readFirstColumnOfBoard(
  * @param params.boardId - Target board id.
  * @param params.repos - Repositories to add; Zod-validated again inside.
  * @param params.statusId - Target column. Defaults to the board's first
- *   column by (grid_row, grid_col), mirroring the picker.
+ *   column by (grid_row, grid_col), mirroring the picker. An explicit
+ *   column must belong to the board — a mismatch refuses the add.
  * @param params.maxBackfillMs - Optional budget for the unconfirmed-id
  *   backfill: past it, no new GitHub fetch is dispatched (the skipped cards
  *   sort first next call). Unset means unbounded — the UI path; the MCP
@@ -352,9 +396,13 @@ export async function addRepositoriesToBoardCore(params: {
   }
 
   // Without a column the card lands in the board's first one, the way the
-  // picker drops it. The board is already confirmed to be the user's.
-  const statusId =
-    params.statusId ?? (await readFirstColumnOfBoard(supabase, boardId))
+  // picker drops it. A caller-chosen column must belong to this board —
+  // the MCP tool takes any statusId string, and another board's column
+  // would put the card out of sight — so it is verified before the
+  // release, the order read and the insert.
+  const statusId = params.statusId
+    ? await readColumnOnBoard(supabase, boardId, params.statusId)
+    : await readFirstColumnOfBoard(supabase, boardId)
 
   // The id on the request is whatever the caller sent, so the first
   // split uses the name only. A card that already has a confirmed id is

@@ -194,9 +194,14 @@ describe('backfillVerifiedRepositoryIds', () => {
     expect(memoryUpdate).not.toHaveBeenCalled()
   })
 
-  test('remembers a repository GitHub says is gone, and does not store an id', async () => {
+  // Value: protects=a 404 the MCP token gets for a repository it cannot see
+  //   does not stamp github_identity_checked_at, so the next picker opening
+  //   retries the card instead of deferring the rename repair by the retry
+  //   window; fails_when=the gone branch writes checked_at again;
+  //   why_new=the stamp was just removed; seam=none
+  test('leaves a card unchecked when GitHub answers 404, so the next opening retries it', async () => {
     // Arrange
-    const cardUpdate = vi.fn().mockReturnValue(updateResult(null))
+    const cardUpdate = vi.fn()
     const memoryUpdate = vi.fn()
     const supabase = supabaseFor(
       [{ id: 'card-1', repo_owner: 'laststance', repo_name: 'gone' }],
@@ -220,9 +225,7 @@ describe('backfillVerifiedRepositoryIds', () => {
     await backfillVerifiedRepositoryIds(supabase as never, 'user-1')
 
     // Assert
-    expect(cardUpdate).toHaveBeenCalledWith({
-      github_identity_checked_at: '2026-10-16T00:00:00.000Z',
-    })
+    expect(cardUpdate).not.toHaveBeenCalled()
     expect(memoryUpdate).not.toHaveBeenCalled()
   })
 

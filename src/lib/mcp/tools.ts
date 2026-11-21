@@ -67,10 +67,11 @@ interface BoardRow {
 /**
  * Find the one board of the owner a name-or-id query means.
  *
- * Matching is case-insensitive on `name` (what `ilike` would do) plus an
- * exact `id` match, so an agent can pass "Laststance" or the UUID it read
- * from `list_boards`. The owner's whole board list is loaded once — boards
- * are few — so `availableBoards` comes for free on a miss.
+ * An exact `id` match wins first, then matching falls back to a
+ * case-insensitive `name` match (what `ilike` would do): a board named like
+ * another board's UUID is still selectable by its real id. The owner's
+ * whole board list is loaded once — boards are few — so `availableBoards`
+ * comes for free on a miss.
  *
  * Called by `add_repository_to_board` and `list_columns`. Never picks
  * silently between same-named boards: `ambiguous` returns the candidates.
@@ -102,10 +103,13 @@ export async function resolveBoard(
 
   if (error || !boards) return { status: 'error' }
 
+  // An exact id wins over any name: a board may legitimately be named like
+  // another board's UUID, and its own id still has to select it.
+  const byId = boards.find((board) => board.id === boardQuery.trim())
+  if (byId) return { status: 'resolved', board: byId }
+
   const query = boardQuery.trim().toLowerCase()
-  const matches = boards.filter(
-    (board) => board.id === boardQuery || board.name.toLowerCase() === query,
-  )
+  const matches = boards.filter((board) => board.name.toLowerCase() === query)
 
   if (matches.length === 0) {
     return { status: 'notFound', availableBoards: boards }
@@ -259,6 +263,9 @@ async function readCardProjectInfo(
  *
  * @param ctx - Per-request MCP context.
  * @returns `{ ok: true, boards }`.
+ * @example
+ * // tools/call params: { name: 'list_boards', arguments: {} }
+ * await listBoards(ctx)
  */
 export async function listBoards(ctx: McpToolContext): Promise<McpToolResult> {
   const { data, error } = await ctx.supabase
@@ -277,6 +284,9 @@ export async function listBoards(ctx: McpToolContext): Promise<McpToolResult> {
  * @param ctx - Per-request MCP context.
  * @param args.board - Board name (any case) or id.
  * @returns `{ ok: true, columns }` or the board-resolution envelope.
+ * @example
+ * // tools/call params: { name: 'list_columns', arguments: { board: 'Laststance' } }
+ * await listColumns(ctx, { board: 'Laststance' })
  */
 export async function listColumns(
   ctx: McpToolContext,
@@ -315,6 +325,9 @@ export async function listColumns(
  *
  * @param ctx - Per-request MCP context.
  * @returns `{ ok: true, placements }`.
+ * @example
+ * // tools/call params: { name: 'list_repo_placements', arguments: {} }
+ * await listRepoPlacements(ctx)
  */
 export async function listRepoPlacements(
   ctx: McpToolContext,
@@ -337,6 +350,9 @@ export async function listRepoPlacements(
  *
  * @param ctx - Per-request MCP context.
  * @returns `{ ok: true, presets, userPresets }`.
+ * @example
+ * // tools/call params: { name: 'list_link_presets', arguments: {} }
+ * await listLinkPresets(ctx)
  */
 export async function listLinkPresets(
   ctx: McpToolContext,
@@ -362,6 +378,9 @@ export async function listLinkPresets(
  * @param args.repo - `owner/name`.
  * @returns `{ ok: true, repo, note, comment, links, updatedAt }` or
  *   CARD_NOT_FOUND when the repository sits on no board.
+ * @example
+ * // tools/call params: { name: 'get_project_info', arguments: { repo: 'laststance/gitbox' } }
+ * await getProjectInfo(ctx, { repo: 'laststance/gitbox' })
  */
 export async function getProjectInfo(
   ctx: McpToolContext,
@@ -402,6 +421,9 @@ export async function getProjectInfo(
  * @param args.board - Board name (any case) or id.
  * @param args.statusId - Optional column id.
  * @returns `{ ok: true, addedCount, cards, skipped }` or the refusal envelope.
+ * @example
+ * // tools/call params: { name: 'add_repository_to_board', arguments: { repo: 'laststance/drinkgo', board: 'Laststance' } }
+ * await addRepositoryToBoard(ctx, { repo: 'laststance/drinkgo', board: 'Laststance' })
  */
 export async function addRepositoryToBoard(
   ctx: McpToolContext,
@@ -547,6 +569,9 @@ async function readMemoryLinkSnapshot(
  * @param args.repo - `owner/name`.
  * @param args.links - `{ type, url }` entries to merge.
  * @returns `{ ok: true, repo, links }` or the refusal envelope.
+ * @example
+ * // tools/call params: { name: 'add_project_links', arguments: { repo: 'laststance/gitbox', links: [{ type: 'vercel', url: 'https://x.vercel.app' }] } }
+ * await addProjectLinks(ctx, { repo: 'laststance/gitbox', links: [{ type: 'vercel', url: 'https://x.vercel.app' }] })
  */
 export async function addProjectLinks(
   ctx: McpToolContext,
@@ -748,6 +773,9 @@ async function runTool(
  *
  * @param server - The fresh {@link McpServer} for this request.
  * @param ctx - Per-request MCP context (owner-scoped service client).
+ * @example
+ * // inside the createMcpHandler server factory (src/app/api/mcp/route.ts)
+ * registerGitboxTools(server, mcpContext())
  */
 export function registerGitboxTools(
   server: McpServer,

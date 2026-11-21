@@ -126,6 +126,12 @@ async function handle(request: Request): Promise<Response> {
  *
  * @param request - The incoming request; must carry the bearer.
  * @returns 401/503 from the gate, or the SDK's 405.
+ * @example
+ * ```sh
+ * curl https://gitbox-laststance.vercel.app/api/mcp \
+ *   -H 'Authorization: Bearer <token>'
+ * # => 405 Method Not Allowed
+ * ```
  */
 export async function GET(request: Request): Promise<Response> {
   return handle(request)
@@ -137,11 +143,20 @@ export async function GET(request: Request): Promise<Response> {
  * Runs the shared {@link handle} gate: a missing `GITBOX_MCP_TOKEN` answers
  * 503 `MCP_DISABLED`, a missing or wrong `Authorization: Bearer` answers 401.
  * Authenticated requests open a fresh transport per call (stateless) and
- * dispatch `initialize`, `tools/list` and `tools/call`; the tool envelope is
- * framed as an SSE `data:` line.
+ * dispatch `initialize`, `tools/list`, `tools/call` and `server/discover`;
+ * the tool envelope is framed as an SSE `data:` line, though the transport
+ * may answer terminal responses as plain JSON under the newer MCP spec.
  *
  * @param request - The incoming request; must carry the bearer.
  * @returns 401/503 from the gate, or the framed JSON-RPC result.
+ * @example
+ * ```sh
+ * curl -X POST https://gitbox-laststance.vercel.app/api/mcp \
+ *   -H 'Authorization: Bearer <token>' \
+ *   -H 'Accept: application/json, text/event-stream' \
+ *   -H 'Content-Type: application/json' \
+ *   -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"list_boards","arguments":{}}}'
+ * ```
  */
 export async function POST(request: Request): Promise<Response> {
   return handle(request)
@@ -157,6 +172,12 @@ export async function POST(request: Request): Promise<Response> {
  *
  * @param request - The incoming request; must carry the bearer.
  * @returns 401/503 from the gate, or the SDK's 405.
+ * @example
+ * ```sh
+ * curl -X DELETE https://gitbox-laststance.vercel.app/api/mcp \
+ *   -H 'Authorization: Bearer <token>'
+ * # => 405 Method Not Allowed
+ * ```
  */
 export async function DELETE(request: Request): Promise<Response> {
   return handle(request)

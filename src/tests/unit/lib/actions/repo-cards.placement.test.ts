@@ -302,6 +302,22 @@ describe('addRepositoriesToBoard', () => {
         }
       }
       if (table === 'repocard') return repocard
+      if (table === 'statuslist') {
+        // The column-belongs-to-board check resolves at once — only the
+        // reads the test paces (board, placements, column order) queue up.
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: { id: 'status-1' },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        }
+      }
       throw new Error(`Unexpected table read: ${table}`)
     })
     vi.mocked(getCachedClaims).mockResolvedValue({
@@ -769,6 +785,35 @@ describe('addRepositoriesToBoard', () => {
       error: 'An unexpected error occurred',
     })
     expect(from).not.toHaveBeenCalled()
+  })
+
+  // Value: protects=a statusId naming another board's column never reaches
+  //   the rename release or the insert — the MCP tool accepts any column id;
+  //   fails_when=the column check is skipped or moved after them;
+  //   why_new=the statusId↔boardId check is new; seam=none;
+  //   no_claim=which tables the core reads before it
+  test('refuses a column that is not on the board before any release or insert', async () => {
+    // Arrange: the statuslist read finds no column with this id on board-1
+    const { insert } = signInWithSupabaseStub({
+      statuslist: { data: null, error: null },
+      repocard: { data: [], error: null },
+    })
+
+    // Act
+    const result = await addRepositoriesToBoard(
+      'board-1',
+      'status-other-board',
+      [makeRepository('laststance', 'free-repo')],
+    )
+
+    // Assert
+    expect(result).toEqual({
+      success: false,
+      error: 'That column is not on this board',
+    })
+    expect(verifyRepositoryIdentities).not.toHaveBeenCalled()
+    expect(lookupRepositoryByGitHubId).not.toHaveBeenCalled()
+    expect(insert).not.toHaveBeenCalled()
   })
 
   test('explains that nothing was added when another tab placed the repository first', async () => {

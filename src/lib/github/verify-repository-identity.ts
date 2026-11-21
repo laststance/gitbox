@@ -25,11 +25,13 @@ const BACKFILL_BATCH_SIZE = 25
 const BACKFILL_CONCURRENCY = 5
 
 /**
- * How long a 404 or 451 stays out of the batch.
+ * How long a checked card stays out of the batch.
  *
- * GitHub answers 404 both when the repository is gone and when this token
- * cannot see it, even with the `repo` scope. An hour lets access come back.
- * A deleted repository still does not fill every opening.
+ * Only a `confirmed` answer stamps `github_identity_checked_at`, so the next
+ * opening skips it for an hour. GitHub answers 404 both when the repository
+ * is gone and when this token cannot see it, even with the `repo` scope — a
+ * `gone` or `unavailable` outcome writes nothing, so the row sorts first
+ * again instead of deferring a rename repair by the window.
  */
 const BACKFILL_RETRY_MS = 60 * 60 * 1000
 
@@ -115,9 +117,10 @@ async function resolveGitHubToken(
 /**
  * How a confirmation ended.
  *
- * `gone` is a 404 or 451: the repository is not there, and the backfill may
- * remember that. `unavailable` is a rate limit, a timeout, a 5xx or a missing
- * token: the row must be tried again on the next opening.
+ * `gone` is a 404 or 451: GitHub says the repository is not there — or this
+ * token cannot see it — so the backfill leaves the row unchecked for the
+ * next opening either way. `unavailable` is a rate limit, a timeout, a 5xx
+ * or a missing token: the row must be tried again on the next opening.
  */
 export type RepositoryConfirmation =
   | { outcome: 'confirmed'; repository: VerifiedRepository }
@@ -266,10 +269,11 @@ export async function verifyRepositoryIdentities(
  * Also copies that id onto the repository's memory, so the note keeps matching
  * the card after a rename. A card whose id is already taken by another card of
  * the user is left null: the unique index refuses the write, and deleting a
- * card is not this function's decision. A 404 or 451 is remembered for an
- * hour, so the next opening confirms other cards and a private repository
- * the token could not see is tried again sooner than a day. A rate limit or
- * a network failure leaves the row unchanged. One opening confirms at most
+ * card is not this function's decision. A 404 or 451 leaves the row
+ * unchanged: a token without the repository's scope gets the same answer,
+ * so it proves nothing about the card — stamping the check would defer the
+ * rename repair by the retry window. A rate limit or a network failure
+ * leaves the row unchanged too. One opening confirms at most
  * 25 cards, five GitHub requests at a time. The id is written only when
  * GitHub's answer names a different owner or name (a rename redirect). An
  * answer that still spells the stored name is the repository that has that
@@ -324,24 +328,23 @@ export async function backfillVerifiedRepositoryIds(
       card.repo_name,
       githubToken,
     )
-    // GitHub did not answer. Leave the row so the next opening tries it again.
-    if (confirmation.outcome === 'unavailable') return
+    // GitHub did not confirm — `unavailable`, or `gone` (a 404/451 this
+    // token gets for a repository it cannot see, not only a deleted one).
+    // The row keeps a null stamp so the next opening tries it again:
+    // stamping it would defer the rename repair by the retry window.
+    if (confirmation.outcome !== 'confirmed') return
 
     const checkedAt = new Date().toISOString()
     // A redirect to a new name is this card's repository. The same name is
     // whoever holds it now, which may be a different repository, so the id
-    // stays null and the card is checked again after the retry window.
+    // stays null and only the check is stamped — the card is confirmed
+    // again after the retry window.
     const renamed =
-      confirmation.outcome === 'confirmed' &&
       toRepoIdentifier(
         confirmation.repository.owner,
         confirmation.repository.name,
       ) !== toRepoIdentifier(card.repo_owner, card.repo_name)
     const verified = renamed ? confirmation.repository : null
-    const nameStillMatches = confirmation.outcome === 'confirmed' && !renamed
-    if (confirmation.outcome !== 'gone' && !nameStillMatches && !verified) {
-      return
-    }
     const { error: cardError } = await supabase
       .from('repocard')
       .update(

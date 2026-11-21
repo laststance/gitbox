@@ -271,6 +271,31 @@ describe('resolveBoard', () => {
     })
   })
 
+  // Value: protects=a board named like another board's UUID stays selectable by its real id — the id match wins before name matching; fails_when=name and id matches merge into one ambiguous set; why_new=id-first resolution is new; seam=none; no_claim=uuid validation
+  test('resolves the board an id names even when another board carries that id as its name', async () => {
+    // Arrange: board-1's name is the id of board-9
+    const { from } = supabaseStub({
+      boards: {
+        data: [
+          { id: 'board-1', name: 'board-9' },
+          { id: 'board-9', name: 'Laststance' },
+        ],
+        error: null,
+      },
+      repocard: NO_CARDS,
+    })
+    const supabase = { from } as unknown as SupabaseClient<Database>
+
+    // Act
+    const resolved = await resolveBoard(supabase, 'user-1', 'board-9')
+
+    // Assert
+    expect(resolved).toEqual({
+      status: 'resolved',
+      board: { id: 'board-9', name: 'Laststance' },
+    })
+  })
+
   // Value: protects=two boards sharing a name are never picked between silently; fails_when=the first match wins; why_new=board resolution is new; seam=none; no_claim=which board the caller should choose (the id is offered)
   test('answers ambiguous with the matching boards', async () => {
     // Arrange
