@@ -559,7 +559,10 @@ async function readMemoryLinkSnapshot(
  * lost rounds. A repository with no row gets one through a plain insert —
  * `note: ''` plus the links; a row created concurrently makes the insert
  * fail (23505) rather than overwrite, and the merge falls back to the
- * version-checked update. Links dedupe by `url` (first occurrence wins).
+ * version-checked update. A conflicting row that carries another
+ * repository's confirmed GitHub id — an orphan memory the card's embed
+ * cannot see — is refused outright: every retry would hit it the same.
+ * Links dedupe by `url` (first occurrence wins).
  * `type` accepts any non-empty string — custom user presets are
  * legitimate.
  *
@@ -655,22 +658,56 @@ export async function addProjectLinks(
       return mcpError('OPERATION_FAILED', 'Failed to write project links')
     }
 
-    // 23505: a concurrent write created the row between the read and this
-    // insert. Merge into it through the same version-checked update path —
-    // the retry never sends `note`, so what the other write saved survives.
-    const reread = await readCardProjectInfo(ctx, found.placement.cardId)
-    if ('ok' in reread) return reread
-    if (reread.memoryId === null) {
-      // The conflicting row is already gone — same answer the retry limit gives
+    // 23505: a row already holds this (user_id, repo_key). Read it directly
+    // — the card's computed relationship cannot see it when it carries a
+    // different confirmed GitHub id, so the embed re-read would mistake an
+    // orphan memory for a vanished one.
+    const { data: conflicting, error: conflictingError } = await ctx.supabase
+      .from('projectinfo')
+      .select('id, github_repo_id, links, updated_at')
+      .eq('user_id', ctx.ownerId)
+      .eq(
+        'repo_key',
+        toRepoIdentifier(info.repository.repo_owner, info.repository.repo_name),
+      )
+      .maybeSingle()
+    if (conflictingError) {
+      return mcpError('INTERNAL', 'Failed to read project info')
+    }
+    if (!conflicting) {
+      // The row that made the insert fail is already gone — a retry can
+      // succeed, so this stays the retryable conflict answer.
       return mcpError(
         'CONFLICT',
         'The project info changed while the links were merged — run the call again',
       )
     }
+
+    // The row is another repository's memory when both ids are confirmed
+    // and differ: invisible to the card, it would make every retry hit the
+    // same conflict. `writeRepositoryMemory` answers this same state with
+    // this sentence.
+    const cardGitHubRepoId = info.repository.github_repo_id
+    const memoryGitHubRepoId = conflicting.github_repo_id
+    if (
+      typeof cardGitHubRepoId === 'number' &&
+      typeof memoryGitHubRepoId === 'number' &&
+      memoryGitHubRepoId !== cardGitHubRepoId
+    ) {
+      return mcpError(
+        'OPERATION_FAILED',
+        'Memory belongs to another repository',
+      )
+    }
+
+    // A concurrent write created this repository's own row between the
+    // read and the insert. Merge into it through the version-checked
+    // update path — the retry never sends `note`, so what the other write
+    // saved survives.
     snapshot = {
-      id: reread.memoryId,
-      links: reread.links,
-      updatedAt: reread.updatedAt,
+      id: conflicting.id,
+      links: normalizeLinks(conflicting.links),
+      updatedAt: conflicting.updated_at,
     }
   } else {
     snapshot = {

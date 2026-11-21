@@ -567,40 +567,32 @@ describe('add_project_links', () => {
 
   // Value: protects=a note another write saved between the read and the insert survives — the lost race merges links into that row instead of overwriting it; fails_when=the insert becomes an upsert again (its ON CONFLICT writes note: ''), or the fallback sends the note on retry; why_new=the 23505 fallback is new; seam=none; no_claim=which concurrent write won
   test('merges into the row a concurrent write created when the insert conflicts', async () => {
-    // Arrange: the card first embeds no memory row; after the insert loses
-    // the race (23505) the re-read finds the row the other write made —
-    // note and a slack link already saved
+    // Arrange: the card embeds no memory row; after the insert loses the
+    // race (23505) the direct repo_key read finds the row the other write
+    // made — note and a slack link already saved
     const { from, insert, update } = supabaseStub({
       boards: { data: [], error: null },
-      repocard: [
-        {
-          data: {
-            repo_owner: 'laststance',
-            repo_name: 'gitbox',
-            github_repo_id: null,
-            projectinfo: null,
-          },
-          error: null,
+      repocard: {
+        data: {
+          repo_owner: 'laststance',
+          repo_name: 'gitbox',
+          github_repo_id: null,
+          projectinfo: null,
         },
-        {
-          data: {
-            repo_owner: 'laststance',
-            repo_name: 'gitbox',
-            github_repo_id: null,
-            projectinfo: {
-              id: 'memory-9',
-              note: 'the note the other write saved',
-              comment: '',
-              links: [{ type: 'slack', url: 'https://c.example.com' }],
-              updated_at: '2026-11-01T00:01:00Z',
-            },
-          },
-          error: null,
-        },
-      ],
+        error: null,
+      },
       projectinfoInsertError: {
         code: '23505',
         message: 'duplicate key value violates unique constraint',
+      },
+      projectinfoRead: {
+        data: {
+          id: 'memory-9',
+          github_repo_id: null,
+          links: [{ type: 'slack', url: 'https://c.example.com' }],
+          updated_at: '2026-11-01T00:01:00Z',
+        },
+        error: null,
       },
     })
 
@@ -628,6 +620,164 @@ describe('add_project_links', () => {
         { type: 'resend', url: 'https://b.example.com' },
       ],
     })
+  })
+
+  // Value: protects=a memory created concurrently for the card's own
+  //   confirmed GitHub id is merged into, not refused — a retry can
+  //   succeed on that row;
+  //   fails_when=a confirmed id on the conflicting row alone refuses the
+  //   merge, so the tool reports the card's own memory as foreign;
+  //   why_new=the direct repo_key read is new; seam=none;
+  //   no_claim=which write created the row
+  test('merges into the conflicting row when it carries the same GitHub id as the card', async () => {
+    // Arrange: the card is confirmed as repository 42 and embeds no row;
+    // the row the insert conflicted with carries the same id
+    const { from, update } = supabaseStub({
+      boards: { data: [], error: null },
+      repocard: {
+        data: {
+          repo_owner: 'laststance',
+          repo_name: 'gitbox',
+          github_repo_id: 42,
+          projectinfo: null,
+        },
+        error: null,
+      },
+      projectinfoInsertError: {
+        code: '23505',
+        message: 'duplicate key value violates unique constraint',
+      },
+      projectinfoRead: {
+        data: {
+          id: 'memory-9',
+          github_repo_id: 42,
+          links: [{ type: 'slack', url: 'https://c.example.com' }],
+          updated_at: '2026-11-01T00:01:00Z',
+        },
+        error: null,
+      },
+    })
+
+    // Act
+    const result = await addProjectLinks(ctxWith(from), {
+      repo: 'laststance/gitbox',
+      links: [{ type: 'resend', url: 'https://b.example.com' }],
+    })
+
+    // Assert: same repository — the version-checked merge goes ahead
+    expect(result).toEqual({
+      ok: true,
+      repo: 'laststance/gitbox',
+      cardId: 'card-1',
+      links: [
+        { type: 'slack', url: 'https://c.example.com' },
+        { type: 'resend', url: 'https://b.example.com' },
+      ],
+    })
+    expect(update).toHaveBeenCalledWith({
+      links: [
+        { type: 'slack', url: 'https://c.example.com' },
+        { type: 'resend', url: 'https://b.example.com' },
+      ],
+    })
+  })
+
+  // Value: protects=an orphan memory — same name, different confirmed id —
+  //   is refused once instead of answering a retryable CONFLICT that can
+  //   never succeed: the embed cannot see the row, so every retry hits the
+  //   same conflict;
+  //   fails_when=the conflicting row is not looked up directly, or a
+  //   different confirmed id is treated as mergeable;
+  //   why_new=the orphan refusal is new; seam=none;
+  //   no_claim=how the orphan memory came to hold the name (a rename that
+  //   left the card gone)
+  test('answers a non-retryable refusal when the conflicting memory belongs to another repository', async () => {
+    // Arrange: the card is confirmed as repository 42 and embeds no row;
+    // the row holding the name carries a different repository's id (7),
+    // so the computed relationship will never show it to this card
+    const { from, update } = supabaseStub({
+      boards: { data: [], error: null },
+      repocard: {
+        data: {
+          repo_owner: 'laststance',
+          repo_name: 'gitbox',
+          github_repo_id: 42,
+          projectinfo: null,
+        },
+        error: null,
+      },
+      projectinfoInsertError: {
+        code: '23505',
+        message: 'duplicate key value violates unique constraint',
+      },
+      projectinfoRead: {
+        data: {
+          id: 'memory-9',
+          github_repo_id: 7,
+          links: [{ type: 'slack', url: 'https://c.example.com' }],
+          updated_at: '2026-11-01T00:01:00Z',
+        },
+        error: null,
+      },
+    })
+
+    // Act
+    const result = await addProjectLinks(ctxWith(from), {
+      repo: 'laststance/gitbox',
+      links: [{ type: 'resend', url: 'https://b.example.com' }],
+    })
+
+    // Assert: the refusal names the state and promises no retry
+    expect(result).toEqual({
+      ok: false,
+      code: 'OPERATION_FAILED',
+      error: 'Memory belongs to another repository',
+    })
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  // Value: protects=a conflicting row that is already gone keeps the
+  //   retryable answer — a retry can succeed where a foreign memory could
+  //   not;
+  //   fails_when=a missing row is read as a foreign memory, or the
+  //   refusal drops the retry hint;
+  //   why_new=the direct repo_key read replaces the embed re-read;
+  //   seam=none
+  test('answers CONFLICT when the conflicting row is already gone', async () => {
+    // Arrange: the insert lost the race but the row vanished before the
+    // repo_key read
+    const { from, update } = supabaseStub({
+      boards: { data: [], error: null },
+      repocard: {
+        data: {
+          repo_owner: 'laststance',
+          repo_name: 'gitbox',
+          github_repo_id: 42,
+          projectinfo: null,
+        },
+        error: null,
+      },
+      projectinfoInsertError: {
+        code: '23505',
+        message: 'duplicate key value violates unique constraint',
+      },
+      projectinfoRead: { data: null, error: null },
+    })
+
+    // Act
+    const result = await addProjectLinks(ctxWith(from), {
+      repo: 'laststance/gitbox',
+      links: [{ type: 'resend', url: 'https://b.example.com' }],
+    })
+
+    // Assert
+    expect(result).toEqual({
+      ok: false,
+      code: 'CONFLICT',
+      error:
+        'The project info changed while the links were merged — run the call again',
+    })
+    expect(update).not.toHaveBeenCalled()
   })
 
   // Value: protects=a link added while another write lands still ends up merged, on top of that write's links; fails_when=the merge gives up on the first lost race or re-merges against the stale snapshot; why_new=the retry round is new; seam=none; no_claim=the trigger that bumps updated_at

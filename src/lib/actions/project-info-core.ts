@@ -134,12 +134,18 @@ function memoryBelongsToAnotherRepository(
 }
 
 /**
- * Moves a memory off a name when no card still holds its GitHub id.
+ * Moves a memory off a name when no card of the user still holds its GitHub id.
  *
  * The note outlives the card. After the card is deleted the memory keeps the
  * old name, and a new repository that takes that name cannot save. Called by
  * {@link writeRepositoryMemory} before it would refuse the save. A card that
  * still has the id keeps the memory where it is.
+ *
+ * The card check filters on the owner itself through the board join — the
+ * same filter {@link lookupRepoPlacements} applies — so a card of another
+ * user holding the same GitHub id cannot keep this user's memory in place
+ * when the caller's client is not scoped by row level security (the
+ * service-role client of the MCP route).
  *
  * @param supabase - Server client of the signed-in user.
  * @param ownerId - The user whose memory the write may touch.
@@ -147,8 +153,8 @@ function memoryBelongsToAnotherRepository(
  * @param repository - The name the new repository needs.
  * @param githubToken - Bearer for the GitHub lookup instead of the cookie
  *   token (the MCP route has no cookies).
- * @returns `moved` when the name is free. `moved: false` when a card still
- *   holds the id, or GitHub still gives that id this name.
+ * @returns `moved` when the name is free. `moved: false` when a card of the
+ *   user still holds the id, or GitHub still gives that id this name.
  * @example
  * await relocateOrphanMemory(supabase, 'user-1', 99, repository)
  */
@@ -161,8 +167,9 @@ export async function relocateOrphanMemory(
 ): Promise<{ moved: boolean; error: { message: string } | null }> {
   const { data: heldByCard, error: heldError } = await supabase
     .from('repocard')
-    .select('id')
+    .select(`id, ${BOARD_OF_CARD_RELATION}!inner()`)
     .eq('github_repo_id', githubRepoId)
+    .eq('board.user_id', ownerId)
     .limit(1)
     .maybeSingle()
   if (heldError) return { moved: false, error: heldError }

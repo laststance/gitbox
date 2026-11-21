@@ -64,11 +64,13 @@ const log = createModuleLogger('repo-cards-core')
  * unique owner/name index does not reject the repository that has the name now.
  *
  * The memory rename runs before the card rename, so a failed attempt can be
- * retried. When the destination name already has a memory row the card is
- * only moved if that row is this repository's own (a retry finishing what a
- * previous attempt renamed); a row of another repository throws
- * {@link ActionUserError} instead of pointing the card at memory that is not
- * its own.
+ * retried. When the rename does not land this repository's own row on the
+ * destination name — the 23505 conflict, or a zero-row update because the
+ * held repository has no memory row — the destination is read: the card is
+ * only moved when the name is free or held by this repository's own memory
+ * (a retry finishing what a previous attempt renamed). A row of another
+ * repository throws {@link ActionUserError} instead of pointing the card at
+ * memory that is not its own.
  *
  * @param supabase - Authenticated client.
  * @param userId - The signed-in user.
@@ -126,7 +128,10 @@ async function releaseNamesHeldByAnotherRepository(
 
     // The memory row moves first: a failed memory update leaves the card
     // name old, so a retry still finds the name held and can complete both.
-    const { error: memoryError } = await supabase
+    // `select('id')` returns the rows the update renamed, so an update that
+    // matched nothing — the held repository has no memory row at all — is
+    // told apart from one that moved it.
+    const { data: movedMemories, error: memoryError } = await supabase
       .from('projectinfo')
       .update({
         repo_owner: current.repository.owner,
@@ -134,18 +139,18 @@ async function releaseNamesHeldByAnotherRepository(
       })
       .eq('user_id', userId)
       .eq('github_repo_id', held.githubRepoId)
-    if (memoryError) {
-      if (!isUniqueViolation(memoryError)) {
-        throw new Error('Failed to update the repository name')
-      }
-      // 23505: a row already holds the destination name. Tolerable only when
-      // that row is this repository's own memory — a previous attempt
-      // renamed it before the call died, so the rename is done and the card
-      // can follow. Any other owner (a different confirmed id, an
-      // unconfirmed row, or a read that comes back empty) means moving the
-      // card would point it at memory that is not its own: the card stays
-      // put and the retry that can succeed once the conflict clears runs
-      // this same path.
+      .select('id')
+    if (memoryError && !isUniqueViolation(memoryError)) {
+      throw new Error('Failed to update the repository name')
+    }
+
+    // The destination name is checked whenever the update did not move
+    // this repository's own row onto it. 23505 proves a row already holds
+    // the name; a zero-row update proves the held repository has no memory,
+    // but says nothing about who holds the destination name — a memory of
+    // another repository saved under it would leave the moved card
+    // pointing at a note that is not its own.
+    if (memoryError || (movedMemories ?? []).length === 0) {
       const { data: destination, error: destinationError } = await supabase
         .from('projectinfo')
         .select('github_repo_id')
@@ -158,7 +163,19 @@ async function releaseNamesHeldByAnotherRepository(
       if (destinationError) {
         throw new Error('Failed to update the repository name')
       }
-      if (destination?.github_repo_id !== held.githubRepoId) {
+      const destinationIsOwn = destination?.github_repo_id === held.githubRepoId
+      // On a 23505 a row provably holds the name: only this repository's
+      // own memory tolerates the conflict — a previous attempt renamed it
+      // before the call died, so the rename is done and the card can
+      // follow. Any other owner (a different confirmed id, an unconfirmed
+      // row, or a read that comes back empty) refuses. On a zero-row
+      // update only a destination row this repository does not own
+      // refuses; a missing one leaves the name free and the card moves.
+      const destinationBlocks =
+        memoryError !== null
+          ? !destinationIsOwn
+          : destination !== null && !destinationIsOwn
+      if (destinationBlocks) {
         throw new ActionUserError('Another repository already saved that name')
       }
     }

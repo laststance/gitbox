@@ -812,6 +812,101 @@ describe('addRepositoriesToBoard', () => {
     ])
   })
 
+  // Value: protects=a held repository without a memory row still has its
+  //   card moved and the new repository placed — the destination check
+  //   must not read a missing destination as a refusal;
+  //   fails_when=the zero-row update is treated like a 23505 whose
+  //   destination read comes back empty, so the card never moves;
+  //   why_new=the destination check is new on this path; seam=none
+  test('moves the card when the held repository has no memory row and the destination name is free', async () => {
+    // Arrange: same held card as above, but repository 99 never saved a
+    // memory — the rename update matches no row, and nothing holds the
+    // moved-99 name
+    const { insert, cardUpdate } = signInWithSupabaseStub({
+      repocard: {
+        data: [
+          {
+            id: '00000000-0000-4000-8000-0000000000c2',
+            repo_owner: 'laststance',
+            repo_name: 'free-repo',
+            github_repo_id: 99,
+            board: { id: 'board-2', user_id: 'user-1', name: 'Work Projects' },
+          },
+        ],
+        error: null,
+      },
+      repocardMaybeSingle: { data: { order: 0 }, error: null },
+      // The update renamed zero rows — no memory carries repository 99's id
+      projectinfo: { data: [], error: null },
+      // and no memory holds the destination name either
+      projectinfoMaybeSingle: { data: null, error: null },
+      insert: { data: [], error: null },
+    })
+
+    // Act
+    const result = await addRepositoriesToBoard('board-1', 'status-1', [
+      makeRepository('laststance', 'free-repo'),
+    ])
+
+    // Assert: the card moves to the name GitHub gives repository 99
+    expect(result.success).toBe(true)
+    expect(cardUpdate).toHaveBeenCalledWith({
+      repo_owner: 'laststance',
+      repo_name: 'moved-99',
+    })
+    expect(insert).toHaveBeenCalledWith([
+      expect.objectContaining({
+        repo_owner: 'laststance',
+        repo_name: 'free-repo',
+        github_repo_id: 1001,
+      }),
+    ])
+  })
+
+  // Value: protects=a card is never moved onto a name whose memory belongs
+  //   to another repository, even when the held repository saved no memory
+  //   of its own — later note saves would fail against the foreign row;
+  //   fails_when=the destination check only runs on a 23505, so a zero-row
+  //   update lets the card move while the foreign memory stays;
+  //   why_new=the zero-row gap is the reported finding; seam=none
+  test('refuses to move the card when the held repository has no memory row and the destination memory belongs to another repository', async () => {
+    // Arrange: repository 99 has no memory row (the update renames nothing),
+    // but a different repository's memory (github_repo_id 7) already holds
+    // the moved-99 name
+    const { insert, cardUpdate } = signInWithSupabaseStub({
+      repocard: {
+        data: [
+          {
+            id: '00000000-0000-4000-8000-0000000000c2',
+            repo_owner: 'laststance',
+            repo_name: 'free-repo',
+            github_repo_id: 99,
+            board: { id: 'board-2', user_id: 'user-1', name: 'Work Projects' },
+          },
+        ],
+        error: null,
+      },
+      projectinfo: { data: [], error: null },
+      projectinfoMaybeSingle: {
+        data: { github_repo_id: 7 },
+        error: null,
+      },
+    })
+
+    // Act
+    const result = await addRepositoriesToBoard('board-1', 'status-1', [
+      makeRepository('laststance', 'free-repo'),
+    ])
+
+    // Assert: the card keeps its name and nothing is inserted
+    expect(result).toEqual({
+      success: false,
+      error: 'Another repository already saved that name',
+    })
+    expect(cardUpdate).not.toHaveBeenCalled()
+    expect(insert).not.toHaveBeenCalled()
+  })
+
   test('adds nothing when GitHub does not confirm the repository', async () => {
     // Arrange
     vi.mocked(verifyRepositoryIdentities).mockResolvedValue([
@@ -909,15 +1004,52 @@ describe('addRepositoriesToBoard', () => {
 
   // Value: protects=a statusId naming another board's column never reaches
   //   the rename release or the insert — the MCP tool accepts any column id;
-  //   fails_when=the column check is skipped or moved after them;
+  //   fails_when=the column check is skipped or moved after them, or loses
+  //   its board_id filter — the stub applies the filters the query sends,
+  //   so an id-only lookup finds the column of another board;
   //   why_new=the statusId↔boardId check is new; seam=none;
   //   no_claim=which tables the core reads before it
   test('refuses a column that is not on the board before any release or insert', async () => {
-    // Arrange: the statuslist read finds no column with this id on board-1
-    const { insert } = signInWithSupabaseStub({
-      statuslist: { data: null, error: null },
-      repocard: { data: [], error: null },
+    // Arrange: the column exists — on board-2. The statuslist stub answers
+    // by the filters the query actually applied, the way the table would:
+    // without the `board_id` filter the lookup finds it and the card lands
+    // on another board's column.
+    const foreignColumn = { id: 'status-other-board', board_id: 'board-2' }
+    const insert = vi.fn(() => makeQuery({ data: [], error: null }))
+    const from = vi.fn((table: string) => {
+      if (table === 'statuslist') {
+        const filters: Array<['id' | 'board_id', string]> = []
+        const query = {
+          select: () => query,
+          eq: (column: 'id' | 'board_id', value: string) => {
+            filters.push([column, value])
+            return query
+          },
+          maybeSingle: async () => ({
+            data:
+              [foreignColumn].find((row) =>
+                filters.every(([column, value]) => row[column] === value),
+              ) ?? null,
+            error: null,
+          }),
+        }
+        return query
+      }
+      if (table === 'board') {
+        return makeQuery({
+          data: { id: 'board-1', user_id: 'user-1' },
+          error: null,
+        })
+      }
+      if (table === 'repocard') {
+        return makeQuery({ data: [], error: null }, { insert })
+      }
+      throw new Error(`Unexpected table read: ${table}`)
     })
+    vi.mocked(getCachedClaims).mockResolvedValue({
+      supabase: { from, rpc: vi.fn() },
+      claims: { sub: 'user-1' },
+    } as unknown as Awaited<ReturnType<typeof getCachedClaims>>)
 
     // Act
     const result = await addRepositoriesToBoard(
