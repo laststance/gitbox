@@ -14,6 +14,8 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { lookupRepoPlacements } from '@/lib/actions/repo-card-duplicates'
+import { addRepositoriesToBoardCore } from '@/lib/actions/repo-cards-core'
+import { ActionUserError } from '@/lib/actions/types'
 import {
   addProjectLinks,
   addRepositoryToBoard,
@@ -47,6 +49,13 @@ vi.mock('@/lib/actions/repo-card-duplicates', async (importOriginal) => {
   return { ...original, lookupRepoPlacements: vi.fn(async () => []) }
 })
 
+// The add path never reaches the real core in these tests (no GitHub, no
+// real DB) — per-test the spy answers a result or throws the error under
+// test.
+vi.mock('@/lib/actions/repo-cards-core', () => ({
+  addRepositoriesToBoardCore: vi.fn(),
+}))
+
 type QueryResult = {
   data: unknown
   error: { code?: string; message: string } | null
@@ -55,19 +64,23 @@ type QueryResult = {
 /**
  * Minimal stand-in for a PostgREST query builder: every filter returns the
  * same builder, and awaiting it (directly or via single / maybeSingle)
- * yields `result`.
+ * yields the next queued result — an array queues one answer per call,
+ * repeating the last; a bare result repeats forever.
  */
-function makeQuery(result: QueryResult) {
+function makeQuery(result: QueryResult | QueryResult[]) {
+  const queue = Array.isArray(result) ? [...result] : [result]
+  const next = (): QueryResult =>
+    queue.length > 1 ? (queue.shift() as QueryResult) : queue[0]!
   const query = {
     select: () => query,
     eq: () => query,
     order: () => query,
     limit: () => query,
-    range: async () => result,
-    maybeSingle: async () => result,
-    single: async () => result,
+    range: async () => next(),
+    maybeSingle: async () => next(),
+    single: async () => next(),
     update: () => query,
-    then: async (resolve: (value: QueryResult) => unknown) => resolve(result),
+    then: async (resolve: (value: QueryResult) => unknown) => resolve(next()),
   }
   return query
 }
@@ -77,17 +90,18 @@ function makeQuery(result: QueryResult) {
  *
  * `update().eq()…select()` answers `projectinfoUpdate` (first entry per
  * call while several are queued, the last one repeats); the merge re-read
- * `select().eq().eq().maybeSingle()` answers `projectinfoRead`.
+ * `select().eq().eq().maybeSingle()` answers `projectinfoRead`; `insert()`
+ * answers `projectinfoInsertError` (or success).
  */
 function supabaseStub(tables: {
   boards: QueryResult
-  repocard: QueryResult
-  projectinfoUpsertError?: { message: string } | null
+  repocard: QueryResult | QueryResult[]
+  projectinfoInsertError?: { code?: string; message: string } | null
   projectinfoUpdate?: QueryResult[]
   projectinfoRead?: QueryResult
 }) {
-  const upsert = vi.fn(async () => ({
-    error: tables.projectinfoUpsertError ?? null,
+  const insert = vi.fn(async () => ({
+    error: tables.projectinfoInsertError ?? null,
   }))
   const updateAnswers = [
     ...(tables.projectinfoUpdate ?? [
@@ -105,15 +119,18 @@ function supabaseStub(tables: {
       tables.projectinfoRead ?? { data: null, error: null },
   }
   const update = vi.fn(() => filter)
+  // Built once so a queued repocard answer progresses across calls — the
+  // conflict fallback re-reads the card through a second `from` call.
+  const repocardQuery = makeQuery(tables.repocard)
   const from = vi.fn((table: string) => {
     if (table === 'board') return makeQuery(tables.boards)
-    if (table === 'repocard') return makeQuery(tables.repocard)
+    if (table === 'repocard') return repocardQuery
     if (table === 'projectinfo') {
-      return { select: () => filter, upsert, update }
+      return { select: () => filter, insert, update }
     }
     throw new Error(`Unexpected table: ${table}`)
   })
-  return { from, upsert, update, filter }
+  return { from, insert, update, filter }
 }
 
 function ctxWith(from: ReturnType<typeof vi.fn>): McpToolContext {
@@ -347,6 +364,65 @@ describe('add_repository_to_board board resolution', () => {
   })
 })
 
+describe('add_repository_to_board error envelope', () => {
+  const ONE_BOARD: QueryResult = {
+    data: [{ id: 'board-1', name: 'Work' }],
+    error: null,
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  // Value: protects=a raw database or network failure never reaches the agent — the envelope names no table, column or constraint; fails_when=error.message is echoed back (it leaks schema detail); why_new=the generic INTERNAL message is new; seam=none; no_claim=which internal error occurred (the core logged it)
+  test('answers a generic INTERNAL when the core throws a non-user error', async () => {
+    // Arrange
+    const { from } = supabaseStub({ boards: ONE_BOARD, repocard: NO_CARDS })
+    vi.mocked(addRepositoriesToBoardCore).mockRejectedValue(
+      new Error(
+        'duplicate key value violates unique constraint "repocard_unique_repo_per_user"',
+      ),
+    )
+
+    // Act
+    const result = await addRepositoryToBoard(ctxWith(from), {
+      repo: 'laststance/drinkgo',
+      board: 'work',
+    })
+
+    // Assert
+    expect(result).toEqual({
+      ok: false,
+      code: 'INTERNAL',
+      error: 'Failed to add repository',
+    })
+  })
+
+  // Value: protects=refusals the core wrote for the caller still reach the agent verbatim — the message is the fix hint; fails_when=ActionUserError is flattened into the generic INTERNAL message; why_new=the ActionUserError carve-out is new; seam=none; no_claim=MCP transport
+  test('answers OPERATION_FAILED verbatim when the core throws an ActionUserError', async () => {
+    // Arrange
+    const { from } = supabaseStub({ boards: ONE_BOARD, repocard: NO_CARDS })
+    vi.mocked(addRepositoriesToBoardCore).mockRejectedValue(
+      new ActionUserError(
+        'Could not confirm the repository with GitHub. Try again.',
+      ),
+    )
+
+    // Act
+    const result = await addRepositoryToBoard(ctxWith(from), {
+      repo: 'laststance/drinkgo',
+      board: 'work',
+    })
+
+    // Assert
+    expect(result).toEqual({
+      ok: false,
+      code: 'OPERATION_FAILED',
+      error: 'Could not confirm the repository with GitHub. Try again.',
+    })
+  })
+})
+
 describe('add_project_links', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -356,7 +432,7 @@ describe('add_project_links', () => {
   // Value: protects=adding links to an existing memory merges by url and never sends the note (a concurrent note edit survives); fails_when=the write carries the note back, duplicates a url, or skips the version guard; why_new=the version-checked merge replaced the note-restore write; seam=none; no_claim=the database trigger that bumps updated_at
   test('merges links by url into an existing row without ever sending the note', async () => {
     // Arrange: the card's memory keeps a note and one vercel link
-    const { from, upsert, update, filter } = supabaseStub({
+    const { from, insert, update, filter } = supabaseStub({
       boards: { data: [], error: null },
       repocard: GITBOX_CARD,
     })
@@ -389,17 +465,17 @@ describe('add_project_links', () => {
         { type: 'resend', url: 'https://b.example.com' },
       ],
     })
-    expect(upsert).not.toHaveBeenCalled()
+    expect(insert).not.toHaveBeenCalled()
     // The version guard: the row id and the `updated_at` the read returned
     expect(filter.eq).toHaveBeenCalledWith('id', 'memory-1')
     expect(filter.eq).toHaveBeenCalledWith('user_id', 'user-1')
     expect(filter.eq).toHaveBeenCalledWith('updated_at', '2026-11-01T00:00:00Z')
   })
 
-  // Value: protects=a repository with nothing saved still gets its links, on a fresh row whose note starts empty (a creation cannot clobber a note); fails_when=the write takes the update path with no row id, or sends github_repo_id: null over a confirmed id on the conflict row; why_new=the create branch is new; seam=none; no_claim=the database default for repo_key
+  // Value: protects=a repository with nothing saved still gets its links, on a fresh row whose note starts empty (a plain insert can never clobber a note); fails_when=the write takes the update path with no row id, becomes an upsert that would overwrite on conflict, or sends github_repo_id: null over a confirmed id on the conflict row; why_new=the create branch is new; seam=none; no_claim=the database default for repo_key
   test('creates the memory row with an empty note when nothing is saved yet', async () => {
     // Arrange: the card resolves but embeds no memory row
-    const { from, upsert, update } = supabaseStub({
+    const { from, insert, update } = supabaseStub({
       boards: { data: [], error: null },
       repocard: {
         data: {
@@ -427,16 +503,79 @@ describe('add_project_links', () => {
       links: [{ type: 'resend', url: 'https://b.example.com' }],
     })
     expect(update).not.toHaveBeenCalled()
-    expect(upsert).toHaveBeenCalledWith(
-      {
-        repo_owner: 'laststance',
-        repo_name: 'gitbox',
-        user_id: 'user-1',
-        note: '',
-        links: [{ type: 'resend', url: 'https://b.example.com' }],
+    // A plain insert — an upsert would send `note: ''` over a concurrent row
+    expect(insert).toHaveBeenCalledWith({
+      repo_owner: 'laststance',
+      repo_name: 'gitbox',
+      user_id: 'user-1',
+      note: '',
+      links: [{ type: 'resend', url: 'https://b.example.com' }],
+    })
+  })
+
+  // Value: protects=a note another write saved between the read and the insert survives — the lost race merges links into that row instead of overwriting it; fails_when=the insert becomes an upsert again (its ON CONFLICT writes note: ''), or the fallback sends the note on retry; why_new=the 23505 fallback is new; seam=none; no_claim=which concurrent write won
+  test('merges into the row a concurrent write created when the insert conflicts', async () => {
+    // Arrange: the card first embeds no memory row; after the insert loses
+    // the race (23505) the re-read finds the row the other write made —
+    // note and a slack link already saved
+    const { from, insert, update } = supabaseStub({
+      boards: { data: [], error: null },
+      repocard: [
+        {
+          data: {
+            repo_owner: 'laststance',
+            repo_name: 'gitbox',
+            github_repo_id: null,
+            projectinfo: null,
+          },
+          error: null,
+        },
+        {
+          data: {
+            repo_owner: 'laststance',
+            repo_name: 'gitbox',
+            github_repo_id: null,
+            projectinfo: {
+              id: 'memory-9',
+              note: 'the note the other write saved',
+              comment: '',
+              links: [{ type: 'slack', url: 'https://c.example.com' }],
+              updated_at: '2026-11-01T00:01:00Z',
+            },
+          },
+          error: null,
+        },
+      ],
+      projectinfoInsertError: {
+        code: '23505',
+        message: 'duplicate key value violates unique constraint',
       },
-      { onConflict: 'user_id,repo_key' },
-    )
+    })
+
+    // Act
+    const result = await addProjectLinks(ctxWith(from), {
+      repo: 'laststance/gitbox',
+      links: [{ type: 'resend', url: 'https://b.example.com' }],
+    })
+
+    // Assert: the links merged on top of the concurrent write's links
+    expect(result).toEqual({
+      ok: true,
+      repo: 'laststance/gitbox',
+      cardId: 'card-1',
+      links: [
+        { type: 'slack', url: 'https://c.example.com' },
+        { type: 'resend', url: 'https://b.example.com' },
+      ],
+    })
+    expect(insert).toHaveBeenCalledTimes(1)
+    // The retried write carries links only — the note is never sent
+    expect(update).toHaveBeenCalledWith({
+      links: [
+        { type: 'slack', url: 'https://c.example.com' },
+        { type: 'resend', url: 'https://b.example.com' },
+      ],
+    })
   })
 
   // Value: protects=a link added while another write lands still ends up merged, on top of that write's links; fails_when=the merge gives up on the first lost race or re-merges against the stale snapshot; why_new=the retry round is new; seam=none; no_claim=the trigger that bumps updated_at
@@ -515,7 +654,7 @@ describe('add_project_links', () => {
   test('answers CARD_NOT_FOUND when the repository sits on no board', async () => {
     // Arrange
     vi.mocked(lookupRepoPlacements).mockResolvedValue([])
-    const { from, upsert } = supabaseStub({
+    const { from, insert } = supabaseStub({
       boards: { data: [], error: null },
       repocard: NO_CARDS,
     })
@@ -528,13 +667,13 @@ describe('add_project_links', () => {
 
     // Assert
     expect(result).toMatchObject({ ok: false, code: 'CARD_NOT_FOUND' })
-    expect(upsert).not.toHaveBeenCalled()
+    expect(insert).not.toHaveBeenCalled()
   })
 
   // Value: protects=a link without a type is refused with the presets hint before any write; fails_when=an empty type reaches projectinfo; why_new=arg validation is new; seam=none; no_claim=which preset the caller should choose
   test('answers INVALID_LINK_TYPE for an empty link type', async () => {
     // Arrange
-    const { from, upsert } = supabaseStub({
+    const { from, insert } = supabaseStub({
       boards: { data: [], error: null },
       repocard: GITBOX_CARD,
     })
@@ -547,13 +686,39 @@ describe('add_project_links', () => {
 
     // Assert
     expect(result).toMatchObject({ ok: false, code: 'INVALID_LINK_TYPE' })
-    expect(upsert).not.toHaveBeenCalled()
+    expect(insert).not.toHaveBeenCalled()
+  })
+
+  // Value: protects=an empty url never lands in the memory — projectLinkUrlSchema accepts '' for its other callers, so the tool must refuse it first and name the offending entry; fails_when='' slips past the schema check into links; why_new=the pre-schema guard is new; seam=none; no_claim=whitespace urls (the schema handles them)
+  test('answers INVALID_LINK_URL naming the entry for an empty url', async () => {
+    // Arrange
+    const { from, insert } = supabaseStub({
+      boards: { data: [], error: null },
+      repocard: GITBOX_CARD,
+    })
+
+    // Act
+    const result = await addProjectLinks(ctxWith(from), {
+      repo: 'laststance/gitbox',
+      links: [
+        { type: 'vercel', url: 'https://a.example.com' },
+        { type: 'resend', url: '' },
+      ],
+    })
+
+    // Assert
+    expect(result).toEqual({
+      ok: false,
+      code: 'INVALID_LINK_URL',
+      error: 'links[1] (type "resend"): "url" must not be empty',
+    })
+    expect(insert).not.toHaveBeenCalled()
   })
 
   // Value: protects=a non-http(s) url is refused before any write; fails_when=projectLinkUrlSchema is skipped; why_new=arg validation is new; seam=none; no_claim=the schema's own rules (covered in validations tests)
   test('answers INVALID_LINK_URL for a url the schema refuses', async () => {
     // Arrange
-    const { from, upsert } = supabaseStub({
+    const { from, insert } = supabaseStub({
       boards: { data: [], error: null },
       repocard: GITBOX_CARD,
     })
@@ -566,7 +731,7 @@ describe('add_project_links', () => {
 
     // Assert
     expect(result).toMatchObject({ ok: false, code: 'INVALID_LINK_URL' })
-    expect(upsert).not.toHaveBeenCalled()
+    expect(insert).not.toHaveBeenCalled()
   })
 })
 

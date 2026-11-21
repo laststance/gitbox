@@ -476,9 +476,9 @@ type ActionErrorCode =
 #### Transport & Authentication
 
 - **Endpoint**: `POST /api/mcp` — streamable-HTTP JSON-RPC (`tools/call`, `tools/list`, `initialize`). Stateless: every POST opens a fresh transport. GET/DELETE answer 405, matching the canonical stateless serving.
-- **Auth**: `Authorization: Bearer $GITBOX_MCP_TOKEN`, compared via SHA-256 + `timingSafeEqual` before MCP initialization. 401 on a missing/wrong bearer, 503 when `GITBOX_MCP_TOKEN` is unset. Responses carry `Cache-Control: no-store`.
+- **Auth**: `Authorization: Bearer $GITBOX_MCP_TOKEN`, compared via SHA-256 + `timingSafeEqual` before MCP initialization. 401 (with `WWW-Authenticate: Bearer`) on a missing/wrong bearer, 503 when `GITBOX_MCP_TOKEN` is unset — or when `GITBOX_MCP_OWNER_ID` / `GITBOX_MCP_GITHUB_TOKEN` is unset: a partially configured endpoint is disabled outright. Responses carry `Cache-Control: no-store`.
 - **Client**: every call sends `Accept: application/json, text/event-stream`; the response frames the JSON-RPC result as SSE `data:`.
-- **Identity**: all operations run as `GITBOX_MCP_OWNER_ID` on the service-role client — RLS does not apply, so every query re-applies the owner filter in code (`src/lib/mcp/tools.ts`). GitHub verification uses `GITBOX_MCP_GITHUB_TOKEN` (a PAT), never the cookie token.
+- **Identity**: all operations run as `GITBOX_MCP_OWNER_ID` on the service-role client — RLS does not apply, so every query re-applies the owner filter in code (`src/lib/mcp/tools.ts`). GitHub verification uses `GITBOX_MCP_GITHUB_TOKEN` (a PAT), never the cookie token — the endpoint refuses to serve without it, so the cookie-token fallback in the verification cores can never run on this path.
 - **Rate limiting**: the write tools reuse the action limiters (`addReposToBoard`, `projectInfo`); a hit answers `RATE_LIMITED`.
 - **Audit**: every tool call logs a `mcp_tool_call` security event (`tool`, `ok`).
 

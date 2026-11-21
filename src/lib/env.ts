@@ -53,8 +53,9 @@ export const env = createEnv({
     // RFC 4122 rejects.
     GITBOX_MCP_OWNER_ID: z.string().min(1).optional(),
     // GitHub PAT the MCP endpoint verifies repositories with (no cookie
-    // store exists on that route). Classic `repo` scope, or a fine-grained
-    // token with read access to the repositories it may add.
+    // store exists on that route — unset disables the endpoint rather than
+    // falling back to the cookie token). Classic `repo` scope, or a
+    // fine-grained token with read access to the repositories it may add.
     GITBOX_MCP_GITHUB_TOKEN: z.string().min(1).optional(),
   },
 

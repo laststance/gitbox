@@ -46,8 +46,8 @@ describe('checkMcpAuth', () => {
     expect(denied?.status).toBe(503)
   })
 
-  // Value: protects=a missing Authorization header never reaches the MCP handler; fails_when=a request without a bearer is let through; why_new=the auth gate is new; seam=none; no_claim=handler behavior after auth
-  test('answers 401 when the request carries no bearer', () => {
+  // Value: protects=a missing Authorization header never reaches the MCP handler, and the refusal names the scheme the client should retry with; fails_when=a request without a bearer is let through, or the 401 lacks WWW-Authenticate (RFC 9110); why_new=the auth gate is new; seam=none; no_claim=handler behavior after auth
+  test('answers 401 with WWW-Authenticate: Bearer when the request carries no bearer', () => {
     // Arrange
     const request = requestWithBearer()
 
@@ -56,6 +56,8 @@ describe('checkMcpAuth', () => {
 
     // Assert
     expect(denied?.status).toBe(401)
+    expect(denied?.headers.get('www-authenticate')).toBe('Bearer')
+    expect(denied?.headers.get('cache-control')).toBe('no-store')
   })
 
   // Value: protects=a wrong bearer never reaches the MCP handler; fails_when=a mismatching token is accepted (or timingSafeEqual throws on the length difference, which would surface as a 500, not a 401); why_new=the SHA-256 pre-hash exists for this case; seam=none; no_claim=timing side channel coverage
@@ -68,6 +70,7 @@ describe('checkMcpAuth', () => {
 
     // Assert
     expect(denied?.status).toBe(401)
+    expect(denied?.headers.get('www-authenticate')).toBe('Bearer')
     const body = (await denied?.json()) as { code: string }
     expect(body.code).toBe('UNAUTHORIZED')
   })

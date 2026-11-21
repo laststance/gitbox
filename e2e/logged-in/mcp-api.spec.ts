@@ -76,10 +76,15 @@ async function callMcpTool(
   return JSON.parse(text!) as Record<string, unknown>
 }
 
-/** Drop the card and memory this spec leaves behind, so reruns start clean. */
+/**
+ * Drop the card and memory this spec leaves behind, so reruns start clean.
+ *
+ * Both deletes are attempted before any throw — teardown must not skip the
+ * second cleanup because the first one failed.
+ */
 async function removeRepositoryArtifacts(): Promise<void> {
   const service = createServiceRoleSupabaseClient()
-  await service
+  const cardDelete = await service
     .from('repocard')
     .delete()
     .eq('repo_owner', REPO_OWNER)
@@ -88,12 +93,25 @@ async function removeRepositoryArtifacts(): Promise<void> {
       '00000000-0000-0000-0000-000000000100',
       '00000000-0000-0000-0000-000000000101',
     ])
-  await service
+  const memoryDelete = await service
     .from('projectinfo')
     .delete()
     .eq('user_id', TEST_USER_ID)
     .eq('repo_owner', REPO_OWNER)
     .eq('repo_name', REPO_NAME)
+
+  const failures: string[] = []
+  if (cardDelete.error) {
+    failures.push(`repocard delete — ${cardDelete.error.message}`)
+  }
+  if (memoryDelete.error) {
+    failures.push(`projectinfo delete — ${memoryDelete.error.message}`)
+  }
+  if (failures.length > 0) {
+    throw new Error(
+      `Failed to remove test repository artifacts: ${failures.join('; ')}`,
+    )
+  }
 }
 
 test.describe('MCP endpoint', () => {
@@ -202,10 +220,17 @@ test.describe('MCP endpoint', () => {
   // The idempotent re-call: the same add answers ok with the repository in
   // `skipped`, never a second card.
   test('skips a repository that is already placed', async ({ request }) => {
-    // Arrange — the repository is on the board already
-    await callMcpTool(request, 'add_repository_to_board', {
+    // Arrange — the repository is on the board already; the first call must
+    // actually have placed it, or the skip below proves nothing
+    const placed = await callMcpTool(request, 'add_repository_to_board', {
       repo: 'testuser/private-project',
       board: BOARD_NAME,
+    })
+    expect(placed).toMatchObject({
+      ok: true,
+      addedCount: 1,
+      cards: [{ repoOwner: 'testuser', repoName: 'private-project' }],
+      skipped: [],
     })
 
     // Act

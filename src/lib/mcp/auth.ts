@@ -25,8 +25,12 @@ function deny(
 ): Response {
   return Response.json(mcpError(code, error), {
     status,
-    // Auth material went through this response — never let a cache hold it
-    headers: { 'cache-control': 'no-store' },
+    headers: {
+      // Auth material went through this response — never let a cache hold it
+      'cache-control': 'no-store',
+      // RFC 9110: a 401 must name the scheme that would authorize the retry.
+      ...(status === 401 ? { 'www-authenticate': 'Bearer' } : {}),
+    },
   })
 }
 
@@ -41,7 +45,8 @@ function deny(
  * @param expectedToken - `GITBOX_MCP_TOKEN` as configured; absent or empty
  *   means the endpoint is disabled.
  * @returns `null` when the bearer matches, else the HTTP refusal
- *   (503 when the endpoint is not configured, 401 on a missing or wrong bearer).
+ *   (503 when the endpoint is not configured, 401 on a missing or wrong
+ *   bearer — carrying `WWW-Authenticate: Bearer`).
  * @example
  * const denied = checkMcpAuth(request, env.GITBOX_MCP_TOKEN)
  * if (denied) return denied

@@ -6,9 +6,10 @@
  * that client, so every query re-applies the owner filter in code — the same
  * invariants the server actions enforce.
  *
- * Write tools delegate to the exported cores ({@link addRepositoriesToBoardCore},
- * {@link writeRepositoryMemory}) rather than duplicating action logic, so the
- * MCP path cannot drift from what the UI does.
+ * Write tools reuse the action cores and invariants
+ * ({@link addRepositoriesToBoardCore}, the version-checked `projectinfo`
+ * merge) rather than duplicating action logic, so the MCP path cannot
+ * drift from what the UI does.
  */
 
 import type { McpServer } from '@modelcontextprotocol/server'
@@ -17,10 +18,10 @@ import { z } from 'zod'
 
 import {
   normalizeLinks,
-  writeRepositoryMemory,
   type ProjectLink,
 } from '@/lib/actions/project-info-core'
 import {
+  isUniqueViolation,
   lookupRepoPlacements,
   type BoardPlacement,
 } from '@/lib/actions/repo-card-duplicates'
@@ -46,7 +47,11 @@ export interface McpToolContext {
   supabase: SupabaseClient<Database>
   /** `GITBOX_MCP_OWNER_ID`: the user every read and write is scoped to. */
   ownerId: string
-  /** `GITBOX_MCP_GITHUB_TOKEN`: bearer for GitHub verification calls. */
+  /**
+   * `GITBOX_MCP_GITHUB_TOKEN`: bearer for GitHub verification calls.
+   * Always set when the context comes from the route — the endpoint
+   * refuses to serve without it, so the cookie fallback never runs.
+   */
   githubToken?: string
 }
 
@@ -438,8 +443,12 @@ export async function addRepositoryToBoard(
       boardId: resolved.board.id,
       // The route's maxDuration is 30s — stop dispatching backfill GitHub
       // calls past this budget (in-flight ones finish; the rest sort first
-      // on the next call).
-      maxBackfillMs: 20_000,
+      // on the next call). Worst case: the budget runs out as the last
+      // in-flight fetch starts, and one GitHub fetch can take the full 10s
+      // axios timeout → 12s + 10s ≈ 22s, which leaves ~8s for the
+      // placement lookup, the GitHub confirm and the insert that still
+      // have to run inside maxDuration.
+      maxBackfillMs: 12_000,
       ...(args.statusId ? { statusId: args.statusId } : {}),
       // Only owner and name are sent: the schema's `id` is optional and the
       // core fills it (and the `meta` snapshot) from GitHub's own answer.
@@ -464,10 +473,9 @@ export async function addRepositoryToBoard(
     if (error instanceof ActionUserError) {
       return mcpError('OPERATION_FAILED', error.message)
     }
-    return mcpError(
-      'INTERNAL',
-      error instanceof Error ? error.message : 'Failed to add repository',
-    )
+    // Anything else is an internal failure (a raw DB error would leak
+    // schema detail); the core already logged the original error.
+    return mcpError('INTERNAL', 'Failed to add repository')
   }
 }
 
@@ -528,10 +536,12 @@ async function readMemoryLinkSnapshot(
  * The update carries the `updated_at` it read as the version guard (a
  * trigger bumps it on every write): a concurrent write leaves the update
  * unmatched, and the merge re-reads and retries, `CONFLICT` after three
- * lost rounds. A repository with no row gets one — `note: ''` plus the
- * links, a creation that cannot clobber a note. Links dedupe by `url`
- * (first occurrence wins). `type` accepts any non-empty string — custom
- * user presets are legitimate.
+ * lost rounds. A repository with no row gets one through a plain insert —
+ * `note: ''` plus the links; a row created concurrently makes the insert
+ * fail (23505) rather than overwrite, and the merge falls back to the
+ * version-checked update. Links dedupe by `url` (first occurrence wins).
+ * `type` accepts any non-empty string — custom user presets are
+ * legitimate.
  *
  * @param ctx - Per-request MCP context.
  * @param args.repo - `owner/name`.
@@ -554,12 +564,20 @@ export async function addProjectLinks(
   if ('ok' in parsed) return parsed
 
   // Validate every link before touching the database
-  for (const link of args.links) {
+  for (const [index, link] of args.links.entries()) {
     if (typeof link.type !== 'string' || link.type.trim().length === 0) {
       return mcpError(
         'INVALID_LINK_TYPE',
         'Each link needs a non-empty "type" — any preset value or a custom one',
         { hint: 'call list_link_presets to see valid types' },
+      )
+    }
+    // projectLinkUrlSchema accepts '' (its other callers filter empties
+    // out), but this tool only adds links — an empty url is a mistake.
+    if (link.url === '') {
+      return mcpError(
+        'INVALID_LINK_URL',
+        `links[${index}] (type "${link.type}"): "url" must not be empty`,
       )
     }
     const urlResult = projectLinkUrlSchema.safeParse(link.url)
@@ -577,37 +595,66 @@ export async function addProjectLinks(
   const info = await readCardProjectInfo(ctx, found.placement.cardId)
   if ('ok' in info) return info
 
-  // No memory row yet: create it. `note: ''` plus the links cannot clobber
-  // a note — there is none to lose.
+  let snapshot: MemoryLinkSnapshot
+
   if (info.memoryId === null) {
+    // No memory row yet: create it with a plain insert — not the upsert of
+    // writeRepositoryMemory, whose ON CONFLICT update would send `note: ''`
+    // over a note a concurrent write just saved. An insert that loses the
+    // race only fails; it never overwrites.
     const merged = mergeLinksByUrl(info.links, args.links)
-    const written = await writeRepositoryMemory(
-      ctx.supabase,
-      ctx.ownerId,
-      info.repository,
-      {
+    const { error: insertError } = await ctx.supabase
+      .from('projectinfo')
+      .insert({
+        repo_owner: info.repository.repo_owner,
+        repo_name: info.repository.repo_name,
+        // A null or missing id must not overwrite a confirmed one on the
+        // conflicting row — leave the column out so the row keeps it.
+        ...(typeof info.repository.github_repo_id === 'number'
+          ? { github_repo_id: info.repository.github_repo_id }
+          : {}),
         user_id: ctx.ownerId,
         note: '',
         // Plain literals so `links` satisfies the `Json` column type
         links: merged.map((link) => ({ type: link.type, url: link.url })),
-      },
-      ctx.githubToken,
-    )
-    if (written.error) {
-      return mcpError('OPERATION_FAILED', written.error.message)
-    }
-    return {
-      ok: true,
-      repo: args.repo,
-      cardId: found.placement.cardId,
-      links: merged,
-    }
-  }
+      })
 
-  let snapshot: MemoryLinkSnapshot = {
-    id: info.memoryId,
-    links: info.links,
-    updatedAt: info.updatedAt,
+    if (!insertError) {
+      return {
+        ok: true,
+        repo: args.repo,
+        cardId: found.placement.cardId,
+        links: merged,
+      }
+    }
+    if (!isUniqueViolation(insertError)) {
+      // Fixed message: a raw PostgREST error would leak schema detail.
+      return mcpError('OPERATION_FAILED', 'Failed to write project links')
+    }
+
+    // 23505: a concurrent write created the row between the read and this
+    // insert. Merge into it through the same version-checked update path —
+    // the retry never sends `note`, so what the other write saved survives.
+    const reread = await readCardProjectInfo(ctx, found.placement.cardId)
+    if ('ok' in reread) return reread
+    if (reread.memoryId === null) {
+      // The conflicting row is already gone — same answer the retry limit gives
+      return mcpError(
+        'CONFLICT',
+        'The project info changed while the links were merged — run the call again',
+      )
+    }
+    snapshot = {
+      id: reread.memoryId,
+      links: reread.links,
+      updatedAt: reread.updatedAt,
+    }
+  } else {
+    snapshot = {
+      id: info.memoryId,
+      links: info.links,
+      updatedAt: info.updatedAt,
+    }
   }
 
   for (let attempt = 0; attempt < LINK_MERGE_MAX_ATTEMPTS; attempt++) {
@@ -667,11 +714,22 @@ async function runTool(
   tool: string,
   run: () => Promise<McpToolResult>,
 ) {
-  const result = await run()
+  let result: McpToolResult
+  let thrownMessage: string | undefined
+  try {
+    result = await run()
+  } catch (error) {
+    // A tool that threw instead of refusing: answer the generic envelope —
+    // a raw error message could leak schema detail to the agent.
+    thrownMessage = error instanceof Error ? error.message : String(error)
+    result = mcpError('INTERNAL', 'The tool failed — run the call again')
+  }
   logSecurityEvent('mcp_tool_call', {
     tool,
     userId: ctx.ownerId,
     ok: result.ok,
+    // The thrown detail stays in the audit trail (Sentry), never in the reply.
+    ...(thrownMessage !== undefined ? { error: thrownMessage } : {}),
   })
   return {
     content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
